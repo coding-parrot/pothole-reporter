@@ -1,0 +1,19 @@
+name = "pothole-detect"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+# Device registrations, per-device daily quotas, replay markers and the monthly
+# counter all live here. Everything is short-lived except the registrations.
+[[kv_namespaces]]
+binding = "DEVICES"
+id = "REPLACE_WITH_KV_ID"
+
+[vars]
+DAILY_QUOTA = "200"
+# The ceiling that makes a viral week survivable. Roughly: images x 2 model calls.
+MONTHLY_IMAGE_CAP = "50000"
+
+# Secrets, set with `wrangler secret put NAME` and never committed:
+#   OPENAI_API_KEY          the account that pays for detection
+#   PLAY_INTEGRITY_PROJECT  optional, e.g. projects/123456789
+#   PLAY_INTEGRITY_TOKEN    optional, OAuth token for the Play Integrity API

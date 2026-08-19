@@ -117,7 +117,42 @@ Decide whether the photo clearly shows a pothole on a road surface.
     },
   };
 
-  // ---------- OpenAI ----------
+  // ---------- detection service ----------
+  // The point of the hosted service: a citizen reports a pothole without owning an
+  // OpenAI account. Their own key still works and takes priority, because someone who
+  // has one should not be spending the operator's budget or be bound by its quota.
+  const SERVICE_URL = (localStorage.getItem("service_url") || "https://pothole-detect.gauravsen.workers.dev").replace(/\/$/, "");
+  const usingService = () => !S.key;
+
+  // An install signs every request with a key it generated itself and never sends.
+  // This does not prove the caller is honest, and is not meant to: it is what makes a
+  // per-device quota and a revocation handle possible at all.
+  const KEYPAIR_STORE = "device_keypair";
+  let deviceKeys = null;
+
+  async function deviceIdentity() {
+    if (deviceKeys) return deviceKeys;
+    const cached = await op("readonly", (st) => st.get(KEYPAIR_STORE), "identity").catch(() => null);
+    if (cached && cached.privateKey) {
+      deviceKeys = cached;
+      return deviceKeys;
+    }
+    const pair = await crypto.subtle.generateKey(
+      { name: "ECDSA", namedCurve: "P-256" }, false, ["sign", "verify"]);
+    const raw = await crypto.subtle.exportKey("raw", pair.publicKey);
+    const publicKey = btoa(String.fromCharCode(...new Uint8Array(raw)));
+    const res = await fetchWithTimeout(`${SERVICE_URL}/v1/register`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ publicKey }),
+    }, 15000);
+    if (!res.ok) throw new Error("Could not set this device up with the detection service.");
+    const { device_id } = await res.json();
+    // The private key is stored non-extractable: it cannot be read back out, only used.
+    deviceKeys = { key: KEYPAIR_STORE, privateKey: pair.privateKey, publicKey, deviceId: device_id };
+    await op("readwrite", (st) => st.put(deviceKeys), "identity");
+    return deviceKeys;
+  }
+
   const OAI_URL = "https://api.openai.com/v1/responses";
   const authHeaders = () => ({ "Content-Type": "application/json", "Authorization": `Bearer ${S.key}` });
 
@@ -291,7 +326,57 @@ Decide whether the photo clearly shows a pothole on a road surface.
   const emitVerdict = (v) => { try { window.dispatchEvent(new CustomEvent("pipeline-verdict", { detail: v })); } catch (e) {} };
 
   let streamBroken = false;
+  // Sends the image to the hosted service instead of OpenAI, signed so the service can
+  // hold this install to a quota. Errors come back already phrased for a human, so they
+  // are surfaced as-is rather than reworded here.
+  async function analyzeViaService(dataUrl) {
+    const id = await deviceIdentity();
+    const b64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    const imageHash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    const timestamp = String(Date.now());
+    const sig = await crypto.subtle.sign(
+      { name: "ECDSA", hash: "SHA-256" }, id.privateKey,
+      new TextEncoder().encode(`${id.deviceId}.${timestamp}.${imageHash}`));
+    const headers = {
+      "content-type": "application/json",
+      "x-device-id": id.deviceId,
+      "x-timestamp": timestamp,
+      "x-signature": btoa(String.fromCharCode(...new Uint8Array(sig))),
+    };
+    const attestation = await playIntegrityToken(`${id.deviceId}.${timestamp}`);
+    if (attestation) headers["x-integrity-token"] = attestation;
+
+    const res = await fetchWithTimeout(`${SERVICE_URL}/v1/detect`, {
+      method: "POST", headers, body: JSON.stringify({ image: dataUrl, lang: LANG() }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const e = new Error(body.message || "The detection service could not check that image.");
+      // A spent quota or a rejected build will not fix itself on the next frame.
+      if (["daily_limit_reached", "service_budget_reached", "failed_integrity"].includes(body.error)) e.fatal = true;
+      throw e;
+    }
+    return body;
+  }
+
+  // Present only once the app ships through Play; until then the service applies the
+  // stricter unattested quota rather than refusing outright.
+  async function playIntegrityToken(nonce) {
+    try {
+      const P = window.Capacitor && Capacitor.Plugins;
+      if (!P || !P.PlayIntegrity) return null;
+      const r = await P.PlayIntegrity.requestIntegrityToken({ nonce });
+      return r && r.token ? r.token : null;
+    } catch (e) { return null; }
+  }
+
   async function analyzeImage(dataUrl, prompt, name, schema, model, onEarly, stopWhenRejected) {
+    // A user with no key of their own goes through the hosted service, which
+    // returns a finished verdict rather than a stream, so the early-abort path
+    // below does not apply to them.
+    if (usingService() && name === "assessment") return analyzeViaService(dataUrl);
     const body = {
       model,
       input: [{ role: "user", content: [
@@ -698,7 +783,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   function idb() {
     return new Promise((resolve, reject) => {
       if (_db) return resolve(_db);
-      const req = indexedDB.open("potholes", 3);
+      const req = indexedDB.open("potholes", 4);
       req.onupgradeneeded = () => {
         const d = req.result;
         if (!d.objectStoreNames.contains("reports")) d.createObjectStore("reports", { keyPath: "id", autoIncrement: true });
@@ -708,6 +793,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
         if (!d.objectStoreNames.contains("drives")) d.createObjectStore("drives", { keyPath: "id" });
         // Continuous footage: capture stops guessing an interval, and a drive can be
         // re-analysed later, more densely or by a better model. Discarded frames are gone.
+        if (!d.objectStoreNames.contains("identity")) d.createObjectStore("identity", { keyPath: "key" });
         if (!d.objectStoreNames.contains("footage")) {
           const f = d.createObjectStore("footage", { keyPath: "key" });
           f.createIndex("by_drive", "drive_id");
@@ -989,7 +1075,12 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     const method = ((opts && opts.method) || "GET").toUpperCase();
     let m;
     if (path === "/api/health") {
-      return { ai_configured: !!S.key, provider: "openai", delivery: "gmail_compose", email_configured: true };
+      // Detection is available either way now: with a personal key it goes straight to
+      // OpenAI, without one it goes through the hosted service. The old flag meant
+      // "has a key", which would now wrongly tell a public user they are not set up.
+      return { ai_configured: true, using_service: usingService(), service_url: SERVICE_URL,
+               provider: usingService() ? "service" : "openai",
+               delivery: "gmail_compose", email_configured: true };
     }
     if (path === "/api/reports" && method === "GET") {
       return (await allReports()).sort((a, b) => b.id - a.id).map(toDict);

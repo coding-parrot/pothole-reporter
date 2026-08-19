@@ -130,6 +130,7 @@
     <div class="card">
       <div class="verdict" id="settingsTitle">Settings</div>
       <div class="meta" id="settingsHint" style="margin-bottom:6px"></div>
+      <div class="meta" id="serviceNote" style="margin-bottom:6px"></div>
       <label id="langLabel">Language / ಭಾಷೆ</label>
       <select id="setLang" style="width:100%;background:#131417;color:#f2f2f4;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit">
         <option value="en">English</option>
@@ -185,12 +186,14 @@ const I18N = {
     no_reports: "No reports yet. Go find a pothole.",
     banner_setup: "Setup needed: tap the gear icon and paste your OpenAI API key.",
     settings_title: "Settings",
-    key_label: "OpenAI API key (stored only on this device)",
+    key_label: "OpenAI API key (optional, stored only on this device)",
+    using_service: "Detection is free through the shared service, with a daily limit per phone. Leave this empty to use it.",
+    using_own_key: "Using your own OpenAI key: no daily limit, and the cost lands on your account. Clear the box to go back to the free service.",
     name_label: "Your name (signs the complaints)",
     debug_label: "Debug mode: keep the drive video after analysing it",
     settings_note: "Each photo you capture is sent to OpenAI for detection, so it leaves your phone and is processed outside India. Road photos can contain number plates and faces. Location is sent to OpenStreetMap and the Karnataka state GIS to find the address and the responsible office. Complaints are always created as email drafts addressed to the concerned officer. Nothing sends until you press send in your email app.",
     wipe_btn: "Delete all reports and photos",
-    welcome_hint: "Welcome. Paste your OpenAI API key to enable pothole detection. It is stored only on this device.",
+    welcome_hint: "Welcome. You can start reporting straight away. A key is only needed if you want unlimited checks billed to your own account.",
     back: "Back", save: "Save", discard: "Discard", del: "Delete", email_btn: "Email", stop: "&#9632; Stop", working: "Working...",
     chip_draft: "Draft", chip_sent: "Sent", chip_queued: "Opened in email", chip_rejected: "Not a pothole",
     chip_unrouted: "Outside coverage",
@@ -282,12 +285,14 @@ const I18N = {
     no_reports: "ಇನ್ನೂ ವರದಿಗಳಿಲ್ಲ. ಗುಂಡಿ ಹುಡುಕಲು ಹೊರಡಿ.",
     banner_setup: "ಸೆಟಪ್ ಅಗತ್ಯ: ಗಿಯರ್ ಐಕಾನ್ ಒತ್ತಿ ನಿಮ್ಮ OpenAI API ಕೀ ಅಂಟಿಸಿ.",
     settings_title: "ಸೆಟ್ಟಿಂಗ್ಸ್",
-    key_label: "OpenAI API ಕೀ (ಈ ಸಾಧನದಲ್ಲಿ ಮಾತ್ರ ಸಂಗ್ರಹ)",
+    key_label: "OpenAI API ಕೀ (ಐಚ್ಛಿಕ, ಈ ಸಾಧನದಲ್ಲಿ ಮಾತ್ರ ಸಂಗ್ರಹ)",
+    using_service: "ಹಂಚಿಕೆಯ ಸೇವೆಯ ಮೂಲಕ ಪತ್ತೆ ಉಚಿತ, ಪ್ರತಿ ಫೋನ್‌ಗೆ ದೈನಂದಿನ ಮಿತಿ ಇದೆ. ಇದನ್ನು ಖಾಲಿ ಬಿಡಿ.",
+    using_own_key: "ನಿಮ್ಮ ಸ್ವಂತ ಕೀ ಬಳಸುತ್ತಿದೆ: ಮಿತಿ ಇಲ್ಲ, ವೆಚ್ಚ ನಿಮ್ಮ ಖಾತೆಗೆ.",
     name_label: "ನಿಮ್ಮ ಹೆಸರು (ದೂರುಗಳಿಗೆ ಸಹಿ)",
     debug_label: "ಡೀಬಗ್ ಮೋಡ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ಡ್ರೈವ್ ವಿಡಿಯೋ ಉಳಿಸಿ",
     settings_note: "ನೀವು ತೆಗೆದ ಪ್ರತಿ ಫೋಟೋ ಪತ್ತೆಗಾಗಿ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ಅದು ನಿಮ್ಮ ಫೋನ್ ಬಿಟ್ಟು ಭಾರತದ ಹೊರಗೆ ಸಂಸ್ಕರಣೆಯಾಗುತ್ತದೆ. ರಸ್ತೆ ಫೋಟೋಗಳಲ್ಲಿ ವಾಹನ ಸಂಖ್ಯೆ ಮತ್ತು ಮುಖಗಳು ಇರಬಹುದು. ದೂರುಗಳು ಯಾವಾಗಲೂ ಇಮೇಲ್ ಡ್ರಾಫ್ಟ್ ಆಗಿ ರಚನೆಯಾಗುತ್ತವೆ. ನೀವು ಕಳುಹಿಸುವವರೆಗೆ ಏನೂ ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ.",
     wipe_btn: "ಎಲ್ಲಾ ವರದಿ ಮತ್ತು ಫೋಟೋಗಳನ್ನು ಅಳಿಸಿ",
-    welcome_hint: "ಸ್ವಾಗತ. ಗುಂಡಿ ಪತ್ತೆಗೆ ನಿಮ್ಮ OpenAI API ಕೀ ಅಂಟಿಸಿ. ಇದು ಈ ಸಾಧನದಲ್ಲಿ ಮಾತ್ರ ಸಂಗ್ರಹವಾಗುತ್ತದೆ.",
+    welcome_hint: "ಸ್ವಾಗತ. ಈಗಲೇ ವರದಿ ಮಾಡಬಹುದು. ಅನಿಯಮಿತ ಪರಿಶೀಲನೆಗೆ ಮಾತ್ರ ಕೀ ಬೇಕು.",
     back: "ಹಿಂದೆ", save: "ಉಳಿಸಿ", discard: "ತ್ಯಜಿಸಿ", del: "ಅಳಿಸಿ", email_btn: "ಇಮೇಲ್", stop: "&#9632; ನಿಲ್ಲಿಸಿ", working: "ನಡೆಯುತ್ತಿದೆ...",
     chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಕಳುಹಿಸಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ಗುಂಡಿ ಅಲ್ಲ",
     chip_unrouted: "ವ್ಯಾಪ್ತಿಯ ಹೊರಗೆ",
@@ -432,10 +437,7 @@ async function loadHealth() {
   try {
     health = await api("/api/health");
     const b = $("banner");
-    if (!health.ai_configured) {
-      b.textContent = t("banner_setup");
-      b.style.display = "block";
-    } else { b.style.display = "none"; }
+    b.style.display = "none";   // detection works with or without a personal key
   } catch (e) {}
 }
 
@@ -1449,6 +1451,7 @@ window.openSettings = (firstRun) => {
   $("setRecord").checked = localStorage.getItem("record_video") !== "0";   // on unless turned off
   $("setLang").value = LANG;
   $("settingsHint").textContent = firstRun ? t("welcome_hint") : "";
+  $("serviceNote").innerHTML = localStorage.getItem("openai_key") ? t("using_own_key") : t("using_service");
   show("settings");
 };
 $("gearBtn").onclick = () => openSettings(false);
