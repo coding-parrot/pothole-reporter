@@ -175,7 +175,10 @@ const ASSESS_SCHEMA = {
     description: { type: "string" },
   },
 };
-const DETECT_PROMPT = `You are inspecting a road photo for a civic complaint app.
+// Byte-identical to the app's DETECT_PROMPT in static/standalone.js. A user on the
+// hosted service and a user with their own key must get the same verdict on the same
+// photo; two prompts means two accuracies in one product.
+const DETECT_PROMPT = `You are inspecting a road photo taken in Bengaluru for a civic complaint app.
 
 Decide whether the photo clearly shows a pothole on a road surface.
 - Classify size like pizzas: small (below 30 cm wide), medium (30 to 60 cm), large (above 60 cm or a cluster).

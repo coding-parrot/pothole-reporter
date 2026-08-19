@@ -61,3 +61,21 @@ npm test
 Runs the worker's real logic against an in-memory KV and a stubbed OpenAI, covering
 forged and replayed signatures, stale timestamps, oversized images, the road gate
 firing before the expensive call, and a device running out of allowance.
+
+## Keeping the two builds honest
+
+The worker's `DETECT_PROMPT` and `ASSESS_SCHEMA` are byte-identical to the app's in
+`static/standalone.js`, and they must stay that way. A user on the hosted service and a
+user with their own key are running the same product, and two prompts would mean two
+accuracies in one app, with no way for either user to know which they got. The confidence
+gate lives only in the app, so there is one gate in one place; the worker returns the raw
+verdict.
+
+Verified before this branch shipped: the cheap `gpt-5-nano` road gate accepted 18 of 18
+real road photos in `eval/images/seed`, including every dashcam frame. That matters
+because a false negative there is invisible to the user: their pothole is refused before
+the detector ever sees it.
+
+One difference that is deliberate. Drive Mode on a personal key streams the response and
+stops as soon as a frame is known to be rejected. The service returns a finished verdict,
+so service users do not get that saving. Streaming it through the worker would restore it.
