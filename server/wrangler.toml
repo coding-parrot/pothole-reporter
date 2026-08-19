@@ -8,10 +8,21 @@ compatibility_date = "2026-08-01"
 binding = "DEVICES"
 id = "REPLACE_WITH_KV_ID"
 
+# Reports, confirmations and the contract table. D1 rather than KV because dedup and
+# the city dashboard are both range queries, which KV cannot do.
+[[d1_databases]]
+binding = "DB"
+database_name = "pothole"
+database_id = "REPLACE_WITH_D1_ID"
+
 [vars]
 DAILY_QUOTA = "200"
 # The ceiling that makes a viral week survivable. Roughly: images x 2 model calls.
 MONTHLY_IMAGE_CAP = "50000"
+# Two reports closer than this, on the same road, are treated as one pothole.
+DEDUPE_METRES = "20"
+# A pothole reported this long ago is assumed fixed or worth reporting again.
+DEDUPE_DAYS = "120"
 
 # Secrets, set with `wrangler secret put NAME` and never committed:
 #   OPENAI_API_KEY          the account that pays for detection

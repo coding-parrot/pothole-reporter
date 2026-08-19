@@ -79,3 +79,40 @@ the detector ever sees it.
 One difference that is deliberate. Drive Mode on a personal key streams the response and
 stops as soon as a frame is known to be rejected. The service returns a finished verdict,
 so service users do not get that saving. Streaming it through the worker would restore it.
+
+## What the service holds
+
+Three tables, in `schema.sql`. A row is a road defect and the pseudonymous install that
+saw it. There is no name, no phone, no email and no account anywhere in it, and
+`device_id` is written but never returned by any read endpoint, because one install's
+reports over time are a movement trace even though a single one is not.
+
+- `POST /v1/report` records a confirmed pothole and answers whether somebody already
+  reported it. Two reports within `DEDUPE_METRES` (20 m) and `DEDUPE_DAYS` (120 days) are
+  one pothole. The bounding box is widened by 1/cos(latitude), or the search would be
+  narrower east to west than north to south, and the exact circle is applied afterwards
+  because a box is wider than a circle at its corners.
+- `GET /v1/city?lgd=` returns everything reported in one local body, or `?lat=&lng=` with
+  a radius when there is no body code.
+- `GET /v1/tender?address=&lgd=` does the contract match that used to run on the phone.
+
+`seen_count` means how many separate installs saw a pothole, which is why confirmations
+are a separate table with a primary key on (report, device): one person cannot raise it by
+reporting twice, and the install that created a report is recorded as having seen it, or
+its own second report would read as a second person.
+
+## Loading the contracts
+
+    node tools/import-tenders.mjs ../data/tenders-karnataka.json > /tmp/tenders.sql
+    wrangler d1 execute pothole --file=/tmp/tenders.sql --remote
+
+13,577 citable contracts of 42,283. The rest belong to bodies with no published address or
+to agencies a municipal officer cannot enforce against, so they could never be named.
+
+## Deploying
+
+    wrangler d1 create pothole            # put the id in wrangler.toml
+    wrangler kv namespace create DEVICES  # put the id in wrangler.toml
+    wrangler d1 execute pothole --file=schema.sql --remote
+    wrangler secret put OPENAI_API_KEY
+    wrangler deploy

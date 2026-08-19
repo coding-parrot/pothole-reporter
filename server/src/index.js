@@ -198,6 +198,284 @@ const vision = (model, dataUrl, prompt, name, schema) => ({
 });
 
 // ---------------------------------------------------------------- routes
+// ---------- contracts ----------
+// Moved off the phone. The app used to bundle 9.5 MB of contracts and run this match
+// itself; here the data can be refreshed without an app release, and the shortlist is a
+// SQL lookup on the body that owns the road rather than a scan.
+
+const TENDER_STOP = new Set(["road", "roads", "street", "cross", "main", "layout", "bengaluru", "bangalore",
+    "karnataka", "india", "ward", "city", "corporation", "south", "north", "east",
+    "west", "central", "urban", "sector", "stage", "block", "phase"]);
+
+// Only the officer receiving the letter can enforce their own body's works. A
+// Commissioner has no standing over a state PWD, panchayat or irrigation contract, so
+// those are not candidates at all. Bengaluru's five corporations inherited BBMP's works,
+// which the award records still file under BBMP zones, so they share that legacy pool.
+const BLR_BODIES = new Set(["305850", "305851", "305852", "305853", "305854"]);
+
+const TENDER_SCHEMA = {
+  type: "object", additionalProperties: false,
+  required: ["match_index", "confidence"],
+  properties: {
+    match_index: { type: ["integer", "null"] },
+    confidence: { type: "number" },
+  },
+};
+
+async function handleTender(request, env) {
+  const url = new URL(request.url);
+  const address = (url.searchParams.get("address") || "").trim();
+  const lgd = (url.searchParams.get("lgd") || "").trim();
+  if (!address || !lgd) return json({ tender: null, reason: "need address and lgd" });
+
+  const codes = BLR_BODIES.has(lgd) ? [lgd, "BLR"] : [lgd];
+  const { results: pool } = await env.DB.prepare(
+    `SELECT tn, title, loc, published, contractor FROM tenders
+      WHERE body_lgd IN (${codes.map((_, i) => "?" + (i + 1)).join(",")})`
+  ).bind(...codes).all();
+  if (!pool || !pool.length) return json({ tender: null, reason: "no contracts for this body" });
+
+  const tokens = new Set();
+  for (const part of address.split(",").slice(0, 4)) {
+    for (const w of part.trim().toLowerCase().replace(/[()]/g, " ").split(/\s+/)) {
+      if (w.length > 2 && !TENDER_STOP.has(w)) tokens.add(w);
+    }
+  }
+  if (!tokens.size) return json({ tender: null, reason: "no usable words in the address" });
+
+  // Scored on the work description alone: loc is the body's own name, identical in every
+  // one of its rows, so it cannot distinguish one of its roads from another.
+  const hays = pool.map((t) => (t.title || "").toLowerCase());
+
+  // The body's own name is not evidence about which of its roads this is, and it appears
+  // in some titles too, so counting alone will not remove it.
+  const bodyWords = new Set();
+  for (const w of (pool[0].loc || "").toLowerCase().split(/[^a-z]+/)) {
+    if (w.length > 2) bodyWords.add(w);
+  }
+  for (const w of bodyWords) tokens.delete(w);
+  if (!tokens.size) return json({ tender: null, reason: "only the town's own name matched" });
+  // Weight a word by how rare it is inside this body's own contracts. A word in none of
+  // them is no evidence; a word in most of them (the town's own name) does not tell one
+  // road from another. Only the words in between say which stretch this is.
+  const idf = new Map();
+  for (const tok of tokens) {
+    let df = 0;
+    for (const hay of hays) if (hay.includes(tok)) df++;
+    // The "more than half" cut only means something once there are enough contracts to
+    // count: in a town with three, every matching word exceeds half and the town could
+    // never match anything. A word in every contract still carries no information.
+    if (df === 0) continue;
+    if (pool.length > 1 && df === pool.length) continue;
+    if (pool.length >= 8 && df > pool.length * 0.5) continue;
+    idf.set(tok, Math.log((pool.length + 1) / (df + 0.5)));
+  }
+  if (!idf.size) return json({ tender: null, reason: "nothing in the address narrows this town" });
+
+  const scored = [];
+  for (let i = 0; i < pool.length; i++) {
+    let score = 0;
+    for (const [tok, w] of idf) if (hays[i].includes(tok)) score += w;
+    if (score > 0) scored.push([score, pool[i]]);
+  }
+  scored.sort((a, b) => b[0] - a[0]);
+  const candidates = scored.slice(0, 25).map((x) => x[1]);
+  if (!candidates.length) return json({ tender: null, reason: "no candidate contracts" });
+
+  const listing = candidates.map((t, i) =>
+    `${i}: ${(t.title || "").slice(0, 150)} | ${t.loc} | contractor: ${t.contractor || "not named"} | published: ${t.published}`
+  ).join("\n");
+  const prompt = `You match a pothole's location to road-work contracts awarded by the
+local body that owns this road. Every candidate below was awarded by that same body, so
+the town is already correct and your only job is whether the work covers this stretch.
+The pothole's reverse-geocoded address is:
+${address}
+
+Candidate contracts (index: work description | division | contractor | published):
+${listing}
+
+Pick the single contract whose work description covers this exact road stretch or
+its immediate locality (same layout, ward or named road). Road names repeat across
+localities within a town, so the locality or ward context must agree, not just the
+road name. A ward-wide maintenance or pothole-filling contract for the pothole's own
+locality or ward is a valid match. If no candidate clearly covers this location,
+match_index must be null. confidence is your 0 to 1 confidence in the match.`;
+
+  let m;
+  try {
+    // Picking one contract out of 25 near-identical descriptions, in a letter that names
+    // a real company, is worth the reasoning budget a single photo verdict is not.
+    m = await openai(env, {
+      model: DETECT_MODEL, input: prompt,
+      reasoning: { effort: "medium" },
+      text: fmt("tender_match", TENDER_SCHEMA),
+    });
+  } catch (e) { return json({ tender: null, reason: "match unavailable" }); }
+
+  if (!m || m.match_index === null || m.match_index < 0
+      || m.match_index >= candidates.length || m.confidence < 0.6) {
+    return json({ tender: null, reason: "no confident match" });
+  }
+  const t = candidates[m.match_index];
+
+  // Award records carry no defect liability period, so this is inferred from how recent
+  // the tender is and must stay worded as a possibility.
+  let warranty = "recorded for this stretch", warranty_code = "record";
+  const dm = /^(\d{2})-(\d{2})-(\d{4})/.exec(t.published || "");
+  if (dm) {
+    const age = (Date.now() - new Date(`${dm[3]}-${dm[2]}-${dm[1]}`).getTime()) / (365.25 * 24 * 3600 * 1000);
+    if (age <= 1) { warranty = "within the defect liability period"; warranty_code = "dlp"; }
+    else if (age <= 3) { warranty = "within the maintenance period"; warranty_code = "maint"; }
+  }
+  return json({
+    tender: {
+      tender_number: t.tn, contractor: t.contractor || null, title: t.title,
+      published: t.published, warranty, warranty_code, confidence: m.confidence,
+    },
+  });
+}
+
+// ---------- reports, dedup and the city view ----------
+// A pothole is a place, not a person. These endpoints hold road defects and the
+// pseudonymous install that saw one. device_id is written but never read back out.
+
+const EARTH_R = 6371000;
+function metresBetween(lat1, lng1, lat2, lng2) {
+  const rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * EARTH_R * Math.asin(Math.sqrt(a));
+}
+
+// A degree of longitude shrinks with latitude, so the box has to be widened by
+// 1/cos(lat) or the search is narrower east-west than it is north-south.
+function boundingBox(lat, lng, metres) {
+  const dLat = (metres / EARTH_R) * (180 / Math.PI);
+  const dLng = dLat / Math.max(Math.cos(lat * Math.PI / 180), 1e-6);
+  return [lat - dLat, lat + dLat, lng - dLng, lng + dLng];
+}
+
+const num = (v, fallback) => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : fallback);
+const validLatLng = (lat, lng) =>
+  Number.isFinite(lat) && Number.isFinite(lng)
+  && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+
+// The nearest existing report within the dedupe radius and window, or null.
+async function findExisting(env, lat, lng) {
+  const metres = num(env.DEDUPE_METRES, 20);
+  const days = num(env.DEDUPE_DAYS, 120);
+  const since = Date.now() - days * 86400000;
+  const [minLat, maxLat, minLng, maxLng] = boundingBox(lat, lng, metres);
+  // The index makes this a range scan; the exact circle is applied in JS afterwards,
+  // because a box is wider than a circle at the corners.
+  const { results } = await env.DB.prepare(
+    `SELECT id, lat, lng, size, confidence, created_at, seen_count
+       FROM reports
+      WHERE lat BETWEEN ?1 AND ?2 AND lng BETWEEN ?3 AND ?4 AND created_at >= ?5
+      LIMIT 50`
+  ).bind(minLat, maxLat, minLng, maxLng, since).all();
+  let best = null, bestD = Infinity;
+  for (const r of results || []) {
+    const d = metresBetween(lat, lng, r.lat, r.lng);
+    if (d <= metres && d < bestD) { best = r; bestD = d; }
+  }
+  return best ? { ...best, distance_m: Math.round(bestD) } : null;
+}
+
+async function handleReport(request, env) {
+  const body = await request.json().catch(() => null);
+  if (!body) return refuse("bad_request", "Send a JSON body.");
+  const lat = num(body.lat, NaN), lng = num(body.lng, NaN);
+  if (!validLatLng(lat, lng)) return refuse("bad_request", "A report needs valid coordinates.");
+  if (!body.image_hash) return refuse("bad_request", "A report needs the image hash.");
+
+  const deviceId = request.headers.get("x-device-id");
+  if (!deviceId) return refuse("no_device", "This install is not registered.", 401);
+
+  const existing = await findExisting(env, lat, lng);
+  if (existing) {
+    // Someone already reported this one. Record that a second install saw it, which is
+    // what makes seen_count mean "how many people", and tell the app not to file again.
+    const conf = await env.DB.prepare(
+      `INSERT OR IGNORE INTO confirmations (report_id, device_id, created_at) VALUES (?1, ?2, ?3)`
+    ).bind(existing.id, deviceId, Date.now()).run();
+    if (conf.meta && conf.meta.changes) {
+      await env.DB.prepare(`UPDATE reports SET seen_count = seen_count + 1 WHERE id = ?1`)
+        .bind(existing.id).run();
+      existing.seen_count += 1;
+    }
+    return json({
+      duplicate: true,
+      report: { id: existing.id, lat: existing.lat, lng: existing.lng, size: existing.size,
+                first_reported: existing.created_at, seen_count: existing.seen_count,
+                distance_m: existing.distance_m },
+    });
+  }
+
+  const now = Date.now();
+  const ins = await env.DB.prepare(
+    `INSERT OR IGNORE INTO reports (lat, lng, size, confidence, image_hash, device_id, lgd, town, created_at)
+     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)`
+  ).bind(lat, lng, body.size || null, num(body.confidence, null), String(body.image_hash),
+         deviceId, body.lgd ? String(body.lgd) : null, body.town || null, now).run();
+
+  if (!ins.meta || !ins.meta.changes) {
+    // Same install, same frame: a retry, not a second pothole.
+    const row = await env.DB.prepare(
+      `SELECT id, seen_count FROM reports WHERE device_id = ?1 AND image_hash = ?2`
+    ).bind(deviceId, String(body.image_hash)).first();
+    return json({ duplicate: true, resubmitted: true, report: row || null });
+  }
+  // The install that first saw it counts as having seen it. Without this row, that same
+  // install reporting the same pothole again would raise seen_count to two, and
+  // seen_count is meant to mean "how many separate people".
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO confirmations (report_id, device_id, created_at) VALUES (?1, ?2, ?3)`
+  ).bind(ins.meta.last_row_id, deviceId, now).run();
+  return json({ duplicate: false, report: { id: ins.meta.last_row_id, seen_count: 1, first_reported: now } });
+}
+
+// Everything reported in the body the citizen is standing in. No device_id, ever.
+async function handleCity(request, env) {
+  const url = new URL(request.url);
+  const lgd = url.searchParams.get("lgd");
+  const lat = num(url.searchParams.get("lat"), NaN);
+  const lng = num(url.searchParams.get("lng"), NaN);
+  const days = Math.min(num(url.searchParams.get("days"), 180), 365);
+  const since = Date.now() - days * 86400000;
+  const limit = Math.min(num(url.searchParams.get("limit"), 500), 2000);
+
+  let rows;
+  if (lgd) {
+    rows = await env.DB.prepare(
+      `SELECT id, lat, lng, size, created_at, seen_count FROM reports
+        WHERE lgd = ?1 AND created_at >= ?2 ORDER BY created_at DESC LIMIT ?3`
+    ).bind(String(lgd), since, limit).all();
+  } else if (validLatLng(lat, lng)) {
+    // No body code (rural, or the GIS was unreachable): fall back to a radius.
+    const radius = Math.min(num(url.searchParams.get("radius"), 5000), 25000);
+    const [a, b, c, d] = boundingBox(lat, lng, radius);
+    rows = await env.DB.prepare(
+      `SELECT id, lat, lng, size, created_at, seen_count FROM reports
+        WHERE lat BETWEEN ?1 AND ?2 AND lng BETWEEN ?3 AND ?4 AND created_at >= ?5
+        ORDER BY created_at DESC LIMIT ?6`
+    ).bind(a, b, c, d, since, limit).all();
+  } else {
+    return refuse("bad_request", "Pass lgd, or lat and lng.");
+  }
+
+  const results = rows.results || [];
+  const counts = { small: 0, medium: 0, large: 0 };
+  for (const r of results) if (counts[r.size] !== undefined) counts[r.size]++;
+  return json({
+    total: results.length,
+    by_size: counts,
+    reported_by_more_than_one: results.filter((r) => r.seen_count > 1).length,
+    potholes: results,
+  });
+}
+
 async function handleRegister(request, env) {
   const { publicKey } = await request.json().catch(() => ({}));
   if (typeof publicKey !== "string" || publicKey.length < 80 || publicKey.length > 200) {
@@ -280,7 +558,7 @@ export default {
       return new Response(null, { headers: {
         "access-control-allow-origin": "*",
         "access-control-allow-headers": "content-type,x-device-id,x-timestamp,x-signature,x-integrity-token",
-        "access-control-allow-methods": "POST,OPTIONS",
+        "access-control-allow-methods": "GET,POST,OPTIONS",
       } });
     }
     let res;
@@ -288,6 +566,12 @@ export default {
       res = json({ ok: true, integrity: !!env.PLAY_INTEGRITY_PROJECT });
     } else if (url.pathname === "/v1/register" && request.method === "POST") {
       res = await handleRegister(request, env);
+    } else if (url.pathname === "/v1/report" && request.method === "POST") {
+      res = await handleReport(request, env);
+    } else if (url.pathname === "/v1/city" && request.method === "GET") {
+      res = await handleCity(request, env);
+    } else if (url.pathname === "/v1/tender" && request.method === "GET") {
+      res = await handleTender(request, env);
     } else if (url.pathname === "/v1/detect" && request.method === "POST") {
       res = await handleDetect(request, env);
     } else {

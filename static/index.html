@@ -102,6 +102,7 @@
     <div class="card">
       <div class="verdict" id="dashTitle">Your contribution</div>
       <div class="meta" id="dashRange"></div>
+      <div id="cityBlock" style="margin-bottom:16px"></div>
       <div id="dashStats" class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"></div>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
@@ -202,6 +203,15 @@ const I18N = {
     road_unknown_help: "The app could not reach the state road network to check whether this is a national highway, so it will not name a city officer for a road that may not be theirs. Try again when you have a signal.",
     nat_highway: "{road} is a national highway",
     nat_highway_help: "National highways are maintained by NHAI or the state PWD National Highways division, not by the city or town body, so there is no municipal officer to address. Report it on the NHAI Rajmargyatra app or the 1033 helpline.",
+    city_loading: "Looking up what has been reported around you...",
+    city_no_fix: "No location yet, so the city view cannot load.",
+    city_own_key: "The city view needs the shared service. You are using your own OpenAI key, so only your own reports exist, on this phone.",
+    city_offline: "Could not reach the service for the city view.",
+    city_head: "{n} potholes reported in {town}, by everyone using the app",
+    city_here: "your area",
+    city_confirmed: "seen by more than one",
+    duplicate: "Already reported by someone else",
+    duplicate_help: "Somebody reported this pothole first, and {n} people have now seen it. Your sighting was added to theirs. A second letter about the same hole makes the first easier to dismiss, so the app does not send one.",
     rural_road: "This road is in {body} gram panchayat, not a town or city.",
     rural_road_help: "The pothole was confirmed, but it sits outside every urban local body, so it belongs to the state PWD or the panchayat engineering department rather than a municipality. Those are not in the directory yet, so no complaint has been addressed. The photo and location are saved.",
     no_address: "No published address for {body}.",
@@ -301,6 +311,15 @@ const I18N = {
     road_unknown_help: "ಇದು ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಯೇ ಎಂದು ಪರಿಶೀಲಿಸಲು ರಾಜ್ಯ ರಸ್ತೆ ಜಾಲವನ್ನು ತಲುಪಲಾಗಲಿಲ್ಲ. ಆದ್ದರಿಂದ ಬೇರೆಯವರ ರಸ್ತೆಗೆ ನಗರ ಅಧಿಕಾರಿಯ ಹೆಸರು ಸೂಚಿಸುವುದಿಲ್ಲ. ಸಿಗ್ನಲ್ ಬಂದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     nat_highway: "{road} ಒಂದು ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿ",
     nat_highway_help: "ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಗಳನ್ನು NHAI ಅಥವಾ ರಾಜ್ಯ ಲೋಕೋಪಯೋಗಿ ಇಲಾಖೆಯ ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿ ವಿಭಾಗ ನಿರ್ವಹಿಸುತ್ತದೆ, ನಗರ ಸಂಸ್ಥೆ ಅಲ್ಲ. ಆದ್ದರಿಂದ ಇಲ್ಲಿ ಪುರಸಭೆ ಅಧಿಕಾರಿಗೆ ದೂರು ಸಲ್ಲಿಸಲಾಗದು. NHAI ರಾಜಮಾರ್ಗಯಾತ್ರಾ ಆ್ಯಪ್ ಅಥವಾ 1033 ಸಹಾಯವಾಣಿಯಲ್ಲಿ ವರದಿ ಮಾಡಿ.",
+    city_loading: "ನಿಮ್ಮ ಸುತ್ತ ವರದಿಯಾಗಿರುವುದನ್ನು ನೋಡಲಾಗುತ್ತಿದೆ...",
+    city_no_fix: "ಸ್ಥಳ ಸಿಕ್ಕಿಲ್ಲ, ಆದ್ದರಿಂದ ನಗರ ನೋಟ ಲೋಡ್ ಆಗುವುದಿಲ್ಲ.",
+    city_own_key: "ನಗರ ನೋಟಕ್ಕೆ ಹಂಚಿಕೆಯ ಸೇವೆ ಬೇಕು. ನೀವು ನಿಮ್ಮ ಸ್ವಂತ OpenAI ಕೀ ಬಳಸುತ್ತಿದ್ದೀರಿ.",
+    city_offline: "ನಗರ ನೋಟಕ್ಕಾಗಿ ಸೇವೆಯನ್ನು ತಲುಪಲಾಗಲಿಲ್ಲ.",
+    city_head: "{town} ನಲ್ಲಿ {n} ಗುಂಡಿಗಳು ವರದಿಯಾಗಿವೆ",
+    city_here: "ನಿಮ್ಮ ಪ್ರದೇಶ",
+    city_confirmed: "ಒಬ್ಬರಿಗಿಂತ ಹೆಚ್ಚು ಮಂದಿ ನೋಡಿದ್ದಾರೆ",
+    duplicate: "ಈಗಾಗಲೇ ಬೇರೆಯವರು ವರದಿ ಮಾಡಿದ್ದಾರೆ",
+    duplicate_help: "ಈ ಗುಂಡಿಯನ್ನು ಈಗಾಗಲೇ ವರದಿ ಮಾಡಲಾಗಿದೆ. {n} ಮಂದಿ ಇದನ್ನು ನೋಡಿದ್ದಾರೆ. ನಿಮ್ಮ ವರದಿಯನ್ನು ಅದಕ್ಕೆ ಸೇರಿಸಲಾಗಿದೆ.",
     rural_road: "ಈ ರಸ್ತೆ {body} ಗ್ರಾಮ ಪಂಚಾಯತ್‌ನಲ್ಲಿದೆ, ಪಟ್ಟಣ ಅಥವಾ ನಗರದಲ್ಲಿ ಅಲ್ಲ.",
     rural_road_help: "ಗುಂಡಿ ದೃಢಪಟ್ಟಿದೆ, ಆದರೆ ಇದು ಯಾವುದೇ ನಗರ ಸ್ಥಳೀಯ ಸಂಸ್ಥೆಯ ಹೊರಗಿದೆ. ಇದು ಲೋಕೋಪಯೋಗಿ ಇಲಾಖೆ ಅಥವಾ ಪಂಚಾಯತ್ ಎಂಜಿನಿಯರಿಂಗ್ ಇಲಾಖೆಗೆ ಸೇರಿದೆ, ಅವು ಇನ್ನೂ ಪಟ್ಟಿಯಲ್ಲಿಲ್ಲ. ಫೋಟೋ ಉಳಿಸಲಾಗಿದೆ.",
     no_address: "{body} ಗೆ ಪ್ರಕಟಿತ ವಿಳಾಸ ಇಲ್ಲ.",
@@ -586,6 +605,11 @@ function step(delta) {
 // explanation: no GPS fix, a road no municipality owns, a body whose official address we
 // do not hold, or genuinely outside the state. Collapsing them told a Mysuru user their
 // city was "outside coverage", which was wrong and unhelpful.
+// A duplicate is a real outcome, not an error: somebody got there first and the count
+// went up. It reads as a contribution, because it is one.
+function duplicateTitle(r) { return t("duplicate"); }
+function duplicateHelp(r) { return t("duplicate_help", { n: r.seen_count || 2 }); }
+
 function unroutedTitle(r) {
   if (r.unrouted_reason === "no_location") return t("no_location");
   if (r.unrouted_reason === "road_class_unknown") return t("road_unknown");
@@ -608,6 +632,16 @@ function openDetail(r, list) {
   else if (!detailList.some((x) => x.id === r.id)) { detailList = [r]; detailIdx = 0; }
   else detailIdx = detailList.findIndex((x) => x.id === r.id);
   const d = $("detail");
+  if (r.status === "duplicate") {
+    d.innerHTML = `
+      <div class="card">
+        <div class="meta" style="color:var(--accent)">${duplicateTitle(r)}</div>
+        <div class="meta">${duplicateHelp(r)}</div>
+      </div>`;
+    photoBlock(d, r);
+    wireDetailChrome(d, r);
+    return;
+  }
   if (r.status === "unrouted") {
     // A confirmed pothole the app cannot address. It says so rather than sending the
     // complaint to a body with no jurisdiction there.
@@ -1294,6 +1328,7 @@ async function openDash() {
   const tile = (n, label) => `<div class="card" style="flex:1 1 30%;min-width:96px;margin:0;text-align:center">
       <div class="verdict" style="font-size:22px;margin:0">${n}</div>
       <div class="meta">${label}</div></div>`;
+  drawCity().catch(() => {});
   $("dashStats").innerHTML =
     tile(holes.length, t("stat_found")) + tile(sent, t("stat_reported")) +
     tile(frames, t("stat_frames")) + tile(drives.length, t("stat_drives")) +
@@ -1327,6 +1362,58 @@ function trackKm(track) {
     m += distMeters({ lat: track[i - 1][1], lng: track[i - 1][2] }, { lat: track[i][1], lng: track[i][2] });
   }
   return m / 1000;
+}
+
+// Everything reported around the user, by everyone. This is the part that shows a
+// citizen they are not the only one, and shows an officer a pattern rather than a letter.
+async function drawCity() {
+  const el = $("cityBlock");
+  if (!el) return;
+  el.innerHTML = `<div class="meta">${t("city_loading")}</div>`;
+  const pos = await new Promise((res) => {
+    if (!navigator.geolocation) return res(null);
+    navigator.geolocation.getCurrentPosition((p) => res(p.coords), () => res(null),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
+  });
+  if (!pos) { el.innerHTML = `<div class="meta">${t("city_no_fix")}</div>`; return; }
+  const d = await api(`/api/city?lat=${pos.latitude}&lng=${pos.longitude}`);
+  if (!d || !d.available) {
+    el.innerHTML = `<div class="meta">${t(d && d.reason === "own_key" ? "city_own_key" : "city_offline")}</div>`;
+    return;
+  }
+  const head = document.createElement("div");
+  head.className = "meta";
+  head.textContent = t("city_head", { town: d.town || t("city_here"), n: d.total });
+  const tile = (n, label) => `<div class="card" style="flex:1 1 30%;min-width:96px;margin:0;text-align:center">
+      <div class="verdict" style="font-size:22px;margin:0">${n}</div>
+      <div class="meta">${label}</div></div>`;
+  el.innerHTML = "";
+  el.appendChild(head);
+  const stats = document.createElement("div");
+  stats.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin:10px 0";
+  stats.innerHTML = tile(d.by_size.large || 0, t("size_large")) +
+                    tile(d.by_size.medium || 0, t("size_medium")) +
+                    tile(d.by_size.small || 0, t("size_small")) +
+                    tile(d.reported_by_more_than_one || 0, t("city_confirmed"));
+  el.appendChild(stats);
+  const map = document.createElement("div");
+  map.id = "cityMap";
+  map.style.cssText = "height:220px;border-radius:12px;overflow:hidden";
+  el.appendChild(map);
+  if (window.L && d.potholes.length) {
+    const m = L.map(map, { attributionControl: false }).setView([pos.latitude, pos.longitude], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(m);
+    const group = [];
+    for (const p of d.potholes) {
+      const c = L.circleMarker([p.lat, p.lng], {
+        radius: p.seen_count > 1 ? 7 : 5, weight: 1,
+        color: p.seen_count > 1 ? "#ff8a3d" : "#8a8f98",
+        fillColor: p.seen_count > 1 ? "#ff8a3d" : "#8a8f98", fillOpacity: 0.75,
+      }).addTo(m);
+      group.push(c.getLatLng());
+    }
+    if (group.length) m.fitBounds(L.latLngBounds(group).pad(0.2));
+  }
 }
 
 function drawMap(pins) {

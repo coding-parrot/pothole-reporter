@@ -49,6 +49,16 @@ for name in ("static/index.html", "android-app/www/index.html"):
         if key and f"{key}:" not in s:
             fails.append(f"{name}: refusal reason '{r}' has no UI string ({key})")
 
+    # The server-backed build adds a duplicate outcome and a city view. Every string the
+    # UI can reach must exist in both tables, or a Kannada user sees a blank card.
+    for key in ("city_loading", "city_no_fix", "city_own_key", "city_offline",
+                "city_head", "city_here", "city_confirmed", "duplicate", "duplicate_help"):
+        n = len(re.findall(rf'\n    {key}: "', s))
+        if n != 2:
+            fails.append(f"{name}: string '{key}' appears {n} times, expected 2 (English and Kannada)")
+    if 'id="cityBlock"' not in s:
+        fails.append(f"{name}: the city dashboard has no container to render into")
+
     # Entities are fine inside innerHTML, fatal inside textContent.
     for m in re.finditer(r'\$\("(\w+)"\)\.textContent = t\("(\w+)"\)', s):
         val = re.search(rf'\n    {m.group(2)}: "([^"]*)"', s)

@@ -617,8 +617,79 @@ Decide whether the photo clearly shows a pothole on a road surface.
     "karnataka", "india", "ward", "city", "corporation", "south", "north", "east",
     "west", "central", "urban", "sector", "stage", "block", "phase"]);
 
+// ---------- server-side contracts, dedup and the city view ----------
+  // A service user gets the contract match from the service, so the 9.5 MB contract file
+  // does not need to be on the phone at all and can be refreshed without an app release.
+  // A user on their own key keeps the on-device path, because they have no service.
+
+  async function signedHeaders(extraHash) {
+    const id = await deviceIdentity();
+    const timestamp = String(Date.now());
+    const payload = `${id.deviceId}.${timestamp}.${extraHash || ""}`;
+    const sig = await crypto.subtle.sign(
+      { name: "ECDSA", hash: "SHA-256" }, id.privateKey, new TextEncoder().encode(payload));
+    return {
+      "content-type": "application/json",
+      "x-device-id": id.deviceId,
+      "x-timestamp": timestamp,
+      "x-signature": btoa(String.fromCharCode(...new Uint8Array(sig))),
+    };
+  }
+
+  async function tenderFromService(address, lgd) {
+    if (!address || !lgd) return null;
+    try {
+      const q = `address=${encodeURIComponent(address)}&lgd=${encodeURIComponent(lgd)}`;
+      const res = await fetchWithTimeout(`${SERVICE_URL}/v1/tender?${q}`, {}, 30000);
+      if (!res.ok) return null;
+      return (await res.json()).tender || null;
+    } catch (e) { return null; }
+  }
+
+  // Tells the service a pothole was confirmed here, and asks whether somebody already
+  // reported it. A duplicate is not a failure: it is the answer, and the app says so
+  // rather than adding a second complaint about one hole.
+  async function registerReport(rec, imageHash) {
+    if (!usingService()) return null;
+    try {
+      const headers = await signedHeaders(imageHash);
+      const res = await fetchWithTimeout(`${SERVICE_URL}/v1/report`, {
+        method: "POST", headers,
+        body: JSON.stringify({
+          lat: rec.lat, lng: rec.lng, size: rec.size, confidence: rec.confidence,
+          image_hash: imageHash, lgd: rec.body_lgd || null, town: rec.body_name || null,
+        }),
+      }, 15000);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) { return null; }
+  }
+
+  // Everything reported in the body the citizen is standing in. Returns null rather than
+  // throwing: a dashboard that cannot reach the service should say so, not break.
+  async function cityPotholes(lgd, lat, lng) {
+    try {
+      const q = lgd ? `lgd=${encodeURIComponent(lgd)}`
+                    : `lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}&radius=5000`;
+      const res = await fetchWithTimeout(`${SERVICE_URL}/v1/city?${q}`, {}, 20000);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) { return null; }
+  }
+
+  const sha256Hex = async (dataUrl) => {
+    const b64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const d = await crypto.subtle.digest("SHA-256", bytes);
+    return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  };
+
   async function matchTender(address, lgd) {
-    if (!address || !S.key || !lgd) return null;
+    if (!address || !lgd) return null;
+    // No key of their own means no OpenAI account to spend, so the match happens on the
+    // service, which also holds the contract table.
+    if (usingService()) return tenderFromService(address, lgd);
+    if (!S.key) return null;
     const tokens = new Set();
     for (const part of address.split(",").slice(0, 4)) {
       for (const w of part.trim().toLowerCase().replace(/[()]/g, " ").split(/\s+/)) {
@@ -633,7 +704,21 @@ Decide whether the photo clearly shows a pothole on a road surface.
     // contracts, which a municipal officer has no standing over.
     const pool = await tendersFor(lgd);
     if (!pool.length) return null;
-    const hays = pool.map((t) => (t.t + " " + t.loc).toLowerCase());
+    // Scored on the work description alone. The location field is the body's own name,
+    // identical in every one of its rows, so it cannot tell one of its roads from
+    // another: it only ever added the town's name to every candidate equally.
+    const hays = pool.map((t) => (t.t || "").toLowerCase());
+
+    // The body's own name is not evidence about which of its roads this is, and it turns
+    // up in some work titles as well as in every location, so counting alone will not
+    // remove it. "Krishnamurtipuram, Mysuru" matched a Mysuru water-supply contract on
+    // the strength of the word Mysuru. Drop the body's own words from the query.
+    const bodyWords = new Set();
+    for (const w of (pool[0].loc || "").toLowerCase().split(/[^a-z]+/)) {
+      if (w.length > 2) bodyWords.add(w);
+    }
+    for (const w of bodyWords) tokens.delete(w);
+    if (!tokens.size) return null;
 
     // Weight each word by how rare it is inside this body's own contracts. Counting
     // matched words equally does not work here: the town's name appears in most of its
@@ -645,12 +730,17 @@ Decide whether the photo clearly shows a pothole on a road surface.
     for (const tok of tokens) {
       let df = 0;
       for (const hay of hays) if (hay.includes(tok)) df++;
-      // A word in none of this body's contracts is no evidence, and a word in most of
-      // them (the town's own name) does not distinguish one road from another. Only
-      // words in between say anything about WHICH stretch this is.
-      if (df > 0 && df <= pool.length * 0.5) {
-        idf.set(tok, Math.log((pool.length + 1) / (df + 1)));
-      }
+      // A word in none of this body's contracts is no evidence, and a word in every one
+      // of them (the town's own name) does not distinguish one road from another.
+      //
+      // The "more than half" cut only means something once there are enough contracts to
+      // count. A town with three of them had every matching word appear in more than
+      // half, so every word was dropped and the town could never match anything.
+      if (df === 0) continue;
+      if (pool.length > 1 && df === pool.length) continue;
+      if (pool.length >= 8 && df > pool.length * 0.5) continue;
+      // Smoothed, so a word present in a one-contract town still scores above zero.
+      idf.set(tok, Math.log((pool.length + 1) / (df + 0.5)));
     }
     // Nothing in the address narrows the pool below "somewhere in this town". Naming a
     // contract on that basis is a guess, and this letter goes to a public official with
@@ -948,6 +1038,31 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       sent_at: null,
       drive_id: driveId,
     };
+
+    // Ask the service whether this pothole is already reported, before it becomes a
+    // complaint. Two people driving the same road should not send two letters about one
+    // hole: that is how a genuine report starts looking like spam to the office
+    // receiving it. A duplicate is still kept and still shown, with the count of how
+    // many people have now seen it, which is worth more than a second letter.
+    if (accepted && covered) {
+      const dedupe = await registerReport(rec, await sha256Hex(dataUrl).catch(() => ""));
+      if (dedupe && dedupe.report) {
+        rec.server_id = dedupe.report.id || null;
+        rec.seen_count = dedupe.report.seen_count || 1;
+        if (dedupe.duplicate) {
+          // Already reported. Keep the photo and the location, drop the draft: there is
+          // nothing to send that has not been sent.
+          rec.status = "duplicate";
+          rec.duplicate_of = dedupe.report.id || null;
+          rec.first_reported = dedupe.report.first_reported || null;
+          rec.distance_m = dedupe.report.distance_m || 0;
+          rec.email_subject = null;
+          rec.email_body = null;
+          rec.photo_full = null;
+        }
+      }
+    }
+
     rec.id = await addReport(rec);
     return driveMode ? { found: true, report: toDict(rec) } : toDict(rec);
   }
@@ -1131,6 +1246,22 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       return { ok: true };
     }
     if (path === "/api/export" && method === "POST") return exportDataset();
+    // Everything reported around the citizen, by anyone. Only available on the hosted
+    // service, because there is nowhere else for other people's reports to live.
+    if (path === "/api/city" && method === "GET") {
+      if (!usingService()) return { available: false, reason: "own_key" };
+      const p2 = new URLSearchParams(opts.query || "");
+      const lat = parseFloat(p2.get("lat")), lng = parseFloat(p2.get("lng"));
+      let lgd = null;
+      try {
+        const w = await jurisdictionOf(lat, lng);
+        if (w && w.kind === "town") { lgd = w.lgd; }
+        var town = w && w.name;
+      } catch (e) { /* fall back to a radius */ }
+      const data = await cityPotholes(lgd, lat, lng);
+      if (!data) return { available: false, reason: "unreachable" };
+      return { available: true, town: town || null, ...data };
+    }
     if ((m = path.match(/^\/api\/reports\/(\d+)\/label$/)) && method === "POST") {
       const rec = await getReport(m[1]);
       if (!rec) throw new Error("Report not found.");
@@ -1145,6 +1276,9 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if ((m = path.match(/^\/api\/reports\/(\d+)\/send$/)) && method === "POST") {
       const rec = await getReport(m[1]);
       if (!rec) throw new Error("Report not found.");
+      if (rec.status === "duplicate") {
+        throw new Error("Somebody has already reported this pothole. Your sighting has been added to it, which counts for more than a second complaint about the same hole.");
+      }
       if (rec.status === "unrouted") {
         // Say which of the four reasons it was. "Outside the area" is wrong and
         // confusing when the real problem is that the phone never got a GPS fix.
