@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv("/Users/gauravsen/Downloads/pothole-reporter/.env")
 from playwright.sync_api import sync_playwright
+from browser_test_utils import open_app
 KEY=os.environ["OPENAI_API_KEY"]
 CASES=[  # name, lat, lng, should_route
  ("NH69 Chikkaballapur",13.4355,77.7315,False),
@@ -19,7 +20,7 @@ JS="""async ([lat,lng]) => {
 with sync_playwright() as p:
     b=p.chromium.launch(args=["--disable-web-security","--allow-running-insecure-content"])
     pg=b.new_context(viewport={"width":390,"height":844}).new_page()
-    pg.goto(f"http://localhost:8765/?key={KEY}"); pg.wait_for_load_state("networkidle")
+    open_app(pg, KEY)
     fails=[]
     for name,lat,lng,should in CASES:
         r=pg.evaluate("""async ([lat,lng]) => {

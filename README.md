@@ -5,7 +5,8 @@ lose hours to them. Most of those potholes are already someone's job to fix, oft
 under a contract still in warranty. The gap is that nobody reports them to the right
 person with enough detail to act on.
 
-This app closes that gap. Mount your phone, drive, and it finds the potholes,
+This app closes that gap. Mount your phone, drive, and it finds reportable road damage,
+distinguishing a pothole cavity from a failed repair, surface breakup or depression,
 works out which officer is responsible, finds the road contract they were built
 under, and writes the complaint. You read it and press send.
 
@@ -33,7 +34,7 @@ Not an illustration. This photo, this output, from the app on a phone.
 
 | | |
 |---|---|
-| Verdict | **medium pothole**, confidence 0.72 |
+| Verdict | **medium pothole cavity**, clear assessment |
 | Address | 17th Main Road, HSR Layout, Bengaluru, 560102 |
 | Routed to | Commissioner, Bengaluru South City Corporation |
 | Probable contract | `BBMP/2025-26/OW/WORK_INDENT7739`, SOMANATH MALLAPPA HUNDRE |
@@ -62,9 +63,9 @@ Regards,
 Gaurav Sen
 ```
 
-Captured from the app on a phone on 20 August 2026. The contract, the officer and the
-size reproduce run to run; the confidence figure moves by a few points, as a model output
-does. The name at the end is whatever you set in Settings.
+Captured from the app on a phone on 20 August 2026. The name at the end is whatever you
+set in Settings. The current detector deliberately does not show a language model's
+uncalibrated percentage as if it were probability.
 
 That last paragraph is the point. A pothole on a road still under warranty should be
 repaired by the contractor at no further cost to the public.
@@ -74,10 +75,12 @@ repaired by the contractor at no further cost to the public.
 1. **Install.** Download `PotholeReporter.apk` from the
    [Releases page](https://github.com/coding-parrot/pothole-reporter/releases) and
    sideload it. Paste an OpenAI API key on first launch, allow camera and location.
-2. **Drive.** Mount the phone facing the road and tap Drive Mode. It shoots every 8
-   metres and checks eight frames at once, so you just drive.
-3. **Or point and shoot.** Tap Report a pothole for a single one you have stopped at.
-4. **Read the draft, press send.** Each confirmed pothole becomes an email draft with
+2. **Drive.** Mount the phone so the travelled road fills the orange guide and tap Drive
+   Mode. Sampling targets about six metres. Each event uses a three-frame burst, keeps the
+   sharpest frame as evidence, and sends full context plus ordered road crops in one request.
+   Capture continues into a bounded queue while cloud checks are busy.
+3. **Or point and shoot.** Tap Report road damage for a defect you have stopped at.
+4. **Read the draft, press send.** Each confirmed road-damage event becomes an email draft with
    the photo, address, coordinates, officer and probable contract. The app never sends
    anything itself.
 5. **Check your map.** Your contribution shows every pothole you have reported,
@@ -119,9 +122,16 @@ Refresh with `python3 tools/pull-kppp.py`.
 
 ## Cost
 
-Every frame checked is an API call on your key. A city drive costs rupees. A long
+Every sampled event is an API call on your key and can contain four image views. A city
+drive costs rupees. A long
 one costs more, because there is no cheap pre-filter: one was tried and it rejected
 most real potholes, so it was removed.
+
+Detection defaults to `gpt-5-mini` / `high` while a trustworthy v3 benchmark is being
+collected. Settings exposes `gpt-5.6` / `original` as an accuracy experiment, but neither
+configuration should be called more accurate until a held-out, fully human-labelled
+drive benchmark shows a real gain. The evaluator and data requirements are documented
+in [`eval/README.md`](eval/README.md).
 
 ## Where this is going
 
@@ -141,7 +151,9 @@ most real potholes, so it was removed.
 `static/index.html` is the UI and `static/standalone.js` is the whole engine. Copy
 both into `android-app/www/`, then `npx cap sync android` and `./gradlew
 assembleDebug`. To test in a browser, serve `android-app/www/` and open
-`http://localhost:8765/?key=sk-...` in Chromium with `--disable-web-security`.
+`http://localhost:8765/#key=sk-...` in Chromium with `--disable-web-security`. The
+fragment is removed immediately and, unlike a query string, is never sent to the HTTP
+server or written to its access log.
 
 `eval/` holds the detection benchmark and, more usefully, a log of the accuracy
 changes that were tried and rejected, with the evidence.

@@ -29,6 +29,12 @@ JS = r"""
   const [, noTender] = P.draftEmail(a, 12.9, 77.6, "Main Road, Channagiri, 577213",
                                     "Chief Officer, Channagiri", null);
   out.noTender = noTender;
+  out.types = {};
+  for (const type of ["pothole_cavity", "failed_patch", "surface_breakup", "rut_or_depression"]) {
+    const [subject, body] = P.draftEmail({ damage_type:type, size:"medium", description:"d" },
+      12.9, 77.6, "Main Road, Channagiri, 577213", "Chief Officer, Channagiri", null);
+    out.types[type] = {subject, body};
+  }
   return out;
 })()
 """
@@ -57,6 +63,20 @@ if "ACME" not in council:
     fails.append("the contractor is not named when one is recorded")
 if "no winning bidder" in r["noTender"] or "ACME" in r["noTender"]:
     fails.append("a report with no contract still discusses one")
+
+types = r["types"]
+if "pothole" not in types["pothole_cavity"]["subject"].lower():
+    fails.append("a cavity complaint is no longer named as a pothole")
+for kind in ("failed_patch", "surface_breakup", "rut_or_depression"):
+    combined = types[kind]["subject"] + " " + types[kind]["body"]
+    if "pothole" in combined.lower():
+        fails.append(f"{kind} is falsely described as a pothole")
+if "Broken road repair" not in types["failed_patch"]["subject"]:
+    fails.append("failed-patch subject does not distinguish a broken repair")
+if "Road surface failure" not in types["surface_breakup"]["subject"]:
+    fails.append("surface-breakup subject is not distinct")
+if "Road depression" not in types["rut_or_depression"]["subject"]:
+    fails.append("rut/depression subject is not distinct")
 
 print()
 if fails:

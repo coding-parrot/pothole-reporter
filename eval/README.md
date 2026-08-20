@@ -1,16 +1,33 @@
 # Detection benchmark
 
-The detector is a vision model behind a confidence gate, so "did that change help?"
-can only be answered by measuring. This directory holds the labels, the arms, and
-the harness.
+The detector now makes an evidence-based road-damage assessment: subtype plus
+`clear` / `probable` / `uncertain` / `absent`. It does not ask a language model to
+invent a calibrated percentage. This directory holds labels, prompt arms and the
+production-semantic replay harness.
 
 ```bash
-python3 eval/run_eval.py --trials 5
-python3 eval/run_eval.py --trials 5 --arms baseline,carriageway
+python3 eval/run_eval.py --mode drive --trials 5
+python3 eval/run_eval.py --mode manual --trials 5
+python3 eval/run_eval.py --mode drive --models gpt-5-mini,gpt-5.6 --details high,original
 ```
 
-`OPENAI_API_KEY` comes from the environment or the repo-root `.env`. A run of 5
-trials over the seed set is about 180 calls on `gpt-5-mini`, a few rupees.
+`OPENAI_API_KEY` comes from the environment or the repo-root `.env`. Use
+`--dry-run` to validate transforms and request configuration without making calls.
+
+Drive replay uses the shipped lower-60%/1024 px road view plus a 768 px full-context
+view. An entry can provide a three-frame event with `frames` and `primary_index`;
+legacy entries with one `path` still work. Manual replay uses the shipped full-frame
+2000 px path. Pixel-triggered low-light enhancement, model, image detail, prompt,
+schema and decision policy are recorded in each run.
+
+The replay follows the production operation order—crop, resize, sample luminance,
+then conditionally enhance. Pillow and an Android WebView do not use byte-identical
+resamplers/JPEG codecs, so hashes are reproducibility identifiers for evaluator runs,
+not a claim that Python emits the exact browser JPEG bytes.
+
+Give new entries an explicit `mode` of `manual` or `drive`. For the legacy seed,
+the harness infers Drive Mode only when `source` contains `dashcam`; the two product
+paths are never mixed into one accuracy number.
 
 ## The one rule: measure the noise floor first
 
@@ -19,9 +36,9 @@ parameters, re-run: the true-positive rate has swung 30 points and a single fram
 has swung 80 points (accepted 4 of 5 in one run, 0 of 5 in the next). That is not
 transport error. Every call returned valid structured output.
 
-So `run_eval.py` always runs the control arm **twice on identical bytes** and
-prints the gap between them as the noise floor. Any difference between real arms
-smaller than that gap is not a result, however good the story sounds.
+`run_eval.py` always runs the control configuration twice on identical bytes.
+Each repetition has a separate cache slot. Intervals resample source events, not
+individual repeated calls, so five calls to one frame never masquerade as five roads.
 
 The noise is asymmetric and that matters. Losses on confirmed potholes have shown
 almost no drift (56 consecutive true-positive calls with zero variation in one
@@ -36,9 +53,16 @@ own licence and attribution terms. `eval/images/` is gitignored. `labels.json`
 records the path, the label, why it is labelled that way, the source and the
 licence, so an image set can be rebuilt and its provenance stays auditable.
 
-Labels are `pothole`, `not_pothole`, or `unlabelled`. Unlabelled images are still
-run and reported but excluded from the rates, which is where genuinely ambiguous
-frames belong: forcing a label on them corrupts the metric.
+New labels are `pothole_cavity`, `failed_patch`, `surface_breakup`,
+`rut_or_depression`, `other_road_damage`, `not_reportable`, or `unlabelled`.
+Legacy `pothole` / `not_pothole` values remain readable. Unlabelled and disputed
+images run but are excluded from binary rates.
+
+The current seed set is not a release gate: it has owner-verified positives but no
+owner-verified negatives, and historical result files predate this contract. Do not
+choose a model or claim accuracy from it. First collect fully audited drives with both
+positive events and ordinary negative road, keep adjacent frames in one event/split,
+and lock a held-out test set.
 
 To reproduce the seed set, drop the owner's photos and drive frames into
 `eval/images/seed/`. When adding third-party imagery, record its licence and
@@ -51,6 +75,9 @@ asserts a current condition on a road you observed.
 `baseline` is read live from `DETECT_PROMPT` in `static/standalone.js`, so the
 control cannot silently drift from what ships. Every `.txt` file in
 `eval/prompts/` becomes an additional arm named after the file.
+
+Everything below is a historical log for the retired binary confidence schema. It
+explains past choices but is not directly comparable with v3 results.
 
 ## Results log
 

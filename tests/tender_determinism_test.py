@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 from playwright.sync_api import sync_playwright
+from browser_test_utils import open_app
 
 KEY = os.environ["OPENAI_API_KEY"]
 RUNS = int(os.environ.get("TENDER_RUNS", "6"))
@@ -24,7 +25,7 @@ fails = []
 with sync_playwright() as p:
     b = p.chromium.launch(args=["--disable-web-security", "--allow-running-insecure-content"])
     pg = b.new_context(viewport={"width": 390, "height": 844}).new_page()
-    pg.goto(f"http://localhost:8765/?key={KEY}"); pg.wait_for_load_state("networkidle")
+    open_app(pg, KEY)
     pg.wait_for_function("typeof StandaloneAPI !== 'undefined' && StandaloneAPI.__pure", timeout=30000)
 
     # 1. The shortlist must be identical across repeated builds.

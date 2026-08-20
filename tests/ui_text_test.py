@@ -55,6 +55,9 @@ for name in ("static/index.html", "android-app/www/index.html"):
         if val and re.search(r"&[a-z]+;|&#\d+;", val.group(1)):
             fails.append(f"{name}: {m.group(2)} holds an HTML entity but is set via textContent")
 
+if (ROOT / "android-app/www/standalone.js").read_bytes() != (ROOT / "static/standalone.js").read_bytes():
+    fails.append("android-app/www/standalone.js has drifted from static/standalone.js")
+
 if fails:
     print("FAIL"); [print("  -", f) for f in fails]; sys.exit(1)
 print("UI TEXT TEST PASS")

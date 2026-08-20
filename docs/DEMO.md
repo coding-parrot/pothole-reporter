@@ -1,7 +1,8 @@
 # Before a demo
 
-Measured on a device on 20 August 2026, running the shipped v1.6.2 APK. Everything below
-is a real number from that run, not an estimate.
+Routing and cold-start figures were measured on a device on 20 August 2026 with v1.6.2.
+The v3 accuracy pipeline now uses bursts and multi-image requests, so its detection
+latency must be re-measured on the target phone before quoting it in a demo.
 
 ## Set up, in this order
 
@@ -20,11 +21,12 @@ is a real number from that run, not an estimate.
 |---|---|
 | Single shot, photo to finished draft | about 12 to 13 seconds on a device |
 | Verdict on screen | about 2 seconds, before the rest |
-| Drive Mode, one frame | about 2 seconds, eight at a time |
-| Road covered before frames are skipped | roughly 50 km/h |
+| Drive Mode, one three-frame event | depends on model/network, six requests at a time |
+| Capture spacing | target 6 m; captured events queue while requests are busy |
 
-The HSR Layout example in the README reproduces: same officer, same contract, same size.
-Only the confidence figure moves, between about 0.60 and 0.75.
+The HSR Layout example in the README is historical evidence, not an accuracy benchmark.
+The current UI reports subtype plus clear/probable/uncertain/absent and does not display
+an uncalibrated model percentage.
 
 ## What needs the network, and what happens without it
 

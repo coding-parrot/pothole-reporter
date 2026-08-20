@@ -39,11 +39,12 @@
   .chip.draft { background:#332a12; color:#ffca66; }
   .chip.sent { background:#12331d; color:#7ce8a2; }
   .chip.rejected { background:#331516; color:#ff9d9d; }
+  .chip.review { background:#3a2b12; color:#ffd28a; }
   .chip.queued { background:#122f33; color:#7cd8e8; }
   .chip.unrouted { background:#2b2b33; color:#b9b9c6; }
   .meta { color:var(--mut); font-size:12px; margin-top:2px; }
   label { display:block; font-size:12px; color:var(--mut); margin:10px 0 4px; }
-  input[type=text], textarea { width:100%; background:#131417; color:#f2f2f4; border:1px solid var(--line); border-radius:10px; padding:10px; font:inherit; font-size:14px; }
+  input[type=text], input[type=password], select, textarea { width:100%; background:#131417; color:#f2f2f4; border:1px solid var(--line); border-radius:10px; padding:10px; font:inherit; font-size:14px; }
   textarea { min-height:220px; line-height:1.45; }
   .btn-row { display:flex; gap:10px; margin-top:12px; }
   .send { flex:1; background:var(--ok); color:#06210f; font-weight:700; padding:14px; }
@@ -70,12 +71,12 @@
   <div id="banner" class="banner"></div>
 
   <div id="home">
-    <button class="primary" id="captureBtn">&#128247; &nbsp;Report a pothole</button>
+    <button class="primary" id="captureBtn">&#128247; &nbsp;Report road damage</button>
     <button class="ghost" id="dashBtn" style="width:100%;margin-bottom:14px">&#128506;&#65039; &nbsp;Your contribution</button>
     <button class="primary" id="driveBtn" style="background:#26272c;color:#f2f2f4;margin-top:-8px">&#128663; &nbsp;Drive mode</button>
     <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden">
     <h2 id="reportsTitle">Your reports</h2>
-    <div id="list"><div class="empty">No reports yet. Go find a pothole.</div></div>
+    <div id="list"><div class="empty">No reports yet.</div></div>
   </div>
 
   <div id="progress" class="hidden">
@@ -88,10 +89,11 @@
   <div id="drive" class="hidden">
     <div style="position:relative">
       <video id="driveVideo" autoplay playsinline muted style="width:100%;border-radius:14px;background:#000;min-height:340px"></video>
+      <div aria-hidden="true" style="position:absolute;left:8%;right:8%;top:34%;bottom:7%;border:2px dashed rgba(255,122,26,.8);border-radius:14px;pointer-events:none"></div>
       <button id="driveStop" style="position:absolute;top:12px;right:12px;background:var(--bad);color:#fff;font-size:17px;font-weight:700;padding:14px 24px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.5)">&#9632; Stop</button>
       <span class="hidden"></span>
       <div style="position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:10px;max-width:75%">
-        <div class="verdict" id="driveCount" style="margin:0;font-size:16px;color:#fff">0 potholes</div>
+        <div class="verdict" id="driveCount" style="margin:0;font-size:16px;color:#fff">0 road-damage events</div>
         <div class="meta" id="driveStatus" style="color:#d5d5da">Starting...</div>
       </div>
     </div>
@@ -117,11 +119,18 @@
     <div class="meta" id="reviewMeta"></div>
     <div class="meta" id="reviewSaid" style="margin-top:6px"></div>
     <div class="btn-row">
-      <button class="ghost danger" id="lblNo">Not a pothole</button>
-      <button class="send" id="lblYes">Pothole</button>
+      <button class="send" id="lblPothole">Pothole cavity</button>
+      <button class="ghost" id="lblPatch">Failed repair</button>
     </div>
     <div class="btn-row">
+      <button class="ghost" id="lblSurface">Surface breakup</button>
+      <button class="ghost" id="lblRut">Rut / depression</button>
+    </div>
+    <div class="btn-row">
+      <button class="ghost danger" id="lblNo">Not reportable</button>
       <button class="ghost" id="lblSkip">Skip</button>
+    </div>
+    <div class="btn-row">
       <button class="ghost" id="reviewBack">Done</button>
     </div>
   </div>
@@ -139,6 +148,17 @@
       <input type="password" id="setKey" placeholder="sk-...">
       <label id="nameLabel">Your name (signs the complaints)</label>
       <input type="text" id="setName" placeholder="Gaurav Sen">
+      <label id="modelLabel">Detection model</label>
+      <select id="setModel">
+        <option value="gpt-5-mini">gpt-5-mini — current baseline</option>
+        <option value="gpt-5.6">gpt-5.6 — accuracy experiment</option>
+      </select>
+      <label id="detailLabel">Image detail</label>
+      <select id="setDetail">
+        <option value="high">High</option>
+        <option value="original">Original (gpt-5.6 only)</option>
+      </select>
+      <div class="meta" id="accuracyNote"></div>
       <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:#f2f2f4">
         <input type="checkbox" id="setDebug" style="width:18px;height:18px;accent-color:var(--accent)">
         <span id="debugLabel">Debug mode: keep the drive video after analysing it</span>
@@ -178,21 +198,24 @@ const $ = (id) => document.getElementById(id);
 // ---------- i18n (English / Kannada) ----------
 const I18N = {
   en: {
-    sub: "Shoot it. Verify it. Report it to the right officer.",
-    report_btn: "&#128247; &nbsp;Report a pothole",
+    sub: "Capture it. Verify the damage. Report it to the right officer.",
+    report_btn: "&#128247; &nbsp;Report road damage",
     drive_btn: "&#128663; &nbsp;Drive mode",
     your_reports: "Your reports",
-    no_reports: "No reports yet. Go find a pothole.",
+    no_reports: "No reports yet.",
     banner_setup: "Setup needed: tap the gear icon and paste your OpenAI API key.",
     settings_title: "Settings",
     key_label: "OpenAI API key (stored only on this device)",
     name_label: "Your name (signs the complaints)",
+    model_label: "Detection model",
+    detail_label: "Image detail",
+    accuracy_note: "gpt-5-mini/high remains the baseline. gpt-5.6/original is an experiment until your held-out drive benchmark proves it better.",
     debug_label: "Debug mode: keep the drive video after analysing it",
     settings_note: "Each photo you capture is sent to OpenAI for detection, so it leaves your phone and is processed outside India. Road photos can contain number plates and faces. Location is sent to OpenStreetMap and the Karnataka state GIS to find the address and the responsible office. Complaints are always created as email drafts addressed to the concerned officer. Nothing sends until you press send in your email app.",
     wipe_btn: "Delete all reports and photos",
-    welcome_hint: "Welcome. Paste your OpenAI API key to enable pothole detection. It is stored only on this device.",
+    welcome_hint: "Welcome. Paste your OpenAI API key to enable road-damage detection. It is stored only on this device.",
     back: "Back", save: "Save", discard: "Discard", del: "Delete", email_btn: "Email", stop: "&#9632; Stop", working: "Working...",
-    chip_draft: "Draft", chip_sent: "Sent", chip_queued: "Opened in email", chip_rejected: "Not a pothole",
+    chip_draft: "Draft", chip_sent: "Sent", chip_queued: "Opened in email", chip_rejected: "Not reportable", chip_review: "Needs review",
     chip_unrouted: "Outside coverage",
     no_location: "The location could not be determined.",
     road_unknown: "Could not check who owns this road",
@@ -200,36 +223,38 @@ const I18N = {
     nat_highway: "{road} is a national highway",
     nat_highway_help: "National highways are maintained by NHAI or the state PWD National Highways division, not by the city or town body, so there is no municipal officer to address. Report it on the NHAI Rajmargyatra app or the 1033 helpline.",
     rural_road: "This road is in {body} gram panchayat, not a town or city.",
-    rural_road_help: "The pothole was confirmed, but it sits outside every urban local body, so it belongs to the state PWD or the panchayat engineering department rather than a municipality. Those are not in the directory yet, so no complaint has been addressed. The photo and location are saved.",
+    rural_road_help: "Road damage was confirmed, but it sits outside every urban local body, so it belongs to the state PWD or the panchayat engineering department rather than a municipality. Those are not in the directory yet, so no complaint has been addressed. The photo and location are saved.",
     no_address: "No published address for {body}.",
-    no_address_help: "The pothole was confirmed and the responsible local body identified, but the app holds no official email for it and will not guess one. The photo and location are saved; the address can be added to the directory.",
-    no_location_help: "A pothole was confirmed, but without a GPS fix the app cannot tell which corporation is responsible, so it will not address a complaint. The photo is saved: reopen it once location is available.",
+    no_address_help: "Road damage was confirmed and the responsible local body identified, but the app holds no official email for it and will not guess one. The photo and location are saved; the address can be added to the directory.",
+    no_location_help: "Road damage was confirmed, but without a GPS fix the app cannot tell which corporation is responsible, so it will not address a complaint. The photo is saved.",
     review_btn: "Review and label frames", export_btn: "Export labelled dataset",
     dash_btn: "&#128506;&#65039; &nbsp;Your contribution", dash_title: "Your contribution",
     dash_range: "{days} of reporting · first on {first}",
-    dash_empty: "No potholes reported yet. Your map fills up as you drive.",
+    dash_empty: "No road damage reported yet. Your map fills up as you drive.",
     day_one: "1 day", day_many: "{n} days",
-    stat_found: "potholes found", stat_reported: "complaints sent", stat_frames: "frames checked",
+    stat_found: "damage events found", stat_reported: "complaints sent", stat_frames: "events checked",
     stat_drives: "drives", stat_footage: "MB of footage", stat_km: "km of road covered",
-    by_size: "By size", by_area: "By corporation", map_pins: "{n} pinned",
+    by_type: "By damage type", by_size: "By size", by_area: "By corporation", map_pins: "{n} pinned",
     map_offline: "Map tiles need a connection. Points are still plotted below.",
     zoom_hint: "Pinch to zoom · drag to pan · double tap to reset",
     rec_suffix: "· recording {mb} MB", rec_failed: "· not recording",
     net_trouble: "Connection trouble, still scanning ({n} frames waiting)",
     capture_failing: "The camera is not returning frames. Stop and restart the drive.",
     camera_lost: "Camera paused (another app may be using it). Scanning resumes automatically.",
+    camera_low_quality: "camera only {width}px / {fps}fps",
+    coverage_dropped: "queued events dropped",
     drive_end_failed: "{n} frames could not be checked because of the connection.",
     footage_line: "Footage: {mb} MB · {segments} clips",
     analyse_btn: "Analyse footage", delete_footage: "Delete footage",
     analysing: "Frame {i} of {n} · {found} new",
-    analyse_done: "Footage analysed: {found} new potholes from {n} frames.",
+    analyse_done: "Footage analysed: {found} new road-damage events from {n} frames.",
     analyse_none: "No footage stored for this drive.",
     analysing_dup: "({n} already reported)",
     analyse_dup: "{n} of them were already reported.",
     frames_no_permission: "Saving frames to storage was not permitted. Analyse anyway without saving them?",
     analysing_failed: "· {n} failed",
     analyse_incomplete: "Could not finish: {failed} of {n} frames were not checked ({err}) So no result is being claimed, and the video has been kept.",
-    debug_note: "On: the video survives analysis, so a drive can be re-examined or re-run against a better model. Off: the video is deleted once its potholes have been extracted.",
+    debug_note: "On: the video survives analysis, so a drive can be re-examined or re-run against a better model. Off: the video is deleted after its road-damage events are extracted.",
     record_label: "Record video during a drive",
     keep_frames_label: "Save every analysed frame to the device",
     keep_frames_note: "Writes each frame the AI checked, with its verdict, into Documents/pothole-frames on this phone. Visible in the Files app, and the raw material for building an evaluation set. Adds up fast: roughly 300 KB a frame.",
@@ -237,22 +262,29 @@ const I18N = {
     frames_failed: "Could not write frames to the device.",
     footage_freed: "Video deleted, {mb} MB freed.",
     footage_kept: "Video kept (debug mode).",
-    offer_analyse: "Analyse this drive's video now? {clips} clips, {mb} MB. Potholes are kept as photos; the rest is discarded.",
+    offer_analyse: "Analyse this drive's video now? {clips} clips, {mb} MB. Reportable road damage is kept as photos; the rest is discarded.",
     confirm_delete_footage: "Delete the recorded video for this drive? The reports stay.",
     drive_group: "{date} · {found} · {checked} frames checked",
     drive_group_partial: "{date} · {found} · {kept} kept",
-    lbl_yes: "Pothole", lbl_no: "Not a pothole", lbl_skip: "Skip", lbl_done: "Done",
+    lbl_pothole: "Pothole cavity", lbl_patch: "Failed repair", lbl_surface: "Surface breakup",
+    lbl_rut: "Rut / depression", lbl_no: "Not reportable", lbl_skip: "Skip", lbl_done: "Done",
     review_empty: "Nothing left to label. Drive with debug mode on to collect frames.",
     review_progress: "{n} left to label · {done} labelled so far",
-    model_said: "The app said: {verdict} ({pct}%)",
+    model_said: "The app said: {verdict} · {assessment}",
     export_ready: "{n} labelled frames, {mb} MB. Choose where to send it.",
     outside_coverage: "This location is outside the area this app covers.",
     outside_coverage_help: "This point is outside Karnataka, and the officer directory only covers Karnataka local bodies, so there is no authority this app can correctly address. The photo and location are saved.",
     size_small: "small", size_medium: "medium", size_large: "large",
-    verdict_detected: "{size} pothole detected ({pct}% confident)",
-    verdict_rejected: "No pothole confirmed",
-    early_yes: "Pothole confirmed. Preparing the complaint...",
-    early_no: "No pothole in this photo.",
+    damage_pothole_cavity: "pothole cavity", damage_failed_patch: "failed road repair",
+    damage_surface_breakup: "broken road surface", damage_rut_or_depression: "road rut / depression",
+    damage_other_road_damage: "other road damage", damage_none: "no reportable damage",
+    assessment_clear: "clear", assessment_probable: "probable", assessment_uncertain: "uncertain", assessment_absent: "absent",
+    verdict_detected: "{type} detected · {assessment}",
+    verdict_review: "Possible {type} — retake or review before reporting",
+    verdict_rejected: "No reportable road damage confirmed",
+    early_yes: "Reportable {type} found. Preparing the complaint...",
+    early_review: "Possible road damage. A clearer photo is needed.",
+    early_no: "No reportable road damage in this photo.",
     verdict_sent: "Complaint sent",
     verdict_queued: "Opened in your email app. Edit and resend if you didn't send it.",
     confidence: "confidence",
@@ -266,10 +298,10 @@ const I18N = {
     holding: "Holding position ({checked} checked, {found} found)",
     scanning: "Scanning ({mode})... {checked} checked{analyzing}",
     analyzing_suffix: ", {n} analyzing",
-    potholes_one: "{n} pothole", potholes_many: "{n} potholes",
-    drive_tip: "Mount the phone facing the road. Frames are checked continuously while you move (about every 10 meters). The back button also stops the drive.",
+    potholes_one: "{n} damage event", potholes_many: "{n} damage events",
+    drive_tip: "Before moving, aim the camera so the travelled road fills the orange guide with little sky or dashboard. Each check uses a three-frame burst. The back button also stops the drive.",
     drive_end: "Drive ended: {found} found, {checked} frames checked.",
-    drive_end_zero: "No potholes found in this drive ({checked} frames checked{debug}).",
+    drive_end_zero: "No reportable road damage found in this drive ({checked} events checked{debug}).",
     debug_saved_suffix: ", debug frames saved for review",
     confirm_send: "Open your email app with the complaint addressed to {to}?",
     confirm_delete: "Delete this report?",
@@ -279,8 +311,8 @@ const I18N = {
     the_officer: "the concerned officer",
   },
   kn: {
-    sub: "ಫೋಟೋ ತೆಗೆಯಿರಿ. ಪರಿಶೀಲಿಸಿ. ಪಾಲಿಕೆಗೆ ವರದಿ ಮಾಡಿ.",
-    report_btn: "&#128247; &nbsp;ರಸ್ತೆ ಗುಂಡಿ ವರದಿ ಮಾಡಿ",
+    sub: "ಫೋಟೋ ತೆಗೆಯಿರಿ. ಹಾನಿ ಪರಿಶೀಲಿಸಿ. ಸರಿಯಾದ ಅಧಿಕಾರಿಗೆ ವರದಿ ಮಾಡಿ.",
+    report_btn: "&#128247; &nbsp;ರಸ್ತೆ ಹಾನಿ ವರದಿ ಮಾಡಿ",
     drive_btn: "&#128663; &nbsp;ಡ್ರೈವ್ ಮೋಡ್",
     your_reports: "ನಿಮ್ಮ ವರದಿಗಳು",
     no_reports: "ಇನ್ನೂ ವರದಿಗಳಿಲ್ಲ. ಗುಂಡಿ ಹುಡುಕಲು ಹೊರಡಿ.",
@@ -288,12 +320,15 @@ const I18N = {
     settings_title: "ಸೆಟ್ಟಿಂಗ್ಸ್",
     key_label: "OpenAI API ಕೀ (ಈ ಸಾಧನದಲ್ಲಿ ಮಾತ್ರ ಸಂಗ್ರಹ)",
     name_label: "ನಿಮ್ಮ ಹೆಸರು (ದೂರುಗಳಿಗೆ ಸಹಿ)",
+    model_label: "ಪತ್ತೆ ಮಾದರಿ",
+    detail_label: "ಚಿತ್ರದ ವಿವರ",
+    accuracy_note: "gpt-5-mini/high ಪ್ರಸ್ತುತ ಮೂಲಮಟ್ಟ. ನಿಮ್ಮ ಪ್ರತ್ಯೇಕ ಡ್ರೈವ್ ಪರೀಕ್ಷೆ ಉತ್ತಮವೆಂದು ಸಾಬೀತುಪಡಿಸುವವರೆಗೆ gpt-5.6/original ಪ್ರಯೋಗವಾಗಿದೆ.",
     debug_label: "ಡೀಬಗ್ ಮೋಡ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ಡ್ರೈವ್ ವಿಡಿಯೋ ಉಳಿಸಿ",
     settings_note: "ನೀವು ತೆಗೆದ ಪ್ರತಿ ಫೋಟೋ ಪತ್ತೆಗಾಗಿ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ಅದು ನಿಮ್ಮ ಫೋನ್ ಬಿಟ್ಟು ಭಾರತದ ಹೊರಗೆ ಸಂಸ್ಕರಣೆಯಾಗುತ್ತದೆ. ರಸ್ತೆ ಫೋಟೋಗಳಲ್ಲಿ ವಾಹನ ಸಂಖ್ಯೆ ಮತ್ತು ಮುಖಗಳು ಇರಬಹುದು. ದೂರುಗಳು ಯಾವಾಗಲೂ ಇಮೇಲ್ ಡ್ರಾಫ್ಟ್ ಆಗಿ ರಚನೆಯಾಗುತ್ತವೆ. ನೀವು ಕಳುಹಿಸುವವರೆಗೆ ಏನೂ ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ.",
     wipe_btn: "ಎಲ್ಲಾ ವರದಿ ಮತ್ತು ಫೋಟೋಗಳನ್ನು ಅಳಿಸಿ",
     welcome_hint: "ಸ್ವಾಗತ. ಗುಂಡಿ ಪತ್ತೆಗೆ ನಿಮ್ಮ OpenAI API ಕೀ ಅಂಟಿಸಿ. ಇದು ಈ ಸಾಧನದಲ್ಲಿ ಮಾತ್ರ ಸಂಗ್ರಹವಾಗುತ್ತದೆ.",
     back: "ಹಿಂದೆ", save: "ಉಳಿಸಿ", discard: "ತ್ಯಜಿಸಿ", del: "ಅಳಿಸಿ", email_btn: "ಇಮೇಲ್", stop: "&#9632; ನಿಲ್ಲಿಸಿ", working: "ನಡೆಯುತ್ತಿದೆ...",
-    chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಕಳುಹಿಸಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ಗುಂಡಿ ಅಲ್ಲ",
+    chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಕಳುಹಿಸಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ವರದಿ ಯೋಗ್ಯವಲ್ಲ", chip_review: "ಪರಿಶೀಲನೆ ಬೇಕು",
     chip_unrouted: "ವ್ಯಾಪ್ತಿಯ ಹೊರಗೆ",
     no_location: "ಸ್ಥಳ ಪತ್ತೆಯಾಗಲಿಲ್ಲ.",
     road_unknown: "ಈ ರಸ್ತೆ ಯಾರ ವ್ಯಾಪ್ತಿಗೆ ಬರುತ್ತದೆ ಎಂದು ಪರಿಶೀಲಿಸಲಾಗಲಿಲ್ಲ",
@@ -312,13 +347,15 @@ const I18N = {
     day_one: "1 ದಿನ", day_many: "{n} ದಿನಗಳು",
     stat_found: "ಗುಂಡಿಗಳು ಪತ್ತೆ", stat_reported: "ದೂರುಗಳು ಕಳುಹಿಸಲಾಗಿದೆ", stat_frames: "ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ",
     stat_drives: "ಡ್ರೈವ್‌ಗಳು", stat_footage: "MB ವಿಡಿಯೋ", stat_km: "ಕಿಮೀ ರಸ್ತೆ",
-    by_size: "ಗಾತ್ರದ ಪ್ರಕಾರ", by_area: "ಪಾಲಿಕೆ ಪ್ರಕಾರ", map_pins: "{n} ಗುರುತಿಸಲಾಗಿದೆ",
+    by_type: "ಹಾನಿಯ ಪ್ರಕಾರ", by_size: "ಗಾತ್ರದ ಪ್ರಕಾರ", by_area: "ಪಾಲಿಕೆ ಪ್ರಕಾರ", map_pins: "{n} ಗುರುತಿಸಲಾಗಿದೆ",
     map_offline: "ನಕ್ಷೆಗೆ ಇಂಟರ್ನೆಟ್ ಬೇಕು. ಬಿಂದುಗಳು ಕೆಳಗೆ ತೋರಿಸಲಾಗಿದೆ.",
     zoom_hint: "ಜೂಮ್‌ಗೆ ಪಿಂಚ್ · ಸರಿಸಲು ಎಳೆಯಿರಿ · ಮರುಹೊಂದಿಸಲು ಡಬಲ್ ಟ್ಯಾಪ್",
     rec_suffix: "· {mb} MB ರೆಕಾರ್ಡ್", rec_failed: "· ರೆಕಾರ್ಡ್ ಆಗುತ್ತಿಲ್ಲ",
     net_trouble: "ಸಂಪರ್ಕ ಸಮಸ್ಯೆ, ಇನ್ನೂ ಸ್ಕ್ಯಾನ್ ಆಗುತ್ತಿದೆ ({n} ಬಾಕಿ)",
     capture_failing: "ಕ್ಯಾಮರಾವು ಫ್ರೇಮ್ ನೀಡುತ್ತಿಲ್ಲ. ಡ್ರೈವ್ ನಿಲ್ಲಿಸಿ ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ.",
     camera_lost: "ಕ್ಯಾಮೆರಾ ವಿರಾಮದಲ್ಲಿದೆ (ಬೇರೆ ಆ್ಯಪ್ ಬಳಸುತ್ತಿರಬಹುದು). ತಾನಾಗಿಯೇ ಮುಂದುವರಿಯುತ್ತದೆ.",
+    camera_low_quality: "ಕ್ಯಾಮೆರಾ ಕೇವಲ {width}px / {fps}fps",
+    coverage_dropped: "ಬಾಕಿ ಘಟನೆಗಳು ಕೈಬಿಡಲಾಗಿದೆ",
     drive_end_failed: "ಸಂಪರ್ಕದ ಕಾರಣ {n} ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಲಾಗಲಿಲ್ಲ.",
     footage_line: "ವಿಡಿಯೋ: {mb} MB · {segments} ತುಣುಕುಗಳು",
     analyse_btn: "ವಿಡಿಯೋ ವಿಶ್ಲೇಷಿಸಿ", delete_footage: "ವಿಡಿಯೋ ಅಳಿಸಿ",
@@ -342,18 +379,25 @@ const I18N = {
     confirm_delete_footage: "ಈ ಡ್ರೈವ್‌ನ ವಿಡಿಯೋ ಅಳಿಸಬೇಕೆ? ವರದಿಗಳು ಉಳಿಯುತ್ತವೆ.",
     drive_group: "{date} · {found} · {checked} ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ",
     drive_group_partial: "{date} · {found} · {kept} ಉಳಿಸಲಾಗಿದೆ",
-    lbl_yes: "ಗುಂಡಿ", lbl_no: "ಗುಂಡಿ ಅಲ್ಲ", lbl_skip: "ಬಿಟ್ಟುಬಿಡಿ", lbl_done: "ಮುಗಿಯಿತು",
+    lbl_pothole: "ರಸ್ತೆ ಗುಂಡಿ", lbl_patch: "ವಿಫಲ ದುರಸ್ತಿ", lbl_surface: "ಮೇಲ್ಮೈ ಹಾನಿ",
+    lbl_rut: "ರಸ್ತೆ ಕುಸಿತ", lbl_no: "ವರದಿ ಯೋಗ್ಯವಲ್ಲ", lbl_skip: "ಬಿಟ್ಟುಬಿಡಿ", lbl_done: "ಮುಗಿಯಿತು",
     review_empty: "ಗುರುತಿಸಲು ಏನೂ ಉಳಿದಿಲ್ಲ. ಡೀಬಗ್ ಮೋಡ್ ಆನ್ ಮಾಡಿ ಡ್ರೈವ್ ಮಾಡಿ.",
     review_progress: "{n} ಬಾಕಿ · {done} ಗುರುತಿಸಲಾಗಿದೆ",
-    model_said: "ಆ್ಯಪ್ ಹೇಳಿದ್ದು: {verdict} ({pct}%)",
+    model_said: "ಆ್ಯಪ್ ಹೇಳಿದ್ದು: {verdict} · {assessment}",
     export_ready: "{n} ಗುರುತಿಸಿದ ಫ್ರೇಮ್‌ಗಳು, {mb} MB. ಎಲ್ಲಿಗೆ ಕಳುಹಿಸಬೇಕೆಂದು ಆಯ್ಕೆಮಾಡಿ.",
     outside_coverage: "ಈ ಸ್ಥಳ ಈ ಆ್ಯಪ್ ಒಳಗೊಂಡ ವ್ಯಾಪ್ತಿಯ ಹೊರಗಿದೆ.",
     outside_coverage_help: "ಈ ಸ್ಥಳ ಕರ್ನಾಟಕದ ಹೊರಗಿದೆ. ಅಧಿಕಾರಿಗಳ ಪಟ್ಟಿ ಕರ್ನಾಟಕದ ಸ್ಥಳೀಯ ಸಂಸ್ಥೆಗಳಿಗೆ ಮಾತ್ರ ಸೀಮಿತವಾಗಿದೆ. ಆದ್ದರಿಂದ ಸರಿಯಾದ ಅಧಿಕಾರಿಯನ್ನು ಸೂಚಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳ ಉಳಿಸಲಾಗಿದೆ.",
     size_small: "ಸಣ್ಣ", size_medium: "ಮಧ್ಯಮ", size_large: "ದೊಡ್ಡ",
-    verdict_detected: "{size} ಗುಂಡಿ ಪತ್ತೆಯಾಗಿದೆ ({pct}% ವಿಶ್ವಾಸ)",
-    verdict_rejected: "ಗುಂಡಿ ದೃಢಪಟ್ಟಿಲ್ಲ",
-    early_yes: "ಗುಂಡಿ ದೃಢಪಟ್ಟಿದೆ. ದೂರು ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ...",
-    early_no: "ಈ ಫೋಟೋದಲ್ಲಿ ಗುಂಡಿ ಇಲ್ಲ.",
+    damage_pothole_cavity: "ರಸ್ತೆ ಗುಂಡಿ", damage_failed_patch: "ವಿಫಲವಾದ ರಸ್ತೆ ದುರಸ್ತಿ",
+    damage_surface_breakup: "ಹಾಳಾದ ರಸ್ತೆ ಮೇಲ್ಮೈ", damage_rut_or_depression: "ರಸ್ತೆ ಕುಸಿತ",
+    damage_other_road_damage: "ಇತರೆ ರಸ್ತೆ ಹಾನಿ", damage_none: "ವರದಿ ಮಾಡಬಹುದಾದ ಹಾನಿ ಇಲ್ಲ",
+    assessment_clear: "ಸ್ಪಷ್ಟ", assessment_probable: "ಸಂಭಾವ್ಯ", assessment_uncertain: "ಅನಿಶ್ಚಿತ", assessment_absent: "ಇಲ್ಲ",
+    verdict_detected: "{type} ಪತ್ತೆಯಾಗಿದೆ · {assessment}",
+    verdict_review: "ಸಂಭಾವ್ಯ {type} — ವರದಿಗೂ ಮೊದಲು ಸ್ಪಷ್ಟ ಫೋಟೋ ಅಥವಾ ಪರಿಶೀಲನೆ ಬೇಕು",
+    verdict_rejected: "ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ದೃಢಪಟ್ಟಿಲ್ಲ",
+    early_yes: "ವರದಿ ಮಾಡಬಹುದಾದ {type} ಪತ್ತೆಯಾಗಿದೆ. ದೂರು ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ...",
+    early_review: "ಸಂಭಾವ್ಯ ರಸ್ತೆ ಹಾನಿ. ಸ್ಪಷ್ಟ ಫೋಟೋ ಬೇಕು.",
+    early_no: "ಈ ಫೋಟೋದಲ್ಲಿ ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಇಲ್ಲ.",
     verdict_sent: "ದೂರು ಕಳುಹಿಸಲಾಗಿದೆ",
     verdict_queued: "ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ. ಕಳುಹಿಸಿಲ್ಲದಿದ್ದರೆ ತಿದ್ದಿ ಮತ್ತೆ ತೆರೆಯಿರಿ.",
     confidence: "ವಿಶ್ವಾಸ",
@@ -367,10 +411,10 @@ const I18N = {
     holding: "ಸ್ಥಳದಲ್ಲಿದ್ದೀರಿ ({checked} ಪರಿಶೀಲನೆ, {found} ಪತ್ತೆ)",
     scanning: "ಸ್ಕ್ಯಾನ್ ({mode})... {checked} ಪರಿಶೀಲನೆ{analyzing}",
     analyzing_suffix: ", {n} ವಿಶ್ಲೇಷಣೆ",
-    potholes_one: "{n} ಗುಂಡಿ", potholes_many: "{n} ಗುಂಡಿಗಳು",
-    drive_tip: "ಫೋನ್ ಅನ್ನು ರಸ್ತೆಗೆ ಮುಖ ಮಾಡಿ ಇರಿಸಿ. ನೀವು ಚಲಿಸುವಾಗ ಫ್ರೇಮ್‌ಗಳನ್ನು ನಿರಂತರವಾಗಿ ಪರಿಶೀಲಿಸಲಾಗುತ್ತದೆ (ಸುಮಾರು ಪ್ರತಿ 10 ಮೀಟರ್). ಬ್ಯಾಕ್ ಬಟನ್ ಡ್ರೈವ್ ಅನ್ನೂ ನಿಲ್ಲಿಸುತ್ತದೆ.",
+    potholes_one: "{n} ಹಾನಿ ಘಟನೆ", potholes_many: "{n} ಹಾನಿ ಘಟನೆಗಳು",
+    drive_tip: "ಚಲಿಸುವ ಮೊದಲು ರಸ್ತೆ ಕಿತ್ತಳೆ ಮಾರ್ಗದರ್ಶಿಯೊಳಗೆ ತುಂಬುವಂತೆ ಕ್ಯಾಮೆರಾ ಹೊಂದಿಸಿ; ಆಕಾಶ ಮತ್ತು ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ಕಡಿಮೆ ಇರಲಿ. ಪ್ರತಿ ಪರಿಶೀಲನೆ ಮೂರು ಫ್ರೇಮ್‌ಗಳನ್ನು ಬಳಸುತ್ತದೆ.",
     drive_end: "ಡ್ರೈವ್ ಮುಗಿಯಿತು: {found} ಪತ್ತೆ, {checked} ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ.",
-    drive_end_zero: "ಈ ಡ್ರೈವ್‌ನಲ್ಲಿ ಗುಂಡಿ ಪತ್ತೆಯಾಗಿಲ್ಲ ({checked} ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ{debug}).",
+    drive_end_zero: "ಈ ಡ್ರೈವ್‌ನಲ್ಲಿ ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಪತ್ತೆಯಾಗಿಲ್ಲ ({checked} ಪರಿಶೀಲನೆ{debug}).",
     debug_saved_suffix: ", ಡೀಬಗ್ ಫ್ರೇಮ್‌ಗಳು ಉಳಿದಿವೆ",
     confirm_send: "{to} ಗೆ ಉದ್ದೇಶಿಸಿದ ದೂರಿನೊಂದಿಗೆ ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ?",
     confirm_delete: "ಈ ವರದಿ ಅಳಿಸಬೇಕೆ?",
@@ -387,6 +431,10 @@ const t = (k, p) => {
   return s;
 };
 const tSize = (s) => (s ? t("size_" + s) : "");
+const damageType = (r) => (r && r.damage_type) || (r && r.is_pothole ? "pothole_cavity" : "none");
+const assessment = (r) => (r && r.assessment) || (r && r.is_pothole ? "clear" : "absent");
+const tDamage = (value) => t("damage_" + (typeof value === "string" ? value : damageType(value)));
+const tAssessment = (value) => t("assessment_" + (typeof value === "string" ? value : assessment(value)));
 let health = { ai_configured: true, email_configured: false, delivery: "gmail_draft" };
 
 function show(screen) {
@@ -400,7 +448,8 @@ const sendLabel = () => t("email_btn");
 
 function chip(status) {
   const label = { draft: t("chip_draft"), sent: t("chip_sent"), queued: t("chip_queued"),
-                  rejected: t("chip_rejected"), unrouted: t("chip_unrouted") }[status] || status;
+                  rejected: t("chip_rejected"), review: t("chip_review"),
+                  unrouted: t("chip_unrouted") }[status] || status;
   return `<span class="chip ${status}">${label}</span>`;
 }
 
@@ -412,6 +461,9 @@ function applyLang() {
   $("settingsTitle").textContent = t("settings_title");
   $("keyLabel").textContent = t("key_label");
   $("nameLabel").textContent = t("name_label");
+  $("modelLabel").textContent = t("model_label");
+  $("detailLabel").textContent = t("detail_label");
+  $("accuracyNote").textContent = t("accuracy_note");
   $("debugLabel").textContent = t("debug_label");
   $("debugNote").innerHTML = t("debug_note");
   $("recordLabel").textContent = t("record_label");
@@ -425,7 +477,10 @@ function applyLang() {
   $("dashBtn").innerHTML = t("dash_btn");
   $("reviewBtn").textContent = t("review_btn");
   $("exportBtn").textContent = t("export_btn");
-  $("lblYes").textContent = t("lbl_yes");
+  $("lblPothole").textContent = t("lbl_pothole");
+  $("lblPatch").textContent = t("lbl_patch");
+  $("lblSurface").textContent = t("lbl_surface");
+  $("lblRut").textContent = t("lbl_rut");
   $("lblNo").textContent = t("lbl_no");
   $("lblSkip").textContent = t("lbl_skip");
   $("reviewBack").textContent = t("lbl_done");
@@ -507,7 +562,7 @@ async function loadReports() {
     <div class="card row" data-id="${r.id}" style="cursor:pointer">
       <img class="thumb" src="${photoSrc(r)}" alt="" loading="lazy" decoding="async">
       <div style="min-width:0">
-        <div>${chip(r.status)} ${r.size ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tSize(r.size)}</span>` : ""}</div>
+        <div>${chip(r.status)} ${damageType(r) !== "none" ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tDamage(r)}</span>` : ""} ${r.size ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tSize(r.size)}</span>` : ""}</div>
         <div class="meta">${fmtDate(r.created_at)}${r.address ? " · " + r.address.split(",").slice(0, 2).join(", ") : ""}</div>
       </div>
     </div>`;
@@ -687,6 +742,12 @@ function unroutedHelp(r) {
   return t("outside_coverage_help");
 }
 
+function detectionVerdict(r) {
+  if (r.status === "review") return t("verdict_review", { type: tDamage(r) });
+  if (r.status === "rejected") return t("verdict_rejected");
+  return t("verdict_detected", { type: tDamage(r), assessment: tAssessment(r) });
+}
+
 function openDetail(r, list) {
   if (list) { detailList = list; detailIdx = list.findIndex((x) => x.id === r.id); }
   else if (!detailList.some((x) => x.id === r.id)) { detailList = [r]; detailIdx = 0; }
@@ -699,7 +760,7 @@ function openDetail(r, list) {
       <div class="card">
         ${photoBlock(r)}
         <div class="verdict" style="color:var(--accent)">
-          ${t("verdict_detected", { size: tSize(r.size).toUpperCase(), pct: (r.confidence * 100).toFixed(0) })}
+          ${detectionVerdict(r)}
         </div>
         ${r.address ? `<div class="meta">&#128205; ${r.address}</div>` : ""}
         <div class="meta" style="color:var(--bad)">&#9888; ${unroutedTitle(r)}</div>
@@ -709,12 +770,13 @@ function openDetail(r, list) {
           <button class="ghost danger" id="discardBtn">${t("del")}</button>
         </div>
       </div>`;
-  } else if (r.status === "rejected") {
+  } else if (r.status === "rejected" || r.status === "review") {
     d.innerHTML = `
       <div class="card">
         ${photoBlock(r)}
-        <div class="verdict" style="color:var(--bad)">${t("verdict_rejected")}</div>
-        <div class="meta">${r.description || ""} (${t("confidence")} ${(r.confidence * 100).toFixed(0)}%)</div>
+        <div class="verdict" style="color:${r.status === "review" ? "var(--accent)" : "var(--bad)"}">${detectionVerdict(r)}</div>
+        <div class="meta">${r.description || ""}</div>
+        <div class="meta">${tDamage(r)} · ${tAssessment(r)}${r.image_quality ? ` · ${r.image_quality}` : ""}</div>
         <div class="btn-row">
           <button class="ghost" id="backBtn">${t("back")}</button>
           <button class="ghost danger" id="discardBtn">${t("del")}</button>
@@ -727,7 +789,7 @@ function openDetail(r, list) {
     const verdictText = r.status === "sent" ? t("verdict_sent")
       : r.status === "queued"
       ? t("verdict_queued")
-      : t("verdict_detected", { size: tSize(r.size).toUpperCase(), pct: (r.confidence * 100).toFixed(0) });
+      : detectionVerdict(r);
     d.innerHTML = `
       <div class="card">
         ${photoBlock(r)}
@@ -784,31 +846,24 @@ async function sendReport(r) {
 }
 
 // ---------- Drive Mode ----------
-const FRAME_INTERVAL_MS = 400;   // the loop polls often; distance below decides when to shoot
-const MIN_MOVE_METERS = 8;
-// The fallback cadence when the movement gate says we are stationary. It used to be 8s,
-// which at 30 km/h is 66 m of road nobody looked at. A real drive down a street with five
-// potholes produced five frames in 45 seconds, every one of them from this fallback,
-// because the phone kept redelivering a fix that did not move. When the app is unsure
-// whether it is moving, the cheap mistake is to take a photo, not to skip 66 m.
-// Sized so the degraded case still approximates the intended 8 m spacing: about
-// 5.5 m/s is ordinary city speed, so 1.5 s is roughly 8 m of road per frame.
-const STILL_CAPTURE_MS = 1500;
-// When the phone positively reports it is not moving, and its fix is precise enough to
-// be believed, there is no reason to keep photographing the same spot. Only that case
-// gets the slow cadence; anything less certain gets STILL_CAPTURE_MS.
+const FRAME_INTERVAL_MS = 200;   // poll cheaply; the speed-aware gate decides when to capture
+const TARGET_SPACING_M = 6;
+// When speed is unavailable, a 750 ms fallback approximates the 6 m target at
+// ordinary city speed. Measuring from burst start keeps the 360 ms burst itself
+// from silently widening the road gap.
+const FALLBACK_CAPTURE_MS = 750;
+const MIN_CAPTURE_MS = 500;
+const MAX_CAPTURE_MS = 1500;
 const PARKED_CAPTURE_MS = 8000;
-// Beyond this, a fix is too coarse for an 8 m displacement test to mean anything.
 const GPS_COARSE_M = 30;
-// Reported ground speed above this counts as moving, whatever the coordinates say.
 const MOVING_MS = 1.0;
 const GPS_MAX_AGE_MS = 10000; // a fix older than this is stale: pause rather than mistag
-// Measured against the API, two saturated rounds per setting: 4 in flight gives 1.04
-// frames/s, 6 gives 1.63, 8 gives 1.89, and it collapses past that (12 gives 1.15, 16
-// gives 1.05 with a 13.7s median as requests queue). 8 is the knee. This is the same
-// request either way, so nothing about a verdict changes; it only decides how much road
-// gets looked at per second, which at 8 m spacing is 54 km/h instead of 30.
-const MAX_IN_FLIGHT = 8;
+const BURST_COUNT = 3;
+const BURST_SPACING_MS = 180;
+// A burst is heavier than the old single frame. Capture remains independent of these
+// workers and waits in a bounded local queue rather than leaving unseen road gaps.
+const MAX_IN_FLIGHT = 6;
+const MAX_CAPTURE_QUEUE = 24;
 // Tunable at runtime so a test can use short segments and dense sampling without
 // waiting out a real drive.
 let SEGMENT_MS = 15000;            // footage is written in 15s pieces so memory stays flat
@@ -837,42 +892,78 @@ async function startDrive() {
   let stream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } },
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 },
+               height: { ideal: 1080 }, frameRate: { ideal: 30 } },
       audio: false,
     });
   } catch (e) { driveStarting = false; alert(t("camera_failed") + e.message); return; }
-  $("driveVideo").srcObject = stream;
-  drive = { stream, pos: null, lastCapPos: null, tally: { checked: 0, found: 0 }, pending: [], inFlight: 0, errors: 0, wakeLock: null, foundSpots: [], sessionId: String(Date.now()), startedAt: Date.now(), stillBusy: false };
-  startRecording(stream, drive.sessionId);
-  try { drive.wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {}
-  drive.watchId = navigator.geolocation.watchPosition(
+  const video = $("driveVideo");
+  video.srcObject = stream;
+  const ctx = {
+    stream, pos: null, lastCapPos: null,
+    tally: { checked: 0, found: 0, captured: 0, dropped: 0 },
+    queue: [], pending: new Set(), inFlight: 0, errors: 0, wakeLock: null,
+    sessionId: String(Date.now()), startedAt: Date.now(), stillBusy: false,
+    stopping: false, drained: false,
+  };
+  ctx.drainPromise = new Promise((resolve) => { ctx.resolveDrained = resolve; });
+  drive = ctx;
+  show("drive");
+  try { await video.play(); } catch (e) {}
+  // Stop can be tapped while play() is waiting for the media pipeline. Do not let
+  // this continuation recreate recording, GPS or wake-lock resources after teardown.
+  if (drive !== ctx || ctx.stopping) { driveStarting = false; return; }
+  const track = stream.getVideoTracks && stream.getVideoTracks()[0];
+  const settings = track && track.getSettings ? track.getSettings() : {};
+  ctx.cameraSettings = { width: settings.width || null, height: settings.height || null,
+                         frameRate: settings.frameRate || null };
+  if ((settings.width && settings.width < 1280) || (settings.frameRate && settings.frameRate < 20)) {
+    ctx.cameraWarning = t("camera_low_quality", {
+      width: settings.width || "?", fps: Math.round(settings.frameRate || 0) || "?",
+    });
+  }
+  startRecording(stream, ctx.sessionId);
+  try {
+    const lock = await navigator.wakeLock.request("screen");
+    if (drive === ctx && !ctx.stopping) ctx.wakeLock = lock;
+    else lock.release().catch(() => {});
+  } catch (e) {}
+  // A wake-lock request is asynchronous too. If Stop won that race, the late lock
+  // was released above and GPS must never be installed for the dead session.
+  if (drive !== ctx || ctx.stopping) { driveStarting = false; return; }
+  ctx.watchId = navigator.geolocation.watchPosition(
     (p) => {
-      if (!drive) return;
-      drive.pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      if (drive !== ctx) return;
+      ctx.pos = { lat: p.coords.latitude, lng: p.coords.longitude };
       // Staleness is the age of the FIX, not of its delivery. A phone will hand back the
       // same cached fix over and over, and stamping arrival time made it look perpetually
       // fresh while the car drove away from it.
-      drive.posAt = p.timestamp || Date.now();
-      drive.posAccuracy = typeof p.coords.accuracy === "number" ? p.coords.accuracy : null;
-      drive.posSpeed = typeof p.coords.speed === "number" && !Number.isNaN(p.coords.speed)
+      ctx.posAt = p.timestamp || Date.now();
+      ctx.posAccuracy = typeof p.coords.accuracy === "number" ? p.coords.accuracy : null;
+      ctx.posSpeed = typeof p.coords.speed === "number" && !Number.isNaN(p.coords.speed)
         ? p.coords.speed : null;
-      (drive.gpsTrack || (drive.gpsTrack = [])).push(
-        [Math.round((Date.now() - drive.startedAt) / 100) / 10, +p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6)]);
+      (ctx.gpsTrack || (ctx.gpsTrack = [])).push(
+        [Math.round((Date.now() - ctx.startedAt) / 100) / 10, +p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6)]);
     },
     () => {},
     { enableHighAccuracy: true, maximumAge: 2000 }
   );
-  drive.timer = setInterval(driveTick, FRAME_INTERVAL_MS);
+  // Let autofocus and auto-exposure settle before claiming the first road sample.
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  if (drive !== ctx) { driveStarting = false; return; }
+  ctx.timer = setInterval(driveTick, FRAME_INTERVAL_MS);
   updateHud(t("waiting_gps"));
-  show("drive");
   driveStarting = false;
 }
 
-function updateHud(status) {
-  if (!drive) return;
-  $("driveCount").textContent = drive.tally.found === 1 ? t("potholes_one", { n: 1 }) : t("potholes_many", { n: drive.tally.found });
+function updateHud(status, ctx = drive) {
+  if (!ctx || drive !== ctx) return;
+  $("driveCount").textContent = ctx.tally.found === 1 ? t("potholes_one", { n: 1 }) : t("potholes_many", { n: ctx.tally.found });
   $("driveStatus").textContent = status ||
-    t("scanning", { mode: "live", checked: drive.tally.checked, analyzing: drive.inFlight ? t("analyzing_suffix", { n: drive.inFlight }) : "" })
+    t("scanning", { mode: "live", checked: ctx.tally.checked,
+      analyzing: (ctx.inFlight || ctx.queue.length) ? t("analyzing_suffix", { n: ctx.inFlight + ctx.queue.length }) : "" })
+      + (ctx.tally.dropped ? ` · ${ctx.tally.dropped} ${t("coverage_dropped")}` : "")
+      + (ctx.cameraWarning ? ` · ${ctx.cameraWarning}` : "")
       + (recCtx && !recCtx.failed
           ? " " + t("rec_suffix", { mb: (recCtx.bytes / 1048576).toFixed(0) })
           : (recCtx && recCtx.failed ? " " + t("rec_failed") : ""));
@@ -898,131 +989,228 @@ function captureFrame(video) {
   return grabPreview(video);
 }
 
+// Scores only the road region. A high-frequency but completely black/white image is
+// penalised by exposure clipping, and ties keep the earliest frame deterministically.
+function scoreRoadPixels(rgba, width, height) {
+  const gray = new Float32Array(width * height);
+  let total = 0, dark = 0, bright = 0;
+  for (let i = 0, p = 0; i < rgba.length; i += 4, p++) {
+    const y = 0.2126 * rgba[i] + 0.7152 * rgba[i + 1] + 0.0722 * rgba[i + 2];
+    gray[p] = y; total += y;
+    if (y < 12) dark++;
+    if (y > 245) bright++;
+  }
+  let edgeTotal = 0, samples = 0;
+  for (let y = 1; y < height - 1; y++) for (let x = 1; x < width - 1; x++) {
+    const i = y * width + x;
+    edgeTotal += Math.abs(4 * gray[i] - gray[i - 1] - gray[i + 1] - gray[i - width] - gray[i + width]);
+    samples++;
+  }
+  const n = width * height;
+  const luminance = total / n;
+  const clipped = (dark + bright) / n;
+  const sharpness = samples ? edgeTotal / samples : 0;
+  const unusableExposure = clipped > 0.70 || luminance < 18 || luminance > 238;
+  const score = unusableExposure ? -100
+    : sharpness - Math.abs(luminance - 115) * 0.055 - clipped * 45;
+  return { sharpness, luminance, clipped, score };
+}
+
+function roadFrameQuality(video) {
+  const width = 160, height = 96;
+  const c = document.createElement("canvas");
+  c.width = width; c.height = height;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  const sourceH = Math.max(1, Math.round(video.videoHeight * 0.62));
+  ctx.drawImage(video, 0, video.videoHeight - sourceH, video.videoWidth, sourceH,
+                0, 0, width, height);
+  return scoreRoadPixels(ctx.getImageData(0, 0, width, height).data, width, height);
+}
+
+function bestBurstIndex(frames) {
+  let best = 0;
+  for (let i = 1; i < frames.length; i++) {
+    const score = frames[i].quality ? frames[i].quality.score : -Infinity;
+    const bestScore = frames[best].quality ? frames[best].quality.score : -Infinity;
+    if (score > bestScore) best = i;
+  }
+  return best;
+}
+
+function waitForVideoFrame(video) {
+  const spacing = new Promise((resolve) => setTimeout(resolve, BURST_SPACING_MS));
+  if (typeof video.requestVideoFrameCallback === "function") {
+    const distinct = withTimeout(new Promise((resolve) => video.requestVideoFrameCallback(() => resolve())),
+      BURST_SPACING_MS + 150).catch(() => {});
+    return Promise.all([spacing, distinct]);
+  }
+  return spacing;
+}
+
+async function captureBurst(video) {
+  const frames = [];
+  for (let i = 0; i < BURST_COUNT; i++) {
+    if (i) await waitForVideoFrame(video);
+    let quality = null, blob = null;
+    try { quality = roadFrameQuality(video); } catch (e) {}
+    try { blob = await withTimeout(captureFrame(video), 3000); } catch (e) {}
+    if (blob) frames.push({ blob, quality: quality || { score: -Infinity }, capturedAt: Date.now() });
+  }
+  return { frames, primaryIndex: frames.length ? bestBurstIndex(frames) : -1 };
+}
+
+function finishDriveDrain(ctx) {
+  if (ctx.stopping && !ctx.drained && !ctx.queue.length && ctx.inFlight === 0) {
+    ctx.drained = true;
+    ctx.resolveDrained();
+  }
+}
+
+function drainDriveQueue(ctx) {
+  while (ctx.inFlight < MAX_IN_FLIGHT && ctx.queue.length) {
+    const job = ctx.queue.shift();
+    const fd = new FormData();
+    job.burst.frames.forEach((f, i) => fd.append("photo", f.blob, `burst-${i + 1}.jpg`));
+    fd.append("primary_index", String(job.burst.primaryIndex));
+    fd.append("lat", String(job.pos.lat));
+    fd.append("lng", String(job.pos.lng));
+    fd.append("drive_id", ctx.sessionId);
+    fd.append("captured_at_ms", String(job.capturedAt));
+    if (job.gpsAccuracy != null) fd.append("gps_accuracy", String(job.gpsAccuracy));
+    if (job.speed != null) fd.append("speed", String(job.speed));
+    fd.append("frame_quality", JSON.stringify(job.burst.frames.map((f) => f.quality)));
+    ctx.inFlight++;
+    const request = api("/api/frame", { method: "POST", body: fd })
+      .then((res) => {
+        ctx.tally.checked++;
+        ctx.errors = 0;
+        if (res && res.found) ctx.tally.found++;
+      })
+      .catch((e) => {
+        ctx.tally.failed = (ctx.tally.failed || 0) + 1;
+        ctx.errors++;
+        if (e && e.fatal) {
+          ctx.queue.length = 0;
+          if (drive === ctx) {
+            const msg = e.message;
+            stopDrive();
+            alert(msg);
+          }
+        } else if (drive === ctx) updateHud(t("net_trouble", { n: ctx.errors }), ctx);
+      })
+      .finally(() => {
+        ctx.inFlight--;
+        ctx.pending.delete(request);
+        drainDriveQueue(ctx);
+        finishDriveDrain(ctx);
+        updateHud(undefined, ctx);
+      });
+    ctx.pending.add(request);
+  }
+  finishDriveDrain(ctx);
+}
+
+function enqueueDriveEvent(ctx, job) {
+  if (ctx.queue.length >= MAX_CAPTURE_QUEUE) {
+    ctx.queue.shift();
+    ctx.tally.dropped++;
+  }
+  ctx.queue.push(job);
+  drainDriveQueue(ctx);
+}
+
 async function driveTick() {
-  if (!drive) return;
+  const ctx = drive;
+  if (!ctx || ctx.stopping) return;
   const video = $("driveVideo");
   if (!video.videoWidth) return;
-  const gpsFresh = drive.pos && Date.now() - (drive.posAt || 0) <= GPS_MAX_AGE_MS;
+  const gpsFresh = ctx.pos && Date.now() - (ctx.posAt || 0) <= GPS_MAX_AGE_MS;
   if (!gpsFresh) {
-    updateHud(!drive.pos
-      ? (Date.now() - drive.startedAt > 30000 ? t("gps_30s") : t("waiting_gps"))
+    updateHud(!ctx.pos
+      ? (Date.now() - ctx.startedAt > 30000 ? t("gps_30s") : t("waiting_gps"))
       : t("gps_lost"));
     return;
   }
-  if (drive.inFlight >= MAX_IN_FLIGHT) { updateHud(); return; }
-  const pos = { ...drive.pos };
-  const sinceLastCapture = Date.now() - (drive.lastCapAt || 0);
-  // Only hold when we actually know we are still. The phone reporting ground speed is the
-  // strongest signal it has, and a fix too coarse to resolve 8 m cannot say we have not
-  // moved 8 m. Either way the fallback still fires, so an unsure app keeps looking at the
-  // road rather than deciding it has parked.
-  // Stillness needs positive evidence. A phone that reports no speed at all, or a fix too
-  // coarse to resolve 8 m, cannot tell a parked car from a moving one whose coordinates
-  // are not keeping up, and that second case is exactly what happened on a real drive:
-  // fresh fixes, unchanged coordinates, and the app deciding it had parked. Absent
-  // evidence, keep looking at the road.
-  const coarse = drive.posAccuracy === null || drive.posAccuracy > GPS_COARSE_M;
-  const knownStill = drive.posSpeed !== null && drive.posSpeed <= MOVING_MS && !coarse;
-  const stillMs = knownStill ? PARKED_CAPTURE_MS : STILL_CAPTURE_MS;
-  if (drive.lastCapPos
-      && (knownStill ? distMeters(drive.lastCapPos, pos) < MIN_MOVE_METERS : true)
-      && sinceLastCapture < stillMs) {
-    updateHud(t("holding", { checked: drive.tally.checked, found: drive.tally.found }));
+  const pos = { ...ctx.pos };
+  const sinceLastCapture = Date.now() - (ctx.lastCapAt || 0);
+  // Use either real displacement or a speed-derived time interval. A stuck/coarse fix
+  // can no longer turn a moving drive into an eight-second stationary cadence.
+  const coarse = ctx.posAccuracy === null || ctx.posAccuracy > GPS_COARSE_M;
+  const knownStill = ctx.posSpeed !== null && ctx.posSpeed <= MOVING_MS && !coarse;
+  const cadenceMs = knownStill ? PARKED_CAPTURE_MS
+    : ctx.posSpeed > MOVING_MS
+      ? Math.max(MIN_CAPTURE_MS, Math.min(MAX_CAPTURE_MS, TARGET_SPACING_M / ctx.posSpeed * 1000))
+      : FALLBACK_CAPTURE_MS;
+  const moved = ctx.lastCapPos ? distMeters(ctx.lastCapPos, pos) : Infinity;
+  if (ctx.lastCapPos && moved < TARGET_SPACING_M && sinceLastCapture < cadenceMs) {
+    updateHud(t("holding", { checked: ctx.tally.checked, found: ctx.tally.found }));
     return;
-  }
-  for (const s of drive.foundSpots) {
-    if (distMeters(s, pos) < 15) { updateHud(); return; }
   }
   // Keep the preview alive. Android pauses a video element on all sorts of events and
   // nothing here ever restarted it, so a single pause froze the feed for the rest of
   // the drive.
   if (video.paused || video.ended) { try { video.play(); } catch (e) {} }
-  const track = drive.stream && drive.stream.getVideoTracks && drive.stream.getVideoTracks()[0];
+  const track = ctx.stream && ctx.stream.getVideoTracks && ctx.stream.getVideoTracks()[0];
   // Only a genuinely ended track is a lost camera. `muted` flickers true on Android
   // whenever the source briefly cannot supply frames, and treating one tick of that as
   // "camera gone" stopped scanning constantly.
   const dead = !track || track.readyState === "ended";
   const stalled = track && (track.muted || video.readyState < 2);
   if (dead) {
-    drive.camBad = 99;
+    ctx.camBad = 99;
   } else if (stalled) {
-    drive.camBad = (drive.camBad || 0) + 1;
-  } else if (drive.camBad) {
-    drive.camBad = 0;                       // recovered: say nothing, just carry on
+    ctx.camBad = (ctx.camBad || 0) + 1;
+  } else if (ctx.camBad) {
+    ctx.camBad = 0;                       // recovered: say nothing, just carry on
   }
   // ~3 seconds of continuous stall before admitting anything, and it clears itself.
-  if (drive.camBad >= 8) { updateHud(t("camera_lost")); return; }
-  if (drive.camBad) return;                 // brief blip: skip this frame, stay quiet
-  if (drive.stillBusy) return; // one still capture at a time; the camera track is not reentrant
-  drive.stillBusy = true;
-  let blob = null;
+  if (ctx.camBad >= 8) { updateHud(t("camera_lost")); return; }
+  if (ctx.camBad) return;
+  if (ctx.stillBusy) return;
+  const captureStartedAt = Date.now();
+  ctx.stillBusy = true;
+  let burst = null;
   try {
-    // A capture that never settles used to leave stillBusy true forever, and the finally
-    // of an unsettled promise never runs, so detection stopped for the rest of the drive
-    // while the HUD went on saying the drive was healthy. toBlob measures about 7 ms at
-    // 1080p, so this is roughly 400x headroom.
-    blob = await withTimeout(captureFrame(video), 3000);
-  } catch (e) {
-    blob = null;
-  } finally { if (drive) drive.stillBusy = false; }
-  if (!drive) return;
-  if (!blob) {
+    burst = await withTimeout(captureBurst(video), 10000);
+  } catch (e) { burst = null; }
+  finally { ctx.stillBusy = false; }
+  if (drive !== ctx || ctx.stopping) return;
+  if (!burst || !burst.frames.length) {
     // The spacing is only consumed by a frame that was actually taken. Marking position
     // before the capture meant a failing camera silently ate 8 m of road per attempt.
-    drive.capBad = (drive.capBad || 0) + 1;
-    if (drive.capBad >= 8) updateHud(t("capture_failing"));
+    ctx.capBad = (ctx.capBad || 0) + 1;
+    if (ctx.capBad >= 8) updateHud(t("capture_failing"));
     return;
   }
-  drive.capBad = 0;
-  drive.lastCapPos = pos;
-  drive.lastCapAt = Date.now();
-  const fd = new FormData();
-  fd.append("photo", blob, "frame.jpg");
-  fd.append("lat", pos.lat);
-  fd.append("lng", pos.lng);
-  fd.append("drive_id", drive.sessionId);
-  drive.inFlight++;
+  ctx.capBad = 0;
+  ctx.lastCapPos = pos;
+  ctx.lastCapAt = captureStartedAt;
+  ctx.tally.captured++;
+  enqueueDriveEvent(ctx, { burst, pos, capturedAt: ctx.lastCapAt,
+                           gpsAccuracy: ctx.posAccuracy, speed: ctx.posSpeed });
   updateHud();
-  // Fire and track: up to MAX_IN_FLIGHT frames analyze concurrently so road
-  // coverage is no longer limited by one analysis round-trip at a time.
-  // tally and spots are captured by reference so a frame that lands after Stop
-  // is still counted: the report is saved either way, and the summary must say so.
-  const tally = drive.tally, spots = drive.foundSpots;
-  const p = api("/api/frame", { method: "POST", body: fd })
-    .then((res) => {
-      tally.checked++;
-      if (drive) drive.errors = 0;
-      if (res.found) { tally.found++; spots.push(pos); }
-    })
-    .catch((e) => {
-      tally.failed = (tally.failed || 0) + 1;
-      if (!drive) return;
-      drive.errors++;
-      // Only a key or quota problem is worth ending a drive for: those never fix
-      // themselves. A dropped signal does, so keep scanning and say so.
-      if (e && e.fatal) { const msg = e.message; stopDrive(); alert(msg); return; }
-      updateHud(t("net_trouble", { n: drive.errors }));
-    })
-    .finally(() => { if (drive) { drive.inFlight--; updateHud(); } });
-  drive.pending.push(p);
 }
 
 function stopDrive() {
   if (!drive) return;
-  // Frames already sent are not cancelled: those reports get saved regardless.
-  // So the summary waits for them, or it would under-report the last stretch of road.
-  const tally = drive.tally, pending = drive.pending.slice();
-  const sessionId = drive.sessionId, startedAt = drive.startedAt;
-  const gpsTrack = drive.gpsTrack || [];
+  const ctx = drive;
+  ctx.stopping = true;
+  // Captured bursts already queued are still checked. The summary waits for the queue,
+  // so stopping the camera never turns the last stretch into silently dropped road.
+  const tally = ctx.tally;
+  const sessionId = ctx.sessionId, startedAt = ctx.startedAt;
+  const gpsTrack = ctx.gpsTrack || [];
   stopRecording();   // its final clip is written after this returns
-  const hadActivity = tally.checked > 0 || tally.found > 0 || drive.inFlight > 0;
-  clearInterval(drive.timer);
-  navigator.geolocation.clearWatch(drive.watchId);
-  if (drive.wakeLock) drive.wakeLock.release().catch(() => {});
-  drive.stream.getTracks().forEach((t) => t.stop());
+  const hadActivity = tally.captured > 0 || tally.checked > 0 || tally.found > 0 || ctx.inFlight > 0 || ctx.queue.length > 0;
+  clearInterval(ctx.timer);
+  navigator.geolocation.clearWatch(ctx.watchId);
+  if (ctx.wakeLock) ctx.wakeLock.release().catch(() => {});
+  ctx.stream.getTracks().forEach((t) => t.stop());
   drive = null;
   show("home");
   loadReports();
+  drainDriveQueue(ctx);
+  finishDriveDrain(ctx);
   if (!hadActivity) return;
   const finish = () => {
     // Record what the drive actually checked. Rejected frames are not stored unless
@@ -1048,7 +1236,7 @@ function stopDrive() {
       analyseFootage(sessionId, rec);
     }, 150);
   };
-  Promise.allSettled(pending).then(finish);
+  ctx.drainPromise.then(finish);
 }
 
 $("driveBtn").onclick = startDrive;
@@ -1197,8 +1385,9 @@ function nextReviewFrame() {
   const r = reviewQueue[0];
   $("reviewPhoto").src = photoSrc(r);
   $("reviewMeta").innerHTML = t("review_progress", { n: reviewQueue.length, done: reviewDone });
-  const verdict = r.is_pothole ? t("lbl_yes") : t("lbl_no");
-  $("reviewSaid").innerHTML = t("model_said", { verdict, pct: ((r.confidence || 0) * 100).toFixed(0) });
+  $("reviewSaid").textContent = t("model_said", {
+    verdict: tDamage(r), assessment: tAssessment(r),
+  });
 }
 
 async function labelCurrent(label) {
@@ -1337,7 +1526,7 @@ async function analyseFootage(driveId, driveRec) {
 
   const track = (driveRec && driveRec.gps_track) || [];
   const pending = [];
-  let found = 0, already = 0, done = 0, elapsed = 0;
+  let found = 0, done = 0, elapsed = 0;
   let failed = 0, consecutive = 0, lastErr = "", aborted = false;
   const manifest = [];
   let written = 0, writeFailed = false;
@@ -1372,7 +1561,6 @@ async function analyseFootage(driveId, driveRec) {
   if (!total) { show("home"); alert(t("analyse_none")); return; }
   const paint = () => {
     $("progressText").innerHTML = t("analysing", { i: done, n: total, found })
-      + (already ? " " + t("analysing_dup", { n: already }) : "")
       + (failed ? " " + t("analysing_failed", { n: failed }) : "");
   };
   paint();
@@ -1425,16 +1613,11 @@ async function analyseFootage(driveId, driveRec) {
         fd.append("photo", blob, "vod.jpg");
         if (pos) { fd.append("lat", String(pos.lat)); fd.append("lng", String(pos.lng)); }
         fd.append("drive_id", String(driveId));
-        fd.append("dedupe_all", "1");
         const myFrame = base + idx, atAbs = elapsed + at;
         pending.push(api("/api/frame", { method: "POST", body: fd })
           .then(async (r) => {
             consecutive = 0;
-            // A frame the model called a pothole counts as found even when it matched a
-            // pothole already reported. Counting only new reports is why a drive whose
-            // live pass had already caught everything reported "0 potholes found".
             if (r && r.found) found++;
-            else if (r && r.skipped) { already++; found++; }
             if (!saveToDisk || writeFailed) return;
             try {
               const file = await writeFrameFile(driveId, myFrame, blob);
@@ -1444,8 +1627,12 @@ async function analyseFootage(driveId, driveRec) {
               manifest.push({ file: file.split("/").pop(), at_seconds: +atAbs.toFixed(2),
                 lat: pos ? pos.lat : null, lng: pos ? pos.lng : null,
                 model_said: rep
-                  ? { is_pothole: !!rep.is_pothole, size: rep.size, confidence: rep.confidence }
-                  : { is_pothole: false, skipped: !!(r && r.skipped) } });
+                  ? { is_reportable: !!rep.is_reportable, damage_type: damageType(rep),
+                      assessment: assessment(rep), image_quality: rep.image_quality,
+                      size: rep.size }
+                  : { is_reportable: false, assessment: (r && r.assessment) || "absent",
+                      damage_type: (r && r.damage_type) || "none",
+                      image_quality: r && r.image_quality } });
             } catch (e) { writeFailed = true; }
           })
           .catch((e) => {
@@ -1485,8 +1672,7 @@ async function analyseFootage(driveId, driveRec) {
                : " " + t("frames_failed"));
   const headline = failed
     ? t("analyse_incomplete", { failed, n: total, err: lastErr })
-    : t("analyse_done", { found, n: total })
-      + (already ? " " + t("analyse_dup", { n: already }) : "");
+    : t("analyse_done", { found, n: total });
   alert(headline
         + (freed ? " " + t("footage_freed", { mb: freed.toFixed(0) })
                  : (isDebug() || failed ? " " + t("footage_kept") : ""))
@@ -1534,13 +1720,15 @@ async function openDash() {
             <div style="height:6px;width:${(v / max * 100).toFixed(0)}%;background:var(--accent)"></div></div>
         </div>`).join("") : `<div class="meta">&mdash;</div>`);
   };
-  const bySize = {}, byArea = {};
+  const byType = {}, bySize = {}, byArea = {};
   for (const r of holes) {
+    byType[tDamage(r)] = (byType[tDamage(r)] || 0) + 1;
     if (r.size) bySize[tSize(r.size)] = (bySize[tSize(r.size)] || 0) + 1;
     const area = (r.officer_name || "").replace(/^Commissioner,\s*/, "") || "—";
     byArea[area] = (byArea[area] || 0) + 1;
   }
-  $("dashBreak").innerHTML = bars(t("by_size"), bySize) + `<div style="height:14px"></div>` + bars(t("by_area"), byArea);
+  $("dashBreak").innerHTML = bars(t("by_type"), byType) + `<div style="height:14px"></div>`
+    + bars(t("by_size"), bySize) + `<div style="height:14px"></div>` + bars(t("by_area"), byArea);
 
   show("dash");
   drawMap(holes.filter((r) => r.lat != null && r.lng != null));
@@ -1599,8 +1787,11 @@ $("dashBack").onclick = () => { show("home"); loadReports(); };
 
 $("reviewBtn").onclick = startReview;
 $("reviewPhoto").onclick = () => { if (reviewQueue[0]) openViewer(reviewQueue[0]); };
-$("lblYes").onclick = () => labelCurrent("pothole");
-$("lblNo").onclick = () => labelCurrent("not_pothole");
+$("lblPothole").onclick = () => labelCurrent("pothole_cavity");
+$("lblPatch").onclick = () => labelCurrent("failed_patch");
+$("lblSurface").onclick = () => labelCurrent("surface_breakup");
+$("lblRut").onclick = () => labelCurrent("rut_or_depression");
+$("lblNo").onclick = () => labelCurrent("not_reportable");
 $("lblSkip").onclick = () => labelCurrent(null);
 $("reviewBack").onclick = () => { show("home"); loadReports(); };
 
@@ -1644,7 +1835,9 @@ window.addEventListener("pipeline-progress", (e) => {
 // while the rest of the report is still being assembled.
 window.addEventListener("pipeline-verdict", (e) => {
   if ($("progress").classList.contains("hidden")) return;
-  $("progressText").textContent = e.detail.is_pothole ? t("early_yes") : t("early_no");
+  $("progressText").textContent = e.detail.accepted
+    ? t("early_yes", { type: tDamage(e.detail.damage_type) })
+    : e.detail.review ? t("early_review") : t("early_no");
 });
 
 // Native Android back button: navigate inside the app instead of exiting.
@@ -1671,6 +1864,10 @@ if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform
 window.openSettings = (firstRun) => {
   $("setKey").value = localStorage.getItem("openai_key") || "";
   $("setName").value = localStorage.getItem("sender_name") || "";
+  $("setModel").value = ["gpt-5-mini", "gpt-5.6"].includes(localStorage.getItem("detection_model"))
+    ? localStorage.getItem("detection_model") : "gpt-5-mini";
+  $("setDetail").value = ["high", "original"].includes(localStorage.getItem("image_detail"))
+    ? localStorage.getItem("image_detail") : "high";
   $("setDebug").checked = localStorage.getItem("debug_mode") === "1";
   $("setKeepFrames").checked = localStorage.getItem("keep_frames") === "1";
   $("setRecord").checked = localStorage.getItem("record_video") !== "0";   // on unless turned off
@@ -1683,6 +1880,11 @@ $("setBack").onclick = () => show("home");
 $("setSave").onclick = async () => {
   localStorage.setItem("openai_key", $("setKey").value.trim());
   localStorage.setItem("sender_name", $("setName").value.trim());
+  const selectedModel = $("setModel").value === "gpt-5.6" ? "gpt-5.6" : "gpt-5-mini";
+  const selectedDetail = $("setDetail").value === "original" && selectedModel === "gpt-5.6"
+    ? "original" : "high";
+  localStorage.setItem("detection_model", selectedModel);
+  localStorage.setItem("image_detail", selectedDetail);
   localStorage.setItem("debug_mode", $("setDebug").checked ? "1" : "0");
   localStorage.setItem("keep_frames", $("setKeepFrames").checked ? "1" : "0");
   localStorage.setItem("record_video", $("setRecord").checked ? "1" : "0");

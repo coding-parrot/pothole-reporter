@@ -25,45 +25,85 @@ CASES = r"""
   const east = P.distMeters(12.9115, 77.6427, 12.9115, 77.64362);
   ok("distMeters: east distance accounts for latitude", Math.abs(east - 100) < 5, Math.round(east));
 
-  // ---- peekVerdict: reads a streaming JSON response before it is complete ----
-  eq("peek: nothing yet", P.peekVerdict('{"is_'), null);
-  eq("peek: false needs no confidence", P.peekVerdict('{"is_pothole": false'), {is_pothole:false, size:null});
-  eq("peek: true without confidence waits", P.peekVerdict('{"is_pothole": true, "size": "large"'), null);
-  // The bug this guards: a number arrives in pieces, so 0.8 can be read mid-stream as "0."
-  eq("peek: half-arrived number is not read",
-     P.peekVerdict('{"is_pothole": true, "size": "large", "confidence": 0.'), null);
-  eq("peek: complete number is read",
-     P.peekVerdict('{"is_pothole": true, "size": "large", "confidence": 0.8,'),
-     {is_pothole:true, size:"large"});
-  eq("peek: below the gate is not a pothole",
-     P.peekVerdict('{"is_pothole": true, "size": "small", "confidence": 0.4,'),
-     {is_pothole:false, size:"small"});
-  eq("peek: exactly at the gate counts",
-     P.peekVerdict('{"is_pothole": true, "size": "small", "confidence": 0.5,'),
-     {is_pothole:true, size:"small"});
+  // ---- streamed road-damage decision contract ----
+  const accepted = '{"reportable":true,"assessment":"clear","image_quality":"usable","damage_type":"pothole_cavity","on_drivable_surface":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"large","description":"x"}';
+  const rejected = '{"reportable":false,"assessment":"absent","image_quality":"usable","damage_type":"none","on_drivable_surface":false,"has_broken_edge_or_rim":false,"has_depth_or_surface_loss":false,"temporal_consistency":"not_applicable","size":null,"description":"none"}';
+  const uncertain = '{"reportable":true,"assessment":"uncertain","image_quality":"degraded","damage_type":"failed_patch","on_drivable_surface":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"x"}';
+  eq("peek: nothing yet", P.peekVerdict('{"report'), null);
+  eq("peek: partial damage type cannot decide",
+     P.peekVerdict('{"reportable":true,"assessment":"clear","image_quality":"usable","damage_type":"pothole_cav'), null);
+  eq("peek: false is final without invented confidence",
+     P.peekVerdict('{"reportable": false'), {accepted:false, review:false, damage_type:"none", assessment:"absent"});
+  const earlyAccepted = P.peekVerdict(accepted.slice(0, accepted.indexOf(',"size"')));
+  eq("peek: accepted uses semantic policy", earlyAccepted,
+     {accepted:true, review:false, damage_type:"pothole_cavity", assessment:"clear"});
+  const earlyReview = P.peekVerdict(uncertain.slice(0, uncertain.indexOf(',"size"')));
+  eq("peek: uncertainty becomes review", earlyReview,
+     {accepted:false, review:true, damage_type:"failed_patch", assessment:"uncertain"});
 
-  // ---- peekReject: decides when Drive Mode may stop reading the response early ----
-  ok("reject: not yet decidable", P.peekReject('{"is_pothole"') === false);
-  ok("reject: false is immediately final", P.peekReject('{"is_pothole": false') === true);
-  ok("reject: true alone is not final", P.peekReject('{"is_pothole": true, "size": "large"') === false);
-  ok("reject: half-arrived number does not decide",
-     P.peekReject('{"is_pothole": true, "size": "large", "confidence": 0.') === false);
-  ok("reject: low confidence is final",
-     P.peekReject('{"is_pothole": true, "size": "large", "confidence": 0.3}') === true);
-  ok("reject: high confidence must not abort",
-     P.peekReject('{"is_pothole": true, "size": "large", "confidence": 0.9,') === false);
+  ok("reject: not yet decidable", P.peekReject('{"reportable"') === false);
+  ok("reject: false is immediately final", P.peekReject('{"reportable": false') === true);
+  ok("reject: true alone is not final", P.peekReject('{"reportable": true') === false);
+  ok("reject: uncertain becomes final only after evidence fields", P.peekReject(uncertain) === true);
 
-  // An accepted frame must never be reported as rejected, at any prefix of the response.
-  const accepted = '{"is_pothole": true, "size": "large", "confidence": 0.87, "looks_like_speed_breaker": false, "description": "x"}';
+  // An accepted response must never be reported as rejected at any prefix.
   let wrongAbort = null;
   for (let i = 1; i <= accepted.length; i++) if (P.peekReject(accepted.slice(0, i))) { wrongAbort = i; break; }
   ok("reject: never aborts an accepted frame at any prefix", wrongAbort === null, wrongAbort);
 
-  // ---- rejectedVerdict: what the caller receives after an early abort ----
-  const rv = P.rejectedVerdict('{"is_pothole": false, "size"');
-  ok("rejectedVerdict: not a pothole", rv.is_pothole === false, rv);
+  const rv = P.rejectedVerdict(rejected.slice(0, rejected.indexOf(',"size"')));
+  ok("rejectedVerdict: not reportable", rv.reportable === false, rv);
   ok("rejectedVerdict: shape is complete",
-     "confidence" in rv && "size" in rv && "description" in rv, Object.keys(rv));
+     ["assessment","image_quality","damage_type","on_drivable_surface",
+      "has_broken_edge_or_rim","has_depth_or_surface_loss","temporal_consistency",
+      "size","description"].every((k) => k in rv), Object.keys(rv));
+
+  // ---- final semantic gate ----
+  const good = { reportable:true, assessment:"clear", image_quality:"usable",
+    damage_type:"pothole_cavity", on_drivable_surface:true,
+    has_broken_edge_or_rim:true, has_depth_or_surface_loss:false,
+    temporal_consistency:"consistent" };
+  for (const type of ["pothole_cavity","failed_patch","surface_breakup","rut_or_depression","other_road_damage"]) {
+    eq(`decision: accepts clear ${type}`, P.decisionFor({...good, damage_type:type}), "accept");
+  }
+  eq("decision: probable strong evidence accepts", P.decisionFor({...good, assessment:"probable"}), "accept");
+  eq("decision: uncertainty is review", P.decisionFor({...good, assessment:"uncertain"}), "review");
+  eq("decision: unusable is review", P.decisionFor({...good, image_quality:"unusable"}), "review");
+  eq("decision: contradictory none rejects", P.decisionFor({...good, damage_type:"none"}), "reject");
+  eq("decision: off-road rejects", P.decisionFor({...good, on_drivable_surface:false}), "reject");
+  eq("decision: no structural cue is review",
+     P.decisionFor({...good, has_broken_edge_or_rim:false, has_depth_or_surface_loss:false}), "review");
+
+  // ---- multimodal request builder and capability-safe settings ----
+  const req = P.buildDetectionRequest(["a","b",null,"c","d","e"], "PROMPT", "gpt-5.6", "original");
+  const content = req.input[0].content;
+  eq("request: selected model", req.model, "gpt-5.6");
+  eq("request: image cap", content.filter((x) => x.type === "input_image").length, 4);
+  ok("request: original detail lives on every image",
+     content.filter((x) => x.type === "input_image").every((x) => x.detail === "original"), content);
+  ok("request: prompt appears once and last", content.at(-1).type === "input_text" &&
+     content.filter((x) => x.type === "input_text").length === 1, content);
+  eq("settings: arbitrary model fails safe", P.normaliseModel("gpt-made-up"), "gpt-5-mini");
+  eq("settings: original falls back on mini", P.normaliseDetail("original", "gpt-5-mini"), "high");
+
+  // ---- deterministic burst-quality selection ----
+  const pixels = (w, h, fn) => {
+    const a = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const v = fn(x, y), i = (y * w + x) * 4;
+      a[i] = a[i + 1] = a[i + 2] = v; a[i + 3] = 255;
+    }
+    return a;
+  };
+  const sharp = scoreRoadPixels(pixels(16, 16, (x, y) => (x + y) % 2 ? 70 : 170), 16, 16);
+  const flat = scoreRoadPixels(pixels(16, 16, () => 115), 16, 16);
+  const clipped = scoreRoadPixels(pixels(16, 16, (x, y) => (x + y) % 2 ? 0 : 255), 16, 16);
+  ok("quality: road-like edges beat a uniform frame", sharp.score > flat.score, {sharp, flat});
+  ok("quality: clipped black/white frame is unusable", clipped.score < flat.score, clipped);
+  eq("quality: highest score becomes primary", bestBurstIndex([
+    {quality:{score:1}}, {quality:{score:7}}, {quality:{score:3}}]), 1);
+  eq("quality: ties keep earliest frame", bestBurstIndex([
+    {quality:{score:7}}, {quality:{score:7}}, {quality:{score:3}}]), 0);
 
   // ---- warrantyFor: decides a sentence in a letter naming a private company ----
   const NOW = Date.UTC(2026, 7, 20);

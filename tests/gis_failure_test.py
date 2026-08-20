@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 from playwright.sync_api import sync_playwright
+from browser_test_utils import open_app
 
 KEY = os.environ["OPENAI_API_KEY"]
 IMG = ROOT / "eval/images/seed/IMG20260720144404.jpg"
@@ -39,7 +40,7 @@ with sync_playwright() as p:
     # Every call to the state GIS fails, as it would on a bad connection.
     ctx.route("**://kgis.ksrsac.in/**", lambda route: route.abort())
     pg = ctx.new_page()
-    pg.goto(f"http://localhost:8765/?key={KEY}"); pg.wait_for_load_state("networkidle")
+    open_app(pg, KEY)
     src = base64.standard_b64encode(IMG.read_bytes()).decode()
     for name, lat, lng in CASES:
         r = pg.evaluate(POST, [src, lat, lng])
@@ -63,7 +64,7 @@ with sync_playwright() as p:
         status=200, content_type="application/json",
         body='{"error":{"code":500,"message":"Unable to complete operation."}}'))
     pg = ctx.new_page()
-    pg.goto(f"http://localhost:8765/?key={KEY}"); pg.wait_for_load_state("networkidle")
+    open_app(pg, KEY)
     src = base64.standard_b64encode(IMG.read_bytes()).decode()
     for name, lat, lng in CASES:
         r = pg.evaluate(POST, [src, lat, lng])

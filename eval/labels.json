@@ -1,5 +1,5 @@
 {
- "_comment": "Ground truth for the detection benchmark. Images are NOT committed: see eval/README.md. 'label' is pothole, not_pothole or unlabelled. 'labelled_by' matters: only the six photos were confirmed by the project owner. Everything marked UNVERIFIED is the assistant's own judgment and has not been reviewed by a human, including all four negatives that the false-positive rate is measured against. Treat rates computed against unverified labels as provisional. Two images are now marked disputed: the detector disagrees with the assistant's label consistently and with a specific description, so counting them as false positives would be measuring a guess.",
+ "_comment": "Legacy seed labels for the road-damage benchmark. Images are NOT committed: see eval/README.md. The v3 taxonomy is pothole_cavity, failed_patch, surface_breakup, rut_or_depression, other_road_damage, not_reportable or unlabelled; this seed still uses legacy pothole/not_pothole until the owner re-labels each subtype. Only six photos were confirmed by the owner, all positive. Every negative is assistant-judged and UNVERIFIED, so this set cannot measure false-positive accuracy or act as a release gate. Disputed images remain excluded.",
  "images": [
   {
    "path": "seed/IMG20260720144314.jpg",

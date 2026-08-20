@@ -3,33 +3,51 @@
 (() => {
   const NATIVE = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
 
-  // Test harness (browser, non-native): ?key=sk-... seeds the key. Never runs in the APK.
+  // Browser-only development shortcut. A URL fragment never reaches HTTP access logs;
+  // remove it immediately after seeding the local key. This never runs in the APK.
   if (!NATIVE) {
-    const k = new URLSearchParams(location.search).get("key");
-    if (k) localStorage.setItem("openai_key", k);
+    const k = new URLSearchParams(location.hash.replace(/^#/, "")).get("key");
+    if (k) {
+      localStorage.setItem("openai_key", k);
+      history.replaceState(null, "", location.pathname + location.search);
+    }
   }
 
   const S = {
     get key() { return (localStorage.getItem("openai_key") || "").trim(); },
     get name() { return (localStorage.getItem("sender_name") || "").trim() || "A concerned citizen"; },
     get debug() { return localStorage.getItem("debug_mode") === "1"; },
+    get model() { return normaliseModel(localStorage.getItem("detection_model")); },
+    get detail() { return normaliseDetail(localStorage.getItem("image_detail"), this.model); },
   };
 
   const LANG = () => (localStorage.getItem("app_lang") === "kn" ? "kn" : "en");
   const PROGRESS = {
-    en: { compress: "Compressing photo...", capture: "Capturing frame...",
-          detect: "AI checking for potholes...", finalize: "Finalizing address and contract...",
+    en: { compress: "Preparing photo...", capture: "Preparing road views...",
+          detect: "AI checking for reportable road damage...", finalize: "Finalizing address and contract...",
           write: "Writing the complaint...", email: "Opening your email app..." },
     kn: { compress: "ಫೋಟೋ ಸಂಕುಚಿಸಲಾಗುತ್ತಿದೆ...", capture: "ಫ್ರೇಮ್ ಸೆರೆಹಿಡಿಯಲಾಗುತ್ತಿದೆ...",
-          detect: "AI ಗುಂಡಿ ಪರಿಶೀಲಿಸುತ್ತಿದೆ...", finalize: "ವಿಳಾಸ ಮತ್ತು ಗುತ್ತಿಗೆ ಖಚಿತಪಡಿಸಲಾಗುತ್ತಿದೆ...",
+          detect: "AI ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಪರಿಶೀಲಿಸುತ್ತಿದೆ...", finalize: "ವಿಳಾಸ ಮತ್ತು ಗುತ್ತಿಗೆ ಖಚಿತಪಡಿಸಲಾಗುತ್ತಿದೆ...",
           write: "ದೂರು ಬರೆಯಲಾಗುತ್ತಿದೆ...", email: "ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಲಾಗುತ್ತಿದೆ..." },
   };
   const pmsg = (k) => (PROGRESS[LANG()] && PROGRESS[LANG()][k]) || PROGRESS.en[k];
 
-  const MODEL = "gpt-5-mini";
-  const MIN_CONFIDENCE = 0.5;
-  const DEDUPE_RADIUS_M = 15;
-  const DEDUPE_WINDOW_S = 30 * 60;
+  const DEFAULT_MODEL = "gpt-5-mini";
+  const ALLOWED_MODELS = new Set([DEFAULT_MODEL, "gpt-5.6"]);
+  const ALLOWED_DETAILS = new Set(["high", "original"]);
+  const PROMPT_VERSION = "road-damage-v3";
+  const SCHEMA_VERSION = 3;
+  const MAX_DETECTION_IMAGES = 4;
+
+  function normaliseModel(value) {
+    return ALLOWED_MODELS.has(value) ? value : DEFAULT_MODEL;
+  }
+  function normaliseDetail(value, model) {
+    const picked = ALLOWED_DETAILS.has(value) ? value : "high";
+    // `original` is intentionally an experiment arm for the newest model. Older
+    // vision models do not support it, so fail safely to their highest valid setting.
+    return picked === "original" && model !== "gpt-5.6" ? "high" : picked;
+  }
 
   const OFFICERS = {
     "bengaluru central city corporation": ["Commissioner, Bengaluru Central City Corporation (BCCC)", "commissionerbccc@gmail.com"],
@@ -86,28 +104,46 @@
     return false; // no location at all: we cannot claim to know who is responsible
   }
 
-  const DETECT_PROMPT = `You are inspecting a road photo taken in Bengaluru for a civic complaint app.
+  const DETECT_PROMPT = `You are inspecting one or more chronologically ordered road views for a civic complaint app.
 
-Decide whether the photo clearly shows a pothole on a road surface.
-- Classify size like pizzas: small (below 30 cm wide), medium (30 to 60 cm), large (above 60 cm or a cluster).
-- Beware of speed breakers: from a distance they can look like potholes. Set looks_like_speed_breaker accordingly, and if it is actually a speed breaker, is_pothole must be false.
-- Shadows, manhole covers, wet patches, and a patch that is level and intact are NOT
-  potholes. A patch or repair that has itself broken up, leaving a depression or loose
-  aggregate in the driving line, IS reportable damage.
-- confidence is your 0 to 1 confidence in the is_pothole verdict. Be conservative: this triggers a government complaint.
-- description: one or two factual sentences usable in a complaint (surface condition, position on the road, hazard posed).
-- Some images are dashcam frames from a moving vehicle: moderate motion blur, low light, or a boosted-brightness look are normal; judge the road surface itself.`;
+Decide whether they show reportable damage on the paved surface used by moving traffic. Classify the condition precisely:
+- pothole_cavity: a localized open cavity with a broken rim, missing material, or visible depth.
+- failed_patch: a previous repair that has broken, sunk, opened, or shed aggregate. A level intact patch is not damage.
+- surface_breakup: asphalt/concrete has materially disintegrated or stripped across an area, even if there is no single cavity.
+- rut_or_depression: a materially sunken wheel path or road depression with a genuine level change.
+- other_road_damage: another serious defect in the travelled paved surface that needs repair.
+- none: no reportable road damage is visible.
 
-  // Key order is the streaming order: the verdict fields arrive before the
-  // description, so the UI can show a result while the sentence is still being written.
+Choose one primary type consistently. Use failed_patch when the failed material or repair boundary is visibly a previous repair. Otherwise, a distinct localized open cavity takes precedence as pothole_cavity. Use surface_breakup only for broad disintegration without one dominant cavity or identifiable failed repair, and rut_or_depression for a smooth/continuous level change rather than missing broken material.
+
+Evidence rules:
+- A shadow, stain, water, glare, dust, loose roadside debris, lane marking, intact patch, manhole, drain, road edge, shoulder erosion, or speed breaker is not reportable damage by itself.
+- The defect must be on the drivable paved surface, not merely beside it.
+- Look for a defined broken edge/rim, missing material, displaced aggregate, or a depth/level-change cue. Use agreement and parallax across views when several are supplied.
+- image_quality is unusable when blur, darkness, glare, obstruction, or distance prevents a defensible judgment.
+- assessment is clear only when the defect and structural evidence are unambiguous; probable when strong evidence remains despite modest quality limits; uncertain when a confounder cannot be ruled out; absent when no reportable defect is visible.
+- Set reportable true only when the most likely damage_type is not none. Do not convert uncertainty into confidence percentages.
+- Classify size as small (below 30 cm wide), medium (30 to 60 cm), or large (above 60 cm or a damaged cluster). Use null when scale is not defensible.
+- description: one or two factual sentences naming the condition, its position, the visible evidence, and the road-user hazard. Do not call failed surface or a failed repair a pothole.`;
+
+  // Key order is the streaming order. The decision fields arrive before the factual
+  // description, so the UI can update without using a made-up confidence percentage.
   const ASSESS_SCHEMA = {
     type: "object", additionalProperties: false,
-    required: ["is_pothole", "size", "confidence", "looks_like_speed_breaker", "description"],
+    required: ["reportable", "assessment", "image_quality", "damage_type",
+      "on_drivable_surface", "has_broken_edge_or_rim", "has_depth_or_surface_loss",
+      "temporal_consistency", "size", "description"],
     properties: {
-      is_pothole: { type: "boolean" },
+      reportable: { type: "boolean" },
+      assessment: { type: "string", enum: ["clear", "probable", "uncertain", "absent"] },
+      image_quality: { type: "string", enum: ["usable", "degraded", "unusable"] },
+      damage_type: { type: "string", enum: ["pothole_cavity", "failed_patch", "surface_breakup",
+        "rut_or_depression", "other_road_damage", "none"] },
+      on_drivable_surface: { type: "boolean" },
+      has_broken_edge_or_rim: { type: "boolean" },
+      has_depth_or_surface_loss: { type: "boolean" },
+      temporal_consistency: { type: "string", enum: ["consistent", "single_view", "inconsistent", "not_applicable"] },
       size: { type: ["string", "null"], enum: ["small", "medium", "large", null] },
-      confidence: { type: "number" },
-      looks_like_speed_breaker: { type: "boolean" },
       description: { type: "string" },
     },
   };
@@ -128,7 +164,10 @@ Decide whether the photo clearly shows a pothole on a road surface.
   // Detection is a classification job, not an essay: left at its default the model
   // spends 200+ hidden reasoning tokens per photo before answering, which measured
   // as roughly 3.5 of the 6.5 seconds a verdict used to take.
-  const withSpeedDefaults = (body) => ({ reasoning: { effort: "minimal" }, ...body });
+  const withSpeedDefaults = (body) => ({
+    reasoning: { effort: body && body.model === "gpt-5.6" ? "none" : "minimal" },
+    ...body,
+  });
 
   // Fatal means "fails the same way without streaming", so retrying plain is pointless.
   const fatal = (e) => { e.fatal = true; return e; };
@@ -210,39 +249,74 @@ Decide whether the photo clearly shows a pothole on a road surface.
     return JSON.parse(text.text);
   }
 
-  // Structured outputs stream their keys in schema order, so is_pothole and size land
-  // well before the description does. onEarly fires on that partial verdict.
-  // The early verdict must apply the same rule as the final one, or a low-confidence
-  // true would announce a pothole the pipeline then rejects. A false needs no
-  // confidence to be final, so the early "no" stays as fast as the flag itself.
-  // The delimiter is not optional. A number arrives in pieces, so "0.8" can be read
-  // mid-stream as "0." and parse to 0, which would announce "no pothole" for a real one
-  // and reject a frame the model accepted. Requiring the comma or brace that closes the
-  // value means we only ever read a finished number.
-  const CONF_RE = /"confidence"\s*:\s*([0-9]*\.?[0-9]+)\s*[,}]/;
-  const POTHOLE_RE = /"is_pothole"\s*:\s*(true|false)/;
+  // Structured outputs stream in schema order. Only closed string values are read:
+  // a partial `"pothole_cav` must never become a decision. The same semantic helper is
+  // used for the streamed and final paths so the UI cannot announce a result that the
+  // pipeline later reverses.
+  const REPORTABLE_RE = /"reportable"\s*:\s*(true|false)/;
+  const ASSESSMENT_RE = /"assessment"\s*:\s*"(clear|probable|uncertain|absent)"/;
+  const QUALITY_RE = /"image_quality"\s*:\s*"(usable|degraded|unusable)"/;
+  const DAMAGE_RE = /"damage_type"\s*:\s*"(pothole_cavity|failed_patch|surface_breakup|rut_or_depression|other_road_damage|none)"/;
+
+  function decisionFor(a) {
+    if (!a || a.reportable !== true || a.damage_type === "none" || !a.on_drivable_surface) return "reject";
+    if (a.assessment === "absent") return "reject";
+    if (a.image_quality === "unusable" || a.assessment === "uncertain" ||
+        a.temporal_consistency === "inconsistent") return "review";
+    if (a.assessment !== "clear" && a.assessment !== "probable") return "review";
+    // Structural damage needs at least one visible physical cue. Failed patches and
+    // broad surface breakup do not need a cavity-shaped rim, but they do need either a
+    // broken edge or actual material/depth loss.
+    if (!a.has_broken_edge_or_rim && !a.has_depth_or_surface_loss) return "review";
+    return "accept";
+  }
+
+  function partialAssessment(text) {
+    const r = REPORTABLE_RE.exec(text);
+    if (!r) return null;
+    if (r[1] === "false") return {
+      reportable: false, assessment: "absent", image_quality: "usable", damage_type: "none",
+      on_drivable_surface: false, has_broken_edge_or_rim: false,
+      has_depth_or_surface_loss: false, temporal_consistency: "not_applicable",
+    };
+    const a = ASSESSMENT_RE.exec(text), q = QUALITY_RE.exec(text), d = DAMAGE_RE.exec(text);
+    if (!a || !q || !d) return null;
+    return {
+      reportable: true, assessment: a[1], image_quality: q[1], damage_type: d[1],
+      // The later evidence fields are deliberately left unknown. peekVerdict only
+      // announces a positive once the complete semantic decision can be evaluated.
+    };
+  }
 
   const peekVerdict = (partial) => {
-    const m = POTHOLE_RE.exec(partial);
-    if (!m) return null;
-    if (m[1] === "false") return { is_pothole: false, size: null };
-    const c = CONF_RE.exec(partial);
-    if (!c) return null;
-    const s = /"size"\s*:\s*(?:"(small|medium|large)"|null)/.exec(partial);
-    return { is_pothole: parseFloat(c[1]) >= MIN_CONFIDENCE, size: s ? s[1] || null : null };
+    const a = partialAssessment(partial);
+    if (!a) return null;
+    if (!a.reportable) return { accepted: false, review: false, damage_type: "none", assessment: "absent" };
+    const road = /"on_drivable_surface"\s*:\s*(true|false)/.exec(partial);
+    const edge = /"has_broken_edge_or_rim"\s*:\s*(true|false)/.exec(partial);
+    const depth = /"has_depth_or_surface_loss"\s*:\s*(true|false)/.exec(partial);
+    const temporal = /"temporal_consistency"\s*:\s*"(consistent|single_view|inconsistent|not_applicable)"/.exec(partial);
+    if (!road || !edge || !depth || !temporal) return null;
+    Object.assign(a, {
+      on_drivable_surface: road[1] === "true",
+      has_broken_edge_or_rim: edge[1] === "true",
+      has_depth_or_surface_loss: depth[1] === "true",
+      temporal_consistency: temporal[1],
+    });
+    const decision = decisionFor(a);
+    return { accepted: decision === "accept", review: decision === "review",
+             damage_type: a.damage_type, assessment: a.assessment };
   };
 
-  // True once the response has already proved this frame will be rejected. Drive Mode
-  // reads nothing but is_pothole and confidence for a rejected frame, so everything the
-  // model writes after this point (size, the speed-breaker flag, a sentence of
-  // description) is generated and then thrown away. Stopping here changes no verdict:
-  // the bytes that decide it have already arrived and are identical either way.
+  // True once the response has proved that Drive Mode will not create a complaint.
+  // Debug/evaluation calls do not enable cancellation because they need the exact full
+  // verdict, including the reason for a miss.
   const peekReject = (partial) => {
-    const m = POTHOLE_RE.exec(partial);
-    if (!m) return false;
-    if (m[1] === "false") return true;
-    const c = CONF_RE.exec(partial);
-    return !!c && parseFloat(c[1]) < MIN_CONFIDENCE;
+    const r = REPORTABLE_RE.exec(partial);
+    if (!r) return false;
+    if (r[1] === "false") return true;
+    const a = peekVerdict(partial);
+    return !!a && !a.accepted;
   };
 
   function drainSSE(chunk, state, onEarly, stopWhenRejected) {
@@ -302,18 +376,24 @@ Decide whether the photo clearly shows a pothole on a road surface.
     return JSON.parse(state.text);
   }
 
-  // Reconstructed from the part of the response that had already arrived. The JSON is
-  // deliberately incomplete, so it is built by hand rather than parsed. Only is_pothole
-  // and confidence are read on the path that receives this, and both are present by
-  // definition: nothing sets state.stop until they are.
+  // Reconstructed from the closed fields that arrived before Drive Mode cancelled the
+  // remaining description. It deliberately has the complete new schema shape.
   function rejectedVerdict(text) {
-    const m = POTHOLE_RE.exec(text);
-    const c = CONF_RE.exec(text);
+    const r = REPORTABLE_RE.exec(text), a = ASSESSMENT_RE.exec(text), q = QUALITY_RE.exec(text), d = DAMAGE_RE.exec(text);
+    const road = /"on_drivable_surface"\s*:\s*(true|false)/.exec(text);
+    const edge = /"has_broken_edge_or_rim"\s*:\s*(true|false)/.exec(text);
+    const depth = /"has_depth_or_surface_loss"\s*:\s*(true|false)/.exec(text);
+    const temporal = /"temporal_consistency"\s*:\s*"(consistent|single_view|inconsistent|not_applicable)"/.exec(text);
     return {
-      is_pothole: !!m && m[1] === "true",
-      confidence: c ? parseFloat(c[1]) : 0,
+      reportable: !!r && r[1] === "true",
+      assessment: a ? a[1] : "absent",
+      image_quality: q ? q[1] : "usable",
+      damage_type: d ? d[1] : "none",
+      on_drivable_surface: !!road && road[1] === "true",
+      has_broken_edge_or_rim: !!edge && edge[1] === "true",
+      has_depth_or_surface_loss: !!depth && depth[1] === "true",
+      temporal_consistency: temporal ? temporal[1] : "not_applicable",
       size: null,
-      looks_like_speed_breaker: false,
       description: "",
     };
   }
@@ -325,16 +405,40 @@ Decide whether the photo clearly shows a pothole on a road surface.
   const progress = (m) => { try { window.dispatchEvent(new CustomEvent("pipeline-progress", { detail: m })); } catch (e) {} };
   const emitVerdict = (v) => { try { window.dispatchEvent(new CustomEvent("pipeline-verdict", { detail: v })); } catch (e) {} };
 
-  let streamBroken = false;
-  async function analyzeImage(dataUrl, prompt, name, schema, model, onEarly, stopWhenRejected) {
-    const body = {
-      model,
-      input: [{ role: "user", content: [
-        { type: "input_image", image_url: dataUrl },
-        { type: "input_text", text: prompt },
-      ] }],
-      text: fmt(name, schema),
+  function buildDetectionRequest(imageInputs, prompt, model = S.model, detail = S.detail) {
+    const selectedModel = normaliseModel(model);
+    const selectedDetail = normaliseDetail(detail, selectedModel);
+    const images = (Array.isArray(imageInputs) ? imageInputs : [imageInputs])
+      .filter((x) => x && (typeof x === "string" ? x : x.url))
+      .slice(0, MAX_DETECTION_IMAGES);
+    if (!images.length) throw new Error("No usable image supplied for detection.");
+    const content = [];
+    for (let i = 0; i < images.length; i++) {
+      const item = typeof images[i] === "string" ? { url: images[i] } : images[i];
+      content.push({ type: "input_image", image_url: item.url,
+                     detail: normaliseDetail(item.detail || selectedDetail, selectedModel) });
+    }
+    // The prompt appears exactly once and follows the ordered evidence views.
+    content.push({ type: "input_text", text: `${prompt}\n\nThe ${images.length} supplied image(s) are ordered exactly as labelled by the capture pipeline.` });
+    return {
+      model: selectedModel,
+      input: [{ role: "user", content }],
+      text: fmt("road_damage_assessment", ASSESS_SCHEMA),
     };
+  }
+
+  let streamBroken = false;
+  async function analyzeImage(imageInputs, prompt, name, schema, model, onEarly, stopWhenRejected, detail) {
+    const body = (schema === ASSESS_SCHEMA)
+      ? buildDetectionRequest(imageInputs, prompt, model, detail)
+      : {
+          model,
+          input: [{ role: "user", content: [
+            { type: "input_image", image_url: Array.isArray(imageInputs) ? imageInputs[0] : imageInputs },
+            { type: "input_text", text: prompt },
+          ] }],
+          text: fmt(name, schema),
+        };
     if ((!onEarly && !stopWhenRejected) || streamBroken) return oai(body);
     try {
       return await oaiStream(body, onEarly, stopWhenRejected);
@@ -690,10 +794,10 @@ Decide whether the photo clearly shows a pothole on a road surface.
     const candidates = ranked.map((x) => x.t);
     const listing = candidates.map((t, i) =>
       `${i}: ${t.t.slice(0, 150)} | ${t.loc} | contractor: ${t.c || "not named"} | published: ${t.d}`).join("\n");
-    const prompt = `You match a pothole's location to road-work contracts awarded by the
+    const prompt = `You match a reported road defect's location to road-work contracts awarded by the
 local body that owns this road. Every candidate below was awarded by that same body, so
 the town is already correct and your only job is whether the work covers this stretch.
-The pothole's reverse-geocoded address is:
+The road defect's reverse-geocoded address is:
 ${address}
 
 Candidate contracts (index: work description | division | contractor | published):
@@ -712,7 +816,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       // near-identical road-works descriptions is the opposite job, and it names a
       // real contractor in a complaint, so this call keeps room to think.
       m = await oai({
-        model: MODEL, input: prompt,
+        model: DEFAULT_MODEL, input: prompt,
         reasoning: { effort: "medium" },
         text: fmt("tender_match", TENDER_SCHEMA),
       });
@@ -732,11 +836,33 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   }
 
   // ---------- drafting (English / Kannada) ----------
+  function damageTypeOf(value) {
+    if (value && value.damage_type) return value.damage_type;
+    return value && value.is_pothole ? "pothole_cavity" : "none";
+  }
+
+  function assessmentOf(value) {
+    if (value && value.assessment) return value.assessment;
+    if (value && value.is_pothole) return "clear";
+    return "absent";
+  }
+
   function draftEmail(a, lat, lng, address, officerName, tender) {
     const kn = LANG() === "kn";
     const sizeName = (s) => (kn ? ({ small: "ಸಣ್ಣ", medium: "ಮಧ್ಯಮ", large: "ದೊಡ್ಡ" })[s] || s : s);
     const size = a.size ? sizeName(a.size) : (kn ? "ಗಾತ್ರ ನಿರ್ಧರಿಸದ" : "unclassified");
     const road = address ? address.split(",")[0].trim() : null;
+    const type = damageTypeOf(a);
+    const typeNames = kn ? {
+      pothole_cavity: "ರಸ್ತೆ ಗುಂಡಿ", failed_patch: "ವಿಫಲವಾದ ರಸ್ತೆ ದುರಸ್ತಿ",
+      surface_breakup: "ಹಾಳಾದ ರಸ್ತೆ ಮೇಲ್ಮೈ", rut_or_depression: "ರಸ್ತೆ ಕುಸಿತ",
+      other_road_damage: "ರಸ್ತೆ ಹಾನಿ", none: "ರಸ್ತೆ ಹಾನಿ",
+    } : {
+      pothole_cavity: "pothole", failed_patch: "failed road repair",
+      surface_breakup: "broken road surface", rut_or_depression: "road rut or depression",
+      other_road_damage: "road damage", none: "road damage",
+    };
+    const typeName = typeNames[type] || typeNames.other_road_damage;
 
     let locLines;
     if (lat != null) {
@@ -751,8 +877,12 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     }
 
     const subject = kn
-      ? `ರಸ್ತೆ ಗುಂಡಿ ದೂರು: ${size} ಗುಂಡಿ` + (road ? ` (${road})` : "")
-      : `Pothole complaint: ${size} pothole` + (road ? ` near ${road}` : "");
+      ? `${typeName} ದೂರು` + (type === "pothole_cavity" ? `: ${size}` : "") + (road ? ` (${road})` : "")
+      : `${type === "pothole_cavity" ? `Pothole complaint: ${size} pothole`
+          : type === "failed_patch" ? "Broken road repair complaint"
+          : type === "surface_breakup" ? "Road surface failure complaint"
+          : type === "rut_or_depression" ? "Road depression complaint"
+          : "Road damage complaint"}` + (road ? ` near ${road}` : "");
 
     // The AI's own description of the photo used to be pasted in as a "Details:" line.
     // The photo is attached and the officer can see it, so the sentence added length
@@ -761,15 +891,15 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     const paras = kn
       ? [
           `ಮಾನ್ಯ ${officerName || "ಅಧಿಕಾರಿಗಳೇ"} ಅವರಿಗೆ,`,
-          "ದುರಸ್ತಿ ಅಗತ್ಯವಿರುವ ರಸ್ತೆ ಗುಂಡಿಯ ಬಗ್ಗೆ ದೂರು ಸಲ್ಲಿಸುತ್ತಿದ್ದೇನೆ.",
-          `${locLines}\nಅಂದಾಜು ಗಾತ್ರ: ${size}`,
-          "ಫೋಟೋ ಲಗತ್ತಿಸಲಾಗಿದೆ. ಈ ಗುಂಡಿ ದ್ವಿಚಕ್ರ ವಾಹನ ಸವಾರರಿಗೆ ಮತ್ತು ಇತರ ರಸ್ತೆ ಬಳಕೆದಾರರಿಗೆ ಅಪಾಯಕಾರಿ. ಇದನ್ನು ಶೀಘ್ರ ಪರಿಶೀಲಿಸಿ ದುರಸ್ತಿ ಮಾಡಬೇಕೆಂದು, ಮತ್ತು ಈ ರಸ್ತೆ ಭಾಗ ನಿರ್ವಹಣಾ ವಾರಂಟಿ ಅಡಿಯಲ್ಲಿದ್ದರೆ ಜವಾಬ್ದಾರ ಗುತ್ತಿಗೆದಾರರಿಗೆ ವರ್ಗಾಯಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.",
+          `ದುರಸ್ತಿ ಅಗತ್ಯವಿರುವ ${typeName} ಬಗ್ಗೆ ದೂರು ಸಲ್ಲಿಸುತ್ತಿದ್ದೇನೆ.`,
+          `${locLines}\nಹಾನಿಯ ಪ್ರಕಾರ: ${typeName}${a.size ? `\nಅಂದಾಜು ಗಾತ್ರ: ${size}` : ""}`,
+          "ಫೋಟೋ ಲಗತ್ತಿಸಲಾಗಿದೆ. ಈ ರಸ್ತೆ ಹಾನಿ ದ್ವಿಚಕ್ರ ವಾಹನ ಸವಾರರಿಗೆ ಮತ್ತು ಇತರ ರಸ್ತೆ ಬಳಕೆದಾರರಿಗೆ ಅಪಾಯಕಾರಿ. ಇದನ್ನು ಶೀಘ್ರ ಪರಿಶೀಲಿಸಿ ದುರಸ್ತಿ ಮಾಡಬೇಕೆಂದು, ಮತ್ತು ಈ ರಸ್ತೆ ಭಾಗ ನಿರ್ವಹಣಾ ವಾರಂಟಿ ಅಡಿಯಲ್ಲಿದ್ದರೆ ಜವಾಬ್ದಾರ ಗುತ್ತಿಗೆದಾರರಿಗೆ ವರ್ಗಾಯಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.",
         ]
       : [
           `Dear ${officerName || "Sir or Madam"},`,
-          "I would like to report a pothole that needs repair.",
-          `${locLines}\nApproximate size: ${size}`,
-          "PFA image. This pothole poses a danger to two wheeler riders and other road users. I request your office to inspect and repair it at the earliest, and to route it to the contractor responsible if this road section is still under a maintenance warranty.",
+          `I would like to report a ${typeName} that needs repair.`,
+          `${locLines}\nDamage type: ${typeName}${a.size ? `\nApproximate size: ${size}` : ""}`,
+          "PFA image. This road damage poses a danger to two wheeler riders and other road users. I request your office to inspect and repair it at the earliest, and to route it to the contractor responsible if this road section is still under a maintenance warranty.",
         ];
 
     if (tender) {
@@ -890,10 +1020,6 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   const listDict = (r) => { const d = toDict(r); delete d.photo_full; return d; };
 
   // ---------- image ----------
-  // Between 7 PM and 5 AM a dark frame is lifted so the model can read the road.
-  // This is a detection aid only: it never touches the copy attached to a complaint,
-  // which must be what the camera saw and not something visibly processed.
-  const isNight = () => { const h = new Date().getHours(); return h >= 19 || h < 5; };
 
   // The fraction of a dashcam frame kept for detection. A phone mounted in a car points at
   // the horizon, so the top of the frame is sky, trees and parked cars and the road worth
@@ -902,6 +1028,24 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   // still passed. Keeping less than half loses the damage itself, and this must not be
   // applied to a single shot, where the photographer has already aimed at the defect.
   const ROAD_BAND = 0.6;
+
+  function averageLuminance(ctx, width, height) {
+    const data = ctx.getImageData(0, 0, width, height).data;
+    const step = Math.max(1, Math.floor(Math.sqrt((width * height) / 12000)));
+    let total = 0, count = 0, clippedDark = 0, clippedBright = 0;
+    for (let y = 0; y < height; y += step) {
+      for (let x = 0; x < width; x += step) {
+        const i = (y * width + x) * 4;
+        const lum = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+        total += lum; count++;
+        if (lum < 12) clippedDark++;
+        if (lum > 245) clippedBright++;
+      }
+    }
+    return { mean: count ? total / count : 0,
+             dark: count ? clippedDark / count : 1,
+             bright: count ? clippedBright / count : 0 };
+  }
 
   async function toDataUrl(blob, maxDim, quality = 0.85, boost = false, band = 1) {
     const bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
@@ -914,34 +1058,39 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     c.height = Math.round(sh * scale);
     const ctx = c.getContext("2d");
     ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, c.width, c.height);
-    if (boost && isNight()) {
-      ctx.filter = "brightness(1.6) contrast(1.15)";
+    // Enhancement follows the pixels, not the wall clock. Fixed evening hours boosted
+    // bright street-lit frames and amplified noise. Preserve the original evidence copy;
+    // this is only the small image used for detection.
+    const light = boost ? averageLuminance(ctx, c.width, c.height) : null;
+    if (boost && light.mean < 72 && light.bright < 0.08) {
+      const lift = Math.min(1.65, Math.max(1.15, 85 / Math.max(35, light.mean)));
+      ctx.filter = `brightness(${lift.toFixed(2)}) contrast(1.10)`;
       ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, c.width, c.height);
       ctx.filter = "none";
     }
-    return c.toDataURL("image/jpeg", quality);
+    const out = c.toDataURL("image/jpeg", quality);
+    if (bmp.close) bmp.close();
+    return out;
   }
 
   // ---------- pipeline ----------
   async function createReport(fd, driveMode) {
-    const photo = fd.get("photo");
-    if (!photo || !photo.size) throw new Error("Empty photo.");
+    const photos = (fd.getAll ? fd.getAll("photo") : [fd.get("photo")])
+      .filter((p) => p && p.size).slice(0, 3);
+    if (!photos.length) throw new Error("Empty photo.");
+    const requestedPrimary = parseInt(fd.get("primary_index"), 10);
+    const primaryIndex = Number.isInteger(requestedPrimary) && requestedPrimary >= 0 && requestedPrimary < photos.length
+      ? requestedPrimary : 0;
+    const photo = photos[primaryIndex];
     const latRaw = fd.get("lat"), lngRaw = fd.get("lng");
     const lat = latRaw != null && latRaw !== "" ? parseFloat(latRaw) : null;
     const lng = lngRaw != null && lngRaw !== "" ? parseFloat(lngRaw) : null;
     const driveId = driveMode ? (fd.get("drive_id") || null) : null;
-
-    if (driveMode && lat != null) {
-      // Footage analysed hours later must still dedupe against what the live pass
-      // already found on that drive, so the caller can drop the time window.
-      const cutoff = fd.get("dedupe_all") ? 0 : Date.now() / 1000 - DEDUPE_WINDOW_S;
-      for (const r of await allReports()) {
-        if ((r.status === "draft" || r.status === "queued" || r.status === "sent" || r.status === "unrouted") && r.lat != null &&
-            r.created_at > cutoff && distMeters(lat, lng, r.lat, r.lng) < DEDUPE_RADIUS_M) {
-          return { found: false, skipped: "already reported nearby" };
-        }
-      }
-    }
+    const capturedAtRaw = parseInt(fd.get("captured_at_ms"), 10);
+    const gpsAccuracyRaw = parseFloat(fd.get("gps_accuracy"));
+    const speedRaw = parseFloat(fd.get("speed"));
+    let frameQuality = null;
+    try { frameQuality = JSON.parse(fd.get("frame_quality") || "null"); } catch (e) {}
 
     progress(driveMode ? pmsg("capture") : pmsg("compress"));
     // Measured on a real device: a 2000px frame is ~1.1 MB of base64 and every request
@@ -950,12 +1099,25 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     // smaller frame; the recorded footage keeps full quality, so a pothole missed live
     // is still recoverable by re-analysing the video. Single shots stay at full size:
     // one photo, someone waiting, and no footage behind it.
-    // Drive frames are cropped to the road band; a single shot is not, because the person
-    // holding the phone has already framed the defect.
-    const dataUrl = await toDataUrl(photo, driveMode ? 1024 : 2000, 0.85, true,
-                                    driveMode ? ROAD_BAND : 1);
-    // Geocoding runs in parallel with the AI calls; it never gates detection.
-    const geoP = lat != null ? reverseGeocode(lat, lng).catch(() => null) : Promise.resolve(null);
+    // Drive Mode supplies one short burst. The model sees a full context view of the
+    // sharpest frame plus three road-band crops in chronological order. Context keeps
+    // lane/edge geometry; the crops give a distant defect enough pixels to judge. A
+    // manual photo remains one full-resolution view because the user already aimed it.
+    let imageInputs, dataUrl;
+    if (driveMode) {
+      const roadViews = await Promise.all(photos.map((p) => toDataUrl(p, 1024, 0.85, true, ROAD_BAND)));
+      const context = await toDataUrl(photo, 768, 0.82, false, 1);
+      imageInputs = [{ url: context }, ...roadViews.map((url) => ({ url }))];
+      dataUrl = roadViews[primaryIndex];
+    } else {
+      dataUrl = await toDataUrl(photo, 2000, 0.85, true, 1);
+      imageInputs = [{ url: dataUrl }];
+    }
+    // A waiting single-shot user benefits from speculative geocoding. Drive Mode rejects
+    // most bursts, so starting a location lookup for every road sample would hammer the
+    // public geocoder; it starts only after a burst is accepted.
+    const geoP = !driveMode && lat != null
+      ? reverseGeocode(lat, lng).catch(() => null) : null;
     const shortOf = (g) => (g && g.short) || null;
     progress(pmsg("detect"));
     // Single shot: contract adjudication runs speculatively alongside confirmation,
@@ -972,21 +1134,32 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       : Promise.all([geoP, jurisdictionOf(lat, lng)])
           .then(([g, w]) => (w && w.kind === "town" && w.lgd ? matchTender(shortOf(g), w.lgd) : null))
           .catch(() => null);
-    const detectPrompt = DETECT_PROMPT + (LANG() === "kn"
+    const sequenceNote = driveMode
+      ? `\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. Images 2-${imageInputs.length} are lower-road crops in chronological order; the sharpest crop is chronological frame ${primaryIndex + 1}.`
+      : "\n- Capture layout: one user-framed full image.";
+    const detectPrompt = DETECT_PROMPT + sequenceNote + (LANG() === "kn"
       ? "\n- Write the description field in formal Kannada (ಕನ್ನಡ ಭಾಷೆಯಲ್ಲಿ ಬರೆಯಿರಿ)."
       : "");
+    const detectionModel = S.model, detectionDetail = S.detail;
     // Single shot has one verdict on screen, so show it the moment it streams in.
     // Drive Mode analyses run concurrently and report through the HUD instead.
     // Drive Mode has no verdict on screen to update, so it passed no callback and took
     // the unstreamed path, waiting for a description it discards on every rejected frame.
     // It streams now purely to stop as soon as the frame is known to be rejected.
-    const a = await analyzeImage(dataUrl, detectPrompt, "assessment", ASSESS_SCHEMA, MODEL,
-      driveMode ? null : emitVerdict, driveMode);
-    const accepted = a.is_pothole && a.confidence >= MIN_CONFIDENCE;
-    if (driveMode && !accepted) return { found: false };
+    const a = await analyzeImage(imageInputs, detectPrompt, "assessment", ASSESS_SCHEMA, detectionModel,
+      driveMode ? null : emitVerdict, driveMode && !S.debug, detectionDetail);
+    const decision = decisionFor(a);
+    const accepted = decision === "accept";
+    if (driveMode && !accepted) {
+      return { found: false, decision, review: decision === "review", ...a,
+               detector: { model: detectionModel, detail: detectionDetail, prompt_version: PROMPT_VERSION,
+                           schema_version: SCHEMA_VERSION, evidence_count: imageInputs.length } };
+    }
 
     if (accepted) progress(pmsg("finalize"));
-    const geo = accepted ? await geoP : null;
+    const geo = accepted
+      ? await (geoP || (lat != null ? reverseGeocode(lat, lng).catch(() => null) : Promise.resolve(null)))
+      : null;
     const address = shortOf(geo);
     const [officerName, officerEmail, unroutedReason, bodyName] = accepted
       ? await routeOfficer((geo && geo.full) || address, lat, lng) : [null, null, null, null];
@@ -1014,9 +1187,19 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     const rec = {
       created_at: Date.now() / 1000, lat, lng, address,
       photo: await dataUrlToBlob(dataUrl), photo_full: await dataUrlToBlob(photoFull),
-      is_pothole: a.is_pothole ? 1 : 0, size: a.size, confidence: a.confidence,
+      is_reportable: a.reportable ? 1 : 0,
+      is_pothole: a.damage_type === "pothole_cavity" ? 1 : 0,
+      damage_type: a.damage_type, assessment: a.assessment, image_quality: a.image_quality,
+      on_drivable_surface: !!a.on_drivable_surface,
+      has_broken_edge_or_rim: !!a.has_broken_edge_or_rim,
+      has_depth_or_surface_loss: !!a.has_depth_or_surface_loss,
+      temporal_consistency: a.temporal_consistency,
+      size: a.size,
+      decision,
       description: a.description, email_subject: subject, email_body: body,
-      status: accepted ? (covered ? "draft" : "unrouted") : "rejected",
+      status: accepted ? (covered ? "draft" : "unrouted") : (decision === "review" ? "review" : "rejected"),
+      detection_model: detectionModel, image_detail: detectionDetail, prompt_version: PROMPT_VERSION,
+      schema_version: SCHEMA_VERSION, evidence_count: imageInputs.length,
       // Distinguishes "we know where this is and do not cover it" from "we never got a
       // fix", which are the same status but very different things to tell someone.
       unrouted_reason: accepted && !covered ? (unroutedReason || "outside_area") : null,
@@ -1027,6 +1210,11 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       tender_note: tender ? tender.note : null,
       sent_at: null,
       drive_id: driveId,
+      captured_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : null,
+      gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
+      speed_mps: Number.isFinite(speedRaw) ? speedRaw : null,
+      frame_quality: Array.isArray(frameQuality) ? frameQuality : null,
+      primary_frame_index: primaryIndex,
     };
     rec.id = await addReport(rec);
     return driveMode ? { found: true, report: toDict(rec) } : toDict(rec);
@@ -1052,7 +1240,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
         subject: rec.email_subject || "",
         body: rec.email_body || "",
         // Full capture where we kept one; the working copy is only a fallback.
-        attachments: [{ type: "base64", name: "pothole.jpg",
+        attachments: [{ type: "base64", name: "road-damage.jpg",
                         path: await photoToBase64(rec.photo_full || rec.photo) }],
       });
     } else {
@@ -1137,8 +1325,20 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
         path: name,
         label: r.human_label,
         labelled_by: "owner",
-        model_said: { is_pothole: !!r.is_pothole, size: r.size, confidence: r.confidence,
-                      description: r.description },
+        model_said: {
+          is_reportable: r.is_reportable == null ? !!r.is_pothole : !!r.is_reportable,
+          damage_type: damageTypeOf(r), assessment: assessmentOf(r),
+          image_quality: r.image_quality || null,
+          on_drivable_surface: r.on_drivable_surface == null ? null : !!r.on_drivable_surface,
+          has_broken_edge_or_rim: r.has_broken_edge_or_rim == null ? null : !!r.has_broken_edge_or_rim,
+          has_depth_or_surface_loss: r.has_depth_or_surface_loss == null ? null : !!r.has_depth_or_surface_loss,
+          temporal_consistency: r.temporal_consistency || null,
+          decision: r.decision || (r.status === "rejected" ? "reject" : "accept"),
+          size: r.size, description: r.description,
+        },
+        detector: { model: r.detection_model || "legacy", detail: r.image_detail || null,
+                    prompt_version: r.prompt_version || "legacy", schema_version: r.schema_version || 1,
+                    evidence_count: r.evidence_count || 1 },
         lat: r.lat, lng: r.lng, address: r.address,
         drive_id: r.drive_id, captured_at: new Date(r.created_at * 1000).toISOString(),
       });
@@ -1146,7 +1346,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     files.push({ name: "labels.json", data: new TextEncoder().encode(
       JSON.stringify({ exported_at: new Date().toISOString(), count: index.length, images: index }, null, 1)) });
     const bytes = zip(files);
-    return { name: `pothole-dataset-${Date.now()}.zip`, base64: bytesToB64(bytes),
+    return { name: `road-damage-dataset-${Date.now()}.zip`, base64: bytesToB64(bytes),
              count: index.length, bytes: bytes.length };
   }
 
@@ -1155,7 +1355,8 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     const method = ((opts && opts.method) || "GET").toUpperCase();
     let m;
     if (path === "/api/health") {
-      return { ai_configured: !!S.key, provider: "openai", delivery: "gmail_compose", email_configured: true };
+      return { ai_configured: !!S.key, provider: "openai", delivery: "gmail_compose", email_configured: true,
+               detection_model: S.model, image_detail: S.detail, prompt_version: PROMPT_VERSION };
     }
     if (path === "/api/reports" && method === "GET") {
       // Without photo_full. The evidence copy is a 4000px JPEG and the list only shows a
@@ -1214,7 +1415,10 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       const rec = await getReport(m[1]);
       if (!rec) throw new Error("Report not found.");
       const want = JSON.parse(opts.body).label;
-      if (!["pothole", "not_pothole", null].includes(want)) throw new Error("Bad label.");
+      if (!["pothole_cavity", "failed_patch", "surface_breakup", "rut_or_depression",
+            "other_road_damage", "not_reportable", "pothole", "not_pothole", null].includes(want)) {
+        throw new Error("Bad label.");
+      }
       rec.human_label = want;
       await putReport(rec);
       return toDict(rec);
@@ -1233,7 +1437,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           national_highway: "This stretch is a national highway. It is maintained by NHAI or the state PWD National Highways division, not by the city or town body, so there is no municipal officer to address.",
           rural_road: "This road is outside every town boundary, so it belongs to the state PWD or a panchayat rather than a city body. The app will not guess an office.",
           no_address: "This town's body is known, but no official email address for it has been published, so there is no verified recipient to address.",
-          outside_area: "This pothole is outside Karnataka, which is the area this app covers, so there is no authority to address.",
+          outside_area: "This road damage is outside Karnataka, which is the area this app covers, so there is no authority to address.",
         }[rec.unrouted_reason] || "This report could not be routed to a responsible office, so there is nothing to send.");
       }
       // "queued" stays reopenable: canceling the Gmail composer must not strand the report.
@@ -1274,9 +1478,12 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
 
   // Pure helpers, exposed for tests. These are references, not copies: a test exercises
   // exactly the code that runs in production. Nothing here holds state or a secret.
-  const __pure = { inCoverage, peekVerdict, peekReject, rejectedVerdict, distMeters,
-                   draftEmail, dataUrlToBlob, photoToBase64, toDict, listDict, warrantyFor,
-                   shortlistFor, matchTenderFor: matchTender };
+  const __pure = { inCoverage, peekVerdict, peekReject, rejectedVerdict, decisionFor,
+                   damageTypeOf, assessmentOf, normaliseModel, normaliseDetail,
+                   buildDetectionRequest, ASSESS_SCHEMA, DETECT_PROMPT, PROMPT_VERSION,
+                   SCHEMA_VERSION, MAX_DETECTION_IMAGES, ROAD_BAND, averageLuminance,
+                   distMeters, draftEmail, dataUrlToBlob, photoToBase64, toDict, listDict,
+                   warrantyFor, shortlistFor, matchTenderFor: matchTender };
 
   window.StandaloneAPI = { __pure, handle, prewarm };
 

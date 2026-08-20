@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 from playwright.sync_api import sync_playwright
+from browser_test_utils import open_app
 
 KEY = os.environ["OPENAI_API_KEY"]
 SECONDS = 20
@@ -30,10 +31,17 @@ SCENARIOS = [
 JS = r"""
 async ([mode, withSpeed, seconds]) => {
   // Drive the app with a synthetic geolocation source and count what it captures.
-  let captures = 0;
+  let captures = 0, invalidBursts = 0;
   const realFetchFrame = StandaloneAPI.handle;
   StandaloneAPI.handle = async (path, opts) => {
-    if (path === "/api/frame") { captures++; return { found: false }; }
+    if (path === "/api/frame") {
+      captures++;
+      const photos = opts.body.getAll("photo");
+      const primary = Number(opts.body.get("primary_index"));
+      if (photos.length !== 3 || !photos.every((p) => p && p.size) ||
+          !Number.isInteger(primary) || primary < 0 || primary >= photos.length) invalidBursts++;
+      return { found: false };
+    }
     return realFetchFrame(path, opts);
   };
   const base = { lat: 12.9115, lng: 77.6427 };
@@ -57,7 +65,7 @@ async ([mode, withSpeed, seconds]) => {
   try { await stopDrive(); } catch (e) {}
   StandaloneAPI.handle = realFetchFrame;
   navigator.geolocation.watchPosition = realWatch;
-  return captures;
+  return { captures, invalidBursts };
 }
 """
 
@@ -72,24 +80,30 @@ with sync_playwright() as p:
         # A fresh page per scenario. Sharing one page let drive state and patched globals
         # leak across runs, which made a correct build look broken.
         pg = ctx.new_page()
-        pg.goto(f"http://localhost:8765/?key={KEY}"); pg.wait_for_load_state("networkidle")
+        open_app(pg, KEY)
         pg.wait_for_function("typeof startDrive === 'function'", timeout=30000)
         pg.evaluate("window.alert = () => {}; window.confirm = () => true;")
-        n = pg.evaluate(JS, [mode, withSpeed, SECONDS])
+        result = pg.evaluate(JS, [mode, withSpeed, SECONDS])
+        n = result["captures"]
         pg.close()
         rate = n / SECONDS
+        approx_spacing = 8.3 / rate if rate and mode != "parked" else None
         # At 30 km/h, one frame every 8 s is 66 m of unlooked-at road. The real drive
         # managed one per 9 s. Anything slower than one per 4 s is not scanning a street.
         # Parked with a precise fix is the one case that SHOULD be slow: there is no new
         # road to look at, and photographing the same spot costs money for nothing.
-        # Moving: at least one frame every 2 s, so a city street is actually scanned.
-        ok = (rate <= 0.2) if mode == "parked" else (rate >= 0.5)
-        print(f"  {name:40} {n:3} frames in {SECONDS}s  ({1/rate:.1f}s apart)" if n else
+        # Moving: representative city speed should stay within 9 m/event. The previous
+        # loose one-per-2s gate passed while its own output showed 10-17 m gaps.
+        ok = (rate <= 0.2) if mode == "parked" else (approx_spacing <= 9)
+        suffix = f"{1/rate:.1f}s apart, ~{approx_spacing:.1f}m" if approx_spacing else f"{1/rate:.1f}s apart"
+        print(f"  {name:40} {n:3} frames in {SECONDS}s  ({suffix})" if n else
               f"  {name:40} {n:3} frames in {SECONDS}s")
         if not ok:
             fails.append(f"{name}: {n} frames in {SECONDS}s, "
                          + ("faster than one every 5 s while parked" if mode == "parked"
-                            else "slower than one every 2 s"))
+                            else "wider than 9 m/event at representative city speed"))
+        if result["invalidBursts"]:
+            fails.append(f"{name}: {result['invalidBursts']} requests did not contain exactly three valid ordered burst frames")
     b.close()
 
 print()
