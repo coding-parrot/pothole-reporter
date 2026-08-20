@@ -7,6 +7,10 @@ backend or account system.
 **Current coverage:** supported Karnataka urban local bodies with published contact
 emails. National highways and rural roads are excluded.
 
+<a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
+
+<sub>Example detected by the app. Select the thumbnail for the full-size photo.</sub>
+
 ## What it does
 
 - Captures a single photo or samples the road in Drive Mode.
