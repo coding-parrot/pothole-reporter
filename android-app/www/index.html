@@ -554,10 +554,18 @@ function wireCards(root, items) {
 }
 
 async function loadReports() {
-  const reports = await api("/api/reports");
+  const [reports, drives, footage] = await Promise.all([
+    api("/api/reports"), api("/api/drives").catch(() => []),
+    api("/api/footage").catch(() => []),
+  ]);
   loadReports.latest = reports;
   const list = $("list");
-  if (!reports.length) { list.innerHTML = `<div class="empty">${t("no_reports")}</div>`; return; }
+  // A recorded drive is history even when GPS never arrived and therefore no frame was
+  // assessed. Returning on an empty reports store made its footage impossible to reach.
+  if (!reports.length && !drives.length && !footage.length) {
+    list.innerHTML = `<div class="empty">${t("no_reports")}</div>`;
+    return;
+  }
   const cardHtml = (r) => `
     <div class="card row" data-id="${r.id}" style="cursor:pointer">
       <img class="thumb" src="${photoSrc(r)}" alt="" loading="lazy" decoding="async">
@@ -566,20 +574,37 @@ async function loadReports() {
         <div class="meta">${fmtDate(r.created_at)}${r.address ? " · " + r.address.split(",").slice(0, 2).join(", ") : ""}</div>
       </div>
     </div>`;
-  const [drives, footage] = await Promise.all([
-    api("/api/drives").catch(() => []), api("/api/footage").catch(() => []),
-  ]);
   const driveById = {}, footageById = {};
   for (const d of drives) driveById[String(d.id)] = d;
   for (const f of footage) footageById[String(f.drive_id)] = f;
-  // Group consecutive records from the same drive session under one header.
+  // Build from the union of reports, drive summaries and footage. This also recovers
+  // footage orphaned by older app versions that never wrote a drive summary.
   const groups = groupsRef;
   groups.length = 0;
+  const driveGroups = {};
   for (const r of reports) {
-    const g = groups[groups.length - 1];
-    if (r.drive_id && g && g.driveId === r.drive_id) g.items.push(r);
-    else groups.push({ driveId: r.drive_id || null, items: [r] });
+    if (!r.drive_id) { groups.push({ driveId: null, items: [r] }); continue; }
+    const id = String(r.drive_id);
+    const g = driveGroups[id] || (driveGroups[id] = { driveId: id, items: [] });
+    if (!groups.includes(g)) groups.push(g);
+    g.items.push(r);
   }
+  for (const d of drives) {
+    const id = String(d.id);
+    if (!driveGroups[id]) groups.push(driveGroups[id] = { driveId: id, items: [] });
+  }
+  for (const f of footage) {
+    const id = String(f.drive_id);
+    if (!driveGroups[id]) groups.push(driveGroups[id] = { driveId: id, items: [] });
+  }
+  const groupTime = (g) => {
+    if (!g.driveId) return (g.items[0] && g.items[0].created_at) || 0;
+    const rec = driveById[String(g.driveId)], fo = footageById[String(g.driveId)];
+    return (rec && (rec.ended_at || rec.started_at))
+      || (g.items[0] && g.items[0].created_at)
+      || (fo && (fo.ended_at || fo.started_at)) || 0;
+  };
+  groups.sort((a, b) => groupTime(b) - groupTime(a));
   // Inside a drive, what you actually want is the potholes, not the frames that were
   // checked and dismissed. Confirmed ones sit on top, rejects below, each still newest
   // first, so a drive with 3 finds among 200 frames does not bury them.
@@ -592,14 +617,23 @@ async function loadReports() {
     (!g.driveId || expandedDrives.has(String(g.driveId))) ? g.items : []);
   await ensureThumbs(willShow);
   releaseThumbs(new Set(reports.map((r) => r.id)));
+  const footageRowHtml = (driveId, fo, open) => !fo ? "" :
+    `<div class="card" data-footagerow="${driveId}" style="padding:10px 12px;${open ? "" : "display:none"}">
+      <div class="meta">${t("footage_line", { mb: (fo.bytes / 1048576).toFixed(0), segments: fo.segments })}</div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="ghost" data-analyse="${driveId}">${t("analyse_btn")}</button>
+        <button class="ghost danger" data-delfootage="${driveId}">${t("delete_footage")}</button>
+      </div>
+    </div>`;
   list.innerHTML = groups.map((g) => {
     const cards = expandedDrives.has(String(g.driveId)) || !g.driveId
       ? g.items.map(cardHtml).join("") : "";
     if (!g.driveId) return cards;
-    const rec = driveById[String(g.driveId)];
+    const rec = driveById[String(g.driveId)], fo = footageById[String(g.driveId)];
     const stored = g.items.filter((x) => x.status === "draft" || x.status === "queued" || x.status === "sent").length;
     const found = rec ? rec.found : stored;
-    const start = g.items[g.items.length - 1].created_at;
+    const start = (rec && rec.started_at) || (fo && fo.started_at)
+      || (g.items.length && g.items[g.items.length - 1].created_at) || Date.now() / 1000;
     const foundTxt = found === 1 ? t("potholes_one", { n: 1 }) : t("potholes_many", { n: found });
     // "frames checked" is only known from the drive record: rejected frames are not
     // stored unless debug mode is on, so older drives can only report what was kept.
@@ -607,14 +641,7 @@ async function loadReports() {
       ? t("drive_group", { date: fmtDate(start), found: foundTxt, checked: rec.checked })
       : t("drive_group_partial", { date: fmtDate(start), found: foundTxt, kept: g.items.length });
     const open = expandedDrives.has(String(g.driveId));
-    const fo = footageById[String(g.driveId)];
-    const footageRow = (open && fo) ? `<div class="card" style="padding:10px 12px">
-        <div class="meta">${t("footage_line", { mb: (fo.bytes / 1048576).toFixed(0), segments: fo.segments })}</div>
-        <div class="btn-row" style="margin-top:8px">
-          <button class="ghost" data-analyse="${g.driveId}">${t("analyse_btn")}</button>
-          <button class="ghost danger" data-delfootage="${g.driveId}">${t("delete_footage")}</button>
-        </div>
-      </div>` : "";
+    const footageRow = footageRowHtml(g.driveId, fo, open);
     return `<div class="group-head ${open ? "open" : ""}" data-drive="${g.driveId}">
         <span class="caret">&#9656;</span><span class="meta" style="font-weight:600;color:#f2f2f4">${label}</span>
       </div>` + footageRow
@@ -625,6 +652,8 @@ async function loadReports() {
     el.onclick = () => {
       const id = el.dataset.drive;
       const body = list.querySelector(`[data-drivebody="${id}"]`);
+      const footageRow = Array.from(list.querySelectorAll("[data-footagerow]"))
+        .find((row) => row.dataset.footagerow === id);
       if (!body) { // shape changed unexpectedly: fall back to a full render
         if (expandedDrives.has(id)) expandedDrives.delete(id); else expandedDrives.add(id);
         loadReports();
@@ -642,9 +671,11 @@ async function loadReports() {
           });
         }
         body.style.display = "";
+        if (footageRow) footageRow.style.display = "";
       } else {
         expandedDrives.delete(id);
         body.style.display = "none";
+        if (footageRow) footageRow.style.display = "none";
       }
       el.classList.toggle("open", opening);
     };
@@ -868,6 +899,7 @@ const MAX_CAPTURE_QUEUE = 24;
 // waiting out a real drive.
 let SEGMENT_MS = 15000;            // footage is written in 15s pieces so memory stays flat
 let RECORD_BITRATE = 2_500_000;    // ~18 MB/min at 1080p
+let RECORDER_STOP_TIMEOUT_MS = 10000; // a broken WebView must not lock Drive shutdown forever
 let VOD_STEP_S = 1.0;              // frame spacing when re-analysing footage
 // Recording is what removes the guesswork: capture is continuous, and choosing how
 // densely to analyse becomes a separate, repeatable decision made afterwards.
@@ -875,6 +907,7 @@ const RECORD_MIMES = ["video/mp4;codecs=avc1.42E01E", "video/mp4",
                       "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
 let drive = null;
 let driveStarting = false;
+let driveFinalizing = null;
 
 function distMeters(a, b) {
   const R = 6371000, rad = Math.PI / 180;
@@ -886,7 +919,7 @@ function distMeters(a, b) {
 async function startDrive() {
   // Synchronous reentry guard: a second tap during the camera permission prompt
   // must not start a parallel drive session and leak the first camera stream.
-  if (drive || driveStarting) return;
+  if (drive || driveStarting || driveFinalizing) return;
   driveStarting = true;
   StandaloneAPI.prewarm();
   let stream;
@@ -1192,7 +1225,7 @@ async function driveTick() {
 }
 
 function stopDrive() {
-  if (!drive) return;
+  if (!drive) return driveFinalizing || Promise.resolve();
   const ctx = drive;
   ctx.stopping = true;
   // Captured bursts already queued are still checked. The summary waits for the queue,
@@ -1200,43 +1233,57 @@ function stopDrive() {
   const tally = ctx.tally;
   const sessionId = ctx.sessionId, startedAt = ctx.startedAt;
   const gpsTrack = ctx.gpsTrack || [];
-  stopRecording();   // its final clip is written after this returns
-  const hadActivity = tally.captured > 0 || tally.checked > 0 || tally.found > 0 || ctx.inFlight > 0 || ctx.queue.length > 0;
+  // MediaRecorder delivers its last data only after stop(). Keep its completion in the
+  // shutdown barrier so history cannot render before that final clip is committed.
+  const recordingDone = stopRecording();
+  const hadActivity = tally.captured > 0 || tally.checked > 0 || tally.found > 0
+    || (tally.failed || 0) > 0 || ctx.inFlight > 0 || ctx.queue.length > 0;
   clearInterval(ctx.timer);
   navigator.geolocation.clearWatch(ctx.watchId);
   if (ctx.wakeLock) ctx.wakeLock.release().catch(() => {});
   ctx.stream.getTracks().forEach((t) => t.stop());
+  $("driveStatus").textContent = t("working");
   drive = null;
-  show("home");
-  loadReports();
   drainDriveQueue(ctx);
   finishDriveDrain(ctx);
-  if (!hadActivity) return;
-  const finish = () => {
+  const finish = async ([, recording]) => {
+    const returnHome = async () => {
+      try { await loadReports(); } catch (e) {}
+      show("home");
+    };
+    // An immediate cancel with recording disabled is not useful history. A recording
+    // counts only after at least one clip commit succeeds.
+    if (!hadActivity && !(recording && recording.bytes > 0)) { await returnHome(); return; }
     // Record what the drive actually checked. Rejected frames are not stored unless
     // debug mode is on, so without this the history header can only count survivors.
-    api("/api/drives", { method: "POST", body: JSON.stringify(
+    await api("/api/drives", { method: "POST", body: JSON.stringify(
       { id: sessionId, started_at: startedAt / 1000, checked: tally.checked, found: tally.found,
         gps_track: gpsTrack }) })
-      .catch(() => {})
-      .then(loadReports);
+      .catch(() => {});
+    await returnHome();
     const failedNote = tally.failed ? " " + t("drive_end_failed", { n: tally.failed }) : "";
     const summary = (tally.found === 0
       ? t("drive_end_zero", { checked: tally.checked, debug: localStorage.getItem("debug_mode") === "1" ? t("debug_saved_suffix") : "" })
       : t("drive_end", { found: tally.found === 1 ? t("potholes_one", { n: 1 }) : t("potholes_many", { n: tally.found }), checked: tally.checked })) + failedNote;
-    setTimeout(async () => {
-      alert(summary);
-      const mine = (await api("/api/footage").catch(() => []))
-        .find((f) => String(f.drive_id) === String(sessionId));
-      if (!mine) return;
-      const ask = t("offer_analyse", { mb: (mine.bytes / 1048576).toFixed(0), clips: mine.segments });
-      if (!confirm(ask)) return;   // declining keeps the footage: it is the only copy
-      const rec = (await api("/api/drives").catch(() => []))
-        .find((d) => String(d.id) === String(sessionId));
-      analyseFootage(sessionId, rec);
-    }, 150);
+    // Keep startup locked until the old drive's final UI/prompt is complete, otherwise
+    // it can interrupt a newly started drive after an asynchronous recorder flush.
+    alert(summary);
+    const mine = (await api("/api/footage").catch(() => []))
+      .find((f) => String(f.drive_id) === String(sessionId));
+    if (!mine) return;
+    const ask = t("offer_analyse", { mb: (mine.bytes / 1048576).toFixed(0), clips: mine.segments });
+    if (!confirm(ask)) return;   // declining keeps the footage: it is the only copy
+    const rec = (await api("/api/drives").catch(() => []))
+      .find((d) => String(d.id) === String(sessionId));
+    await analyseFootage(sessionId, rec);
   };
-  ctx.drainPromise.then(finish);
+  const finalizing = Promise.all([ctx.drainPromise, recordingDone]).then(finish);
+  driveFinalizing = finalizing;
+  finalizing.then(
+    () => { if (driveFinalizing === finalizing) driveFinalizing = null; },
+    () => { if (driveFinalizing === finalizing) driveFinalizing = null; },
+  );
+  return finalizing;
 }
 
 $("driveBtn").onclick = startDrive;
@@ -1325,29 +1372,81 @@ async function writeManifest(driveId, entries) {
 let recCtx = null;
 
 function startRecording(stream, driveId) {
+  recCtx = null;
   if (localStorage.getItem("record_video") === "0") return;   // switch, for ruling it out
   if (typeof MediaRecorder === "undefined") return;
   const mime = RECORD_MIMES.find((t) => { try { return MediaRecorder.isTypeSupported(t); } catch (e) { return false; } });
   if (!mime) return;
-  recCtx = { driveId, mime, stream, seq: 0, bytes: 0, active: true, timer: null, recorder: null, failed: false };
-  cycleClip();
+  const ctx = { driveId, mime, stream, seq: 0, bytes: 0, active: true,
+    timer: null, recorder: null, failed: false, pending: new Set(),
+    awaitingStop: false, finished: false };
+  ctx.stopped = new Promise((resolve) => { ctx.resolveStopped = resolve; });
+  recCtx = ctx;
+  cycleClip(ctx);
 }
 
-function cycleClip() {
-  const ctx = recCtx;
+function finishRecording(ctx) {
+  if (!ctx || ctx.finished || ctx.active || ctx.awaitingStop || ctx.pending.size) return;
+  ctx.finished = true;
+  if (recCtx === ctx) recCtx = null;
+  ctx.resolveStopped(ctx);
+}
+
+function cycleClip(ctx = recCtx) {
   if (!ctx || !ctx.active) return;
   let rec;
   try { rec = new MediaRecorder(ctx.stream, { mimeType: ctx.mime, videoBitsPerSecond: RECORD_BITRATE }); }
-  catch (e) { ctx.failed = true; return; }
+  catch (e) { ctx.failed = true; ctx.recorder = null; return; }
   const parts = [];
-  rec.ondataavailable = (e) => { if (e.data && e.data.size) parts.push(e.data); };
-  rec.onstop = () => {
-    if (parts.length) saveClip(ctx, new Blob(parts, { type: ctx.mime }));
-    if (ctx.active) cycleClip();
+  let settled = false, stopWatchdog = null;
+  const settle = (saveTail) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(ctx.timer);
+    clearTimeout(stopWatchdog);
+    ctx.timer = null;
+    if (ctx.recorder === rec) ctx.recorder = null;
+    if (ctx.stopCurrent === requestStop) ctx.stopCurrent = null;
+    ctx.awaitingStop = false;
+    // Once the watchdog wins, detach the old recorder completely. A late stop event
+    // must not write footage after Drive finalization has already crossed its barrier.
+    rec.ondataavailable = null;
+    rec.onstop = null;
+    rec.onerror = null;
+    if (saveTail && parts.length) saveClip(ctx, new Blob(parts, { type: ctx.mime }));
+    if (ctx.active) cycleClip(ctx);
+    finishRecording(ctx);
   };
+  const requestStop = () => {
+    if (settled || stopWatchdog) return;
+    ctx.awaitingStop = true;
+    stopWatchdog = setTimeout(() => {
+      ctx.failed = true;
+      settle(false); // an incomplete container is not useful footage
+    }, RECORDER_STOP_TIMEOUT_MS);
+    try { if (rec.state !== "inactive") rec.stop(); }
+    catch (e) { ctx.failed = true; settle(false); }
+  };
+  rec.ondataavailable = (e) => { if (!settled && e.data && e.data.size) parts.push(e.data); };
+  rec.onstop = () => settle(true);
+  rec.onerror = () => { ctx.failed = true; requestStop(); };
   ctx.recorder = rec;
-  try { rec.start(); } catch (e) { ctx.failed = true; return; }
-  ctx.timer = setTimeout(() => { try { rec.stop(); } catch (e) {} }, SEGMENT_MS);
+  ctx.stopCurrent = requestStop;
+  try { rec.start(); }
+  catch (e) {
+    ctx.failed = true;
+    ctx.recorder = null;
+    ctx.stopCurrent = null;
+    rec.ondataavailable = null;
+    rec.onstop = null;
+    rec.onerror = null;
+    return;
+  }
+  if (settled || ctx.recorder !== rec) return;
+  ctx.timer = setTimeout(() => {
+    ctx.timer = null;
+    requestStop();
+  }, SEGMENT_MS);
 }
 
 // Reads only ctx, never `drive`: the final clip lands after Stop has torn the session
@@ -1357,17 +1456,30 @@ function saveClip(ctx, blob) {
   fd.append("segment", blob, "clip.bin");
   fd.append("drive_id", ctx.driveId);
   fd.append("seq", String(ctx.seq++));
-  api("/api/footage", { method: "POST", body: fd })
+  const request = api("/api/footage", { method: "POST", body: fd })
     .then((r) => { ctx.bytes += (r && r.bytes) || 0; })
     .catch(() => { ctx.failed = true; });
+  ctx.pending.add(request);
+  request.finally(() => {
+    ctx.pending.delete(request);
+    finishRecording(ctx);
+  });
+  return request;
 }
 
 function stopRecording() {
   const ctx = recCtx;
-  if (!ctx) return;
+  if (!ctx) return Promise.resolve(null);
+  if (ctx.finished) return ctx.stopped;
   ctx.active = false;
   clearTimeout(ctx.timer);
-  try { if (ctx.recorder && ctx.recorder.state !== "inactive") ctx.recorder.stop(); } catch (e) {}
+  ctx.timer = null;
+  if (ctx.stopCurrent) ctx.stopCurrent();
+  else if (!ctx.awaitingStop) {
+    ctx.recorder = null;
+  }
+  finishRecording(ctx);
+  return ctx.stopped;
 }
 const expandedDrives = new Set();
 
@@ -1844,6 +1956,10 @@ window.addEventListener("pipeline-verdict", (e) => {
 // Drive mode stops; any other screen returns home; home lets the app exit.
 window.handleAppBack = () => {
   if (drive) { stopDrive(); return true; }
+  // Stop has already torn down the live camera, but its final MediaRecorder data and
+  // queued detections may still be committing. Do not expose Home/Settings/Wipe until
+  // that barrier completes or a late write could resurrect data after a user wipe.
+  if (driveFinalizing) return true;
   if (!$("viewer").classList.contains("hidden")) { closeViewer(); return true; }
   for (const s of ["detail", "settings", "progress", "drive", "review", "dash"]) {
     if (!$(s).classList.contains("hidden")) { show("home"); loadReports(); return true; }

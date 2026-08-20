@@ -1387,8 +1387,15 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if (path === "/api/footage" && method === "GET") {
       const byDrive = {};
       for (const f of await allFootage()) {
-        const d = byDrive[f.drive_id] || (byDrive[f.drive_id] = { drive_id: f.drive_id, segments: 0, bytes: 0, mime: f.mime });
+        const d = byDrive[f.drive_id] || (byDrive[f.drive_id] = {
+          drive_id: f.drive_id, segments: 0, bytes: 0, mime: f.mime,
+          started_at: f.at || null, ended_at: f.at || null,
+        });
         d.segments++; d.bytes += f.bytes;
+        if (f.at) {
+          d.started_at = d.started_at == null ? f.at : Math.min(d.started_at, f.at);
+          d.ended_at = d.ended_at == null ? f.at : Math.max(d.ended_at, f.at);
+        }
       }
       return Object.values(byDrive);
     }
