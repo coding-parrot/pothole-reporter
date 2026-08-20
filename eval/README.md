@@ -127,3 +127,35 @@ to 2/4, which is inside the noise of four runs.
 What this does not fix: the detector still describes this damage as a pothole, and a street
 that has lost its surface is really a different complaint. The letter wording has not been
 changed to match, and should be, once someone decides what that complaint says.
+
+## 20 Aug 2026: crop drive frames to the road band, ACCEPTED
+
+A phone mounted in a car points at the horizon, so the top of every dashcam frame is sky,
+trees and parked cars, and the road worth inspecting is underneath. Frames from a real
+drive, three runs each, at the 1024px the drive path already uses:
+
+                          real drive      dashcam potholes    labelled intact, rejected
+  full frame (shipped)    6/33  (18%)     6/6                 4/6
+  lower 60%               9/33  (27%)     6/6                 3/6
+  lower 45%               3/33  ( 9%)     0/6                 6/6
+  1600px, full frame      7/33  (21%)     6/6                 5/6
+  1600px, lower 60%       9/33  (27%)     3/6                 4/6
+
+Keeping the lower 60% at 1024px is the only variant that gains on the real road without
+losing a known pothole. More pixels did not help: 1600px full frame is inside the noise of
+1024px, which says the limit is what is in the frame rather than how finely it is sampled.
+Cropping harder removes the damage itself, and cropping at 1600px loses half the dashcam
+positives, so both are out.
+
+This applies to Drive Mode only. A single shot is not cropped, because the person holding
+the phone has already aimed at the defect, and the full-resolution copy attached to the
+complaint is never cropped, because that is what the officer looks at.
+
+Confirmed on a device through the real drive path: 9 of 33, and the three frames that pass
+are the ones where the broken surface is near the camera. Every frame where the road
+recedes to the horizon still fails, which is the honest limit of this approach.
+
+A caveat that belongs with these numbers: they were measured on frames recovered from a
+screen recording, at 720x1584, not on what the camera actually captured. Real captures are
+sharper and larger, so the absolute rates are probably pessimistic. The comparison between
+variants is what should be trusted here, not the level.
