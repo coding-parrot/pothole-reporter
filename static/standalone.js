@@ -38,6 +38,16 @@
   const PROMPT_VERSION = "road-damage-v3";
   const SCHEMA_VERSION = 3;
   const MAX_DETECTION_IMAGES = 4;
+  // Detection still examines every burst. Only after a burst is accepted do we group it
+  // with a road-damage event already saved at the same place. This preserves capture
+  // recall while stopping adjacent bursts and later drives from creating repeat drafts.
+  const DEDUPE_ADJACENT_RADIUS_M = 12;
+  const DEDUPE_HISTORY_RADIUS_M = 8;
+  const DEDUPE_MISSING_HEADING_RADIUS_M = 5;
+  const DEDUPE_SAME_DRIVE_S = 4;
+  const DEDUPE_POOR_GPS_S = 2;
+  const DEDUPE_HISTORY_S = 30 * 24 * 60 * 60;
+  const ACCEPTED_REPORT_STATUSES = new Set(["draft", "queued", "sent", "unrouted"]);
 
   function normaliseModel(value) {
     return ALLOWED_MODELS.has(value) ? value : DEFAULT_MODEL;
@@ -646,6 +656,120 @@ Evidence rules:
     return 2 * 6371000 * Math.asin(Math.sqrt(a));
   }
 
+  const finiteCoord = (v) => typeof v === "number" && Number.isFinite(v);
+  const acceptedReport = (r) => !!r && (r.decision === "accept" || ACCEPTED_REPORT_STATUSES.has(r.status));
+  const storedDamageType = (r) => r && (r.damage_type || (r.is_pothole ? "pothole_cavity" : null));
+  const localDamageFamily = new Set(["pothole_cavity", "failed_patch"]);
+  const compatibleDamage = (a, b) => {
+    const left = storedDamageType(a), right = storedDamageType(b);
+    return !!left && (left === right || (localDamageFamily.has(left) && localDamageFamily.has(right)));
+  };
+  const sizeConflict = (a, b) => !!a.size && !!b.size
+    && ((a.size === "small" && b.size === "large") || (a.size === "large" && b.size === "small"));
+  const eventTime = (r) => Number.isFinite(r.last_seen_at) ? r.last_seen_at
+    : Number.isFinite(r.captured_at) ? r.captured_at : r.created_at;
+  const headingDifference = (a, b) => {
+    const d = Math.abs(a - b) % 360;
+    return Math.min(d, 360 - d);
+  };
+  const eventSighting = (r) => ({
+    drive_id: r.drive_id == null ? null : String(r.drive_id),
+    lat: finiteCoord(r.lat) ? r.lat : null,
+    lng: finiteCoord(r.lng) ? r.lng : null,
+    source_offset_s: Number.isFinite(r.source_offset_s) ? r.source_offset_s : null,
+    captured_at: Number.isFinite(r.captured_at) ? r.captured_at : null,
+    gps_accuracy: Number.isFinite(r.gps_accuracy) ? r.gps_accuracy : null,
+    speed_mps: Number.isFinite(r.speed_mps) ? r.speed_mps : null,
+    heading: Number.isFinite(r.heading) ? r.heading : null,
+    source_event_key: r.source_event_key || null,
+  });
+  const storedSightings = (r) => Array.isArray(r.event_sightings) && r.event_sightings.length
+    ? r.event_sightings.map((seen) => ({ ...seen,
+        drive_id: seen.drive_id == null && r.drive_id != null ? String(r.drive_id) : seen.drive_id }))
+    : [eventSighting(r)];
+
+  function matchesEverySameDriveSighting(candidate, sightings) {
+    // A normal 4-second cluster contains only a handful of samples. If corrupted or
+    // imported data exceeds this bound, save a separate event instead of dropping one.
+    if (sightings.length > 64) return false;
+    return sightings.every((seen) => {
+      const delta = (a, b) => Number.isFinite(a) && Number.isFinite(b) ? Math.abs(a - b) : Infinity;
+      const seconds = Math.min(delta(candidate.source_offset_s, seen.source_offset_s),
+                               delta(candidate.captured_at, seen.captured_at));
+      if (!Number.isFinite(seconds)) return false;
+      const positioned = finiteCoord(candidate.lat) && finiteCoord(candidate.lng)
+        && finiteCoord(seen.lat) && finiteCoord(seen.lng);
+      const accuracyPoor = !Number.isFinite(candidate.gps_accuracy) || !Number.isFinite(seen.gps_accuracy)
+        || candidate.gps_accuracy > 30 || seen.gps_accuracy > 30;
+      if (!positioned || accuracyPoor) return seconds <= DEDUPE_POOR_GPS_S;
+      const distance = distMeters(candidate.lat, candidate.lng, seen.lat, seen.lng);
+      const stationary = Number.isFinite(candidate.speed_mps) && Number.isFinite(seen.speed_mps)
+        && candidate.speed_mps <= 1 && seen.speed_mps <= 1;
+      return stationary
+        ? seconds <= 30 && distance <= 5
+        : seconds <= DEDUPE_SAME_DRIVE_S && distance <= DEDUPE_ADJACENT_RADIUS_M;
+    });
+  }
+
+  // A GPS match works across drives and app restarts. The time match is deliberately
+  // limited to one drive: it recovers recorded footage with no GPS, but cannot merge two
+  // unrelated manual reports merely because they were processed at the same time.
+  function roadEventMatch(candidate, prior) {
+    if (!candidate.dedupe_eligible || !acceptedReport(prior)
+        || prior.debug_capture || prior.dedupe_eligible === false) return null;
+    // A fresh routable complaint is more useful than an old accepted observation that
+    // could not name an authority. Never hide the sendable one behind the unrouted one.
+    if (candidate.status === "draft" && prior.status === "unrouted") return null;
+    const keys = Array.isArray(prior.source_event_keys) ? prior.source_event_keys : [];
+    if (candidate.source_event_key
+        && (prior.source_event_key === candidate.source_event_key || keys.includes(candidate.source_event_key))) {
+      return { kind: "same_source" };
+    }
+    // A manual photo is an explicit user action. Do not silently swallow it based on
+    // approximate phone GPS; automatic Drive/VOD observations are the duplicate source.
+    if (candidate.capture_source === "manual") return null;
+    if (!compatibleDamage(candidate, prior) || sizeConflict(candidate, prior)) return null;
+    const positioned = finiteCoord(candidate.lat) && finiteCoord(candidate.lng)
+      && finiteCoord(prior.lat) && finiteCoord(prior.lng);
+    const distance = positioned
+      ? distMeters(candidate.lat, candidate.lng, prior.lat, prior.lng) : Infinity;
+    const candidateDrive = candidate.drive_id == null ? null : String(candidate.drive_id);
+    const sameDriveSightings = candidateDrive == null ? []
+      : storedSightings(prior).filter((seen) => seen.drive_id != null
+          && String(seen.drive_id) === candidateDrive);
+    if (sameDriveSightings.length) return matchesEverySameDriveSighting(candidate, sameDriveSightings)
+      ? { kind: "same_drive" } : null;
+
+    // A repeat on another drive is less certain: require recent, precise GPS, compatible
+    // scale and subtype, and travel direction when the phone supplied it. Missing heading
+    // is allowed only at a tighter radius so existing v1.12 reports still protect users.
+    if (!positioned || !Number.isFinite(candidate.gps_accuracy) || !Number.isFinite(prior.gps_accuracy)
+        || candidate.gps_accuracy > 15 || prior.gps_accuracy > 15) return null;
+    const age = Math.abs((eventTime(candidate) || 0) - (eventTime(prior) || 0));
+    if (!Number.isFinite(age) || age > DEDUPE_HISTORY_S) return null;
+    const left = storedDamageType(candidate), right = storedDamageType(prior);
+    if (left === "other_road_damage" || right === "other_road_damage") return null;
+    let radius = left === right ? DEDUPE_HISTORY_RADIUS_M : 5;
+    const moving = Number.isFinite(candidate.speed_mps) && Number.isFinite(prior.speed_mps)
+      && candidate.speed_mps >= 2 && prior.speed_mps >= 2;
+    const headingsKnown = Number.isFinite(candidate.heading) && Number.isFinite(prior.heading);
+    if (moving && headingsKnown) {
+      if (headingDifference(candidate.heading, prior.heading) > 45) return null;
+    } else {
+      radius = Math.min(radius, DEDUPE_MISSING_HEADING_RADIUS_M);
+    }
+    return distance <= radius ? { kind: "prior_drive" } : null;
+  }
+
+  const sameRoadEvent = (candidate, prior) => !!roadEventMatch(candidate, prior);
+
+  function findDuplicateReport(candidate, reports) {
+    for (let i = reports.length - 1; i >= 0; i--) {
+      if (sameRoadEvent(candidate, reports[i])) return reports[i];
+    }
+    return null;
+  }
+
   // ---------- tenders ----------
   let _tenders = null;
   // Parsed once per app session, which matters far more now the file is 9.5 MB: the
@@ -929,10 +1053,23 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   function idb() {
     return new Promise((resolve, reject) => {
       if (_db) return resolve(_db);
-      const req = indexedDB.open("potholes", 3);
+      const req = indexedDB.open("potholes", 5);
       req.onupgradeneeded = () => {
         const d = req.result;
-        if (!d.objectStoreNames.contains("reports")) d.createObjectStore("reports", { keyPath: "id", autoIncrement: true });
+        const reports = d.objectStoreNames.contains("reports")
+          ? req.transaction.objectStore("reports")
+          : d.createObjectStore("reports", { keyPath: "id", autoIncrement: true });
+        // Cursor over lightweight candidate ranges instead of getAll(): report records
+        // contain photos, so cloning every old image for every accepted frame would make
+        // long footage analysis slower and more memory-hungry as history grows.
+        if (!reports.indexNames.contains("by_lat")) reports.createIndex("by_lat", "lat");
+        if (!reports.indexNames.contains("by_drive")) reports.createIndex("by_drive", "drive_id");
+        // A canonical event can be observed on later drives without changing its original
+        // drive_id. Index every drive that has seen it so the next adjacent observation is
+        // found even when it lies outside the stricter cross-drive radius or has no GPS.
+        if (!reports.indexNames.contains("by_sighting_drive")) {
+          reports.createIndex("by_sighting_drive", "sighting_drive_ids", { multiEntry: true });
+        }
         // How many frames a drive actually checked is only known while it runs:
         // rejected frames are not kept unless debug mode is on, so the count has to
         // be recorded at the end or it is lost.
@@ -987,10 +1124,100 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   const addReport = (r) => op("readwrite", (s) => s.add(r));
   const delReport = (id) => op("readwrite", (s) => s.delete(Number(id)));
   const allDrives = () => op("readonly", (s) => s.getAll(), "drives");
+  const getDrive = (id) => op("readonly", (s) => s.get(String(id)), "drives");
   const putFootage = (seg) => op("readwrite", (s) => s.put(seg), "footage");
   const footageFor = (driveId) => op("readonly", (s) => s.index("by_drive").getAll(String(driveId)), "footage");
   const allFootage = () => op("readonly", (s) => s.getAll(), "footage");
   const putDrive = (d) => op("readwrite", (s) => s.put(d), "drives");
+
+  // Accepted Drive jobs finish concurrently. A separate getAll() followed by add()
+  // lets two nearby jobs both observe "none" and both write. Keep the final check and
+  // insert in one read-write transaction; IndexedDB serialises these transactions on the
+  // reports store, so exactly one concurrent detection becomes the saved event.
+  function addReportUnlessDuplicate(rec, dedupe) {
+    if (!dedupe) return addReport(rec).then((id) => ({ id, duplicate: null }));
+    return idb().then((d) => new Promise((resolve, reject) => {
+      const tx = d.transaction("reports", "readwrite");
+      const store = tx.objectStore("reports");
+      let result = null, failure = null;
+      const addNew = () => {
+        const add = store.add(rec);
+        add.onsuccess = () => { result = { id: add.result, duplicate: null }; };
+        add.onerror = () => { failure = add.error; };
+      };
+      const scan = (request, next) => {
+        request.onsuccess = () => {
+          const cursor = request.result;
+          if (!cursor) { next(); return; }
+          const match = roadEventMatch(rec, cursor.value);
+          if (match) {
+            const prior = cursor.value;
+            const keys = Array.isArray(prior.source_event_keys)
+              ? prior.source_event_keys.slice() : (prior.source_event_key ? [prior.source_event_key] : []);
+            if (rec.source_event_key && !keys.includes(rec.source_event_key)) keys.push(rec.source_event_key);
+            const exactReplay = match.kind === "same_source";
+            const observedAt = eventTime(rec);
+            // Keep a bounded envelope per drive, not a global 64-item cap: popular
+            // locations can be revisited many times, and a full old global array would
+            // otherwise stop recording the first sighting of a new drive. Sightings older
+            // than the cross-drive horizon are no longer useful for approximate matching;
+            // exact retained-footage replays remain covered by source_event_keys.
+            const currentDrive = rec.drive_id == null ? null : String(rec.drive_id);
+            const cutoff = Number.isFinite(observedAt) ? observedAt - DEDUPE_HISTORY_S : -Infinity;
+            const sightings = storedSightings(prior).filter((seen) => {
+              const seenAt = Number.isFinite(seen.captured_at) ? seen.captured_at : null;
+              return (seen.drive_id != null && String(seen.drive_id) === currentDrive)
+                || seenAt == null || seenAt >= cutoff;
+            });
+            const sameDriveCount = currentDrive == null ? 0 : sightings.filter((seen) =>
+              seen.drive_id != null && String(seen.drive_id) === currentDrive).length;
+            if ((match.kind === "same_drive" || match.kind === "prior_drive")
+                && !exactReplay && (currentDrive == null || sameDriveCount < 64)) {
+              sightings.push(eventSighting(rec));
+            }
+            const sightingDriveIds = [...new Set(sightings
+              .map((seen) => seen.drive_id == null ? null : String(seen.drive_id)).filter(Boolean))];
+            const updated = {
+              ...prior,
+              source_event_keys: keys.slice(-64),
+              event_sightings: sightings,
+              sighting_drive_ids: sightingDriveIds,
+              seen_count: exactReplay ? (prior.seen_count || 1) : (prior.seen_count || 1) + 1,
+              last_seen_at: Math.max(eventTime(prior) || 0, eventTime(rec) || 0),
+            };
+            const write = cursor.update(updated);
+            write.onsuccess = () => { result = { id: null, duplicate: updated, match: match.kind }; };
+            write.onerror = () => { failure = write.error; };
+            return;
+          }
+          cursor.continue();
+        };
+        request.onerror = () => { failure = request.error; };
+      };
+      const scanLocation = () => {
+        if (!finiteCoord(rec.lat) || !finiteCoord(rec.lng)) { addNew(); return; }
+        const latitudeBand = DEDUPE_HISTORY_RADIUS_M / 110900;
+        scan(store.index("by_lat").openCursor(
+          IDBKeyRange.bound(rec.lat - latitudeBand, rec.lat + latitudeBand)), addNew);
+      };
+      try {
+        if (rec.drive_id != null) {
+          const driveKey = String(rec.drive_id);
+          const scanOriginalDrive = () => scan(
+            store.index("by_drive").openCursor(IDBKeyRange.only(driveKey)), scanLocation);
+          scan(store.index("by_sighting_drive").openCursor(IDBKeyRange.only(driveKey)), scanOriginalDrive);
+        } else scanLocation();
+      } catch (e) {
+        failure = e;
+        try { tx.abort(); } catch (_) {}
+      }
+      tx.oncomplete = () => result ? resolve(result)
+        : reject(storageError(failure || new Error("Could not save this report.")));
+      const died = () => reject(storageError(failure || tx.error));
+      tx.onabort = died;
+      tx.onerror = () => {};
+    }));
+  }
 
   // Photos are stored as blobs, not base64. Measured on a device with a hundred 1024px
   // thumbnails: reading them back took 177 ms as base64 strings and 3 ms as blobs, writing
@@ -1074,6 +1301,32 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   }
 
   // ---------- pipeline ----------
+  // Detection requests stay concurrent, but their final storage decisions must follow
+  // capture order within one drive. Otherwise a later frame can finish inference first,
+  // sit just outside the historical radius, and briefly become a second canonical before
+  // the earlier bridging frame is known. Callers submit live/VOD frames chronologically;
+  // this queue serialises only the short post-detection commit, not model inference.
+  const driveCommitTails = new Map();
+  function reserveDriveCommit(driveId) {
+    if (driveId == null) return null;
+    const key = String(driveId);
+    const wait = driveCommitTails.get(key) || Promise.resolve();
+    let release;
+    const own = new Promise((resolve) => { release = resolve; });
+    const tail = wait.then(() => own);
+    driveCommitTails.set(key, tail);
+    tail.finally(() => { if (driveCommitTails.get(key) === tail) driveCommitTails.delete(key); });
+    let finished = false;
+    return {
+      wait,
+      done() {
+        if (finished) return;
+        finished = true;
+        release();
+      },
+    };
+  }
+
   async function createReport(fd, driveMode) {
     const photos = (fd.getAll ? fd.getAll("photo") : [fd.get("photo")])
       .filter((p) => p && p.size).slice(0, 3);
@@ -1086,9 +1339,21 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     const lat = latRaw != null && latRaw !== "" ? parseFloat(latRaw) : null;
     const lng = lngRaw != null && lngRaw !== "" ? parseFloat(lngRaw) : null;
     const driveId = driveMode ? (fd.get("drive_id") || null) : null;
+    const commitTurn = driveMode ? reserveDriveCommit(driveId) : null;
+    try {
     const capturedAtRaw = parseInt(fd.get("captured_at_ms"), 10);
+    const sourceOffsetRaw = parseInt(fd.get("source_offset_ms"), 10);
     const gpsAccuracyRaw = parseFloat(fd.get("gps_accuracy"));
     const speedRaw = parseFloat(fd.get("speed"));
+    const headingRaw = parseFloat(fd.get("heading"));
+    const requestedSource = String(fd.get("capture_source") || "");
+    const captureSource = driveMode
+      ? (requestedSource === "drive_vod" ? "drive_vod" : "drive_live") : "manual";
+    const sourceEventKey = driveMode && fd.get("source_event_key")
+      ? String(fd.get("source_event_key")).slice(0, 180) : null;
+    // Bind the request to the mode in which it began. A Settings change while a slow
+    // request is finishing must not unpredictably change whether that observation saves.
+    const dedupe = !S.debug;
     let frameQuality = null;
     try { frameQuality = JSON.parse(fd.get("frame_quality") || "null"); } catch (e) {}
 
@@ -1150,11 +1415,20 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       driveMode ? null : emitVerdict, driveMode && !S.debug, detectionDetail);
     const decision = decisionFor(a);
     const accepted = decision === "accept";
+    const detector = { model: detectionModel, detail: detectionDetail, prompt_version: PROMPT_VERSION,
+                       schema_version: SCHEMA_VERSION, evidence_count: imageInputs.length };
     if (driveMode && !accepted) {
-      return { found: false, decision, review: decision === "review", ...a,
-               detector: { model: detectionModel, detail: detectionDetail, prompt_version: PROMPT_VERSION,
-                           schema_version: SCHEMA_VERSION, evidence_count: imageInputs.length } };
+      return { analyzed: true, accepted: false, stored: false, found: false,
+               duplicate: false, duplicate_of: null, decision, review: decision === "review",
+               ...a, observation: { ...a }, detector };
     }
+
+    const duplicateResult = (existing) => driveMode
+      ? { analyzed: true, accepted: true, stored: false, found: false,
+          duplicate: true, duplicate_of: existing.id, existing_report_id: existing.id,
+          skipped: "already reported nearby", decision, review: false,
+          ...a, observation: { ...a }, detector }
+      : { ...toDict(existing), duplicate: true, duplicate_of: existing.id };
 
     if (accepted) progress(pmsg("finalize"));
     const geo = accepted
@@ -1210,14 +1484,48 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       tender_note: tender ? tender.note : null,
       sent_at: null,
       drive_id: driveId,
+      capture_source: captureSource,
+      source_event_key: sourceEventKey,
+      source_event_keys: sourceEventKey ? [sourceEventKey] : [],
       captured_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : null,
+      source_offset_s: Number.isFinite(sourceOffsetRaw) ? sourceOffsetRaw / 1000 : null,
       gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
       speed_mps: Number.isFinite(speedRaw) ? speedRaw : null,
+      heading: Number.isFinite(headingRaw) ? ((headingRaw % 360) + 360) % 360 : null,
       frame_quality: Array.isArray(frameQuality) ? frameQuality : null,
       primary_frame_index: primaryIndex,
+      debug_capture: !dedupe,
+      dedupe_eligible: accepted && dedupe,
+      event_sightings: accepted ? [eventSighting({
+        drive_id: driveId, lat, lng,
+        source_offset_s: Number.isFinite(sourceOffsetRaw) ? sourceOffsetRaw / 1000 : null,
+        captured_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : null,
+        gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
+        speed_mps: Number.isFinite(speedRaw) ? speedRaw : null,
+        heading: Number.isFinite(headingRaw) ? ((headingRaw % 360) + 360) % 360 : null,
+        source_event_key: sourceEventKey,
+      })] : [],
+      sighting_drive_ids: accepted && driveId != null ? [String(driveId)] : [],
+      seen_count: accepted ? 1 : 0,
+      last_seen_at: accepted
+        ? (Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : Date.now() / 1000) : null,
     };
-    rec.id = await addReport(rec);
-    return driveMode ? { found: true, report: toDict(rec) } : toDict(rec);
+    if (accepted) {
+      if (commitTurn) await commitTurn.wait;
+      const committed = await addReportUnlessDuplicate(rec, dedupe);
+      if (committed.duplicate) return duplicateResult(committed.duplicate);
+      rec.id = committed.id;
+    } else {
+      rec.id = await addReport(rec);
+    }
+    return driveMode
+      ? { analyzed: true, accepted: true, stored: true, found: true,
+          duplicate: false, duplicate_of: null, decision, review: false,
+          ...a, observation: { ...a }, detector, report: toDict(rec) }
+      : toDict(rec);
+    } finally {
+      if (commitTurn) commitTurn.done();
+    }
   }
 
 
@@ -1376,9 +1684,13 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       const fd = opts.body;
       const blob = fd.get("segment"), driveId = String(fd.get("drive_id"));
       const seq = parseInt(fd.get("seq"), 10) || 0;
+      const recordingStartedRaw = parseInt(fd.get("recording_started_at_ms"), 10);
+      const sourceOffsetRaw = parseInt(fd.get("source_offset_ms"), 10);
       if (!blob || !blob.size) throw new Error("Empty footage segment.");
       await putFootage({ key: `${driveId}#${String(seq).padStart(5, "0")}`, drive_id: driveId,
                          seq, blob, mime: blob.type || "video/mp4", bytes: blob.size,
+                         recording_started_at_ms: Number.isFinite(recordingStartedRaw) ? recordingStartedRaw : null,
+                         source_offset_s: Number.isFinite(sourceOffsetRaw) ? sourceOffsetRaw / 1000 : null,
                          at: Date.now() / 1000 });
       return { ok: true, bytes: blob.size };
     }
@@ -1387,14 +1699,19 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if (path === "/api/footage" && method === "GET") {
       const byDrive = {};
       for (const f of await allFootage()) {
+        const clipStart = Number.isFinite(f.recording_started_at_ms)
+          ? f.recording_started_at_ms / 1000 : f.at;
         const d = byDrive[f.drive_id] || (byDrive[f.drive_id] = {
           drive_id: f.drive_id, segments: 0, bytes: 0, mime: f.mime,
-          started_at: f.at || null, ended_at: f.at || null,
+          started_at: clipStart || null, ended_at: f.at || clipStart || null,
         });
         d.segments++; d.bytes += f.bytes;
-        if (f.at) {
-          d.started_at = d.started_at == null ? f.at : Math.min(d.started_at, f.at);
-          d.ended_at = d.ended_at == null ? f.at : Math.max(d.ended_at, f.at);
+        if (clipStart) {
+          d.started_at = d.started_at == null ? clipStart : Math.min(d.started_at, clipStart);
+        }
+        if (f.at || clipStart) {
+          const clipEnd = f.at || clipStart;
+          d.ended_at = d.ended_at == null ? clipEnd : Math.max(d.ended_at, clipEnd);
         }
       }
       return Object.values(byDrive);
@@ -1402,7 +1719,15 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if ((m = path.match(/^\/api\/footage\/([^/]+)\/blobs$/)) && method === "GET") {
       const segs = (await footageFor(decodeURIComponent(m[1]))).sort((a, b) => a.seq - b.seq);
       if (!segs.length) throw new Error("No footage stored for that drive.");
-      return { mime: segs[0].mime, blobs: segs.map((x) => x.blob) };
+      return {
+        mime: segs[0].mime,
+        // `blobs` keeps the old API shape for callers/tests. `clips` carries the true
+        // recorder timeline, including gaps and failed sequence numbers.
+        blobs: segs.map((x) => x.blob),
+        clips: segs.map((x) => ({ seq: x.seq, blob: x.blob,
+          recording_started_at_ms: x.recording_started_at_ms || null,
+          source_offset_s: Number.isFinite(x.source_offset_s) ? x.source_offset_s : null })),
+      };
     }
     if ((m = path.match(/^\/api\/footage\/([^/]+)$/)) && method === "DELETE") {
       const id = decodeURIComponent(m[1]);
@@ -1412,9 +1737,31 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if (path === "/api/drives" && method === "POST") {
       const d = JSON.parse(opts.body);
       if (!d || !d.id) throw new Error("Drive id missing.");
+      const alreadyIds = Array.isArray(d.already_ids)
+        ? [...new Set(d.already_ids.map((x) => String(x).slice(0, 64)))] : [];
       await putDrive({ id: String(d.id), started_at: d.started_at || null,
                        ended_at: Date.now() / 1000, checked: d.checked | 0, found: d.found | 0,
+                       already: Math.max(d.already | 0, alreadyIds.length), already_ids: alreadyIds,
                        gps_track: Array.isArray(d.gps_track) ? d.gps_track : [] });
+      return { ok: true };
+    }
+    if ((m = path.match(/^\/api\/drives\/([^/]+)\/analysis$/)) && method === "POST") {
+      const id = decodeURIComponent(m[1]);
+      const stats = JSON.parse(opts.body || "{}");
+      const prior = await getDrive(id) || {
+        id, started_at: stats.started_at || null, ended_at: Date.now() / 1000,
+        checked: 0, found: 0, already: 0, already_ids: [], gps_track: [],
+      };
+      const priorIds = Array.isArray(prior.already_ids) ? prior.already_ids : [];
+      const incomingIds = Array.isArray(stats.already_ids) ? stats.already_ids : [];
+      prior.already_ids = [...new Set([...priorIds, ...incomingIds]
+        .map((x) => String(x).slice(0, 64)))];
+      prior.already = Math.max(prior.already | 0, prior.already_ids.length);
+      prior.analysis_checked = Math.max(0, stats.checked | 0);
+      prior.analysis_found = Math.max(0, stats.found | 0);
+      prior.analysis_already = Math.max(0, stats.already | 0, incomingIds.length);
+      prior.analysis_at = Date.now() / 1000;
+      await putDrive(prior);
       return { ok: true };
     }
     if (path === "/api/export" && method === "POST") return exportDataset();
@@ -1489,7 +1836,8 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    damageTypeOf, assessmentOf, normaliseModel, normaliseDetail,
                    buildDetectionRequest, ASSESS_SCHEMA, DETECT_PROMPT, PROMPT_VERSION,
                    SCHEMA_VERSION, MAX_DETECTION_IMAGES, ROAD_BAND, averageLuminance,
-                   distMeters, draftEmail, dataUrlToBlob, photoToBase64, toDict, listDict,
+                   distMeters, roadEventMatch, sameRoadEvent, findDuplicateReport,
+                   draftEmail, dataUrlToBlob, photoToBase64, toDict, listDict,
                    warrantyFor, shortlistFor, matchTenderFor: matchTender };
 
   window.StandaloneAPI = { __pure, handle, prewarm };

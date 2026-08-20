@@ -22,6 +22,8 @@ emails. National highways and rural roads are excluded.
   choose to send it.
 - Records Drive Mode footage on the device by default. It can be disabled in Settings,
   or analysed and deleted later from History.
+- Groups repeat Drive/footage observations into one event; Debug mode keeps every
+  accepted observation.
 
 The app refuses to guess a recipient for national highways, rural roads, locations
 outside Karnataka, unknown road ownership, or bodies without a published address.

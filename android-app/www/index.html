@@ -251,6 +251,7 @@ const I18N = {
     analyse_none: "No footage stored for this drive.",
     analysing_dup: "({n} already reported)",
     analyse_dup: "{n} of them were already reported.",
+    already_one: "{n} already-reported event", already_many: "{n} already-reported events",
     frames_no_permission: "Saving frames to storage was not permitted. Analyse anyway without saving them?",
     analysing_failed: "· {n} failed",
     analyse_incomplete: "Could not finish: {failed} of {n} frames were not checked ({err}) So no result is being claimed, and the video has been kept.",
@@ -264,7 +265,8 @@ const I18N = {
     footage_kept: "Video kept (debug mode).",
     offer_analyse: "Analyse this drive's video now? {clips} clips, {mb} MB. Reportable road damage is kept as photos; the rest is discarded.",
     confirm_delete_footage: "Delete the recorded video for this drive? The reports stay.",
-    drive_group: "{date} · {found} · {checked} frames checked",
+    drive_group: "{date} · {found}{known} · {checked} live frames checked{video}",
+    drive_video_suffix: " · {n} video frames checked",
     drive_group_partial: "{date} · {found} · {kept} kept",
     lbl_pothole: "Pothole cavity", lbl_patch: "Failed repair", lbl_surface: "Surface breakup",
     lbl_rut: "Rut / depression", lbl_no: "Not reportable", lbl_skip: "Skip", lbl_done: "Done",
@@ -301,6 +303,8 @@ const I18N = {
     potholes_one: "{n} damage event", potholes_many: "{n} damage events",
     drive_tip: "Before moving, aim the camera so the travelled road fills the orange guide with little sky or dashboard. Each check uses a three-frame burst. The back button also stops the drive.",
     drive_end: "Drive ended: {found} found, {checked} frames checked.",
+    drive_end_known: "Drive ended: no new report; {already} seen again, {checked} frames checked.",
+    drive_seen_suffix: " {already} seen again.",
     drive_end_zero: "No reportable road damage found in this drive ({checked} events checked{debug}).",
     debug_saved_suffix: ", debug frames saved for review",
     confirm_send: "Open your email app with the complaint addressed to {to}?",
@@ -364,6 +368,7 @@ const I18N = {
     analyse_none: "ಈ ಡ್ರೈವ್‌ಗೆ ವಿಡಿಯೋ ಇಲ್ಲ.",
     analysing_dup: "({n} ಈಗಾಗಲೇ ವರದಿ)",
     analyse_dup: "ಅವುಗಳಲ್ಲಿ {n} ಈಗಾಗಲೇ ವರದಿಯಾಗಿವೆ.",
+    already_one: "ಈಗಾಗಲೇ ವರದಿಯಾದ {n} ಘಟನೆ", already_many: "ಈಗಾಗಲೇ ವರದಿಯಾದ {n} ಘಟನೆಗಳು",
     frames_no_permission: "ಫ್ರೇಮ್‌ಗಳನ್ನು ಉಳಿಸಲು ಅನುಮತಿ ಸಿಗಲಿಲ್ಲ. ಉಳಿಸದೆ ವಿಶ್ಲೇಷಣೆ ಮುಂದುವರಿಸಬೇಕೆ?",
     analysing_failed: "· {n} ವಿಫಲ",
     analyse_incomplete: "ಪೂರ್ಣಗೊಳಿಸಲಾಗಲಿಲ್ಲ: {n} ರಲ್ಲಿ {failed} ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ ({err}) ಆದ್ದರಿಂದ ಯಾವುದೇ ಫಲಿತಾಂಶ ಹೇಳುತ್ತಿಲ್ಲ, ವಿಡಿಯೋ ಉಳಿಸಲಾಗಿದೆ.",
@@ -377,7 +382,8 @@ const I18N = {
     footage_kept: "ವಿಡಿಯೋ ಉಳಿಸಲಾಗಿದೆ (ಡೀಬಗ್ ಮೋಡ್).",
     offer_analyse: "ಈ ಡ್ರೈವ್‌ನ ವಿಡಿಯೋ ಈಗ ವಿಶ್ಲೇಷಿಸಬೇಕೆ? {clips} ತುಣುಕುಗಳು, {mb} MB. ಗುಂಡಿಗಳು ಫೋಟೋಗಳಾಗಿ ಉಳಿಯುತ್ತವೆ, ಉಳಿದವು ಅಳಿಸಲಾಗುತ್ತದೆ.",
     confirm_delete_footage: "ಈ ಡ್ರೈವ್‌ನ ವಿಡಿಯೋ ಅಳಿಸಬೇಕೆ? ವರದಿಗಳು ಉಳಿಯುತ್ತವೆ.",
-    drive_group: "{date} · {found} · {checked} ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ",
+    drive_group: "{date} · {found}{known} · {checked} ಲೈವ್ ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ{video}",
+    drive_video_suffix: " · {n} ವಿಡಿಯೋ ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ",
     drive_group_partial: "{date} · {found} · {kept} ಉಳಿಸಲಾಗಿದೆ",
     lbl_pothole: "ರಸ್ತೆ ಗುಂಡಿ", lbl_patch: "ವಿಫಲ ದುರಸ್ತಿ", lbl_surface: "ಮೇಲ್ಮೈ ಹಾನಿ",
     lbl_rut: "ರಸ್ತೆ ಕುಸಿತ", lbl_no: "ವರದಿ ಯೋಗ್ಯವಲ್ಲ", lbl_skip: "ಬಿಟ್ಟುಬಿಡಿ", lbl_done: "ಮುಗಿಯಿತು",
@@ -414,6 +420,8 @@ const I18N = {
     potholes_one: "{n} ಹಾನಿ ಘಟನೆ", potholes_many: "{n} ಹಾನಿ ಘಟನೆಗಳು",
     drive_tip: "ಚಲಿಸುವ ಮೊದಲು ರಸ್ತೆ ಕಿತ್ತಳೆ ಮಾರ್ಗದರ್ಶಿಯೊಳಗೆ ತುಂಬುವಂತೆ ಕ್ಯಾಮೆರಾ ಹೊಂದಿಸಿ; ಆಕಾಶ ಮತ್ತು ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ಕಡಿಮೆ ಇರಲಿ. ಪ್ರತಿ ಪರಿಶೀಲನೆ ಮೂರು ಫ್ರೇಮ್‌ಗಳನ್ನು ಬಳಸುತ್ತದೆ.",
     drive_end: "ಡ್ರೈವ್ ಮುಗಿಯಿತು: {found} ಪತ್ತೆ, {checked} ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ.",
+    drive_end_known: "ಡ್ರೈವ್ ಮುಗಿಯಿತು: ಹೊಸ ವರದಿ ಇಲ್ಲ; {already} ಮತ್ತೆ ಕಂಡಿದೆ, {checked} ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ.",
+    drive_seen_suffix: " {already} ಮತ್ತೆ ಕಂಡಿದೆ.",
     drive_end_zero: "ಈ ಡ್ರೈವ್‌ನಲ್ಲಿ ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಪತ್ತೆಯಾಗಿಲ್ಲ ({checked} ಪರಿಶೀಲನೆ{debug}).",
     debug_saved_suffix: ", ಡೀಬಗ್ ಫ್ರೇಮ್‌ಗಳು ಉಳಿದಿವೆ",
     confirm_send: "{to} ಗೆ ಉದ್ದೇಶಿಸಿದ ದೂರಿನೊಂದಿಗೆ ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ?",
@@ -435,6 +443,8 @@ const damageType = (r) => (r && r.damage_type) || (r && r.is_pothole ? "pothole_
 const assessment = (r) => (r && r.assessment) || (r && r.is_pothole ? "clear" : "absent");
 const tDamage = (value) => t("damage_" + (typeof value === "string" ? value : damageType(value)));
 const tAssessment = (value) => t("assessment_" + (typeof value === "string" ? value : assessment(value)));
+const eventCountText = (n) => n === 1 ? t("potholes_one", { n }) : t("potholes_many", { n });
+const alreadyCountText = (n) => n === 1 ? t("already_one", { n }) : t("already_many", { n });
 let health = { ai_configured: true, email_configured: false, delivery: "gmail_draft" };
 
 function show(screen) {
@@ -630,15 +640,24 @@ async function loadReports() {
       ? g.items.map(cardHtml).join("") : "";
     if (!g.driveId) return cards;
     const rec = driveById[String(g.driveId)], fo = footageById[String(g.driveId)];
-    const stored = g.items.filter((x) => x.status === "draft" || x.status === "queued" || x.status === "sent").length;
-    const found = rec ? rec.found : stored;
+    // The cards are the canonical unique events. A drive summary only describes its live
+    // pass and becomes stale when retained footage later discovers another event.
+    const stored = g.items.filter((x) => FOUND.includes(x.status)).length;
+    const found = stored;
     const start = (rec && rec.started_at) || (fo && fo.started_at)
       || (g.items.length && g.items[g.items.length - 1].created_at) || Date.now() / 1000;
-    const foundTxt = found === 1 ? t("potholes_one", { n: 1 }) : t("potholes_many", { n: found });
+    const foundTxt = eventCountText(found);
+    const knownCount = rec ? Math.max(
+      Array.isArray(rec.already_ids) ? rec.already_ids.length : 0,
+      rec.already | 0, rec.analysis_already | 0) : 0;
+    const knownTxt = knownCount ? ` · ${alreadyCountText(knownCount)}` : "";
+    const videoTxt = rec && rec.analysis_checked
+      ? t("drive_video_suffix", { n: rec.analysis_checked }) : "";
     // "frames checked" is only known from the drive record: rejected frames are not
     // stored unless debug mode is on, so older drives can only report what was kept.
     const label = rec
-      ? t("drive_group", { date: fmtDate(start), found: foundTxt, checked: rec.checked })
+      ? t("drive_group", { date: fmtDate(start), found: foundTxt, known: knownTxt,
+          checked: rec.checked, video: videoTxt })
       : t("drive_group_partial", { date: fmtDate(start), found: foundTxt, kept: g.items.length });
     const open = expandedDrives.has(String(g.driveId));
     const footageRow = footageRowHtml(g.driveId, fo, open);
@@ -700,7 +719,10 @@ function getPosition() {
   return new Promise((resolve) => {
     if (!navigator.geolocation) return resolve(null);
     navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude,
+        accuracy: typeof p.coords.accuracy === "number" ? p.coords.accuracy : null,
+        speed: typeof p.coords.speed === "number" && !Number.isNaN(p.coords.speed) ? p.coords.speed : null,
+        heading: typeof p.coords.heading === "number" && !Number.isNaN(p.coords.heading) ? p.coords.heading : null }),
       () => resolve(null),
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
     );
@@ -716,7 +738,13 @@ async function handleFile(file) {
   $("progressText").textContent = t("working");
   const fd = new FormData();
   fd.append("photo", file);
-  if (pos) { fd.append("lat", pos.lat); fd.append("lng", pos.lng); }
+  fd.append("captured_at_ms", String(Date.now()));
+  if (pos) {
+    fd.append("lat", pos.lat); fd.append("lng", pos.lng);
+    if (pos.accuracy != null) fd.append("gps_accuracy", String(pos.accuracy));
+    if (pos.speed != null) fd.append("speed", String(pos.speed));
+    if (pos.heading != null) fd.append("heading", String(pos.heading));
+  }
   try {
     const report = await api("/api/report", { method: "POST", body: fd });
     await loadReports();
@@ -934,9 +962,10 @@ async function startDrive() {
   video.srcObject = stream;
   const ctx = {
     stream, pos: null, lastCapPos: null,
-    tally: { checked: 0, found: 0, captured: 0, dropped: 0 },
+    tally: { checked: 0, found: 0, already: 0, captured: 0, dropped: 0 },
+    duplicateIds: new Set(),
     queue: [], pending: new Set(), inFlight: 0, errors: 0, wakeLock: null,
-    sessionId: String(Date.now()), startedAt: Date.now(), stillBusy: false,
+    sessionId: String(Date.now()), startedAt: Date.now(), captureSeq: 0, stillBusy: false,
     stopping: false, drained: false,
   };
   ctx.drainPromise = new Promise((resolve) => { ctx.resolveDrained = resolve; });
@@ -955,7 +984,7 @@ async function startDrive() {
       width: settings.width || "?", fps: Math.round(settings.frameRate || 0) || "?",
     });
   }
-  startRecording(stream, ctx.sessionId);
+  startRecording(stream, ctx.sessionId, ctx.startedAt);
   try {
     const lock = await navigator.wakeLock.request("screen");
     if (drive === ctx && !ctx.stopping) ctx.wakeLock = lock;
@@ -975,8 +1004,12 @@ async function startDrive() {
       ctx.posAccuracy = typeof p.coords.accuracy === "number" ? p.coords.accuracy : null;
       ctx.posSpeed = typeof p.coords.speed === "number" && !Number.isNaN(p.coords.speed)
         ? p.coords.speed : null;
+      ctx.posHeading = typeof p.coords.heading === "number" && !Number.isNaN(p.coords.heading)
+        ? p.coords.heading : null;
       (ctx.gpsTrack || (ctx.gpsTrack = [])).push(
-        [Math.round((Date.now() - ctx.startedAt) / 100) / 10, +p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6)]);
+        [Math.round((Date.now() - ctx.startedAt) / 100) / 10,
+         +p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6),
+         ctx.posAccuracy, ctx.posSpeed, ctx.posHeading]);
     },
     () => {},
     { enableHighAccuracy: true, maximumAge: 2000 }
@@ -991,7 +1024,8 @@ async function startDrive() {
 
 function updateHud(status, ctx = drive) {
   if (!ctx || drive !== ctx) return;
-  $("driveCount").textContent = ctx.tally.found === 1 ? t("potholes_one", { n: 1 }) : t("potholes_many", { n: ctx.tally.found });
+  $("driveCount").textContent = eventCountText(ctx.tally.found)
+    + (ctx.tally.already ? ` · ${alreadyCountText(ctx.tally.already)}` : "");
   $("driveStatus").textContent = status ||
     t("scanning", { mode: "live", checked: ctx.tally.checked,
       analyzing: (ctx.inFlight || ctx.queue.length) ? t("analyzing_suffix", { n: ctx.inFlight + ctx.queue.length }) : "" })
@@ -1108,9 +1142,13 @@ function drainDriveQueue(ctx) {
     fd.append("lat", String(job.pos.lat));
     fd.append("lng", String(job.pos.lng));
     fd.append("drive_id", ctx.sessionId);
+    fd.append("capture_source", "drive_live");
+    fd.append("source_event_key", `live:${ctx.sessionId}:${job.captureSeq}`);
+    fd.append("source_offset_ms", String(job.sourceOffsetMs));
     fd.append("captured_at_ms", String(job.capturedAt));
     if (job.gpsAccuracy != null) fd.append("gps_accuracy", String(job.gpsAccuracy));
     if (job.speed != null) fd.append("speed", String(job.speed));
+    if (job.heading != null) fd.append("heading", String(job.heading));
     fd.append("frame_quality", JSON.stringify(job.burst.frames.map((f) => f.quality)));
     ctx.inFlight++;
     const request = api("/api/frame", { method: "POST", body: fd })
@@ -1118,6 +1156,10 @@ function drainDriveQueue(ctx) {
         ctx.tally.checked++;
         ctx.errors = 0;
         if (res && res.found) ctx.tally.found++;
+        else if (res && res.duplicate && res.duplicate_of != null) {
+          ctx.duplicateIds.add(String(res.duplicate_of));
+          ctx.tally.already = ctx.duplicateIds.size;
+        }
       })
       .catch((e) => {
         ctx.tally.failed = (ctx.tally.failed || 0) + 1;
@@ -1220,7 +1262,9 @@ async function driveTick() {
   ctx.lastCapAt = captureStartedAt;
   ctx.tally.captured++;
   enqueueDriveEvent(ctx, { burst, pos, capturedAt: ctx.lastCapAt,
-                           gpsAccuracy: ctx.posAccuracy, speed: ctx.posSpeed });
+                           sourceOffsetMs: ctx.lastCapAt - ctx.startedAt,
+                           captureSeq: ++ctx.captureSeq, gpsAccuracy: ctx.posAccuracy,
+                           speed: ctx.posSpeed, heading: ctx.posHeading });
   updateHud();
 }
 
@@ -1257,14 +1301,20 @@ function stopDrive() {
     // Record what the drive actually checked. Rejected frames are not stored unless
     // debug mode is on, so without this the history header can only count survivors.
     await api("/api/drives", { method: "POST", body: JSON.stringify(
-      { id: sessionId, started_at: startedAt / 1000, checked: tally.checked, found: tally.found,
+      { id: sessionId, started_at: startedAt / 1000, checked: tally.checked,
+        found: tally.found, already: tally.already,
+        already_ids: [...ctx.duplicateIds],
         gps_track: gpsTrack }) })
       .catch(() => {});
     await returnHome();
     const failedNote = tally.failed ? " " + t("drive_end_failed", { n: tally.failed }) : "";
+    const known = tally.already ? alreadyCountText(tally.already) : "";
     const summary = (tally.found === 0
-      ? t("drive_end_zero", { checked: tally.checked, debug: localStorage.getItem("debug_mode") === "1" ? t("debug_saved_suffix") : "" })
-      : t("drive_end", { found: tally.found === 1 ? t("potholes_one", { n: 1 }) : t("potholes_many", { n: tally.found }), checked: tally.checked })) + failedNote;
+      ? (tally.already
+          ? t("drive_end_known", { already: known, checked: tally.checked })
+          : t("drive_end_zero", { checked: tally.checked, debug: localStorage.getItem("debug_mode") === "1" ? t("debug_saved_suffix") : "" }))
+      : t("drive_end", { found: eventCountText(tally.found), checked: tally.checked })
+        + (tally.already ? t("drive_seen_suffix", { already: known }) : "")) + failedNote;
     // Keep startup locked until the old drive's final UI/prompt is complete, otherwise
     // it can interrupt a newly started drive after an asynchronous recorder flush.
     alert(summary);
@@ -1371,13 +1421,13 @@ async function writeManifest(driveId, entries) {
 
 let recCtx = null;
 
-function startRecording(stream, driveId) {
+function startRecording(stream, driveId, driveStartedAtMs) {
   recCtx = null;
   if (localStorage.getItem("record_video") === "0") return;   // switch, for ruling it out
   if (typeof MediaRecorder === "undefined") return;
   const mime = RECORD_MIMES.find((t) => { try { return MediaRecorder.isTypeSupported(t); } catch (e) { return false; } });
   if (!mime) return;
-  const ctx = { driveId, mime, stream, seq: 0, bytes: 0, active: true,
+  const ctx = { driveId, driveStartedAtMs, mime, stream, seq: 0, bytes: 0, active: true,
     timer: null, recorder: null, failed: false, pending: new Set(),
     awaitingStop: false, finished: false };
   ctx.stopped = new Promise((resolve) => { ctx.resolveStopped = resolve; });
@@ -1398,7 +1448,7 @@ function cycleClip(ctx = recCtx) {
   try { rec = new MediaRecorder(ctx.stream, { mimeType: ctx.mime, videoBitsPerSecond: RECORD_BITRATE }); }
   catch (e) { ctx.failed = true; ctx.recorder = null; return; }
   const parts = [];
-  let settled = false, stopWatchdog = null;
+  let settled = false, stopWatchdog = null, recordingStartedAtMs = null;
   const settle = (saveTail) => {
     if (settled) return;
     settled = true;
@@ -1413,7 +1463,9 @@ function cycleClip(ctx = recCtx) {
     rec.ondataavailable = null;
     rec.onstop = null;
     rec.onerror = null;
-    if (saveTail && parts.length) saveClip(ctx, new Blob(parts, { type: ctx.mime }));
+    if (saveTail && parts.length) {
+      saveClip(ctx, new Blob(parts, { type: ctx.mime }), recordingStartedAtMs);
+    }
     if (ctx.active) cycleClip(ctx);
     finishRecording(ctx);
   };
@@ -1432,7 +1484,10 @@ function cycleClip(ctx = recCtx) {
   rec.onerror = () => { ctx.failed = true; requestStop(); };
   ctx.recorder = rec;
   ctx.stopCurrent = requestStop;
-  try { rec.start(); }
+  try {
+    recordingStartedAtMs = Date.now();
+    rec.start();
+  }
   catch (e) {
     ctx.failed = true;
     ctx.recorder = null;
@@ -1451,11 +1506,17 @@ function cycleClip(ctx = recCtx) {
 
 // Reads only ctx, never `drive`: the final clip lands after Stop has torn the session
 // down, and losing the end of a drive is exactly the bug worth avoiding.
-function saveClip(ctx, blob) {
+function saveClip(ctx, blob, recordingStartedAtMs) {
   const fd = new FormData();
   fd.append("segment", blob, "clip.bin");
   fd.append("drive_id", ctx.driveId);
   fd.append("seq", String(ctx.seq++));
+  if (Number.isFinite(recordingStartedAtMs)) {
+    fd.append("recording_started_at_ms", String(recordingStartedAtMs));
+    if (Number.isFinite(ctx.driveStartedAtMs)) {
+      fd.append("source_offset_ms", String(recordingStartedAtMs - ctx.driveStartedAtMs));
+    }
+  }
   const request = api("/api/footage", { method: "POST", body: fd })
     .then((r) => { ctx.bytes += (r && r.bytes) || 0; })
     .catch(() => { ctx.failed = true; });
@@ -1597,7 +1658,10 @@ function gpsAt(track, seconds) {
   if (!track || !track.length) return null;
   let best = track[0];
   for (const p of track) { if (p[0] <= seconds) best = p; else break; }
-  return { lat: best[1], lng: best[2] };
+  return { lat: best[1], lng: best[2],
+           accuracy: Number.isFinite(best[3]) ? best[3] : null,
+           speed: Number.isFinite(best[4]) ? best[4] : null,
+           heading: Number.isFinite(best[5]) ? best[5] : null };
 }
 
 // Clips are walked one at a time. Byte-joining separate MP4 files does not make one
@@ -1637,7 +1701,11 @@ async function analyseFootage(driveId, driveRec) {
   $("progressPhoto").src = "";
 
   const track = (driveRec && driveRec.gps_track) || [];
+  const recordedStart = Number(driveRec && driveRec.started_at);
+  const idStart = /^\d{12,}$/.test(String(driveId)) ? Number(driveId) / 1000 : NaN;
+  const sourceStartS = Number.isFinite(recordedStart) && recordedStart > 0 ? recordedStart : idStart;
   const pending = [];
+  const duplicateIds = new Set();
   let found = 0, done = 0, elapsed = 0;
   let failed = 0, consecutive = 0, lastErr = "", aborted = false;
   const manifest = [];
@@ -1647,7 +1715,11 @@ async function analyseFootage(driveId, driveRec) {
   // count used to be discovered as the loop walked the video, so it read "1 of 2" and
   // then "2 of 3": the denominator grew while the user watched it.
   const clips = [];
-  for (const clip of footage.blobs) {
+  const storedClips = Array.isArray(footage.clips) && footage.clips.length
+    ? footage.clips : footage.blobs.map((blob, seq) => ({ seq, blob }));
+  for (const [fallbackSeq, storedClip] of storedClips.entries()) {
+    const clip = storedClip.blob;
+    const clipSeq = Number.isFinite(storedClip.seq) ? storedClip.seq : fallbackSeq;
     const url = URL.createObjectURL(clip);
     const v = document.createElement("video");
     v.muted = true; v.preload = "auto"; v.src = url;
@@ -1666,13 +1738,17 @@ async function analyseFootage(driveId, driveRec) {
     if (!isFinite(dur) || dur <= 0) { URL.revokeObjectURL(url); continue; }
     const times = [];
     for (let at = Math.min(0.2, dur / 2); at < dur; at += VOD_STEP_S) times.push(at);
-    clips.push({ url, dur, times, blob: clip });
+    clips.push({ url, dur, times, blob: clip, seq: clipSeq,
+      sourceOffsetS: Number.isFinite(storedClip.source_offset_s) ? storedClip.source_offset_s : null,
+      recordingStartedAtMs: Number.isFinite(storedClip.recording_started_at_ms)
+        ? storedClip.recording_started_at_ms : null });
     v.src = ""; // the pool opens its own elements; this one was only for the duration
   }
   const total = clips.reduce((n, c) => n + c.times.length, 0);
   if (!total) { show("home"); alert(t("analyse_none")); return; }
   const paint = () => {
     $("progressText").innerHTML = t("analysing", { i: done, n: total, found })
+      + (duplicateIds.size ? " " + t("analysing_dup", { n: duplicateIds.size }) : "")
       + (failed ? " " + t("analysing_failed", { n: failed }) : "");
   };
   paint();
@@ -1714,46 +1790,97 @@ async function analyseFootage(driveId, driveRec) {
     }
 
     const base = frameNo + 1;
+    // Seeking finishes out of order across the decoder pool. Start detector requests in
+    // timeline order anyway: the engine reserves its short persistence turns when a
+    // request starts, while the requests themselves still run concurrently.
+    const stagedSubmissions = new Map();
+    let nextSubmission = 0;
+    const submitInOrder = (idx, start) => new Promise((resolve) => {
+      stagedSubmissions.set(idx, { start, resolve });
+      while (stagedSubmissions.has(nextSubmission)) {
+        const staged = stagedSubmissions.get(nextSubmission);
+        stagedSubmissions.delete(nextSubmission++);
+        if (staged.start) staged.start();
+        staged.resolve();
+      }
+    });
     await Promise.all(pool.map(async (slot, k) => {
       for (let idx = k; idx < clip.times.length; idx += SEEKERS) {
-        if (aborted) return;
+        if (aborted) {
+          // Other seekers may already be waiting behind this index in the chronological
+          // submission gate. Mark this seeker's remaining slots as skipped so an aborted
+          // run cannot leave those promises hanging forever.
+          for (let skipped = idx; skipped < clip.times.length; skipped += SEEKERS) {
+            await submitInOrder(skipped, null);
+          }
+          return;
+        }
         const at = clip.times[idx];
         const blob = await grabFrom(slot.v, slot.canvas, at);
-        if (!blob) { done++; paint(); continue; }
-        const pos = gpsAt(track, elapsed + at);
+        if (!blob) { await submitInOrder(idx, null); done++; paint(); continue; }
+        // New recordings carry their real segment start, so recorder restart/write gaps
+        // stay aligned with GPS and live detections. Summed duration is legacy fallback.
+        const atAbs = Number.isFinite(clip.sourceOffsetS) ? clip.sourceOffsetS + at : elapsed + at;
+        const pos = gpsAt(track, atAbs);
         const fd = new FormData();
         fd.append("photo", blob, "vod.jpg");
         if (pos) { fd.append("lat", String(pos.lat)); fd.append("lng", String(pos.lng)); }
         fd.append("drive_id", String(driveId));
-        const myFrame = base + idx, atAbs = elapsed + at;
-        pending.push(api("/api/frame", { method: "POST", body: fd })
-          .then(async (r) => {
-            consecutive = 0;
-            if (r && r.found) found++;
-            if (!saveToDisk || writeFailed) return;
-            try {
-              const file = await writeFrameFile(driveId, myFrame, blob);
-              if (!file) { writeFailed = true; return; }
-              written++;
-              const rep = r && r.report;
-              manifest.push({ file: file.split("/").pop(), at_seconds: +atAbs.toFixed(2),
-                lat: pos ? pos.lat : null, lng: pos ? pos.lng : null,
-                model_said: rep
-                  ? { is_reportable: !!rep.is_reportable, damage_type: damageType(rep),
-                      assessment: assessment(rep), image_quality: rep.image_quality,
-                      size: rep.size }
-                  : { is_reportable: false, assessment: (r && r.assessment) || "absent",
-                      damage_type: (r && r.damage_type) || "none",
-                      image_quality: r && r.image_quality } });
-            } catch (e) { writeFailed = true; }
-          })
-          .catch((e) => {
-            failed++; consecutive++;
-            lastErr = (e && e.message) || String(e);
-          })
-          .finally(() => { done++; paint(); }));
+        fd.append("capture_source", "drive_vod");
+        fd.append("source_event_key", `vod:${driveId}:${clip.seq}:${Math.round(at * 1000)}`);
+        fd.append("source_offset_ms", String(Math.round(atAbs * 1000)));
+        if (Number.isFinite(clip.recordingStartedAtMs)) {
+          fd.append("captured_at_ms", String(Math.round(clip.recordingStartedAtMs + at * 1000)));
+        } else if (Number.isFinite(sourceStartS)) {
+          fd.append("captured_at_ms", String(Math.round((sourceStartS + atAbs) * 1000)));
+        }
+        if (pos && pos.accuracy != null) fd.append("gps_accuracy", String(pos.accuracy));
+        if (pos && pos.speed != null) fd.append("speed", String(pos.speed));
+        if (pos && pos.heading != null) fd.append("heading", String(pos.heading));
+        const myFrame = base + idx;
+        await submitInOrder(idx, () => {
+          pending.push(api("/api/frame", { method: "POST", body: fd })
+            .then(async (r) => {
+              consecutive = 0;
+              if (r && r.found) found++;
+              else if (r && r.duplicate && r.duplicate_of != null) {
+                duplicateIds.add(String(r.duplicate_of));
+              }
+              if (!saveToDisk || writeFailed) return;
+              try {
+                const file = await writeFrameFile(driveId, myFrame, blob);
+                if (!file) { writeFailed = true; return; }
+                written++;
+                const rep = r && r.report;
+                const observation = (r && r.observation) || rep || r || {};
+                manifest.push({ file: file.split("/").pop(), at_seconds: +atAbs.toFixed(2),
+                  lat: pos ? pos.lat : null, lng: pos ? pos.lng : null,
+                  model_said: {
+                    is_reportable: !!observation.reportable || !!observation.is_reportable,
+                    damage_type: observation.damage_type || "none",
+                    assessment: observation.assessment || "absent",
+                    image_quality: observation.image_quality || null,
+                    size: observation.size || null,
+                  },
+                  storage: { stored: !!(r && r.stored), duplicate: !!(r && r.duplicate),
+                             duplicate_of: (r && r.duplicate_of) || null },
+                  detector: (r && r.detector) || null });
+              } catch (e) { writeFailed = true; }
+            })
+            .catch((e) => {
+              failed++; consecutive++;
+              lastErr = (e && e.message) || String(e);
+            })
+            .finally(() => { done++; paint(); }));
+        });
         if (pending.length >= MAX_IN_FLIGHT) await Promise.race(pending.splice(0, 1));
-        if (consecutive >= 5) { aborted = true; return; }
+        if (consecutive >= 5) {
+          aborted = true;
+          for (let skipped = idx + SEEKERS; skipped < clip.times.length; skipped += SEEKERS) {
+            await submitInOrder(skipped, null);
+          }
+          return;
+        }
       }
     }));
 
@@ -1777,6 +1904,12 @@ async function analyseFootage(driveId, driveRec) {
       freed = before / 1048576;
     } catch (e) {}
   }
+  await api(`/api/drives/${encodeURIComponent(driveId)}/analysis`, {
+    method: "POST",
+    body: JSON.stringify({ started_at: Number.isFinite(sourceStartS) ? sourceStartS : null,
+      checked: Math.max(0, done - failed), found, already: duplicateIds.size,
+      already_ids: [...duplicateIds] }),
+  }).catch(() => {});
   await loadReports();
   show("home");
   const diskNote = !saveToDisk ? ""
@@ -1784,7 +1917,8 @@ async function analyseFootage(driveId, driveRec) {
                : " " + t("frames_failed"));
   const headline = failed
     ? t("analyse_incomplete", { failed, n: total, err: lastErr })
-    : t("analyse_done", { found, n: total });
+    : t("analyse_done", { found, n: total })
+      + (duplicateIds.size ? " " + t("analyse_dup", { n: duplicateIds.size }) : "");
   alert(headline
         + (freed ? " " + t("footage_freed", { mb: freed.toFixed(0) })
                  : (isDebug() || failed ? " " + t("footage_kept") : ""))

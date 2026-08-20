@@ -25,6 +25,87 @@ CASES = r"""
   const east = P.distMeters(12.9115, 77.6427, 12.9115, 77.64362);
   ok("distMeters: east distance accounts for latitude", Math.abs(east - 100) < 5, Math.round(east));
 
+  // ---- post-detection event grouping ----
+  const event = { decision:"accept", status:"draft", dedupe_eligible:true,
+    capture_source:"drive_live", drive_id:"d1", source_event_key:"live:d1:1",
+    source_event_keys:["live:d1:1"], source_offset_s:10, captured_at:1800000010,
+    created_at:1800000010, last_seen_at:1800000010,
+    lat:12.9115, lng:77.6427, gps_accuracy:5, speed_mps:8, heading:90,
+    damage_type:"pothole_cavity", size:"medium" };
+  eq("dedupe: exact retained-video frame is certain",
+     P.roadEventMatch({...event, capture_source:"drive_vod"}, event).kind, "same_source");
+  const adjacent = {...event, source_event_key:"live:d1:2", source_offset_s:13,
+    captured_at:1800000013, lat:12.91159}; // ~10 m north
+  eq("dedupe: adjacent same-drive observation groups after detection",
+     P.roadEventMatch(adjacent, event).kind, "same_drive");
+  eq("dedupe: a later nearby defect in the same drive remains distinct",
+     P.roadEventMatch({...adjacent, source_offset_s:15, captured_at:1800000015}, event), null);
+  const middle = {...event, source_event_key:"middle", source_offset_s:4,
+    captured_at:1800000014, lat:12.911608};
+  const first = {...event, source_event_key:"first", source_offset_s:0,
+    captured_at:1800000010, lat:12.9115};
+  const last = {...event, source_event_key:"last", source_offset_s:8,
+    captured_at:1800000018, lat:12.911716};
+  const middleCluster = {...middle, event_sightings:[
+    {lat:middle.lat,lng:middle.lng,source_offset_s:4,captured_at:middle.captured_at,
+     gps_accuracy:5,speed_mps:8,heading:90,source_event_key:"middle"},
+    {lat:first.lat,lng:first.lng,source_offset_s:0,captured_at:first.captured_at,
+     gps_accuracy:5,speed_mps:8,heading:90,source_event_key:"first"},
+  ]};
+  eq("dedupe: a middle-first completion cannot chain two outer defects",
+     P.roadEventMatch(last, middleCluster), null);
+  const noGps = {...event, lat:null, lng:null, gps_accuracy:null};
+  eq("dedupe: no-GPS footage uses its stable drive offset",
+     P.roadEventMatch({...noGps, source_event_key:"vod:d1:0:11000", source_offset_s:11,
+       captured_at:1800000011}, noGps).kind, "same_drive");
+  eq("dedupe: no-GPS grouping stays within two seconds",
+     P.roadEventMatch({...noGps, source_event_key:"vod:d1:0:13001", source_offset_s:13.001,
+       captured_at:1800000013.001}, noGps), null);
+  const priorDrive = {...event, drive_id:"old", source_event_key:"live:old:1"};
+  const laterDrive = {...event, drive_id:"new", source_event_key:"live:new:1",
+    source_offset_s:2, captured_at:1800001010, created_at:1800001010, last_seen_at:1800001010,
+    lat:12.911563}; // ~7 m north
+  eq("dedupe: precise recent repeat across drives groups",
+     P.roadEventMatch(laterDrive, priorDrive).kind, "prior_drive");
+  const revisitFirst = {...laterDrive, lat:priorDrive.lat, source_offset_s:1,
+    captured_at:1800001010, source_event_key:"live:new:revisit-1"};
+  const revisitCanonical = {...priorDrive, event_sightings:[
+    {drive_id:"old",lat:priorDrive.lat,lng:priorDrive.lng,source_offset_s:10,
+     captured_at:priorDrive.captured_at,gps_accuracy:5,speed_mps:8,heading:90,
+     source_event_key:priorDrive.source_event_key},
+    {drive_id:"new",lat:revisitFirst.lat,lng:revisitFirst.lng,source_offset_s:1,
+     captured_at:revisitFirst.captured_at,gps_accuracy:5,speed_mps:8,heading:90,
+     source_event_key:revisitFirst.source_event_key},
+  ]};
+  const revisitAdjacent = {...revisitFirst, lat:12.91159, source_offset_s:4,
+    captured_at:1800001013, source_event_key:"live:new:revisit-2"};
+  eq("dedupe: revisit gets its own adjacent-sighting envelope",
+     P.roadEventMatch(revisitAdjacent, revisitCanonical).kind, "same_drive");
+  eq("dedupe: cross-drive event beyond eight metres stays distinct",
+     P.roadEventMatch({...laterDrive, lat:12.91159}, priorDrive), null);
+  eq("dedupe: old location can become a new repair occurrence",
+     P.roadEventMatch({...laterDrive, captured_at:1800000010 + 31*86400,
+       created_at:1800000010 + 31*86400, last_seen_at:1800000010 + 31*86400}, priorDrive), null);
+  eq("dedupe: different surface-damage types stay separate",
+     P.roadEventMatch({...laterDrive, damage_type:"surface_breakup"}, priorDrive), null);
+  eq("dedupe: opposite travel headings do not merge carriageways",
+     P.roadEventMatch({...laterDrive, heading:270}, priorDrive), null);
+  eq("dedupe: poor cross-drive GPS never auto-merges",
+     P.roadEventMatch({...laterDrive, gps_accuracy:40}, priorDrive), null);
+  const failedPatch = {...laterDrive, damage_type:"failed_patch", lat:12.911536}; // ~4 m
+  eq("dedupe: cavity and failed-patch family can match very close",
+     P.roadEventMatch(failedPatch, priorDrive).kind, "prior_drive");
+  eq("dedupe: cavity and failed-patch mismatch tightens the radius",
+     P.roadEventMatch({...failedPatch, lat:12.911554}, priorDrive), null);
+  eq("dedupe: a new routable report is not hidden by an unrouted one",
+     P.roadEventMatch(laterDrive, {...priorDrive, status:"unrouted"}), null);
+  eq("dedupe: Debug evidence never suppresses a real run",
+     P.roadEventMatch(laterDrive, {...priorDrive, debug_capture:true, dedupe_eligible:false}), null);
+  eq("dedupe: an explicit manual report is not silently swallowed",
+     P.roadEventMatch({...laterDrive, capture_source:"manual", drive_id:null}, priorDrive), null);
+  eq("dedupe: small and large observations remain separate",
+     P.roadEventMatch({...laterDrive, size:"large"}, {...priorDrive, size:"small"}), null);
+
   // ---- streamed road-damage decision contract ----
   const accepted = '{"reportable":true,"assessment":"clear","image_quality":"usable","damage_type":"pothole_cavity","on_drivable_surface":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"large","description":"x"}';
   const rejected = '{"reportable":false,"assessment":"absent","image_quality":"usable","damage_type":"none","on_drivable_surface":false,"has_broken_edge_or_rim":false,"has_depth_or_surface_loss":false,"temporal_consistency":"not_applicable","size":null,"description":"none"}';
