@@ -1,11 +1,8 @@
 # Pothole Reporter
 
-A pure-client Android app that detects road damage, associates the location with a
-supported urban local body, and drafts an email complaint. It has no project-operated
+An independent Android app that detects visible road damage and prepares a report for
+Greater Mumbai or a supported Karnataka urban local body. It has no project-operated
 backend or account system.
-
-**Current coverage:** supported Karnataka urban local bodies with published contact
-emails. National highways and rural roads are excluded.
 
 <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
 
@@ -13,89 +10,65 @@ emails. National highways and rural roads are excluded.
 
 ## What it does
 
-- Captures a single photo or samples the road in Drive Mode.
-- Uses OpenAI vision to identify pothole cavities, failed patches, surface breakup,
-  and ruts or depressions.
-- Adds the location, matching municipal boundary, published officer address, and a
-  probable road-work contract when a reliable match is available.
-- Saves the result as an editable draft and opens the email composer only after you
-  choose to send it.
-- Offers optional local Drive Mode recording, off by default. Saved footage can be
-  analysed or deleted later from History.
-- Groups repeat Drive/footage observations into one event; Debug mode keeps every
-  accepted observation.
+- Captures one photo or samples the road in foreground Drive Mode.
+- Uses OpenAI vision to assess pothole cavities, failed patches, surface breakup, and
+  ruts or depressions.
+- Groups nearby repeat observations into one report; Debug mode keeps each observation.
+- Saves reports, photos, and optional recordings locally for review.
+- Supports English, Kannada, and Marathi.
 
-The app refuses to guess a recipient for national highways, rural roads, locations
-outside Karnataka, unknown road ownership, or bodies without a published address.
+### Mumbai
+
+For a location reverse-geocoded to Mumbai City or Mumbai Suburban district, the app
+prepares editable evidence and offers four handoff choices: share the evidence, open the
+official [Pothole QuickFix](https://play.google.com/store/apps/details?id=com.bmc.potholequickfix)
+app (or its Play listing if absent), prefill BMC WhatsApp, or call 1916. A ward shown by
+the app is only an OpenStreetMap suggestion and must be checked in the official service.
+
+The app does **not** log in to BMC, bypass OTP, or file a grievance. Opening a channel is
+not a submission. A Mumbai report can be marked submitted only after the user records the
+official grievance ID returned by BMC.
+
+### Karnataka
+
+The app uses Karnataka GIS and a directory of published municipal contacts to prepare an
+editable, addressed email draft. It refuses routing when road class, jurisdiction, or a
+published recipient cannot be established.
 
 ## Install and use
 
-1. Download `PotholeReporter.apk` from the
-   [latest release](https://github.com/coding-parrot/pothole-reporter/releases/latest)
-   and sideload it.
-2. Enter your OpenAI API key and allow camera and location access.
-3. For Drive Mode, mount the phone securely and keep the road inside the orange guide.
-   Start the drive before moving and do not interact with the phone while driving.
-4. Alternatively, use **Report road damage** while safely stopped.
-5. Review the detected damage, location, recipient, contract match, and complaint before
-   opening the email draft.
+1. Install `PotholeReporter.apk` from the
+   [latest release](https://github.com/coding-parrot/pothole-reporter/releases/latest).
+2. Enter your OpenAI API key and allow camera and foreground location access.
+3. Capture while safely stopped, or securely mount the phone before starting Drive Mode.
+4. Review the image, location, authority, wording, and any probable contract match.
+5. Complete the complaint yourself in the external official channel or email app.
 
-Drive Mode requires the app to remain in the foreground. An internet connection is
-required for detection, geocoding, and road classification.
+Drive Mode must remain in the foreground. Detection, geocoding, and routing need an
+internet connection.
 
-## Important limits
+## Limits and privacy
 
-- Detection is not perfect. It can miss damage or produce false positives; review every
-  result before sending it.
-- Detection defaults to `gpt-5-mini` with high image detail. The `gpt-5.6`/original-detail
-  option is experimental; neither has a complete held-out, human-labelled v3 field
-  benchmark. See [`eval/README.md`](eval/README.md).
-- Contract matches are probable matches, not proof of responsibility or warranty.
-- The app does not send email automatically and is not affiliated with any government
-  body.
+- AI can miss damage or produce false positives. No field-validated accuracy percentage
+  is claimed.
+- The project is not affiliated with or endorsed by BMC, the Government of Karnataka, or
+  any other government body.
+- Selected images and your API key go directly to OpenAI. Exact coordinates go to
+  OpenStreetMap Nominatim; Karnataka locations also query Karnataka GIS.
+- Choosing WhatsApp, Share, Email, or another external app transfers the selected report
+  data to that provider under its own policy. Nothing is submitted automatically.
 
-## Cost and privacy
+Read the [privacy policy](https://coding-parrot.github.io/pothole-reporter/privacy.html)
+and [data sources and limits](https://coding-parrot.github.io/pothole-reporter/sources.html).
 
-- API usage is billed to your OpenAI key. Drive Mode can make many image requests, so a
-  long drive costs more than a single-photo report.
-- Drive recording uses roughly 18 MB per minute while enabled. Successful reanalysis
-  deletes it unless Debug mode is keeping it.
-- Checked images are sent to OpenAI. Faces, number plates, and shopfronts are not blurred.
-- Your API key is stored locally and sent to OpenAI as the request credential.
-- Coordinates are sent to OpenStreetMap Nominatim for addresses and Karnataka GIS for
-  boundary and road classification.
-- Reports, labels, and footage are stored locally. Complaint content and attachments are
-  handed to your email app when you open a draft. The project operates no collection
-  server.
-- See the [privacy policy](https://coding-parrot.github.io/pothole-reporter/privacy.html)
-  and [data sources and limits](https://coding-parrot.github.io/pothole-reporter/sources.html).
-
-## Development
-
-The maintained source files are:
-
-- `static/index.html` — interface and capture workflow
-- `static/standalone.js` — detection, storage, routing, and drafting engine
-
-Build the Android APK with:
+## Build and test
 
 ```bash
 ./tools/build-apk.sh
-```
-
-The script mirrors the static files into the Android project, builds the APK, verifies
-the packaged assets, and scans the packaged engine for an OpenAI-style key.
-
-Run the complete test suite with:
-
-```bash
 ./tests/run-all.sh
 ```
 
-These commands assume the Node, Android/JDK, Python, Playwright, and Gradle dependencies
-are already installed. The suite requires `OPENAI_API_KEY` in `.env`; some tests call
-live OpenAI and Karnataka GIS services. Data-source notes are in
-[`docs/SOURCES.md`](docs/SOURCES.md).
+See [`docs/SOURCES.md`](docs/SOURCES.md) for provenance and test prerequisites.
 
 ## License
 

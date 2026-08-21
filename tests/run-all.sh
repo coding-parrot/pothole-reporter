@@ -4,6 +4,13 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 PY=.venv/bin/python3
+if [ ! -x "$PY" ]; then
+  # Git worktrees do not copy ignored virtualenvs. Reuse the main checkout's venv when
+  # available so this exact suite remains runnable on release branches/worktrees.
+  COMMON_GIT_DIR=$(git rev-parse --git-common-dir 2>/dev/null || true)
+  MAIN_CHECKOUT=$(cd "$COMMON_GIT_DIR/.." 2>/dev/null && pwd || true)
+  [ -x "$MAIN_CHECKOUT/.venv/bin/python3" ] && PY="$MAIN_CHECKOUT/.venv/bin/python3" || PY=python3
+fi
 
 start_server() {
   (cd android-app/www && nohup python3 -m http.server 8765 >/tmp/pothole-srv.log 2>&1 &)
@@ -26,7 +33,7 @@ pkill -f "http.server 8765" >/dev/null 2>&1
 start_server || { echo "could not start the static server"; exit 1; }
 trap 'pkill -f "http.server 8765" >/dev/null 2>&1' EXIT
 
-TESTS="unit_test eval_contract_test persistent_dedupe_test footage_metadata_test drive_start_stop_test orphan_footage_test capture_cadence_test letter_test tender_determinism_test storage_commit_test stalled_body_test
+TESTS="unit_test mumbai_routing_test submission_truth_test mumbai_ui_test eval_contract_test persistent_dedupe_test footage_metadata_test drive_start_stop_test orphan_footage_test capture_cadence_test letter_test tender_determinism_test storage_commit_test stalled_body_test
        stored_xss_test privacy_consent_test ui_text_test routing_test nh_test gis_failure_test footage_test"
 
 fail=0

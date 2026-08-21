@@ -83,6 +83,22 @@
   </section>
 
   <section>
+    <h2>Greater Mumbai: official handoff, not automatic filing</h2>
+    <div class="notice">
+      <p>Pothole Reporter is independent. It has no BMC credentials or complaint-write API and does not bypass OTP, submit a grievance, or read its status. Opening Pothole QuickFix records only “handoff opened”; Share, WhatsApp, and Call also never mark the report submitted. A local Mumbai report can be marked submitted only after the user enters the official grievance ID returned by BMC.</p>
+    </div>
+    <p>Official sources checked on 21 August 2026:</p>
+    <ul>
+      <li><a href="https://play.google.com/store/apps/details?id=com.bmc.potholequickfix">Pothole QuickFix on Google Play</a> identifies Brihanmumbai Municipal Corporation as the developer and describes OTP login, geo-watermarked photo evidence, status tracking, and reopening within 24 hours.</li>
+      <li>BMC's MARG page at <code>https://marg.mcgm.gov.in/MARG/welcomePage.html</code> provides mobile/OTP login, grievance-ID search, and geotagged-image upload. It is a source reference, not an API used by this app.</li>
+      <li>BMC's dashboard at <code>https://marg.mcgm.gov.in/BMC_C_Pothole_Dashboard/</code> identifies Pothole QuickFix, WhatsApp Chatbot, 1916, and Twitter as grievance sources and includes an “other agencies” category. Dashboard availability or a zero count does not prove that a handoff succeeded.</li>
+      <li>BMC's IT page at <code>https://portal.mcgm.gov.in/irj/portal/anonymous/director-it</code> publishes MyBMC WhatsApp at <strong>+91 89992 28999</strong>. Its civic-complaints page at <code>https://portal.mcgm.gov.in/irj/portal/anonymous/qlCLCComp</code> publishes <strong>1916</strong> for roads and traffic complaints. The app opens <code>https://wa.me/918999228999</code> or <code>tel:1916</code> only after the user chooses the action.</li>
+    </ul>
+    <p>“Open Pothole QuickFix” opens the installed official app, with its Google Play listing as a fallback. WhatsApp receives prefilled report text, Call opens the dialler, and Share invokes Android's share sheet with compressed evidence. The citizen must review and complete the complaint in the external service.</p>
+    <p>BMC's policy at <code>https://portal.mcgm.gov.in/irj/portal/anonymous/privacy?guest_user=english</code> requires prior permission for linking, framing, or caching its website and says its graphics should be presumed copyrighted. This app does not embed or frame BMC pages, copy BMC marks, or bundle BMC GIS data.</p>
+  </section>
+
+  <section>
     <h2>What comes from where</h2>
     <div class="table-wrap">
       <table>
@@ -103,7 +119,12 @@
           <tr>
             <td>Street address</td>
             <td><a href="https://nominatim.org/">OpenStreetMap Nominatim</a> reverse-geocodes phone coordinates.</td>
-            <td>Map data can be missing, stale, or imprecise. The complaint also includes coordinates so the result can be checked.</td>
+            <td>Map data can be missing, stale, or imprecise. For Mumbai, Nominatim's state and district fields decide whether the Mumbai handoff is offered; a ward phrase may be shown only as a suggestion. The complaint also includes coordinates so the result can be checked.</td>
+          </tr>
+          <tr>
+            <td>Mumbai complaint destination</td>
+            <td>A location is treated as Greater Mumbai only when Nominatim returns Maharashtra and either Mumbai City district or Mumbai Suburban district. The app then offers the published BMC handoff channels above.</td>
+            <td>This is a city-location check, not a BMC ward polygon or road-ownership lookup. The app cannot establish whether BMC, MMRDA, MSRDC, PWD, NHAI, or another agency owns the road.</td>
           </tr>
           <tr>
             <td>Town boundary, gram-panchayat boundary, and national-highway check</td>
@@ -138,7 +159,7 @@
           <tr>
             <td>Complaint text and signature</td>
             <td>A local template combines the reviewed result, coordinates, supported recipient, optional probable contract reference, and the sender name entered in Settings.</td>
-            <td>The user is responsible for checking and editing the draft. The app opens an email composer but does not send the message.</td>
+            <td>The user must check and edit the draft. Karnataka opens an email composer; Mumbai offers external BMC handoffs. Neither path submits automatically.</td>
           </tr>
         </tbody>
       </table>
@@ -148,11 +169,13 @@
   <section>
     <h2>Current bundle boundaries</h2>
     <ul>
+      <li>Greater Mumbai coverage is inferred from the OpenStreetMap address. A suggested ward is not authoritative, and the app does not determine road ownership.</li>
+      <li>The project has no BMC complaint-write API, status sync, or cross-user report database. Mumbai evidence stays local until the user deliberately opens an external handoff.</li>
       <li>The app covers supported Karnataka urban local bodies with a published recipient address; it does not claim statewide routing for every road.</li>
       <li>Of 319 urban local bodies in the roster used to build the bundle, 182 have a supported directory entry and 137 do not.</li>
       <li>Of 42,283 road-related procurement rows, 18,972 are DMA or legacy BBMP records. Only 13,577 are currently indexed to a supported body and can enter a contract shortlist.</li>
       <li>41,159 procurement rows have no winning bidder recorded in the bundle.</li>
-      <li>National highways, rural roads, unknown road classes, locations outside Karnataka, and unsupported bodies are not routed to a municipal recipient.</li>
+      <li>For Karnataka, national highways, rural roads, unknown road classes, and unsupported bodies are not routed to a municipal recipient. Locations outside Karnataka and Greater Mumbai are not routed.</li>
       <li>All counts describe the repository snapshot above, not the current contents of an external portal.</li>
     </ul>
   </section>
@@ -161,7 +184,8 @@
     <h2>How to audit it</h2>
     <ol>
       <li>Use the photo and printed coordinates to check the event itself.</li>
-      <li>Follow the address and GIS sources above to check location and routing.</li>
+      <li>For Mumbai, verify the location and any suggested ward in BMC's official service and keep the grievance ID it returns.</li>
+      <li>For Karnataka, follow the address and GIS sources above to check location and routing.</li>
       <li>Search KPPP by tender number and read the tender documents before relying on a probable match, bidder name, or warranty statement.</li>
       <li>Inspect the open-source build scripts and detailed provenance note for filtering and indexing logic.</li>
     </ol>

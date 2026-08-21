@@ -6,6 +6,50 @@ local matching rules, and AI-generated judgments. A source record is not proof t
 particular defect, authority, or contract match is correct. The user must review the
 photo, routing, and any probable contract match before sending a complaint.
 
+## Greater Mumbai complaint handoff
+
+The Mumbai flow prepares evidence for the citizen to submit through BMC's own process.
+It does not call a BMC complaint-write API, use BMC credentials, bypass OTP, or read a
+complaint status. Opening Pothole QuickFix is recorded only as “handoff opened”; Share,
+WhatsApp, and Call also never mark the report submitted. The app requires the user to enter
+the official grievance ID returned by BMC before marking the local report submitted.
+
+**Official sources checked on 21 August 2026:**
+
+- [Pothole QuickFix on Google Play](https://play.google.com/store/apps/details?id=com.bmc.potholequickfix)
+  identifies Brihanmumbai Municipal Corporation as the developer and describes OTP login,
+  geo-watermarked photo evidence, grievance tracking, and reopening within 24 hours.
+- BMC's MARG page at `https://marg.mcgm.gov.in/MARG/welcomePage.html` provides mobile/OTP
+  login, grievance-ID search, and geotagged-image upload. It is an official reference, not
+  an API integrated by this app.
+- BMC's pothole dashboard at
+  `https://marg.mcgm.gov.in/BMC_C_Pothole_Dashboard/` identifies Pothole QuickFix,
+  WhatsApp Chatbot, 1916, and Twitter as grievance sources and includes an “other agencies”
+  category. Dashboard availability or a zero count is not evidence that a handoff succeeded.
+- BMC's IT page at `https://portal.mcgm.gov.in/irj/portal/anonymous/director-it` publishes
+  the MyBMC WhatsApp chatbot number **+91 89992 28999**. Its civic-complaints page at
+  `https://portal.mcgm.gov.in/irj/portal/anonymous/qlCLCComp` publishes **1916** for roads
+  and traffic complaints. The app uses `https://wa.me/918999228999` and `tel:1916` only
+  after the user selects those actions.
+
+Greater Mumbai coverage is inferred only when OpenStreetMap Nominatim returns Maharashtra
+and either Mumbai City district or Mumbai Suburban district. A ward code, when present, is
+parsed from the OpenStreetMap address and shown as a suggestion to verify in the official
+service. The app does not bundle BMC ward polygons or establish which road agency owns the
+carriageway.
+
+“Open Pothole QuickFix” opens the installed official app, with its Google Play listing as
+a fallback. “BMC WhatsApp” passes
+prefilled text to WhatsApp, “Call 1916” opens the dialler, and “Share evidence” invokes
+Android's share sheet with compressed image evidence and report text. The citizen must
+review and complete the complaint in the chosen external service.
+
+BMC's website policy at
+`https://portal.mcgm.gov.in/irj/portal/anonymous/privacy?guest_user=english` requires prior
+permission for linking, framing, or caching its website and says website graphics should be
+presumed copyrighted. The app therefore does not embed or frame BMC pages, copy BMC marks,
+or bundle BMC GIS data. Written permission is required before adding those integrations.
+
 ## Road contracts (42,283 rows)
 
 **Source: KPPP, the Karnataka Public Procurement Portal, Government of Karnataka.**
@@ -77,10 +121,11 @@ identifier rather than by matching a place name.
 
 ## Street address
 
-**Source: OpenStreetMap, via Nominatim.** Used only to turn coordinates into a street
-name and pincode for the complaint. The coordinates themselves come from the phone's GPS
-and are printed in the complaint alongside a map link, so the location can be checked
-independently of any geocoder.
+**Source: OpenStreetMap, via Nominatim.** It turns coordinates into a street name and
+pincode for the complaint. For Mumbai, its state and district fields also decide whether
+the Mumbai handoff is offered, and a ward phrase may be parsed as a non-authoritative
+suggestion. The coordinates themselves come from the phone's GPS and are printed in the
+complaint alongside a map link, so the location can be checked independently.
 
 ## What is generated or inferred
 
@@ -103,6 +148,11 @@ and should not be strengthened.
 
 ## Known limits
 
+- Mumbai coverage is a geocoder-based city check, not a BMC ward or road-ownership lookup.
+  OpenStreetMap can be missing, stale, or wrong, and the app cannot distinguish BMC roads
+  from roads maintained by MMRDA, MSRDC, PWD, NHAI, or another agency.
+- There is no automatic BMC filing, status sync, or cross-user report database. Evidence
+  remains local until the citizen deliberately opens an external handoff.
 - 137 of Karnataka's 319 local bodies have no address in the file, because their district
   pages publish none. Those reports refuse to route.
 - 41,159 of the 42,283 contracts have no winning bidder recorded, for the reason above.

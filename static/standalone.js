@@ -21,7 +21,10 @@
     get detail() { return normaliseDetail(localStorage.getItem("image_detail"), this.model); },
   };
 
-  const LANG = () => (localStorage.getItem("app_lang") === "kn" ? "kn" : "en");
+  const LANG = () => {
+    const value = localStorage.getItem("app_lang");
+    return value === "kn" || value === "mr" ? value : "en";
+  };
   const PROGRESS = {
     en: { compress: "Preparing photo...", capture: "Preparing road views...",
           detect: "AI checking for reportable road damage...", finalize: "Finalizing address and contract...",
@@ -29,6 +32,9 @@
     kn: { compress: "ಫೋಟೋ ಸಂಕುಚಿಸಲಾಗುತ್ತಿದೆ...", capture: "ಫ್ರೇಮ್ ಸೆರೆಹಿಡಿಯಲಾಗುತ್ತಿದೆ...",
           detect: "AI ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಪರಿಶೀಲಿಸುತ್ತಿದೆ...", finalize: "ವಿಳಾಸ ಮತ್ತು ಗುತ್ತಿಗೆ ಖಚಿತಪಡಿಸಲಾಗುತ್ತಿದೆ...",
           write: "ದೂರು ಬರೆಯಲಾಗುತ್ತಿದೆ...", email: "ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಲಾಗುತ್ತಿದೆ..." },
+    mr: { compress: "फोटो तयार करत आहे...", capture: "रस्त्याची दृश्ये तयार करत आहे...",
+          detect: "AI नोंदवण्यायोग्य रस्त्याचे नुकसान तपासत आहे...", finalize: "पत्ता आणि मार्ग निश्चित करत आहे...",
+          write: "तक्रारीचा मसुदा तयार करत आहे...", email: "ईमेल अॅप उघडत आहे..." },
   };
   const pmsg = (k) => (PROGRESS[LANG()] && PROGRESS[LANG()][k]) || PROGRESS.en[k];
 
@@ -66,6 +72,24 @@
     "bengaluru south city corporation": ["Commissioner, Bengaluru South City Corporation (BSCC)", "comm.south.gba@gmail.com"],
     "bengaluru west city corporation": ["Commissioner, Bengaluru West City Corporation (BWCC)", "commissioner.bwcc@gmail.com"],
   };
+
+  // Mumbai complaints remain inside BMC's official, OTP-protected workflow. This app
+  // only prepares evidence and hands the citizen to one of BMC's published channels;
+  // it has no BMC credentials and never claims that opening a channel submitted a case.
+  const BMC_QUICKFIX_URL = "https://play.google.com/store/apps/details?id=com.bmc.potholequickfix";
+  const BMC_QUICKFIX_PACKAGE = "com.bmc.potholequickfix";
+  const BMC_WHATSAPP_URL = "https://wa.me/918999228999";
+  const BMC_HELPLINE = "1916";
+  const MUMBAI_STATES = new Set(["maharashtra", "महाराष्ट्र"]);
+  const MUMBAI_DISTRICTS = new Set([
+    "mumbai city district", "mumbai city", "mumbai suburban district", "mumbai suburban",
+    "मुंबई शहर जिल्हा", "मुंबई शहर", "मुंबई उपनगर जिल्हा", "मुंबई उपनगर",
+  ]);
+  const MUMBAI_WARDS = new Set([
+    "A", "B", "C", "D", "E", "F/N", "F/S", "G/N", "G/S", "H/E", "H/W",
+    "K/E", "K/W", "L", "M/E", "M/W", "N", "P/N", "P/S", "R/C", "R/N",
+    "R/S", "S", "T",
+  ]);
 
   // Karnataka jurisdiction lookup.
   //
@@ -500,7 +524,7 @@ Evidence rules:
   async function reverseGeocode(lat, lng) {
     try {
       const res = await fetchWithTimeout(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2&zoom=17&addressdetails=1`,
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2&zoom=17&addressdetails=1&accept-language=en`,
         {}, 12000);
       if (!res.ok) return null;
       const d = await readJson(res);
@@ -512,8 +536,43 @@ Evidence rules:
         a.city || a.town || a.municipality,
         a.postcode,
       ].filter((x, i, all) => x && all.indexOf(x) === i);
-      return { short: parts.join(", ") || d.display_name || null, full: d.display_name || null };
+      return {
+        short: parts.join(", ") || d.display_name || null,
+        full: d.display_name || null,
+        city: a.city || a.town || a.municipality || null,
+        state_district: a.state_district || null,
+        state: a.state || null,
+        country_code: a.country_code || null,
+      };
     } catch (e) { return null; }
+  }
+
+  function mumbaiWardFromName(value) {
+    const text = String(value || "").toUpperCase().replace(/\s+/g, " ");
+    const coded = text.match(/(?:^|,\s*)([A-Z](?:[\/-][A-Z])?)\s+WARD(?:,|$)/)
+      || text.match(/(?:^|,\s*)WARD\s+([A-Z](?:[\/-][A-Z])?)(?:,|$)/);
+    if (coded) {
+      const code = coded[1].replace("-", "/");
+      if (MUMBAI_WARDS.has(code)) return code;
+    }
+    const named = text.match(/(?:^|,\s*)([FGHKMPR])\s+(NORTH|SOUTH|EAST|WEST|CENTRAL)\s+WARD(?:,|$)/);
+    if (!named) return null;
+    const direction = { NORTH: "N", SOUTH: "S", EAST: "E", WEST: "W", CENTRAL: "C" }[named[2]];
+    const code = `${named[1]}/${direction}`;
+    return MUMBAI_WARDS.has(code) ? code : null;
+  }
+
+  // Mumbai City and Mumbai Suburban are the two districts that make up Greater Mumbai.
+  // This deliberately uses the OpenStreetMap response already obtained for the street
+  // address. It does not copy BMC ward polygons or call an undocumented complaint API.
+  // The ward label is only a suggestion parsed from OSM and is explicitly shown as such.
+  function mumbaiFromGeocode(geo) {
+    if (!geo || String(geo.country_code || "").toLowerCase() !== "in") return null;
+    if (!MUMBAI_STATES.has(String(geo.state || "").trim().toLowerCase())) return null;
+    const district = String(geo.state_district || "").trim().toLowerCase();
+    if (!MUMBAI_DISTRICTS.has(district)) return null;
+    const ward = mumbaiWardFromName(geo.full);
+    return { kind: "mumbai", ward, district: geo.state_district, source: "openstreetmap" };
   }
 
   // Asks the state which body contains this point. Returns null when the point is
@@ -622,13 +681,27 @@ Evidence rules:
     return _jurP;
   }
 
-  async function routeOfficer(address, lat, lng) {
-    const registry = await bodies();
-
-
+  async function routeOfficer(geoOrAddress, lat, lng) {
     if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) {
       return [null, null, "no_location"];
     }
+
+    const geo = geoOrAddress && typeof geoOrAddress === "object" ? geoOrAddress : null;
+    const mumbai = mumbaiFromGeocode(geo);
+    if (mumbai) {
+      const ward = mumbai.ward;
+      return [
+        `BMC Pothole QuickFix${ward ? ` (${ward} Ward suggested)` : ""}`,
+        null,
+        null,
+        "Brihanmumbai Municipal Corporation",
+        "bmc_quickfix",
+        ward,
+        mumbai.source,
+      ];
+    }
+
+    const registry = await bodies();
 
     // If the state cannot tell us what this road is, we do not name anyone. The highway
     // check lives inside kgisJurisdiction, so any path that routes without it can address
@@ -651,7 +724,8 @@ Evidence rules:
     const entry = where.lgd && registry[where.lgd];
     if (!entry || !entry.email) return [null, null, "no_address_for_body", where.name];
     const title = entry.officer || OFFICER_TITLES[entry.type || where.type] || "Chief Officer";
-    return [`${title}, ${entry.name}${entry.short ? ` (${entry.short})` : ""}`, entry.email, null];
+    return [`${title}, ${entry.name}${entry.short ? ` (${entry.short})` : ""}`,
+            entry.email, null, entry.name, "email", null, "kgis"];
   }
 
   function distMeters(lat1, lng1, lat2, lng2) {
@@ -964,7 +1038,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     };
   }
 
-  // ---------- drafting (English / Kannada) ----------
+  // ---------- drafting (English / Kannada / Marathi) ----------
   function damageTypeOf(value) {
     if (value && value.damage_type) return value.damage_type;
     return value && value.is_pothole ? "pothole_cavity" : "none";
@@ -976,16 +1050,23 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     return "absent";
   }
 
-  function draftEmail(a, lat, lng, address, officerName, tender) {
-    const kn = LANG() === "kn";
-    const sizeName = (s) => (kn ? ({ small: "ಸಣ್ಣ", medium: "ಮಧ್ಯಮ", large: "ದೊಡ್ಡ" })[s] || s : s);
-    const size = a.size ? sizeName(a.size) : (kn ? "ಗಾತ್ರ ನಿರ್ಧರಿಸದ" : "unclassified");
+  function draftEmail(a, lat, lng, address, officerName, tender, route = null) {
+    const lang = LANG(), kn = lang === "kn", mr = lang === "mr";
+    const sizeNames = kn
+      ? { small: "ಸಣ್ಣ", medium: "ಮಧ್ಯಮ", large: "ದೊಡ್ಡ" }
+      : mr ? { small: "लहान", medium: "मध्यम", large: "मोठा" } : null;
+    const sizeName = (s) => (sizeNames && sizeNames[s]) || s;
+    const size = a.size ? sizeName(a.size) : (kn ? "ಗಾತ್ರ ನಿರ್ಧರಿಸದ" : mr ? "आकार ठरलेला नाही" : "unclassified");
     const road = address ? address.split(",")[0].trim() : null;
     const type = damageTypeOf(a);
     const typeNames = kn ? {
       pothole_cavity: "ರಸ್ತೆ ಗುಂಡಿ", failed_patch: "ವಿಫಲವಾದ ರಸ್ತೆ ದುರಸ್ತಿ",
       surface_breakup: "ಹಾಳಾದ ರಸ್ತೆ ಮೇಲ್ಮೈ", rut_or_depression: "ರಸ್ತೆ ಕುಸಿತ",
       other_road_damage: "ರಸ್ತೆ ಹಾನಿ", none: "ರಸ್ತೆ ಹಾನಿ",
+    } : mr ? {
+      pothole_cavity: "खड्डा", failed_patch: "निकामी झालेली रस्ता दुरुस्ती",
+      surface_breakup: "तुटलेला रस्त्याचा पृष्ठभाग", rut_or_depression: "रस्त्यातील खोलगट भाग",
+      other_road_damage: "रस्त्याचे नुकसान", none: "रस्त्याचे नुकसान",
     } : {
       pothole_cavity: "pothole", failed_patch: "failed road repair",
       surface_breakup: "broken road surface", rut_or_depression: "road rut or depression",
@@ -998,15 +1079,21 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       const la = lat.toFixed(6), ln = lng.toFixed(6);
       locLines = kn
         ? `ಸ್ಥಳ: ${address || "ಕೆಳಗಿನ ನಿರ್ದೇಶಾಂಕ ನೋಡಿ"}\nನಿರ್ದೇಶಾಂಕಗಳು: ${la}, ${ln}\nನಕ್ಷೆ ಲಿಂಕ್: https://maps.google.com/?q=${la},${ln}`
-        : `Location: ${address || "see coordinates below"}\nCoordinates: ${la}, ${ln}\nMap link: https://maps.google.com/?q=${la},${ln}`;
+        : mr
+          ? `ठिकाण: ${address || "खालील निर्देशांक पहा"}\nनिर्देशांक: ${la}, ${ln}\nनकाशा: https://maps.google.com/?q=${la},${ln}`
+          : `Location: ${address || "see coordinates below"}\nCoordinates: ${la}, ${ln}\nMap link: https://maps.google.com/?q=${la},${ln}`;
     } else {
       locLines = kn
         ? "ಸ್ಥಳ: ಸ್ವಯಂಚಾಲಿತವಾಗಿ ನಿರ್ಧರಿಸಲಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಲಗತ್ತಿಸಿದ ಫೋಟೋ ನೋಡಿ."
-        : "Location: could not be determined automatically. Please see the attached photo for landmarks.";
+        : mr
+          ? "ठिकाण: आपोआप निश्चित करता आले नाही. कृपया जोडलेला फोटो पहा."
+          : "Location: could not be determined automatically. Please see the attached photo for landmarks.";
     }
 
     const subject = kn
       ? `${typeName} ದೂರು` + (type === "pothole_cavity" ? `: ${size}` : "") + (road ? ` (${road})` : "")
+      : mr
+        ? `${typeName} तक्रार` + (type === "pothole_cavity" ? `: ${size}` : "") + (road ? ` (${road})` : "")
       : `${type === "pothole_cavity" ? `Pothole complaint: ${size} pothole`
           : type === "failed_patch" ? "Broken road repair complaint"
           : type === "surface_breakup" ? "Road surface failure complaint"
@@ -1024,12 +1111,33 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           `${locLines}\nಹಾನಿಯ ಪ್ರಕಾರ: ${typeName}${a.size ? `\nಅಂದಾಜು ಗಾತ್ರ: ${size}` : ""}`,
           "ಫೋಟೋ ಲಗತ್ತಿಸಲಾಗಿದೆ. ಈ ರಸ್ತೆ ಹಾನಿ ದ್ವಿಚಕ್ರ ವಾಹನ ಸವಾರರಿಗೆ ಮತ್ತು ಇತರ ರಸ್ತೆ ಬಳಕೆದಾರರಿಗೆ ಅಪಾಯಕಾರಿ. ಇದನ್ನು ಶೀಘ್ರ ಪರಿಶೀಲಿಸಿ ದುರಸ್ತಿ ಮಾಡಬೇಕೆಂದು, ಮತ್ತು ಈ ರಸ್ತೆ ಭಾಗ ನಿರ್ವಹಣಾ ವಾರಂಟಿ ಅಡಿಯಲ್ಲಿದ್ದರೆ ಜವಾಬ್ದಾರ ಗುತ್ತಿಗೆದಾರರಿಗೆ ವರ್ಗಾಯಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.",
         ]
+      : mr
+        ? [
+            `प्रति ${officerName || "संबंधित अधिकारी"},`,
+            `दुरुस्ती आवश्यक असलेला ${typeName} नोंदवत आहे.`,
+            `${locLines}\nनुकसानीचा प्रकार: ${typeName}${a.size ? `\nअंदाजे आकार: ${size}` : ""}`,
+            "फोटो जोडला आहे. या नुकसानीमुळे दुचाकीस्वार आणि इतर रस्ता वापरणाऱ्यांना धोका होऊ शकतो. कृपया तपासणी करून लवकरात लवकर दुरुस्ती करावी आणि लागू असल्यास जबाबदार कंत्राटदाराकडे पाठवावे.",
+          ]
       : [
           `Dear ${officerName || "Sir or Madam"},`,
           `I would like to report a ${typeName} that needs repair.`,
           `${locLines}\nDamage type: ${typeName}${a.size ? `\nApproximate size: ${size}` : ""}`,
           "PFA image. This road damage poses a danger to two wheeler riders and other road users. I request your office to inspect and repair it at the earliest, and to route it to the contractor responsible if this road section is still under a maintenance warranty.",
         ];
+
+    if (route && route.delivery_channel === "bmc_quickfix") {
+      const ward = route.ward_code;
+      if (kn) {
+        paras.push(`ಸೂಚಿಸಿದ ಬಿಎಂಸಿ ಆಡಳಿತ ವಾರ್ಡ್: ${ward || "ತಿಳಿದಿಲ್ಲ"}. ಇದು OpenStreetMap ವಿಳಾಸದಿಂದ ಪಡೆದ ಸೂಚನೆ ಮಾತ್ರ; ಅಧಿಕೃತ BMC ಆ್ಯಪ್‌ನಲ್ಲಿ ಪರಿಶೀಲಿಸಿ.`);
+        paras.push("ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ BMCಗೆ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. ಸಾಕ್ಷ್ಯವನ್ನು ಪರಿಶೀಲಿಸಿ, ನಂತರ ಅಧಿಕೃತ Pothole QuickFix, BMC WhatsApp ಅಥವಾ 1916 ಮೂಲಕ ನೀವೇ ಸಲ್ಲಿಸಬೇಕು.");
+      } else if (mr) {
+        paras.push(`सुचवलेला BMC प्रशासकीय विभाग: ${ward || "उपलब्ध नाही"}. हा OpenStreetMap पत्त्यावर आधारित अंदाज आहे; अधिकृत BMC अॅपमध्ये पडताळा करा.`);
+        paras.push("हे स्वतंत्र अॅप BMC कडे तक्रार दाखल करत नाही. पुरावा तपासा आणि नंतर अधिकृत Pothole QuickFix, BMC WhatsApp किंवा 1916 द्वारे स्वतः तक्रार नोंदवा.");
+      } else {
+        paras.push(`Suggested BMC administrative ward: ${ward || "unavailable"}. This is inferred from the OpenStreetMap address; verify it in the official BMC app.`);
+        paras.push("This independent app does not submit a grievance to BMC. Review the evidence, then complete submission yourself through official Pothole QuickFix, BMC WhatsApp, or 1916.");
+      }
+    }
 
     if (tender) {
       const warrantyKn = ({ dlp: "ದೋಷ ಹೊಣೆಗಾರಿಕೆ ಅವಧಿಯಲ್ಲಿ ಇನ್ನೂ ಇರುವ ಸಾಧ್ಯತೆ ಇದೆ",
@@ -1042,14 +1150,20 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       if (kn) {
         paras.push(`ಸಾರ್ವಜನಿಕ ಖರೀದಿ ದಾಖಲೆಗಳ ಪ್ರಕಾರ ಈ ರಸ್ತೆ ಭಾಗ ಟೆಂಡರ್ ${tender.tender_number} ("${title}") ಅಡಿಯಲ್ಲಿ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಇದು ${tender.published} ರಂದು ಪ್ರಕಟವಾಗಿದೆ${tender.contractor ? `, ಗೆದ್ದ ಬಿಡ್‌ದಾರರಾಗಿ ${tender.contractor} ಎಂದು ದಾಖಲಾಗಿದೆ` : ", ಗೆದ್ದ ಬಿಡ್‌ದಾರರ ಹೆಸರು ದಾಖಲೆಯಲ್ಲಿ ಇಲ್ಲ"}, ಮತ್ತು ${warrantyKn}.`);
         paras.push("ದೋಷ ಹೊಣೆಗಾರಿಕೆ ಅಥವಾ ನಿರ್ವಹಣಾ ಅವಧಿ ಜಾರಿಯಲ್ಲಿದ್ದರೆ, ಸಂಸ್ಥೆಗೆ ಹೆಚ್ಚುವರಿ ವೆಚ್ಚವಿಲ್ಲದೆ ಗುತ್ತಿಗೆದಾರರಿಂದಲೇ ದುರಸ್ತಿ ಮಾಡಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ. ಇದು ಸಂಭಾವ್ಯ ದಾಖಲೆ ಹೊಂದಾಣಿಕೆ; ದಯವಿಟ್ಟು ಟೆಂಡರ್ ದಾಖಲೆಗಳೊಂದಿಗೆ ಪರಿಶೀಲಿಸಿ.");
+      } else if (mr) {
+        const warrantyMr = ({ dlp: "दोष दायित्व कालावधीत असण्याची शक्यता आहे",
+                              maint: "देखभाल कालावधीत असण्याची शक्यता आहे",
+                              record: "या रस्त्याच्या भागासाठी नोंदवलेले आहे" })[tender.warranty_code || "record"];
+        paras.push(`सार्वजनिक खरेदी नोंदीनुसार हा रस्त्याचा भाग निविदा ${tender.tender_number} ("${title}") अंतर्गत येण्याची शक्यता आहे. ती ${tender.published} रोजी प्रकाशित झाली${tender.contractor ? ` आणि ${tender.contractor} यांची विजयी बोलीदार म्हणून नोंद आहे` : ", मात्र विजयी बोलीदाराची नोंद उपलब्ध नाही"}; ${warrantyMr}.`);
+        paras.push("दोष दायित्व किंवा देखभाल कालावधी लागू असल्यास महानगरपालिकेला अतिरिक्त खर्च न लावता कंत्राटदाराकडून दुरुस्ती करून घ्यावी. ही संभाव्य नोंद-जुळणी आहे; कृपया मूळ निविदा कागदपत्रांशी पडताळा करा.");
       } else {
         paras.push(`Public procurement records indicate this road stretch probably falls under tender ${tender.tender_number} ("${title}"), published on ${tender.published}${tender.contractor ? `, with ${tender.contractor} recorded as the winning bidder` : ", with no winning bidder recorded"}, and it may still be ${tender.warranty}.`);
         paras.push("If the defect liability or maintenance period is in force, I request that the repair be carried out by the contractor at no additional cost to the corporation. This is a probable record match; kindly verify against the tender documents.");
       }
     }
 
-    paras.push(kn ? "ನಿಮ್ಮ ಸೇವೆಗೆ ಧನ್ಯವಾದಗಳು." : "Thank you for your service.");
-    paras.push(kn ? `ವಂದನೆಗಳು,\n${S.name}` : `Regards,\n${S.name}`);
+    paras.push(kn ? "ನಿಮ್ಮ ಸೇವೆಗೆ ಧನ್ಯವಾದಗಳು." : mr ? "धन्यवाद." : "Thank you for your service.");
+    paras.push(kn ? `ವಂದನೆಗಳು,\n${S.name}` : mr ? `आपला/आपली,\n${S.name}` : `Regards,\n${S.name}`);
     return [subject, paras.join("\n\n")];
   }
 
@@ -1409,7 +1523,9 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       : "\n- Capture layout: one user-framed full image.";
     const detectPrompt = DETECT_PROMPT + sequenceNote + (LANG() === "kn"
       ? "\n- Write the description field in formal Kannada (ಕನ್ನಡ ಭಾಷೆಯಲ್ಲಿ ಬರೆಯಿರಿ)."
-      : "");
+      : LANG() === "mr"
+        ? "\n- Write the description field in clear formal Marathi (मराठी भाषेत लिहा)."
+        : "");
     const detectionModel = S.model, detectionDetail = S.detail;
     // Single shot has one verdict on screen, so show it the moment it streams in.
     // Drive Mode analyses run concurrently and report through the HUD instead.
@@ -1440,14 +1556,18 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       ? await (geoP || (lat != null ? reverseGeocode(lat, lng).catch(() => null) : Promise.resolve(null)))
       : null;
     const address = shortOf(geo);
-    const [officerName, officerEmail, unroutedReason, bodyName] = accepted
-      ? await routeOfficer((geo && geo.full) || address, lat, lng) : [null, null, null, null];
-    const covered = accepted && !!officerEmail;
+    const [officerName, officerEmail, unroutedReason, bodyName,
+           deliveryChannel, wardCode, routingSource] = accepted
+      ? await routeOfficer(geo || address, lat, lng)
+      : [null, null, null, null, null, null, null];
+    const covered = accepted && (!!officerEmail || deliveryChannel === "bmc_quickfix");
+    const route = { delivery_channel: deliveryChannel, ward_code: wardCode,
+                    routing_source: routingSource };
     // Drive Mode does not speculate (it would bill a text call for every frame, and most
     // frames are rejected), so an accepted drive pothole matches its contract here, once
     // it is known to be worth a complaint. The GIS answer is already memoised, so this
     // costs no extra network call.
-    const tender = accepted && covered
+    const tender = accepted && covered && deliveryChannel === "email"
       ? await (tenderP || jurisdictionOf(lat, lng)
           .then((w) => (w && w.kind === "town" && w.lgd ? matchTender(address, w.lgd) : null))
           .catch(() => null))
@@ -1456,11 +1576,11 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     // No authority means no complaint. The photo, verdict and location are still kept,
     // so nothing is lost if coverage later extends to this place.
     const [subject, body] = accepted && covered
-      ? draftEmail(a, lat, lng, address, officerName, tender)
+      ? draftEmail(a, lat, lng, address, officerName, tender, route)
       : [null, null];
     // The evidence copy: what the officer receives. Detection works on a small
     // frame for speed and token cost, but the complaint deserves the full capture,
-    // unmodified. Only kept for reports that can actually be emailed.
+    // unmodified. Only kept for reports that can be handed to a supported authority.
     const photoFull = accepted && covered ? await toDataUrl(photo, 4000, 0.92, false) : null;
 
     const rec = {
@@ -1484,6 +1604,12 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       unrouted_reason: accepted && !covered ? (unroutedReason || "outside_area") : null,
       unrouted_body: accepted && !covered ? (bodyName || null) : null,
       officer_name: officerName, officer_email: officerEmail,
+      authority_name: covered ? (bodyName || null) : null,
+      delivery_channel: covered ? (deliveryChannel || "email") : null,
+      ward_code: covered ? (wardCode || null) : null,
+      routing_source: covered ? (routingSource || null) : null,
+      official_grievance_id: null,
+      submitted_at: null,
       tender_number: tender ? tender.tender_number : null,
       contractor: tender ? tender.contractor : null,
       tender_note: tender ? tender.note : null,
@@ -1560,9 +1686,50 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       console.log("[harness] would open native compose to:", to);
     }
     rec.status = "queued";
-    rec.sent_at = Date.now() / 1000;
+    rec.handoff_opened_at = Date.now() / 1000;
     await putReport(rec);
     return toDict(rec);
+  }
+
+  async function openBmcHandoff(rec) {
+    if (rec.delivery_channel !== "bmc_quickfix") {
+      throw new Error("This report is not routed to the BMC handoff.");
+    }
+    return { ...toDict(rec), handoff_url: BMC_QUICKFIX_URL,
+             handoff_package: BMC_QUICKFIX_PACKAGE,
+             whatsapp_url: BMC_WHATSAPP_URL, helpline: BMC_HELPLINE };
+  }
+
+  async function evidenceForReport(rec) {
+    if (!rec || !ACCEPTED_REPORT_STATUSES.has(rec.status)) {
+      throw new Error("Only an accepted report has shareable evidence.");
+    }
+    const source = await dataUrlToBlob(rec.photo_full || rec.photo);
+    const wideUrl = await toDataUrl(source, 1280, 0.86, false, 1);
+    const cropUrl = rec.capture_source && rec.capture_source !== "manual"
+      ? await toDataUrl(source, 1280, 0.86, false, ROAD_BAND) : null;
+    const base64 = wideUrl && wideUrl.split(",")[1];
+    const cropBase64 = cropUrl && cropUrl.split(",")[1];
+    if (!base64) throw new Error("The report photo could not be read.");
+    const safeId = String(rec.id || "report").replace(/[^a-zA-Z0-9_-]/g, "");
+    const captured = new Date((rec.captured_at || rec.created_at) * 1000);
+    const when = Number.isNaN(captured.getTime()) ? "" : captured.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium",
+    });
+    const meta = [
+      rec.email_subject || "Road-damage report",
+      rec.email_body || "",
+      when ? `Captured (IST): ${when}` : "",
+      Number.isFinite(rec.gps_accuracy) ? `GPS accuracy: ±${Math.round(rec.gps_accuracy)} m` : "",
+      rec.ward_code ? `Suggested BMC ward: ${rec.ward_code} (verify in the official app)` : "",
+      `Local event ID: ${safeId}`,
+      rec.status === "sent" && rec.official_grievance_id
+        ? `Locally marked submitted; official BMC grievance ID: ${rec.official_grievance_id}`
+        : "Prepared by an independent app; not yet submitted to BMC.",
+    ].filter(Boolean).join("\n\n");
+    return { name: `mumbai-road-damage-${safeId}.jpg`, base64,
+             crop_name: cropBase64 ? `mumbai-road-damage-${safeId}-road-crop.jpg` : null,
+             crop_base64: cropBase64, text: meta };
   }
 
   // ---------- dataset export ----------
@@ -1668,7 +1835,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     const method = ((opts && opts.method) || "GET").toUpperCase();
     let m;
     if (path === "/api/health") {
-      return { ai_configured: !!S.key, provider: "openai", delivery: "gmail_compose", email_configured: true,
+      return { ai_configured: !!S.key, provider: "openai", delivery: "email_or_official_handoff", email_configured: true,
                detection_model: S.model, image_detail: S.detail, prompt_version: PROMPT_VERSION };
     }
     if (path === "/api/reports" && method === "GET") {
@@ -1770,6 +1937,11 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       return { ok: true };
     }
     if (path === "/api/export" && method === "POST") return exportDataset();
+    if ((m = path.match(/^\/api\/reports\/(\d+)\/evidence$/)) && method === "GET") {
+      const rec = await getReport(m[1]);
+      if (!rec) throw new Error("Report not found.");
+      return evidenceForReport(rec);
+    }
     if ((m = path.match(/^\/api\/reports\/(\d+)\/label$/)) && method === "POST") {
       const rec = await getReport(m[1]);
       if (!rec) throw new Error("Report not found.");
@@ -1795,13 +1967,44 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           road_class_unknown: "The app could not check whether this road is a national highway, and it will not name a city officer for a road that may not be theirs. Try again when you have a signal.",
           national_highway: "This stretch is a national highway. It is maintained by NHAI or the state PWD National Highways division, not by the city or town body, so there is no municipal officer to address.",
           rural_road: "This road is outside every town boundary, so it belongs to the state PWD or a panchayat rather than a city body. The app will not guess an office.",
-          no_address: "This town's body is known, but no official email address for it has been published, so there is no verified recipient to address.",
-          outside_area: "This road damage is outside Karnataka, which is the area this app covers, so there is no authority to address.",
+          no_address_for_body: "This town's body is known, but no official email address for it has been published, so there is no verified recipient to address.",
+          outside_area: "This road damage is outside the supported Karnataka and Greater Mumbai routes, so there is no authority to address.",
         }[rec.unrouted_reason] || "This report could not be routed to a responsible office, so there is nothing to send.");
       }
-      // "queued" stays reopenable: canceling the Gmail composer must not strand the report.
+      // "queued" stays reopenable: canceling the external composer/app must not strand
+      // the report or falsely mark it submitted.
       if (rec.status !== "draft" && rec.status !== "queued") throw new Error("This report is not a sendable draft.");
-      return openInGmail(rec);
+      return rec.delivery_channel === "bmc_quickfix" ? openBmcHandoff(rec) : openInGmail(rec);
+    }
+    if ((m = path.match(/^\/api\/reports\/(\d+)\/submitted$/)) && method === "POST") {
+      const rec = await getReport(m[1]);
+      if (!rec) throw new Error("Report not found.");
+      if (rec.status !== "draft" && rec.status !== "queued" && rec.status !== "sent") {
+        throw new Error("This report cannot be marked submitted.");
+      }
+      const body = JSON.parse(opts.body || "{}");
+      const reference = String(body.official_grievance_id || "").trim().slice(0, 100);
+      if (rec.delivery_channel === "bmc_quickfix" && reference.length < 4) {
+        throw new Error("Enter the official BMC grievance ID before marking this submitted.");
+      }
+      rec.official_grievance_id = reference || null;
+      rec.status = "sent";
+      rec.submitted_at = Date.now() / 1000;
+      rec.sent_at = rec.submitted_at;
+      await putReport(rec);
+      return toDict(rec);
+    }
+    if ((m = path.match(/^\/api\/reports\/(\d+)\/handoff-opened$/)) && method === "POST") {
+      const rec = await getReport(m[1]);
+      if (!rec) throw new Error("Report not found.");
+      if (rec.delivery_channel !== "bmc_quickfix") throw new Error("This report has no BMC handoff.");
+      if (rec.status !== "draft" && rec.status !== "queued") {
+        throw new Error("This report cannot record a BMC handoff.");
+      }
+      rec.status = "queued";
+      rec.handoff_opened_at = Date.now() / 1000;
+      await putReport(rec);
+      return toDict(rec);
     }
     if ((m = path.match(/^\/api\/reports\/(\d+)$/))) {
       const rec = await getReport(m[1]);
@@ -1843,7 +2046,8 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    SCHEMA_VERSION, MAX_DETECTION_IMAGES, ROAD_BAND, averageLuminance,
                    distMeters, roadEventMatch, sameRoadEvent, findDuplicateReport,
                    draftEmail, dataUrlToBlob, photoToBase64, toDict, listDict,
-                   warrantyFor, shortlistFor, matchTenderFor: matchTender };
+                   warrantyFor, shortlistFor, matchTenderFor: matchTender,
+                   mumbaiWardFromName, mumbaiFromGeocode, evidenceForReport };
 
   window.StandaloneAPI = { __pure, handle, prewarm };
 

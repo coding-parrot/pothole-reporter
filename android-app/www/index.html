@@ -141,10 +141,11 @@
     <div class="card">
       <div class="verdict" id="settingsTitle">Settings</div>
       <div class="meta" id="settingsHint" style="margin-bottom:6px"></div>
-      <label id="langLabel">Language / ಭಾಷೆ</label>
+      <label id="langLabel">Language / ಭಾಷೆ / भाषा</label>
       <select id="setLang" style="width:100%;background:#131417;color:#f2f2f4;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit">
         <option value="en">English</option>
         <option value="kn">ಕನ್ನಡ</option>
+        <option value="mr">मराठी</option>
       </select>
       <label id="keyLabel">OpenAI API key (stored only on this device)</label>
       <input type="password" id="setKey" placeholder="sk-...">
@@ -218,8 +219,9 @@
 <script src="standalone.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
+const BMC_QUICKFIX_PACKAGE = "com.bmc.potholequickfix";
 
-// ---------- i18n (English / Kannada) ----------
+// ---------- i18n (English / Kannada / Marathi) ----------
 const I18N = {
   en: {
     sub: "Capture it. Verify the damage. Prepare a complaint for a suggested office.",
@@ -235,10 +237,10 @@ const I18N = {
     detail_label: "Image detail",
     accuracy_note: "gpt-5-mini/high remains the baseline. gpt-5.6/original is an experiment until your held-out drive benchmark proves it better.",
     debug_label: "Debug mode: keep the drive video after analysing it",
-    settings_note: "Photos and video-derived frames are sent to OpenAI for detection and can contain number plates or faces. Exact location is sent to OpenStreetMap/Nominatim and Karnataka GIS for address and jurisdiction lookup. Your API key is sent only to OpenAI as the request credential. Complaints are email drafts; nothing sends until you press send.",
+    settings_note: "Photos and video-derived frames are sent to OpenAI for detection and can contain number plates or faces. Exact location is sent to OpenStreetMap/Nominatim; Karnataka points also use Karnataka GIS. Your API key is sent only to OpenAI as the request credential. The app prepares drafts and never submits automatically.",
     independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
     privacy_title: "Before camera and location access",
-    privacy_body: "If you continue, the app will ask for camera and precise foreground location. A photo—or sampled frames from Drive Mode—is sent with your API key to OpenAI for road-damage detection. Exact coordinates are sent to OpenStreetMap/Nominatim and Karnataka GIS to suggest an address and jurisdiction. Processing can occur outside India.",
+    privacy_body: "If you continue, the app will ask for camera and precise foreground location. A photo—or sampled frames from Drive Mode—is sent with your API key to OpenAI for road-damage detection. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports also query Karnataka GIS. Processing can occur outside India.",
     privacy_local: "Drive Mode uses no audio and stops when the app leaves the foreground. Optional video recording is off by default; if you enable it, clips stay on this device until you analyse or delete them. Reports, photos, location tracks and settings remain on this device until deleted.",
     privacy_government: "This independent app is not a government service and does not submit complaints automatically. It prepares a draft using published sources; review the destination and content before sending.",
     privacy_link: "Privacy policy", sources_link: "Data sources and limits",
@@ -246,7 +248,7 @@ const I18N = {
     wipe_btn: "Delete all app data",
     welcome_hint: "Welcome. Paste your OpenAI API key to enable detection. It is saved on this device and sent to OpenAI only as the request credential.",
     back: "Back", save: "Save", discard: "Discard", del: "Delete", email_btn: "Email", stop: "&#9632; Stop", working: "Working...",
-    chip_draft: "Draft", chip_sent: "Sent", chip_queued: "Opened in email", chip_rejected: "Not reportable", chip_review: "Needs review",
+    chip_draft: "Draft", chip_sent: "Marked submitted", chip_queued: "Opened in email", chip_queued_bmc: "BMC handoff opened", chip_rejected: "Not reportable", chip_review: "Needs review",
     chip_unrouted: "Outside coverage",
     no_location: "The location could not be determined.",
     road_unknown: "Could not check who owns this road",
@@ -263,7 +265,7 @@ const I18N = {
     dash_range: "{days} of reporting · first on {first}",
     dash_empty: "No road damage reported yet. Your map fills up as you drive.",
     day_one: "1 day", day_many: "{n} days",
-    stat_found: "damage events found", stat_reported: "complaints sent", stat_frames: "events checked",
+    stat_found: "damage events found", stat_reported: "confirmed submissions", stat_frames: "events checked",
     stat_drives: "drives", stat_footage: "MB of footage", stat_km: "km of road covered",
     by_type: "By damage type", by_size: "By size", by_area: "By corporation", map_pins: "{n} pinned",
     map_offline: "Map tiles need a connection. Points are still plotted below.",
@@ -306,7 +308,7 @@ const I18N = {
     model_said: "The app said: {verdict} · {assessment}",
     export_ready: "{n} labelled frames, {mb} MB. Choose where to send it.",
     outside_coverage: "This location is outside the area this app covers.",
-    outside_coverage_help: "This point is outside Karnataka, and the officer directory only covers Karnataka local bodies, so there is no authority this app can correctly address. The photo and location are saved.",
+    outside_coverage_help: "This point is outside the supported Karnataka and Greater Mumbai routes, so the app cannot prepare a correctly addressed complaint. The photo and location are saved.",
     size_small: "small", size_medium: "medium", size_large: "large",
     damage_pothole_cavity: "pothole cavity", damage_failed_patch: "failed road repair",
     damage_surface_breakup: "broken road surface", damage_rut_or_depression: "road rut / depression",
@@ -318,7 +320,7 @@ const I18N = {
     early_yes: "Reportable {type} found. Preparing the complaint...",
     early_review: "Possible road damage. A clearer photo is needed.",
     early_no: "No reportable road damage in this photo.",
-    verdict_sent: "Complaint sent",
+    verdict_sent: "Marked submitted",
     verdict_queued: "Opened in your email app. Edit and resend if you didn't send it.",
     confidence: "confidence",
     email_subject_label: "Email subject",
@@ -339,6 +341,22 @@ const I18N = {
     drive_end_zero: "No reportable road damage found in this drive ({checked} events checked{debug}).",
     debug_saved_suffix: ", debug frames saved for review",
     confirm_send: "Open your email app with the complaint addressed to {to}?",
+    bmc_prepare_btn: "Prepare Mumbai report",
+    bmc_share_btn: "Share evidence",
+    bmc_quickfix_btn: "Open Pothole QuickFix",
+    bmc_whatsapp_btn: "BMC WhatsApp",
+    bmc_call_btn: "Call 1916",
+    bmc_disclaimer: "This independent app prepares evidence but does not submit a BMC grievance. Review it, then finish in an official BMC channel. Do not mark it submitted without an official grievance ID.",
+    bmc_ward: "Suggested BMC ward: {ward} (from OpenStreetMap; verify in the official app)",
+    complaint_title_label: "Complaint title",
+    complaint_body_label: "Complaint details (review before sharing)",
+    official_grievance_label: "Official BMC grievance ID",
+    official_grievance_placeholder: "Enter ID returned by BMC",
+    mark_submitted_btn: "Mark submitted",
+    submitted_reference: "Official grievance ID: {id}",
+    confirm_bmc_handoff: "Continue to BMC's official Pothole QuickFix app? This app will only mark that the handoff was opened, not that a grievance was submitted.",
+    confirm_mark_submitted: "Confirm that you completed submission through an official channel?",
+    evidence_shared: "Evidence is ready. Choose an official BMC channel in the share sheet.",
     confirm_delete: "Delete this report?",
     confirm_wipe: "Delete ALL app data from this phone, including the API key, settings, reports, photos, footage and exported debug frames?",
     camera_failed: "Camera access failed: ",
@@ -359,10 +377,10 @@ const I18N = {
     detail_label: "ಚಿತ್ರದ ವಿವರ",
     accuracy_note: "gpt-5-mini/high ಪ್ರಸ್ತುತ ಮೂಲಮಟ್ಟ. ನಿಮ್ಮ ಪ್ರತ್ಯೇಕ ಡ್ರೈವ್ ಪರೀಕ್ಷೆ ಉತ್ತಮವೆಂದು ಸಾಬೀತುಪಡಿಸುವವರೆಗೆ gpt-5.6/original ಪ್ರಯೋಗವಾಗಿದೆ.",
     debug_label: "ಡೀಬಗ್ ಮೋಡ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ಡ್ರೈವ್ ವಿಡಿಯೋ ಉಳಿಸಿ",
-    settings_note: "ಫೋಟೋಗಳು ಮತ್ತು ವಿಡಿಯೋದಿಂದ ಪಡೆದ ಫ್ರೇಮ್‌ಗಳನ್ನು OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಅವುಗಳಲ್ಲಿ ವಾಹನ ಸಂಖ್ಯೆ ಅಥವಾ ಮುಖಗಳು ಇರಬಹುದು. ನಿಖರ ಸ್ಥಳವನ್ನು ವಿಳಾಸ ಮತ್ತು ವ್ಯಾಪ್ತಿ ಸೂಚಿಸಲು OpenStreetMap/Nominatim ಮತ್ತು ಕರ್ನಾಟಕ GIS ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ನಿಮ್ಮ API ಕೀ ವಿನಂತಿಯ ಪ್ರಮಾಣಪತ್ರವಾಗಿ OpenAI ಗೆ ಮಾತ್ರ ಹೋಗುತ್ತದೆ. ದೂರು ಇಮೇಲ್ ಕರಡು ಮಾತ್ರ; ನೀವು ಕಳುಹಿಸುವವರೆಗೆ ಅದು ಹೋಗುವುದಿಲ್ಲ.",
+    settings_note: "ಫೋಟೋಗಳು ಮತ್ತು ವಿಡಿಯೋದಿಂದ ಪಡೆದ ಫ್ರೇಮ್‌ಗಳನ್ನು OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಅವುಗಳಲ್ಲಿ ವಾಹನ ಸಂಖ್ಯೆ ಅಥವಾ ಮುಖಗಳು ಇರಬಹುದು. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ಸ್ಥಳಗಳಿಗೆ Karnataka GIS ಕೂಡ ಬಳಸಲಾಗುತ್ತದೆ. ನಿಮ್ಮ API ಕೀ ವಿನಂತಿಯ ಪ್ರಮಾಣಪತ್ರವಾಗಿ OpenAI ಗೆ ಮಾತ್ರ ಹೋಗುತ್ತದೆ. ಆ್ಯಪ್ ಕರಡು ಅಥವಾ ಅಧಿಕೃತ ಹಸ್ತಾಂತರವನ್ನು ಸಿದ್ಧಪಡಿಸುತ್ತದೆ; ದೂರು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಸಲ್ಲಿಸುವುದಿಲ್ಲ.",
     independent_note: "ಇದು ಸ್ವತಂತ್ರ, ಅನಧಿಕೃತ ಆ್ಯಪ್. ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯೊಂದಿಗೆ ಸಂಬಂಧ ಅಥವಾ ಅನುಮೋದನೆ ಇಲ್ಲ. ಕಚೇರಿ ಸೂಚನೆ ಅತ್ಯುತ್ತಮ ಪ್ರಯತ್ನ ಮಾತ್ರ; ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
     privacy_title: "ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳ ಅನುಮತಿಯ ಮೊದಲು",
-    privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಮುಂಭಾಗದ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ಫೋಟೋ ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು ನಿಮ್ಮ API ಕೀಯೊಂದಿಗೆ ರಸ್ತೆ ಹಾನಿ ಪತ್ತೆಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ವಿಳಾಸ ಮತ್ತು ವ್ಯಾಪ್ತಿ ಸೂಚಿಸಲು ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಮತ್ತು ಕರ್ನಾಟಕ GIS ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
+    privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಮುಂಭಾಗದ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ಫೋಟೋ ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು ನಿಮ್ಮ API ಕೀಯೊಂದಿಗೆ ರಸ್ತೆ ಹಾನಿ ಪತ್ತೆಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ವರದಿಗಳಿಗೆ Karnataka GIS ಕೂಡ ಪ್ರಶ್ನಿಸಲಾಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
     privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ ಮತ್ತು ಆ್ಯಪ್ ಮುಂಭಾಗದಿಂದ ಹೊರಬಂದಾಗ ನಿಲ್ಲುತ್ತದೆ. ಐಚ್ಛಿಕ ವಿಡಿಯೋ ರೆಕಾರ್ಡಿಂಗ್ ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್; ನೀವು ಆನ್ ಮಾಡಿದರೆ ವಿಶ್ಲೇಷಣೆ ಅಥವಾ ಅಳಿಸುವವರೆಗೆ ಕ್ಲಿಪ್‌ಗಳು ಸಾಧನದಲ್ಲೇ ಇರುತ್ತವೆ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್ ಮತ್ತು ಸೆಟ್ಟಿಂಗ್ಸ್ ಅಳಿಸುವವರೆಗೆ ಈ ಸಾಧನದಲ್ಲೇ ಇರುತ್ತವೆ.",
     privacy_government: "ಇದು ಸರ್ಕಾರಿ ಸೇವೆಯಲ್ಲ ಮತ್ತು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. ಪ್ರಕಟಿತ ಮೂಲಗಳಿಂದ ಕರಡು ತಯಾರಿಸುತ್ತದೆ; ಕಳುಹಿಸುವ ಮೊದಲು ವಿಳಾಸ ಮತ್ತು ವಿಷಯ ಪರಿಶೀಲಿಸಿ.",
     privacy_link: "ಗೌಪ್ಯತಾ ನೀತಿ", sources_link: "ಡೇಟಾ ಮೂಲಗಳು ಮತ್ತು ಮಿತಿಗಳು",
@@ -370,7 +388,7 @@ const I18N = {
     wipe_btn: "ಎಲ್ಲಾ ಆ್ಯಪ್ ಡೇಟಾ ಅಳಿಸಿ",
     welcome_hint: "ಸ್ವಾಗತ. ಪತ್ತೆಗೆ ನಿಮ್ಮ OpenAI API ಕೀ ಅಂಟಿಸಿ. ಇದು ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ ಮತ್ತು OpenAI ಗೆ ಪ್ರಮಾಣಪತ್ರವಾಗಿ ಮಾತ್ರ ಕಳುಹಿಸಲಾಗುತ್ತದೆ.",
     back: "ಹಿಂದೆ", save: "ಉಳಿಸಿ", discard: "ತ್ಯಜಿಸಿ", del: "ಅಳಿಸಿ", email_btn: "ಇಮೇಲ್", stop: "&#9632; ನಿಲ್ಲಿಸಿ", working: "ನಡೆಯುತ್ತಿದೆ...",
-    chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಕಳುಹಿಸಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ವರದಿ ಯೋಗ್ಯವಲ್ಲ", chip_review: "ಪರಿಶೀಲನೆ ಬೇಕು",
+    chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_queued_bmc: "BMC ಹಸ್ತಾಂತರ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ವರದಿ ಯೋಗ್ಯವಲ್ಲ", chip_review: "ಪರಿಶೀಲನೆ ಬೇಕು",
     chip_unrouted: "ವ್ಯಾಪ್ತಿಯ ಹೊರಗೆ",
     no_location: "ಸ್ಥಳ ಪತ್ತೆಯಾಗಲಿಲ್ಲ.",
     road_unknown: "ಈ ರಸ್ತೆ ಯಾರ ವ್ಯಾಪ್ತಿಗೆ ಬರುತ್ತದೆ ಎಂದು ಪರಿಶೀಲಿಸಲಾಗಲಿಲ್ಲ",
@@ -387,7 +405,7 @@ const I18N = {
     dash_range: "{days} ವರದಿ · ಮೊದಲನೆಯದು {first}",
     dash_empty: "ಇನ್ನೂ ಗುಂಡಿಗಳ ವರದಿ ಇಲ್ಲ. ಡ್ರೈವ್ ಮಾಡಿದಂತೆ ನಕ್ಷೆ ತುಂಬುತ್ತದೆ.",
     day_one: "1 ದಿನ", day_many: "{n} ದಿನಗಳು",
-    stat_found: "ಗುಂಡಿಗಳು ಪತ್ತೆ", stat_reported: "ದೂರುಗಳು ಕಳುಹಿಸಲಾಗಿದೆ", stat_frames: "ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ",
+    stat_found: "ಹಾನಿ ಘಟನೆಗಳು ಪತ್ತೆ", stat_reported: "ದೃಢೀಕರಿಸಿದ ಸಲ್ಲಿಕೆಗಳು", stat_frames: "ಘಟನೆಗಳ ಪರಿಶೀಲನೆ",
     stat_drives: "ಡ್ರೈವ್‌ಗಳು", stat_footage: "MB ವಿಡಿಯೋ", stat_km: "ಕಿಮೀ ರಸ್ತೆ",
     by_type: "ಹಾನಿಯ ಪ್ರಕಾರ", by_size: "ಗಾತ್ರದ ಪ್ರಕಾರ", by_area: "ಪಾಲಿಕೆ ಪ್ರಕಾರ", map_pins: "{n} ಗುರುತಿಸಲಾಗಿದೆ",
     map_offline: "ನಕ್ಷೆಗೆ ಇಂಟರ್ನೆಟ್ ಬೇಕು. ಬಿಂದುಗಳು ಕೆಳಗೆ ತೋರಿಸಲಾಗಿದೆ.",
@@ -430,7 +448,7 @@ const I18N = {
     model_said: "ಆ್ಯಪ್ ಹೇಳಿದ್ದು: {verdict} · {assessment}",
     export_ready: "{n} ಗುರುತಿಸಿದ ಫ್ರೇಮ್‌ಗಳು, {mb} MB. ಎಲ್ಲಿಗೆ ಕಳುಹಿಸಬೇಕೆಂದು ಆಯ್ಕೆಮಾಡಿ.",
     outside_coverage: "ಈ ಸ್ಥಳ ಈ ಆ್ಯಪ್ ಒಳಗೊಂಡ ವ್ಯಾಪ್ತಿಯ ಹೊರಗಿದೆ.",
-    outside_coverage_help: "ಈ ಸ್ಥಳ ಕರ್ನಾಟಕದ ಹೊರಗಿದೆ. ಅಧಿಕಾರಿಗಳ ಪಟ್ಟಿ ಕರ್ನಾಟಕದ ಸ್ಥಳೀಯ ಸಂಸ್ಥೆಗಳಿಗೆ ಮಾತ್ರ ಸೀಮಿತವಾಗಿದೆ. ಆದ್ದರಿಂದ ಸರಿಯಾದ ಅಧಿಕಾರಿಯನ್ನು ಸೂಚಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳ ಉಳಿಸಲಾಗಿದೆ.",
+    outside_coverage_help: "ಈ ಸ್ಥಳ ಬೆಂಬಲಿತ ಕರ್ನಾಟಕ ಅಥವಾ ಗ್ರೇಟರ್ ಮುಂಬೈ ಮಾರ್ಗಗಳ ಹೊರಗಿದೆ. ಆದ್ದರಿಂದ ಸರಿಯಾಗಿ ವಿಳಾಸಿತ ದೂರು ಸಿದ್ಧಪಡಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳ ಉಳಿಸಲಾಗಿದೆ.",
     size_small: "ಸಣ್ಣ", size_medium: "ಮಧ್ಯಮ", size_large: "ದೊಡ್ಡ",
     damage_pothole_cavity: "ರಸ್ತೆ ಗುಂಡಿ", damage_failed_patch: "ವಿಫಲವಾದ ರಸ್ತೆ ದುರಸ್ತಿ",
     damage_surface_breakup: "ಹಾಳಾದ ರಸ್ತೆ ಮೇಲ್ಮೈ", damage_rut_or_depression: "ರಸ್ತೆ ಕುಸಿತ",
@@ -442,7 +460,7 @@ const I18N = {
     early_yes: "ವರದಿ ಮಾಡಬಹುದಾದ {type} ಪತ್ತೆಯಾಗಿದೆ. ದೂರು ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ...",
     early_review: "ಸಂಭಾವ್ಯ ರಸ್ತೆ ಹಾನಿ. ಸ್ಪಷ್ಟ ಫೋಟೋ ಬೇಕು.",
     early_no: "ಈ ಫೋಟೋದಲ್ಲಿ ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಇಲ್ಲ.",
-    verdict_sent: "ದೂರು ಕಳುಹಿಸಲಾಗಿದೆ",
+    verdict_sent: "ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ",
     verdict_queued: "ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ. ಕಳುಹಿಸಿಲ್ಲದಿದ್ದರೆ ತಿದ್ದಿ ಮತ್ತೆ ತೆರೆಯಿರಿ.",
     confidence: "ವಿಶ್ವಾಸ",
     email_subject_label: "ಇಮೇಲ್ ವಿಷಯ",
@@ -463,14 +481,151 @@ const I18N = {
     drive_end_zero: "ಈ ಡ್ರೈವ್‌ನಲ್ಲಿ ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಪತ್ತೆಯಾಗಿಲ್ಲ ({checked} ಪರಿಶೀಲನೆ{debug}).",
     debug_saved_suffix: ", ಡೀಬಗ್ ಫ್ರೇಮ್‌ಗಳು ಉಳಿದಿವೆ",
     confirm_send: "{to} ಗೆ ಉದ್ದೇಶಿಸಿದ ದೂರಿನೊಂದಿಗೆ ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ?",
+    bmc_prepare_btn: "ಮುಂಬೈ ವರದಿ ಸಿದ್ಧಪಡಿಸಿ", bmc_share_btn: "ಸಾಕ್ಷ್ಯ ಹಂಚಿಕೊಳ್ಳಿ",
+    bmc_quickfix_btn: "Pothole QuickFix ತೆರೆಯಿರಿ", bmc_whatsapp_btn: "BMC WhatsApp ತೆರೆಯಿರಿ",
+    bmc_call_btn: "1916 ಗೆ ಕರೆ ಮಾಡಿ",
+    bmc_disclaimer: "ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸಾಕ್ಷ್ಯವನ್ನು ಸಿದ್ಧಪಡಿಸುತ್ತದೆ; BMC ಗೆ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. ಪರಿಶೀಲಿಸಿ ಅಧಿಕೃತ BMC ಮಾರ್ಗದಲ್ಲಿ ನೀವೇ ಸಲ್ಲಿಸಿ. ಅಧಿಕೃತ ದೂರು ಸಂಖ್ಯೆಯಿಲ್ಲದೆ ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಬೇಡಿ.",
+    bmc_ward: "ಸೂಚಿಸಿದ BMC ವಾರ್ಡ್: {ward} (OpenStreetMap ಆಧಾರಿತ; ಅಧಿಕೃತ ಆ್ಯಪ್‌ನಲ್ಲಿ ಪರಿಶೀಲಿಸಿ)",
+    complaint_title_label: "ದೂರು ಶೀರ್ಷಿಕೆ", complaint_body_label: "ದೂರು ವಿವರಗಳು (ಹಂಚುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ)",
+    official_grievance_label: "ಅಧಿಕೃತ BMC ದೂರು ಸಂಖ್ಯೆ", official_grievance_placeholder: "BMC ನೀಡಿದ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ",
+    mark_submitted_btn: "ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಿ", submitted_reference: "ಅಧಿಕೃತ ದೂರು ಸಂಖ್ಯೆ: {id}",
+    confirm_bmc_handoff: "BMC ಯ ಅಧಿಕೃತ Pothole QuickFix ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ? ಇಲ್ಲಿ ಮಾರ್ಗ ತೆರೆಯಲಾಗಿದೆ ಎಂದು ಮಾತ್ರ ದಾಖಲಾಗುತ್ತದೆ; ದೂರು ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಅಲ್ಲ.",
+    confirm_mark_submitted: "ನೀವು ಅಧಿಕೃತ ಮಾರ್ಗದಲ್ಲಿ ದೂರನ್ನು ಪೂರ್ಣವಾಗಿ ಸಲ್ಲಿಸಿದ್ದೀರಿ ಎಂದು ದೃಢಪಡಿಸುತ್ತೀರಾ?",
+    evidence_shared: "ಸಾಕ್ಷ್ಯ ಸಿದ್ಧವಾಗಿದೆ. ಹಂಚಿಕೆ ಪಟ್ಟಿಯಿಂದ ಅಧಿಕೃತ BMC ಮಾರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
     confirm_delete: "ಈ ವರದಿ ಅಳಿಸಬೇಕೆ?",
     confirm_wipe: "API ಕೀ, ಸೆಟ್ಟಿಂಗ್ಸ್, ವರದಿ, ಫೋಟೋ, ವಿಡಿಯೋ ಮತ್ತು ರಫ್ತು ಮಾಡಿದ ಡೀಬಗ್ ಫ್ರೇಮ್‌ಗಳೂ ಸೇರಿ ಈ ಫೋನ್‌ನಲ್ಲಿರುವ ಎಲ್ಲಾ ಆ್ಯಪ್ ಡೇಟಾವನ್ನು ಅಳಿಸಬೇಕೆ?",
     camera_failed: "ಕ್ಯಾಮೆರಾ ಪ್ರವೇಶ ವಿಫಲ: ",
     drive_stopped: "ಡ್ರೈವ್ ಮೋಡ್ ನಿಂತಿದೆ: ",
     the_officer: "ಸಂಬಂಧಿತ ಅಧಿಕಾರಿ",
   },
+  mr: {
+    sub: "फोटो घ्या. नुकसान पडताळा. सुचवलेल्या कार्यालयासाठी तक्रारीचा मसुदा तयार करा.",
+    report_btn: "&#128247; &nbsp;रस्त्याचे नुकसान नोंदवा",
+    drive_btn: "&#128663; &nbsp;ड्राइव्ह मोड",
+    your_reports: "तुमचे अहवाल",
+    no_reports: "अजून कोणतेही अहवाल नाहीत.",
+    banner_setup: "सेटअप आवश्यक: गिअर चिन्हावर टॅप करून तुमची OpenAI API की पेस्ट करा.",
+    settings_title: "सेटिंग्ज",
+    key_label: "OpenAI API की (येथे जतन होते; विनंतीचे प्रमाणीकरण करण्यासाठी OpenAI कडे पाठवली जाते)",
+    name_label: "तुमचे नाव (तक्रारींवर स्वाक्षरीसाठी)",
+    model_label: "शोध मॉडेल",
+    detail_label: "चित्राचा तपशील",
+    accuracy_note: "gpt-5-mini/high हा सध्याचा आधार आहे. स्वतंत्र चाचणीत अधिक चांगला ठरेपर्यंत gpt-5.6/original हा प्रयोग आहे.",
+    debug_label: "डीबग मोड: विश्लेषणानंतरही ड्राइव्हचा व्हिडिओ जतन करा",
+    settings_note: "फोटो आणि व्हिडिओतील फ्रेम्स तपासणीसाठी OpenAI कडे पाठवल्या जातात; त्यात वाहन क्रमांक किंवा चेहरे असू शकतात. अचूक स्थान OpenStreetMap/Nominatim कडे आणि कर्नाटकातील अहवालांसाठी Karnataka GIS कडे पाठवले जाते. अॅप फक्त मसुदा तयार करते; तक्रार आपोआप सादर करत नाही.",
+    independent_note: "हे स्वतंत्र, अनधिकृत अॅप आहे. कोणत्याही सरकारी संस्थेशी संलग्न नाही किंवा तिची मान्यता नाही. सुचवलेले कार्यालय पाठवण्यापूर्वी तपासा.",
+    privacy_title: "कॅमेरा आणि स्थान वापरण्यापूर्वी",
+    privacy_body: "पुढे गेल्यास अॅप कॅमेरा आणि वापराच्या वेळी अचूक स्थान वापरण्याची परवानगी मागेल. रस्त्याचे नुकसान शोधण्यासाठी फोटो किंवा ड्राइव्ह मोडमधील निवडक फ्रेम्स तुमच्या API कीसह OpenAI कडे पाठवल्या जातात. अचूक स्थान OpenStreetMap/Nominatim कडे आणि कर्नाटकातील अहवालांसाठी Karnataka GIS कडे पाठवले जाते. प्रक्रिया भारताबाहेर होऊ शकते.",
+    privacy_local: "ड्राइव्ह मोडमध्ये ऑडिओ वापरला जात नाही आणि अॅप पार्श्वभूमीत गेल्यावर तो थांबतो. ऐच्छिक व्हिडिओ रेकॉर्डिंग सुरुवातीला बंद असते; ते सुरू केल्यास विश्लेषण किंवा हटवण्यापर्यंत क्लिप्स या साधनावर राहतात. अहवाल, फोटो, स्थान मार्ग आणि सेटिंग्ज हटवले जाईपर्यंत या साधनावरच राहतात.",
+    privacy_government: "हे स्वतंत्र अॅप सरकारी सेवा नाही आणि तक्रार आपोआप सादर करत नाही. प्रकाशित स्रोतांच्या आधारे ते मसुदा तयार करते; पाठवण्यापूर्वी पत्ता आणि मजकूर तपासा.",
+    privacy_link: "गोपनीयता धोरण", sources_link: "डेटा स्रोत आणि मर्यादा",
+    privacy_accept: "पुढे जा", privacy_decline: "आत्ता नको",
+    wipe_btn: "अॅपचा सर्व डेटा हटवा",
+    welcome_hint: "स्वागत आहे. शोध सुरू करण्यासाठी तुमची OpenAI API की पेस्ट करा. ती या साधनावर जतन होते आणि फक्त विनंतीचे प्रमाणीकरण करण्यासाठी OpenAI कडे पाठवली जाते.",
+    back: "मागे", save: "जतन करा", discard: "रद्द करा", del: "हटवा", email_btn: "ईमेल",
+    stop: "&#9632; थांबवा", working: "प्रक्रिया सुरू आहे...",
+    chip_draft: "मसुदा", chip_sent: "सादर केल्याची नोंद", chip_queued: "ईमेलमध्ये उघडले",
+    chip_queued_bmc: "BMC माध्यम उघडले", chip_rejected: "नोंदवण्यायोग्य नाही",
+    chip_review: "पुनर्तपासणी आवश्यक", chip_unrouted: "कार्यक्षेत्राबाहेर",
+    no_location: "स्थान निश्चित करता आले नाही.",
+    road_unknown: "हा रस्ता कोणाच्या अखत्यारीत आहे ते तपासता आले नाही",
+    road_unknown_help: "हा राष्ट्रीय महामार्ग आहे का हे तपासण्यासाठी अॅपला राज्याच्या रस्ते जाळ्याशी संपर्क करता आला नाही. नेटवर्क मिळाल्यावर पुन्हा प्रयत्न करा.",
+    nat_highway: "{road} हा राष्ट्रीय महामार्ग आहे",
+    nat_highway_help: "राष्ट्रीय महामार्गांची देखभाल NHAI किंवा राज्याचा राष्ट्रीय महामार्ग विभाग करतो. NHAI Rajmargyatra अॅप किंवा 1033 हेल्पलाइनवर नोंदवा.",
+    rural_road: "हा रस्ता {body} ग्रामपंचायतीत आहे; शहर किंवा नगर क्षेत्रात नाही.",
+    rural_road_help: "रस्त्याचे नुकसान निश्चित झाले आहे, पण हे ठिकाण नागरी स्थानिक संस्थांच्या बाहेर आहे. फोटो आणि स्थान जतन केले आहे.",
+    no_address: "{body} चा प्रकाशित पत्ता उपलब्ध नाही.",
+    no_address_help: "जबाबदार स्थानिक संस्था निश्चित झाली, पण तिचा अधिकृत ईमेल उपलब्ध नाही आणि अॅप अंदाजाने पत्ता वापरणार नाही. फोटो आणि स्थान जतन केले आहे.",
+    no_location_help: "रस्त्याचे नुकसान निश्चित झाले, पण GPS स्थानाशिवाय जबाबदार महानगरपालिका ओळखता येत नाही. फोटो जतन केला आहे.",
+    review_btn: "फ्रेम्स तपासा आणि लेबल करा", export_btn: "लेबल केलेला डेटासेट निर्यात करा",
+    dash_btn: "&#128506;&#65039; &nbsp;तुमचे योगदान", dash_title: "तुमचे योगदान",
+    dash_range: "{days} चा अहवाल · पहिली नोंद {first}",
+    dash_empty: "अजून रस्त्याचे नुकसान नोंदवलेले नाही. तुम्ही वाहन चालवल्यावर नकाशा भरत जाईल.",
+    day_one: "1 दिवस", day_many: "{n} दिवस",
+    stat_found: "आढळलेल्या हानीच्या घटना", stat_reported: "पुष्टी केलेल्या नोंदी", stat_frames: "तपासलेल्या घटना",
+    stat_drives: "ड्राइव्ह", stat_footage: "MB व्हिडिओ", stat_km: "किमी तपासलेला रस्ता",
+    by_type: "नुकसानाच्या प्रकारानुसार", by_size: "आकारानुसार", by_area: "महानगरपालिकेनुसार",
+    map_pins: "{n} ठिकाणे", map_offline: "नकाशासाठी इंटरनेट आवश्यक आहे. ठिकाणे तरीही खाली दाखवली आहेत.",
+    zoom_hint: "झूमसाठी पिंच करा · हलवण्यासाठी ओढा · रीसेटसाठी दोनदा टॅप करा",
+    rec_suffix: "· रेकॉर्डिंग {mb} MB", rec_failed: "· रेकॉर्डिंग होत नाही",
+    net_trouble: "नेटवर्कची अडचण आहे; स्कॅन सुरू आहे ({n} फ्रेम्स प्रतीक्षेत)",
+    capture_failing: "कॅमेरा फ्रेम्स देत नाही. ड्राइव्ह थांबवून पुन्हा सुरू करा.",
+    camera_lost: "कॅमेरा थांबला आहे; कदाचित दुसरे अॅप तो वापरत आहे. स्कॅन आपोआप पुन्हा सुरू होईल.",
+    camera_low_quality: "कॅमेरा फक्त {width}px / {fps}fps", coverage_dropped: "रांगेतील घटना वगळल्या",
+    drive_end_failed: "नेटवर्कमुळे {n} फ्रेम्स तपासता आल्या नाहीत.",
+    footage_line: "व्हिडिओ: {mb} MB · {segments} क्लिप्स", analyse_btn: "व्हिडिओचे विश्लेषण करा",
+    delete_footage: "व्हिडिओ हटवा", analysing: "फ्रेम {i} पैकी {n} · {found} नवीन",
+    analyse_done: "व्हिडिओचे विश्लेषण पूर्ण: {n} फ्रेम्समधून रस्त्याच्या हानीच्या {found} नवीन घटना.",
+    analyse_none: "या ड्राइव्हचा कोणताही व्हिडिओ जतन केलेला नाही.",
+    analysing_dup: "({n} आधीच नोंदवलेल्या)", analyse_dup: "त्यापैकी {n} घटना आधीच नोंदवल्या होत्या.",
+    already_one: "आधीच नोंदवलेली {n} घटना", already_many: "आधीच नोंदवलेल्या {n} घटना",
+    frames_no_permission: "फ्रेम्स जतन करण्याची परवानगी मिळाली नाही. त्या जतन न करता विश्लेषण करायचे का?",
+    analysing_failed: "· {n} अयशस्वी",
+    analyse_incomplete: "पूर्ण करता आले नाही: {n} पैकी {failed} फ्रेम्स तपासल्या गेल्या नाहीत ({err}). निष्कर्ष घोषित केलेला नाही आणि व्हिडिओ जतन केला आहे.",
+    debug_note: "चालू: विश्लेषणानंतरही व्हिडिओ राहतो. बंद: हानीच्या घटना काढल्यानंतर व्हिडिओ हटवला जातो.",
+    record_label: "ड्राइव्हदरम्यान स्थानिक व्हिडिओ रेकॉर्ड करा (ऑडिओ नाही; सुरुवातीला बंद)",
+    keep_frames_label: "विश्लेषित केलेली प्रत्येक फ्रेम साधनावर जतन करा",
+    keep_frames_note: "AI ने तपासलेली प्रत्येक फ्रेम आणि निष्कर्ष Documents/pothole-frames मध्ये लिहिला जातो. प्रत्येक फ्रेम साधारण 300 KB असू शकते.",
+    frames_saved: "{n} फ्रेम्स Documents/{dir} मध्ये लिहिल्या.", frames_failed: "फ्रेम्स साधनावर लिहिता आल्या नाहीत.",
+    footage_freed: "व्हिडिओ हटवला; {mb} MB जागा मोकळी झाली.", footage_kept: "व्हिडिओ जतन केला आहे (डीबग मोड).",
+    offer_analyse: "या ड्राइव्हच्या व्हिडिओचे आता विश्लेषण करायचे का? {clips} क्लिप्स, {mb} MB. नोंदवण्यायोग्य नुकसान फोटो म्हणून ठेवले जाईल.",
+    confirm_delete_footage: "या ड्राइव्हचा रेकॉर्ड केलेला व्हिडिओ हटवायचा का? अहवाल जतन राहतील.",
+    drive_group: "{date} · {found}{known} · {checked} थेट फ्रेम्स तपासल्या{video}",
+    drive_video_suffix: " · {n} व्हिडिओ फ्रेम्स तपासल्या", drive_group_partial: "{date} · {found} · {kept} जतन केले",
+    lbl_pothole: "रस्त्यातील खड्डा", lbl_patch: "उखडलेली दुरुस्ती", lbl_surface: "उखडलेला पृष्ठभाग",
+    lbl_rut: "चाकांची चर / खोलगट भाग", lbl_no: "नोंदवण्यायोग्य नाही", lbl_skip: "वगळा", lbl_done: "पूर्ण",
+    review_empty: "लेबल करण्यासाठी काहीही उरलेले नाही. फ्रेम्स गोळा करण्यासाठी डीबग मोड सुरू ठेवून ड्राइव्ह करा.",
+    review_progress: "{n} लेबल करणे बाकी · आतापर्यंत {done} लेबल केले",
+    model_said: "अॅपचा निष्कर्ष: {verdict} · {assessment}",
+    export_ready: "{n} लेबल केलेल्या फ्रेम्स, {mb} MB. कुठे पाठवायचे ते निवडा.",
+    outside_coverage: "हे स्थान अॅपच्या कार्यक्षेत्राबाहेर आहे.",
+    outside_coverage_help: "हे ठिकाण समर्थित कर्नाटक किंवा ग्रेटर मुंबई मार्गांबाहेर आहे. फोटो आणि स्थान जतन केले आहे.",
+    size_small: "लहान", size_medium: "मध्यम", size_large: "मोठे",
+    damage_pothole_cavity: "रस्त्यातील खड्डा", damage_failed_patch: "उखडलेली रस्ता दुरुस्ती",
+    damage_surface_breakup: "उखडलेला रस्ता पृष्ठभाग", damage_rut_or_depression: "रस्त्यावरील चर / खोलगट भाग",
+    damage_other_road_damage: "रस्त्याचे इतर नुकसान", damage_none: "नोंदवण्यायोग्य नुकसान नाही",
+    assessment_clear: "स्पष्ट", assessment_probable: "संभाव्य", assessment_uncertain: "अनिश्चित", assessment_absent: "आढळले नाही",
+    verdict_detected: "{type} आढळले · {assessment}",
+    verdict_review: "संभाव्य {type} — नोंदवण्यापूर्वी पुन्हा फोटो घ्या किंवा तपासा",
+    verdict_rejected: "नोंदवण्यायोग्य रस्त्याचे नुकसान निश्चित झाले नाही",
+    early_yes: "नोंदवण्यायोग्य {type} आढळले. तक्रार तयार करत आहे...",
+    early_review: "रस्त्याचे संभाव्य नुकसान. अधिक स्पष्ट फोटो आवश्यक आहे.",
+    early_no: "या फोटोमध्ये नोंदवण्यायोग्य रस्त्याचे नुकसान नाही.",
+    verdict_sent: "सादर केल्याची नोंद", verdict_queued: "ईमेल अॅपमध्ये उघडले आहे; हे पाठवले असल्याचा पुरावा नाही.",
+    confidence: "विश्वासपातळी", email_subject_label: "ईमेलचा विषय",
+    email_body_label: "ईमेलचा मजकूर (पाठवण्यापूर्वी तपासा)", routes_to: "यांच्याकडे पाठवले जाईल:",
+    getting_location: "तुमचे स्थान मिळवत आहे...", waiting_gps: "GPS ची प्रतीक्षा करत आहे...",
+    gps_30s: "30 सेकंदांनंतरही GPS स्थान मिळाले नाही. उच्च अचूकतेसह स्थान सेवा सुरू आहे का ते तपासा.",
+    gps_lost: "GPS सिग्नल हरवला; नवीन स्थानाची प्रतीक्षा करत आहे...",
+    holding: "स्थान स्थिर ({checked} तपासले, {found} आढळले)",
+    scanning: "स्कॅन सुरू ({mode})... {checked} तपासले{analyzing}", analyzing_suffix: ", {n} चे विश्लेषण सुरू",
+    potholes_one: "हानीची {n} घटना", potholes_many: "हानीच्या {n} घटना",
+    drive_tip: "वाहन सुरू करण्यापूर्वी कॅमेरा असा लावा की रस्ता नारिंगी मार्गदर्शकात भरलेला दिसेल. प्रत्येक तपासणीत तीन फ्रेम्स वापरल्या जातात. वाहन चालवताना फोन हाताळू नका.",
+    drive_end: "ड्राइव्ह पूर्ण: {found} आढळले, {checked} फ्रेम्स तपासल्या.",
+    drive_end_known: "ड्राइव्ह पूर्ण: नवीन अहवाल नाही; {already} पुन्हा दिसले, {checked} फ्रेम्स तपासल्या.",
+    drive_seen_suffix: " {already} पुन्हा दिसले.",
+    drive_end_zero: "या ड्राइव्हमध्ये नोंदवण्यायोग्य नुकसान आढळले नाही ({checked} घटना तपासल्या{debug}).",
+    debug_saved_suffix: ", डीबग फ्रेम्स पुनर्तपासणीसाठी जतन केल्या",
+    confirm_send: "{to} यांना उद्देशून तयार केलेली तक्रार तुमच्या ईमेल अॅपमध्ये उघडायची का?",
+    bmc_prepare_btn: "मुंबईसाठी अहवाल तयार करा", bmc_share_btn: "पुरावा शेअर करा",
+    bmc_quickfix_btn: "Pothole QuickFix उघडा", bmc_whatsapp_btn: "BMC ला WhatsApp करा",
+    bmc_call_btn: "1916 वर कॉल करा",
+    bmc_disclaimer: "हे स्वतंत्र अॅप पुरावा तयार करते; BMC कडे तक्रार दाखल करत नाही. पुरावा तपासा आणि अधिकृत BMC माध्यमातून स्वतः नोंदवा. अधिकृत तक्रार क्रमांकाशिवाय सादर केल्याची नोंद करू नका.",
+    bmc_ward: "सुचवलेला BMC विभाग: {ward} (OpenStreetMap वरून; अधिकृत अॅपमध्ये पडताळा करा)",
+    complaint_title_label: "तक्रारीचे शीर्षक", complaint_body_label: "तक्रारीचा तपशील (शेअर करण्यापूर्वी तपासा)",
+    official_grievance_label: "अधिकृत BMC तक्रार क्रमांक", official_grievance_placeholder: "BMC कडून मिळालेला क्रमांक भरा",
+    mark_submitted_btn: "सादर केले असे नोंदवा", submitted_reference: "अधिकृत तक्रार क्रमांक: {id}",
+    confirm_bmc_handoff: "BMC चे अधिकृत Pothole QuickFix अॅप उघडायचे का? येथे फक्त माध्यम उघडल्याची नोंद होईल; तक्रार सादर झाल्याची नाही.",
+    confirm_mark_submitted: "तुम्ही अधिकृत माध्यमातून तक्रार पूर्णपणे सादर केली आहे याची खात्री आहे का?",
+    evidence_shared: "पुरावा तयार आहे. शेअर शीटमधून अधिकृत BMC माध्यम निवडा.",
+    confirm_delete: "हा अहवाल हटवायचा का?",
+    confirm_wipe: "API की, सेटिंग्ज, अहवाल, फोटो, व्हिडिओ आणि निर्यात केलेल्या डीबग फ्रेम्ससह या फोनवरील अॅपचा सर्व डेटा हटवायचा का?",
+    camera_failed: "कॅमेरा वापरता आला नाही: ", drive_stopped: "ड्राइव्ह मोड थांबला: ",
+    the_officer: "संबंधित अधिकारी",
+  },
 };
-const LANG = localStorage.getItem("app_lang") === "kn" ? "kn" : "en";
+const savedLang = localStorage.getItem("app_lang");
+const LANG = savedLang === "kn" || savedLang === "mr" ? savedLang : "en";
 const t = (k, p) => {
   let s = (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || k;
   if (p) for (const [key, val] of Object.entries(p)) s = s.split("{" + key + "}").join(val);
@@ -503,12 +658,16 @@ function show(screen) {
 
 function fmtDate(ts) { return new Date(ts * 1000).toLocaleString([], {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}); }
 
-const sendLabel = () => t("email_btn");
+const sendLabel = (r) => r && r.delivery_channel === "bmc_quickfix"
+  ? t("bmc_quickfix_btn") : t("email_btn");
 
-function chip(status) {
+function chip(status, report) {
   const labels = { draft: t("chip_draft"), sent: t("chip_sent"), queued: t("chip_queued"),
                    rejected: t("chip_rejected"), review: t("chip_review"),
                    unrouted: t("chip_unrouted") };
+  if (status === "queued" && report && report.delivery_channel === "bmc_quickfix") {
+    labels.queued = t("chip_queued_bmc");
+  }
   const css = Object.prototype.hasOwnProperty.call(labels, status) ? status : "review";
   return `<span class="chip ${css}">${escapeHtml(labels[status] || status)}</span>`;
 }
@@ -641,7 +800,7 @@ async function loadReports() {
     <div class="card row" data-id="${escapeAttr(r.id)}" style="cursor:pointer">
       <img class="thumb" src="${safePhotoSrc(photoSrc(r))}" alt="" loading="lazy" decoding="async">
       <div style="min-width:0">
-        <div>${chip(r.status)} ${damageType(r) !== "none" ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tDamage(r)}</span>` : ""} ${r.size ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tSize(r.size)}</span>` : ""}</div>
+        <div>${chip(r.status, r)} ${damageType(r) !== "none" ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tDamage(r)}</span>` : ""} ${r.size ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tSize(r.size)}</span>` : ""}</div>
         <div class="meta">${escapeHtml(fmtDate(r.created_at))}${r.address ? " · " + escapeHtml(String(r.address).split(",").slice(0, 2).join(", ")) : ""}</div>
       </div>
     </div>`;
@@ -903,13 +1062,38 @@ function openDetail(r, list) {
         </div>
       </div>`;
   } else {
-    // "queued" stays editable and reopenable: the user may have canceled the
-    // email composer and must not be stranded.
+    // "queued" means only that an external handoff was opened. It stays editable and
+    // never becomes a confirmed submission until the citizen says so (and, for BMC,
+    // records the grievance ID returned by an official channel).
     const sent = r.status === "sent";
+    const bmc = r.delivery_channel === "bmc_quickfix";
     const verdictText = r.status === "sent" ? t("verdict_sent")
       : r.status === "queued"
-      ? t("verdict_queued")
+      ? (bmc ? t("chip_queued_bmc") : t("verdict_queued"))
       : detectionVerdict(r);
+    const subjectLabel = bmc ? t("complaint_title_label") : t("email_subject_label");
+    const bodyLabel = bmc ? t("complaint_body_label") : t("email_body_label");
+    const bmcTools = bmc ? `
+        <div class="meta" style="margin-top:10px;color:#ffd9a8">${escapeHtml(t("bmc_disclaimer"))}</div>
+        ${r.ward_code ? `<div class="meta">${escapeHtml(t("bmc_ward", { ward: r.ward_code }))}</div>` : ""}
+        <div class="btn-row">
+          <button class="ghost" id="shareEvidenceBtn">${t("bmc_share_btn")}</button>
+          <button class="ghost" id="bmcWhatsAppBtn">${t("bmc_whatsapp_btn")}</button>
+        </div>
+        <div class="btn-row">
+          <button class="ghost" id="bmcCallBtn">${t("bmc_call_btn")}</button>
+        </div>` : "";
+    const confirmation = sent
+      ? (r.official_grievance_id
+          ? `<div class="meta" style="color:var(--ok);margin-top:10px">${escapeHtml(t("submitted_reference", { id: r.official_grievance_id }))}</div>`
+          : "")
+      : bmc
+        ? `<label>${t("official_grievance_label")}</label>
+           <input type="text" id="grievanceId" placeholder="${escapeAttr(t("official_grievance_placeholder"))}" value="">
+           <button class="send" id="markSubmittedBtn" style="width:100%;margin-top:10px">${t("mark_submitted_btn")}</button>`
+        : r.status === "queued"
+          ? `<button class="send" id="markSubmittedBtn" style="width:100%;margin-top:10px">${t("mark_submitted_btn")}</button>`
+          : "";
     d.innerHTML = `
       <div class="card">
         ${photoBlock(r)}
@@ -919,19 +1103,29 @@ function openDetail(r, list) {
         ${r.address ? `<div class="meta">&#128205; ${escapeHtml(r.address)}</div>` : ""}
         ${r.officer_name ? `<div class="meta">&#128231; ${escapeHtml(t("routes_to"))} ${escapeHtml(r.officer_name)}</div>` : ""}
         ${r.tender_note ? `<div class="meta">&#128209; ${escapeHtml(r.tender_note)}</div>` : ""}
-        <label>${t("email_subject_label")}</label>
+        ${bmcTools}
+        <label>${subjectLabel}</label>
         <input type="text" id="subj" value="" ${sent ? "disabled" : ""}>
-        <label>${t("email_body_label")}</label>
+        <label>${bodyLabel}</label>
         <textarea id="body" ${sent ? "disabled" : ""}></textarea>
         <div class="btn-row">
           <button class="ghost" id="backBtn">${t("back")}</button>
           ${sent ? "" : `<button class="ghost danger" id="discardBtn">${t("discard")}</button>
-          <button class="send" id="sendBtn">${sendLabel()} &#9993;</button>`}
+          <button class="send" id="sendBtn">${sendLabel(r)}</button>`}
         </div>
+        ${confirmation}
       </div>`;
     $("subj").value = r.email_subject || "";
     $("body").value = r.email_body || "";
     if (!sent) $("sendBtn").onclick = () => sendReport(r);
+    const share = $("shareEvidenceBtn");
+    if (share) share.onclick = () => shareEvidence(r);
+    const whatsapp = $("bmcWhatsAppBtn");
+    if (whatsapp) whatsapp.onclick = () => openBmcWhatsApp(r);
+    const call = $("bmcCallBtn");
+    if (call) call.onclick = () => { location.href = "tel:1916"; };
+    const mark = $("markSubmittedBtn");
+    if (mark) mark.onclick = () => markSubmitted(r);
   }
   wireDetailChrome(r);
   $("backBtn").onclick = () => { show("home"); loadReports(); };
@@ -945,9 +1139,11 @@ function openDetail(r, list) {
 }
 
 async function sendReport(r) {
-  // The draft is always addressed to the routed officer; nothing ever auto-sends.
+  // Nothing auto-sends. Mumbai opens BMC's official app; Karnataka opens an addressed
+  // email composer. In both cases "queued" means handoff opened, not submitted.
+  const bmc = r.delivery_channel === "bmc_quickfix";
   const to = r.officer_email || t("the_officer");
-  if (!confirm(t("confirm_send", { to }))) return;
+  if (!confirm(bmc ? t("confirm_bmc_handoff") : t("confirm_send", { to }))) return;
   const btn = $("sendBtn");
   btn.disabled = true; btn.textContent = t("working");
   try {
@@ -956,13 +1152,99 @@ async function sendReport(r) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email_subject: $("subj").value, email_body: $("body").value }),
     });
-    const updated = await api(`/api/reports/${r.id}/send`, { method: "POST" });
+    let updated = await api(`/api/reports/${r.id}/send`, { method: "POST" });
+    if (bmc && updated.handoff_url) {
+      const opened = await openExternalUrl(updated.handoff_url,
+        updated.handoff_package || BMC_QUICKFIX_PACKAGE);
+      if (!opened) throw new Error("Could not open Pothole QuickFix. Try again or use BMC WhatsApp.");
+      updated = await api(`/api/reports/${r.id}/handoff-opened`, { method: "POST" });
+    }
     await loadReports();
     openDetail(updated);
   } catch (e) {
     alert(e.message);
-    btn.disabled = false; btn.textContent = sendLabel() + " ✉";
+    btn.disabled = false; btn.textContent = sendLabel(r);
   }
+}
+
+async function markSubmitted(r) {
+  if (!confirm(t("confirm_mark_submitted"))) return;
+  const input = $("grievanceId");
+  const reference = input ? input.value.trim() : "";
+  const btn = $("markSubmittedBtn");
+  btn.disabled = true; btn.textContent = t("working");
+  try {
+    const updated = await api(`/api/reports/${r.id}/submitted`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ official_grievance_id: reference }),
+    });
+    await loadReports(); openDetail(updated);
+  } catch (e) {
+    alert(e.message); btn.disabled = false; btn.textContent = t("mark_submitted_btn");
+  }
+}
+
+async function openExternalUrl(url, packageName = null) {
+  const launcher = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.AppLauncher;
+  if (launcher) {
+    if (packageName) {
+      try {
+        const available = await launcher.canOpenUrl({ url: packageName });
+        if (available && available.value) {
+          const opened = await launcher.openUrl({ url: packageName });
+          if (!opened || opened.completed !== false) return true;
+        }
+      } catch (_) {}
+    }
+    try {
+      const opened = await launcher.openUrl({ url });
+      if (!opened || opened.completed !== false) return true;
+    } catch (_) {}
+  }
+  const opened = window.open(url, "_blank");
+  if (opened) {
+    try { opened.opener = null; } catch (_) {}
+    return true;
+  }
+  return false;
+}
+
+async function openBmcWhatsApp(r) {
+  const text = `${r.email_subject || "Mumbai road-damage report"}\n\n${r.email_body || ""}`.slice(0, 1800);
+  const opened = await openExternalUrl(`https://wa.me/918999228999?text=${encodeURIComponent(text)}`);
+  if (!opened) alert("Could not open BMC WhatsApp. Try Share evidence or call 1916.");
+}
+
+async function shareEvidence(r) {
+  const btn = $("shareEvidenceBtn");
+  btn.disabled = true; btn.textContent = t("working");
+  try {
+    const evidence = await api(`/api/reports/${r.id}/evidence`);
+    const P = window.Capacitor && Capacitor.Plugins;
+    if (P && P.Filesystem && P.Share) {
+      try { await P.Filesystem.mkdir({ path: SHARE_CACHE_DIR, directory: "CACHE", recursive: true }); } catch (_) {}
+      const wide = await P.Filesystem.writeFile({ path: `${SHARE_CACHE_DIR}/${evidence.name}`, data: evidence.base64, directory: "CACHE" });
+      const files = [wide.uri];
+      if (evidence.crop_base64 && evidence.crop_name) {
+        const crop = await P.Filesystem.writeFile({ path: `${SHARE_CACHE_DIR}/${evidence.crop_name}`, data: evidence.crop_base64, directory: "CACHE" });
+        files.push(crop.uri);
+      }
+      await P.Share.share({ title: evidence.name, text: evidence.text, files,
+                            dialogTitle: t("bmc_share_btn") });
+    } else {
+      const bin = atob(evidence.base64), arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      const file = new File([arr], evidence.name, { type: "image/jpeg" });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ title: evidence.name, text: evidence.text, files: [file] });
+      } else {
+        const url = URL.createObjectURL(file), a = document.createElement("a");
+        a.href = url; a.download = evidence.name; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+    }
+  } catch (e) { alert(e.message); }
+  btn.disabled = false; btn.textContent = t("bmc_share_btn");
 }
 
 // ---------- Drive Mode ----------
@@ -997,7 +1279,7 @@ const RECORD_MIMES = ["video/mp4;codecs=avc1.42E01E", "video/mp4",
 let drive = null;
 let driveStarting = false;
 let driveFinalizing = null;
-const DATA_NOTICE_VERSION = "2026-08-21-v1";
+const DATA_NOTICE_VERSION = "2026-08-21-v2-mumbai";
 let consentWaiter = null;
 
 function finishDataConsent(accepted) {
@@ -1474,6 +1756,7 @@ const keepFrames = () => localStorage.getItem("keep_frames") === "1";
 // frames registered with Android's MediaStore, which the Filesystem plugin does not
 // do, and a drive's worth of frames in the camera roll would bury real photos.
 const FRAME_DIR = "pothole-frames";
+const SHARE_CACHE_DIR = "pothole-reporter-shares";
 
 // Storage is requested once, before an analysis begins, so the dialog appears at a moment
 // the user can connect to something they just tapped. It used to fire from the first
@@ -2037,7 +2320,9 @@ async function openDash() {
   ]);
   const FOUND = ["draft", "queued", "sent", "unrouted"];
   const holes = reports.filter((r) => FOUND.includes(r.status));
-  const sent = reports.filter((r) => r.status === "sent" || r.status === "queued").length;
+  // Opening an email app or BMC channel proves only that a handoff was opened. Count a
+  // submission after the citizen explicitly confirms it (and Mumbai has a grievance ID).
+  const sent = reports.filter((r) => r.status === "sent").length;
   const frames = drives.reduce((n, d) => n + (d.checked || 0), 0) || reports.length;
   const mb = footage.reduce((n, f) => n + f.bytes, 0) / 1048576;
   const km = drives.reduce((n, d) => n + trackKm(d.gps_track || []), 0);
@@ -2166,7 +2451,8 @@ async function shareZip(zip) {
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     return;
   }
-  const w = await P.Filesystem.writeFile({ path: zip.name, data: zip.base64, directory: "CACHE" });
+  try { await P.Filesystem.mkdir({ path: SHARE_CACHE_DIR, directory: "CACHE", recursive: true }); } catch (_) {}
+  const w = await P.Filesystem.writeFile({ path: `${SHARE_CACHE_DIR}/${zip.name}`, data: zip.base64, directory: "CACHE" });
   await P.Share.share({ title: zip.name, files: [w.uri] });
 }
 $("fileInput").onchange = (e) => { handleFile(e.target.files[0]); e.target.value = ""; };
@@ -2244,6 +2530,11 @@ $("wipeBtn").onclick = async () => {
   try {
     if (plugins && plugins.Filesystem && plugins.Filesystem.rmdir) {
       await plugins.Filesystem.rmdir({ path: FRAME_DIR, directory: "DOCUMENTS", recursive: true });
+    }
+  } catch (e) {}
+  try {
+    if (plugins && plugins.Filesystem && plugins.Filesystem.rmdir) {
+      await plugins.Filesystem.rmdir({ path: SHARE_CACHE_DIR, directory: "CACHE", recursive: true });
     }
   } catch (e) {}
   localStorage.clear();

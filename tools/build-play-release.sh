@@ -74,9 +74,10 @@ rm -f "$AAB_PATH"
 
 echo "3/6 validating release identity and manifest policy"
 grep -Fq 'package="com.gauravsen.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="28"' "$BUNDLE_MANIFEST" || fail "expected versionCode 28"
-grep -Fq 'android:versionName="1.13.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.13.0"
+grep -Fq 'android:versionCode="29"' "$BUNDLE_MANIFEST" || fail "expected versionCode 29"
+grep -Fq 'android:versionName="1.14.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.14.0"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
+grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 
 if grep -Eq 'android:(debuggable|testOnly)="true"' "$BUNDLE_MANIFEST"; then
   fail "release manifest is debuggable or test-only"
@@ -118,6 +119,9 @@ done < <(find "$PACKAGED_ASSETS_ROOT" -type f -print | sort)
 
 if unzip -p "$AAB_PATH" base/assets/public/standalone.js | grep -Eqa 'sk-(proj-)?[A-Za-z0-9_-]{20,}'; then
   fail "an API-key-shaped value is embedded in standalone.js"
+fi
+if ! unzip -p "$AAB_PATH" base/assets/capacitor.plugins.json | grep -Fq '@capacitor/app-launcher'; then
+  fail "App Launcher plugin is missing from the release bundle"
 fi
 
 echo "6/6 release bundle accepted"
