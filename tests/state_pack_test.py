@@ -234,11 +234,14 @@ def check_municipal_city_pack(pack_id: str, envelope: dict, failures: list[str])
 
 def check_catalog(failures: list[str]) -> dict:
     static_manifest = ROOT / "static" / "pack-manifest.json"
-    if not MANIFEST_PATH.is_file() or not static_manifest.is_file():
-        failures.append("pack-manifest.json is not bundled in both static and Android assets")
+    pages_manifest = ROOT / "docs" / "pack-manifest.json"
+    if not MANIFEST_PATH.is_file() or not static_manifest.is_file() or not pages_manifest.is_file():
+        failures.append("pack-manifest.json is missing from static, Android, or GitHub Pages assets")
         return {}
     if MANIFEST_PATH.read_bytes() != static_manifest.read_bytes():
         failures.append("static and Android pack manifests differ")
+    if pages_manifest.read_bytes() != static_manifest.read_bytes():
+        failures.append("static and GitHub Pages pack manifests differ")
 
     try:
         manifest = load_manifest()

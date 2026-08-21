@@ -1,0 +1,2852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pothole Reporter</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<meta name="theme-color" content="#111214">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  :root { --bg:#111214; --card:#1c1d21; --line:#2a2b30; --accent:#ff7a1a; --ok:#3ecf6f; --bad:#ff5d5d; --mut:#9a9ba1; }
+  body { background:var(--bg); color:#f2f2f4; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Bengali","Nirmala UI",Vrinda,Roboto,sans-serif;
+         padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 24px); max-width:520px; margin:0 auto; }
+  h1 { font-size:22px; margin:4px 0 2px; }
+  .sub { color:var(--mut); font-size:13px; margin-bottom:14px; }
+  .banner { background:#3a2b12; border:1px solid #7a5416; color:#ffd9a8; padding:10px 12px; border-radius:10px; font-size:13px; margin-bottom:12px; display:none; }
+  button { font:inherit; border:0; border-radius:12px; cursor:pointer; }
+  .primary { width:100%; background:var(--accent); color:#1a1206; font-size:18px; font-weight:700; padding:16px; margin:6px 0 18px; }
+  .primary:active { transform:scale(.98); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:12px; }
+  .row { display:flex; gap:10px; align-items:center; }
+  .thumb { width:64px; height:64px; object-fit:cover; border-radius:10px; flex:none; }
+  .big-photo { width:100%; max-height:280px; object-fit:contain; background:#000; border-radius:10px; margin-bottom:10px; cursor:zoom-in; }
+  #viewer { position:fixed; inset:0; background:#000; z-index:50; display:flex; align-items:center; justify-content:center; overflow:hidden; touch-action:none; }
+  #viewerImg { max-width:100%; max-height:100%; transform-origin:0 0; will-change:transform; user-select:none; -webkit-user-drag:none; }
+  #viewerClose { position:absolute; top:calc(env(safe-area-inset-top) + 12px); right:12px; background:rgba(255,255,255,.15); color:#fff; font-size:20px; padding:10px 16px; border-radius:12px; }
+  #viewerHint { position:absolute; bottom:calc(env(safe-area-inset-bottom) + 16px); left:0; right:0; text-align:center; color:#9a9ba1; font-size:12px; }
+  .group-head { display:flex; align-items:center; gap:8px; margin:16px 0 6px; cursor:pointer; user-select:none; }
+  .group-head .caret { transition:transform .15s; display:inline-block; }
+  .photo-wrap { position:relative; }
+  .navarrow { position:absolute; top:50%; transform:translateY(-50%); background:rgba(0,0,0,.55); color:#fff;
+              font-size:26px; line-height:1; padding:14px 16px; border-radius:12px; }
+  .navarrow[disabled] { opacity:.25; }
+  .navarrow.prev { left:8px; } .navarrow.next { right:8px; }
+  .group-head.open .caret { transform:rotate(90deg); }
+  .chip { font-size:11px; font-weight:700; padding:3px 8px; border-radius:99px; display:inline-block; }
+  .chip.draft { background:#332a12; color:#ffca66; }
+  .chip.sent { background:#12331d; color:#7ce8a2; }
+  .chip.rejected { background:#331516; color:#ff9d9d; }
+  .chip.review { background:#3a2b12; color:#ffd28a; }
+  .chip.queued { background:#122f33; color:#7cd8e8; }
+  .chip.unrouted { background:#2b2b33; color:#b9b9c6; }
+  .meta { color:var(--mut); font-size:12px; margin-top:2px; }
+  label { display:block; font-size:12px; color:var(--mut); margin:10px 0 4px; }
+  input[type=text], input[type=password], select, textarea { width:100%; background:#131417; color:#f2f2f4; border:1px solid var(--line); border-radius:10px; padding:10px; font:inherit; font-size:14px; }
+  textarea { min-height:220px; line-height:1.45; }
+  .btn-row { display:flex; gap:10px; margin-top:12px; }
+  .send { flex:1; background:var(--ok); color:#06210f; font-weight:700; padding:14px; }
+  .ghost { flex:1; background:#26272c; color:#f2f2f4; padding:14px; }
+  .danger { background:#3a1a1a; color:#ff9d9d; }
+  .status { text-align:center; color:var(--mut); padding:26px 0; }
+  .spin { width:28px; height:28px; border:3px solid var(--line); border-top-color:var(--accent); border-radius:50%;
+          margin:0 auto 12px; animation:s 0.8s linear infinite; }
+  @keyframes s { to { transform:rotate(360deg); } }
+  .hidden { display:none !important; }
+  .verdict { font-size:16px; font-weight:700; margin-bottom:4px; }
+  .empty { text-align:center; color:var(--mut); font-size:14px; padding:20px 0; }
+  h2 { font-size:15px; color:var(--mut); font-weight:600; margin:18px 0 10px; }
+  .policy-links { display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:10px; }
+  .policy-links a { color:#ffb36f; font-size:13px; }
+</style>
+</head>
+<body>
+  <div class="row" style="justify-content:space-between;align-items:flex-start">
+    <div>
+      <h1>Pothole Reporter</h1>
+      <div class="sub" id="subTitle">Shoot it. Verify it. Report it to the right officer.</div>
+    </div>
+    <button class="ghost" id="gearBtn" style="flex:none;padding:10px 14px" aria-label="Settings">&#9881;&#65039;</button>
+  </div>
+  <div id="banner" class="banner"></div>
+
+  <div id="home">
+    <button class="primary" id="driveBtn">&#128663; &nbsp;Drive</button>
+    <button class="ghost" id="captureBtn" style="width:100%;margin-bottom:10px">&#128247; &nbsp;Photo</button>
+    <button class="ghost" id="dashBtn" style="width:100%;margin-bottom:14px">&#128506;&#65039; &nbsp;Contribution</button>
+    <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden">
+    <h2 id="reportsTitle">Your reports</h2>
+    <div id="list"><div class="empty">No reports yet.</div></div>
+  </div>
+
+  <div id="progress" class="hidden">
+    <img id="progressPhoto" class="big-photo" alt="">
+    <div class="status"><div class="spin"></div><div id="progressText">Working...</div></div>
+  </div>
+
+  <div id="detail" class="hidden"></div>
+
+  <div id="drive" class="hidden">
+    <div style="position:relative">
+      <video id="driveVideo" autoplay playsinline muted style="width:100%;border-radius:14px;background:#000;min-height:340px"></video>
+      <div aria-hidden="true" style="position:absolute;left:8%;right:8%;top:34%;bottom:7%;border:2px dashed rgba(255,122,26,.8);border-radius:14px;pointer-events:none"></div>
+      <button id="driveStop" style="position:absolute;top:12px;right:12px;background:var(--bad);color:#fff;font-size:17px;font-weight:700;padding:14px 24px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.5)">&#9632; Stop</button>
+      <span class="hidden"></span>
+      <div style="position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:10px;max-width:75%">
+        <div class="verdict" id="driveCount" style="margin:0;font-size:16px;color:#fff">0 road-damage events</div>
+        <div class="meta" id="driveStatus" style="color:#d5d5da">Starting...</div>
+      </div>
+    </div>
+    <div class="meta" id="driveTip" style="text-align:center;margin-top:10px">Mount the phone facing the road. Frames are checked continuously while you move (about every 10 meters). The back button also stops the drive.</div>
+  </div>
+
+  <div id="dash" class="hidden">
+    <div class="card">
+      <div class="verdict" id="dashTitle">Your contribution</div>
+      <div class="meta" id="dashRange"></div>
+      <div id="dashStats" class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"></div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div id="map" style="height:46vh;background:#0c0d0f"></div>
+      <div class="meta" id="mapNote" style="padding:8px 12px"></div>
+    </div>
+    <div class="card" id="dashBreak"></div>
+    <div class="btn-row"><button class="ghost" id="dashBack">Back</button></div>
+  </div>
+
+  <div id="review" class="hidden">
+    <img id="reviewPhoto" class="big-photo" style="max-height:52vh" alt="">
+    <div class="meta" id="reviewMeta"></div>
+    <div class="meta" id="reviewSaid" style="margin-top:6px"></div>
+    <div class="btn-row">
+      <button class="send" id="lblPothole">Pothole cavity</button>
+      <button class="ghost" id="lblPatch">Failed repair</button>
+    </div>
+    <div class="btn-row">
+      <button class="ghost" id="lblSurface">Surface breakup</button>
+      <button class="ghost" id="lblRut">Rut / depression</button>
+    </div>
+    <div class="btn-row">
+      <button class="ghost danger" id="lblNo">Not reportable</button>
+      <button class="ghost" id="lblSkip">Skip</button>
+    </div>
+    <div class="btn-row">
+      <button class="ghost" id="reviewBack">Done</button>
+    </div>
+  </div>
+
+  <div id="settings" class="hidden">
+    <div class="card">
+      <div class="verdict" id="settingsTitle">Settings</div>
+      <div class="meta" id="settingsHint" style="margin-bottom:6px"></div>
+      <label id="langLabel">Language / ಭಾಷೆ / भाषा / বাংলা</label>
+      <select id="setLang" style="width:100%;background:#131417;color:#f2f2f4;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit">
+        <option value="en">English</option>
+        <option value="kn">ಕನ್ನಡ</option>
+        <option value="mr">मराठी</option>
+        <option value="bn">বাংলা</option>
+      </select>
+      <label id="keyLabel">OpenAI API key (stored only on this device)</label>
+      <input type="password" id="setKey" placeholder="sk-...">
+      <label id="nameLabel">Your name (signs the complaints)</label>
+      <input type="text" id="setName" placeholder="Gaurav Sen">
+      <label id="modelLabel">Detection model</label>
+      <select id="setModel">
+        <option value="gpt-5-mini">gpt-5-mini — current baseline</option>
+        <option value="gpt-5.6">gpt-5.6 — accuracy experiment</option>
+      </select>
+      <label id="detailLabel">Image detail</label>
+      <select id="setDetail">
+        <option value="high">High</option>
+        <option value="original">Original (gpt-5.6 only)</option>
+      </select>
+      <div class="meta" id="accuracyNote"></div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:#f2f2f4">
+        <input type="checkbox" id="setDebug" style="width:18px;height:18px;accent-color:var(--accent)">
+        <span id="debugLabel">Debug mode: keep the drive video after analysing it</span>
+      </label>
+      <div class="meta" id="debugNote"></div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#f2f2f4">
+        <input type="checkbox" id="setRecord" style="width:18px;height:18px;accent-color:var(--accent)">
+        <span id="recordLabel">Record video during a drive</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#f2f2f4">
+        <input type="checkbox" id="setKeepFrames" style="width:18px;height:18px;accent-color:var(--accent)">
+        <span id="keepFramesLabel">Save every analysed frame to the device</span>
+      </label>
+      <div class="meta" id="keepFramesNote"></div>
+      <div class="meta" id="settingsNote" style="margin-top:10px">Complaints are always created as email drafts addressed to the concerned corporation officer. Nothing sends until you press send in your email app.</div>
+      <div class="meta" id="independentNote" style="margin-top:10px"></div>
+      <div class="policy-links">
+        <a id="privacyLink" href="https://coding-parrot.github.io/pothole-reporter/privacy.html" target="_blank" rel="noopener noreferrer">Privacy policy</a>
+        <a id="sourcesLink" href="https://coding-parrot.github.io/pothole-reporter/sources.html" target="_blank" rel="noopener noreferrer">Data sources and limits</a>
+      </div>
+      <button class="ghost" id="reviewBtn" style="width:100%;margin-top:12px">Review and label frames</button>
+      <button class="ghost" id="exportBtn" style="width:100%;margin-top:8px">Export labelled dataset</button>
+      <button class="ghost danger" id="wipeBtn" style="width:100%;margin-top:12px">Delete all reports and photos</button>
+      <div class="btn-row">
+        <button class="ghost" id="setBack">Back</button>
+        <button class="send" id="setSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dataConsent" class="hidden">
+    <div class="card">
+      <div class="verdict" id="privacyTitle">Before camera and location access</div>
+      <p class="meta" id="privacyBody" style="font-size:13px;line-height:1.5;margin-top:8px"></p>
+      <p class="meta" id="privacyLocal" style="font-size:13px;line-height:1.5;margin-top:10px"></p>
+      <p class="meta" id="privacyGovernment" style="font-size:13px;line-height:1.5;margin-top:10px"></p>
+      <div class="policy-links">
+        <a id="consentPrivacyLink" href="https://coding-parrot.github.io/pothole-reporter/privacy.html" target="_blank" rel="noopener noreferrer">Privacy policy</a>
+        <a id="consentSourcesLink" href="https://coding-parrot.github.io/pothole-reporter/sources.html" target="_blank" rel="noopener noreferrer">Data sources and limits</a>
+      </div>
+      <div class="btn-row">
+        <button class="ghost" id="privacyDecline">Not now</button>
+        <button class="send" id="privacyAccept">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="viewer" class="hidden">
+    <img id="viewerImg" alt="">
+    <button id="viewerClose">&times;</button>
+    <div id="viewerHint"></div>
+  </div>
+
+<script src="vendor/leaflet.js"></script>
+<script src="standalone.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ---------- i18n (English / Kannada / Marathi) ----------
+const I18N = {
+  en: {
+    sub: "Capture it. Verify the damage. Prepare a complaint for a suggested office.",
+    report_btn: "&#128247; &nbsp;Photo",
+    drive_btn: "&#128663; &nbsp;Drive",
+    your_reports: "Your reports",
+    no_reports: "No reports yet.",
+    banner_setup: "Setup needed: tap the gear icon and paste your OpenAI API key.",
+    settings_title: "Settings",
+    key_label: "OpenAI API key (saved here; sent to OpenAI as the credential)",
+    name_label: "Your name (signs the complaints)",
+    model_label: "Detection model",
+    detail_label: "Image detail",
+    accuracy_note: "gpt-5-mini/high remains the baseline. gpt-5.6/original is an experiment until your held-out drive benchmark proves it better.",
+    debug_label: "Debug mode: keep the drive video after analysing it",
+    settings_note: "Photos and video-derived frames are sent to OpenAI for detection and can contain number plates or faces. Exact location is sent to OpenStreetMap/Nominatim; Karnataka points also use Karnataka GIS. A verified state routing pack is downloaded from GitHub Pages and cached here; that request reveals the state and ordinary connection metadata, not exact coordinates. Your API key is sent only to OpenAI. The app never submits automatically.",
+    independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
+    privacy_title: "Before camera and location access",
+    privacy_body: "If you continue, the app will ask for camera and precise foreground location. A photo—or sampled frames from Drive Mode—is sent with your API key to OpenAI for road-damage detection. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports also query Karnataka GIS. The required state routing pack is downloaded from GitHub Pages. Processing can occur outside India.",
+    privacy_local: "Drive Mode uses no audio and stops when the app leaves the foreground. Optional video recording is off by default; clips stay here until analysed or deleted. Reports, photos, location tracks, settings and verified state packs remain on this device until deleted; unused packs are evicted automatically.",
+    privacy_government: "This independent app is not a government service and never submits automatically. GitHub Pages receives your IP address, time, user agent and the requested state-pack path, which reveals the state but not exact coordinates, photos or report content. After download, boundary checks run locally. Data reaches a civic provider only when you deliberately open or complete a handoff. Review the destination and content.",
+    privacy_link: "Privacy policy", sources_link: "Data sources and limits",
+    privacy_accept: "Continue", privacy_decline: "Not now",
+    wipe_btn: "Delete all app data",
+    welcome_hint: "Welcome. Paste your OpenAI API key to enable detection. It is saved on this device and sent to OpenAI only as the request credential.",
+    back: "Back", save: "Save", discard: "Discard", del: "Delete", email_btn: "Email", stop: "&#9632; Stop", working: "Working...",
+    chip_draft: "Draft", chip_sent: "Marked submitted", chip_queued: "Opened in email", chip_queued_bmc: "BMC handoff opened", chip_rejected: "Not reportable", chip_review: "Needs review",
+    chip_unrouted: "Not routed",
+    no_location: "The location could not be determined.",
+    location_uncertain: "GPS is not accurate enough to choose an authority.",
+    location_uncertain_help: "Road damage was confirmed, but the current GPS accuracy could cross a civic boundary. Retake it with a fresh, more accurate fix; this report was saved without a recipient.",
+    jurisdiction_unavailable: "Verified routing data could not be downloaded or read.",
+    jurisdiction_unavailable_help: "Road damage was confirmed, but the app will not guess a civic authority without its verified state pack. Check the connection and try again; this report was saved without a recipient.",
+    road_unknown: "Could not check who owns this road",
+    road_unknown_help: "The app could not reach the state road network to check whether this is a national highway, so it will not name a city officer for a road that may not be theirs. Try again when you have a signal.",
+    nat_highway: "{road} is a national highway",
+    nat_highway_help: "National highways are maintained by NHAI or the state PWD National Highways division, not by the city or town body, so there is no municipal officer to address. Report it on the NHAI Rajmargyatra app or the 1033 helpline.",
+    rural_road: "This road is in {body} gram panchayat, not a town or city.",
+    rural_road_help: "Road damage was confirmed, but it sits outside every urban local body, so it belongs to the state PWD or the panchayat engineering department rather than a municipality. Those are not in the directory yet, so no complaint has been addressed. The photo and location are saved.",
+    no_address: "No published address for {body}.",
+    no_address_help: "Road damage was confirmed and the responsible local body identified, but the app holds no official email for it and will not guess one. The photo and location are saved; the address can be added to the directory.",
+    no_location_help: "Road damage was confirmed, but without a GPS fix the app cannot tell which corporation is responsible, so it will not address a complaint. The photo is saved.",
+    review_btn: "Review and label frames", export_btn: "Export labelled dataset",
+    dash_btn: "&#128506;&#65039; &nbsp;Contribution", dash_title: "Your contribution",
+    dash_range: "{days} of reporting · first on {first}",
+    dash_empty: "No road damage reported yet. Your map fills up as you drive.",
+    day_one: "1 day", day_many: "{n} days",
+    stat_found: "damage events found", stat_reported: "confirmed submissions", stat_frames: "events checked",
+    stat_drives: "drives", stat_footage: "MB of footage", stat_km: "km of road covered",
+    by_type: "By damage type", by_size: "By size", by_area: "By corporation", map_pins: "{n} pinned",
+    map_offline: "Map tiles need a connection. Points are still plotted below.",
+    zoom_hint: "Pinch to zoom · drag to pan · double tap to reset",
+    rec_suffix: "· recording {mb} MB", rec_failed: "· not recording",
+    net_trouble: "Connection trouble, still scanning ({n} frames waiting)",
+    capture_failing: "The camera is not returning frames. Stop and restart the drive.",
+    camera_lost: "Camera paused (another app may be using it). Scanning resumes automatically.",
+    camera_low_quality: "camera only {width}px / {fps}fps",
+    coverage_dropped: "queued events dropped",
+    drive_end_failed: "{n} frames could not be checked because of the connection.",
+    footage_line: "Footage: {mb} MB · {segments} clips",
+    analyse_btn: "Analyse footage", delete_footage: "Delete footage",
+    analysing: "Frame {i} of {n} · {found} new",
+    analyse_done: "Footage analysed: {found} new road-damage events from {n} frames.",
+    analyse_none: "No footage stored for this drive.",
+    analysing_dup: "({n} already reported)",
+    analyse_dup: "{n} of them were already reported.",
+    already_one: "{n} already-reported event", already_many: "{n} already-reported events",
+    frames_no_permission: "Saving frames to storage was not permitted. Analyse anyway without saving them?",
+    analysing_failed: "· {n} failed",
+    analyse_incomplete: "Could not finish: {failed} of {n} frames were not checked ({err}) So no result is being claimed, and the video has been kept.",
+    debug_note: "On: the video survives analysis, so a drive can be re-examined or re-run against a better model. Off: the video is deleted after its road-damage events are extracted.",
+    record_label: "Record local video during a drive (no audio; off by default)",
+    keep_frames_label: "Save every analysed frame to the device",
+    keep_frames_note: "Writes each frame the AI checked, with its verdict, into Documents/pothole-frames on this phone. Visible in the Files app, and the raw material for building an evaluation set. Adds up fast: roughly 300 KB a frame.",
+    frames_saved: "{n} frames written to Documents/{dir}.",
+    frames_failed: "Could not write frames to the device.",
+    footage_freed: "Video deleted, {mb} MB freed.",
+    footage_kept: "Video kept (debug mode).",
+    offer_analyse: "Analyse this drive's video now? {clips} clips, {mb} MB. Reportable road damage is kept as photos; the rest is discarded.",
+    confirm_delete_footage: "Delete the recorded video for this drive? The reports stay.",
+    drive_group: "{date} · {found}{known} · {checked} live frames checked{video}",
+    drive_video_suffix: " · {n} video frames checked",
+    drive_group_partial: "{date} · {found} · {kept} kept",
+    lbl_pothole: "Pothole cavity", lbl_patch: "Failed repair", lbl_surface: "Surface breakup",
+    lbl_rut: "Rut / depression", lbl_no: "Not reportable", lbl_skip: "Skip", lbl_done: "Done",
+    review_empty: "Nothing left to label. Drive with debug mode on to collect frames.",
+    review_progress: "{n} left to label · {done} labelled so far",
+    model_said: "The app said: {verdict} · {assessment}",
+    export_ready: "{n} labelled frames, {mb} MB. Choose where to send it.",
+    outside_coverage: "This location is outside the area this app covers.",
+    outside_coverage_help: "This point is outside the supported Karnataka urban bodies, Mumbai Metropolitan Region, Pune Municipal Corporation, Kolkata Municipal Corporation, Delhi NCT, Greater Chennai Corporation, partial Hyderabad CURE core, and exact structured Ahmedabad routes. The photo and location are saved without a recipient.",
+    size_small: "small", size_medium: "medium", size_large: "large",
+    damage_pothole_cavity: "pothole cavity", damage_failed_patch: "failed road repair",
+    damage_surface_breakup: "broken road surface", damage_rut_or_depression: "road rut / depression",
+    damage_other_road_damage: "other road damage", damage_none: "no reportable damage",
+    assessment_clear: "clear", assessment_probable: "probable", assessment_uncertain: "uncertain", assessment_absent: "absent",
+    verdict_detected: "{type} detected · {assessment}",
+    verdict_review: "Possible {type} — retake or review before reporting",
+    verdict_rejected: "No reportable road damage confirmed",
+    early_yes: "Reportable {type} found. Preparing the complaint...",
+    early_review: "Possible road damage. A clearer photo is needed.",
+    early_no: "No reportable road damage in this photo.",
+    verdict_sent: "Marked submitted",
+    verdict_queued: "Opened in your email app. Edit and resend if you didn't send it.",
+    confidence: "confidence",
+    email_subject_label: "Email subject",
+    email_body_label: "Email body (review before sending)",
+    routes_to: "Routes to:",
+    getting_location: "Getting your location...",
+    waiting_gps: "Waiting for GPS...",
+    gps_30s: "Still no GPS fix after 30 s. Check that location is on with high accuracy.",
+    gps_lost: "GPS signal lost, waiting for a fresh fix...",
+    holding: "Holding position ({checked} checked, {found} found)",
+    scanning: "Scanning ({mode})... {checked} checked{analyzing}",
+    analyzing_suffix: ", {n} analyzing",
+    potholes_one: "{n} damage event", potholes_many: "{n} damage events",
+    drive_tip: "Before moving, aim the camera so the travelled road fills the orange guide with little sky or dashboard. Each check uses a three-frame burst. The back button also stops the drive.",
+    drive_end: "Drive ended: {found} found, {checked} frames checked.",
+    drive_end_known: "Drive ended: no new report; {already} seen again, {checked} frames checked.",
+    drive_seen_suffix: " {already} seen again.",
+    drive_end_zero: "No reportable road damage found in this drive ({checked} events checked{debug}).",
+    debug_saved_suffix: ", debug frames saved for review",
+    confirm_send: "Open your email app with the complaint addressed to {to}?",
+    confirm_suggested_email: "Location suggests {authority}, but this does not prove road ownership. Open your email app with the complaint addressed to {to}?",
+    open_official_btn: "Open {name}",
+    share_evidence_btn: "Share evidence",
+    official_whatsapp_btn: "Official WhatsApp",
+    official_call_btn: "Call {number}",
+    confirm_whatsapp_share: "Open the official WhatsApp for {authority} with this report's text and exact location? Nothing is sent until you press Send in WhatsApp.",
+    official_disclaimer: "Suggested civic authority: {authority}. This does not prove who owns this road. This independent app only prepares evidence; finish the grievance yourself in {service} and save its official reference ID.",
+    authority_disclaimer: "Suggested civic authority from the location: {authority}. Road ownership is not verified; check the recipient before sending.",
+    routing_match: "Routing clue: {field} = {value}. Verify it before submitting.",
+    alternate_handoff_btn: "Open {name}",
+    confirm_official_handoff: "Open {service} for the suggested authority {authority}? This records only that the handoff opened—not that a grievance was submitted.",
+    official_grievance_generic_label: "Official grievance/reference ID",
+    official_grievance_generic_placeholder: "Enter the ID returned by the official service",
+    chip_queued_official: "Official handoff opened",
+    bmc_prepare_btn: "Prepare Mumbai report",
+    bmc_share_btn: "Share evidence",
+    bmc_quickfix_btn: "Open Pothole QuickFix",
+    bmc_whatsapp_btn: "BMC WhatsApp",
+    bmc_call_btn: "Call 1916",
+    bmc_disclaimer: "This independent app prepares evidence but does not submit a BMC grievance. Review it, then finish in an official BMC channel. Do not mark it submitted without an official grievance ID.",
+    bmc_ward: "Suggested BMC ward: {ward} (from OpenStreetMap; verify in the official app)",
+    complaint_title_label: "Complaint title",
+    complaint_body_label: "Complaint details (review before sharing)",
+    official_grievance_label: "Official BMC grievance ID",
+    official_grievance_placeholder: "Enter ID returned by BMC",
+    mark_submitted_btn: "Mark submitted",
+    submitted_reference: "Official grievance ID: {id}",
+    confirm_bmc_handoff: "Continue to BMC's official Pothole QuickFix app? This app will only mark that the handoff was opened, not that a grievance was submitted.",
+    confirm_mark_submitted: "Confirm that you completed submission through an official channel?",
+    evidence_shared: "Evidence is ready. Choose an official BMC channel in the share sheet.",
+    confirm_delete: "Delete this report?",
+    confirm_wipe: "Delete ALL app data from this phone, including the API key, settings, reports, photos, footage and exported debug frames?",
+    camera_failed: "Camera access failed: ",
+    drive_stopped: "Drive mode stopped: ",
+    the_officer: "the concerned officer",
+  },
+  kn: {
+    sub: "ಫೋಟೋ ತೆಗೆಯಿರಿ. ಹಾನಿ ಪರಿಶೀಲಿಸಿ. ಸೂಚಿಸಿದ ಕಚೇರಿಗೆ ದೂರು ಕರಡು ಸಿದ್ಧಪಡಿಸಿ.",
+    report_btn: "&#128247; &nbsp;ಫೋಟೋ",
+    drive_btn: "&#128663; &nbsp;ಡ್ರೈವ್",
+    your_reports: "ನಿಮ್ಮ ವರದಿಗಳು",
+    no_reports: "ಇನ್ನೂ ವರದಿಗಳಿಲ್ಲ. ಗುಂಡಿ ಹುಡುಕಲು ಹೊರಡಿ.",
+    banner_setup: "ಸೆಟಪ್ ಅಗತ್ಯ: ಗಿಯರ್ ಐಕಾನ್ ಒತ್ತಿ ನಿಮ್ಮ OpenAI API ಕೀ ಅಂಟಿಸಿ.",
+    settings_title: "ಸೆಟ್ಟಿಂಗ್ಸ್",
+    key_label: "OpenAI API ಕೀ (ಈ ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ; OpenAI ಗೆ ಪ್ರಮಾಣಪತ್ರವಾಗಿ ಹೋಗುತ್ತದೆ)",
+    name_label: "ನಿಮ್ಮ ಹೆಸರು (ದೂರುಗಳಿಗೆ ಸಹಿ)",
+    model_label: "ಪತ್ತೆ ಮಾದರಿ",
+    detail_label: "ಚಿತ್ರದ ವಿವರ",
+    accuracy_note: "gpt-5-mini/high ಪ್ರಸ್ತುತ ಮೂಲಮಟ್ಟ. ನಿಮ್ಮ ಪ್ರತ್ಯೇಕ ಡ್ರೈವ್ ಪರೀಕ್ಷೆ ಉತ್ತಮವೆಂದು ಸಾಬೀತುಪಡಿಸುವವರೆಗೆ gpt-5.6/original ಪ್ರಯೋಗವಾಗಿದೆ.",
+    debug_label: "ಡೀಬಗ್ ಮೋಡ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ಡ್ರೈವ್ ವಿಡಿಯೋ ಉಳಿಸಿ",
+    settings_note: "ಫೋಟೋಗಳು ಮತ್ತು ವಿಡಿಯೋದಿಂದ ಪಡೆದ ಫ್ರೇಮ್‌ಗಳನ್ನು OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಅವುಗಳಲ್ಲಿ ವಾಹನ ಸಂಖ್ಯೆ ಅಥವಾ ಮುಖಗಳು ಇರಬಹುದು. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ಸ್ಥಳಗಳಿಗೆ Karnataka GIS ಕೂಡ ಬಳಸಲಾಗುತ್ತದೆ. ಪರಿಶೀಲಿತ ರಾಜ್ಯ ರೂಟಿಂಗ್ ಪ್ಯಾಕ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗಿ ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ; ಆ ವಿನಂತಿ ರಾಜ್ಯ ಮತ್ತು ಸಾಮಾನ್ಯ ಸಂಪರ್ಕ ಮಾಹಿತಿಯನ್ನು ತೋರಿಸುತ್ತದೆ, ನಿಖರ ಸ್ಥಳವನ್ನಲ್ಲ. API ಕೀ OpenAI ಗೆ ಮಾತ್ರ ಹೋಗುತ್ತದೆ. ಆ್ಯಪ್ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ.",
+    independent_note: "ಇದು ಸ್ವತಂತ್ರ, ಅನಧಿಕೃತ ಆ್ಯಪ್. ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯೊಂದಿಗೆ ಸಂಬಂಧ ಅಥವಾ ಅನುಮೋದನೆ ಇಲ್ಲ. ಕಚೇರಿ ಸೂಚನೆ ಅತ್ಯುತ್ತಮ ಪ್ರಯತ್ನ ಮಾತ್ರ; ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
+    privacy_title: "ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳ ಅನುಮತಿಯ ಮೊದಲು",
+    privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಮುಂಭಾಗದ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ಫೋಟೋ ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು API ಕೀಯೊಂದಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ವರದಿಗಳು Karnataka GIS ಅನ್ನು ಬಳಸುತ್ತವೆ. ಅಗತ್ಯ ರಾಜ್ಯ ರೂಟಿಂಗ್ ಪ್ಯಾಕ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
+    privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ ಮತ್ತು ಆ್ಯಪ್ ಮುಂಭಾಗದಿಂದ ಹೊರಬಂದಾಗ ನಿಲ್ಲುತ್ತದೆ. ಐಚ್ಛಿಕ ವಿಡಿಯೋ ಕ್ಲಿಪ್‌ಗಳು ವಿಶ್ಲೇಷಣೆ ಅಥವಾ ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲೇ ಇರುತ್ತವೆ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್, ಸೆಟ್ಟಿಂಗ್ಸ್ ಮತ್ತು ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್‌ಗಳು ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲಿರುತ್ತವೆ; ಬಳಸದ ಪ್ಯಾಕ್‌ಗಳು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ತೆರವುಗೊಳ್ಳುತ್ತವೆ.",
+    privacy_government: "ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸರ್ಕಾರಿ ಸೇವೆಯಲ್ಲ ಮತ್ತು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. GitHub Pages ನಿಮ್ಮ IP, ಸಮಯ, user agent ಮತ್ತು ಕೇಳಿದ ರಾಜ್ಯ-ಪ್ಯಾಕ್ ಮಾರ್ಗವನ್ನು ಪಡೆಯುತ್ತದೆ; ಇದರಿಂದ ರಾಜ್ಯ ತಿಳಿಯಬಹುದು, ನಿಖರ ಸ್ಥಳ, ಫೋಟೋ ಅಥವಾ ವರದಿ ವಿಷಯವಲ್ಲ. ಡೌನ್‌ಲೋಡ್ ನಂತರ ಗಡಿ ಪರಿಶೀಲನೆ ಸಾಧನದಲ್ಲೇ ನಡೆಯುತ್ತದೆ. ನೀವು ಹಸ್ತಾಂತರವನ್ನು ತೆರೆಯುವಾಗ ಮಾತ್ರ ಮಾಹಿತಿ ನಾಗರಿಕ ಸೇವೆಗೆ ಹೋಗುತ್ತದೆ.",
+    privacy_link: "ಗೌಪ್ಯತಾ ನೀತಿ", sources_link: "ಡೇಟಾ ಮೂಲಗಳು ಮತ್ತು ಮಿತಿಗಳು",
+    privacy_accept: "ಮುಂದುವರಿಸಿ", privacy_decline: "ಈಗ ಬೇಡ",
+    wipe_btn: "ಎಲ್ಲಾ ಆ್ಯಪ್ ಡೇಟಾ ಅಳಿಸಿ",
+    welcome_hint: "ಸ್ವಾಗತ. ಪತ್ತೆಗೆ ನಿಮ್ಮ OpenAI API ಕೀ ಅಂಟಿಸಿ. ಇದು ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ ಮತ್ತು OpenAI ಗೆ ಪ್ರಮಾಣಪತ್ರವಾಗಿ ಮಾತ್ರ ಕಳುಹಿಸಲಾಗುತ್ತದೆ.",
+    back: "ಹಿಂದೆ", save: "ಉಳಿಸಿ", discard: "ತ್ಯಜಿಸಿ", del: "ಅಳಿಸಿ", email_btn: "ಇಮೇಲ್", stop: "&#9632; ನಿಲ್ಲಿಸಿ", working: "ನಡೆಯುತ್ತಿದೆ...",
+    chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_queued_bmc: "BMC ಹಸ್ತಾಂತರ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ವರದಿ ಯೋಗ್ಯವಲ್ಲ", chip_review: "ಪರಿಶೀಲನೆ ಬೇಕು",
+    chip_unrouted: "ಮಾರ್ಗ ನಿಗದಿಯಾಗಿಲ್ಲ",
+    no_location: "ಸ್ಥಳ ಪತ್ತೆಯಾಗಲಿಲ್ಲ.",
+    location_uncertain: "ಅಧಿಕಾರಿಯನ್ನು ಆಯ್ಕೆ ಮಾಡಲು GPS ಸಾಕಷ್ಟು ನಿಖರವಾಗಿಲ್ಲ.",
+    location_uncertain_help: "ರಸ್ತೆ ಹಾನಿ ದೃಢಪಟ್ಟಿದೆ, ಆದರೆ GPS ನಿಖರತೆಯ ವಲಯವು ನಾಗರಿಕ ಗಡಿಯನ್ನು ದಾಟಬಹುದು. ಹೆಚ್ಚು ನಿಖರವಾದ ಹೊಸ ಸ್ಥಳದೊಂದಿಗೆ ಮತ್ತೆ ಸೆರೆಹಿಡಿಯಿರಿ; ಈ ವರದಿ ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
+    jurisdiction_unavailable: "ಪರಿಶೀಲಿತ ರೂಟಿಂಗ್ ಡೇಟಾವನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಲು ಅಥವಾ ಓದಲು ಆಗಲಿಲ್ಲ.",
+    jurisdiction_unavailable_help: "ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್ ಇಲ್ಲದೆ ಆ್ಯಪ್ ಯಾವುದೇ ನಾಗರಿಕ ಸಂಸ್ಥೆಯನ್ನು ಊಹಿಸುವುದಿಲ್ಲ. ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ; ವರದಿ ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
+    road_unknown: "ಈ ರಸ್ತೆ ಯಾರ ವ್ಯಾಪ್ತಿಗೆ ಬರುತ್ತದೆ ಎಂದು ಪರಿಶೀಲಿಸಲಾಗಲಿಲ್ಲ",
+    road_unknown_help: "ಇದು ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಯೇ ಎಂದು ಪರಿಶೀಲಿಸಲು ರಾಜ್ಯ ರಸ್ತೆ ಜಾಲವನ್ನು ತಲುಪಲಾಗಲಿಲ್ಲ. ಆದ್ದರಿಂದ ಬೇರೆಯವರ ರಸ್ತೆಗೆ ನಗರ ಅಧಿಕಾರಿಯ ಹೆಸರು ಸೂಚಿಸುವುದಿಲ್ಲ. ಸಿಗ್ನಲ್ ಬಂದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    nat_highway: "{road} ಒಂದು ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿ",
+    nat_highway_help: "ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಗಳನ್ನು NHAI ಅಥವಾ ರಾಜ್ಯ ಲೋಕೋಪಯೋಗಿ ಇಲಾಖೆಯ ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿ ವಿಭಾಗ ನಿರ್ವಹಿಸುತ್ತದೆ, ನಗರ ಸಂಸ್ಥೆ ಅಲ್ಲ. ಆದ್ದರಿಂದ ಇಲ್ಲಿ ಪುರಸಭೆ ಅಧಿಕಾರಿಗೆ ದೂರು ಸಲ್ಲಿಸಲಾಗದು. NHAI ರಾಜಮಾರ್ಗಯಾತ್ರಾ ಆ್ಯಪ್ ಅಥವಾ 1033 ಸಹಾಯವಾಣಿಯಲ್ಲಿ ವರದಿ ಮಾಡಿ.",
+    rural_road: "ಈ ರಸ್ತೆ {body} ಗ್ರಾಮ ಪಂಚಾಯತ್‌ನಲ್ಲಿದೆ, ಪಟ್ಟಣ ಅಥವಾ ನಗರದಲ್ಲಿ ಅಲ್ಲ.",
+    rural_road_help: "ಗುಂಡಿ ದೃಢಪಟ್ಟಿದೆ, ಆದರೆ ಇದು ಯಾವುದೇ ನಗರ ಸ್ಥಳೀಯ ಸಂಸ್ಥೆಯ ಹೊರಗಿದೆ. ಇದು ಲೋಕೋಪಯೋಗಿ ಇಲಾಖೆ ಅಥವಾ ಪಂಚಾಯತ್ ಎಂಜಿನಿಯರಿಂಗ್ ಇಲಾಖೆಗೆ ಸೇರಿದೆ, ಅವು ಇನ್ನೂ ಪಟ್ಟಿಯಲ್ಲಿಲ್ಲ. ಫೋಟೋ ಉಳಿಸಲಾಗಿದೆ.",
+    no_address: "{body} ಗೆ ಪ್ರಕಟಿತ ವಿಳಾಸ ಇಲ್ಲ.",
+    no_address_help: "ಗುಂಡಿ ದೃಢಪಟ್ಟಿದೆ ಮತ್ತು ಜವಾಬ್ದಾರ ಸಂಸ್ಥೆ ಗುರುತಿಸಲಾಗಿದೆ, ಆದರೆ ಅದರ ಅಧಿಕೃತ ಇಮೇಲ್ ಆ್ಯಪ್‌ನಲ್ಲಿ ಇಲ್ಲ, ಮತ್ತು ಊಹಿಸುವುದಿಲ್ಲ. ಫೋಟೋ ಉಳಿಸಲಾಗಿದೆ.",
+    no_location_help: "ಗುಂಡಿ ದೃಢಪಟ್ಟಿದೆ, ಆದರೆ GPS ಇಲ್ಲದೆ ಯಾವ ಪಾಲಿಕೆ ಜವಾಬ್ದಾರಿ ಎಂದು ತಿಳಿಯದು, ಆದ್ದರಿಂದ ದೂರು ಸಿದ್ಧಪಡಿಸಿಲ್ಲ. ಫೋಟೋ ಉಳಿಸಲಾಗಿದೆ.",
+    review_btn: "ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಗುರುತಿಸಿ", export_btn: "ಗುರುತಿಸಿದ ಡೇಟಾಸೆಟ್ ರಫ್ತು ಮಾಡಿ",
+    dash_btn: "&#128506;&#65039; &nbsp;ಕೊಡುಗೆ", dash_title: "ನಿಮ್ಮ ಕೊಡುಗೆ",
+    dash_range: "{days} ವರದಿ · ಮೊದಲನೆಯದು {first}",
+    dash_empty: "ಇನ್ನೂ ಗುಂಡಿಗಳ ವರದಿ ಇಲ್ಲ. ಡ್ರೈವ್ ಮಾಡಿದಂತೆ ನಕ್ಷೆ ತುಂಬುತ್ತದೆ.",
+    day_one: "1 ದಿನ", day_many: "{n} ದಿನಗಳು",
+    stat_found: "ಹಾನಿ ಘಟನೆಗಳು ಪತ್ತೆ", stat_reported: "ದೃಢೀಕರಿಸಿದ ಸಲ್ಲಿಕೆಗಳು", stat_frames: "ಘಟನೆಗಳ ಪರಿಶೀಲನೆ",
+    stat_drives: "ಡ್ರೈವ್‌ಗಳು", stat_footage: "MB ವಿಡಿಯೋ", stat_km: "ಕಿಮೀ ರಸ್ತೆ",
+    by_type: "ಹಾನಿಯ ಪ್ರಕಾರ", by_size: "ಗಾತ್ರದ ಪ್ರಕಾರ", by_area: "ಪಾಲಿಕೆ ಪ್ರಕಾರ", map_pins: "{n} ಗುರುತಿಸಲಾಗಿದೆ",
+    map_offline: "ನಕ್ಷೆಗೆ ಇಂಟರ್ನೆಟ್ ಬೇಕು. ಬಿಂದುಗಳು ಕೆಳಗೆ ತೋರಿಸಲಾಗಿದೆ.",
+    zoom_hint: "ಜೂಮ್‌ಗೆ ಪಿಂಚ್ · ಸರಿಸಲು ಎಳೆಯಿರಿ · ಮರುಹೊಂದಿಸಲು ಡಬಲ್ ಟ್ಯಾಪ್",
+    rec_suffix: "· {mb} MB ರೆಕಾರ್ಡ್", rec_failed: "· ರೆಕಾರ್ಡ್ ಆಗುತ್ತಿಲ್ಲ",
+    net_trouble: "ಸಂಪರ್ಕ ಸಮಸ್ಯೆ, ಇನ್ನೂ ಸ್ಕ್ಯಾನ್ ಆಗುತ್ತಿದೆ ({n} ಬಾಕಿ)",
+    capture_failing: "ಕ್ಯಾಮರಾವು ಫ್ರೇಮ್ ನೀಡುತ್ತಿಲ್ಲ. ಡ್ರೈವ್ ನಿಲ್ಲಿಸಿ ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ.",
+    camera_lost: "ಕ್ಯಾಮೆರಾ ವಿರಾಮದಲ್ಲಿದೆ (ಬೇರೆ ಆ್ಯಪ್ ಬಳಸುತ್ತಿರಬಹುದು). ತಾನಾಗಿಯೇ ಮುಂದುವರಿಯುತ್ತದೆ.",
+    camera_low_quality: "ಕ್ಯಾಮೆರಾ ಕೇವಲ {width}px / {fps}fps",
+    coverage_dropped: "ಬಾಕಿ ಘಟನೆಗಳು ಕೈಬಿಡಲಾಗಿದೆ",
+    drive_end_failed: "ಸಂಪರ್ಕದ ಕಾರಣ {n} ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಲಾಗಲಿಲ್ಲ.",
+    footage_line: "ವಿಡಿಯೋ: {mb} MB · {segments} ತುಣುಕುಗಳು",
+    analyse_btn: "ವಿಡಿಯೋ ವಿಶ್ಲೇಷಿಸಿ", delete_footage: "ವಿಡಿಯೋ ಅಳಿಸಿ",
+    analysing: "ಫ್ರೇಮ್ {i}/{n} · {found} ಹೊಸ",
+    analyse_done: "ವಿಶ್ಲೇಷಣೆ ಮುಗಿಯಿತು: {n} ಫ್ರೇಮ್‌ಗಳಿಂದ {found} ಹೊಸ ಗುಂಡಿಗಳು.",
+    analyse_none: "ಈ ಡ್ರೈವ್‌ಗೆ ವಿಡಿಯೋ ಇಲ್ಲ.",
+    analysing_dup: "({n} ಈಗಾಗಲೇ ವರದಿ)",
+    analyse_dup: "ಅವುಗಳಲ್ಲಿ {n} ಈಗಾಗಲೇ ವರದಿಯಾಗಿವೆ.",
+    already_one: "ಈಗಾಗಲೇ ವರದಿಯಾದ {n} ಘಟನೆ", already_many: "ಈಗಾಗಲೇ ವರದಿಯಾದ {n} ಘಟನೆಗಳು",
+    frames_no_permission: "ಫ್ರೇಮ್‌ಗಳನ್ನು ಉಳಿಸಲು ಅನುಮತಿ ಸಿಗಲಿಲ್ಲ. ಉಳಿಸದೆ ವಿಶ್ಲೇಷಣೆ ಮುಂದುವರಿಸಬೇಕೆ?",
+    analysing_failed: "· {n} ವಿಫಲ",
+    analyse_incomplete: "ಪೂರ್ಣಗೊಳಿಸಲಾಗಲಿಲ್ಲ: {n} ರಲ್ಲಿ {failed} ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ ({err}) ಆದ್ದರಿಂದ ಯಾವುದೇ ಫಲಿತಾಂಶ ಹೇಳುತ್ತಿಲ್ಲ, ವಿಡಿಯೋ ಉಳಿಸಲಾಗಿದೆ.",
+    debug_note: "ಆನ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ವಿಡಿಯೋ ಉಳಿಯುತ್ತದೆ. ಆಫ್: ಗುಂಡಿಗಳನ್ನು ತೆಗೆದ ನಂತರ ವಿಡಿಯೋ ಅಳಿಸಲಾಗುತ್ತದೆ.",
+    record_label: "ಡ್ರೈವ್ ಸಮಯದಲ್ಲಿ ಸ್ಥಳೀಯ ವಿಡಿಯೋ ರೆಕಾರ್ಡ್ ಮಾಡಿ (ಆಡಿಯೋ ಇಲ್ಲ; ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್)",
+    keep_frames_label: "ವಿಶ್ಲೇಷಿಸಿದ ಎಲ್ಲ ಫ್ರೇಮ್‌ಗಳನ್ನು ಸಾಧನದಲ್ಲಿ ಉಳಿಸಿ",
+    keep_frames_note: "AI ಪರಿಶೀಲಿಸಿದ ಪ್ರತಿ ಫ್ರೇಮ್ ಮತ್ತು ಅದರ ತೀರ್ಮಾನವನ್ನು Documents/pothole-frames ನಲ್ಲಿ ಬರೆಯುತ್ತದೆ. ಫೈಲ್ಸ್ ಆ್ಯಪ್‌ನಲ್ಲಿ ಕಾಣುತ್ತದೆ. ಪ್ರತಿ ಫ್ರೇಮ್ ಸುಮಾರು 300 KB.",
+    frames_saved: "{n} ಫ್ರೇಮ್‌ಗಳನ್ನು Documents/{dir} ನಲ್ಲಿ ಬರೆಯಲಾಗಿದೆ.",
+    frames_failed: "ಫ್ರೇಮ್‌ಗಳನ್ನು ಸಾಧನದಲ್ಲಿ ಬರೆಯಲಾಗಲಿಲ್ಲ.",
+    footage_freed: "ವಿಡಿಯೋ ಅಳಿಸಲಾಗಿದೆ, {mb} MB ಮುಕ್ತ.",
+    footage_kept: "ವಿಡಿಯೋ ಉಳಿಸಲಾಗಿದೆ (ಡೀಬಗ್ ಮೋಡ್).",
+    offer_analyse: "ಈ ಡ್ರೈವ್‌ನ ವಿಡಿಯೋ ಈಗ ವಿಶ್ಲೇಷಿಸಬೇಕೆ? {clips} ತುಣುಕುಗಳು, {mb} MB. ಗುಂಡಿಗಳು ಫೋಟೋಗಳಾಗಿ ಉಳಿಯುತ್ತವೆ, ಉಳಿದವು ಅಳಿಸಲಾಗುತ್ತದೆ.",
+    confirm_delete_footage: "ಈ ಡ್ರೈವ್‌ನ ವಿಡಿಯೋ ಅಳಿಸಬೇಕೆ? ವರದಿಗಳು ಉಳಿಯುತ್ತವೆ.",
+    drive_group: "{date} · {found}{known} · {checked} ಲೈವ್ ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ{video}",
+    drive_video_suffix: " · {n} ವಿಡಿಯೋ ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ",
+    drive_group_partial: "{date} · {found} · {kept} ಉಳಿಸಲಾಗಿದೆ",
+    lbl_pothole: "ರಸ್ತೆ ಗುಂಡಿ", lbl_patch: "ವಿಫಲ ದುರಸ್ತಿ", lbl_surface: "ಮೇಲ್ಮೈ ಹಾನಿ",
+    lbl_rut: "ರಸ್ತೆ ಕುಸಿತ", lbl_no: "ವರದಿ ಯೋಗ್ಯವಲ್ಲ", lbl_skip: "ಬಿಟ್ಟುಬಿಡಿ", lbl_done: "ಮುಗಿಯಿತು",
+    review_empty: "ಗುರುತಿಸಲು ಏನೂ ಉಳಿದಿಲ್ಲ. ಡೀಬಗ್ ಮೋಡ್ ಆನ್ ಮಾಡಿ ಡ್ರೈವ್ ಮಾಡಿ.",
+    review_progress: "{n} ಬಾಕಿ · {done} ಗುರುತಿಸಲಾಗಿದೆ",
+    model_said: "ಆ್ಯಪ್ ಹೇಳಿದ್ದು: {verdict} · {assessment}",
+    export_ready: "{n} ಗುರುತಿಸಿದ ಫ್ರೇಮ್‌ಗಳು, {mb} MB. ಎಲ್ಲಿಗೆ ಕಳುಹಿಸಬೇಕೆಂದು ಆಯ್ಕೆಮಾಡಿ.",
+    outside_coverage: "ಈ ಸ್ಥಳ ಈ ಆ್ಯಪ್ ಒಳಗೊಂಡ ವ್ಯಾಪ್ತಿಯ ಹೊರಗಿದೆ.",
+    outside_coverage_help: "ಈ ಸ್ಥಳ ಬೆಂಬಲಿತ ಕರ್ನಾಟಕ, ಮುಂಬೈ ಮಹಾನಗರ ಪ್ರದೇಶ, ಪುಣೆ ಮಹಾನಗರ ಪಾಲಿಕೆ, ಕೋಲ್ಕತ್ತಾ ಮಹಾನಗರ ಪಾಲಿಕೆ, ದೆಹಲಿ NCT, ಚೆನ್ನೈ ಮಹಾನಗರ ಪಾಲಿಕೆ, ಹೈದರಾಬಾದ್ CURE core ಮತ್ತು ಅಹಮದಾಬಾದ್ ಮಾರ್ಗಗಳ ಹೊರಗಿದೆ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳವನ್ನು ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
+    size_small: "ಸಣ್ಣ", size_medium: "ಮಧ್ಯಮ", size_large: "ದೊಡ್ಡ",
+    damage_pothole_cavity: "ರಸ್ತೆ ಗುಂಡಿ", damage_failed_patch: "ವಿಫಲವಾದ ರಸ್ತೆ ದುರಸ್ತಿ",
+    damage_surface_breakup: "ಹಾಳಾದ ರಸ್ತೆ ಮೇಲ್ಮೈ", damage_rut_or_depression: "ರಸ್ತೆ ಕುಸಿತ",
+    damage_other_road_damage: "ಇತರೆ ರಸ್ತೆ ಹಾನಿ", damage_none: "ವರದಿ ಮಾಡಬಹುದಾದ ಹಾನಿ ಇಲ್ಲ",
+    assessment_clear: "ಸ್ಪಷ್ಟ", assessment_probable: "ಸಂಭಾವ್ಯ", assessment_uncertain: "ಅನಿಶ್ಚಿತ", assessment_absent: "ಇಲ್ಲ",
+    verdict_detected: "{type} ಪತ್ತೆಯಾಗಿದೆ · {assessment}",
+    verdict_review: "ಸಂಭಾವ್ಯ {type} — ವರದಿಗೂ ಮೊದಲು ಸ್ಪಷ್ಟ ಫೋಟೋ ಅಥವಾ ಪರಿಶೀಲನೆ ಬೇಕು",
+    verdict_rejected: "ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ದೃಢಪಟ್ಟಿಲ್ಲ",
+    early_yes: "ವರದಿ ಮಾಡಬಹುದಾದ {type} ಪತ್ತೆಯಾಗಿದೆ. ದೂರು ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ...",
+    early_review: "ಸಂಭಾವ್ಯ ರಸ್ತೆ ಹಾನಿ. ಸ್ಪಷ್ಟ ಫೋಟೋ ಬೇಕು.",
+    early_no: "ಈ ಫೋಟೋದಲ್ಲಿ ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಇಲ್ಲ.",
+    verdict_sent: "ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ",
+    verdict_queued: "ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ. ಕಳುಹಿಸಿಲ್ಲದಿದ್ದರೆ ತಿದ್ದಿ ಮತ್ತೆ ತೆರೆಯಿರಿ.",
+    confidence: "ವಿಶ್ವಾಸ",
+    email_subject_label: "ಇಮೇಲ್ ವಿಷಯ",
+    email_body_label: "ಇಮೇಲ್ ಪಠ್ಯ (ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ)",
+    routes_to: "ಯಾರಿಗೆ:",
+    getting_location: "ನಿಮ್ಮ ಸ್ಥಳ ಪಡೆಯಲಾಗುತ್ತಿದೆ...",
+    waiting_gps: "GPS ಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ...",
+    gps_30s: "30 ಸೆಕೆಂಡ್ ನಂತರವೂ GPS ಸಿಕ್ಕಿಲ್ಲ. ಲೊಕೇಶನ್ ಆನ್ ಇದೆಯೇ ಪರಿಶೀಲಿಸಿ.",
+    gps_lost: "GPS ಸಿಗ್ನಲ್ ಕಳೆದುಹೋಗಿದೆ, ಹೊಸ ಫಿಕ್ಸ್‌ಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ...",
+    holding: "ಸ್ಥಳದಲ್ಲಿದ್ದೀರಿ ({checked} ಪರಿಶೀಲನೆ, {found} ಪತ್ತೆ)",
+    scanning: "ಸ್ಕ್ಯಾನ್ ({mode})... {checked} ಪರಿಶೀಲನೆ{analyzing}",
+    analyzing_suffix: ", {n} ವಿಶ್ಲೇಷಣೆ",
+    potholes_one: "{n} ಹಾನಿ ಘಟನೆ", potholes_many: "{n} ಹಾನಿ ಘಟನೆಗಳು",
+    drive_tip: "ಚಲಿಸುವ ಮೊದಲು ರಸ್ತೆ ಕಿತ್ತಳೆ ಮಾರ್ಗದರ್ಶಿಯೊಳಗೆ ತುಂಬುವಂತೆ ಕ್ಯಾಮೆರಾ ಹೊಂದಿಸಿ; ಆಕಾಶ ಮತ್ತು ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ಕಡಿಮೆ ಇರಲಿ. ಪ್ರತಿ ಪರಿಶೀಲನೆ ಮೂರು ಫ್ರೇಮ್‌ಗಳನ್ನು ಬಳಸುತ್ತದೆ.",
+    drive_end: "ಡ್ರೈವ್ ಮುಗಿಯಿತು: {found} ಪತ್ತೆ, {checked} ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ.",
+    drive_end_known: "ಡ್ರೈವ್ ಮುಗಿಯಿತು: ಹೊಸ ವರದಿ ಇಲ್ಲ; {already} ಮತ್ತೆ ಕಂಡಿದೆ, {checked} ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ.",
+    drive_seen_suffix: " {already} ಮತ್ತೆ ಕಂಡಿದೆ.",
+    drive_end_zero: "ಈ ಡ್ರೈವ್‌ನಲ್ಲಿ ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಪತ್ತೆಯಾಗಿಲ್ಲ ({checked} ಪರಿಶೀಲನೆ{debug}).",
+    debug_saved_suffix: ", ಡೀಬಗ್ ಫ್ರೇಮ್‌ಗಳು ಉಳಿದಿವೆ",
+    confirm_send: "{to} ಗೆ ಉದ್ದೇಶಿಸಿದ ದೂರಿನೊಂದಿಗೆ ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ?",
+    confirm_suggested_email: "ಸ್ಥಳವು {authority} ಅನ್ನು ಸೂಚಿಸುತ್ತದೆ, ಆದರೆ ಇದು ರಸ್ತೆ ಮಾಲೀಕತ್ವವನ್ನು ಸಾಬೀತುಪಡಿಸುವುದಿಲ್ಲ. {to} ಗೆ ಉದ್ದೇಶಿಸಿದ ದೂರಿನೊಂದಿಗೆ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ?",
+    open_official_btn: "{name} ತೆರೆಯಿರಿ", share_evidence_btn: "ಸಾಕ್ಷ್ಯ ಹಂಚಿಕೊಳ್ಳಿ",
+    official_whatsapp_btn: "ಅಧಿಕೃತ WhatsApp", official_call_btn: "{number} ಗೆ ಕರೆ ಮಾಡಿ",
+    confirm_whatsapp_share: "ಈ ವರದಿಯ ಪಠ್ಯ ಮತ್ತು ನಿಖರ ಸ್ಥಳದೊಂದಿಗೆ {authority} ಸಂಸ್ಥೆಯ ಅಧಿಕೃತ WhatsApp ತೆರೆಯಬೇಕೆ? WhatsApp ನಲ್ಲಿ Send ಒತ್ತುವವರೆಗೆ ಏನೂ ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ.",
+    official_disclaimer: "ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: {authority}. ಇದು ರಸ್ತೆ ಮಾಲೀಕತ್ವದ ದೃಢೀಕರಣವಲ್ಲ. ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸಾಕ್ಷ್ಯವನ್ನು ಮಾತ್ರ ಸಿದ್ಧಪಡಿಸುತ್ತದೆ; {service} ನಲ್ಲಿ ನೀವೇ ದೂರು ಪೂರ್ಣಗೊಳಿಸಿ ಮತ್ತು ಅಧಿಕೃತ ಉಲ್ಲೇಖ ಸಂಖ್ಯೆಯನ್ನು ಉಳಿಸಿ.",
+    authority_disclaimer: "ಸ್ಥಳದ ಆಧಾರದ ಮೇಲೆ ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: {authority}. ರಸ್ತೆ ಮಾಲೀಕತ್ವ ದೃಢಪಟ್ಟಿಲ್ಲ; ಕಳುಹಿಸುವ ಮೊದಲು ಸ್ವೀಕರಿಸುವವರನ್ನು ಪರಿಶೀಲಿಸಿ.",
+    routing_match: "ಮಾರ್ಗ ಸೂಚನೆ: {field} = {value}. ಸಲ್ಲಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
+    alternate_handoff_btn: "{name} ತೆರೆಯಿರಿ",
+    confirm_official_handoff: "ಸೂಚಿಸಿದ {authority} ಗಾಗಿ {service} ತೆರೆಯಬೇಕೆ? ಇಲ್ಲಿ ಹಸ್ತಾಂತರ ತೆರೆಯಲಾಗಿದೆ ಎಂದು ಮಾತ್ರ ದಾಖಲಾಗುತ್ತದೆ; ದೂರು ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಅಲ್ಲ.",
+    official_grievance_generic_label: "ಅಧಿಕೃತ ದೂರು/ಉಲ್ಲೇಖ ಸಂಖ್ಯೆ",
+    official_grievance_generic_placeholder: "ಅಧಿಕೃತ ಸೇವೆ ನೀಡಿದ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ",
+    chip_queued_official: "ಅಧಿಕೃತ ಹಸ್ತಾಂತರ ತೆರೆಯಲಾಗಿದೆ",
+    bmc_prepare_btn: "ಮುಂಬೈ ವರದಿ ಸಿದ್ಧಪಡಿಸಿ", bmc_share_btn: "ಸಾಕ್ಷ್ಯ ಹಂಚಿಕೊಳ್ಳಿ",
+    bmc_quickfix_btn: "Pothole QuickFix ತೆರೆಯಿರಿ", bmc_whatsapp_btn: "BMC WhatsApp ತೆರೆಯಿರಿ",
+    bmc_call_btn: "1916 ಗೆ ಕರೆ ಮಾಡಿ",
+    bmc_disclaimer: "ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸಾಕ್ಷ್ಯವನ್ನು ಸಿದ್ಧಪಡಿಸುತ್ತದೆ; BMC ಗೆ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. ಪರಿಶೀಲಿಸಿ ಅಧಿಕೃತ BMC ಮಾರ್ಗದಲ್ಲಿ ನೀವೇ ಸಲ್ಲಿಸಿ. ಅಧಿಕೃತ ದೂರು ಸಂಖ್ಯೆಯಿಲ್ಲದೆ ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಬೇಡಿ.",
+    bmc_ward: "ಸೂಚಿಸಿದ BMC ವಾರ್ಡ್: {ward} (OpenStreetMap ಆಧಾರಿತ; ಅಧಿಕೃತ ಆ್ಯಪ್‌ನಲ್ಲಿ ಪರಿಶೀಲಿಸಿ)",
+    complaint_title_label: "ದೂರು ಶೀರ್ಷಿಕೆ", complaint_body_label: "ದೂರು ವಿವರಗಳು (ಹಂಚುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ)",
+    official_grievance_label: "ಅಧಿಕೃತ BMC ದೂರು ಸಂಖ್ಯೆ", official_grievance_placeholder: "BMC ನೀಡಿದ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ",
+    mark_submitted_btn: "ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಿ", submitted_reference: "ಅಧಿಕೃತ ದೂರು ಸಂಖ್ಯೆ: {id}",
+    confirm_bmc_handoff: "BMC ಯ ಅಧಿಕೃತ Pothole QuickFix ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ? ಇಲ್ಲಿ ಮಾರ್ಗ ತೆರೆಯಲಾಗಿದೆ ಎಂದು ಮಾತ್ರ ದಾಖಲಾಗುತ್ತದೆ; ದೂರು ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಅಲ್ಲ.",
+    confirm_mark_submitted: "ನೀವು ಅಧಿಕೃತ ಮಾರ್ಗದಲ್ಲಿ ದೂರನ್ನು ಪೂರ್ಣವಾಗಿ ಸಲ್ಲಿಸಿದ್ದೀರಿ ಎಂದು ದೃಢಪಡಿಸುತ್ತೀರಾ?",
+    evidence_shared: "ಸಾಕ್ಷ್ಯ ಸಿದ್ಧವಾಗಿದೆ. ಹಂಚಿಕೆ ಪಟ್ಟಿಯಿಂದ ಅಧಿಕೃತ BMC ಮಾರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+    confirm_delete: "ಈ ವರದಿ ಅಳಿಸಬೇಕೆ?",
+    confirm_wipe: "API ಕೀ, ಸೆಟ್ಟಿಂಗ್ಸ್, ವರದಿ, ಫೋಟೋ, ವಿಡಿಯೋ ಮತ್ತು ರಫ್ತು ಮಾಡಿದ ಡೀಬಗ್ ಫ್ರೇಮ್‌ಗಳೂ ಸೇರಿ ಈ ಫೋನ್‌ನಲ್ಲಿರುವ ಎಲ್ಲಾ ಆ್ಯಪ್ ಡೇಟಾವನ್ನು ಅಳಿಸಬೇಕೆ?",
+    camera_failed: "ಕ್ಯಾಮೆರಾ ಪ್ರವೇಶ ವಿಫಲ: ",
+    drive_stopped: "ಡ್ರೈವ್ ಮೋಡ್ ನಿಂತಿದೆ: ",
+    the_officer: "ಸಂಬಂಧಿತ ಅಧಿಕಾರಿ",
+  },
+  mr: {
+    sub: "फोटो घ्या. नुकसान पडताळा. सुचवलेल्या कार्यालयासाठी तक्रारीचा मसुदा तयार करा.",
+    report_btn: "&#128247; &nbsp;फोटो",
+    drive_btn: "&#128663; &nbsp;ड्राइव्ह",
+    your_reports: "तुमचे अहवाल",
+    no_reports: "अजून कोणतेही अहवाल नाहीत.",
+    banner_setup: "सेटअप आवश्यक: गिअर चिन्हावर टॅप करून तुमची OpenAI API की पेस्ट करा.",
+    settings_title: "सेटिंग्ज",
+    key_label: "OpenAI API की (येथे जतन होते; विनंतीचे प्रमाणीकरण करण्यासाठी OpenAI कडे पाठवली जाते)",
+    name_label: "तुमचे नाव (तक्रारींवर स्वाक्षरीसाठी)",
+    model_label: "शोध मॉडेल",
+    detail_label: "चित्राचा तपशील",
+    accuracy_note: "gpt-5-mini/high हा सध्याचा आधार आहे. स्वतंत्र चाचणीत अधिक चांगला ठरेपर्यंत gpt-5.6/original हा प्रयोग आहे.",
+    debug_label: "डीबग मोड: विश्लेषणानंतरही ड्राइव्हचा व्हिडिओ जतन करा",
+    settings_note: "फोटो आणि व्हिडिओतील फ्रेम्स OpenAI कडे पाठवल्या जातात; त्यात वाहन क्रमांक किंवा चेहरे असू शकतात. अचूक स्थान OpenStreetMap/Nominatim कडे आणि कर्नाटकासाठी Karnataka GIS कडे पाठवले जाते. पडताळलेला राज्य routing pack GitHub Pages वरून डाउनलोड होऊन या साधनावर जतन होतो; त्या विनंतीत राज्य व सामान्य कनेक्शन माहिती दिसते, अचूक स्थान नाही. API की फक्त OpenAI कडे जाते. अॅप तक्रार आपोआप सादर करत नाही.",
+    independent_note: "हे स्वतंत्र, अनधिकृत अॅप आहे. कोणत्याही सरकारी संस्थेशी संलग्न नाही किंवा तिची मान्यता नाही. सुचवलेले कार्यालय पाठवण्यापूर्वी तपासा.",
+    privacy_title: "कॅमेरा आणि स्थान वापरण्यापूर्वी",
+    privacy_body: "पुढे गेल्यास अॅप कॅमेरा आणि वापराच्या वेळी अचूक स्थान वापरण्याची परवानगी मागेल. फोटो किंवा ड्राइव्ह मोडमधील निवडक फ्रेम्स API कीसह OpenAI कडे पाठवल्या जातात. अचूक स्थान OpenStreetMap/Nominatim कडे आणि कर्नाटकासाठी Karnataka GIS कडे जाते. आवश्यक राज्य routing pack GitHub Pages वरून डाउनलोड होतो. प्रक्रिया भारताबाहेर होऊ शकते.",
+    privacy_local: "ड्राइव्ह मोडमध्ये ऑडिओ वापरला जात नाही आणि अॅप पार्श्वभूमीत गेल्यावर तो थांबतो. ऐच्छिक व्हिडिओ क्लिप्स विश्लेषण किंवा हटवण्यापर्यंत या साधनावर राहतात. अहवाल, फोटो, स्थान मार्ग, सेटिंग्ज आणि पडताळलेले राज्य packs हटवेपर्यंत साधनावर राहतात; न वापरलेले packs आपोआप काढले जातात.",
+    privacy_government: "हे स्वतंत्र अॅप सरकारी सेवा नाही आणि तक्रार आपोआप सादर करत नाही. GitHub Pages ला तुमचा IP, वेळ, user agent आणि मागितलेला राज्य-pack मार्ग मिळतो; त्यामुळे राज्य समजू शकते, अचूक स्थान, फोटो किंवा अहवालाचा मजकूर नाही. डाउनलोडनंतर सीमा तपासणी साधनावर होते. तुम्ही बाह्य माध्यम उघडल्यावरच माहिती नागरी सेवेकडे जाते.",
+    privacy_link: "गोपनीयता धोरण", sources_link: "डेटा स्रोत आणि मर्यादा",
+    privacy_accept: "पुढे जा", privacy_decline: "आत्ता नको",
+    wipe_btn: "अॅपचा सर्व डेटा हटवा",
+    welcome_hint: "स्वागत आहे. शोध सुरू करण्यासाठी तुमची OpenAI API की पेस्ट करा. ती या साधनावर जतन होते आणि फक्त विनंतीचे प्रमाणीकरण करण्यासाठी OpenAI कडे पाठवली जाते.",
+    back: "मागे", save: "जतन करा", discard: "रद्द करा", del: "हटवा", email_btn: "ईमेल",
+    stop: "&#9632; थांबवा", working: "प्रक्रिया सुरू आहे...",
+    chip_draft: "मसुदा", chip_sent: "सादर केल्याची नोंद", chip_queued: "ईमेलमध्ये उघडले",
+    chip_queued_bmc: "BMC माध्यम उघडले", chip_rejected: "नोंदवण्यायोग्य नाही",
+    chip_review: "पुनर्तपासणी आवश्यक", chip_unrouted: "मार्ग निश्चित नाही",
+    no_location: "स्थान निश्चित करता आले नाही.",
+    location_uncertain: "संस्था निवडण्यासाठी GPS स्थान पुरेसे अचूक नाही.",
+    location_uncertain_help: "रस्त्याचे नुकसान निश्चित झाले, पण GPS अचूकतेचे वर्तुळ नागरी सीमा ओलांडू शकते. अधिक अचूक नवीन स्थानासह पुन्हा फोटो घ्या; हा अहवाल प्राप्तकर्त्याशिवाय जतन केला आहे.",
+    jurisdiction_unavailable: "पडताळलेला routing डेटा डाउनलोड किंवा वाचता आला नाही.",
+    jurisdiction_unavailable_help: "पडताळलेल्या राज्य pack शिवाय अॅप कोणतीही नागरी संस्था अंदाजाने निवडणार नाही. कनेक्शन तपासून पुन्हा प्रयत्न करा; अहवाल प्राप्तकर्त्याशिवाय जतन केला आहे.",
+    road_unknown: "हा रस्ता कोणाच्या अखत्यारीत आहे ते तपासता आले नाही",
+    road_unknown_help: "हा राष्ट्रीय महामार्ग आहे का हे तपासण्यासाठी अॅपला राज्याच्या रस्ते जाळ्याशी संपर्क करता आला नाही. नेटवर्क मिळाल्यावर पुन्हा प्रयत्न करा.",
+    nat_highway: "{road} हा राष्ट्रीय महामार्ग आहे",
+    nat_highway_help: "राष्ट्रीय महामार्गांची देखभाल NHAI किंवा राज्याचा राष्ट्रीय महामार्ग विभाग करतो. NHAI Rajmargyatra अॅप किंवा 1033 हेल्पलाइनवर नोंदवा.",
+    rural_road: "हा रस्ता {body} ग्रामपंचायतीत आहे; शहर किंवा नगर क्षेत्रात नाही.",
+    rural_road_help: "रस्त्याचे नुकसान निश्चित झाले आहे, पण हे ठिकाण नागरी स्थानिक संस्थांच्या बाहेर आहे. फोटो आणि स्थान जतन केले आहे.",
+    no_address: "{body} चा प्रकाशित पत्ता उपलब्ध नाही.",
+    no_address_help: "जबाबदार स्थानिक संस्था निश्चित झाली, पण तिचा अधिकृत ईमेल उपलब्ध नाही आणि अॅप अंदाजाने पत्ता वापरणार नाही. फोटो आणि स्थान जतन केले आहे.",
+    no_location_help: "रस्त्याचे नुकसान निश्चित झाले, पण GPS स्थानाशिवाय जबाबदार महानगरपालिका ओळखता येत नाही. फोटो जतन केला आहे.",
+    review_btn: "फ्रेम्स तपासा आणि लेबल करा", export_btn: "लेबल केलेला डेटासेट निर्यात करा",
+    dash_btn: "&#128506;&#65039; &nbsp;योगदान", dash_title: "तुमचे योगदान",
+    dash_range: "{days} चा अहवाल · पहिली नोंद {first}",
+    dash_empty: "अजून रस्त्याचे नुकसान नोंदवलेले नाही. तुम्ही वाहन चालवल्यावर नकाशा भरत जाईल.",
+    day_one: "1 दिवस", day_many: "{n} दिवस",
+    stat_found: "आढळलेल्या हानीच्या घटना", stat_reported: "पुष्टी केलेल्या नोंदी", stat_frames: "तपासलेल्या घटना",
+    stat_drives: "ड्राइव्ह", stat_footage: "MB व्हिडिओ", stat_km: "किमी तपासलेला रस्ता",
+    by_type: "नुकसानाच्या प्रकारानुसार", by_size: "आकारानुसार", by_area: "महानगरपालिकेनुसार",
+    map_pins: "{n} ठिकाणे", map_offline: "नकाशासाठी इंटरनेट आवश्यक आहे. ठिकाणे तरीही खाली दाखवली आहेत.",
+    zoom_hint: "झूमसाठी पिंच करा · हलवण्यासाठी ओढा · रीसेटसाठी दोनदा टॅप करा",
+    rec_suffix: "· रेकॉर्डिंग {mb} MB", rec_failed: "· रेकॉर्डिंग होत नाही",
+    net_trouble: "नेटवर्कची अडचण आहे; स्कॅन सुरू आहे ({n} फ्रेम्स प्रतीक्षेत)",
+    capture_failing: "कॅमेरा फ्रेम्स देत नाही. ड्राइव्ह थांबवून पुन्हा सुरू करा.",
+    camera_lost: "कॅमेरा थांबला आहे; कदाचित दुसरे अॅप तो वापरत आहे. स्कॅन आपोआप पुन्हा सुरू होईल.",
+    camera_low_quality: "कॅमेरा फक्त {width}px / {fps}fps", coverage_dropped: "रांगेतील घटना वगळल्या",
+    drive_end_failed: "नेटवर्कमुळे {n} फ्रेम्स तपासता आल्या नाहीत.",
+    footage_line: "व्हिडिओ: {mb} MB · {segments} क्लिप्स", analyse_btn: "व्हिडिओचे विश्लेषण करा",
+    delete_footage: "व्हिडिओ हटवा", analysing: "फ्रेम {i} पैकी {n} · {found} नवीन",
+    analyse_done: "व्हिडिओचे विश्लेषण पूर्ण: {n} फ्रेम्समधून रस्त्याच्या हानीच्या {found} नवीन घटना.",
+    analyse_none: "या ड्राइव्हचा कोणताही व्हिडिओ जतन केलेला नाही.",
+    analysing_dup: "({n} आधीच नोंदवलेल्या)", analyse_dup: "त्यापैकी {n} घटना आधीच नोंदवल्या होत्या.",
+    already_one: "आधीच नोंदवलेली {n} घटना", already_many: "आधीच नोंदवलेल्या {n} घटना",
+    frames_no_permission: "फ्रेम्स जतन करण्याची परवानगी मिळाली नाही. त्या जतन न करता विश्लेषण करायचे का?",
+    analysing_failed: "· {n} अयशस्वी",
+    analyse_incomplete: "पूर्ण करता आले नाही: {n} पैकी {failed} फ्रेम्स तपासल्या गेल्या नाहीत ({err}). निष्कर्ष घोषित केलेला नाही आणि व्हिडिओ जतन केला आहे.",
+    debug_note: "चालू: विश्लेषणानंतरही व्हिडिओ राहतो. बंद: हानीच्या घटना काढल्यानंतर व्हिडिओ हटवला जातो.",
+    record_label: "ड्राइव्हदरम्यान स्थानिक व्हिडिओ रेकॉर्ड करा (ऑडिओ नाही; सुरुवातीला बंद)",
+    keep_frames_label: "विश्लेषित केलेली प्रत्येक फ्रेम साधनावर जतन करा",
+    keep_frames_note: "AI ने तपासलेली प्रत्येक फ्रेम आणि निष्कर्ष Documents/pothole-frames मध्ये लिहिला जातो. प्रत्येक फ्रेम साधारण 300 KB असू शकते.",
+    frames_saved: "{n} फ्रेम्स Documents/{dir} मध्ये लिहिल्या.", frames_failed: "फ्रेम्स साधनावर लिहिता आल्या नाहीत.",
+    footage_freed: "व्हिडिओ हटवला; {mb} MB जागा मोकळी झाली.", footage_kept: "व्हिडिओ जतन केला आहे (डीबग मोड).",
+    offer_analyse: "या ड्राइव्हच्या व्हिडिओचे आता विश्लेषण करायचे का? {clips} क्लिप्स, {mb} MB. नोंदवण्यायोग्य नुकसान फोटो म्हणून ठेवले जाईल.",
+    confirm_delete_footage: "या ड्राइव्हचा रेकॉर्ड केलेला व्हिडिओ हटवायचा का? अहवाल जतन राहतील.",
+    drive_group: "{date} · {found}{known} · {checked} थेट फ्रेम्स तपासल्या{video}",
+    drive_video_suffix: " · {n} व्हिडिओ फ्रेम्स तपासल्या", drive_group_partial: "{date} · {found} · {kept} जतन केले",
+    lbl_pothole: "रस्त्यातील खड्डा", lbl_patch: "उखडलेली दुरुस्ती", lbl_surface: "उखडलेला पृष्ठभाग",
+    lbl_rut: "चाकांची चर / खोलगट भाग", lbl_no: "नोंदवण्यायोग्य नाही", lbl_skip: "वगळा", lbl_done: "पूर्ण",
+    review_empty: "लेबल करण्यासाठी काहीही उरलेले नाही. फ्रेम्स गोळा करण्यासाठी डीबग मोड सुरू ठेवून ड्राइव्ह करा.",
+    review_progress: "{n} लेबल करणे बाकी · आतापर्यंत {done} लेबल केले",
+    model_said: "अॅपचा निष्कर्ष: {verdict} · {assessment}",
+    export_ready: "{n} लेबल केलेल्या फ्रेम्स, {mb} MB. कुठे पाठवायचे ते निवडा.",
+    outside_coverage: "हे स्थान अॅपच्या कार्यक्षेत्राबाहेर आहे.",
+    outside_coverage_help: "हे ठिकाण समर्थित कर्नाटक, मुंबई महानगर प्रदेश, पुणे महानगरपालिका, कोलकाता महानगरपालिका, दिल्ली NCT, चेन्नई महानगरपालिका, हैदराबाद CURE core आणि अहमदाबाद मार्गांबाहेर आहे. फोटो आणि स्थान प्राप्तकर्त्याशिवाय जतन केले आहे.",
+    size_small: "लहान", size_medium: "मध्यम", size_large: "मोठे",
+    damage_pothole_cavity: "रस्त्यातील खड्डा", damage_failed_patch: "उखडलेली रस्ता दुरुस्ती",
+    damage_surface_breakup: "उखडलेला रस्ता पृष्ठभाग", damage_rut_or_depression: "रस्त्यावरील चर / खोलगट भाग",
+    damage_other_road_damage: "रस्त्याचे इतर नुकसान", damage_none: "नोंदवण्यायोग्य नुकसान नाही",
+    assessment_clear: "स्पष्ट", assessment_probable: "संभाव्य", assessment_uncertain: "अनिश्चित", assessment_absent: "आढळले नाही",
+    verdict_detected: "{type} आढळले · {assessment}",
+    verdict_review: "संभाव्य {type} — नोंदवण्यापूर्वी पुन्हा फोटो घ्या किंवा तपासा",
+    verdict_rejected: "नोंदवण्यायोग्य रस्त्याचे नुकसान निश्चित झाले नाही",
+    early_yes: "नोंदवण्यायोग्य {type} आढळले. तक्रार तयार करत आहे...",
+    early_review: "रस्त्याचे संभाव्य नुकसान. अधिक स्पष्ट फोटो आवश्यक आहे.",
+    early_no: "या फोटोमध्ये नोंदवण्यायोग्य रस्त्याचे नुकसान नाही.",
+    verdict_sent: "सादर केल्याची नोंद", verdict_queued: "ईमेल अॅपमध्ये उघडले आहे; हे पाठवले असल्याचा पुरावा नाही.",
+    confidence: "विश्वासपातळी", email_subject_label: "ईमेलचा विषय",
+    email_body_label: "ईमेलचा मजकूर (पाठवण्यापूर्वी तपासा)", routes_to: "यांच्याकडे पाठवले जाईल:",
+    getting_location: "तुमचे स्थान मिळवत आहे...", waiting_gps: "GPS ची प्रतीक्षा करत आहे...",
+    gps_30s: "30 सेकंदांनंतरही GPS स्थान मिळाले नाही. उच्च अचूकतेसह स्थान सेवा सुरू आहे का ते तपासा.",
+    gps_lost: "GPS सिग्नल हरवला; नवीन स्थानाची प्रतीक्षा करत आहे...",
+    holding: "स्थान स्थिर ({checked} तपासले, {found} आढळले)",
+    scanning: "स्कॅन सुरू ({mode})... {checked} तपासले{analyzing}", analyzing_suffix: ", {n} चे विश्लेषण सुरू",
+    potholes_one: "हानीची {n} घटना", potholes_many: "हानीच्या {n} घटना",
+    drive_tip: "वाहन सुरू करण्यापूर्वी कॅमेरा असा लावा की रस्ता नारिंगी मार्गदर्शकात भरलेला दिसेल. प्रत्येक तपासणीत तीन फ्रेम्स वापरल्या जातात. वाहन चालवताना फोन हाताळू नका.",
+    drive_end: "ड्राइव्ह पूर्ण: {found} आढळले, {checked} फ्रेम्स तपासल्या.",
+    drive_end_known: "ड्राइव्ह पूर्ण: नवीन अहवाल नाही; {already} पुन्हा दिसले, {checked} फ्रेम्स तपासल्या.",
+    drive_seen_suffix: " {already} पुन्हा दिसले.",
+    drive_end_zero: "या ड्राइव्हमध्ये नोंदवण्यायोग्य नुकसान आढळले नाही ({checked} घटना तपासल्या{debug}).",
+    debug_saved_suffix: ", डीबग फ्रेम्स पुनर्तपासणीसाठी जतन केल्या",
+    confirm_send: "{to} यांना उद्देशून तयार केलेली तक्रार तुमच्या ईमेल अॅपमध्ये उघडायची का?",
+    confirm_suggested_email: "स्थानावरून {authority} ही संस्था सुचते, पण यावरून रस्त्याची मालकी सिद्ध होत नाही. {to} यांना उद्देशून तक्रार ईमेल अॅपमध्ये उघडायची का?",
+    open_official_btn: "{name} उघडा", share_evidence_btn: "पुरावा शेअर करा",
+    official_whatsapp_btn: "अधिकृत WhatsApp", official_call_btn: "{number} वर कॉल करा",
+    confirm_whatsapp_share: "या अहवालाचा मजकूर आणि अचूक स्थान घेऊन {authority} चे अधिकृत WhatsApp उघडायचे का? WhatsApp मध्ये Send दाबेपर्यंत काहीही पाठवले जाणार नाही.",
+    official_disclaimer: "सुचवलेली नागरी संस्था: {authority}. यावरून त्या रस्त्याची मालकी सिद्ध होत नाही. हे स्वतंत्र अॅप फक्त पुरावा तयार करते; {service} मध्ये स्वतः तक्रार पूर्ण करा आणि अधिकृत संदर्भ क्रमांक जतन करा.",
+    authority_disclaimer: "स्थानावरून सुचवलेली नागरी संस्था: {authority}. रस्त्याची मालकी पडताळलेली नाही; पाठवण्यापूर्वी प्राप्तकर्ता तपासा.",
+    routing_match: "मार्ग सूचक: {field} = {value}. सादर करण्यापूर्वी पडताळा करा.",
+    alternate_handoff_btn: "{name} उघडा",
+    confirm_official_handoff: "सुचवलेल्या {authority} साठी {service} उघडायचे का? येथे फक्त माध्यम उघडल्याची नोंद होईल; तक्रार सादर झाल्याची नाही.",
+    official_grievance_generic_label: "अधिकृत तक्रार/संदर्भ क्रमांक",
+    official_grievance_generic_placeholder: "अधिकृत सेवेकडून मिळालेला क्रमांक भरा",
+    chip_queued_official: "अधिकृत माध्यम उघडले",
+    bmc_prepare_btn: "मुंबईसाठी अहवाल तयार करा", bmc_share_btn: "पुरावा शेअर करा",
+    bmc_quickfix_btn: "Pothole QuickFix उघडा", bmc_whatsapp_btn: "BMC ला WhatsApp करा",
+    bmc_call_btn: "1916 वर कॉल करा",
+    bmc_disclaimer: "हे स्वतंत्र अॅप पुरावा तयार करते; BMC कडे तक्रार दाखल करत नाही. पुरावा तपासा आणि अधिकृत BMC माध्यमातून स्वतः नोंदवा. अधिकृत तक्रार क्रमांकाशिवाय सादर केल्याची नोंद करू नका.",
+    bmc_ward: "सुचवलेला BMC विभाग: {ward} (OpenStreetMap वरून; अधिकृत अॅपमध्ये पडताळा करा)",
+    complaint_title_label: "तक्रारीचे शीर्षक", complaint_body_label: "तक्रारीचा तपशील (शेअर करण्यापूर्वी तपासा)",
+    official_grievance_label: "अधिकृत BMC तक्रार क्रमांक", official_grievance_placeholder: "BMC कडून मिळालेला क्रमांक भरा",
+    mark_submitted_btn: "सादर केले असे नोंदवा", submitted_reference: "अधिकृत तक्रार क्रमांक: {id}",
+    confirm_bmc_handoff: "BMC चे अधिकृत Pothole QuickFix अॅप उघडायचे का? येथे फक्त माध्यम उघडल्याची नोंद होईल; तक्रार सादर झाल्याची नाही.",
+    confirm_mark_submitted: "तुम्ही अधिकृत माध्यमातून तक्रार पूर्णपणे सादर केली आहे याची खात्री आहे का?",
+    evidence_shared: "पुरावा तयार आहे. शेअर शीटमधून अधिकृत BMC माध्यम निवडा.",
+    confirm_delete: "हा अहवाल हटवायचा का?",
+    confirm_wipe: "API की, सेटिंग्ज, अहवाल, फोटो, व्हिडिओ आणि निर्यात केलेल्या डीबग फ्रेम्ससह या फोनवरील अॅपचा सर्व डेटा हटवायचा का?",
+    camera_failed: "कॅमेरा वापरता आला नाही: ", drive_stopped: "ड्राइव्ह मोड थांबला: ",
+    the_officer: "संबंधित अधिकारी",
+  },
+  bn: {
+    sub: "ছবি তুলুন। ক্ষতি যাচাই করুন। প্রস্তাবিত দপ্তরের জন্য অভিযোগের খসড়া তৈরি করুন।",
+    report_btn: "&#128247; &nbsp;ছবি",
+    drive_btn: "&#128663; &nbsp;ড্রাইভ",
+    your_reports: "আপনার রিপোর্ট",
+    no_reports: "এখনও কোনও রিপোর্ট নেই।",
+    banner_setup: "সেটআপ প্রয়োজন: গিয়ার আইকনে ট্যাপ করে আপনার OpenAI API key পেস্ট করুন।",
+    settings_title: "সেটিংস",
+    key_label: "OpenAI API key (এখানে সংরক্ষিত; অনুমোদনের পরিচয় হিসেবে OpenAI-তে পাঠানো হয়)",
+    name_label: "আপনার নাম (অভিযোগে স্বাক্ষর হিসেবে ব্যবহৃত হবে)",
+    model_label: "শনাক্তকরণ মডেল",
+    detail_label: "ছবির বিশদতা",
+    accuracy_note: "gpt-5-mini/high বর্তমান ভিত্তিমাত্রা। আলাদা রাখা ড্রাইভ বেঞ্চমার্কে উন্নতি প্রমাণিত না হওয়া পর্যন্ত gpt-5.6/original পরীক্ষামূলক।",
+    debug_label: "ডিবাগ মোড: বিশ্লেষণের পরেও ড্রাইভের ভিডিও রাখুন",
+    settings_note: "শনাক্তকরণের জন্য ছবি ও ভিডিওর ফ্রেম OpenAI-তে পাঠানো হয়; তাতে নম্বরপ্লেট বা মুখ থাকতে পারে। সঠিক অবস্থান OpenStreetMap/Nominatim-এ এবং কর্ণাটকের জন্য Karnataka GIS-এ পাঠানো হয়। যাচাই-করা রাজ্য routing pack GitHub Pages থেকে ডাউনলোড হয়ে ডিভাইসে থাকে; অনুরোধটি রাজ্য ও সাধারণ সংযোগের তথ্য প্রকাশ করে, সঠিক অবস্থান নয়। API key কেবল OpenAI-তে যায়। অ্যাপ নিজে থেকে অভিযোগ জমা দেয় না।",
+    independent_note: "এটি একটি স্বাধীন, বেসরকারি অ্যাপ। কোনও সরকারি সংস্থার সঙ্গে এর সম্পর্ক নেই এবং কোনও সরকারি সংস্থা এটি অনুমোদন করেনি। প্রাপক নির্বাচন সর্বোত্তম প্রচেষ্টার ভিত্তিতে; পাঠানোর আগে যাচাই করুন।",
+    privacy_title: "ক্যামেরা ও অবস্থান ব্যবহারের আগে",
+    privacy_body: "এগিয়ে গেলে অ্যাপটি ক্যামেরা ও সামনে খোলা থাকাকালীন সঠিক অবস্থানের অনুমতি চাইবে। ছবি বা ড্রাইভ মোডের নির্বাচিত ফ্রেম API key-সহ OpenAI-তে পাঠানো হয়। সঠিক স্থানাঙ্ক OpenStreetMap/Nominatim-এ এবং কর্ণাটকের জন্য Karnataka GIS-এ যায়। প্রয়োজনীয় রাজ্য routing pack GitHub Pages থেকে ডাউনলোড হয়। তথ্য ভারতের বাইরেও প্রক্রিয়াকৃত হতে পারে।",
+    privacy_local: "ড্রাইভ মোডে অডিও ব্যবহৃত হয় না এবং অ্যাপটি সামনে থেকে সরে গেলে বন্ধ হয়। ঐচ্ছিক ভিডিও ক্লিপ বিশ্লেষণ বা মুছে ফেলা পর্যন্ত ডিভাইসে থাকে। রিপোর্ট, ছবি, অবস্থানের ট্র্যাক, সেটিংস ও যাচাই-করা রাজ্য pack মুছে না ফেলা পর্যন্ত থাকে; অব্যবহৃত pack স্বয়ংক্রিয়ভাবে সরানো হয়।",
+    privacy_government: "এই স্বাধীন অ্যাপটি সরকারি পরিষেবা নয় এবং নিজে থেকে অভিযোগ জমা দেয় না। GitHub Pages আপনার IP, সময়, user agent ও চাওয়া রাজ্য-pack পথ পায়; এতে রাজ্য বোঝা যায়, সঠিক স্থানাঙ্ক, ছবি বা রিপোর্টের বিষয় নয়। ডাউনলোডের পরে সীমানা যাচাই ডিভাইসেই হয়। আপনি বাইরের পরিষেবা খুললেই কেবল তথ্য পৌর পরিষেবায় যায়।",
+    privacy_link: "গোপনীয়তা নীতি", sources_link: "তথ্যের উৎস ও সীমাবদ্ধতা",
+    privacy_accept: "এগিয়ে যান", privacy_decline: "এখন নয়",
+    wipe_btn: "অ্যাপের সব তথ্য মুছুন",
+    welcome_hint: "স্বাগতম। শনাক্তকরণ চালু করতে আপনার OpenAI API key পেস্ট করুন। এটি এই ডিভাইসে সংরক্ষিত থাকে এবং কেবল অনুরোধের অনুমোদন হিসেবে OpenAI-তে পাঠানো হয়।",
+    back: "ফিরে যান", save: "সংরক্ষণ করুন", discard: "বাদ দিন", del: "মুছুন", email_btn: "ইমেল", stop: "&#9632; থামান", working: "কাজ চলছে...",
+    chip_draft: "খসড়া", chip_sent: "জমা হয়েছে বলে চিহ্নিত", chip_queued: "ইমেলে খোলা হয়েছে", chip_queued_bmc: "BMC পরিষেবা খোলা হয়েছে", chip_rejected: "অভিযোগযোগ্য নয়", chip_review: "যাচাই প্রয়োজন",
+    chip_unrouted: "প্রাপক নির্ধারিত নয়",
+    no_location: "অবস্থান নির্ধারণ করা যায়নি।",
+    location_uncertain: "কর্তৃপক্ষ বাছতে GPS যথেষ্ট নির্ভুল নয়।",
+    location_uncertain_help: "রাস্তার ক্ষতি নিশ্চিত হয়েছে, কিন্তু বর্তমান GPS নির্ভুলতার পরিসর একটি পৌরসীমা অতিক্রম করতে পারে। নতুন ও আরও নির্ভুল অবস্থান নিয়ে আবার ছবি তুলুন; রিপোর্টটি প্রাপক ছাড়াই সংরক্ষিত হয়েছে।",
+    jurisdiction_unavailable: "যাচাই-করা routing data ডাউনলোড বা পড়া যায়নি।",
+    jurisdiction_unavailable_help: "যাচাই-করা রাজ্য pack ছাড়া অ্যাপটি কোনও কর্তৃপক্ষ অনুমান করবে না। সংযোগ দেখে আবার চেষ্টা করুন; রিপোর্টটি প্রাপক ছাড়াই সংরক্ষিত হয়েছে।",
+    road_unknown: "এই রাস্তার মালিকানা যাচাই করা যায়নি",
+    road_unknown_help: "রাস্তাটি জাতীয় সড়ক কি না দেখতে অ্যাপটি রাজ্যের সড়ক নেটওয়ার্কে পৌঁছতে পারেনি। অন্য সংস্থার রাস্তার জন্য কোনও পৌর আধিকারিকের নাম অনুমান করা হবে না। সংযোগ ফিরে এলে আবার চেষ্টা করুন।",
+    nat_highway: "{road} একটি জাতীয় সড়ক",
+    nat_highway_help: "জাতীয় সড়ক NHAI বা রাজ্য PWD-এর জাতীয় সড়ক বিভাগ রক্ষণাবেক্ষণ করে, শহর বা পুর কর্তৃপক্ষ নয়। তাই কোনও পৌর আধিকারিককে প্রাপক করা হচ্ছে না। NHAI Rajmargyatra অ্যাপ বা 1033 হেল্পলাইনে জানান।",
+    rural_road: "এই রাস্তা {body} গ্রাম পঞ্চায়েতের অন্তর্গত, কোনও শহর বা পুর এলাকার নয়।",
+    rural_road_help: "রাস্তার ক্ষতি নিশ্চিত হয়েছে, কিন্তু স্থানটি কোনও নগর স্থানীয় সংস্থার মধ্যে নয়। তাই এটি পুরসভার বদলে রাজ্য PWD বা পঞ্চায়েতের প্রকৌশল বিভাগের আওতায় পড়তে পারে। ওই দপ্তরগুলি এখনও ডিরেক্টরিতে নেই, তাই অভিযোগে কোনও প্রাপক দেওয়া হয়নি। ছবি ও অবস্থান সংরক্ষিত আছে।",
+    no_address: "{body}-এর কোনও প্রকাশিত যোগাযোগের ঠিকানা নেই।",
+    no_address_help: "রাস্তার ক্ষতি এবং সংশ্লিষ্ট স্থানীয় সংস্থা শনাক্ত হয়েছে, কিন্তু অ্যাপে তার কোনও সরকারি ইমেল নেই এবং অ্যাপটি ঠিকানা অনুমান করবে না। ছবি ও অবস্থান সংরক্ষিত আছে; যাচাই করা ঠিকানা পরে ডিরেক্টরিতে যোগ করা যাবে।",
+    no_location_help: "রাস্তার ক্ষতি নিশ্চিত হয়েছে, কিন্তু GPS অবস্থান ছাড়া কোন পৌরসংস্থা দায়িত্বে তা জানা যায় না। তাই অভিযোগে কোনও প্রাপক দেওয়া হয়নি। ছবিটি সংরক্ষিত আছে।",
+    review_btn: "ফ্রেম যাচাই করে লেবেল দিন", export_btn: "লেবেল দেওয়া ডেটাসেট এক্সপোর্ট করুন",
+    dash_btn: "&#128506;&#65039; &nbsp;অবদান", dash_title: "আপনার অবদান",
+    dash_range: "{days} ধরে রিপোর্ট · প্রথম রিপোর্ট {first}",
+    dash_empty: "এখনও রাস্তার কোনও ক্ষতি রিপোর্ট করা হয়নি। ড্রাইভ করার সঙ্গে সঙ্গে আপনার মানচিত্র পূর্ণ হবে।",
+    day_one: "1 দিন", day_many: "{n} দিন",
+    stat_found: "ক্ষতির ঘটনা পাওয়া গেছে", stat_reported: "নিশ্চিতভাবে জমা দেওয়া অভিযোগ", stat_frames: "ঘটনা পরীক্ষা করা হয়েছে",
+    stat_drives: "ড্রাইভ", stat_footage: "MB ভিডিও ফুটেজ", stat_km: "কিমি রাস্তা পর্যবেক্ষণ",
+    by_type: "ক্ষতির ধরন অনুযায়ী", by_size: "আকার অনুযায়ী", by_area: "পৌরসংস্থা অনুযায়ী", map_pins: "{n}টি পিন",
+    map_offline: "মানচিত্রের টাইল দেখাতে ইন্টারনেট প্রয়োজন। অবস্থানগুলি নীচে তবুও দেখানো হচ্ছে।",
+    zoom_hint: "জুম করতে আঙুল ছড়ান · সরাতে টানুন · রিসেট করতে দু’বার ট্যাপ করুন",
+    rec_suffix: "· রেকর্ড হচ্ছে {mb} MB", rec_failed: "· রেকর্ড হচ্ছে না",
+    net_trouble: "সংযোগে সমস্যা; স্ক্যান চলছে ({n}টি ফ্রেম অপেক্ষায়)",
+    capture_failing: "ক্যামেরা থেকে ফ্রেম আসছে না। ড্রাইভ থামিয়ে আবার শুরু করুন।",
+    camera_lost: "ক্যামেরা সাময়িকভাবে থেমেছে—অন্য কোনও অ্যাপ এটি ব্যবহার করতে পারে। স্ক্যান নিজে থেকেই আবার শুরু হবে।",
+    camera_low_quality: "ক্যামেরা মাত্র {width}px / {fps}fps",
+    coverage_dropped: "সারিতে থাকা ঘটনা বাদ গেছে",
+    drive_end_failed: "সংযোগ সমস্যার কারণে {n}টি ফ্রেম পরীক্ষা করা যায়নি।",
+    footage_line: "ভিডিও: {mb} MB · {segments}টি ক্লিপ",
+    analyse_btn: "ভিডিও বিশ্লেষণ করুন", delete_footage: "ভিডিও মুছুন",
+    analysing: "ফ্রেম {i}/{n} · {found}টি নতুন",
+    analyse_done: "ভিডিও বিশ্লেষণ শেষ: {n}টি ফ্রেম থেকে রাস্তার ক্ষতির {found}টি নতুন ঘটনা পাওয়া গেছে।",
+    analyse_none: "এই ড্রাইভের কোনও ভিডিও সংরক্ষিত নেই।",
+    analysing_dup: "({n}টি আগেই রিপোর্ট করা)", analyse_dup: "এর মধ্যে {n}টি আগেই রিপোর্ট করা হয়েছিল।",
+    already_one: "আগেই রিপোর্ট করা {n}টি ঘটনা", already_many: "আগেই রিপোর্ট করা {n}টি ঘটনা",
+    frames_no_permission: "স্টোরেজে ফ্রেম সংরক্ষণের অনুমতি পাওয়া যায়নি। সংরক্ষণ না করেই বিশ্লেষণ করবেন?",
+    analysing_failed: "· {n}টি ব্যর্থ",
+    analyse_incomplete: "শেষ করা যায়নি: {n}টি ফ্রেমের মধ্যে {failed}টি পরীক্ষা করা হয়নি ({err})। তাই কোনও ফল দাবি করা হচ্ছে না এবং ভিডিওটি রেখে দেওয়া হয়েছে।",
+    debug_note: "চালু থাকলে: বিশ্লেষণের পরেও ভিডিও থাকে, ফলে ড্রাইভটি আবার পরীক্ষা করা বা উন্নত মডেল দিয়ে চালানো যায়। বন্ধ থাকলে: রাস্তার ক্ষতির ঘটনাগুলি ছবি হিসেবে নেওয়ার পর ভিডিও মুছে যায়।",
+    record_label: "ড্রাইভের সময় এই ডিভাইসে ভিডিও রেকর্ড করুন (অডিও নয়; ডিফল্টভাবে বন্ধ)",
+    keep_frames_label: "বিশ্লেষণ করা প্রতিটি ফ্রেম ডিভাইসে সংরক্ষণ করুন",
+    keep_frames_note: "AI পরীক্ষা করা প্রতিটি ফ্রেম ও তার সিদ্ধান্ত এই ফোনের Documents/pothole-frames ফোল্ডারে লিখবে। Files অ্যাপে দেখা যাবে এবং মূল্যায়ন ডেটাসেট তৈরিতে ব্যবহার করা যাবে। জায়গা দ্রুত বাড়ে: প্রতি ফ্রেম প্রায় 300 KB।",
+    frames_saved: "{n}টি ফ্রেম Documents/{dir}-এ লেখা হয়েছে।",
+    frames_failed: "ডিভাইসে ফ্রেম লেখা যায়নি।",
+    footage_freed: "ভিডিও মুছে {mb} MB জায়গা খালি হয়েছে।",
+    footage_kept: "ভিডিও রাখা হয়েছে (ডিবাগ মোড)।",
+    offer_analyse: "এই ড্রাইভের ভিডিও এখন বিশ্লেষণ করবেন? {clips}টি ক্লিপ, {mb} MB। অভিযোগযোগ্য ক্ষতি ছবি হিসেবে রাখা হবে; বাকিটা মুছে যাবে।",
+    confirm_delete_footage: "এই ড্রাইভের রেকর্ড করা ভিডিও মুছবেন? রিপোর্টগুলি থেকে যাবে।",
+    drive_group: "{date} · {found}{known} · {checked}টি লাইভ ফ্রেম পরীক্ষা{video}",
+    drive_video_suffix: " · {n}টি ভিডিও ফ্রেম পরীক্ষা",
+    drive_group_partial: "{date} · {found} · {kept}টি রাখা হয়েছে",
+    lbl_pothole: "রাস্তার গর্ত", lbl_patch: "ভেঙে যাওয়া মেরামত", lbl_surface: "ভাঙা রাস্তার উপরিভাগ",
+    lbl_rut: "চাকার খাঁজ / দেবে যাওয়া অংশ", lbl_no: "অভিযোগযোগ্য নয়", lbl_skip: "এড়িয়ে যান", lbl_done: "শেষ",
+    review_empty: "লেবেল দেওয়ার মতো কিছু বাকি নেই। ফ্রেম সংগ্রহ করতে ডিবাগ মোড চালু রেখে ড্রাইভ করুন।",
+    review_progress: "{n}টি লেবেল দেওয়া বাকি · এখনও পর্যন্ত {done}টি সম্পন্ন",
+    model_said: "অ্যাপের সিদ্ধান্ত: {verdict} · {assessment}",
+    export_ready: "{n}টি লেবেল দেওয়া ফ্রেম, {mb} MB। কোথায় পাঠাবেন বেছে নিন।",
+    outside_coverage: "এই অবস্থানটি অ্যাপের আওতাভুক্ত এলাকার বাইরে।",
+    outside_coverage_help: "এই স্থানটি সমর্থিত কর্ণাটক, মুম্বই মহানগর অঞ্চল, পুনে পৌরসংস্থা, কলকাতা পৌরসংস্থা, দিল্লি NCT, চেন্নাই পৌরসংস্থা, হায়দরাবাদ CURE core এবং আহমেদাবাদ এলাকার বাইরে। ছবি ও অবস্থান কোনও প্রাপক ছাড়াই সংরক্ষিত হয়েছে।",
+    size_small: "ছোট", size_medium: "মাঝারি", size_large: "বড়",
+    damage_pothole_cavity: "রাস্তার গর্ত", damage_failed_patch: "ভেঙে যাওয়া রাস্তা মেরামত",
+    damage_surface_breakup: "ভাঙা রাস্তার উপরিভাগ", damage_rut_or_depression: "চাকার খাঁজ / দেবে যাওয়া অংশ",
+    damage_other_road_damage: "রাস্তার অন্যান্য ক্ষতি", damage_none: "অভিযোগযোগ্য ক্ষতি নেই",
+    assessment_clear: "স্পষ্ট", assessment_probable: "সম্ভাব্য", assessment_uncertain: "অনিশ্চিত", assessment_absent: "নেই",
+    verdict_detected: "{type} শনাক্ত হয়েছে · {assessment}",
+    verdict_review: "সম্ভাব্য {type} — রিপোর্ট করার আগে আবার ছবি তুলুন বা যাচাই করুন",
+    verdict_rejected: "অভিযোগযোগ্য রাস্তার ক্ষতি নিশ্চিত হয়নি",
+    early_yes: "অভিযোগযোগ্য {type} পাওয়া গেছে। অভিযোগের খসড়া তৈরি হচ্ছে...",
+    early_review: "রাস্তার সম্ভাব্য ক্ষতি। আরও পরিষ্কার ছবি প্রয়োজন।",
+    early_no: "এই ছবিতে অভিযোগযোগ্য রাস্তার ক্ষতি নেই।",
+    verdict_sent: "জমা হয়েছে বলে চিহ্নিত",
+    verdict_queued: "ইমেল অ্যাপে খোলা হয়েছে। পাঠিয়ে না থাকলে সম্পাদনা করে আবার পাঠান।",
+    confidence: "নিশ্চয়তার মাত্রা",
+    email_subject_label: "ইমেলের বিষয়",
+    email_body_label: "ইমেলের বক্তব্য (পাঠানোর আগে যাচাই করুন)",
+    routes_to: "যে দপ্তরে যাবে:",
+    getting_location: "আপনার অবস্থান নেওয়া হচ্ছে...",
+    waiting_gps: "GPS-এর অপেক্ষা চলছে...",
+    gps_30s: "30 সেকেন্ড পরেও GPS অবস্থান পাওয়া যায়নি। উচ্চ নির্ভুলতাসহ লোকেশন চালু আছে কি না দেখুন।",
+    gps_lost: "GPS সংকেত হারিয়েছে; নতুন অবস্থানের অপেক্ষা চলছে...",
+    holding: "একই অবস্থানে ({checked}টি পরীক্ষা, {found}টি পাওয়া গেছে)",
+    scanning: "স্ক্যান চলছে ({mode})... {checked}টি পরীক্ষা{analyzing}",
+    analyzing_suffix: ", {n}টি বিশ্লেষণাধীন",
+    potholes_one: "ক্ষতির {n}টি ঘটনা", potholes_many: "ক্ষতির {n}টি ঘটনা",
+    drive_tip: "চলতে শুরু করার আগে ক্যামেরা এমনভাবে বসান যাতে কমলা নির্দেশকের মধ্যে চলার রাস্তা বেশি এবং আকাশ বা ড্যাশবোর্ড কম থাকে। প্রতিটি পরীক্ষায় পরপর তিনটি ফ্রেম নেওয়া হয়। ফিরে যাওয়ার বোতামেও ড্রাইভ বন্ধ হবে।",
+    drive_end: "ড্রাইভ শেষ: {found}টি পাওয়া গেছে, {checked}টি ফ্রেম পরীক্ষা করা হয়েছে।",
+    drive_end_known: "ড্রাইভ শেষ: নতুন রিপোর্ট নেই; {already} আবার দেখা গেছে, {checked}টি ফ্রেম পরীক্ষা করা হয়েছে।",
+    drive_seen_suffix: " {already} আবার দেখা গেছে।",
+    drive_end_zero: "এই ড্রাইভে অভিযোগযোগ্য রাস্তার ক্ষতি পাওয়া যায়নি ({checked}টি ঘটনা পরীক্ষা{debug})।",
+    debug_saved_suffix: ", যাচাইয়ের জন্য ডিবাগ ফ্রেম সংরক্ষিত",
+    confirm_send: "{to}-কে ঠিকানা দিয়ে অভিযোগটি ইমেল অ্যাপে খুলবেন?",
+    confirm_suggested_email: "অবস্থান অনুযায়ী {authority} প্রস্তাবিত, কিন্তু এতে রাস্তার মালিকানা প্রমাণিত নয়। {to}-কে ঠিকানা দিয়ে অভিযোগটি ইমেল অ্যাপে খুলবেন?",
+    open_official_btn: "{name} খুলুন", share_evidence_btn: "প্রমাণ শেয়ার করুন",
+    official_whatsapp_btn: "সরকারি WhatsApp", official_call_btn: "{number} নম্বরে কল করুন",
+    confirm_whatsapp_share: "{authority}-এর সরকারি WhatsApp-এ এই রিপোর্টের বক্তব্য ও সঠিক অবস্থান খুলবেন? WhatsApp-এ Send না চাপা পর্যন্ত কিছুই পাঠানো হবে না।",
+    official_disclaimer: "প্রস্তাবিত পৌর কর্তৃপক্ষ: {authority}। এতে রাস্তার মালিকানা প্রমাণিত হয় না। এই স্বাধীন অ্যাপটি কেবল প্রমাণ প্রস্তুত করে; {service}-এ নিজে অভিযোগ নথিভুক্ত করুন এবং সরকারি রেফারেন্স নম্বরটি সংরক্ষণ করুন।",
+    authority_disclaimer: "অবস্থানের ভিত্তিতে প্রস্তাবিত পৌর কর্তৃপক্ষ: {authority}। রাস্তার মালিকানা যাচাই করা হয়নি; পাঠানোর আগে প্রাপক পরীক্ষা করুন।",
+    routing_match: "প্রাপক নির্বাচনের সূত্র: {field} = {value}। জমা দেওয়ার আগে যাচাই করুন।",
+    alternate_handoff_btn: "{name} খুলুন",
+    confirm_official_handoff: "প্রস্তাবিত কর্তৃপক্ষ {authority}-এর জন্য {service} খুলবেন? এতে শুধু পরিষেবাটি খোলার তথ্য রাখা হবে—অভিযোগ জমা হয়েছে বলে ধরা হবে না।",
+    official_grievance_generic_label: "সরকারি অভিযোগ/রেফারেন্স নম্বর",
+    official_grievance_generic_placeholder: "সরকারি পরিষেবা থেকে পাওয়া নম্বর লিখুন",
+    chip_queued_official: "সরকারি পরিষেবা খোলা হয়েছে",
+    bmc_prepare_btn: "মুম্বই রিপোর্ট তৈরি করুন", bmc_share_btn: "প্রমাণ শেয়ার করুন",
+    bmc_quickfix_btn: "Pothole QuickFix খুলুন", bmc_whatsapp_btn: "BMC WhatsApp",
+    bmc_call_btn: "1916 নম্বরে কল করুন",
+    bmc_disclaimer: "এই স্বাধীন অ্যাপটি প্রমাণ প্রস্তুত করে, কিন্তু BMC-তে অভিযোগ জমা দেয় না। যাচাই করে BMC-র কোনও সরকারি মাধ্যমে নিজে অভিযোগ সম্পূর্ণ করুন। সরকারি অভিযোগ নম্বর ছাড়া জমা হয়েছে বলে চিহ্নিত করবেন না।",
+    bmc_ward: "প্রস্তাবিত BMC ওয়ার্ড: {ward} (OpenStreetMap থেকে; সরকারি অ্যাপে যাচাই করুন)",
+    complaint_title_label: "অভিযোগের শিরোনাম", complaint_body_label: "অভিযোগের বিবরণ (শেয়ার করার আগে যাচাই করুন)",
+    official_grievance_label: "সরকারি BMC অভিযোগ নম্বর", official_grievance_placeholder: "BMC থেকে পাওয়া নম্বর লিখুন",
+    mark_submitted_btn: "জমা হয়েছে বলে চিহ্নিত করুন", submitted_reference: "সরকারি অভিযোগ নম্বর: {id}",
+    confirm_bmc_handoff: "BMC-র সরকারি Pothole QuickFix অ্যাপে যাবেন? এতে শুধু পরিষেবাটি খোলার তথ্য রাখা হবে, অভিযোগ জমা হয়েছে বলে ধরা হবে না।",
+    confirm_mark_submitted: "আপনি কি কোনও সরকারি মাধ্যমে অভিযোগ জমা দেওয়া সম্পূর্ণ করেছেন?",
+    evidence_shared: "প্রমাণ প্রস্তুত। শেয়ার শিট থেকে BMC-র একটি সরকারি মাধ্যম বেছে নিন।",
+    confirm_delete: "এই রিপোর্টটি মুছবেন?",
+    confirm_wipe: "API key, সেটিংস, রিপোর্ট, ছবি, ভিডিও এবং এক্সপোর্ট করা ডিবাগ ফ্রেম-সহ এই ফোন থেকে অ্যাপের সব তথ্য মুছবেন?",
+    camera_failed: "ক্যামেরা ব্যবহার করা যায়নি: ", drive_stopped: "ড্রাইভ মোড বন্ধ হয়েছে: ",
+    the_officer: "সংশ্লিষ্ট আধিকারিক",
+  },
+};
+const savedLang = localStorage.getItem("app_lang");
+const LANG = savedLang === "kn" || savedLang === "mr" || savedLang === "bn" ? savedLang : "en";
+document.documentElement.lang = LANG;
+const t = (k, p) => {
+  let s = (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || k;
+  if (p) for (const [key, val] of Object.entries(p)) s = s.split("{" + key + "}").join(val);
+  return s;
+};
+const tSize = (s) => (s ? t("size_" + s) : "");
+const damageType = (r) => (r && r.damage_type) || (r && r.is_pothole ? "pothole_cavity" : "none");
+const assessment = (r) => (r && r.assessment) || (r && r.is_pothole ? "clear" : "absent");
+const tDamage = (value) => t("damage_" + (typeof value === "string" ? value : damageType(value)));
+const tAssessment = (value) => t("assessment_" + (typeof value === "string" ? value : assessment(value)));
+const eventCountText = (n) => n === 1 ? t("potholes_one", { n }) : t("potholes_many", { n });
+const alreadyCountText = (n) => n === 1 ? t("already_one", { n }) : t("already_many", { n });
+const escapeHtml = (value) => String(value == null ? "" : value).replace(/[&<>"']/g, (ch) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+})[ch]);
+const escapeAttr = escapeHtml;
+const safePhotoSrc = (value) => {
+  const src = String(value || "");
+  return /^(?:blob:|data:image\/(?:jpeg|jpg|png|webp|gif);base64,)/i.test(src)
+    ? escapeAttr(src) : "";
+};
+let health = { ai_configured: true, email_configured: false, delivery: "gmail_draft" };
+
+function show(screen) {
+  for (const s of ["home", "progress", "detail", "drive", "settings", "review", "dash", "dataConsent"]) {
+    $(s).classList.toggle("hidden", s !== screen);
+  }
+  window.scrollTo(0, 0);
+}
+
+function fmtDate(ts) { return new Date(ts * 1000).toLocaleString([], {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}); }
+
+const isOfficialHandoffReport = (r) => !!r
+  && (r.delivery_channel === "official_handoff" || r.delivery_channel === "bmc_quickfix");
+const officialServiceName = (r) => (LANG === "bn" && r && r.authority_id === "wb-kmc"
+  ? "KMC অভিযোগ প্রতিবিধান (Grievance 2.0)" : r && r.handoff_name)
+  || (r && r.delivery_channel === "bmc_quickfix" ? "BMC Pothole QuickFix" : "official service");
+const displayAuthorityName = (r) => LANG === "bn" && r && r.authority_id === "wb-kmc"
+  ? "কলকাতা পৌরসংস্থা (KMC)" : (r && r.authority_name) || t("the_officer");
+const sendLabel = (r) => isOfficialHandoffReport(r)
+  ? t("open_official_btn", { name: officialServiceName(r) }) : t("email_btn");
+
+function chip(status, report) {
+  const labels = { draft: t("chip_draft"), sent: t("chip_sent"), queued: t("chip_queued"),
+                   rejected: t("chip_rejected"), review: t("chip_review"),
+                   unrouted: t("chip_unrouted") };
+  if (status === "queued" && isOfficialHandoffReport(report)) {
+    labels.queued = t("chip_queued_official");
+  }
+  const css = Object.prototype.hasOwnProperty.call(labels, status) ? status : "review";
+  return `<span class="chip ${css}">${escapeHtml(labels[status] || status)}</span>`;
+}
+
+function applyLang() {
+  $("subTitle").textContent = t("sub");
+  $("captureBtn").innerHTML = t("report_btn");
+  $("driveBtn").innerHTML = t("drive_btn");
+  $("reportsTitle").textContent = t("your_reports");
+  $("settingsTitle").textContent = t("settings_title");
+  $("keyLabel").textContent = t("key_label");
+  $("nameLabel").textContent = t("name_label");
+  $("modelLabel").textContent = t("model_label");
+  $("detailLabel").textContent = t("detail_label");
+  $("accuracyNote").textContent = t("accuracy_note");
+  $("debugLabel").textContent = t("debug_label");
+  $("debugNote").innerHTML = t("debug_note");
+  $("recordLabel").textContent = t("record_label");
+  $("keepFramesLabel").textContent = t("keep_frames_label");
+  $("keepFramesNote").innerHTML = t("keep_frames_note");
+  $("settingsNote").textContent = t("settings_note");
+  $("independentNote").textContent = t("independent_note");
+  $("privacyTitle").textContent = t("privacy_title");
+  $("privacyBody").textContent = t("privacy_body");
+  $("privacyLocal").textContent = t("privacy_local");
+  $("privacyGovernment").textContent = t("privacy_government");
+  $("privacyLink").textContent = t("privacy_link");
+  $("sourcesLink").textContent = t("sources_link");
+  $("consentPrivacyLink").textContent = t("privacy_link");
+  $("consentSourcesLink").textContent = t("sources_link");
+  $("privacyAccept").textContent = t("privacy_accept");
+  $("privacyDecline").textContent = t("privacy_decline");
+  $("wipeBtn").textContent = t("wipe_btn");
+  $("setBack").textContent = t("back");
+  $("setSave").textContent = t("save");
+  $("driveTip").textContent = t("drive_tip");
+  $("dashBtn").innerHTML = t("dash_btn");
+  $("reviewBtn").textContent = t("review_btn");
+  $("exportBtn").textContent = t("export_btn");
+  $("lblPothole").textContent = t("lbl_pothole");
+  $("lblPatch").textContent = t("lbl_patch");
+  $("lblSurface").textContent = t("lbl_surface");
+  $("lblRut").textContent = t("lbl_rut");
+  $("lblNo").textContent = t("lbl_no");
+  $("lblSkip").textContent = t("lbl_skip");
+  $("reviewBack").textContent = t("lbl_done");
+  $("driveStop").innerHTML = t("stop");
+}
+
+async function api(path, opts) {
+  return StandaloneAPI.handle(path, opts);
+}
+
+async function loadHealth() {
+  try {
+    health = await api("/api/health");
+    const b = $("banner");
+    if (!health.ai_configured) {
+      b.textContent = t("banner_setup");
+      b.style.display = "block";
+    } else { b.style.display = "none"; }
+  } catch (e) {}
+}
+
+// Shared so cards inserted when a drive is expanded behave exactly like ones rendered
+// with the list. Reads the item set it was given rather than the whole history.
+// Thumbnails as object URLs rather than base64 inside the HTML. A data URL is about 88 KB
+// of text, so a hundred of them made a nine megabyte innerHTML that had to be parsed and
+// decoded on every render. An object URL is about forty characters and the blob behind it
+// is decoded once.
+// A photo is a blob from storage, or a data URL string on records written before that
+// change. Both have to end up as something an <img> can show, and the object URL is
+// cached so the same photo is never converted twice.
+function photoSrc(r) {
+  if (!r) return "";
+  if (thumbUrls.has(r.id)) return thumbUrls.get(r.id);
+  const v = r.photo_url;
+  if (v instanceof Blob) {
+    const u = URL.createObjectURL(v);
+    thumbUrls.set(r.id, u);
+    return u;
+  }
+  return v || "";
+}
+
+const thumbUrls = new Map();
+async function ensureThumbs(items) {
+  await Promise.all(items.map(async (r) => {
+    if (thumbUrls.has(r.id) || !r.photo_url) return;
+    try {
+      // A blob straight from storage needs no conversion at all; a legacy data URL
+      // string still does.
+      const blob = r.photo_url instanceof Blob ? r.photo_url : await (await fetch(r.photo_url)).blob();
+      thumbUrls.set(r.id, URL.createObjectURL(blob));
+    } catch (e) { thumbUrls.set(r.id, r.photo_url); }   // fall back to the data URL
+  }));
+}
+function releaseThumbs(keepIds) {
+  for (const [id, url] of thumbUrls) {
+    if (!keepIds.has(id)) {
+      if (url.startsWith("blob:")) URL.revokeObjectURL(url);
+      thumbUrls.delete(id);
+    }
+  }
+}
+
+const groupsRef = [];
+async function openReportDetail(r, items) {
+  if (!r) return;
+  let current = r;
+  if (isOfficialHandoffReport(r)) {
+    try { current = await api(`/api/reports/${r.id}/handoff`); }
+    catch (_) { /* keep evidence accessible; every launch path revalidates again */ }
+  }
+  const replace = (list) => {
+    if (!Array.isArray(list)) return;
+    const index = list.findIndex((item) => item && item.id === current.id);
+    if (index >= 0) list[index] = current;
+  };
+  replace(items);
+  replace(loadReports.latest);
+  openDetail(current, items);
+}
+
+function wireCards(root, items) {
+  for (const el of root.querySelectorAll("[data-id]")) {
+    if (el.dataset.wired) continue;
+    el.dataset.wired = "1";
+    el.onclick = () => openReportDetail(items.find((r) => r.id == el.dataset.id), items);
+  }
+}
+
+async function loadReports() {
+  const [reports, drives, footage] = await Promise.all([
+    api("/api/reports"), api("/api/drives").catch(() => []),
+    api("/api/footage").catch(() => []),
+  ]);
+  loadReports.latest = reports;
+  const list = $("list");
+  // A recorded drive is history even when GPS never arrived and therefore no frame was
+  // assessed. Returning on an empty reports store made its footage impossible to reach.
+  if (!reports.length && !drives.length && !footage.length) {
+    list.innerHTML = `<div class="empty">${t("no_reports")}</div>`;
+    return;
+  }
+  const cardHtml = (r) => `
+    <div class="card row" data-id="${escapeAttr(r.id)}" style="cursor:pointer">
+      <img class="thumb" src="${safePhotoSrc(photoSrc(r))}" alt="" loading="lazy" decoding="async">
+      <div style="min-width:0">
+        <div>${chip(r.status, r)} ${damageType(r) !== "none" ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${escapeHtml(tDamage(r))}</span>` : ""} ${r.size ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${escapeHtml(tSize(r.size))}</span>` : ""}</div>
+        <div class="meta">${escapeHtml(fmtDate(r.created_at))}${r.address ? " · " + escapeHtml(String(r.address).split(",").slice(0, 2).join(", ")) : ""}</div>
+      </div>
+    </div>`;
+  const driveById = {}, footageById = {};
+  for (const d of drives) driveById[String(d.id)] = d;
+  for (const f of footage) footageById[String(f.drive_id)] = f;
+  // Build from the union of reports, drive summaries and footage. This also recovers
+  // footage orphaned by older app versions that never wrote a drive summary.
+  const groups = groupsRef;
+  groups.length = 0;
+  const driveGroups = {};
+  for (const r of reports) {
+    if (!r.drive_id) { groups.push({ driveId: null, items: [r] }); continue; }
+    const id = String(r.drive_id);
+    const g = driveGroups[id] || (driveGroups[id] = { driveId: id, items: [] });
+    if (!groups.includes(g)) groups.push(g);
+    g.items.push(r);
+  }
+  for (const d of drives) {
+    const id = String(d.id);
+    if (!driveGroups[id]) groups.push(driveGroups[id] = { driveId: id, items: [] });
+  }
+  for (const f of footage) {
+    const id = String(f.drive_id);
+    if (!driveGroups[id]) groups.push(driveGroups[id] = { driveId: id, items: [] });
+  }
+  const groupTime = (g) => {
+    if (!g.driveId) return (g.items[0] && g.items[0].created_at) || 0;
+    const rec = driveById[String(g.driveId)], fo = footageById[String(g.driveId)];
+    return (rec && (rec.ended_at || rec.started_at))
+      || (g.items[0] && g.items[0].created_at)
+      || (fo && (fo.ended_at || fo.started_at)) || 0;
+  };
+  groups.sort((a, b) => groupTime(b) - groupTime(a));
+  // Inside a drive, what you actually want is the potholes, not the frames that were
+  // checked and dismissed. Confirmed ones sit on top, rejects below, each still newest
+  // first, so a drive with 3 finds among 200 frames does not bury them.
+  const FOUND = ["draft", "queued", "sent", "unrouted"];
+  for (const g of groups) {
+    if (!g.driveId) continue;
+    g.items.sort((a, b) => (FOUND.includes(b.status) ? 1 : 0) - (FOUND.includes(a.status) ? 1 : 0) || b.id - a.id);
+  }
+  const willShow = groups.flatMap((g) =>
+    (!g.driveId || expandedDrives.has(String(g.driveId))) ? g.items : []);
+  await ensureThumbs(willShow);
+  releaseThumbs(new Set(reports.map((r) => r.id)));
+  const footageRowHtml = (driveId, fo, open) => !fo ? "" :
+    `<div class="card" data-footagerow="${driveId}" style="padding:10px 12px;${open ? "" : "display:none"}">
+      <div class="meta">${t("footage_line", { mb: (fo.bytes / 1048576).toFixed(0), segments: fo.segments })}</div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="ghost" data-analyse="${driveId}">${t("analyse_btn")}</button>
+        <button class="ghost danger" data-delfootage="${driveId}">${t("delete_footage")}</button>
+      </div>
+    </div>`;
+  list.innerHTML = groups.map((g) => {
+    const cards = expandedDrives.has(String(g.driveId)) || !g.driveId
+      ? g.items.map(cardHtml).join("") : "";
+    if (!g.driveId) return cards;
+    const rec = driveById[String(g.driveId)], fo = footageById[String(g.driveId)];
+    // The cards are the canonical unique events. A drive summary only describes its live
+    // pass and becomes stale when retained footage later discovers another event.
+    const stored = g.items.filter((x) => FOUND.includes(x.status)).length;
+    const found = stored;
+    const start = (rec && rec.started_at) || (fo && fo.started_at)
+      || (g.items.length && g.items[g.items.length - 1].created_at) || Date.now() / 1000;
+    const foundTxt = eventCountText(found);
+    const knownCount = rec ? Math.max(
+      Array.isArray(rec.already_ids) ? rec.already_ids.length : 0,
+      rec.already | 0, rec.analysis_already | 0) : 0;
+    const knownTxt = knownCount ? ` · ${alreadyCountText(knownCount)}` : "";
+    const videoTxt = rec && rec.analysis_checked
+      ? t("drive_video_suffix", { n: rec.analysis_checked }) : "";
+    // "frames checked" is only known from the drive record: rejected frames are not
+    // stored unless debug mode is on, so older drives can only report what was kept.
+    const label = rec
+      ? t("drive_group", { date: fmtDate(start), found: foundTxt, known: knownTxt,
+          checked: rec.checked, video: videoTxt })
+      : t("drive_group_partial", { date: fmtDate(start), found: foundTxt, kept: g.items.length });
+    const open = expandedDrives.has(String(g.driveId));
+    const footageRow = footageRowHtml(g.driveId, fo, open);
+    return `<div class="group-head ${open ? "open" : ""}" data-drive="${g.driveId}">
+        <span class="caret">&#9656;</span><span class="meta" style="font-weight:600;color:#f2f2f4">${label}</span>
+      </div>` + footageRow
+      + `<div data-drivebody="${g.driveId}"${open ? ' data-filled="1"' : ' style="display:none"'}>`
+      + (open ? cards : "") + `</div>`;
+  }).join("");
+  for (const el of list.querySelectorAll("[data-drive]")) {
+    el.onclick = () => {
+      const id = el.dataset.drive;
+      const body = list.querySelector(`[data-drivebody="${id}"]`);
+      const footageRow = Array.from(list.querySelectorAll("[data-footagerow]"))
+        .find((row) => row.dataset.footagerow === id);
+      if (!body) { // shape changed unexpectedly: fall back to a full render
+        if (expandedDrives.has(id)) expandedDrives.delete(id); else expandedDrives.add(id);
+        loadReports();
+        return;
+      }
+      const opening = !expandedDrives.has(id);
+      if (opening) {
+        expandedDrives.add(id);
+        const g = groups.find((x) => String(x.driveId) === id);
+        if (g && !body.dataset.filled) {
+          body.dataset.filled = "1";
+          ensureThumbs(g.items).then(() => {
+            body.innerHTML = g.items.map(cardHtml).join("");
+            wireCards(body, g.items);
+          });
+        }
+        body.style.display = "";
+        if (footageRow) footageRow.style.display = "";
+      } else {
+        expandedDrives.delete(id);
+        body.style.display = "none";
+        if (footageRow) footageRow.style.display = "none";
+      }
+      el.classList.toggle("open", opening);
+    };
+  }
+  for (const el of list.querySelectorAll("[data-analyse]")) {
+    el.onclick = (ev) => { ev.stopPropagation(); analyseFootage(el.dataset.analyse, driveById[el.dataset.analyse]); };
+  }
+  for (const el of list.querySelectorAll("[data-delfootage]")) {
+    el.onclick = async (ev) => {
+      ev.stopPropagation();
+      if (!confirm(t("confirm_delete_footage"))) return;
+      try { await api(`/api/footage/${encodeURIComponent(el.dataset.delfootage)}`, { method: "DELETE" }); }
+      catch (e) { alert(e.message); }
+      loadReports();
+    };
+  }
+  const visible = groups.flatMap((g) => (!g.driveId || expandedDrives.has(String(g.driveId))) ? g.items : []);
+  wireCards(list, visible);
+}
+
+function getPosition() {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude,
+        accuracy: typeof p.coords.accuracy === "number" ? p.coords.accuracy : null,
+        speed: typeof p.coords.speed === "number" && !Number.isNaN(p.coords.speed) ? p.coords.speed : null,
+        heading: typeof p.coords.heading === "number" && !Number.isNaN(p.coords.heading) ? p.coords.heading : null }),
+      () => resolve(null),
+      // A cached fix can put a freshly captured pothole on the road the user left a
+      // minute ago. Polygon-backed civic routing is boundary-sensitive, so require a fresh fix.
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+}
+
+async function handleFile(file) {
+  if (!file) return;
+  $("progressPhoto").src = URL.createObjectURL(file);
+  $("progressText").textContent = t("getting_location");
+  show("progress");
+  const pos = await getPosition();
+  $("progressText").textContent = t("working");
+  const fd = new FormData();
+  fd.append("photo", file);
+  fd.append("captured_at_ms", String(Date.now()));
+  if (pos) {
+    fd.append("lat", pos.lat); fd.append("lng", pos.lng);
+    if (pos.accuracy != null) fd.append("gps_accuracy", String(pos.accuracy));
+    if (pos.speed != null) fd.append("speed", String(pos.speed));
+    if (pos.heading != null) fd.append("heading", String(pos.heading));
+  }
+  try {
+    const report = await api("/api/report", { method: "POST", body: fd });
+    await loadReports();
+    openDetail(report);
+  } catch (e) {
+    alert(e.message);
+    show("home");
+  }
+}
+
+let detailList = [], detailIdx = -1;
+
+function photoBlock(r) {
+  const many = detailList.length > 1;
+  return `<div class="photo-wrap">
+      <img class="big-photo" src="${safePhotoSrc(photoSrc(r))}" alt="" data-zoom="${escapeAttr(r.id)}">
+      ${many ? `<button class="navarrow prev" id="navPrev" ${detailIdx <= 0 ? "disabled" : ""}>&lsaquo;</button>
+      <button class="navarrow next" id="navNext" ${detailIdx >= detailList.length - 1 ? "disabled" : ""}>&rsaquo;</button>` : ""}
+    </div>`;
+}
+
+function wireDetailChrome(r) {
+  const img = $("detail").querySelector("[data-zoom]");
+  if (img) img.onclick = () => openViewer(r);
+  const prev = $("navPrev"), next = $("navNext");
+  if (prev) prev.onclick = () => step(-1);
+  if (next) next.onclick = () => step(1);
+}
+
+function step(delta) {
+  const i = detailIdx + delta;
+  if (i < 0 || i >= detailList.length) return;
+  openReportDetail(detailList[i], detailList);
+}
+
+// Four distinct reasons a confirmed pothole cannot be addressed, each needing its own
+// explanation: no GPS fix, a road no municipality owns, a body whose official address we
+// do not hold, or genuinely outside the state. Collapsing them told a Mysuru user their
+// city was "outside coverage", which was wrong and unhelpful.
+function unroutedTitle(r) {
+  if (r.unrouted_reason === "no_location") return t("no_location");
+  if (r.unrouted_reason === "location_uncertain") return t("location_uncertain");
+  if (r.unrouted_reason === "jurisdiction_unavailable") return t("jurisdiction_unavailable");
+  if (r.unrouted_reason === "road_class_unknown") return t("road_unknown");
+  if (r.unrouted_reason === "national_highway") return t("nat_highway", { road: r.unrouted_body || "" });
+  if (r.unrouted_reason === "rural_road") return t("rural_road", { body: r.unrouted_body || "a" });
+  if (r.unrouted_reason === "no_address_for_body") return t("no_address", { body: r.unrouted_body || "" });
+  return t("outside_coverage");
+}
+function unroutedHelp(r) {
+  if (r.unrouted_reason === "no_location") return t("no_location_help");
+  if (r.unrouted_reason === "location_uncertain") return t("location_uncertain_help");
+  if (r.unrouted_reason === "jurisdiction_unavailable") return t("jurisdiction_unavailable_help");
+  if (r.unrouted_reason === "road_class_unknown") return t("road_unknown_help");
+  if (r.unrouted_reason === "national_highway") return t("nat_highway_help");
+  if (r.unrouted_reason === "rural_road") return t("rural_road_help");
+  if (r.unrouted_reason === "no_address_for_body") return t("no_address_help");
+  return t("outside_coverage_help");
+}
+
+function detectionVerdict(r) {
+  if (r.status === "review") return t("verdict_review", { type: tDamage(r) });
+  if (r.status === "rejected") return t("verdict_rejected");
+  return t("verdict_detected", { type: tDamage(r), assessment: tAssessment(r) });
+}
+
+function openDetail(r, list) {
+  if (list) { detailList = list; detailIdx = list.findIndex((x) => x.id === r.id); }
+  else if (!detailList.some((x) => x.id === r.id)) { detailList = [r]; detailIdx = 0; }
+  else detailIdx = detailList.findIndex((x) => x.id === r.id);
+  const d = $("detail");
+  if (r.status === "unrouted") {
+    // A confirmed pothole the app cannot address. It says so rather than sending the
+    // complaint to a body with no jurisdiction there.
+    d.innerHTML = `
+      <div class="card">
+        ${photoBlock(r)}
+        <div class="verdict" style="color:var(--accent)">
+          ${escapeHtml(detectionVerdict(r))}
+        </div>
+        ${r.address ? `<div class="meta">&#128205; ${escapeHtml(r.address)}</div>` : ""}
+        <div class="meta" style="color:var(--bad)">&#9888; ${escapeHtml(unroutedTitle(r))}</div>
+        <div class="meta">${escapeHtml(unroutedHelp(r))}</div>
+        <div class="btn-row">
+          <button class="ghost" id="backBtn">${t("back")}</button>
+          <button class="ghost danger" id="discardBtn">${t("del")}</button>
+        </div>
+      </div>`;
+  } else if (r.status === "rejected" || r.status === "review") {
+    d.innerHTML = `
+      <div class="card">
+        ${photoBlock(r)}
+        <div class="verdict" style="color:${r.status === "review" ? "var(--accent)" : "var(--bad)"}">${escapeHtml(detectionVerdict(r))}</div>
+        <div class="meta">${escapeHtml(r.description || "")}</div>
+        <div class="meta">${escapeHtml(tDamage(r))} · ${escapeHtml(tAssessment(r))}${r.image_quality ? ` · ${escapeHtml(r.image_quality)}` : ""}</div>
+        <div class="btn-row">
+          <button class="ghost" id="backBtn">${t("back")}</button>
+          <button class="ghost danger" id="discardBtn">${t("del")}</button>
+        </div>
+      </div>`;
+  } else {
+    // "queued" means only that an external handoff was opened. It stays editable and
+    // never becomes a user-marked submission until the citizen says so and records the
+    // official reference returned by an app/portal when that channel provides one.
+    const sent = r.status === "sent";
+    const handoff = isOfficialHandoffReport(r);
+    const legacyBmc = r.delivery_channel === "bmc_quickfix";
+    const service = officialServiceName(r);
+    const authority = displayAuthorityName(r);
+    const hasWhatsapp = !!r.whatsapp_url || legacyBmc;
+    const helpline = r.helpline || (legacyBmc ? "1916" : null);
+    const verdictText = r.status === "sent" ? t("verdict_sent")
+      : r.status === "queued"
+      ? (handoff ? t("chip_queued_official") : t("verdict_queued"))
+      : detectionVerdict(r);
+    const subjectLabel = handoff ? t("complaint_title_label") : t("email_subject_label");
+    const bodyLabel = handoff ? t("complaint_body_label") : t("email_body_label");
+    const showAuthorityWarning = handoff || !!r.ownership_unverified;
+    const officialTools = showAuthorityWarning ? `
+        <div class="meta" style="margin-top:10px;color:#ffd9a8">${escapeHtml(handoff
+          ? t("official_disclaimer", { authority, service })
+          : t("authority_disclaimer", { authority }))}</div>
+        ${r.ward_code ? `<div class="meta">${escapeHtml(t("bmc_ward", { ward: r.ward_code }))}</div>` : ""}
+        ${r.routing_match_field && r.routing_match_value ? `<div class="meta">${escapeHtml(t("routing_match", { field: r.routing_match_field, value: r.routing_match_value }))}</div>` : ""}
+        <div class="btn-row">
+          <button class="ghost" id="shareEvidenceBtn">${t("share_evidence_btn")}</button>
+          ${handoff && hasWhatsapp ? `<button class="ghost" id="officialWhatsAppBtn">${t("official_whatsapp_btn")}</button>` : ""}
+        </div>
+        ${helpline || r.alternate_handoff_url ? `<div class="btn-row">
+          ${helpline ? `<button class="ghost" id="officialCallBtn">${escapeHtml(t("official_call_btn", { number: helpline }))}</button>` : ""}
+          ${handoff && r.alternate_handoff_url ? `<button class="ghost" id="alternateHandoffBtn">${escapeHtml(t("alternate_handoff_btn", { name: r.alternate_handoff_name || "official fallback" }))}</button>` : ""}
+        </div>` : ""}` : "";
+    const confirmation = sent
+      ? (r.official_grievance_id
+          ? `<div class="meta" style="color:var(--ok);margin-top:10px">${escapeHtml(t("submitted_reference", { id: r.official_grievance_id }))}</div>`
+          : "")
+      : handoff
+        ? `<label>${t("official_grievance_generic_label")}</label>
+           <input type="text" id="grievanceId" placeholder="${escapeAttr(t("official_grievance_generic_placeholder"))}" value="">
+           <button class="send" id="markSubmittedBtn" style="width:100%;margin-top:10px">${t("mark_submitted_btn")}</button>`
+        : r.status === "queued"
+          ? `<button class="send" id="markSubmittedBtn" style="width:100%;margin-top:10px">${t("mark_submitted_btn")}</button>`
+          : "";
+    d.innerHTML = `
+      <div class="card">
+        ${photoBlock(r)}
+        <div class="verdict" style="color:${sent ? "var(--ok)" : "var(--accent)"}">
+          ${escapeHtml(verdictText)}
+        </div>
+        ${r.address ? `<div class="meta">&#128205; ${escapeHtml(r.address)}</div>` : ""}
+        ${r.officer_name ? `<div class="meta">&#128231; ${escapeHtml(t("routes_to"))} ${escapeHtml(r.officer_name)}</div>` : ""}
+        ${r.tender_note ? `<div class="meta">&#128209; ${escapeHtml(r.tender_note)}</div>` : ""}
+        ${officialTools}
+        <label>${subjectLabel}</label>
+        <input type="text" id="subj" value="" ${sent ? "disabled" : ""}>
+        <label>${bodyLabel}</label>
+        <textarea id="body" ${sent ? "disabled" : ""}></textarea>
+        <div class="btn-row">
+          <button class="ghost" id="backBtn">${t("back")}</button>
+          ${sent ? "" : `<button class="ghost danger" id="discardBtn">${t("discard")}</button>
+          <button class="send" id="sendBtn">${escapeHtml(sendLabel(r))}</button>`}
+        </div>
+        ${confirmation}
+      </div>`;
+    $("subj").value = r.email_subject || "";
+    $("body").value = r.email_body || "";
+    if (!sent) $("sendBtn").onclick = () => sendReport(r);
+    const share = $("shareEvidenceBtn");
+    if (share) share.onclick = () => shareEvidence(r);
+    const whatsapp = $("officialWhatsAppBtn");
+    if (whatsapp) whatsapp.onclick = () => openOfficialWhatsApp(r);
+    const call = $("officialCallBtn");
+    if (call) call.onclick = () => openOfficialCall(r);
+    const alternate = $("alternateHandoffBtn");
+    if (alternate) alternate.onclick = () => openAlternateHandoff(r);
+    const mark = $("markSubmittedBtn");
+    if (mark) mark.onclick = () => markSubmitted(r);
+  }
+  wireDetailChrome(r);
+  $("backBtn").onclick = () => { show("home"); loadReports(); };
+  const discard = $("discardBtn");
+  if (discard) discard.onclick = async () => {
+    if (!confirm(t("confirm_delete"))) return;
+    try { await api(`/api/reports/${r.id}`, { method: "DELETE" }); } catch (e) { alert(e.message); return; }
+    await loadReports(); show("home");
+  };
+  show("detail");
+}
+
+async function sendReport(r) {
+  // Nothing auto-sends. Verified handoff routes open an official app/portal; Karnataka
+  // email routes open an addressed composer. "queued" means only that
+  // the external handoff opened, never that the complaint was submitted.
+  const handoff = isOfficialHandoffReport(r);
+  const to = r.officer_email || t("the_officer");
+  const confirmation = handoff
+    ? t("confirm_official_handoff", {
+        service: officialServiceName(r), authority: displayAuthorityName(r),
+      })
+    : r.ownership_unverified
+      ? t("confirm_suggested_email", {
+          authority: r.authority_name || t("the_officer"), to,
+        })
+      : t("confirm_send", { to });
+  if (!confirm(confirmation)) return;
+  const btn = $("sendBtn");
+  btn.disabled = true; btn.textContent = t("working");
+  try {
+    await api(`/api/reports/${r.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email_subject: $("subj").value, email_body: $("body").value }),
+    });
+    let updated = await api(`/api/reports/${r.id}/send`, { method: "POST" });
+    if (handoff && updated.handoff_url) {
+      const opened = await openExternalUrl(updated.handoff_url,
+        updated.handoff_package || null);
+      if (!opened) throw new Error(`Could not open ${updated.handoff_name || officialServiceName(r)}. Try Share evidence or another official channel.`);
+      updated = await api(`/api/reports/${r.id}/handoff-opened`, { method: "POST" });
+    }
+    await loadReports();
+    openDetail(updated);
+  } catch (e) {
+    alert(e.message);
+    btn.disabled = false; btn.textContent = sendLabel(r);
+  }
+}
+
+async function markSubmitted(r) {
+  if (!confirm(t("confirm_mark_submitted"))) return;
+  const input = $("grievanceId");
+  const reference = input ? input.value.trim() : "";
+  const btn = $("markSubmittedBtn");
+  btn.disabled = true; btn.textContent = t("working");
+  try {
+    const updated = await api(`/api/reports/${r.id}/submitted`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ official_grievance_id: reference }),
+    });
+    await loadReports(); openDetail(updated);
+  } catch (e) {
+    alert(e.message); btn.disabled = false; btn.textContent = t("mark_submitted_btn");
+  }
+}
+
+async function openExternalUrl(url, packageName = null) {
+  const launcher = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.AppLauncher;
+  if (launcher) {
+    if (packageName) {
+      try {
+        const available = await launcher.canOpenUrl({ url: packageName });
+        if (available && available.value) {
+          const opened = await launcher.openUrl({ url: packageName });
+          if (!opened || opened.completed !== false) return true;
+        }
+      } catch (_) {}
+    }
+    try {
+      const opened = await launcher.openUrl({ url });
+      if (!opened || opened.completed !== false) return true;
+    } catch (_) {}
+  }
+  const opened = window.open(url, "_blank");
+  if (opened) {
+    try { opened.opener = null; } catch (_) {}
+    return true;
+  }
+  return false;
+}
+
+async function openOfficialWhatsApp(r) {
+  let verified;
+  try { verified = await api(`/api/reports/${r.id}/handoff`); }
+  catch (e) { alert(e.message); return; }
+  const base = verified.whatsapp_url;
+  if (!base || !String(base).startsWith("https://wa.me/")) {
+    alert("This saved report has no verified official WhatsApp route.");
+    return;
+  }
+  if (!confirm(t("confirm_whatsapp_share", {
+    authority: displayAuthorityName(verified || r),
+  }))) return;
+  const text = `${verified.email_subject || "Road-damage report"}\n\n${verified.email_body || ""}`.slice(0, 1800);
+  const opened = await openExternalUrl(`${base}${base.includes("?") ? "&" : "?"}text=${encodeURIComponent(text)}`);
+  if (!opened) alert("Could not open the official WhatsApp route. Try Share evidence or another official channel.");
+}
+
+async function openOfficialCall(r) {
+  let verified;
+  try { verified = await api(`/api/reports/${r.id}/handoff`); }
+  catch (e) { alert(e.message); return; }
+  const number = String(verified.helpline || "").replace(/[^0-9+]/g, "");
+  if (!number) { alert("This saved report has no verified official helpline."); return; }
+  location.href = `tel:${number}`;
+}
+
+async function openAlternateHandoff(r) {
+  let verified;
+  try { verified = await api(`/api/reports/${r.id}/handoff`); }
+  catch (e) { alert(e.message); return; }
+  const url = String(verified.alternate_handoff_url || "");
+  if (!url.startsWith("https://")) {
+    alert("This saved report has no verified alternate handoff.");
+    return;
+  }
+  const opened = await openExternalUrl(url);
+  if (!opened) {
+    alert(`Could not open ${verified.alternate_handoff_name || "the official fallback"}.`);
+    return;
+  }
+  if (r.status === "draft" || r.status === "queued") {
+    try {
+      const updated = await api(`/api/reports/${r.id}/handoff-opened`, { method: "POST" });
+      await loadReports(); openDetail(updated);
+    } catch (e) { alert(e.message); }
+  }
+}
+
+async function shareEvidence(r) {
+  const btn = $("shareEvidenceBtn");
+  btn.disabled = true; btn.textContent = t("working");
+  try {
+    const evidence = await api(`/api/reports/${r.id}/evidence`);
+    const P = window.Capacitor && Capacitor.Plugins;
+    if (P && P.Filesystem && P.Share) {
+      try { await P.Filesystem.mkdir({ path: SHARE_CACHE_DIR, directory: "CACHE", recursive: true }); } catch (_) {}
+      const wide = await P.Filesystem.writeFile({ path: `${SHARE_CACHE_DIR}/${evidence.name}`, data: evidence.base64, directory: "CACHE" });
+      const files = [wide.uri];
+      if (evidence.crop_base64 && evidence.crop_name) {
+        const crop = await P.Filesystem.writeFile({ path: `${SHARE_CACHE_DIR}/${evidence.crop_name}`, data: evidence.crop_base64, directory: "CACHE" });
+        files.push(crop.uri);
+      }
+      await P.Share.share({ title: evidence.name, text: evidence.text, files,
+                            dialogTitle: t("share_evidence_btn") });
+    } else {
+      const bin = atob(evidence.base64), arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      const file = new File([arr], evidence.name, { type: "image/jpeg" });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ title: evidence.name, text: evidence.text, files: [file] });
+      } else {
+        const url = URL.createObjectURL(file), a = document.createElement("a");
+        a.href = url; a.download = evidence.name; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+    }
+  } catch (e) { alert(e.message); }
+  btn.disabled = false; btn.textContent = t("share_evidence_btn");
+}
+
+// ---------- Drive Mode ----------
+const FRAME_INTERVAL_MS = 200;   // poll cheaply; the speed-aware gate decides when to capture
+const TARGET_SPACING_M = 6;
+// When speed is unavailable, a 750 ms fallback approximates the 6 m target at
+// ordinary city speed. Measuring from burst start keeps the 360 ms burst itself
+// from silently widening the road gap.
+const FALLBACK_CAPTURE_MS = 750;
+const MIN_CAPTURE_MS = 500;
+const MAX_CAPTURE_MS = 1500;
+const PARKED_CAPTURE_MS = 8000;
+const GPS_COARSE_M = 30;
+const MOVING_MS = 1.0;
+const GPS_MAX_AGE_MS = 10000; // a fix older than this is stale: pause rather than mistag
+const BURST_COUNT = 3;
+const BURST_SPACING_MS = 180;
+// A burst is heavier than the old single frame. Capture remains independent of these
+// workers and waits in a bounded local queue rather than leaving unseen road gaps.
+const MAX_IN_FLIGHT = 6;
+const MAX_CAPTURE_QUEUE = 24;
+// Tunable at runtime so a test can use short segments and dense sampling without
+// waiting out a real drive.
+let SEGMENT_MS = 15000;            // footage is written in 15s pieces so memory stays flat
+let RECORD_BITRATE = 2_500_000;    // ~18 MB/min at 1080p
+let RECORDER_STOP_TIMEOUT_MS = 10000; // a broken WebView must not lock Drive shutdown forever
+let VOD_STEP_S = 1.0;              // frame spacing when re-analysing footage
+// Recording is what removes the guesswork: capture is continuous, and choosing how
+// densely to analyse becomes a separate, repeatable decision made afterwards.
+const RECORD_MIMES = ["video/mp4;codecs=avc1.42E01E", "video/mp4",
+                      "video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+let drive = null;
+let driveStarting = false;
+let driveFinalizing = null;
+const DATA_NOTICE_VERSION = "2026-08-21-v6-state-packs";
+let consentWaiter = null;
+
+function finishDataConsent(accepted) {
+  if (accepted) localStorage.setItem("data_notice_version", DATA_NOTICE_VERSION);
+  const resolve = consentWaiter;
+  consentWaiter = null;
+  show("home");
+  if (resolve) resolve(accepted);
+}
+
+function ensureDataConsent() {
+  if (localStorage.getItem("data_notice_version") === DATA_NOTICE_VERSION) {
+    return Promise.resolve(true);
+  }
+  show("dataConsent");
+  return new Promise((resolve) => { consentWaiter = resolve; });
+}
+
+async function requestNativeCapturePermissions() {
+  if (!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())) return;
+  const plugins = Capacitor.Plugins || {};
+  try {
+    if (plugins.Camera && plugins.Camera.requestPermissions) {
+      await plugins.Camera.requestPermissions({ permissions: ["camera"] });
+    }
+  } catch (e) {}
+  try {
+    if (plugins.Geolocation && plugins.Geolocation.requestPermissions) {
+      await plugins.Geolocation.requestPermissions();
+    }
+  } catch (e) {}
+}
+
+$("privacyAccept").onclick = () => finishDataConsent(true);
+$("privacyDecline").onclick = () => finishDataConsent(false);
+
+function distMeters(a, b) {
+  const R = 6371000, rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+async function startDrive() {
+  // Synchronous reentry guard: a second tap during the camera permission prompt
+  // must not start a parallel drive session and leak the first camera stream.
+  if (drive || driveStarting || driveFinalizing) return;
+  driveStarting = true;
+  if (!(await ensureDataConsent())) { driveStarting = false; return; }
+  await requestNativeCapturePermissions();
+  if (drive || driveFinalizing) { driveStarting = false; return; }
+  StandaloneAPI.prewarm();
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 },
+               height: { ideal: 1080 }, frameRate: { ideal: 30 } },
+      audio: false,
+    });
+  } catch (e) { driveStarting = false; alert(t("camera_failed") + e.message); return; }
+  const video = $("driveVideo");
+  video.srcObject = stream;
+  const ctx = {
+    stream, pos: null, lastCapPos: null,
+    tally: { checked: 0, found: 0, already: 0, captured: 0, dropped: 0 },
+    duplicateIds: new Set(),
+    queue: [], pending: new Set(), inFlight: 0, errors: 0, wakeLock: null,
+    sessionId: String(Date.now()), startedAt: Date.now(), captureSeq: 0, stillBusy: false,
+    stopping: false, drained: false,
+  };
+  ctx.drainPromise = new Promise((resolve) => { ctx.resolveDrained = resolve; });
+  drive = ctx;
+  show("drive");
+  try { await video.play(); } catch (e) {}
+  // Stop can be tapped while play() is waiting for the media pipeline. Do not let
+  // this continuation recreate recording, GPS or wake-lock resources after teardown.
+  if (drive !== ctx || ctx.stopping) { driveStarting = false; return; }
+  const track = stream.getVideoTracks && stream.getVideoTracks()[0];
+  const settings = track && track.getSettings ? track.getSettings() : {};
+  ctx.cameraSettings = { width: settings.width || null, height: settings.height || null,
+                         frameRate: settings.frameRate || null };
+  if ((settings.width && settings.width < 1280) || (settings.frameRate && settings.frameRate < 20)) {
+    ctx.cameraWarning = t("camera_low_quality", {
+      width: settings.width || "?", fps: Math.round(settings.frameRate || 0) || "?",
+    });
+  }
+  startRecording(stream, ctx.sessionId, ctx.startedAt);
+  try {
+    const lock = await navigator.wakeLock.request("screen");
+    if (drive === ctx && !ctx.stopping) ctx.wakeLock = lock;
+    else lock.release().catch(() => {});
+  } catch (e) {}
+  // A wake-lock request is asynchronous too. If Stop won that race, the late lock
+  // was released above and GPS must never be installed for the dead session.
+  if (drive !== ctx || ctx.stopping) { driveStarting = false; return; }
+  ctx.watchId = navigator.geolocation.watchPosition(
+    (p) => {
+      if (drive !== ctx) return;
+      ctx.pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      // Staleness is the age of the FIX, not of its delivery. A phone will hand back the
+      // same cached fix over and over, and stamping arrival time made it look perpetually
+      // fresh while the car drove away from it.
+      ctx.posAt = p.timestamp || Date.now();
+      ctx.posAccuracy = typeof p.coords.accuracy === "number" ? p.coords.accuracy : null;
+      ctx.posSpeed = typeof p.coords.speed === "number" && !Number.isNaN(p.coords.speed)
+        ? p.coords.speed : null;
+      ctx.posHeading = typeof p.coords.heading === "number" && !Number.isNaN(p.coords.heading)
+        ? p.coords.heading : null;
+      (ctx.gpsTrack || (ctx.gpsTrack = [])).push(
+        [Math.round((Date.now() - ctx.startedAt) / 100) / 10,
+         +p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6),
+         ctx.posAccuracy, ctx.posSpeed, ctx.posHeading]);
+    },
+    () => {},
+    { enableHighAccuracy: true, maximumAge: 2000 }
+  );
+  // Let autofocus and auto-exposure settle before claiming the first road sample.
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  if (drive !== ctx) { driveStarting = false; return; }
+  ctx.timer = setInterval(driveTick, FRAME_INTERVAL_MS);
+  updateHud(t("waiting_gps"));
+  driveStarting = false;
+}
+
+function updateHud(status, ctx = drive) {
+  if (!ctx || drive !== ctx) return;
+  $("driveCount").textContent = eventCountText(ctx.tally.found)
+    + (ctx.tally.already ? ` · ${alreadyCountText(ctx.tally.already)}` : "");
+  $("driveStatus").textContent = status ||
+    t("scanning", { mode: "live", checked: ctx.tally.checked,
+      analyzing: (ctx.inFlight || ctx.queue.length) ? t("analyzing_suffix", { n: ctx.inFlight + ctx.queue.length }) : "" })
+      + (ctx.tally.dropped ? ` · ${ctx.tally.dropped} ${t("coverage_dropped")}` : "")
+      + (ctx.cameraWarning ? ` · ${ctx.cameraWarning}` : "")
+      + (recCtx && !recCtx.failed
+          ? " " + t("rec_suffix", { mb: (recCtx.bytes / 1048576).toFixed(0) })
+          : (recCtx && recCtx.failed ? " " + t("rec_failed") : ""));
+}
+
+const withTimeout = (p, ms) =>
+  Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("capture timeout")), ms))]);
+
+// Capture hands the engine the best frame it can get, unmodified. The engine makes
+// its own small working copy for detection and applies the night boost there, so the
+// copy attached to a complaint stays what the camera actually saw.
+function grabPreview(video) {
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+  return new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.9));
+}
+
+// One cheap read of the frame the preview is already showing. No capture-session
+// reconfiguration, so the video feed keeps running smoothly while we sample it.
+function captureFrame(video) {
+  return grabPreview(video);
+}
+
+// Scores only the road region. A high-frequency but completely black/white image is
+// penalised by exposure clipping, and ties keep the earliest frame deterministically.
+function scoreRoadPixels(rgba, width, height) {
+  const gray = new Float32Array(width * height);
+  let total = 0, dark = 0, bright = 0;
+  for (let i = 0, p = 0; i < rgba.length; i += 4, p++) {
+    const y = 0.2126 * rgba[i] + 0.7152 * rgba[i + 1] + 0.0722 * rgba[i + 2];
+    gray[p] = y; total += y;
+    if (y < 12) dark++;
+    if (y > 245) bright++;
+  }
+  let edgeTotal = 0, samples = 0;
+  for (let y = 1; y < height - 1; y++) for (let x = 1; x < width - 1; x++) {
+    const i = y * width + x;
+    edgeTotal += Math.abs(4 * gray[i] - gray[i - 1] - gray[i + 1] - gray[i - width] - gray[i + width]);
+    samples++;
+  }
+  const n = width * height;
+  const luminance = total / n;
+  const clipped = (dark + bright) / n;
+  const sharpness = samples ? edgeTotal / samples : 0;
+  const unusableExposure = clipped > 0.70 || luminance < 18 || luminance > 238;
+  const score = unusableExposure ? -100
+    : sharpness - Math.abs(luminance - 115) * 0.055 - clipped * 45;
+  return { sharpness, luminance, clipped, score };
+}
+
+function roadFrameQuality(video) {
+  const width = 160, height = 96;
+  const c = document.createElement("canvas");
+  c.width = width; c.height = height;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  const sourceH = Math.max(1, Math.round(video.videoHeight * 0.62));
+  ctx.drawImage(video, 0, video.videoHeight - sourceH, video.videoWidth, sourceH,
+                0, 0, width, height);
+  return scoreRoadPixels(ctx.getImageData(0, 0, width, height).data, width, height);
+}
+
+function bestBurstIndex(frames) {
+  let best = 0;
+  for (let i = 1; i < frames.length; i++) {
+    const score = frames[i].quality ? frames[i].quality.score : -Infinity;
+    const bestScore = frames[best].quality ? frames[best].quality.score : -Infinity;
+    if (score > bestScore) best = i;
+  }
+  return best;
+}
+
+function waitForVideoFrame(video) {
+  const spacing = new Promise((resolve) => setTimeout(resolve, BURST_SPACING_MS));
+  if (typeof video.requestVideoFrameCallback === "function") {
+    const distinct = withTimeout(new Promise((resolve) => video.requestVideoFrameCallback(() => resolve())),
+      BURST_SPACING_MS + 150).catch(() => {});
+    return Promise.all([spacing, distinct]);
+  }
+  return spacing;
+}
+
+async function captureBurst(video) {
+  const frames = [];
+  for (let i = 0; i < BURST_COUNT; i++) {
+    if (i) await waitForVideoFrame(video);
+    let quality = null, blob = null;
+    try { quality = roadFrameQuality(video); } catch (e) {}
+    try { blob = await withTimeout(captureFrame(video), 3000); } catch (e) {}
+    if (blob) frames.push({ blob, quality: quality || { score: -Infinity }, capturedAt: Date.now() });
+  }
+  return { frames, primaryIndex: frames.length ? bestBurstIndex(frames) : -1 };
+}
+
+function finishDriveDrain(ctx) {
+  if (ctx.stopping && !ctx.drained && !ctx.queue.length && ctx.inFlight === 0) {
+    ctx.drained = true;
+    ctx.resolveDrained();
+  }
+}
+
+function drainDriveQueue(ctx) {
+  while (ctx.inFlight < MAX_IN_FLIGHT && ctx.queue.length) {
+    const job = ctx.queue.shift();
+    const fd = new FormData();
+    job.burst.frames.forEach((f, i) => fd.append("photo", f.blob, `burst-${i + 1}.jpg`));
+    fd.append("primary_index", String(job.burst.primaryIndex));
+    fd.append("lat", String(job.pos.lat));
+    fd.append("lng", String(job.pos.lng));
+    fd.append("drive_id", ctx.sessionId);
+    fd.append("capture_source", "drive_live");
+    fd.append("source_event_key", `live:${ctx.sessionId}:${job.captureSeq}`);
+    fd.append("source_offset_ms", String(job.sourceOffsetMs));
+    fd.append("captured_at_ms", String(job.capturedAt));
+    if (job.gpsAccuracy != null) fd.append("gps_accuracy", String(job.gpsAccuracy));
+    if (job.speed != null) fd.append("speed", String(job.speed));
+    if (job.heading != null) fd.append("heading", String(job.heading));
+    fd.append("frame_quality", JSON.stringify(job.burst.frames.map((f) => f.quality)));
+    ctx.inFlight++;
+    const request = api("/api/frame", { method: "POST", body: fd })
+      .then((res) => {
+        ctx.tally.checked++;
+        ctx.errors = 0;
+        if (res && res.found) ctx.tally.found++;
+        else if (res && res.duplicate && res.duplicate_of != null) {
+          ctx.duplicateIds.add(String(res.duplicate_of));
+          ctx.tally.already = ctx.duplicateIds.size;
+        }
+      })
+      .catch((e) => {
+        ctx.tally.failed = (ctx.tally.failed || 0) + 1;
+        ctx.errors++;
+        if (e && e.fatal) {
+          ctx.queue.length = 0;
+          if (drive === ctx) {
+            const msg = e.message;
+            stopDrive();
+            alert(msg);
+          }
+        } else if (drive === ctx) updateHud(t("net_trouble", { n: ctx.errors }), ctx);
+      })
+      .finally(() => {
+        ctx.inFlight--;
+        ctx.pending.delete(request);
+        drainDriveQueue(ctx);
+        finishDriveDrain(ctx);
+        updateHud(undefined, ctx);
+      });
+    ctx.pending.add(request);
+  }
+  finishDriveDrain(ctx);
+}
+
+function enqueueDriveEvent(ctx, job) {
+  if (ctx.queue.length >= MAX_CAPTURE_QUEUE) {
+    ctx.queue.shift();
+    ctx.tally.dropped++;
+  }
+  ctx.queue.push(job);
+  drainDriveQueue(ctx);
+}
+
+async function driveTick() {
+  const ctx = drive;
+  if (!ctx || ctx.stopping) return;
+  const video = $("driveVideo");
+  if (!video.videoWidth) return;
+  const gpsFresh = ctx.pos && Date.now() - (ctx.posAt || 0) <= GPS_MAX_AGE_MS;
+  if (!gpsFresh) {
+    updateHud(!ctx.pos
+      ? (Date.now() - ctx.startedAt > 30000 ? t("gps_30s") : t("waiting_gps"))
+      : t("gps_lost"));
+    return;
+  }
+  const pos = { ...ctx.pos };
+  const sinceLastCapture = Date.now() - (ctx.lastCapAt || 0);
+  // Use either real displacement or a speed-derived time interval. A stuck/coarse fix
+  // can no longer turn a moving drive into an eight-second stationary cadence.
+  const coarse = ctx.posAccuracy === null || ctx.posAccuracy > GPS_COARSE_M;
+  const knownStill = ctx.posSpeed !== null && ctx.posSpeed <= MOVING_MS && !coarse;
+  const cadenceMs = knownStill ? PARKED_CAPTURE_MS
+    : ctx.posSpeed > MOVING_MS
+      ? Math.max(MIN_CAPTURE_MS, Math.min(MAX_CAPTURE_MS, TARGET_SPACING_M / ctx.posSpeed * 1000))
+      : FALLBACK_CAPTURE_MS;
+  const moved = ctx.lastCapPos ? distMeters(ctx.lastCapPos, pos) : Infinity;
+  if (ctx.lastCapPos && moved < TARGET_SPACING_M && sinceLastCapture < cadenceMs) {
+    updateHud(t("holding", { checked: ctx.tally.checked, found: ctx.tally.found }));
+    return;
+  }
+  // Keep the preview alive. Android pauses a video element on all sorts of events and
+  // nothing here ever restarted it, so a single pause froze the feed for the rest of
+  // the drive.
+  if (video.paused || video.ended) { try { video.play(); } catch (e) {} }
+  const track = ctx.stream && ctx.stream.getVideoTracks && ctx.stream.getVideoTracks()[0];
+  // Only a genuinely ended track is a lost camera. `muted` flickers true on Android
+  // whenever the source briefly cannot supply frames, and treating one tick of that as
+  // "camera gone" stopped scanning constantly.
+  const dead = !track || track.readyState === "ended";
+  const stalled = track && (track.muted || video.readyState < 2);
+  if (dead) {
+    ctx.camBad = 99;
+  } else if (stalled) {
+    ctx.camBad = (ctx.camBad || 0) + 1;
+  } else if (ctx.camBad) {
+    ctx.camBad = 0;                       // recovered: say nothing, just carry on
+  }
+  // ~3 seconds of continuous stall before admitting anything, and it clears itself.
+  if (ctx.camBad >= 8) { updateHud(t("camera_lost")); return; }
+  if (ctx.camBad) return;
+  if (ctx.stillBusy) return;
+  const captureStartedAt = Date.now();
+  ctx.stillBusy = true;
+  let burst = null;
+  try {
+    burst = await withTimeout(captureBurst(video), 10000);
+  } catch (e) { burst = null; }
+  finally { ctx.stillBusy = false; }
+  if (drive !== ctx || ctx.stopping) return;
+  if (!burst || !burst.frames.length) {
+    // The spacing is only consumed by a frame that was actually taken. Marking position
+    // before the capture meant a failing camera silently ate 8 m of road per attempt.
+    ctx.capBad = (ctx.capBad || 0) + 1;
+    if (ctx.capBad >= 8) updateHud(t("capture_failing"));
+    return;
+  }
+  ctx.capBad = 0;
+  ctx.lastCapPos = pos;
+  ctx.lastCapAt = captureStartedAt;
+  ctx.tally.captured++;
+  enqueueDriveEvent(ctx, { burst, pos, capturedAt: ctx.lastCapAt,
+                           sourceOffsetMs: ctx.lastCapAt - ctx.startedAt,
+                           captureSeq: ++ctx.captureSeq, gpsAccuracy: ctx.posAccuracy,
+                           speed: ctx.posSpeed, heading: ctx.posHeading });
+  updateHud();
+}
+
+function stopDrive() {
+  if (!drive) return driveFinalizing || Promise.resolve();
+  const ctx = drive;
+  ctx.stopping = true;
+  // Captured bursts already queued are still checked. The summary waits for the queue,
+  // so stopping the camera never turns the last stretch into silently dropped road.
+  const tally = ctx.tally;
+  const sessionId = ctx.sessionId, startedAt = ctx.startedAt;
+  const gpsTrack = ctx.gpsTrack || [];
+  // MediaRecorder delivers its last data only after stop(). Keep its completion in the
+  // shutdown barrier so history cannot render before that final clip is committed.
+  const recordingDone = stopRecording();
+  const hadActivity = tally.captured > 0 || tally.checked > 0 || tally.found > 0
+    || (tally.failed || 0) > 0 || ctx.inFlight > 0 || ctx.queue.length > 0;
+  clearInterval(ctx.timer);
+  navigator.geolocation.clearWatch(ctx.watchId);
+  if (ctx.wakeLock) ctx.wakeLock.release().catch(() => {});
+  ctx.stream.getTracks().forEach((t) => t.stop());
+  $("driveStatus").textContent = t("working");
+  drive = null;
+  drainDriveQueue(ctx);
+  finishDriveDrain(ctx);
+  const finish = async ([, recording]) => {
+    const returnHome = async () => {
+      try { await loadReports(); } catch (e) {}
+      show("home");
+    };
+    // An immediate cancel with recording disabled is not useful history. A recording
+    // counts only after at least one clip commit succeeds.
+    if (!hadActivity && !(recording && recording.bytes > 0)) { await returnHome(); return; }
+    // Record what the drive actually checked. Rejected frames are not stored unless
+    // debug mode is on, so without this the history header can only count survivors.
+    await api("/api/drives", { method: "POST", body: JSON.stringify(
+      { id: sessionId, started_at: startedAt / 1000, checked: tally.checked,
+        found: tally.found, already: tally.already,
+        already_ids: [...ctx.duplicateIds],
+        gps_track: gpsTrack }) })
+      .catch(() => {});
+    await returnHome();
+    const failedNote = tally.failed ? " " + t("drive_end_failed", { n: tally.failed }) : "";
+    const known = tally.already ? alreadyCountText(tally.already) : "";
+    const summary = (tally.found === 0
+      ? (tally.already
+          ? t("drive_end_known", { already: known, checked: tally.checked })
+          : t("drive_end_zero", { checked: tally.checked, debug: localStorage.getItem("debug_mode") === "1" ? t("debug_saved_suffix") : "" }))
+      : t("drive_end", { found: eventCountText(tally.found), checked: tally.checked })
+        + (tally.already ? t("drive_seen_suffix", { already: known }) : "")) + failedNote;
+    // Keep startup locked until the old drive's final UI/prompt is complete, otherwise
+    // it can interrupt a newly started drive after an asynchronous recorder flush.
+    alert(summary);
+    const mine = (await api("/api/footage").catch(() => []))
+      .find((f) => String(f.drive_id) === String(sessionId));
+    if (!mine) return;
+    const ask = t("offer_analyse", { mb: (mine.bytes / 1048576).toFixed(0), clips: mine.segments });
+    if (!confirm(ask)) return;   // declining keeps the footage: it is the only copy
+    const rec = (await api("/api/drives").catch(() => []))
+      .find((d) => String(d.id) === String(sessionId));
+    await analyseFootage(sessionId, rec);
+  };
+  const finalizing = Promise.all([ctx.drainPromise, recordingDone]).then(finish);
+  driveFinalizing = finalizing;
+  finalizing.then(
+    () => { if (driveFinalizing === finalizing) driveFinalizing = null; },
+    () => { if (driveFinalizing === finalizing) driveFinalizing = null; },
+  );
+  return finalizing;
+}
+
+$("driveBtn").onclick = startDrive;
+$("driveStop").onclick = stopDrive;
+
+// Camera and precise location are foreground-only. Leaving the app ends Drive Mode
+// instead of relying on WebView suspension timing while capture continues unseen.
+document.addEventListener("visibilitychange", () => {
+  if (drive && document.visibilityState === "hidden") stopDrive();
+});
+
+// Opening the camera is the cue that a call is coming: warm the connection now
+// so the photo does not also pay for a TLS handshake.
+$("captureBtn").onclick = async () => {
+  if (!(await ensureDataConsent())) return;
+  await requestNativeCapturePermissions();
+  StandaloneAPI.prewarm();
+  $("fileInput").click();
+};
+
+// ---------- labelling ----------
+// A human label is the only thing that can measure the detector. The model's own
+// verdict is shown but deliberately after the photo, so it nudges the eye as little
+// as possible: an unlabelled frame is worth more than one labelled by suggestion.
+let reviewQueue = [], reviewDone = 0;
+
+// Rolling clips, not one long recording. MP4 is not streamable: given a timeslice it
+// emits nothing until stop, so a 30-minute drive would sit entirely in memory.
+// Restarting the recorder every SEGMENT_MS gives self-contained, seekable clips and
+// flat memory, costing a few tens of milliseconds at each boundary. WebM does stream,
+// but a mid-stream WebM chunk carries no headers, so it cannot be seeked on its own.
+const isDebug = () => localStorage.getItem("debug_mode") === "1";
+const keepFrames = () => localStorage.getItem("keep_frames") === "1";
+
+// Writing frames out to the device is what makes an evaluation set possible: every
+// frame the model judged, with what it said, kept where a human can relabel it.
+// Documents rather than the photo gallery on purpose. Gallery visibility needs the
+// frames registered with Android's MediaStore, which the Filesystem plugin does not
+// do, and a drive's worth of frames in the camera roll would bury real photos.
+const FRAME_DIR = "pothole-frames";
+const SHARE_CACHE_DIR = "pothole-reporter-shares";
+
+// Storage is requested once, before an analysis begins, so the dialog appears at a moment
+// the user can connect to something they just tapped. It used to fire from the first
+// per-frame write, partway through a run.
+async function ensureFrameStorage() {
+  const P = window.Capacitor && Capacitor.Plugins;
+  if (!P || !P.Filesystem) return false;
+  try {
+    if (P.Filesystem.checkPermissions) {
+      const c = await P.Filesystem.checkPermissions();
+      if (c && c.publicStorage === "granted") return true;
+    }
+    if (P.Filesystem.requestPermissions) {
+      const r = await P.Filesystem.requestPermissions();
+      return !!(r && r.publicStorage === "granted");
+    }
+    return true;   // older plugin versions expose neither and write regardless
+  } catch (e) { return false; }
+}
+
+async function writeFrameFile(driveId, index, blob) {
+  const P = window.Capacitor && Capacitor.Plugins;
+  if (!P || !P.Filesystem) return null;
+  const b64 = await new Promise((res) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result).split(",")[1]);
+    fr.onerror = () => res(null);
+    fr.readAsDataURL(blob);
+  });
+  if (!b64) return null;
+  const name = `${FRAME_DIR}/${driveId}/frame-${String(index).padStart(5, "0")}.jpg`;
+  await P.Filesystem.writeFile({ path: name, data: b64, directory: "DOCUMENTS", recursive: true });
+  return name;
+}
+
+async function writeManifest(driveId, entries) {
+  const P = window.Capacitor && Capacitor.Plugins;
+  if (!P || !P.Filesystem) return;
+  const body = JSON.stringify({ drive_id: driveId, exported_at: new Date().toISOString(),
+    count: entries.length, note: "labels are the model's own verdicts, not human ground truth",
+    frames: entries }, null, 1);
+  await P.Filesystem.writeFile({ path: `${FRAME_DIR}/${driveId}/manifest.json`,
+    data: btoa(unescape(encodeURIComponent(body))), directory: "DOCUMENTS", recursive: true });
+}
+
+let recCtx = null;
+
+function startRecording(stream, driveId, driveStartedAtMs) {
+  recCtx = null;
+  if (localStorage.getItem("record_video") !== "1") return;  // explicit opt-in
+  if (typeof MediaRecorder === "undefined") return;
+  const mime = RECORD_MIMES.find((t) => { try { return MediaRecorder.isTypeSupported(t); } catch (e) { return false; } });
+  if (!mime) return;
+  const ctx = { driveId, driveStartedAtMs, mime, stream, seq: 0, bytes: 0, active: true,
+    timer: null, recorder: null, failed: false, pending: new Set(),
+    awaitingStop: false, finished: false };
+  ctx.stopped = new Promise((resolve) => { ctx.resolveStopped = resolve; });
+  recCtx = ctx;
+  cycleClip(ctx);
+}
+
+function finishRecording(ctx) {
+  if (!ctx || ctx.finished || ctx.active || ctx.awaitingStop || ctx.pending.size) return;
+  ctx.finished = true;
+  if (recCtx === ctx) recCtx = null;
+  ctx.resolveStopped(ctx);
+}
+
+function cycleClip(ctx = recCtx) {
+  if (!ctx || !ctx.active) return;
+  let rec;
+  try { rec = new MediaRecorder(ctx.stream, { mimeType: ctx.mime, videoBitsPerSecond: RECORD_BITRATE }); }
+  catch (e) { ctx.failed = true; ctx.recorder = null; return; }
+  const parts = [];
+  let settled = false, stopWatchdog = null, recordingStartedAtMs = null;
+  const settle = (saveTail) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(ctx.timer);
+    clearTimeout(stopWatchdog);
+    ctx.timer = null;
+    if (ctx.recorder === rec) ctx.recorder = null;
+    if (ctx.stopCurrent === requestStop) ctx.stopCurrent = null;
+    ctx.awaitingStop = false;
+    // Once the watchdog wins, detach the old recorder completely. A late stop event
+    // must not write footage after Drive finalization has already crossed its barrier.
+    rec.ondataavailable = null;
+    rec.onstop = null;
+    rec.onerror = null;
+    if (saveTail && parts.length) {
+      saveClip(ctx, new Blob(parts, { type: ctx.mime }), recordingStartedAtMs);
+    }
+    if (ctx.active) cycleClip(ctx);
+    finishRecording(ctx);
+  };
+  const requestStop = () => {
+    if (settled || stopWatchdog) return;
+    ctx.awaitingStop = true;
+    stopWatchdog = setTimeout(() => {
+      ctx.failed = true;
+      settle(false); // an incomplete container is not useful footage
+    }, RECORDER_STOP_TIMEOUT_MS);
+    try { if (rec.state !== "inactive") rec.stop(); }
+    catch (e) { ctx.failed = true; settle(false); }
+  };
+  rec.ondataavailable = (e) => { if (!settled && e.data && e.data.size) parts.push(e.data); };
+  rec.onstop = () => settle(true);
+  rec.onerror = () => { ctx.failed = true; requestStop(); };
+  ctx.recorder = rec;
+  ctx.stopCurrent = requestStop;
+  try {
+    recordingStartedAtMs = Date.now();
+    rec.start();
+  }
+  catch (e) {
+    ctx.failed = true;
+    ctx.recorder = null;
+    ctx.stopCurrent = null;
+    rec.ondataavailable = null;
+    rec.onstop = null;
+    rec.onerror = null;
+    return;
+  }
+  if (settled || ctx.recorder !== rec) return;
+  ctx.timer = setTimeout(() => {
+    ctx.timer = null;
+    requestStop();
+  }, SEGMENT_MS);
+}
+
+// Reads only ctx, never `drive`: the final clip lands after Stop has torn the session
+// down, and losing the end of a drive is exactly the bug worth avoiding.
+function saveClip(ctx, blob, recordingStartedAtMs) {
+  const fd = new FormData();
+  fd.append("segment", blob, "clip.bin");
+  fd.append("drive_id", ctx.driveId);
+  fd.append("seq", String(ctx.seq++));
+  if (Number.isFinite(recordingStartedAtMs)) {
+    fd.append("recording_started_at_ms", String(recordingStartedAtMs));
+    if (Number.isFinite(ctx.driveStartedAtMs)) {
+      fd.append("source_offset_ms", String(recordingStartedAtMs - ctx.driveStartedAtMs));
+    }
+  }
+  const request = api("/api/footage", { method: "POST", body: fd })
+    .then((r) => { ctx.bytes += (r && r.bytes) || 0; })
+    .catch(() => { ctx.failed = true; });
+  ctx.pending.add(request);
+  request.finally(() => {
+    ctx.pending.delete(request);
+    finishRecording(ctx);
+  });
+  return request;
+}
+
+function stopRecording() {
+  const ctx = recCtx;
+  if (!ctx) return Promise.resolve(null);
+  if (ctx.finished) return ctx.stopped;
+  ctx.active = false;
+  clearTimeout(ctx.timer);
+  ctx.timer = null;
+  if (ctx.stopCurrent) ctx.stopCurrent();
+  else if (!ctx.awaitingStop) {
+    ctx.recorder = null;
+  }
+  finishRecording(ctx);
+  return ctx.stopped;
+}
+const expandedDrives = new Set();
+
+async function startReview() {
+  const all = await api("/api/reports");
+  reviewQueue = all.filter((r) => !r.human_label && r.photo_url);
+  reviewDone = all.length - reviewQueue.length;
+  if (!reviewQueue.length) { alert(t("review_empty")); return; }
+  show("review");
+  nextReviewFrame();
+}
+
+function nextReviewFrame() {
+  if (!reviewQueue.length) { alert(t("review_empty")); show("home"); loadReports(); return; }
+  const r = reviewQueue[0];
+  $("reviewPhoto").src = photoSrc(r);
+  $("reviewMeta").innerHTML = t("review_progress", { n: reviewQueue.length, done: reviewDone });
+  $("reviewSaid").textContent = t("model_said", {
+    verdict: tDamage(r), assessment: tAssessment(r),
+  });
+}
+
+async function labelCurrent(label) {
+  const r = reviewQueue.shift();
+  if (!r) return;
+  if (label) {
+    try {
+      await api(`/api/reports/${r.id}/label`, { method: "POST", body: JSON.stringify({ label }) });
+      reviewDone++;
+    } catch (e) { alert(e.message); }
+  }
+  nextReviewFrame();
+}
+
+// ---------- full-screen photo viewer ----------
+// The detail card can only ever show a thumbnail of a 4000px capture, which is no
+// use for judging a pothole or labelling one. Pinch, pan, and step between records
+// without going back to the list.
+let vState = { scale: 1, x: 0, y: 0, rec: null }, vPointers = new Map(), vStart = null, vLastTap = 0;
+
+function vApply() {
+  $("viewerImg").style.transform =
+    `translate(${vState.x}px, ${vState.y}px) scale(${vState.scale})`;
+}
+function vReset() { vState.scale = 1; vState.x = 0; vState.y = 0; vApply(); }
+
+function openViewer(r) {
+  vState.rec = r;
+  $("viewerImg").src = photoSrc(r);
+  $("viewerHint").innerHTML = t("zoom_hint");
+  vReset();
+  $("viewer").classList.remove("hidden");
+}
+function closeViewer() { $("viewer").classList.add("hidden"); vState.rec = null; }
+
+function viewerStep(delta) {
+  if (detailList.length < 2) return;
+  const i = detailIdx + delta;
+  if (i < 0 || i >= detailList.length) return;
+  detailIdx = i;
+  const r = detailList[i];
+  openDetail(r, detailList);          // keep the card behind the viewer in sync
+  openViewer(r);
+}
+
+(function wireViewer() {
+  const v = $("viewer"), img = $("viewerImg");
+  $("viewerClose").onclick = closeViewer;
+  v.addEventListener("pointerdown", (e) => {
+    vPointers.set(e.pointerId, e);
+    if (vPointers.size === 1) {
+      const now = Date.now();
+      if (now - vLastTap < 300) { vState.scale > 1 ? vReset() : (vState.scale = 2.5, vApply()); }
+      vLastTap = now;
+      vStart = { x: e.clientX - vState.x, y: e.clientY - vState.y };
+    } else if (vPointers.size === 2) {
+      const [a, b] = [...vPointers.values()];
+      vStart = { dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), scale: vState.scale };
+    }
+  });
+  v.addEventListener("pointermove", (e) => {
+    if (!vPointers.has(e.pointerId)) return;
+    vPointers.set(e.pointerId, e);
+    if (vPointers.size === 2 && vStart && vStart.dist) {
+      const [a, b] = [...vPointers.values()];
+      const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      vState.scale = Math.min(8, Math.max(1, vStart.scale * (d / vStart.dist)));
+      if (vState.scale === 1) { vState.x = 0; vState.y = 0; }
+      vApply();
+    } else if (vPointers.size === 1 && vStart && vState.scale > 1) {
+      vState.x = e.clientX - vStart.x;
+      vState.y = e.clientY - vStart.y;
+      vApply();
+    }
+  });
+  const end = (e) => {
+    const was = vPointers.get(e.pointerId);
+    vPointers.delete(e.pointerId);
+    // A flick while not zoomed moves to the next record rather than panning nothing.
+    if (was && vState.scale === 1 && vStart && !vStart.dist && vPointers.size === 0) {
+      const dx = e.clientX - (vStart.x + vState.x);
+      if (Math.abs(dx) > 60) viewerStep(dx < 0 ? 1 : -1);
+    }
+    if (!vPointers.size) vStart = null;
+  };
+  v.addEventListener("pointerup", end);
+  v.addEventListener("pointercancel", end);
+  img.addEventListener("click", (e) => e.stopPropagation());
+})();
+
+// ---------- re-analysing recorded footage ----------
+// The point of recording: capture never had to guess an interval, so how densely to
+// analyse is decided here, afterwards, and can be redone whenever detection improves.
+function gpsAt(track, seconds) {
+  if (!track || !track.length) return null;
+  let best = track[0];
+  for (const p of track) { if (p[0] <= seconds) best = p; else break; }
+  return { lat: best[1], lng: best[2],
+           accuracy: Number.isFinite(best[3]) ? best[3] : null,
+           speed: Number.isFinite(best[4]) ? best[4] : null,
+           heading: Number.isFinite(best[5]) ? best[5] : null };
+}
+
+// Clips are walked one at a time. Byte-joining separate MP4 files does not make one
+// longer video: only the first is parsed, so a naive concatenation silently analyses
+// the first few seconds of a drive and reports success.
+// A WebM produced by MediaRecorder carries no duration, so the element reports Infinity.
+// Seeking far past the end makes the browser scan to the last frame and report the real
+// length. Without this every WebM clip looks unreadable and the drive appears to have no
+// footage at all.
+function resolveDuration(v) {
+  return new Promise((res) => {
+    let settled = false;
+    const done = (d) => { if (!settled) { settled = true; v.ontimeupdate = null; res(d); } };
+    v.ontimeupdate = () => {
+      if (isFinite(v.duration) && v.duration > 0) { const d = v.duration; v.currentTime = 0; done(d); }
+    };
+    setTimeout(() => done(NaN), 10000);
+    try { v.currentTime = 1e7; } catch (e) { done(NaN); }
+  });
+}
+
+async function analyseFootage(driveId, driveRec) {
+  let footage;
+  try { footage = await api(`/api/footage/${encodeURIComponent(driveId)}/blobs`); }
+  catch (e) { alert(t("analyse_none")); return; }
+  if (!footage.blobs.length) { alert(t("analyse_none")); return; }
+
+  const saveToDisk = keepFrames();
+  // Ask for storage once, here, before anything starts. This used to fire from the first
+  // per-frame write, so the permission dialog appeared partway through an analysis with
+  // no explanation of what had asked for it.
+  if (saveToDisk && !(await ensureFrameStorage())) {
+    if (!confirm(t("frames_no_permission"))) return;
+  }
+
+  show("progress");
+  $("progressPhoto").src = "";
+
+  const track = (driveRec && driveRec.gps_track) || [];
+  const recordedStart = Number(driveRec && driveRec.started_at);
+  const idStart = /^\d{12,}$/.test(String(driveId)) ? Number(driveId) / 1000 : NaN;
+  const sourceStartS = Number.isFinite(recordedStart) && recordedStart > 0 ? recordedStart : idStart;
+  const pending = [];
+  const duplicateIds = new Set();
+  let found = 0, done = 0, elapsed = 0;
+  let failed = 0, consecutive = 0, lastErr = "", aborted = false;
+  const manifest = [];
+  let written = 0, writeFailed = false;
+
+  // Open every clip first, so the total is known before the first frame is checked. The
+  // count used to be discovered as the loop walked the video, so it read "1 of 2" and
+  // then "2 of 3": the denominator grew while the user watched it.
+  const clips = [];
+  const storedClips = Array.isArray(footage.clips) && footage.clips.length
+    ? footage.clips : footage.blobs.map((blob, seq) => ({ seq, blob }));
+  for (const [fallbackSeq, storedClip] of storedClips.entries()) {
+    const clip = storedClip.blob;
+    const clipSeq = Number.isFinite(storedClip.seq) ? storedClip.seq : fallbackSeq;
+    const url = URL.createObjectURL(clip);
+    const v = document.createElement("video");
+    v.muted = true; v.preload = "auto"; v.src = url;
+    const meta = await new Promise((res) => {
+      v.onloadedmetadata = () => res({ dur: v.duration });
+      v.onerror = () => res({ error: true });
+      setTimeout(() => res({ error: true }), 15000);
+    });
+    if (meta.error) { URL.revokeObjectURL(url); continue; }
+    // MediaRecorder writes WebM with no duration in the header, so the element reports
+    // Infinity until something forces it to scan. Skipping those clips meant that on any
+    // device whose WebView cannot record MP4, and the Android emulator is one, every
+    // recording was stored and then declared missing. Seeking past the end resolves it.
+    let dur = meta.dur;
+    if (!isFinite(dur) || dur <= 0) dur = await resolveDuration(v);
+    if (!isFinite(dur) || dur <= 0) { URL.revokeObjectURL(url); continue; }
+    const times = [];
+    for (let at = Math.min(0.2, dur / 2); at < dur; at += VOD_STEP_S) times.push(at);
+    clips.push({ url, dur, times, blob: clip, seq: clipSeq,
+      sourceOffsetS: Number.isFinite(storedClip.source_offset_s) ? storedClip.source_offset_s : null,
+      recordingStartedAtMs: Number.isFinite(storedClip.recording_started_at_ms)
+        ? storedClip.recording_started_at_ms : null });
+    v.src = ""; // the pool opens its own elements; this one was only for the duration
+  }
+  const total = clips.reduce((n, c) => n + c.times.length, 0);
+  if (!total) { show("home"); alert(t("analyse_none")); return; }
+  const paint = () => {
+    $("progressText").innerHTML = t("analysing", { i: done, n: total, found })
+      + (duplicateIds.size ? " " + t("analysing_dup", { n: duplicateIds.size }) : "")
+      + (failed ? " " + t("analysing_failed", { n: failed }) : "");
+  };
+  paint();
+
+  // Seeking is the bottleneck, not the model. One video element seeking frame by frame
+  // serialises the whole analysis behind the slowest part of it, so several elements
+  // seek at once and the extraction overlaps the detection instead of blocking it.
+  const SEEKERS = 3;
+  const canvasFor = () => document.createElement("canvas");
+
+  async function grabFrom(v, canvas, at) {
+    return new Promise((res) => {
+      let settled = false;
+      const finish = (b) => { if (!settled) { settled = true; res(b); } };
+      v.onseeked = () => {
+        const scale = Math.min(1, 2000 / Math.max(v.videoWidth, v.videoHeight));
+        canvas.width = Math.round(v.videoWidth * scale);
+        canvas.height = Math.round(v.videoHeight * scale);
+        canvas.getContext("2d").drawImage(v, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(finish, "image/jpeg", 0.85);
+      };
+      v.onerror = () => finish(null);
+      // A seek that never lands must not hang the whole run.
+      setTimeout(() => finish(null), 8000);
+      v.currentTime = at;
+    });
+  }
+
+  let frameNo = -1;
+  for (const clip of clips) {
+    if (aborted) break;
+    // One element per seeker, all on the same clip, each taking every SEEKERS-th frame.
+    const pool = [];
+    for (let k = 0; k < SEEKERS; k++) {
+      const v = document.createElement("video");
+      v.muted = true; v.preload = "auto"; v.src = clip.url;
+      await new Promise((res) => { v.onloadedmetadata = res; v.onerror = res; });
+      pool.push({ v, canvas: canvasFor() });
+    }
+
+    const base = frameNo + 1;
+    // Seeking finishes out of order across the decoder pool. Start detector requests in
+    // timeline order anyway: the engine reserves its short persistence turns when a
+    // request starts, while the requests themselves still run concurrently.
+    const stagedSubmissions = new Map();
+    let nextSubmission = 0;
+    const submitInOrder = (idx, start) => new Promise((resolve) => {
+      stagedSubmissions.set(idx, { start, resolve });
+      while (stagedSubmissions.has(nextSubmission)) {
+        const staged = stagedSubmissions.get(nextSubmission);
+        stagedSubmissions.delete(nextSubmission++);
+        if (staged.start) staged.start();
+        staged.resolve();
+      }
+    });
+    await Promise.all(pool.map(async (slot, k) => {
+      for (let idx = k; idx < clip.times.length; idx += SEEKERS) {
+        if (aborted) {
+          // Other seekers may already be waiting behind this index in the chronological
+          // submission gate. Mark this seeker's remaining slots as skipped so an aborted
+          // run cannot leave those promises hanging forever.
+          for (let skipped = idx; skipped < clip.times.length; skipped += SEEKERS) {
+            await submitInOrder(skipped, null);
+          }
+          return;
+        }
+        const at = clip.times[idx];
+        const blob = await grabFrom(slot.v, slot.canvas, at);
+        if (!blob) { await submitInOrder(idx, null); done++; paint(); continue; }
+        // New recordings carry their real segment start, so recorder restart/write gaps
+        // stay aligned with GPS and live detections. Summed duration is legacy fallback.
+        const atAbs = Number.isFinite(clip.sourceOffsetS) ? clip.sourceOffsetS + at : elapsed + at;
+        const pos = gpsAt(track, atAbs);
+        const fd = new FormData();
+        fd.append("photo", blob, "vod.jpg");
+        if (pos) { fd.append("lat", String(pos.lat)); fd.append("lng", String(pos.lng)); }
+        fd.append("drive_id", String(driveId));
+        fd.append("capture_source", "drive_vod");
+        fd.append("source_event_key", `vod:${driveId}:${clip.seq}:${Math.round(at * 1000)}`);
+        fd.append("source_offset_ms", String(Math.round(atAbs * 1000)));
+        if (Number.isFinite(clip.recordingStartedAtMs)) {
+          fd.append("captured_at_ms", String(Math.round(clip.recordingStartedAtMs + at * 1000)));
+        } else if (Number.isFinite(sourceStartS)) {
+          fd.append("captured_at_ms", String(Math.round((sourceStartS + atAbs) * 1000)));
+        }
+        if (pos && pos.accuracy != null) fd.append("gps_accuracy", String(pos.accuracy));
+        if (pos && pos.speed != null) fd.append("speed", String(pos.speed));
+        if (pos && pos.heading != null) fd.append("heading", String(pos.heading));
+        const myFrame = base + idx;
+        await submitInOrder(idx, () => {
+          pending.push(api("/api/frame", { method: "POST", body: fd })
+            .then(async (r) => {
+              consecutive = 0;
+              if (r && r.found) found++;
+              else if (r && r.duplicate && r.duplicate_of != null) {
+                duplicateIds.add(String(r.duplicate_of));
+              }
+              if (!saveToDisk || writeFailed) return;
+              try {
+                const file = await writeFrameFile(driveId, myFrame, blob);
+                if (!file) { writeFailed = true; return; }
+                written++;
+                const rep = r && r.report;
+                const observation = (r && r.observation) || rep || r || {};
+                manifest.push({ file: file.split("/").pop(), at_seconds: +atAbs.toFixed(2),
+                  lat: pos ? pos.lat : null, lng: pos ? pos.lng : null,
+                  model_said: {
+                    is_reportable: !!observation.reportable || !!observation.is_reportable,
+                    damage_type: observation.damage_type || "none",
+                    assessment: observation.assessment || "absent",
+                    image_quality: observation.image_quality || null,
+                    size: observation.size || null,
+                  },
+                  storage: { stored: !!(r && r.stored), duplicate: !!(r && r.duplicate),
+                             duplicate_of: (r && r.duplicate_of) || null },
+                  detector: (r && r.detector) || null });
+              } catch (e) { writeFailed = true; }
+            })
+            .catch((e) => {
+              failed++; consecutive++;
+              lastErr = (e && e.message) || String(e);
+            })
+            .finally(() => { done++; paint(); }));
+        });
+        if (pending.length >= MAX_IN_FLIGHT) await Promise.race(pending.splice(0, 1));
+        if (consecutive >= 5) {
+          aborted = true;
+          for (let skipped = idx + SEEKERS; skipped < clip.times.length; skipped += SEEKERS) {
+            await submitInOrder(skipped, null);
+          }
+          return;
+        }
+      }
+    }));
+
+    for (const slot of pool) { slot.v.src = ""; }
+    frameNo = base + clip.times.length - 1;
+    elapsed += clip.dur;
+  }
+
+  await Promise.allSettled(pending);
+  for (const c of clips) URL.revokeObjectURL(c.url);
+  if (saveToDisk && written) {
+    try { await writeManifest(driveId, manifest); } catch (e) { writeFailed = true; }
+  }
+  let freed = 0;
+  if (!isDebug() && !failed) {
+    try {
+      const before = (await api("/api/footage").catch(() => []))
+        .filter((f) => String(f.drive_id) === String(driveId))
+        .reduce((n, f) => n + f.bytes, 0);
+      await api(`/api/footage/${encodeURIComponent(driveId)}`, { method: "DELETE" });
+      freed = before / 1048576;
+    } catch (e) {}
+  }
+  await api(`/api/drives/${encodeURIComponent(driveId)}/analysis`, {
+    method: "POST",
+    body: JSON.stringify({ started_at: Number.isFinite(sourceStartS) ? sourceStartS : null,
+      checked: Math.max(0, done - failed), found, already: duplicateIds.size,
+      already_ids: [...duplicateIds] }),
+  }).catch(() => {});
+  await loadReports();
+  show("home");
+  const diskNote = !saveToDisk ? ""
+    : (written ? " " + t("frames_saved", { n: written, dir: `${FRAME_DIR}/${driveId}` })
+               : " " + t("frames_failed"));
+  const headline = failed
+    ? t("analyse_incomplete", { failed, n: total, err: lastErr })
+    : t("analyse_done", { found, n: total })
+      + (duplicateIds.size ? " " + t("analyse_dup", { n: duplicateIds.size }) : "");
+  alert(headline
+        + (freed ? " " + t("footage_freed", { mb: freed.toFixed(0) })
+                 : (isDebug() || failed ? " " + t("footage_kept") : ""))
+        + diskNote);
+}
+
+// ---------- contribution dashboard ----------
+// Leaflet is vendored rather than loaded from a CDN so the app keeps working with no
+// network and ships nothing it does not carry itself. Tiles do need a connection, so
+// when they cannot load the points are still plotted on a plain scatter.
+let mapObj = null;
+
+async function openDash() {
+  const [reports, drives, footage] = await Promise.all([
+    api("/api/reports"), api("/api/drives").catch(() => []), api("/api/footage").catch(() => []),
+  ]);
+  const FOUND = ["draft", "queued", "sent", "unrouted"];
+  const holes = reports.filter((r) => FOUND.includes(r.status));
+  // Opening an email app or BMC channel proves only that a handoff was opened. Count a
+  // submission after the citizen explicitly confirms it (and Mumbai has a grievance ID).
+  const sent = reports.filter((r) => r.status === "sent").length;
+  const frames = drives.reduce((n, d) => n + (d.checked || 0), 0) || reports.length;
+  const mb = footage.reduce((n, f) => n + f.bytes, 0) / 1048576;
+  const km = drives.reduce((n, d) => n + trackKm(d.gps_track || []), 0);
+
+  const days = new Set(holes.map((r) => new Date(r.created_at * 1000).toDateString())).size;
+  const first = holes.length ? fmtDate(Math.min(...holes.map((r) => r.created_at))) : "";
+  $("dashTitle").textContent = t("dash_title");
+  const dayTxt = days === 1 ? t("day_one") : t("day_many", { n: days });
+  $("dashRange").innerHTML = holes.length ? t("dash_range", { days: dayTxt, first }) : t("dash_empty");
+
+  const tile = (n, label) => `<div class="card" style="flex:1 1 30%;min-width:96px;margin:0;text-align:center">
+      <div class="verdict" style="font-size:22px;margin:0">${n}</div>
+      <div class="meta">${label}</div></div>`;
+  $("dashStats").innerHTML =
+    tile(holes.length, t("stat_found")) + tile(sent, t("stat_reported")) +
+    tile(frames, t("stat_frames")) + tile(drives.length, t("stat_drives")) +
+    tile(km.toFixed(1), t("stat_km")) + tile(mb.toFixed(0), t("stat_footage"));
+
+  const bars = (title, counts) => {
+    const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const max = Math.max(1, ...rows.map((r) => r[1]));
+    return `<div class="meta" style="font-weight:600;color:#f2f2f4;margin-bottom:6px">${escapeHtml(title)}</div>` +
+      (rows.length ? rows.map(([k, v]) => `<div style="margin:6px 0">
+          <div class="meta" style="display:flex;justify-content:space-between"><span>${escapeHtml(k)}</span><span>${escapeHtml(v)}</span></div>
+          <div style="height:6px;background:#26272c;border-radius:6px;overflow:hidden">
+            <div style="height:6px;width:${(v / max * 100).toFixed(0)}%;background:var(--accent)"></div></div>
+        </div>`).join("") : `<div class="meta">&mdash;</div>`);
+  };
+  const byType = {}, bySize = {}, byArea = {};
+  for (const r of holes) {
+    byType[tDamage(r)] = (byType[tDamage(r)] || 0) + 1;
+    if (r.size) bySize[tSize(r.size)] = (bySize[tSize(r.size)] || 0) + 1;
+    const area = (r.officer_name || "").replace(/^Commissioner,\s*/, "") || "—";
+    byArea[area] = (byArea[area] || 0) + 1;
+  }
+  $("dashBreak").innerHTML = bars(t("by_type"), byType) + `<div style="height:14px"></div>`
+    + bars(t("by_size"), bySize) + `<div style="height:14px"></div>` + bars(t("by_area"), byArea);
+
+  show("dash");
+  drawMap(holes.filter((r) => r.lat != null && r.lng != null));
+}
+
+function trackKm(track) {
+  let m = 0;
+  for (let i = 1; i < track.length; i++) {
+    m += distMeters({ lat: track[i - 1][1], lng: track[i - 1][2] }, { lat: track[i][1], lng: track[i][2] });
+  }
+  return m / 1000;
+}
+
+function drawMap(pins) {
+  const host = $("map");
+  $("mapNote").innerHTML = t("map_pins", { n: pins.length });
+  if (mapObj) { mapObj.remove(); mapObj = null; }
+  host.innerHTML = "";
+  if (!pins.length) return;
+  if (typeof L === "undefined") return scatter(host, pins);
+  try {
+    mapObj = L.map(host, { attributionControl: true });
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }).addTo(mapObj);
+    const group = L.featureGroup(pins.map((r) => {
+      const m = L.circleMarker([r.lat, r.lng], { radius: 7, color: "#ff7a1a", weight: 2,
+        fillColor: "#ff7a1a", fillOpacity: .75 });
+      m.on("click", () => openReportDetail(r, pins));
+      return m;
+    })).addTo(mapObj);
+    mapObj.fitBounds(group.getBounds().pad(0.25));
+    setTimeout(() => mapObj && mapObj.invalidateSize(), 60);
+  } catch (e) { scatter(host, pins); }
+}
+
+// No tiles, no dependency: latitude and longitude straight onto an SVG. Ugly next to a
+// real map, but it still answers "where have I been reporting".
+function scatter(host, pins) {
+  const lats = pins.map((p) => p.lat), lngs = pins.map((p) => p.lng);
+  const pad = 0.002;
+  const minLat = Math.min(...lats) - pad, maxLat = Math.max(...lats) + pad;
+  const minLng = Math.min(...lngs) - pad, maxLng = Math.max(...lngs) + pad;
+  const W = 340, H = 220;
+  const x = (lng) => ((lng - minLng) / Math.max(1e-9, maxLng - minLng)) * (W - 24) + 12;
+  const y = (lat) => H - 12 - ((lat - minLat) / Math.max(1e-9, maxLat - minLat)) * (H - 24);
+  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%">
+      <rect width="${W}" height="${H}" fill="#0c0d0f"></rect>
+      ${pins.map((p) => `<circle cx="${x(p.lng).toFixed(1)}" cy="${y(p.lat).toFixed(1)}" r="5"
+         fill="#ff7a1a" fill-opacity="0.8" stroke="#ff7a1a"></circle>`).join("")}
+    </svg>`;
+  $("mapNote").innerHTML = t("map_pins", { n: pins.length }) + " · " + t("map_offline");
+}
+
+$("dashBtn").onclick = openDash;
+$("dashBack").onclick = () => { show("home"); loadReports(); };
+
+$("reviewBtn").onclick = startReview;
+$("reviewPhoto").onclick = () => { if (reviewQueue[0]) openViewer(reviewQueue[0]); };
+$("lblPothole").onclick = () => labelCurrent("pothole_cavity");
+$("lblPatch").onclick = () => labelCurrent("failed_patch");
+$("lblSurface").onclick = () => labelCurrent("surface_breakup");
+$("lblRut").onclick = () => labelCurrent("rut_or_depression");
+$("lblNo").onclick = () => labelCurrent("not_reportable");
+$("lblSkip").onclick = () => labelCurrent(null);
+$("reviewBack").onclick = () => { show("home"); loadReports(); };
+
+$("exportBtn").onclick = async () => {
+  const btn = $("exportBtn");
+  btn.disabled = true; btn.textContent = t("working");
+  try {
+    const zip = await api("/api/export", { method: "POST" });
+    alert(t("export_ready", { n: zip.count, mb: (zip.bytes / 1048576).toFixed(1) }));
+    await shareZip(zip);
+  } catch (e) { alert(e.message); }
+  btn.disabled = false; btn.textContent = t("export_btn");
+};
+
+// Written to cache and handed to the share sheet, so the zip goes wherever you want
+// (Drive, mail, a chat) without the app needing an account or a server.
+async function shareZip(zip) {
+  const P = window.Capacitor && Capacitor.Plugins;
+  if (!P || !P.Filesystem || !P.Share) {
+    // Browser fallback, used by the test harness.
+    const bin = atob(zip.base64), arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([arr], { type: "application/zip" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = zip.name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    return;
+  }
+  try { await P.Filesystem.mkdir({ path: SHARE_CACHE_DIR, directory: "CACHE", recursive: true }); } catch (_) {}
+  const w = await P.Filesystem.writeFile({ path: `${SHARE_CACHE_DIR}/${zip.name}`, data: zip.base64, directory: "CACHE" });
+  await P.Share.share({ title: zip.name, files: [w.uri] });
+}
+$("fileInput").onchange = (e) => { handleFile(e.target.files[0]); e.target.value = ""; };
+
+// Live pipeline progress from the standalone engine (stage-by-stage updates).
+window.addEventListener("pipeline-progress", (e) => {
+  if (!$("progress").classList.contains("hidden")) $("progressText").textContent = e.detail;
+  else if (drive) $("driveStatus").textContent = e.detail;
+});
+
+// The verdict streams in ahead of the description, so say what was decided
+// while the rest of the report is still being assembled.
+window.addEventListener("pipeline-verdict", (e) => {
+  if ($("progress").classList.contains("hidden")) return;
+  $("progressText").textContent = e.detail.accepted
+    ? t("early_yes", { type: tDamage(e.detail.damage_type) })
+    : e.detail.review ? t("early_review") : t("early_no");
+});
+
+// Native Android back button: navigate inside the app instead of exiting.
+// Drive mode stops; any other screen returns home; home lets the app exit.
+window.handleAppBack = () => {
+  if (drive) { stopDrive(); return true; }
+  // Stop has already torn down the live camera, but its final MediaRecorder data and
+  // queued detections may still be committing. Do not expose Home/Settings/Wipe until
+  // that barrier completes or a late write could resurrect data after a user wipe.
+  if (driveFinalizing) return true;
+  if (!$("dataConsent").classList.contains("hidden")) { finishDataConsent(false); return true; }
+  if (!$("viewer").classList.contains("hidden")) { closeViewer(); return true; }
+  for (const s of ["detail", "settings", "progress", "drive", "review", "dash"]) {
+    if (!$(s).classList.contains("hidden")) { show("home"); loadReports(); return true; }
+  }
+  return false;
+};
+
+// Settings: OpenAI key and sender name. Stored on-device only.
+window.openSettings = (firstRun) => {
+  $("setKey").value = localStorage.getItem("openai_key") || "";
+  $("setName").value = localStorage.getItem("sender_name") || "";
+  $("setModel").value = ["gpt-5-mini", "gpt-5.6"].includes(localStorage.getItem("detection_model"))
+    ? localStorage.getItem("detection_model") : "gpt-5-mini";
+  $("setDetail").value = ["high", "original"].includes(localStorage.getItem("image_detail"))
+    ? localStorage.getItem("image_detail") : "high";
+  $("setDebug").checked = localStorage.getItem("debug_mode") === "1";
+  $("setKeepFrames").checked = localStorage.getItem("keep_frames") === "1";
+  $("setRecord").checked = localStorage.getItem("record_video") === "1"; // explicit opt-in
+  $("setLang").value = LANG;
+  $("settingsHint").textContent = firstRun ? t("welcome_hint") : "";
+  show("settings");
+};
+$("gearBtn").onclick = () => openSettings(false);
+$("setBack").onclick = () => show("home");
+$("setSave").onclick = async () => {
+  localStorage.setItem("openai_key", $("setKey").value.trim());
+  localStorage.setItem("sender_name", $("setName").value.trim());
+  const selectedModel = $("setModel").value === "gpt-5.6" ? "gpt-5.6" : "gpt-5-mini";
+  const selectedDetail = $("setDetail").value === "original" && selectedModel === "gpt-5.6"
+    ? "original" : "high";
+  localStorage.setItem("detection_model", selectedModel);
+  localStorage.setItem("image_detail", selectedDetail);
+  localStorage.setItem("debug_mode", $("setDebug").checked ? "1" : "0");
+  localStorage.setItem("keep_frames", $("setKeepFrames").checked ? "1" : "0");
+  localStorage.setItem("record_video", $("setRecord").checked ? "1" : "0");
+  const newLang = $("setLang").value;
+  localStorage.setItem("app_lang", newLang);
+  if (newLang !== LANG) { location.reload(); return; }
+  await loadHealth();
+  await loadReports();
+  show("home");
+};
+$("wipeBtn").onclick = async () => {
+  if (!confirm(t("confirm_wipe"))) return;
+  try { await api("/api/reports", { method: "DELETE" }); } catch (e) { alert(e.message); return; }
+  const plugins = window.Capacitor && Capacitor.Plugins;
+  try {
+    if (plugins && plugins.Filesystem && plugins.Filesystem.rmdir) {
+      await plugins.Filesystem.rmdir({ path: FRAME_DIR, directory: "DOCUMENTS", recursive: true });
+    }
+  } catch (e) {}
+  try {
+    if (plugins && plugins.Filesystem && plugins.Filesystem.rmdir) {
+      await plugins.Filesystem.rmdir({ path: SHARE_CACHE_DIR, directory: "CACHE", recursive: true });
+    }
+  } catch (e) {}
+  localStorage.clear();
+  location.reload();
+};
+
+applyLang();
+
+// #report-<id> deep link opens that report's detail screen directly.
+(async () => {
+  await loadHealth();
+  await loadReports();
+  const m = location.hash.match(/^#report-(\d+)$/);
+  if (m) {
+    const r = (loadReports.latest || []).find((x) => x.id == m[1]);
+    if (r) openReportDetail(r);
+  }
+})();
+</script>
+</body>
+</html>

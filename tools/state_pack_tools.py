@@ -19,6 +19,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = PROJECT_ROOT / "docs"
 STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest.json"
 ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest.json"
+PAGES_MANIFEST = DOCS_ROOT / "pack-manifest.json"
 AUTHORITIES_SOURCE = PROJECT_ROOT / "data" / "state-authorities.json"
 PUBLIC_BASE_URL = "https://coding-parrot.github.io/pothole-reporter/"
 PACK_FORMAT = "pothole-pack-manifest"
@@ -872,7 +873,7 @@ def publish_resource(
     manifest: dict[str, Any] | None = None,
     write_manifest: bool = True,
 ) -> tuple[dict[str, Any], Path]:
-    """Publish one immutable pack and update both bundled manifest mirrors."""
+    """Publish one immutable pack and update every deployed manifest mirror."""
     if resource_id not in SPECS:
         raise PackError(f"unknown resource id: {resource_id}")
     spec = SPECS[resource_id]
@@ -893,6 +894,7 @@ def publish_resource(
         serialized = _manifest_json(manifest)
         _write_if_changed(STATIC_MANIFEST, serialized)
         _write_if_changed(ANDROID_MANIFEST, serialized)
+        _write_if_changed(PAGES_MANIFEST, serialized)
         verify_all()
     return manifest, output
 
@@ -947,6 +949,7 @@ def build_all() -> list[Path]:
     serialized = _manifest_json(manifest)
     _write_if_changed(STATIC_MANIFEST, serialized)
     _write_if_changed(ANDROID_MANIFEST, serialized)
+    _write_if_changed(PAGES_MANIFEST, serialized)
     verify_all()
     return outputs
 
@@ -1054,6 +1057,8 @@ def verify_all() -> None:
         raise PackError("missing bundled manifest: static/pack-manifest.json")
     _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest.json")
     _expect(ANDROID_MANIFEST.read_bytes() == manifest_bytes, "static and Android pack manifests differ")
+    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest.json")
+    _expect(PAGES_MANIFEST.read_bytes() == manifest_bytes, "static and Pages pack manifests differ")
     manifest = _read_json(STATIC_MANIFEST)
     _expect(isinstance(manifest, dict) and set(manifest) == MANIFEST_KEYS,
             "pack manifest top-level fields differ from the contract")

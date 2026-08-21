@@ -10,7 +10,7 @@ import re, sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 fails = []
 
-for name in ("static/index.html", "android-app/www/index.html"):
+for name in ("static/index.html", "android-app/www/index.html", "docs/index.html"):
     s = (ROOT / name).read_text(encoding="utf-8")
 
     # The two mirrors must be byte-identical; a partial patch is how the recording
@@ -18,6 +18,9 @@ for name in ("static/index.html", "android-app/www/index.html"):
     if name.startswith("android"):
         if s != (ROOT / "static/index.html").read_text(encoding="utf-8"):
             fails.append("android-app/www/index.html has drifted from static/index.html")
+    if name.startswith("docs"):
+        if s != (ROOT / "static/index.html").read_text(encoding="utf-8"):
+            fails.append("docs/index.html has drifted from static/index.html")
 
     # Disclosure: the user must be told the photo leaves the device in every language.
     en = re.search(r'settings_note: "([^"]+)"', s)
@@ -147,6 +150,8 @@ for name in ("static/index.html", "android-app/www/index.html"):
 
 if (ROOT / "android-app/www/standalone.js").read_bytes() != (ROOT / "static/standalone.js").read_bytes():
     fails.append("android-app/www/standalone.js has drifted from static/standalone.js")
+if (ROOT / "docs/standalone.js").read_bytes() != (ROOT / "static/standalone.js").read_bytes():
+    fails.append("docs/standalone.js has drifted from static/standalone.js")
 
 if fails:
     print("FAIL"); [print("  -", f) for f in fails]; sys.exit(1)
