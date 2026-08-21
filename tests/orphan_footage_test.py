@@ -14,6 +14,7 @@ from browser_test_utils import open_app
 
 JS = r"""
 async () => {
+  localStorage.setItem("data_notice_version", DATA_NOTICE_VERSION);
   const pause = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
   const video = document.getElementById("driveVideo");
   const realHandle = StandaloneAPI.handle;

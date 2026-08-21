@@ -20,8 +20,8 @@ emails. National highways and rural roads are excluded.
   probable road-work contract when a reliable match is available.
 - Saves the result as an editable draft and opens the email composer only after you
   choose to send it.
-- Records Drive Mode footage on the device by default. It can be disabled in Settings,
-  or analysed and deleted later from History.
+- Offers optional local Drive Mode recording, off by default. Saved footage can be
+  analysed or deleted later from History.
 - Groups repeat Drive/footage observations into one event; Debug mode keeps every
   accepted observation.
 
@@ -67,6 +67,8 @@ required for detection, geocoding, and road classification.
 - Reports, labels, and footage are stored locally. Complaint content and attachments are
   handed to your email app when you open a draft. The project operates no collection
   server.
+- See the [privacy policy](https://coding-parrot.github.io/pothole-reporter/privacy.html)
+  and [data sources and limits](https://coding-parrot.github.io/pothole-reporter/sources.html).
 
 ## Development
 

@@ -11,6 +11,7 @@ KEY = os.environ["OPENAI_API_KEY"]
 
 JS = r"""
 async (phase) => {
+  localStorage.setItem("data_notice_version", DATA_NOTICE_VERSION);
   const video = document.getElementById("driveVideo");
   const realPlay = video.play.bind(video);
   const realStartRecording = window.startRecording;

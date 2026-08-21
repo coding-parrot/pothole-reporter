@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Data provenance and known limits for Pothole Reporter.">
+  <title>Data Sources and Limits — Pothole Reporter</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f7f5;
+      --card: #fff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #d9d9d5;
+      --accent: #b84d00;
+      --soft: #fff0e5;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111315;
+        --card: #191c1f;
+        --text: #f1f3f4;
+        --muted: #bdc1c6;
+        --line: #3c4043;
+        --accent: #ff9b54;
+        --soft: #3a2416;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.65 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { width: min(980px, calc(100% - 32px)); margin: 0 auto; padding: 40px 0 64px; }
+    header, section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      margin: 0 0 18px;
+      padding: clamp(20px, 4vw, 36px);
+    }
+    h1, h2 { line-height: 1.2; }
+    h1 { margin: 0 0 8px; font-size: clamp(2rem, 6vw, 3rem); }
+    h2 { margin: 0 0 14px; font-size: 1.35rem; }
+    h3 { margin: 20px 0 6px; }
+    p { margin: 10px 0; }
+    ul, ol { padding-left: 22px; }
+    li + li { margin-top: 7px; }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    .meta { color: var(--muted); margin: 0; }
+    .notice { background: var(--soft); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 16px; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 720px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 12px; text-align: left; vertical-align: top; }
+    th { font-size: .9rem; }
+    nav { margin-top: 18px; }
+    nav a + a { margin-left: 16px; }
+    footer { color: var(--muted); text-align: center; font-size: .9rem; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="meta">Pothole Reporter</p>
+    <h1>Data sources and limits</h1>
+    <p class="meta">Current bundled-data snapshot: 19 August 2026 · Page updated: 21 August 2026</p>
+    <nav aria-label="Related pages">
+      <a href="privacy.html">Privacy policy</a>
+      <a href="https://github.com/coding-parrot/pothole-reporter/blob/main/docs/SOURCES.md">Detailed source notes</a>
+      <a href="https://github.com/coding-parrot/pothole-reporter">Source code</a>
+    </nav>
+  </header>
+
+  <section>
+    <h2>Provenance is not proof</h2>
+    <div class="notice">
+      <p>The app combines a user's camera and phone location with public reference data, local rules, and AI judgments. A cited record does not prove that a photographed defect is reportable, that a particular authority owns the road, or that a contractor or warranty applies.</p>
+      <p>Review the photo, recipient, wording, and any probable contract match before sending a complaint.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What comes from where</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Output</th><th>Source or method</th><th>Important limit</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Road image and coordinates</td>
+            <td>The user's camera and the phone's Android location service.</td>
+            <td>Camera angle, motion, lighting, GPS accuracy, and stale fixes can all be wrong or incomplete.</td>
+          </tr>
+          <tr>
+            <td>Damage type, assessment, size, and description</td>
+            <td>An OpenAI vision model evaluates selected image views under the app's prompt and schema.</td>
+            <td>This is generated judgment, not ground truth. The current detector does not have a complete held-out, human-labelled field benchmark.</td>
+          </tr>
+          <tr>
+            <td>Street address</td>
+            <td><a href="https://nominatim.org/">OpenStreetMap Nominatim</a> reverse-geocodes phone coordinates.</td>
+            <td>Map data can be missing, stale, or imprecise. The complaint also includes coordinates so the result can be checked.</td>
+          </tr>
+          <tr>
+            <td>Town boundary, gram-panchayat boundary, and national-highway check</td>
+            <td><a href="https://kgis.ksrsac.in/kgismaps/rest/services">Karnataka GIS</a>, operated by KSRSAC, is queried at the reported point.</td>
+            <td>A boundary lookup does not by itself establish maintenance responsibility. If the required road-class or jurisdiction lookup fails, the app is designed to refuse municipal routing.</td>
+          </tr>
+          <tr>
+            <td>Municipal recipient</td>
+            <td>The bundled directory contains 182 supported local bodies. Addresses were compiled from Karnataka district NIC pages and local-body pages; entries are keyed by Local Government Directory town code.</td>
+            <td>Contact details are a dated snapshot and may change. Bodies without a published address are deliberately unroutable.</td>
+          </tr>
+          <tr>
+            <td>Tender number, work title, publication date, and location</td>
+            <td>The current bundle contains 42,283 road-related rows filtered from awarded works on the <a href="https://kppp.karnataka.gov.in/">Karnataka Public Procurement Portal (KPPP)</a>.</td>
+            <td>The title-keyword filter is intentionally broad. A tender row is not proof that its work covers the photographed point.</td>
+          </tr>
+          <tr>
+            <td>Winning bidder on some Bengaluru records</td>
+            <td>1,124 bundled rows contain contractor names derived from the public snapshot at <a href="https://bengaluru-road-contracts.pages.dev">bengaluru-road-contracts.pages.dev</a>, whose stated source is KPPP.</td>
+            <td>This is an intermediary snapshot rather than a fresh per-tender lookup. Most bundled rows have no bidder name, and the app must not invent one.</td>
+          </tr>
+          <tr>
+            <td>Probable contract match</td>
+            <td>A deterministic local ranking selects up to 25 contracts indexed to the same supported body; an OpenAI model may then select one above the app's confidence threshold.</td>
+            <td>The match is generated and probabilistic. The complaint labels it probable and asks the officer to verify it against tender documents.</td>
+          </tr>
+          <tr>
+            <td>Possible defect-liability or maintenance wording</td>
+            <td>A local rule uses the tender's publication date: up to one year is described as possibly within a defect-liability period and up to three years as possibly within maintenance.</td>
+            <td>The award-search row contains no actual warranty term. This is an inference and must never be presented as a contractual fact.</td>
+          </tr>
+          <tr>
+            <td>Complaint text and signature</td>
+            <td>A local template combines the reviewed result, coordinates, supported recipient, optional probable contract reference, and the sender name entered in Settings.</td>
+            <td>The user is responsible for checking and editing the draft. The app opens an email composer but does not send the message.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Current bundle boundaries</h2>
+    <ul>
+      <li>The app covers supported Karnataka urban local bodies with a published recipient address; it does not claim statewide routing for every road.</li>
+      <li>Of 319 urban local bodies in the roster used to build the bundle, 182 have a supported directory entry and 137 do not.</li>
+      <li>Of 42,283 road-related procurement rows, 18,972 are DMA or legacy BBMP records. Only 13,577 are currently indexed to a supported body and can enter a contract shortlist.</li>
+      <li>41,159 procurement rows have no winning bidder recorded in the bundle.</li>
+      <li>National highways, rural roads, unknown road classes, locations outside Karnataka, and unsupported bodies are not routed to a municipal recipient.</li>
+      <li>All counts describe the repository snapshot above, not the current contents of an external portal.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>How to audit it</h2>
+    <ol>
+      <li>Use the photo and printed coordinates to check the event itself.</li>
+      <li>Follow the address and GIS sources above to check location and routing.</li>
+      <li>Search KPPP by tender number and read the tender documents before relying on a probable match, bidder name, or warranty statement.</li>
+      <li>Inspect the open-source build scripts and detailed provenance note for filtering and indexing logic.</li>
+    </ol>
+    <p>Found stale or incorrect source data? <a href="https://github.com/coding-parrot/pothole-reporter/issues/new">Open a GitHub issue</a> with a public source link. Do not include an API key, private personal data, or an unredacted road photo.</p>
+  </section>
+
+  <footer>
+    <p>Pothole Reporter is independent and is not affiliated with or endorsed by any government body or data provider.</p>
+  </footer>
+</main>
+</body>
+</html>

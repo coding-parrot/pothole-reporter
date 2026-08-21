@@ -1,8 +1,10 @@
-# Where every piece of data comes from
+# Where the app's data and judgments come from
 
-Nothing in this app is generated, inferred or invented. Every fact it puts in a
-complaint comes from a named government source, and each one below can be checked by
-anyone, from a terminal, in under a minute.
+This document records provenance, transformations, and limits. The app combines a
+user's camera and phone location with government reference data, OpenStreetMap data,
+local matching rules, and AI-generated judgments. A source record is not proof that a
+particular defect, authority, or contract match is correct. The user must review the
+photo, routing, and any probable contract match before sending a complaint.
 
 ## Road contracts (42,283 rows)
 
@@ -80,12 +82,19 @@ name and pincode for the complaint. The coordinates themselves come from the pho
 and are printed in the complaint alongside a map link, so the location can be checked
 independently of any geocoder.
 
-## What is *not* from a source
+## What is generated or inferred
 
 The pothole verdict, its size and the one-line description are produced by an AI vision
 model looking at the photograph, and the app says so. They are a judgement about a
 photograph, not a record, which is why the photograph is always attached: the officer can
 disagree by looking.
+
+A probable contract match is also a judgment, not a procurement record. The app first
+builds a deterministic local shortlist from address words and contracts indexed to the
+same local body, then asks an AI model whether one candidate clearly covers that road or
+locality. A confidence threshold can reject weak matches, but it cannot turn an accepted
+match into proof. The complaint asks the receiving officer to verify it against the
+tender documents.
 
 The warranty status is **inferred** from how recently the tender was published, because
 award records carry no defect liability period. The complaint states it as a possibility
@@ -97,9 +106,11 @@ and should not be strengthened.
 - 137 of Karnataka's 319 local bodies have no address in the file, because their district
   pages publish none. Those reports refuse to route.
 - 41,159 of the 42,283 contracts have no winning bidder recorded, for the reason above.
-- Only the 18,972 municipal (DMA and BBMP) contracts are eligible to be named, because
-  the app addresses municipal officers and the other 23,311 belong to the PWD, panchayats
-  or irrigation departments, which those officers do not control.
+- Of the 42,283 bundled rows, 18,972 are municipal (DMA or legacy BBMP) records. Only
+  13,577 are currently indexed to a supported body and can enter the app's contract
+  shortlist. The remaining municipal rows are unresolved or belong to bodies without a
+  published address; the 23,311 non-municipal rows belong to agencies such as PWD,
+  panchayats, and irrigation departments and are not candidates for a municipal complaint.
 - The road-work filter matches on title keywords, so the candidate pool is inclusive by
   design; the confidence gate on the match is what keeps weak candidates out of a
   complaint.

@@ -1,5 +1,51 @@
 apply plugin: 'com.android.application'
 
+def releasePropertiesFile = rootProject.file('keystore.properties')
+def releaseProperties = new Properties()
+if (releasePropertiesFile.isFile()) {
+    releasePropertiesFile.withInputStream { releaseProperties.load(it) }
+}
+
+def releaseValue = { String environmentName, String propertyName ->
+    def environmentValue = System.getenv(environmentName)
+    if (environmentValue != null && !environmentValue.trim().isEmpty()) {
+        return environmentValue
+    }
+
+    def propertyValue = releaseProperties.getProperty(propertyName)
+    return propertyValue != null && !propertyValue.trim().isEmpty() ? propertyValue : null
+}
+
+def releaseStorePath = releaseValue('POTHOLE_RELEASE_STORE_FILE', 'storeFile')
+def releaseStorePassword = releaseValue('POTHOLE_RELEASE_STORE_PASSWORD', 'storePassword')
+def releaseKeyAlias = releaseValue('POTHOLE_RELEASE_KEY_ALIAS', 'keyAlias')
+def releaseKeyPassword = releaseValue('POTHOLE_RELEASE_KEY_PASSWORD', 'keyPassword')
+def releaseStoreFile = releaseStorePath != null ? rootProject.file(releaseStorePath) : null
+def missingReleaseValues = [
+    storeFile: releaseStorePath,
+    storePassword: releaseStorePassword,
+    keyAlias: releaseKeyAlias,
+    keyPassword: releaseKeyPassword,
+].findAll { entry -> entry.value == null }.keySet()
+def requestedReleaseBuild = gradle.startParameter.taskNames.any { requestedTask ->
+    def taskName = requestedTask.tokenize(':').last().toLowerCase()
+    taskName.contains('release') || taskName in ['assemble', 'build', 'bundle', 'package']
+}
+
+if (requestedReleaseBuild && !missingReleaseValues.isEmpty()) {
+    throw new GradleException(
+        "Release signing is not configured (missing ${missingReleaseValues.join(', ')}). " +
+        'Set POTHOLE_RELEASE_STORE_FILE, POTHOLE_RELEASE_STORE_PASSWORD, ' +
+        'POTHOLE_RELEASE_KEY_ALIAS, and POTHOLE_RELEASE_KEY_PASSWORD, or create the ignored ' +
+        'android-app/android/keystore.properties file from keystore.properties.example.'
+    )
+}
+if (requestedReleaseBuild && releaseStoreFile != null && !releaseStoreFile.isFile()) {
+    throw new GradleException("Release keystore does not exist: ${releaseStoreFile}")
+}
+
+def releaseSigningReady = missingReleaseValues.isEmpty() && releaseStoreFile != null && releaseStoreFile.isFile()
+
 android {
     namespace = "com.gauravsen.potholereporter"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +53,8 @@ android {
         applicationId "com.gauravsen.potholereporter"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 27
-        versionName "1.12.2"
+        versionCode 28
+        versionName "1.13.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +62,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (releaseSigningReady) {
+            release {
+                storeFile releaseStoreFile
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            debuggable false
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

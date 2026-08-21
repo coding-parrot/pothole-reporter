@@ -30,6 +30,7 @@ SCENARIOS = [
 
 JS = r"""
 async ([mode, withSpeed, seconds]) => {
+  localStorage.setItem("data_notice_version", DATA_NOTICE_VERSION);
   // Drive the app with a synthetic geolocation source and count what it captures.
   let captures = 0, invalidBursts = 0;
   const realFetchFrame = StandaloneAPI.handle;

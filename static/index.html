@@ -58,6 +58,8 @@
   .verdict { font-size:16px; font-weight:700; margin-bottom:4px; }
   .empty { text-align:center; color:var(--mut); font-size:14px; padding:20px 0; }
   h2 { font-size:15px; color:var(--mut); font-weight:600; margin:18px 0 10px; }
+  .policy-links { display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:10px; }
+  .policy-links a { color:#ffb36f; font-size:13px; }
 </style>
 </head>
 <body>
@@ -174,12 +176,34 @@
       </label>
       <div class="meta" id="keepFramesNote"></div>
       <div class="meta" id="settingsNote" style="margin-top:10px">Complaints are always created as email drafts addressed to the concerned corporation officer. Nothing sends until you press send in your email app.</div>
+      <div class="meta" id="independentNote" style="margin-top:10px"></div>
+      <div class="policy-links">
+        <a id="privacyLink" href="https://coding-parrot.github.io/pothole-reporter/privacy.html" target="_blank" rel="noopener noreferrer">Privacy policy</a>
+        <a id="sourcesLink" href="https://coding-parrot.github.io/pothole-reporter/sources.html" target="_blank" rel="noopener noreferrer">Data sources and limits</a>
+      </div>
       <button class="ghost" id="reviewBtn" style="width:100%;margin-top:12px">Review and label frames</button>
       <button class="ghost" id="exportBtn" style="width:100%;margin-top:8px">Export labelled dataset</button>
       <button class="ghost danger" id="wipeBtn" style="width:100%;margin-top:12px">Delete all reports and photos</button>
       <div class="btn-row">
         <button class="ghost" id="setBack">Back</button>
         <button class="send" id="setSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dataConsent" class="hidden">
+    <div class="card">
+      <div class="verdict" id="privacyTitle">Before camera and location access</div>
+      <p class="meta" id="privacyBody" style="font-size:13px;line-height:1.5;margin-top:8px"></p>
+      <p class="meta" id="privacyLocal" style="font-size:13px;line-height:1.5;margin-top:10px"></p>
+      <p class="meta" id="privacyGovernment" style="font-size:13px;line-height:1.5;margin-top:10px"></p>
+      <div class="policy-links">
+        <a id="consentPrivacyLink" href="https://coding-parrot.github.io/pothole-reporter/privacy.html" target="_blank" rel="noopener noreferrer">Privacy policy</a>
+        <a id="consentSourcesLink" href="https://coding-parrot.github.io/pothole-reporter/sources.html" target="_blank" rel="noopener noreferrer">Data sources and limits</a>
+      </div>
+      <div class="btn-row">
+        <button class="ghost" id="privacyDecline">Not now</button>
+        <button class="send" id="privacyAccept">Continue</button>
       </div>
     </div>
   </div>
@@ -198,22 +222,29 @@ const $ = (id) => document.getElementById(id);
 // ---------- i18n (English / Kannada) ----------
 const I18N = {
   en: {
-    sub: "Capture it. Verify the damage. Report it to the right officer.",
+    sub: "Capture it. Verify the damage. Prepare a complaint for a suggested office.",
     report_btn: "&#128247; &nbsp;Report road damage",
     drive_btn: "&#128663; &nbsp;Drive mode",
     your_reports: "Your reports",
     no_reports: "No reports yet.",
     banner_setup: "Setup needed: tap the gear icon and paste your OpenAI API key.",
     settings_title: "Settings",
-    key_label: "OpenAI API key (stored only on this device)",
+    key_label: "OpenAI API key (saved here; sent to OpenAI as the credential)",
     name_label: "Your name (signs the complaints)",
     model_label: "Detection model",
     detail_label: "Image detail",
     accuracy_note: "gpt-5-mini/high remains the baseline. gpt-5.6/original is an experiment until your held-out drive benchmark proves it better.",
     debug_label: "Debug mode: keep the drive video after analysing it",
-    settings_note: "Each photo you capture is sent to OpenAI for detection, so it leaves your phone and is processed outside India. Road photos can contain number plates and faces. Location is sent to OpenStreetMap and the Karnataka state GIS to find the address and the responsible office. Complaints are always created as email drafts addressed to the concerned officer. Nothing sends until you press send in your email app.",
-    wipe_btn: "Delete all reports and photos",
-    welcome_hint: "Welcome. Paste your OpenAI API key to enable road-damage detection. It is stored only on this device.",
+    settings_note: "Photos and video-derived frames are sent to OpenAI for detection and can contain number plates or faces. Exact location is sent to OpenStreetMap/Nominatim and Karnataka GIS for address and jurisdiction lookup. Your API key is sent only to OpenAI as the request credential. Complaints are email drafts; nothing sends until you press send.",
+    independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
+    privacy_title: "Before camera and location access",
+    privacy_body: "If you continue, the app will ask for camera and precise foreground location. A photo—or sampled frames from Drive Mode—is sent with your API key to OpenAI for road-damage detection. Exact coordinates are sent to OpenStreetMap/Nominatim and Karnataka GIS to suggest an address and jurisdiction. Processing can occur outside India.",
+    privacy_local: "Drive Mode uses no audio and stops when the app leaves the foreground. Optional video recording is off by default; if you enable it, clips stay on this device until you analyse or delete them. Reports, photos, location tracks and settings remain on this device until deleted.",
+    privacy_government: "This independent app is not a government service and does not submit complaints automatically. It prepares a draft using published sources; review the destination and content before sending.",
+    privacy_link: "Privacy policy", sources_link: "Data sources and limits",
+    privacy_accept: "Continue", privacy_decline: "Not now",
+    wipe_btn: "Delete all app data",
+    welcome_hint: "Welcome. Paste your OpenAI API key to enable detection. It is saved on this device and sent to OpenAI only as the request credential.",
     back: "Back", save: "Save", discard: "Discard", del: "Delete", email_btn: "Email", stop: "&#9632; Stop", working: "Working...",
     chip_draft: "Draft", chip_sent: "Sent", chip_queued: "Opened in email", chip_rejected: "Not reportable", chip_review: "Needs review",
     chip_unrouted: "Outside coverage",
@@ -256,7 +287,7 @@ const I18N = {
     analysing_failed: "· {n} failed",
     analyse_incomplete: "Could not finish: {failed} of {n} frames were not checked ({err}) So no result is being claimed, and the video has been kept.",
     debug_note: "On: the video survives analysis, so a drive can be re-examined or re-run against a better model. Off: the video is deleted after its road-damage events are extracted.",
-    record_label: "Record video during a drive",
+    record_label: "Record local video during a drive (no audio; off by default)",
     keep_frames_label: "Save every analysed frame to the device",
     keep_frames_note: "Writes each frame the AI checked, with its verdict, into Documents/pothole-frames on this phone. Visible in the Files app, and the raw material for building an evaluation set. Adds up fast: roughly 300 KB a frame.",
     frames_saved: "{n} frames written to Documents/{dir}.",
@@ -309,28 +340,35 @@ const I18N = {
     debug_saved_suffix: ", debug frames saved for review",
     confirm_send: "Open your email app with the complaint addressed to {to}?",
     confirm_delete: "Delete this report?",
-    confirm_wipe: "Delete ALL reports and their photos from this phone?",
+    confirm_wipe: "Delete ALL app data from this phone, including the API key, settings, reports, photos, footage and exported debug frames?",
     camera_failed: "Camera access failed: ",
     drive_stopped: "Drive mode stopped: ",
     the_officer: "the concerned officer",
   },
   kn: {
-    sub: "ಫೋಟೋ ತೆಗೆಯಿರಿ. ಹಾನಿ ಪರಿಶೀಲಿಸಿ. ಸರಿಯಾದ ಅಧಿಕಾರಿಗೆ ವರದಿ ಮಾಡಿ.",
+    sub: "ಫೋಟೋ ತೆಗೆಯಿರಿ. ಹಾನಿ ಪರಿಶೀಲಿಸಿ. ಸೂಚಿಸಿದ ಕಚೇರಿಗೆ ದೂರು ಕರಡು ಸಿದ್ಧಪಡಿಸಿ.",
     report_btn: "&#128247; &nbsp;ರಸ್ತೆ ಹಾನಿ ವರದಿ ಮಾಡಿ",
     drive_btn: "&#128663; &nbsp;ಡ್ರೈವ್ ಮೋಡ್",
     your_reports: "ನಿಮ್ಮ ವರದಿಗಳು",
     no_reports: "ಇನ್ನೂ ವರದಿಗಳಿಲ್ಲ. ಗುಂಡಿ ಹುಡುಕಲು ಹೊರಡಿ.",
     banner_setup: "ಸೆಟಪ್ ಅಗತ್ಯ: ಗಿಯರ್ ಐಕಾನ್ ಒತ್ತಿ ನಿಮ್ಮ OpenAI API ಕೀ ಅಂಟಿಸಿ.",
     settings_title: "ಸೆಟ್ಟಿಂಗ್ಸ್",
-    key_label: "OpenAI API ಕೀ (ಈ ಸಾಧನದಲ್ಲಿ ಮಾತ್ರ ಸಂಗ್ರಹ)",
+    key_label: "OpenAI API ಕೀ (ಈ ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ; OpenAI ಗೆ ಪ್ರಮಾಣಪತ್ರವಾಗಿ ಹೋಗುತ್ತದೆ)",
     name_label: "ನಿಮ್ಮ ಹೆಸರು (ದೂರುಗಳಿಗೆ ಸಹಿ)",
     model_label: "ಪತ್ತೆ ಮಾದರಿ",
     detail_label: "ಚಿತ್ರದ ವಿವರ",
     accuracy_note: "gpt-5-mini/high ಪ್ರಸ್ತುತ ಮೂಲಮಟ್ಟ. ನಿಮ್ಮ ಪ್ರತ್ಯೇಕ ಡ್ರೈವ್ ಪರೀಕ್ಷೆ ಉತ್ತಮವೆಂದು ಸಾಬೀತುಪಡಿಸುವವರೆಗೆ gpt-5.6/original ಪ್ರಯೋಗವಾಗಿದೆ.",
     debug_label: "ಡೀಬಗ್ ಮೋಡ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ಡ್ರೈವ್ ವಿಡಿಯೋ ಉಳಿಸಿ",
-    settings_note: "ನೀವು ತೆಗೆದ ಪ್ರತಿ ಫೋಟೋ ಪತ್ತೆಗಾಗಿ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ಅದು ನಿಮ್ಮ ಫೋನ್ ಬಿಟ್ಟು ಭಾರತದ ಹೊರಗೆ ಸಂಸ್ಕರಣೆಯಾಗುತ್ತದೆ. ರಸ್ತೆ ಫೋಟೋಗಳಲ್ಲಿ ವಾಹನ ಸಂಖ್ಯೆ ಮತ್ತು ಮುಖಗಳು ಇರಬಹುದು. ದೂರುಗಳು ಯಾವಾಗಲೂ ಇಮೇಲ್ ಡ್ರಾಫ್ಟ್ ಆಗಿ ರಚನೆಯಾಗುತ್ತವೆ. ನೀವು ಕಳುಹಿಸುವವರೆಗೆ ಏನೂ ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ.",
-    wipe_btn: "ಎಲ್ಲಾ ವರದಿ ಮತ್ತು ಫೋಟೋಗಳನ್ನು ಅಳಿಸಿ",
-    welcome_hint: "ಸ್ವಾಗತ. ಗುಂಡಿ ಪತ್ತೆಗೆ ನಿಮ್ಮ OpenAI API ಕೀ ಅಂಟಿಸಿ. ಇದು ಈ ಸಾಧನದಲ್ಲಿ ಮಾತ್ರ ಸಂಗ್ರಹವಾಗುತ್ತದೆ.",
+    settings_note: "ಫೋಟೋಗಳು ಮತ್ತು ವಿಡಿಯೋದಿಂದ ಪಡೆದ ಫ್ರೇಮ್‌ಗಳನ್ನು OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಅವುಗಳಲ್ಲಿ ವಾಹನ ಸಂಖ್ಯೆ ಅಥವಾ ಮುಖಗಳು ಇರಬಹುದು. ನಿಖರ ಸ್ಥಳವನ್ನು ವಿಳಾಸ ಮತ್ತು ವ್ಯಾಪ್ತಿ ಸೂಚಿಸಲು OpenStreetMap/Nominatim ಮತ್ತು ಕರ್ನಾಟಕ GIS ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ನಿಮ್ಮ API ಕೀ ವಿನಂತಿಯ ಪ್ರಮಾಣಪತ್ರವಾಗಿ OpenAI ಗೆ ಮಾತ್ರ ಹೋಗುತ್ತದೆ. ದೂರು ಇಮೇಲ್ ಕರಡು ಮಾತ್ರ; ನೀವು ಕಳುಹಿಸುವವರೆಗೆ ಅದು ಹೋಗುವುದಿಲ್ಲ.",
+    independent_note: "ಇದು ಸ್ವತಂತ್ರ, ಅನಧಿಕೃತ ಆ್ಯಪ್. ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯೊಂದಿಗೆ ಸಂಬಂಧ ಅಥವಾ ಅನುಮೋದನೆ ಇಲ್ಲ. ಕಚೇರಿ ಸೂಚನೆ ಅತ್ಯುತ್ತಮ ಪ್ರಯತ್ನ ಮಾತ್ರ; ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
+    privacy_title: "ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳ ಅನುಮತಿಯ ಮೊದಲು",
+    privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಮುಂಭಾಗದ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ಫೋಟೋ ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು ನಿಮ್ಮ API ಕೀಯೊಂದಿಗೆ ರಸ್ತೆ ಹಾನಿ ಪತ್ತೆಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ವಿಳಾಸ ಮತ್ತು ವ್ಯಾಪ್ತಿ ಸೂಚಿಸಲು ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಮತ್ತು ಕರ್ನಾಟಕ GIS ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
+    privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ ಮತ್ತು ಆ್ಯಪ್ ಮುಂಭಾಗದಿಂದ ಹೊರಬಂದಾಗ ನಿಲ್ಲುತ್ತದೆ. ಐಚ್ಛಿಕ ವಿಡಿಯೋ ರೆಕಾರ್ಡಿಂಗ್ ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್; ನೀವು ಆನ್ ಮಾಡಿದರೆ ವಿಶ್ಲೇಷಣೆ ಅಥವಾ ಅಳಿಸುವವರೆಗೆ ಕ್ಲಿಪ್‌ಗಳು ಸಾಧನದಲ್ಲೇ ಇರುತ್ತವೆ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್ ಮತ್ತು ಸೆಟ್ಟಿಂಗ್ಸ್ ಅಳಿಸುವವರೆಗೆ ಈ ಸಾಧನದಲ್ಲೇ ಇರುತ್ತವೆ.",
+    privacy_government: "ಇದು ಸರ್ಕಾರಿ ಸೇವೆಯಲ್ಲ ಮತ್ತು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. ಪ್ರಕಟಿತ ಮೂಲಗಳಿಂದ ಕರಡು ತಯಾರಿಸುತ್ತದೆ; ಕಳುಹಿಸುವ ಮೊದಲು ವಿಳಾಸ ಮತ್ತು ವಿಷಯ ಪರಿಶೀಲಿಸಿ.",
+    privacy_link: "ಗೌಪ್ಯತಾ ನೀತಿ", sources_link: "ಡೇಟಾ ಮೂಲಗಳು ಮತ್ತು ಮಿತಿಗಳು",
+    privacy_accept: "ಮುಂದುವರಿಸಿ", privacy_decline: "ಈಗ ಬೇಡ",
+    wipe_btn: "ಎಲ್ಲಾ ಆ್ಯಪ್ ಡೇಟಾ ಅಳಿಸಿ",
+    welcome_hint: "ಸ್ವಾಗತ. ಪತ್ತೆಗೆ ನಿಮ್ಮ OpenAI API ಕೀ ಅಂಟಿಸಿ. ಇದು ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ ಮತ್ತು OpenAI ಗೆ ಪ್ರಮಾಣಪತ್ರವಾಗಿ ಮಾತ್ರ ಕಳುಹಿಸಲಾಗುತ್ತದೆ.",
     back: "ಹಿಂದೆ", save: "ಉಳಿಸಿ", discard: "ತ್ಯಜಿಸಿ", del: "ಅಳಿಸಿ", email_btn: "ಇಮೇಲ್", stop: "&#9632; ನಿಲ್ಲಿಸಿ", working: "ನಡೆಯುತ್ತಿದೆ...",
     chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಕಳುಹಿಸಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ವರದಿ ಯೋಗ್ಯವಲ್ಲ", chip_review: "ಪರಿಶೀಲನೆ ಬೇಕು",
     chip_unrouted: "ವ್ಯಾಪ್ತಿಯ ಹೊರಗೆ",
@@ -373,7 +411,7 @@ const I18N = {
     analysing_failed: "· {n} ವಿಫಲ",
     analyse_incomplete: "ಪೂರ್ಣಗೊಳಿಸಲಾಗಲಿಲ್ಲ: {n} ರಲ್ಲಿ {failed} ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ ({err}) ಆದ್ದರಿಂದ ಯಾವುದೇ ಫಲಿತಾಂಶ ಹೇಳುತ್ತಿಲ್ಲ, ವಿಡಿಯೋ ಉಳಿಸಲಾಗಿದೆ.",
     debug_note: "ಆನ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ವಿಡಿಯೋ ಉಳಿಯುತ್ತದೆ. ಆಫ್: ಗುಂಡಿಗಳನ್ನು ತೆಗೆದ ನಂತರ ವಿಡಿಯೋ ಅಳಿಸಲಾಗುತ್ತದೆ.",
-    record_label: "ಡ್ರೈವ್ ಸಮಯದಲ್ಲಿ ವಿಡಿಯೋ ರೆಕಾರ್ಡ್ ಮಾಡಿ",
+    record_label: "ಡ್ರೈವ್ ಸಮಯದಲ್ಲಿ ಸ್ಥಳೀಯ ವಿಡಿಯೋ ರೆಕಾರ್ಡ್ ಮಾಡಿ (ಆಡಿಯೋ ಇಲ್ಲ; ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್)",
     keep_frames_label: "ವಿಶ್ಲೇಷಿಸಿದ ಎಲ್ಲ ಫ್ರೇಮ್‌ಗಳನ್ನು ಸಾಧನದಲ್ಲಿ ಉಳಿಸಿ",
     keep_frames_note: "AI ಪರಿಶೀಲಿಸಿದ ಪ್ರತಿ ಫ್ರೇಮ್ ಮತ್ತು ಅದರ ತೀರ್ಮಾನವನ್ನು Documents/pothole-frames ನಲ್ಲಿ ಬರೆಯುತ್ತದೆ. ಫೈಲ್ಸ್ ಆ್ಯಪ್‌ನಲ್ಲಿ ಕಾಣುತ್ತದೆ. ಪ್ರತಿ ಫ್ರೇಮ್ ಸುಮಾರು 300 KB.",
     frames_saved: "{n} ಫ್ರೇಮ್‌ಗಳನ್ನು Documents/{dir} ನಲ್ಲಿ ಬರೆಯಲಾಗಿದೆ.",
@@ -426,7 +464,7 @@ const I18N = {
     debug_saved_suffix: ", ಡೀಬಗ್ ಫ್ರೇಮ್‌ಗಳು ಉಳಿದಿವೆ",
     confirm_send: "{to} ಗೆ ಉದ್ದೇಶಿಸಿದ ದೂರಿನೊಂದಿಗೆ ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ?",
     confirm_delete: "ಈ ವರದಿ ಅಳಿಸಬೇಕೆ?",
-    confirm_wipe: "ಈ ಫೋನ್‌ನಿಂದ ಎಲ್ಲಾ ವರದಿ ಮತ್ತು ಫೋಟೋ ಅಳಿಸಬೇಕೆ?",
+    confirm_wipe: "API ಕೀ, ಸೆಟ್ಟಿಂಗ್ಸ್, ವರದಿ, ಫೋಟೋ, ವಿಡಿಯೋ ಮತ್ತು ರಫ್ತು ಮಾಡಿದ ಡೀಬಗ್ ಫ್ರೇಮ್‌ಗಳೂ ಸೇರಿ ಈ ಫೋನ್‌ನಲ್ಲಿರುವ ಎಲ್ಲಾ ಆ್ಯಪ್ ಡೇಟಾವನ್ನು ಅಳಿಸಬೇಕೆ?",
     camera_failed: "ಕ್ಯಾಮೆರಾ ಪ್ರವೇಶ ವಿಫಲ: ",
     drive_stopped: "ಡ್ರೈವ್ ಮೋಡ್ ನಿಂತಿದೆ: ",
     the_officer: "ಸಂಬಂಧಿತ ಅಧಿಕಾರಿ",
@@ -445,10 +483,21 @@ const tDamage = (value) => t("damage_" + (typeof value === "string" ? value : da
 const tAssessment = (value) => t("assessment_" + (typeof value === "string" ? value : assessment(value)));
 const eventCountText = (n) => n === 1 ? t("potholes_one", { n }) : t("potholes_many", { n });
 const alreadyCountText = (n) => n === 1 ? t("already_one", { n }) : t("already_many", { n });
+const escapeHtml = (value) => String(value == null ? "" : value).replace(/[&<>"']/g, (ch) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+})[ch]);
+const escapeAttr = escapeHtml;
+const safePhotoSrc = (value) => {
+  const src = String(value || "");
+  return /^(?:blob:|data:image\/(?:jpeg|jpg|png|webp|gif);base64,)/i.test(src)
+    ? escapeAttr(src) : "";
+};
 let health = { ai_configured: true, email_configured: false, delivery: "gmail_draft" };
 
 function show(screen) {
-  for (const s of ["home", "progress", "detail", "drive", "settings", "review", "dash"]) $(s).classList.toggle("hidden", s !== screen);
+  for (const s of ["home", "progress", "detail", "drive", "settings", "review", "dash", "dataConsent"]) {
+    $(s).classList.toggle("hidden", s !== screen);
+  }
   window.scrollTo(0, 0);
 }
 
@@ -457,10 +506,11 @@ function fmtDate(ts) { return new Date(ts * 1000).toLocaleString([], {day:"numer
 const sendLabel = () => t("email_btn");
 
 function chip(status) {
-  const label = { draft: t("chip_draft"), sent: t("chip_sent"), queued: t("chip_queued"),
-                  rejected: t("chip_rejected"), review: t("chip_review"),
-                  unrouted: t("chip_unrouted") }[status] || status;
-  return `<span class="chip ${status}">${label}</span>`;
+  const labels = { draft: t("chip_draft"), sent: t("chip_sent"), queued: t("chip_queued"),
+                   rejected: t("chip_rejected"), review: t("chip_review"),
+                   unrouted: t("chip_unrouted") };
+  const css = Object.prototype.hasOwnProperty.call(labels, status) ? status : "review";
+  return `<span class="chip ${css}">${escapeHtml(labels[status] || status)}</span>`;
 }
 
 function applyLang() {
@@ -480,6 +530,17 @@ function applyLang() {
   $("keepFramesLabel").textContent = t("keep_frames_label");
   $("keepFramesNote").innerHTML = t("keep_frames_note");
   $("settingsNote").textContent = t("settings_note");
+  $("independentNote").textContent = t("independent_note");
+  $("privacyTitle").textContent = t("privacy_title");
+  $("privacyBody").textContent = t("privacy_body");
+  $("privacyLocal").textContent = t("privacy_local");
+  $("privacyGovernment").textContent = t("privacy_government");
+  $("privacyLink").textContent = t("privacy_link");
+  $("sourcesLink").textContent = t("sources_link");
+  $("consentPrivacyLink").textContent = t("privacy_link");
+  $("consentSourcesLink").textContent = t("sources_link");
+  $("privacyAccept").textContent = t("privacy_accept");
+  $("privacyDecline").textContent = t("privacy_decline");
   $("wipeBtn").textContent = t("wipe_btn");
   $("setBack").textContent = t("back");
   $("setSave").textContent = t("save");
@@ -577,11 +638,11 @@ async function loadReports() {
     return;
   }
   const cardHtml = (r) => `
-    <div class="card row" data-id="${r.id}" style="cursor:pointer">
-      <img class="thumb" src="${photoSrc(r)}" alt="" loading="lazy" decoding="async">
+    <div class="card row" data-id="${escapeAttr(r.id)}" style="cursor:pointer">
+      <img class="thumb" src="${safePhotoSrc(photoSrc(r))}" alt="" loading="lazy" decoding="async">
       <div style="min-width:0">
         <div>${chip(r.status)} ${damageType(r) !== "none" ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tDamage(r)}</span>` : ""} ${r.size ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tSize(r.size)}</span>` : ""}</div>
-        <div class="meta">${fmtDate(r.created_at)}${r.address ? " · " + r.address.split(",").slice(0, 2).join(", ") : ""}</div>
+        <div class="meta">${escapeHtml(fmtDate(r.created_at))}${r.address ? " · " + escapeHtml(String(r.address).split(",").slice(0, 2).join(", ")) : ""}</div>
       </div>
     </div>`;
   const driveById = {}, footageById = {};
@@ -760,7 +821,7 @@ let detailList = [], detailIdx = -1;
 function photoBlock(r) {
   const many = detailList.length > 1;
   return `<div class="photo-wrap">
-      <img class="big-photo" src="${photoSrc(r)}" alt="" data-zoom="${r.id}">
+      <img class="big-photo" src="${safePhotoSrc(photoSrc(r))}" alt="" data-zoom="${escapeAttr(r.id)}">
       ${many ? `<button class="navarrow prev" id="navPrev" ${detailIdx <= 0 ? "disabled" : ""}>&lsaquo;</button>
       <button class="navarrow next" id="navNext" ${detailIdx >= detailList.length - 1 ? "disabled" : ""}>&rsaquo;</button>` : ""}
     </div>`;
@@ -819,11 +880,11 @@ function openDetail(r, list) {
       <div class="card">
         ${photoBlock(r)}
         <div class="verdict" style="color:var(--accent)">
-          ${detectionVerdict(r)}
+          ${escapeHtml(detectionVerdict(r))}
         </div>
-        ${r.address ? `<div class="meta">&#128205; ${r.address}</div>` : ""}
-        <div class="meta" style="color:var(--bad)">&#9888; ${unroutedTitle(r)}</div>
-        <div class="meta">${unroutedHelp(r)}</div>
+        ${r.address ? `<div class="meta">&#128205; ${escapeHtml(r.address)}</div>` : ""}
+        <div class="meta" style="color:var(--bad)">&#9888; ${escapeHtml(unroutedTitle(r))}</div>
+        <div class="meta">${escapeHtml(unroutedHelp(r))}</div>
         <div class="btn-row">
           <button class="ghost" id="backBtn">${t("back")}</button>
           <button class="ghost danger" id="discardBtn">${t("del")}</button>
@@ -833,9 +894,9 @@ function openDetail(r, list) {
     d.innerHTML = `
       <div class="card">
         ${photoBlock(r)}
-        <div class="verdict" style="color:${r.status === "review" ? "var(--accent)" : "var(--bad)"}">${detectionVerdict(r)}</div>
-        <div class="meta">${r.description || ""}</div>
-        <div class="meta">${tDamage(r)} · ${tAssessment(r)}${r.image_quality ? ` · ${r.image_quality}` : ""}</div>
+        <div class="verdict" style="color:${r.status === "review" ? "var(--accent)" : "var(--bad)"}">${escapeHtml(detectionVerdict(r))}</div>
+        <div class="meta">${escapeHtml(r.description || "")}</div>
+        <div class="meta">${escapeHtml(tDamage(r))} · ${escapeHtml(tAssessment(r))}${r.image_quality ? ` · ${escapeHtml(r.image_quality)}` : ""}</div>
         <div class="btn-row">
           <button class="ghost" id="backBtn">${t("back")}</button>
           <button class="ghost danger" id="discardBtn">${t("del")}</button>
@@ -853,11 +914,11 @@ function openDetail(r, list) {
       <div class="card">
         ${photoBlock(r)}
         <div class="verdict" style="color:${sent ? "var(--ok)" : "var(--accent)"}">
-          ${verdictText}
+          ${escapeHtml(verdictText)}
         </div>
-        ${r.address ? `<div class="meta">&#128205; ${r.address}</div>` : ""}
-        ${r.officer_name ? `<div class="meta">&#128231; ${t("routes_to")} ${r.officer_name}</div>` : ""}
-        ${r.tender_note ? `<div class="meta">&#128209; ${r.tender_note}</div>` : ""}
+        ${r.address ? `<div class="meta">&#128205; ${escapeHtml(r.address)}</div>` : ""}
+        ${r.officer_name ? `<div class="meta">&#128231; ${escapeHtml(t("routes_to"))} ${escapeHtml(r.officer_name)}</div>` : ""}
+        ${r.tender_note ? `<div class="meta">&#128209; ${escapeHtml(r.tender_note)}</div>` : ""}
         <label>${t("email_subject_label")}</label>
         <input type="text" id="subj" value="" ${sent ? "disabled" : ""}>
         <label>${t("email_body_label")}</label>
@@ -936,6 +997,42 @@ const RECORD_MIMES = ["video/mp4;codecs=avc1.42E01E", "video/mp4",
 let drive = null;
 let driveStarting = false;
 let driveFinalizing = null;
+const DATA_NOTICE_VERSION = "2026-08-21-v1";
+let consentWaiter = null;
+
+function finishDataConsent(accepted) {
+  if (accepted) localStorage.setItem("data_notice_version", DATA_NOTICE_VERSION);
+  const resolve = consentWaiter;
+  consentWaiter = null;
+  show("home");
+  if (resolve) resolve(accepted);
+}
+
+function ensureDataConsent() {
+  if (localStorage.getItem("data_notice_version") === DATA_NOTICE_VERSION) {
+    return Promise.resolve(true);
+  }
+  show("dataConsent");
+  return new Promise((resolve) => { consentWaiter = resolve; });
+}
+
+async function requestNativeCapturePermissions() {
+  if (!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())) return;
+  const plugins = Capacitor.Plugins || {};
+  try {
+    if (plugins.Camera && plugins.Camera.requestPermissions) {
+      await plugins.Camera.requestPermissions({ permissions: ["camera"] });
+    }
+  } catch (e) {}
+  try {
+    if (plugins.Geolocation && plugins.Geolocation.requestPermissions) {
+      await plugins.Geolocation.requestPermissions();
+    }
+  } catch (e) {}
+}
+
+$("privacyAccept").onclick = () => finishDataConsent(true);
+$("privacyDecline").onclick = () => finishDataConsent(false);
 
 function distMeters(a, b) {
   const R = 6371000, rad = Math.PI / 180;
@@ -949,6 +1046,9 @@ async function startDrive() {
   // must not start a parallel drive session and leak the first camera stream.
   if (drive || driveStarting || driveFinalizing) return;
   driveStarting = true;
+  if (!(await ensureDataConsent())) { driveStarting = false; return; }
+  await requestNativeCapturePermissions();
+  if (drive || driveFinalizing) { driveStarting = false; return; }
   StandaloneAPI.prewarm();
   let stream;
   try {
@@ -1339,20 +1439,20 @@ function stopDrive() {
 $("driveBtn").onclick = startDrive;
 $("driveStop").onclick = stopDrive;
 
-// The OS drops the wake lock whenever the page is hidden (call, app switch,
-// power button). Re-acquire on return so the screen stays awake mid-drive.
-document.addEventListener("visibilitychange", async () => {
-  if (drive && document.visibilityState === "visible" && navigator.wakeLock) {
-    try {
-      const lock = await navigator.wakeLock.request("screen");
-      if (drive) drive.wakeLock = lock; else lock.release().catch(() => {});
-    } catch (e) {}
-  }
+// Camera and precise location are foreground-only. Leaving the app ends Drive Mode
+// instead of relying on WebView suspension timing while capture continues unseen.
+document.addEventListener("visibilitychange", () => {
+  if (drive && document.visibilityState === "hidden") stopDrive();
 });
 
 // Opening the camera is the cue that a call is coming: warm the connection now
 // so the photo does not also pay for a TLS handshake.
-$("captureBtn").onclick = () => { StandaloneAPI.prewarm(); $("fileInput").click(); };
+$("captureBtn").onclick = async () => {
+  if (!(await ensureDataConsent())) return;
+  await requestNativeCapturePermissions();
+  StandaloneAPI.prewarm();
+  $("fileInput").click();
+};
 
 // ---------- labelling ----------
 // A human label is the only thing that can measure the detector. The model's own
@@ -1423,7 +1523,7 @@ let recCtx = null;
 
 function startRecording(stream, driveId, driveStartedAtMs) {
   recCtx = null;
-  if (localStorage.getItem("record_video") === "0") return;   // switch, for ruling it out
+  if (localStorage.getItem("record_video") !== "1") return;  // explicit opt-in
   if (typeof MediaRecorder === "undefined") return;
   const mime = RECORD_MIMES.find((t) => { try { return MediaRecorder.isTypeSupported(t); } catch (e) { return false; } });
   if (!mime) return;
@@ -2094,21 +2194,13 @@ window.handleAppBack = () => {
   // queued detections may still be committing. Do not expose Home/Settings/Wipe until
   // that barrier completes or a late write could resurrect data after a user wipe.
   if (driveFinalizing) return true;
+  if (!$("dataConsent").classList.contains("hidden")) { finishDataConsent(false); return true; }
   if (!$("viewer").classList.contains("hidden")) { closeViewer(); return true; }
   for (const s of ["detail", "settings", "progress", "drive", "review", "dash"]) {
     if (!$(s).classList.contains("hidden")) { show("home"); loadReports(); return true; }
   }
   return false;
 };
-
-// Native (APK) bootstrap: trigger Android runtime permission dialogs so the
-// WebView's camera and geolocation calls are granted.
-if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
-  (async () => {
-    try { await Capacitor.Plugins.Geolocation.requestPermissions(); } catch (e) {}
-    try { await Capacitor.Plugins.Camera.requestPermissions({ permissions: ["camera"] }); } catch (e) {}
-  })();
-}
 
 // Settings: OpenAI key and sender name. Stored on-device only.
 window.openSettings = (firstRun) => {
@@ -2120,7 +2212,7 @@ window.openSettings = (firstRun) => {
     ? localStorage.getItem("image_detail") : "high";
   $("setDebug").checked = localStorage.getItem("debug_mode") === "1";
   $("setKeepFrames").checked = localStorage.getItem("keep_frames") === "1";
-  $("setRecord").checked = localStorage.getItem("record_video") !== "0";   // on unless turned off
+  $("setRecord").checked = localStorage.getItem("record_video") === "1"; // explicit opt-in
   $("setLang").value = LANG;
   $("settingsHint").textContent = firstRun ? t("welcome_hint") : "";
   show("settings");
@@ -2148,8 +2240,14 @@ $("setSave").onclick = async () => {
 $("wipeBtn").onclick = async () => {
   if (!confirm(t("confirm_wipe"))) return;
   try { await api("/api/reports", { method: "DELETE" }); } catch (e) { alert(e.message); return; }
-  await loadReports();
-  show("home");
+  const plugins = window.Capacitor && Capacitor.Plugins;
+  try {
+    if (plugins && plugins.Filesystem && plugins.Filesystem.rmdir) {
+      await plugins.Filesystem.rmdir({ path: FRAME_DIR, directory: "DOCUMENTS", recursive: true });
+    }
+  } catch (e) {}
+  localStorage.clear();
+  location.reload();
 };
 
 applyLang();

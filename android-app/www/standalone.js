@@ -175,8 +175,13 @@ Evidence rules:
   // spends 200+ hidden reasoning tokens per photo before answering, which measured
   // as roughly 3.5 of the 6.5 seconds a verdict used to take.
   const withSpeedDefaults = (body) => ({
-    reasoning: { effort: body && body.model === "gpt-5.6" ? "none" : "minimal" },
     ...body,
+    // Detection inputs can contain precise road imagery and addresses. Do not retain
+    // response application state beyond the request; provider abuse-monitoring rules
+    // remain governed by OpenAI's published policy and are disclosed in our policy.
+    store: false,
+    reasoning: (body && body.reasoning)
+      || { effort: body && body.model === "gpt-5.6" ? "none" : "minimal" },
   });
 
   // Fatal means "fails the same way without streaming", so retrying plain is pointless.
