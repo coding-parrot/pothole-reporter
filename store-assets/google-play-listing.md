@@ -64,7 +64,7 @@ Current routing targets the MMR, PMC, KMC, and supported Karnataka urban local b
 ## Release notes (1.16.1 / version code 32)
 
 ```text
-Simplified the home screen to three clear actions: Drive, Photo and Contribution. Drive is now first and highlighted for faster, safer hands-free setup before moving.
+Simplified the home screen to three clear actions: Drive, Photo and Contribution. Drive is now first and highlighted so it is easier to start before moving.
 ```
 
 ## Play Console fields

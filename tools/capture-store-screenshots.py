@@ -39,7 +39,7 @@ def main() -> None:
                 """
                 localStorage.setItem('openai_key', 'store-preview-key');
                 localStorage.setItem('sender_name', 'Road volunteer');
-                localStorage.setItem('data_notice_version', '2026-08-21-v1');
+                localStorage.setItem('data_notice_version', '2026-08-21-v4-kmc');
                 localStorage.setItem('record_video', '0');
                 """
             )
@@ -48,6 +48,14 @@ def main() -> None:
             page.evaluate(
                 """async () => {
                   const photo = await fetch('/docs/example-pothole-thumb.jpg').then(r => r.blob());
+                  const route = await StandaloneAPI.__pure.kolkataRouteFromGeocode(
+                    null, 22.5726, 88.3639, 12
+                  );
+                  const [subject, body] = StandaloneAPI.__pure.draftEmail(
+                    {damage_type: 'pothole_cavity', assessment: 'clear', size: 'medium'},
+                    22.5726, 88.3639, 'Esplanade, Kolkata', route.officer_name, null, route
+                  );
+                  const previewTime = Date.UTC(2026, 7, 21, 11, 45, 0) / 1000;
                   const db = await new Promise((resolve, reject) => {
                     const req = indexedDB.open('potholes');
                     req.onsuccess = () => resolve(req.result);
@@ -62,20 +70,25 @@ def main() -> None:
                   if (!existing.length) await new Promise((resolve, reject) => {
                     const tx = db.transaction('reports', 'readwrite');
                     tx.objectStore('reports').add({
-                      created_at: Date.now() / 1000,
-                      captured_at: Date.now() / 1000,
+                      created_at: previewTime, captured_at: previewTime,
                       status: 'draft', decision: 'accept', is_reportable: true,
                       damage_type: 'pothole_cavity', assessment: 'clear',
                       image_quality: 'usable', on_drivable_surface: true,
                       has_broken_edge_or_rim: true, has_depth_or_surface_loss: true,
                       temporal_consistency: 'single_view', size: 'medium',
                       description: 'Open cavity with a broken rim and visible material loss in the travelled lane.',
-                      address: '100 Feet Road, Indiranagar, Bengaluru 560038',
-                      officer_name: 'Suggested municipal road office',
-                      officer_email: 'review-before-sending@example.invalid',
-                      email_subject: 'Road damage at 100 Feet Road, Indiranagar',
-                      email_body: 'Please inspect the attached road damage. Review this draft before sending.',
-                      lat: 12.9784, lng: 77.6408, photo
+                      address: 'Esplanade, Kolkata', lat: 22.5726, lng: 88.3639,
+                      email_subject: subject, email_body: body, officer_email: null,
+                      officer_name: route.officer_name, authority_id: route.authority_id,
+                      authority_name: route.authority_name, authority_registry_version: 2,
+                      delivery_channel: 'official_handoff', region: 'kolkata',
+                      routing_source: route.routing_source, routing_match_field: 'boundary',
+                      routing_match_value: route.routing_match_value, ownership_unverified: true,
+                      handoff_name: route.handoff_name, handoff_url: route.handoff_url,
+                      alternate_handoff_name: route.alternate_handoff_name,
+                      alternate_handoff_url: route.alternate_handoff_url,
+                      whatsapp_url: route.whatsapp_url, helpline: route.helpline,
+                      requires_official_reference: true, official_grievance_id: null, photo
                     });
                     tx.oncomplete = resolve;
                     tx.onerror = () => reject(tx.error);
@@ -86,15 +99,25 @@ def main() -> None:
             )
             page.screenshot(path=OUT / "01-home-and-history.png")
 
+            page.evaluate("localStorage.setItem('app_lang', 'bn')")
+            page.reload(wait_until="networkidle")
+            page.wait_for_function("document.documentElement.lang === 'bn'")
             page.locator("[data-id]").first.click()
+            page.evaluate("window.scrollTo(0, 0)")
             page.screenshot(path=OUT / "02-detection-detail.png")
 
             page.locator("#backBtn").click()
             page.locator("#dashBtn").click()
             page.wait_for_timeout(800)
+            page.evaluate(
+                "document.getElementById('map').style.height = '30vh'; "
+                "if (mapObj) mapObj.invalidateSize(); window.scrollTo(0, 0)"
+            )
+            page.wait_for_timeout(200)
+            page.locator(".leaflet-control-attribution").wait_for(state="visible")
             page.screenshot(path=OUT / "03-contribution-dashboard.png")
 
-            page.evaluate("show('dataConsent')")
+            page.evaluate("show('dataConsent'); window.scrollTo(0, 0)")
             page.screenshot(path=OUT / "04-privacy-disclosure.png")
             browser.close()
     finally:
