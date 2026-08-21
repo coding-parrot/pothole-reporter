@@ -4,6 +4,7 @@
 
     <queries>
         <package android:name="com.bmc.potholequickfix" />
+        <package android:name="com.kmc.app" />
         <package android:name="com.newnmmc.app" />
         <package android:name="com.nyatitechnologies.pmcroadmitra" />
     </queries>

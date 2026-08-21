@@ -1,8 +1,9 @@
 # Pothole Reporter
 
 An independent Android app that detects visible road damage and prepares a report for
-the Mumbai Metropolitan Region (MMR), Pune Municipal Corporation (PMC), or a supported
-Karnataka urban local body. It has no project-operated backend or account system.
+the Mumbai Metropolitan Region (MMR), Pune Municipal Corporation (PMC), Kolkata Municipal
+Corporation (KMC), or a supported Karnataka urban local body. It has no project-operated
+backend or account system.
 
 <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
 
@@ -15,7 +16,7 @@ Karnataka urban local body. It has no project-operated backend or account system
   ruts or depressions.
 - Groups nearby repeat observations into one report; Debug mode keeps each observation.
 - Saves reports, photos, and optional recordings locally for review.
-- Supports English, Kannada, and Marathi.
+- Supports English, Kannada, Marathi, and Bengali.
 
 ### Maharashtra
 
@@ -35,6 +36,17 @@ evidence and completes the complaint in the offered official app, portal, WhatsA
 dialler, or email client. Nothing is submitted automatically. Opening a handoff is recorded
 only as opened; an official-channel report can be marked submitted only after the user
 records the grievance/reference ID returned by that service.
+
+### Kolkata
+
+- Covers current Kolkata Municipal Corporation limits using the official West Bengal
+  Urban Development & Municipal Affairs municipal boundary bundled in the app.
+- Does not include Howrah, Bidhannagar/Salt Lake, New Town, or other neighbouring civic
+  bodies.
+- Offers [KMC Grievance 2.0](https://kmc.wb.gov.in/citizen/language-selection), the
+  [official KMC app](https://play.google.com/store/apps/details?id=com.kmc.app), KMC
+  WhatsApp, and the KMC helpline. The user must complete the complaint and record the
+  official grievance/reference ID; the app does not submit it automatically.
 
 ### Karnataka
 
@@ -61,11 +73,12 @@ internet connection.
 - The project is not affiliated with or endorsed by any municipal or government body.
 - Selected images and your API key go directly to OpenAI. Exact coordinates go to
   OpenStreetMap Nominatim; Karnataka locations also query Karnataka GIS.
-- Maharashtra boundary checks use bundled local geometry; coordinates are not sent to
-  MMRDA or PMC GIS. Choosing an official app, portal, WhatsApp, Share, Email, or another
-  external service transfers the selected data to that provider under its own policy.
+- Maharashtra and Kolkata boundary checks use bundled local geometry; coordinates are not
+  sent to MMRDA, PMC GIS, or West Bengal UDMA GIS. Choosing an official app, portal,
+  WhatsApp, Share, Email, or another external service transfers selected data or connection
+  metadata to that provider under its own policy.
 - Contract matching is available only for eligible Karnataka routes and is disabled
-  throughout Maharashtra.
+  throughout Maharashtra and Kolkata.
 - Public Nominatim lookups are cached and rate-limited. A large civic deployment should
   use a compliant managed or self-hosted geocoder endpoint.
 

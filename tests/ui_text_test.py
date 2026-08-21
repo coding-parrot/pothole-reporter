@@ -24,16 +24,16 @@ for name in ("static/index.html", "android-app/www/index.html"):
     if not en or "OpenAI" not in en.group(1):
         fails.append(f"{name}: English settings note does not say the photo goes to OpenAI")
     notes = re.findall(r'settings_note: "([^"]+)"', s)
-    if len(notes) != 3:
-        fails.append(f"{name}: expected 3 settings_note strings, found {len(notes)}")
+    if len(notes) != 4:
+        fails.append(f"{name}: expected 4 settings_note strings, found {len(notes)}")
     else:
-        for language, note in zip(("English", "Kannada", "Marathi"), notes):
+        for language, note in zip(("English", "Kannada", "Marathi", "Bengali"), notes):
             if "OpenAI" not in note:
                 fails.append(f"{name}: {language} settings note does not mention OpenAI")
 
     # Scope: localized refusals must describe all supported geographies.
     coverage = re.findall(r'outside_coverage_help: "([^"]+)"', s)
-    if len(coverage) == 3:
+    if len(coverage) == 4:
         if "ಬೆಂಗಳೂರಿಗೆ" in coverage[1] or "ಜಿಬಿಎ" in coverage[1]:
             fails.append(f"{name}: Kannada out-of-coverage text still says Bengaluru only")
         if "Mumbai Metropolitan Region" not in coverage[0] or "Pune Municipal Corporation" not in coverage[0]:
@@ -42,31 +42,35 @@ for name in ("static/index.html", "android-app/www/index.html"):
             fails.append(f"{name}: Kannada out-of-coverage text does not name Karnataka, Mumbai and Pune")
         if any(term not in coverage[2] for term in ("कर्नाटक", "मुंबई", "पुणे")):
             fails.append(f"{name}: Marathi out-of-coverage text does not name Karnataka, Mumbai and Pune")
+        if any(term not in coverage[3] for term in ("কর্ণাটক", "মুম্বই", "পুনে", "কলকাতা")):
+            fails.append(f"{name}: Bengali out-of-coverage text does not name Karnataka, Mumbai, Pune and Kolkata")
+        if "Kolkata Municipal Corporation" not in coverage[0]:
+            fails.append(f"{name}: English out-of-coverage text does not name KMC")
     else:
-        fails.append(f"{name}: expected 3 outside_coverage_help strings, found {len(coverage)}")
+        fails.append(f"{name}: expected 4 outside_coverage_help strings, found {len(coverage)}")
 
     # Mumbai handoff copy must never turn opening another app into a submission claim.
     queued_bmc = re.findall(r'chip_queued_bmc: "([^"]+)"', s)
-    if len(queued_bmc) != 3:
-        fails.append(f"{name}: expected 3 chip_queued_bmc strings, found {len(queued_bmc)}")
+    if len(queued_bmc) != 4:
+        fails.append(f"{name}: expected 4 chip_queued_bmc strings, found {len(queued_bmc)}")
     elif "handoff" not in queued_bmc[0].lower() or re.search(r"submitted|sent", queued_bmc[0], re.I):
         fails.append(f"{name}: English BMC queued chip does not truthfully describe a handoff")
 
     queued_official = re.findall(r'chip_queued_official: "([^"]+)"', s)
-    if len(queued_official) != 3:
-        fails.append(f"{name}: expected 3 generic official-handoff chips, found {len(queued_official)}")
+    if len(queued_official) != 4:
+        fails.append(f"{name}: expected 4 generic official-handoff chips, found {len(queued_official)}")
     elif "handoff" not in queued_official[0].lower() or re.search(r"submitted|sent", queued_official[0], re.I):
         fails.append(f"{name}: generic queued chip does not truthfully describe a handoff")
 
     reported = re.findall(r'stat_reported: "([^"]+)"', s)
-    if len(reported) != 3:
-        fails.append(f"{name}: expected 3 stat_reported strings, found {len(reported)}")
+    if len(reported) != 4:
+        fails.append(f"{name}: expected 4 stat_reported strings, found {len(reported)}")
     elif "confirmed submissions" not in reported[0].lower():
         fails.append(f"{name}: dashboard metric does not distinguish confirmed submissions")
 
     disclaimers = re.findall(r'bmc_disclaimer: "([^"]+)"', s)
-    if len(disclaimers) != 3:
-        fails.append(f"{name}: expected 3 BMC disclaimers, found {len(disclaimers)}")
+    if len(disclaimers) != 4:
+        fails.append(f"{name}: expected 4 BMC disclaimers, found {len(disclaimers)}")
     else:
         if "does not submit" not in disclaimers[0] or "official grievance ID" not in disclaimers[0]:
             fails.append(f"{name}: English BMC disclaimer does not state the submission boundary")
@@ -76,10 +80,13 @@ for name in ("static/index.html", "android-app/www/index.html"):
         mr_disclaimer = disclaimers[2]
         if "BMC" not in mr_disclaimer or "दाखल करत नाही" not in mr_disclaimer or "क्रमांकाशिवाय" not in mr_disclaimer:
             fails.append(f"{name}: Marathi BMC disclaimer does not state the submission boundary")
+        bn_disclaimer = disclaimers[3]
+        if "BMC" not in bn_disclaimer or "জমা দেয় না" not in bn_disclaimer or "নম্বর ছাড়া" not in bn_disclaimer:
+            fails.append(f"{name}: Bengali BMC disclaimer does not state the submission boundary")
 
     official_disclaimers = re.findall(r'official_disclaimer: "([^"]+)"', s)
-    if len(official_disclaimers) != 3:
-        fails.append(f"{name}: expected 3 generic official disclaimers, found {len(official_disclaimers)}")
+    if len(official_disclaimers) != 4:
+        fails.append(f"{name}: expected 4 generic official disclaimers, found {len(official_disclaimers)}")
     else:
         if "does not prove who owns this road" not in official_disclaimers[0] or "only prepares evidence" not in official_disclaimers[0]:
             fails.append(f"{name}: English generic disclaimer omits ownership or submission truth")
@@ -87,27 +94,31 @@ for name in ("static/index.html", "android-app/www/index.html"):
             fails.append(f"{name}: Kannada generic disclaimer omits ownership or evidence-only truth")
         if "मालकी सिद्ध होत नाही" not in official_disclaimers[2] or "फक्त पुरावा" not in official_disclaimers[2]:
             fails.append(f"{name}: Marathi generic disclaimer omits ownership or evidence-only truth")
+        if "মালিকানা প্রমাণিত হয় না" not in official_disclaimers[3] or "কেবল প্রমাণ" not in official_disclaimers[3]:
+            fails.append(f"{name}: Bengali generic disclaimer omits ownership or evidence-only truth")
 
     authority_disclaimers = re.findall(r'authority_disclaimer: "([^"]+)"', s)
-    if len(authority_disclaimers) != 3:
-        fails.append(f"{name}: expected 3 suggested-email authority disclaimers, found {len(authority_disclaimers)}")
+    if len(authority_disclaimers) != 4:
+        fails.append(f"{name}: expected 4 suggested-email authority disclaimers, found {len(authority_disclaimers)}")
     elif "Road ownership is not verified" not in authority_disclaimers[0]:
         fails.append(f"{name}: email authority disclaimer does not qualify road ownership")
 
     suggested_email_confirms = re.findall(r'confirm_suggested_email: "([^"]+)"', s)
-    if len(suggested_email_confirms) != 3:
-        fails.append(f"{name}: expected 3 suggested-email confirmation strings, found {len(suggested_email_confirms)}")
+    if len(suggested_email_confirms) != 4:
+        fails.append(f"{name}: expected 4 suggested-email confirmation strings, found {len(suggested_email_confirms)}")
     elif "does not prove road ownership" not in suggested_email_confirms[0]:
         fails.append(f"{name}: suggested-email confirmation does not repeat the ownership warning")
 
     whatsapp_confirms = re.findall(r'confirm_whatsapp_share: "([^"]+)"', s)
-    if len(whatsapp_confirms) != 3:
-        fails.append(f"{name}: expected 3 WhatsApp disclosure strings, found {len(whatsapp_confirms)}")
+    if len(whatsapp_confirms) != 4:
+        fails.append(f"{name}: expected 4 WhatsApp disclosure strings, found {len(whatsapp_confirms)}")
     elif "text and exact location" not in whatsapp_confirms[0] or "Nothing is sent until" not in whatsapp_confirms[0]:
         fails.append(f"{name}: WhatsApp confirmation omits shared data or the final-send boundary")
 
     if '<option value="mr">मराठी</option>' not in s:
         fails.append(f"{name}: Marathi is missing from the language selector")
+    if '<option value="bn">বাংলা</option>' not in s:
+        fails.append(f"{name}: Bengali is missing from the language selector")
     if not re.search(r'official_grievance_label: "[^"]*BMC[^"]*"', s):
         fails.append(f"{name}: official BMC grievance-ID label is missing")
     if not re.search(r'official_grievance_generic_label: "[^"]+"', s):

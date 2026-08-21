@@ -111,6 +111,23 @@ async ({pixel}) => {
       handoff_name: "Retired Portal", handoff_url: "https://example.invalid/retired",
       ownership_unverified: true, requires_official_reference: true,
     },
+    {
+      ...base, id: 71008, created_at: base.created_at + 7, status: "draft",
+      address: "Esplanade, Kolkata", lat: 22.5726, lng: 88.3639,
+      delivery_channel: "official_handoff", ward_code: null,
+      officer_name: "KMC Grievance 2.0, Kolkata Municipal Corporation",
+      authority_id: "wb-kmc", authority_name: "Kolkata Municipal Corporation",
+      authority_registry_version: 1, region: "kolkata",
+      routing_source: "wb_udma_official_gis", routing_match_field: "boundary",
+      routing_match_value: "wb_municipal_boundary:250299_0000001",
+      ownership_unverified: true, officer_email: null,
+      handoff_name: "Retired KMC URL",
+      handoff_url: "https://example.invalid/stale-kmc",
+      alternate_handoff_name: "Old KMC app",
+      alternate_handoff_url: "https://example.invalid/stale-kmc-app",
+      whatsapp_url: "https://example.invalid/stale-whatsapp",
+      helpline: "0000", requires_official_reference: true,
+    },
   ];
 
   const db = await new Promise((resolve, reject) => {
@@ -255,6 +272,23 @@ async ({pixel}) => {
   eq("generic handoff: blocked retired route remains a draft", retiredStored.status, "draft");
   eq("generic handoff: blocked retired route records no handoff time",
      retiredStored.handoff_opened_at, undefined);
+
+  const kmcPrepared = await StandaloneAPI.handle(
+    "/api/reports/71008/send", {method: "POST"});
+  eq("KMC handoff: preparing the portal stays draft", kmcPrepared.status, "draft");
+  eq("KMC handoff: current registry restores the primary service name",
+     kmcPrepared.handoff_name, "KMC Grievance 2.0");
+  eq("KMC handoff: current registry restores the official portal",
+     kmcPrepared.handoff_url, "https://kmc.wb.gov.in/citizen/language-selection");
+  eq("KMC handoff: installed official KMC app is launchable",
+     kmcPrepared.handoff_package, "com.kmc.app");
+  eq("KMC handoff: stale stored channels cannot survive revalidation",
+     kmcPrepared.whatsapp_url, "https://wa.me/918335988888");
+  ok("KMC handoff: official KMC app is offered as the alternate",
+     /com\.kmc\.app/.test(kmcPrepared.alternate_handoff_url || ""),
+     kmcPrepared.alternate_handoff_url);
+  eq("KMC handoff: opening has not been claimed yet",
+     kmcPrepared.handoff_opened_at, undefined);
 
   openDetail(pmcPreparedStored, [pmcPreparedStored]);
   const pmcUi = {
@@ -434,6 +468,29 @@ async ({pixel}) => {
   const postPmcTile = postPmcStats.find((tile) => /confirmed submissions/i.test(tile.label));
   eq("dashboard: a second reference-confirmed handoff raises the total",
      postPmcTile && postPmcTile.value, "2");
+
+  const kmcOpened = await StandaloneAPI.handle(
+    "/api/reports/71008/handoff-opened", {method: "POST"});
+  eq("KMC handoff: a successful launcher open is only queued", kmcOpened.status, "queued");
+  eq("KMC handoff: portal open invents no grievance number",
+     kmcOpened.official_grievance_id, null);
+  eq("KMC handoff: portal open does not mark submitted", kmcOpened.submitted_at, null);
+  const kmcBlankError = await errorFrom(StandaloneAPI.handle(
+    "/api/reports/71008/submitted",
+    {method: "POST", body: JSON.stringify({official_grievance_id: ""})},
+  ));
+  ok("KMC confirmation: official reference is required and names KMC",
+     /official grievance\/reference ID from Kolkata Municipal Corporation/i.test(kmcBlankError || ""),
+     kmcBlankError);
+  const kmcStillQueued = await byId(71008);
+  eq("KMC confirmation: rejected confirmation stays queued", kmcStillQueued.status, "queued");
+  const kmcSubmitted = await StandaloneAPI.handle("/api/reports/71008/submitted", {
+    method: "POST",
+    body: JSON.stringify({official_grievance_id: "  KMC-2026-001234  "}),
+  });
+  eq("KMC confirmation: reference-confirmed report becomes sent", kmcSubmitted.status, "sent");
+  eq("KMC confirmation: official reference is trimmed and retained",
+     kmcSubmitted.official_grievance_id, "KMC-2026-001234");
 
   // A municipality email inferred from the point is still only a civic-authority
   // suggestion. The warning and the final confirmation must say ownership is unknown.

@@ -8,59 +8,63 @@ Prepared 21 August 2026. Paste only the text inside each code block into Play Co
 Pothole Reporter
 ```
 
-## Short description (72/80 characters)
+## Short description (71/80 characters)
 
 ```text
-Detect road damage and prepare MMR, PMC or Karnataka reports for review.
+Detect road damage and prepare MMR, Pune, Kolkata or Karnataka reports.
 ```
 
 ## Full description
 
 ```text
-Pothole Reporter is an independent Android app for documenting visible road damage and preparing a report for the Mumbai Metropolitan Region (MMR), Pune Municipal Corporation (PMC), or a supported Karnataka urban local body.
+Pothole Reporter is an independent Android app for documenting visible road damage and preparing a report for the Mumbai Metropolitan Region (MMR), Pune Municipal Corporation (PMC), Kolkata Municipal Corporation (KMC), or a supported Karnataka urban local body.
 
-Take one photo while safely stopped, or securely mount the phone and use Drive Mode while the app remains in the foreground. AI assesses selected images for pothole cavities, failed patches, surface breakup, and ruts or depressions. Reports and optional recordings are kept on your device for review.
+Take one photo while safely stopped, or securely mount the phone and use foreground Drive Mode. AI assesses selected images for pothole cavities, failed patches, surface breakup, and ruts or depressions. Reports stay on your device for review.
 
 Maharashtra
-• Cover the current official MMR extent: 9 municipal corporations, 9 municipal councils, Khalapur Nagar Panchayat, and rural MMR. Local polygons select 11 civic bodies; other, rural, or overlapping locations use neutral Aaple Sarkar routing instead of a guessed city.
-• Cover current Pune Municipal Corporation limits using PMC's published GIS boundary. PCMC is not included.
-• Prepare editable English or Marathi evidence and offer the published app, portal, email, WhatsApp, share, or call action recorded for the suggested civic body.
-• Record the official grievance/reference ID returned by an app or portal before marking that local report submitted.
+• Cover the current MMR extent. Valid local polygons select a civic body; rural, overlapping, or unsupported MMR locations use Aaple Sarkar instead of a guessed city.
+• Cover current PMC limits using PMC's published GIS boundary. PCMC is excluded.
+• Prepare editable English or Marathi evidence and offer the published external handoff.
 
-The civic body is a suggestion, not proof of who owns or maintains the road. The app does not log in, bypass OTP, submit a grievance, press Send, or read complaint status. Opening a channel means only that the handoff opened. You must review the evidence and complete submission yourself in the external official service. Contract matching is disabled throughout Maharashtra.
+Kolkata
+• Cover current KMC limits using the official West Bengal UDMA municipal boundary bundled in the app.
+• Exclude Howrah, Bidhannagar/Salt Lake, New Town, and other neighbouring civic bodies.
+• Prepare English or Bengali evidence and offer KMC Grievance 2.0, the official KMC app as an alternate, KMC WhatsApp, or the KMC helpline.
 
 Karnataka
-For supported urban local bodies, public map data and a bundled directory help identify a published municipal recipient. The app opens an editable email draft and never presses Send. When available, it may add a clearly labelled probable match to a public procurement record.
+For supported urban local bodies, public GIS and a bundled directory help identify a published municipal recipient. The app opens an editable email draft. An eligible report may include a clearly labelled probable public-procurement match.
 
 Important
-• AI can miss road damage or produce false positives. Review every result.
-• A probable contract match is not proof of responsibility or warranty.
-• The app is not affiliated with or endorsed by any municipal or government body.
-• Camera and foreground location permission, internet access, and your own OpenAI API key are required for core features. OpenAI usage is billed to your account.
-• Selected road images and the API request are sent to OpenAI. Precise coordinates are sent to OpenStreetMap Nominatim; Karnataka locations also query Karnataka GIS. MMR and PMC boundary checks use geometry bundled in the app.
-• Choosing an official app, portal, WhatsApp, Share, Email, or another external service transfers selected data or connection metadata to that provider under its own privacy policy.
-• Drive recording is optional and off by default. Mount the phone before moving and never interact with it while driving.
+• AI can miss damage or produce false positives. Review every result.
+• A civic boundary suggests a body; it does not prove road ownership.
+• Nothing is submitted automatically. The app does not log in, bypass OTP, press Send, or read complaint status. Complete the complaint in the external service. Where required, enter its grievance/reference ID before marking the local report submitted.
+• Contract matching is Karnataka-only and is not proof of responsibility or warranty.
+• The app is not affiliated with or endorsed by any government body.
+• Core features require camera and foreground location permission, internet, and your own billed OpenAI API key.
+• Selected images and API requests go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; Karnataka points also query Karnataka GIS. MMR, PMC, and KMC boundary checks are local.
+• Choosing an official app, portal, WhatsApp, Share, Email, or another external service transfers selected data or connection metadata under that provider's policy.
+• Drive recording is optional and off by default. Mount the phone before moving.
 
 Government information sources
-BMC portal: https://www.mcgm.gov.in
-Official Pothole QuickFix listing: https://play.google.com/store/apps/details?id=com.bmc.potholequickfix
-MMRDA official MMR scope: https://www.mmrda.maharashtra.gov.in/en/about-us/about-mmr
-PMC official GIS: https://iwmsgis.pmc.gov.in/BP_Docs/index.html
-Aaple Sarkar grievances: https://grievances.maharashtra.gov.in/en
+MMRDA: https://www.mmrda.maharashtra.gov.in/en/about-us/about-mmr
+PMC GIS: https://iwmsgis.pmc.gov.in/BP_Docs/index.html
+West Bengal UDMA Nagar GIS: https://nagargispariseva.wb.gov.in
+KMC Grievance 2.0: https://kmc.wb.gov.in/citizen/language-selection
+Official KMC app: https://play.google.com/store/apps/details?id=com.kmc.app
 Karnataka GIS: https://kgis.ksrsac.in/kgismaps/rest/services
-Karnataka Public Procurement Portal: https://kppp.karnataka.gov.in
+Karnataka procurement: https://kppp.karnataka.gov.in
 
-Privacy and detailed source limits:
+Privacy and source limits:
 https://coding-parrot.github.io/pothole-reporter/privacy.html
 https://coding-parrot.github.io/pothole-reporter/sources.html
 
-Current routing targets the MMR, Pune Municipal Corporation limits, and supported Karnataka urban local bodies. The MMR outer outline is an approximate routing aid; PCMC and other locations outside supported routes are saved locally but not addressed to an authority.
+Current routing targets the MMR, PMC, KMC, and supported Karnataka urban local bodies. Locations outside these routes are saved locally but not addressed to an authority.
 ```
 
-## Release notes (1.15.0 / version code 30)
+## Release notes (1.16.0 / version code 31)
 
 ```text
-Expanded Maharashtra routing across the MMR roster and outer region, plus current Pune Municipal Corporation limits. Added polygon-verified civic handoffs, safe Aaple Sarkar fallback where no civic polygon exists, and official-reference tracking. The MMR outer outline is approximate, PCMC is excluded, authority suggestions do not prove road ownership, and complaints are never filed automatically.
+Added current Kolkata Municipal Corporation coverage using the official West Bengal UDMA boundary, Bengali, and user-controlled KMC Grievance 2.0, official app, WhatsApp, and helpline handoffs. Howrah, Bidhannagar/Salt Lake, and New Town are outside this route. Authority suggestions do not prove road ownership, and complaints are never filed automatically.
 ```
 
 ## Play Console fields

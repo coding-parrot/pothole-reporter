@@ -72,6 +72,37 @@ Maharashtra contract matching is disabled. The project has no current, authorita
 road-linked award and defect-liability feed covering the MMR or PMC, so it does not guess
 a contractor, warranty, or road owner from general tender notices.
 
+## Kolkata Municipal Corporation boundary and complaint handoffs
+
+Kolkata coverage uses the `SMARTCITY:wb_municipal_boundary` layer from the Government of
+West Bengal Urban Development & Municipal Affairs Department's
+[Nagar GIS WFS](https://nagargispariseva.wb.gov.in/geoserver/SMARTCITY/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=SMARTCITY%3Awb_municipal_boundary&outputFormat=application%2Fjson&srsName=EPSG%3A4326&CQL_FILTER=ULB_Code%3D%27250299%27).
+The feature was retrieved on 21 August 2026 and is identified by `ULB_Code 250299` and
+`MUN_ID 250299_0000001`. Its source geometry contained one self-intersection, so the
+bundle was repaired with GDAL `ogr2ogr -makevalid`, written as RFC 7946 GeoJSON at
+seven-decimal coordinate precision, and validated; it was not topologically simplified.
+The runtime pins the repaired geometry SHA-256
+`fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5` and fails closed
+if the bundled polygon changes without a reviewed code-and-data release.
+The WFS advertises no fees or access constraints but publishes no explicit reuse licence.
+The geometry is used locally for point-in-polygon checks and is not a road-ownership map.
+
+Coverage is limited to current Kolkata Municipal Corporation limits. Howrah,
+Bidhannagar/Salt Lake, New Town, and other neighbouring civic bodies are outside this
+route. A place name from Nominatim is contextual only and cannot select KMC.
+
+The primary handoff is [KMC Grievance 2.0](https://kmc.wb.gov.in/citizen/language-selection),
+which requires the user to continue through KMC's external login and complaint flow. The
+[official KMC Android app](https://play.google.com/store/apps/details?id=com.kmc.app) is an
+alternate. KMC also publishes WhatsApp at **+91 83359 88888** and the civic helpline
+**1800 345 3375** on its [contact page](https://www.kmcgov.in/KMCPortal/jsp/KmcContact.jsp).
+Opening any channel is not submission. The user must complete the complaint externally
+and enter the KMC grievance/reference ID before marking the local report submitted.
+
+Contract matching is disabled for Kolkata. The app has no authoritative, road-linked KMC
+award, maintenance, or defect-liability feed and does not infer that KMC owns a road merely
+because the point is inside its municipal boundary.
+
 ## Karnataka road contracts (42,283 rows)
 
 **Source: KPPP, the Karnataka Public Procurement Portal, Government of Karnataka.**
@@ -144,9 +175,9 @@ identifier rather than by matching a place name.
 ## Street address
 
 **Source: OpenStreetMap, via Nominatim.** It turns coordinates into a street name and
-pincode for the complaint. In Maharashtra, address fields are display-only routing clues;
-only a bundled civic polygon selects a specific MMR body. The address is not used to expand
-the MMR or PMC boundary. The coordinates themselves
+pincode for the complaint. In Maharashtra and Kolkata, address fields are display-only
+routing clues; only a bundled civic polygon selects a specific authority. The address is
+not used to expand the MMR, PMC, or KMC boundary. The coordinates themselves
 come from the phone's GPS and are printed in the complaint alongside a map link, so the
 location can be checked independently.
 
@@ -162,7 +193,7 @@ Karnataka route only, the app first builds a deterministic local shortlist from 
 words and contracts indexed to the same local body, then asks an AI model whether one
 candidate clearly covers that road or locality. A confidence threshold can reject weak
 matches, but it cannot turn an accepted match into proof. Contract matching is disabled
-for every Maharashtra route.
+for every Maharashtra and Kolkata route.
 
 For an eligible Karnataka match, warranty status is **inferred** from how recently the
 tender was published because award records carry no defect liability period. The complaint
@@ -179,10 +210,15 @@ That wording is deliberate and should not be strengthened.
   road ownership.
 - PMC coverage uses a bundled copy of PMC's official GIS boundary and deliberately excludes
   PCMC. A later PMC boundary change requires an app data update.
-- There is no automatic Maharashtra filing, status sync, or cross-user report database.
+- KMC coverage uses a bundled, validity-repaired copy of the official West Bengal UDMA
+  municipal feature. It excludes Howrah, Bidhannagar/Salt Lake, and New Town. A later KMC
+  boundary change requires an app data update.
+- There is no automatic Maharashtra or Kolkata filing, status sync, or cross-user report database.
   Evidence remains local until the citizen deliberately opens an external handoff.
 - Maharashtra contract matching is disabled because no authoritative road-linked feed is
   integrated for the MMR or PMC.
+- Kolkata contract matching is disabled for the same reason; a KMC boundary match does not
+  establish who owns or maintains a road.
 - 137 of Karnataka's 319 local bodies have no address in the file, because their district
   pages publish none. Those reports refuse to route.
 - 41,159 of the 42,283 contracts have no winning bidder recorded, for the reason above.
@@ -197,5 +233,5 @@ That wording is deliberate and should not be strengthened.
 - Contracts are a snapshot. Re-run `tools/pull-kppp.py` to refresh.
 - The public Nominatim endpoint is cached on an approximately 11 m grid and serialized
   below one request per second. National or municipal-scale deployment must switch the
-  endpoint to a policy-compliant managed or self-hosted service; MMR/PMC polygon routing
+  endpoint to a policy-compliant managed or self-hosted service; MMR/PMC/KMC polygon routing
   remains local and does not depend on a geocoder response.

@@ -23,7 +23,7 @@
 
   const LANG = () => {
     const value = localStorage.getItem("app_lang");
-    return value === "kn" || value === "mr" ? value : "en";
+    return value === "kn" || value === "mr" || value === "bn" ? value : "en";
   };
   const PROGRESS = {
     en: { compress: "Preparing photo...", capture: "Preparing road views...",
@@ -35,6 +35,9 @@
     mr: { compress: "फोटो तयार करत आहे...", capture: "रस्त्याची दृश्ये तयार करत आहे...",
           detect: "AI नोंदवण्यायोग्य रस्त्याचे नुकसान तपासत आहे...", finalize: "पत्ता आणि मार्ग निश्चित करत आहे...",
           write: "तक्रारीचा मसुदा तयार करत आहे...", email: "ईमेल अॅप उघडत आहे..." },
+    bn: { compress: "ছবি প্রস্তুত করা হচ্ছে...", capture: "রাস্তার দৃশ্য প্রস্তুত করা হচ্ছে...",
+          detect: "AI অভিযোগযোগ্য রাস্তার ক্ষতি খুঁজছে...", finalize: "ঠিকানা ও অভিযোগের পথ চূড়ান্ত করা হচ্ছে...",
+          write: "অভিযোগের খসড়া তৈরি হচ্ছে...", email: "ইমেল অ্যাপ খোলা হচ্ছে..." },
   };
   const pmsg = (k) => (PROGRESS[LANG()] && PROGRESS[LANG()][k]) || PROGRESS.en[k];
 
@@ -81,9 +84,10 @@
   const BMC_WHATSAPP_URL = "https://wa.me/918999228999";
   const BMC_HELPLINE = "1916";
   const AAPLE_SARKAR_URL = "https://grievances.maharashtra.gov.in/en";
-  const AUTHORITY_REGISTRY_VERSION = 1;
+  const AUTHORITY_REGISTRY_VERSION = 2;
   const OFFICIAL_HANDOFF_CHANNELS = new Set(["official_handoff", "bmc_quickfix"]);
   const MUMBAI_STATES = new Set(["maharashtra", "महाराष्ट्र"]);
+  const WEST_BENGAL_STATES = new Set(["west bengal", "পশ্চিমবঙ্গ"]);
   const MUMBAI_DISTRICTS = new Set([
     "mumbai city district", "mumbai city", "mumbai suburban district", "mumbai suburban",
     "मुंबई शहर जिल्हा", "मुंबई शहर", "मुंबई उपनगर जिल्हा", "मुंबई उपनगर",
@@ -200,12 +204,24 @@
     helpline: "18001030222",
   };
 
+  const KMC_AUTHORITY = {
+    id: "wb-kmc", name: "Kolkata Municipal Corporation",
+    aliases: ["kolkata", "calcutta", "kolkata municipal corporation", "কলকাতা", "কলকাতা পৌরসংস্থা"],
+    handoff_name: "KMC Grievance 2.0",
+    handoff_url: "https://kmc.wb.gov.in/citizen/language-selection",
+    handoff_package: "com.kmc.app",
+    alternate_handoff_name: "KMC APP",
+    alternate_handoff_url: "https://play.google.com/store/apps/details?id=com.kmc.app",
+    whatsapp_url: "https://wa.me/918335988888",
+    helpline: "18003453375",
+  };
+
   const MMR_FALLBACK_AUTHORITY = {
     id: "mh-mmr-unverified", name: "MMR road authority (verify in Aaple Sarkar)",
     handoff_name: "Aaple Sarkar", handoff_url: AAPLE_SARKAR_URL,
   };
   const OFFICIAL_AUTHORITY_INDEX = new Map(
-    [...MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY]
+    [...MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY, KMC_AUTHORITY]
       .map((authority) => [authority.id, authority]),
   );
   const MMR_DIRECT_AUTHORITY_IDS = new Set([
@@ -936,6 +952,80 @@ Evidence rules:
     && String(geo.country_code || "").toLowerCase() === "in"
     && MUMBAI_STATES.has(normaliseAuthorityValue(geo.state));
 
+  const KOLKATA_ENVELOPE = { minLat: 22.35, maxLat: 22.70, minLng: 88.15, maxLng: 88.55 };
+  // This digest is over JSON.stringify(region.geometry). IDs and a closed ring are not
+  // enough: a valid-shaped but wrong polygon could otherwise send Howrah to KMC. Updating
+  // the boundary is therefore an explicit code-and-data release, never a silent asset swap.
+  const KMC_GEOMETRY_SHA256 = "fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5";
+  const isWestBengalGeocode = (geo) => !!geo
+    && String(geo.country_code || "").toLowerCase() === "in"
+    && WEST_BENGAL_STATES.has(normaliseAuthorityValue(geo.state));
+  const inKolkataEnvelope = (lat, lng) => Number.isFinite(lat) && Number.isFinite(lng)
+    && lat >= KOLKATA_ENVELOPE.minLat && lat <= KOLKATA_ENVELOPE.maxLat
+    && lng >= KOLKATA_ENVELOPE.minLng && lng <= KOLKATA_ENVELOPE.maxLng;
+
+  async function sha256Hex(value) {
+    if (!(window.crypto && window.crypto.subtle && window.TextEncoder)) return null;
+    const bytes = new TextEncoder().encode(value);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  let _kolkataCoverage = null, _kolkataCoveragePromise = null;
+  async function kolkataCoverage() {
+    if (_kolkataCoverage) return _kolkataCoverage;
+    if (_kolkataCoveragePromise) return _kolkataCoveragePromise;
+    _kolkataCoveragePromise = (async () => {
+      try {
+        const res = await fetchWithTimeout("kolkata-coverage.json", {}, 15000);
+        if (!res.ok) return null;
+        const data = await readJson(res);
+        const region = data && data.region;
+        const geometryDigest = region && hasCoverageGeometry(region.geometry)
+          ? await sha256Hex(JSON.stringify(region.geometry)) : null;
+        if (data && data.version === 1 && region
+            && region.authority_id === KMC_AUTHORITY.id
+            && String(region.ulb_code) === "250299"
+            && String(region.mun_id) === "250299_0000001"
+            && geometryDigest === KMC_GEOMETRY_SHA256) {
+          _kolkataCoverage = data;
+        }
+      } catch (e) { /* fail closed; a retry is allowed on the next report */ }
+      return _kolkataCoverage;
+    })();
+    const result = await _kolkataCoveragePromise;
+    _kolkataCoveragePromise = null;
+    return result;
+  }
+
+  async function kolkataRouteFromGeocode(geo, lat, lng, gpsAccuracy) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const relevant = inKolkataEnvelope(lat, lng) || isWestBengalGeocode(geo);
+    if (!relevant) return null;
+    const coverage = await kolkataCoverage();
+    if (!coverage) return unroutedRoute("jurisdiction_unavailable");
+
+    const geometry = coverage.region.geometry;
+    const inside = pointInGeometry(lng, lat, geometry);
+    const enforceGpsAccuracy = gpsAccuracy !== undefined;
+    if (enforceGpsAccuracy
+        && (!Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 30)) {
+      return unroutedRoute("location_uncertain");
+    }
+    if (Number.isFinite(gpsAccuracy)
+        && geometryBoundaryDistanceMeters(lng, lat, geometry) <= gpsAccuracy) {
+      return unroutedRoute("location_uncertain");
+    }
+    if (!inside) return unroutedRoute("outside_area");
+
+    return authorityRoute(KMC_AUTHORITY, {
+      routing_source: "wb_udma_official_gis",
+      match_field: "boundary",
+      match_value: "wb_municipal_boundary:250299_0000001",
+      region: "kolkata",
+    });
+  }
+
   function matchedMmrAuthorities(geo) {
     if (!isMaharashtraGeocode(geo)) return [];
     const fields = ["city", "town", "municipality", "city_district"];
@@ -1186,6 +1276,9 @@ Evidence rules:
     }
 
     const geo = geoOrAddress && typeof geoOrAddress === "object" ? geoOrAddress : null;
+    const kolkata = await kolkataRouteFromGeocode(geo, lat, lng, gpsAccuracy);
+    if (kolkata) return kolkata;
+
     const maharashtra = await maharashtraRouteFromGeocode(geo, lat, lng, gpsAccuracy);
     if (maharashtra) return maharashtra;
     // A Maharashtra geocode outside the two enabled polygons must not fall through to
@@ -1543,7 +1636,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     };
   }
 
-  // ---------- drafting (English / Kannada / Marathi) ----------
+  // ---------- drafting (English / Kannada / Marathi / Bengali) ----------
   function damageTypeOf(value) {
     if (value && value.damage_type) return value.damage_type;
     return value && value.is_pothole ? "pothole_cavity" : "none";
@@ -1556,12 +1649,17 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   }
 
   function draftEmail(a, lat, lng, address, officerName, tender, route = null) {
-    const lang = LANG(), kn = lang === "kn", mr = lang === "mr";
+    const lang = LANG(), kn = lang === "kn", mr = lang === "mr", bn = lang === "bn";
+    const sender = S.name === "A concerned citizen"
+      ? (kn ? "ಕಾಳಜಿಯುಳ್ಳ ನಾಗರಿಕ" : mr ? "एक जागरूक नागरिक" : bn ? "একজন সচেতন নাগরিক" : S.name)
+      : S.name;
     const sizeNames = kn
       ? { small: "ಸಣ್ಣ", medium: "ಮಧ್ಯಮ", large: "ದೊಡ್ಡ" }
-      : mr ? { small: "लहान", medium: "मध्यम", large: "मोठा" } : null;
+      : mr ? { small: "लहान", medium: "मध्यम", large: "मोठा" }
+        : bn ? { small: "ছোট", medium: "মাঝারি", large: "বড়" } : null;
     const sizeName = (s) => (sizeNames && sizeNames[s]) || s;
-    const size = a.size ? sizeName(a.size) : (kn ? "ಗಾತ್ರ ನಿರ್ಧರಿಸದ" : mr ? "आकार ठरलेला नाही" : "unclassified");
+    const size = a.size ? sizeName(a.size)
+      : (kn ? "ಗಾತ್ರ ನಿರ್ಧರಿಸದ" : mr ? "आकार ठरलेला नाही" : bn ? "আকার নির্ধারণ করা যায়নি" : "unclassified");
     const road = address ? address.split(",")[0].trim() : null;
     const type = damageTypeOf(a);
     const typeNames = kn ? {
@@ -1572,6 +1670,10 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       pothole_cavity: "खड्डा", failed_patch: "निकामी झालेली रस्ता दुरुस्ती",
       surface_breakup: "तुटलेला रस्त्याचा पृष्ठभाग", rut_or_depression: "रस्त्यातील खोलगट भाग",
       other_road_damage: "रस्त्याचे नुकसान", none: "रस्त्याचे नुकसान",
+    } : bn ? {
+      pothole_cavity: "রাস্তার গর্ত", failed_patch: "ভেঙে যাওয়া রাস্তা মেরামত",
+      surface_breakup: "ভাঙা রাস্তার উপরিভাগ", rut_or_depression: "চাকার খাঁজ বা দেবে যাওয়া অংশ",
+      other_road_damage: "রাস্তার অন্যান্য ক্ষতি", none: "রাস্তার ক্ষতি",
     } : {
       pothole_cavity: "pothole", failed_patch: "failed road repair",
       surface_breakup: "broken road surface", rut_or_depression: "road rut or depression",
@@ -1586,12 +1688,16 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
         ? `ಸ್ಥಳ: ${address || "ಕೆಳಗಿನ ನಿರ್ದೇಶಾಂಕ ನೋಡಿ"}\nನಿರ್ದೇಶಾಂಕಗಳು: ${la}, ${ln}\nನಕ್ಷೆ ಲಿಂಕ್: https://maps.google.com/?q=${la},${ln}`
         : mr
           ? `ठिकाण: ${address || "खालील निर्देशांक पहा"}\nनिर्देशांक: ${la}, ${ln}\nनकाशा: https://maps.google.com/?q=${la},${ln}`
+          : bn
+            ? `স্থান: ${address || "নীচের স্থানাঙ্ক দেখুন"}\nস্থানাঙ্ক: ${la}, ${ln}\nমানচিত্রের লিঙ্ক: https://maps.google.com/?q=${la},${ln}`
           : `Location: ${address || "see coordinates below"}\nCoordinates: ${la}, ${ln}\nMap link: https://maps.google.com/?q=${la},${ln}`;
     } else {
       locLines = kn
         ? "ಸ್ಥಳ: ಸ್ವಯಂಚಾಲಿತವಾಗಿ ನಿರ್ಧರಿಸಲಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಲಗತ್ತಿಸಿದ ಫೋಟೋ ನೋಡಿ."
         : mr
           ? "ठिकाण: आपोआप निश्चित करता आले नाही. कृपया जोडलेला फोटो पहा."
+          : bn
+            ? "স্থান: স্বয়ংক্রিয়ভাবে নির্ধারণ করা যায়নি। চেনার জন্য সংযুক্ত ছবিটি দেখুন।"
           : "Location: could not be determined automatically. Please see the attached photo for landmarks.";
     }
 
@@ -1599,6 +1705,12 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       ? `${typeName} ದೂರು` + (type === "pothole_cavity" ? `: ${size}` : "") + (road ? ` (${road})` : "")
       : mr
         ? `${typeName} तक्रार` + (type === "pothole_cavity" ? `: ${size}` : "") + (road ? ` (${road})` : "")
+      : bn
+        ? `${type === "pothole_cavity" ? `রাস্তার গর্ত মেরামতের অভিযোগ: ${size}`
+            : type === "failed_patch" ? "ভেঙে যাওয়া রাস্তা মেরামতের অভিযোগ"
+            : type === "surface_breakup" ? "ভাঙা রাস্তার উপরিভাগ মেরামতের অভিযোগ"
+            : type === "rut_or_depression" ? "রাস্তা দেবে যাওয়া বা চাকার খাঁজের অভিযোগ"
+            : "রাস্তার ক্ষতি মেরামতের অভিযোগ"}` + (road ? ` — ${road}` : "")
       : `${type === "pothole_cavity" ? `Pothole complaint: ${size} pothole`
           : type === "failed_patch" ? "Broken road repair complaint"
           : type === "surface_breakup" ? "Road surface failure complaint"
@@ -1623,6 +1735,13 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
             `${locLines}\nनुकसानीचा प्रकार: ${typeName}${a.size ? `\nअंदाजे आकार: ${size}` : ""}`,
             "फोटो जोडला आहे. या नुकसानीमुळे दुचाकीस्वार आणि इतर रस्ता वापरणाऱ्यांना धोका होऊ शकतो. कृपया तपासणी करून लवकरात लवकर दुरुस्ती करावी आणि लागू असल्यास जबाबदार कंत्राटदाराकडे पाठवावे.",
           ]
+      : bn
+        ? [
+            `মাননীয় ${officerName || "সংশ্লিষ্ট আধিকারিক"},`,
+            `${typeName} মেরামতের জন্য এই অভিযোগ জানাচ্ছি।`,
+            `${locLines}\nক্ষতির ধরন: ${typeName}${a.size ? `\nআনুমানিক আকার: ${size}` : ""}`,
+            "ছবি সংযুক্ত করা হল। রাস্তার এই ক্ষতি বিশেষ করে দু’চাকার যানচালক ও অন্যান্য পথ ব্যবহারকারীর জন্য বিপজ্জনক। অনুগ্রহ করে দ্রুত স্থানটি পরিদর্শন করে মেরামতের ব্যবস্থা করুন।",
+          ]
       : [
           `Dear ${officerName || "Sir or Madam"},`,
           `I would like to report a ${typeName} that needs repair.`,
@@ -1642,6 +1761,17 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
         paras.push(OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
           ? `सुचवलेली नागरी संस्था: ${route.authority_name || "संस्था पडताळा"}. यावरून त्या रस्त्याची मालकी सिद्ध होत नाही. हे स्वतंत्र अॅप तक्रार दाखल करत नाही; पुरावा तपासा आणि ${route.handoff_name || "अधिकृत सेवेत"} स्वतः नोंदवा.`
           : `स्थानावरून सुचवलेली नागरी संस्था: ${route.authority_name || "संस्था पडताळा"}. यावरून रस्त्याची मालकी सिद्ध होत नाही; दुसरी संस्था जबाबदार असल्यास कृपया तक्रार तिच्याकडे पाठवा.`);
+      } else if (bn) {
+        const authorityName = route.authority_id === "wb-kmc"
+          ? "কলকাতা পৌরসংস্থা (KMC)"
+          : (route.authority_name || "কর্তৃপক্ষ যাচাই করুন");
+        if (ward) {
+          const wardAuthority = route.authority_id === "wb-kmc" ? "KMC" : "BMC";
+          paras.push(`প্রস্তাবিত ${wardAuthority} প্রশাসনিক ওয়ার্ড: ${ward}। এটি OpenStreetMap-এর প্রশাসনিক সীমানা থেকে অনুমান করা; সরকারি পরিষেবায় যাচাই করুন।`);
+        }
+        paras.push(OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
+          ? `অবস্থানের ভিত্তিতে প্রস্তাবিত পৌর কর্তৃপক্ষ: ${authorityName}। এতে রাস্তার মালিকানা প্রমাণিত হয় না। এই স্বাধীন অ্যাপটি অভিযোগ জমা দেয় না; প্রমাণ যাচাই করে ${route.handoff_name || "সরকারি পরিষেবা"}-এ নিজে অভিযোগ নথিভুক্ত করুন এবং অভিযোগ নম্বরটি সংরক্ষণ করুন।`
+          : `অবস্থানের ভিত্তিতে প্রস্তাবিত পৌর কর্তৃপক্ষ: ${authorityName}। এতে রাস্তার মালিকানা প্রমাণিত হয় না; অন্য কোনও সংস্থা দায়িত্বে থাকলে অভিযোগটি তাদের কাছে পাঠিয়ে দেওয়ার অনুরোধ রইল।`);
       } else {
         if (ward) paras.push(`Suggested BMC administrative ward: ${ward}. This is inferred from an OpenStreetMap administrative boundary; verify it in the official BMC app.`);
         paras.push(OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
@@ -1667,14 +1797,20 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                               record: "या रस्त्याच्या भागासाठी नोंदवलेले आहे" })[tender.warranty_code || "record"];
         paras.push(`सार्वजनिक खरेदी नोंदीनुसार हा रस्त्याचा भाग निविदा ${tender.tender_number} ("${title}") अंतर्गत येण्याची शक्यता आहे. ती ${tender.published} रोजी प्रकाशित झाली${tender.contractor ? ` आणि ${tender.contractor} यांची विजयी बोलीदार म्हणून नोंद आहे` : ", मात्र विजयी बोलीदाराची नोंद उपलब्ध नाही"}; ${warrantyMr}.`);
         paras.push("दोष दायित्व किंवा देखभाल कालावधी लागू असल्यास महानगरपालिकेला अतिरिक्त खर्च न लावता कंत्राटदाराकडून दुरुस्ती करून घ्यावी. ही संभाव्य नोंद-जुळणी आहे; कृपया मूळ निविदा कागदपत्रांशी पडताळा करा.");
+      } else if (bn) {
+        const warrantyBn = ({ dlp: "এখনও ত্রুটি-দায়ের মেয়াদের মধ্যে থাকতে পারে",
+                              maint: "এখনও রক্ষণাবেক্ষণের মেয়াদের মধ্যে থাকতে পারে",
+                              record: "এই রাস্তার অংশের জন্য নথিভুক্ত" })[tender.warranty_code || "record"];
+        paras.push(`সরকারি ক্রয়-সংক্রান্ত নথি অনুযায়ী রাস্তার এই অংশটি টেন্ডার ${tender.tender_number} ("${title}")-এর আওতায় পড়তে পারে। টেন্ডারটি ${tender.published}-এ প্রকাশিত হয়েছিল${tender.contractor ? ` এবং ${tender.contractor}-কে সফল দরদাতা হিসেবে নথিভুক্ত করা হয়েছে` : ", তবে সফল দরদাতার নাম নথিতে নেই"}; ${warrantyBn}।`);
+        paras.push("ত্রুটি-দায় বা রক্ষণাবেক্ষণের মেয়াদ চালু থাকলে পৌরসংস্থার অতিরিক্ত ব্যয় ছাড়াই ঠিকাদারের মাধ্যমে মেরামত করানোর অনুরোধ করছি। এটি কেবল সম্ভাব্য নথি-মিল; মূল টেন্ডার নথির সঙ্গে যাচাই করুন।");
       } else {
         paras.push(`Public procurement records indicate this road stretch probably falls under tender ${tender.tender_number} ("${title}"), published on ${tender.published}${tender.contractor ? `, with ${tender.contractor} recorded as the winning bidder` : ", with no winning bidder recorded"}, and it may still be ${tender.warranty}.`);
         paras.push("If the defect liability or maintenance period is in force, I request that the repair be carried out by the contractor at no additional cost to the corporation. This is a probable record match; kindly verify against the tender documents.");
       }
     }
 
-    paras.push(kn ? "ನಿಮ್ಮ ಸೇವೆಗೆ ಧನ್ಯವಾದಗಳು." : mr ? "धन्यवाद." : "Thank you for your service.");
-    paras.push(kn ? `ವಂದನೆಗಳು,\n${S.name}` : mr ? `आपला/आपली,\n${S.name}` : `Regards,\n${S.name}`);
+    paras.push(kn ? "ನಿಮ್ಮ ಸೇವೆಗೆ ಧನ್ಯವಾದಗಳು." : mr ? "धन्यवाद." : bn ? "ধন্যবাদ।" : "Thank you for your service.");
+    paras.push(kn ? `ವಂದನೆಗಳು,\n${sender}` : mr ? `आपला/आपली,\n${sender}` : bn ? `বিনীত,\n${sender}` : `Regards,\n${sender}`);
     return [subject, paras.join("\n\n")];
   }
 
@@ -2036,6 +2172,8 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       ? "\n- Write the description field in formal Kannada (ಕನ್ನಡ ಭಾಷೆಯಲ್ಲಿ ಬರೆಯಿರಿ)."
       : LANG() === "mr"
         ? "\n- Write the description field in clear formal Marathi (मराठी भाषेत लिहा)."
+        : LANG() === "bn"
+          ? "\n- Write the description field in clear formal Bengali (পরিষ্কার, প্রমিত বাংলায় লিখুন)."
         : "");
     const detectionModel = S.model, detectionDetail = S.detail;
     // Single shot has one verdict on screen, so show it the moment it streams in.
@@ -2526,8 +2664,8 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           national_highway: "This stretch is a national highway. It is maintained by NHAI or the state PWD National Highways division, not by the city or town body, so there is no municipal officer to address.",
           rural_road: "This road is outside every town boundary, so it belongs to the state PWD or a panchayat rather than a city body. The app will not guess an office.",
           no_address_for_body: "This town's body is known, but no official email address for it has been published, so there is no verified recipient to address.",
-          jurisdiction_unavailable: "The bundled Maharashtra jurisdiction map could not be read. Restart the app and try again; the app will not guess an authority.",
-          outside_area: "This road damage is outside the supported Karnataka, Mumbai Metropolitan Region and Pune Municipal Corporation routes, so there is no authority to address.",
+          jurisdiction_unavailable: "The bundled civic jurisdiction map could not be read. Restart the app and try again; the app will not guess an authority.",
+          outside_area: "This road damage is outside the supported Karnataka, Mumbai Metropolitan Region, Pune Municipal Corporation and Kolkata Municipal Corporation routes, so there is no authority to address.",
         }[rec.unrouted_reason] || "This report could not be routed to a responsible office, so there is nothing to send.");
       }
       // "queued" stays reopenable: canceling the external composer/app must not strand
@@ -2618,8 +2756,10 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    pointInGeometry, geometryBoundaryDistanceMeters,
                    validMmrAuthorityBoundaries,
                    maharashtraCoverage,
+                   kolkataCoverage, kolkataRouteFromGeocode, isWestBengalGeocode,
                    maharashtraRouteFromGeocode, routeOfficer,
-                   MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY,
+                   MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY, KMC_AUTHORITY,
+                   KMC_GEOMETRY_SHA256,
                    AUTHORITY_REGISTRY_VERSION };
 
   window.StandaloneAPI = { __pure, handle, prewarm };

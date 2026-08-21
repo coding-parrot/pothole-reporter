@@ -1,13 +1,13 @@
 # Google Play publication checklist
 
-Status reviewed 21 August 2026 for release 1.15.0 / version code 30. This is a release
+Status reviewed 21 August 2026 for release 1.16.0 / version code 31. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.15.0/code 30 after the MMR and PMC changes,
+- [ ] **Fresh signed release bundle:** build version 1.16.0/code 31 after the KMC changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
   it in Play Console. Earlier bundles do not contain this coverage.
 - [ ] **Hosted privacy page:** enable a stable public host, then verify
@@ -24,7 +24,7 @@ checklist, not a substitute for the current Play Console tasks shown for the pub
   claim that the app collects no data.
 - [ ] **Government-information declaration:** disclose that the app is independent,
   identify its official government sources, and complete Play's Government apps
-  declaration without claiming BMC affiliation.
+  declaration without claiming BMC or KMC affiliation.
 - [ ] **Account gates:** complete any identity, device-verification, package-registration,
   or closed-testing task Play Console shows for this publisher account.
 
@@ -43,14 +43,20 @@ Do not submit to production until every applicable item above is complete.
 - [ ] Test representative locations in all 19 MMR urban local bodies, a rural MMR point,
   Pune inside PMC, Pune outside PMC, and PCMC. Confirm rural/ambiguous MMR uses Aaple Sarkar,
   PMC uses Road Mitra/PMC CARE, and PCMC stays unrouted.
+- [ ] Test central, north, south, and Joka locations inside KMC, plus Howrah,
+  Bidhannagar/Salt Lake, and New Town outside it. Confirm only the bundled official KMC
+  polygon selects KMC and a place name alone never does.
 - [ ] Test Maharashtra handoffs in English and Marathi, including email, portal, installed
   and uninstalled official apps, Share, BMC WhatsApp at +91 89992 28999, 1916, cancellation,
   and back navigation.
+- [ ] Test Kolkata handoffs in English and Bengali: KMC Grievance 2.0, installed and
+  uninstalled official KMC app, WhatsApp at +91 83359 88888, helpline 1800 345 3375,
+  cancellation, and back navigation.
 - [ ] Verify that opening an app or portal changes only to “official handoff opened,” while
   Share, WhatsApp, Email, and Call never mark the report submitted. Confirm that Mark
   submitted rejects a missing/invalid grievance/reference ID when one is required.
-- [ ] Verify each Maharashtra report states that the civic body is only a suggestion, does
-  not claim road ownership, and contains no contract or warranty match.
+- [ ] Verify each Maharashtra and Kolkata report states that the civic body is only a
+  suggestion, does not claim road ownership, and contains no contract or warranty match.
 - [ ] Confirm the release contains no API key, test frame, private location, or debug-only
   setting and that its bundled web assets match reviewed source.
 - [ ] Review the Pre-launch report and address crashes, ANRs, accessibility failures, and
@@ -65,17 +71,18 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.15.0 release. Include the independent Maharashtra handoff and Marathi without displaying
-  private coordinates, an API key, a real grievance ID, or BMC marks.
+  the 1.16.0 release. Include independent Maharashtra and Kolkata handoffs and regional
+  language support without displaying private coordinates, an API key, a real grievance
+  ID, or civic-body marks.
 - [ ] Use screenshots from the release build and avoid implying government affiliation,
   automatic filing, guaranteed detection, verified responsibility, or benchmarked accuracy.
 - [ ] Enter the hosted privacy-policy URL, support website, and required support email.
 - [ ] Choose the app category and target countries intentionally. Current routing is limited
-  to the MMR, Pune Municipal Corporation limits, and supported Karnataka urban local bodies;
-  keep that limit and the PCMC exclusion visible.
+  to the MMR, Pune and Kolkata Municipal Corporation limits, and supported Karnataka urban
+  local bodies; keep the PCMC, Howrah, Bidhannagar/Salt Lake, and New Town exclusions visible.
 - [ ] Keep the non-affiliation statement and official-source URLs visible in the full
   description. Do not use BMC's name, seal, logo, colours, or screenshots in a way that
-  suggests this is BMC's app.
+  suggests this is BMC's or KMC's app.
 
 ## Privacy and Data Safety
 
@@ -85,11 +92,12 @@ Official references: [target API schedule](https://support.google.com/googleplay
   Audit at least:
   - selected manual photos and Drive/VOD image frames sent to OpenAI;
   - precise coordinates sent to Nominatim, and to Karnataka GIS only for Karnataka points;
+    MMR, PMC, and KMC polygon checks remain on-device;
   - for eligible Karnataka routes only, road address and procurement shortlist sent to
-    OpenAI for probable contract matching; Maharashtra contract matching is disabled;
+    OpenAI for probable contract matching; Maharashtra and Kolkata contract matching is disabled;
   - API credential and standard network metadata received by external services;
   - map-area tile requests, email-app hand-off, Android sharing, and every included SDK;
-  - Maharashtra report text or evidence handed to a selected email, WhatsApp, or share
+  - Maharashtra or Kolkata report text or evidence handed to a selected email, WhatsApp, or share
     destination, plus app/portal, Play-listing, and dialler launch metadata;
   - an official grievance/reference ID stored locally when the user marks an eligible
     official-channel report submitted.
@@ -124,14 +132,15 @@ and Google's [July 2026 AI/location clarification](https://support.google.com/go
   children unless the app, data practices, SDKs, and listing are ready for Families policy.
 - [ ] In **App access**, explain first-run disclosure, permissions, entering the supplied
   review API key, manual capture, Drive Mode, History, Karnataka email, and each Maharashtra
-  handoff. Access details must remain valid, reusable, and available throughout review.
-- [ ] If Maharashtra or Karnataka routing is hard for an overseas reviewer to exercise, include
+  and Kolkata handoff. Access details must remain valid, reusable, and available throughout review.
+- [ ] If Maharashtra, Kolkata, or Karnataka routing is hard for an overseas reviewer to exercise, include
   lawful, repeatable review steps and test material that expose both flows without falsifying
   device location or policy declarations.
 - [ ] Complete the Government apps declaration as an unaffiliated app that communicates
   government information. Keep easy-to-see official source URLs and the explicit statement
   that the app represents no government body, does not establish road ownership, and does
-  not submit a grievance automatically.
+  not submit a grievance automatically. Identify the official West Bengal UDMA boundary,
+  KMC grievance portal, and official KMC app without implying affiliation.
 - [ ] Do not add civic-body marks, copied government graphics, or framing that implies
   official status. Keep every external service clearly labelled as a user-controlled handoff.
 
