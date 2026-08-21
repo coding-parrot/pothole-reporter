@@ -79,11 +79,12 @@
   // State-specific contacts and polygons live in immutable data packs. The APK keeps
   // only the parsers, strict validators and the package IDs Android permits it to query.
   // A downloaded pack can therefore add data, never executable behaviour.
-  const AUTHORITY_REGISTRY_VERSION = 5;
+  const AUTHORITY_REGISTRY_VERSION = 6;
   const LAUNCHABLE_PACKAGES = new Set([
     "com.bmc.potholequickfix", "com.sis.pwdsewaapp", "com.kmc.app",
     "com.newnmmc.app", "com.nyatitechnologies.pmcroadmitra",
     "com.ceedeev.grivenancev2", "cgg.gov.ghmc", "com.amplvb.ccrs",
+    "com.nhai.rajmargyatra",
   ]);
   const OFFICIAL_HANDOFF_CHANNELS = new Set(["official_handoff", "bmc_quickfix"]);
   const MUMBAI_STATES = new Set(["maharashtra", "महाराष्ट्र"]);
@@ -107,6 +108,7 @@
   const MMR_FALLBACK_AUTHORITY = {};
   const KMC_AUTHORITY = {};
   const DELHI_PWD_AUTHORITY = {};
+  const NATIONAL_HIGHWAY_AUTHORITY = {};
   const OFFICIAL_AUTHORITIES = [];
   const OFFICIAL_AUTHORITY_INDEX = new Map();
   const MMR_ALIAS_INDEX = new Map();
@@ -1353,13 +1355,22 @@ Evidence rules:
   }
 
   async function pruneStatePacks(activePackId = null) {
-    const manifest = await getStatePackManifest();
-    if (!manifest) return { removed: 0, bytes: 0 };
+    const [manifest, highwayManifest] = await Promise.all([
+      getStatePackManifest(), getHighwayPackManifest(),
+    ]);
+    if (!manifest && !highwayManifest) return { removed: 0, bytes: 0 };
     let records;
     try { records = await allStatePacks(); } catch (e) { return { removed: 0, bytes: 0 }; }
-    const currentByKey = new Map(Object.values(manifest.resources)
+    const resources = [
+      ...Object.values((manifest && manifest.resources) || {}),
+      ...Object.values((highwayManifest && highwayManifest.tiles) || {}),
+    ];
+    const currentByKey = new Map(resources
       .map((resource) => [statePackCacheKey(resource), resource]));
-    const protectedIds = new Set([activePackId, ..._statePackPromises.keys()]
+    const protectedIds = new Set([
+      activePackId, ..._statePackPromises.keys(),
+      ...[..._highwayTilePromises.keys()].map((id) => `in-nh-${id}`),
+    ]
       .filter(Boolean));
     const now = Date.now(), toDelete = [], kept = [];
     for (const record of records || []) {
@@ -1370,8 +1381,10 @@ Evidence rules:
       }
       const ageDays = Math.max(0, now - Number(record.last_used_at || record.installed_at || 0))
         / (24 * 60 * 60 * 1000);
-      const unusedLimit = resource.kind === "tenders"
-        ? manifest.cache.tender_max_unused_days : manifest.cache.routing_max_unused_days;
+      const unusedLimit = resource.kind === "highways"
+        ? highwayManifest.cache.max_unused_days
+        : resource.kind === "tenders"
+          ? manifest.cache.tender_max_unused_days : manifest.cache.routing_max_unused_days;
       if (ageDays > unusedLimit && !protectedIds.has(resource.pack_id)) {
         toDelete.push(record); continue;
       }
@@ -1383,8 +1396,11 @@ Evidence rules:
         - (right.resource.kind === "tenders" ? 0 : 1);
       return tenderFirst || Number(left.record.last_used_at || 0) - Number(right.record.last_used_at || 0);
     });
+    const maxBytes = Math.min(
+      manifest ? manifest.cache.max_bytes : Infinity,
+      highwayManifest ? highwayManifest.cache.max_bytes : Infinity);
     for (const item of kept) {
-      if (total <= manifest.cache.max_bytes) break;
+      if (total <= maxBytes) break;
       if (protectedIds.has(item.resource.pack_id)) continue;
       toDelete.push(item.record);
       total -= Math.max(0, Number(item.record.bytes) || 0);
@@ -1490,6 +1506,352 @@ Evidence rules:
     _statePackPromises.clear();
     municipalCityCoverageCache.clear();
     municipalCityCoveragePromises.clear();
+    resetHighwayPackMemory();
+  }
+
+  // ---------- nationwide National Highway tiles ----------
+  // The app ships only this small catalog. Each immutable 2-degree tile is downloaded
+  // after a report has a location, checked against its pinned SHA-256, and cached in the
+  // same bounded store as state packs. Geometry says that a point is on a mapped NH/NE
+  // carriageway; it deliberately does not pretend to identify the maintaining agency.
+  const HIGHWAY_MANIFEST_MAX_BYTES = 512 * 1024;
+  const HIGHWAY_TILE_MAX_BYTES = 8 * 1024 * 1024;
+  const HIGHWAY_FETCH_TIMEOUT_MS = 30000;
+  const HIGHWAY_REF_RE = /^N[HE]-[0-9]{1,4}[A-Z]{0,3}(?: \/ N[HE]-[0-9]{1,4}[A-Z]{0,3})*$/;
+  let _highwayManifest = null, _highwayManifestPromise = null;
+  const _highwayTileMemory = new Map(), _highwayTilePromises = new Map();
+
+  function validateHighwayManifest(manifest) {
+    if (!exactObjectKeys(manifest,
+      ["authority", "cache", "catalog_version", "format", "match", "schema_version",
+        "source", "tiles"])
+        || manifest.format !== "pothole-highway-pack-manifest"
+        || manifest.schema_version !== 1 || manifest.catalog_version !== 1) {
+      throw new Error("Invalid National Highway manifest.");
+    }
+    const cache = manifest.cache;
+    if (!exactObjectKeys(cache, ["max_bytes", "max_unused_days"])
+        || cache.max_bytes !== 67108864 || cache.max_unused_days !== 90) {
+      throw new Error("Invalid National Highway cache policy.");
+    }
+    const match = manifest.match;
+    if (!exactObjectKeys(match,
+      ["max_gps_accuracy_m", "max_match_distance_m", "minimum_match_distance_m",
+        "tile_buffer_m", "tile_size_degrees"])
+        || match.max_gps_accuracy_m !== 30 || match.max_match_distance_m !== 45
+        || match.minimum_match_distance_m !== 15 || match.tile_buffer_m !== 60
+        || match.tile_size_degrees !== 2) {
+      throw new Error("Invalid National Highway matching policy.");
+    }
+    const authority = manifest.authority;
+    validateOfficialHandoffRegistry([authority]);
+    if (!exactObjectKeys(authority,
+      ["alternate_handoff_name", "alternate_handoff_url", "handoff_name",
+        "handoff_package", "handoff_url", "helpline", "id", "name"])
+        || authority.id !== "in-national-highway"
+        || authority.handoff_name !== "Rajmargyatra"
+        || authority.handoff_package !== "com.nhai.rajmargyatra"
+        || authority.handoff_url !== "https://play.google.com/store/apps/details?id=com.nhai.rajmargyatra"
+        || authority.alternate_handoff_name !== "CPGRAMS"
+        || authority.alternate_handoff_url !== "https://pgportal.gov.in/"
+        || authority.helpline !== "1033") {
+      throw new Error("Invalid National Highway official handoff.");
+    }
+    const source = manifest.source;
+    const sourceFields = [
+      "accepted_features", "attribution", "distinct_refs", "limitations",
+      "mapped_carriageway_km", "output_features", "output_points", "source_features",
+      "source_filter", "source_home_url", "source_license", "source_md5", "source_name",
+      "source_points", "source_retrieved_at", "source_url", "tile_count",
+    ];
+    if (!exactObjectKeys(source, sourceFields)
+        || source.source_name !== "OpenStreetMap India extract by Geofabrik"
+        || source.source_url !== "https://download.geofabrik.de/asia/india-260820.osm.pbf"
+        || source.source_retrieved_at !== "2026-08-20"
+        || source.source_md5 !== "c5e0a62a1cb00c80d8c5948bf18370d7"
+        || source.source_license !== "Open Data Commons Open Database License (ODbL) 1.0"
+        || !Array.isArray(source.limitations) || source.limitations.length !== 3
+        || !Number.isInteger(source.accepted_features) || source.accepted_features < 100000
+        || !Number.isInteger(source.distinct_refs) || source.distinct_refs < 500) {
+      throw new Error("Invalid National Highway source receipt.");
+    }
+    const tiles = manifest.tiles;
+    if (!tiles || typeof tiles !== "object" || Array.isArray(tiles)
+        || Object.keys(tiles).length < 50 || Object.keys(tiles).length > 300
+        || source.tile_count !== Object.keys(tiles).length) {
+      throw new Error("Invalid National Highway tile catalog.");
+    }
+    const fields = ["bbox", "bytes", "feature_count", "kind", "pack_id", "pack_version",
+      "path", "ref_count", "schema_version", "sha256", "state_code", "tile_id", "url"];
+    for (const [identifier, resource] of Object.entries(tiles)) {
+      const idMatch = identifier.match(/^e([0-9]{3})n([0-9]{2})$/);
+      const pathMatch = resource && typeof resource.path === "string"
+        ? resource.path.match(/^packs\/v1\/highways\/(e[0-9]{3}n[0-9]{2})-([0-9a-f]{64})\.json$/)
+        : null;
+      const lng = idMatch ? Number(idMatch[1]) : NaN;
+      const lat = idMatch ? Number(idMatch[2]) : NaN;
+      if (!exactObjectKeys(resource, fields) || !idMatch
+          || resource.tile_id !== identifier || resource.pack_id !== `in-nh-${identifier}`
+          || resource.kind !== "highways" || resource.state_code !== "IN"
+          || resource.pack_version !== 1 || resource.schema_version !== 1
+          || !pathMatch || pathMatch[1] !== identifier || pathMatch[2] !== resource.sha256
+          || resource.url !== PACK_SITE_ROOT + resource.path
+          || !Number.isInteger(resource.bytes) || resource.bytes <= 0
+          || resource.bytes > HIGHWAY_TILE_MAX_BYTES
+          || !Number.isInteger(resource.feature_count) || resource.feature_count <= 0
+          || !Number.isInteger(resource.ref_count) || resource.ref_count <= 0
+          || !Array.isArray(resource.bbox) || resource.bbox.length !== 4
+          || resource.bbox[0] !== lng || resource.bbox[1] !== lat
+          || resource.bbox[2] !== lng + 2 || resource.bbox[3] !== lat + 2) {
+        throw new Error(`Invalid National Highway tile resource: ${identifier}`);
+      }
+    }
+    replaceStableObject(NATIONAL_HIGHWAY_AUTHORITY, authority);
+    return manifest;
+  }
+
+  async function getHighwayPackManifest() {
+    if (_highwayManifest) return _highwayManifest;
+    if (_highwayManifestPromise) return _highwayManifestPromise;
+    _highwayManifestPromise = (async () => {
+      try {
+        const response = await fetch("highway-manifest.json", { cache: "no-store" });
+        if (!response.ok) return null;
+        const text = await response.text();
+        if (!text || text.length > HIGHWAY_MANIFEST_MAX_BYTES) return null;
+        _highwayManifest = validateHighwayManifest(JSON.parse(text));
+      } catch (e) { /* missing or malformed highway data fails closed at routing time */ }
+      return _highwayManifest;
+    })();
+    const result = await _highwayManifestPromise;
+    _highwayManifestPromise = null;
+    return result;
+  }
+
+  function validateHighwayTile(resource, bytes) {
+    if (!(bytes instanceof ArrayBuffer) || bytes.byteLength !== resource.bytes) {
+      throw new Error("National Highway tile byte length does not match its manifest.");
+    }
+    return sha256Bytes(bytes).then((digest) => {
+      if (!digest || digest !== resource.sha256 || !window.TextDecoder) {
+        throw new Error("National Highway tile checksum does not match its manifest.");
+      }
+      const pack = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+      if (!exactObjectKeys(pack,
+        ["coordinate_scale", "features", "format", "generated_at", "pack_id", "pack_version",
+          "schema_version", "tile_id"])
+          || pack.format !== "pothole-national-highway-tile"
+          || pack.schema_version !== 1 || pack.pack_version !== 1
+          || pack.pack_id !== resource.pack_id || pack.tile_id !== resource.tile_id
+          || pack.generated_at !== "2026-08-20" || pack.coordinate_scale !== 100000
+          || !Array.isArray(pack.features) || pack.features.length !== resource.feature_count) {
+        throw new Error("National Highway tile envelope is invalid.");
+      }
+      const refs = new Set();
+      for (const feature of pack.features) {
+        if (!Array.isArray(feature) || feature.length !== 3
+            || typeof feature[0] !== "string" || !HIGHWAY_REF_RE.test(feature[0])
+            || !Array.isArray(feature[1]) || feature[1].length !== 4
+            || feature[1].some((value) => !Number.isInteger(value))
+            || feature[1][0] > feature[1][2] || feature[1][1] > feature[1][3]
+            || !Array.isArray(feature[2]) || feature[2].length < 4
+            || feature[2].length % 2 || feature[2].some((value) =>
+              !Number.isInteger(value) || Math.abs(value) > 10000000)) {
+          throw new Error("National Highway tile contains an invalid feature.");
+        }
+        refs.add(feature[0]);
+      }
+      if (refs.size !== resource.ref_count) {
+        throw new Error("National Highway tile reference count is invalid.");
+      }
+      return pack;
+    });
+  }
+
+  async function fetchHighwayTile(resource) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), HIGHWAY_FETCH_TIMEOUT_MS);
+    try {
+      const response = await fetch(resolvePackUrl(resource), {
+        cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer",
+        signal: controller.signal,
+      });
+      if (!response.ok) return null;
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType && !/json/i.test(contentType)) return null;
+      const bytes = await response.arrayBuffer();
+      return { pack: await validateHighwayTile(resource, bytes), bytes };
+    } catch (e) { return null; }
+    finally { clearTimeout(timer); }
+  }
+
+  async function loadHighwayTile(identifier) {
+    if (_highwayTilePromises.has(identifier)) return _highwayTilePromises.get(identifier);
+    const task = (async () => {
+      const manifest = await getHighwayPackManifest();
+      const resource = manifest && manifest.tiles[identifier];
+      if (!resource) return null;
+      const cacheKey = statePackCacheKey(resource);
+      const memory = _highwayTileMemory.get(identifier);
+      if (memory && memory.cache_key === cacheKey) return memory.pack;
+      let cached = null;
+      try { cached = await getCachedStatePack(cacheKey); } catch (e) { /* download below */ }
+      if (cached) {
+        try {
+          const pack = await validateHighwayTile(resource, await cachedPackBytes(cached));
+          _highwayTileMemory.set(identifier, { cache_key: cacheKey, pack, resource });
+          touchStatePack(cached);
+          pruneStatePacks(resource.pack_id);
+          return pack;
+        } catch (e) {
+          try { await deleteCachedStatePack(cacheKey); } catch (_) {}
+        }
+      }
+      const downloaded = await fetchHighwayTile(resource);
+      if (!downloaded) return null;
+      const now = Date.now();
+      const record = {
+        cache_key: cacheKey, pack_id: resource.pack_id, pack_version: resource.pack_version,
+        state_code: "IN", kind: "highways", sha256: resource.sha256,
+        bytes: resource.bytes, installed_at: now, last_used_at: now,
+        blob: new Blob([downloaded.bytes], { type: "application/json" }),
+      };
+      try { await putCachedStatePack(record); }
+      catch (e) {
+        await pruneStatePacks(resource.pack_id);
+        try { await putCachedStatePack(record); } catch (_) { /* valid for this session */ }
+      }
+      _highwayTileMemory.set(identifier,
+        { cache_key: cacheKey, pack: downloaded.pack, resource });
+      pruneStatePacks(resource.pack_id);
+      return downloaded.pack;
+    })();
+    _highwayTilePromises.set(identifier, task);
+    try { return await task; }
+    finally { _highwayTilePromises.delete(identifier); }
+  }
+
+  function highwayPackProvenance(identifier) {
+    const item = _highwayTileMemory.get(identifier);
+    const resource = item && item.resource;
+    if (!resource) return {};
+    return {
+      routing_pack_id: resource.pack_id,
+      routing_pack_version: resource.pack_version,
+      routing_pack_sha256: resource.sha256,
+      routing_pack_state_code: "IN",
+    };
+  }
+
+  function resetHighwayPackMemory() {
+    _highwayManifest = null;
+    _highwayManifestPromise = null;
+    _highwayTileMemory.clear();
+    _highwayTilePromises.clear();
+    replaceStableObject(NATIONAL_HIGHWAY_AUTHORITY, {});
+  }
+
+  function highwayTileIdFor(lat, lng, tileSize = 2) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)
+        || lat < 0 || lng < 0 || lat >= 100 || lng >= 100) return null;
+    const west = Math.floor(lng / tileSize) * tileSize;
+    const south = Math.floor(lat / tileSize) * tileSize;
+    return `e${String(west).padStart(3, "0")}n${String(south).padStart(2, "0")}`;
+  }
+
+  function pointToHighwaySegment(lng, lat, aLng, aLat, bLng, bLat) {
+    const rad = Math.PI / 180;
+    const metresPerLng = 111320 * Math.cos(lat * rad);
+    const ax = (aLng - lng) * metresPerLng, ay = (aLat - lat) * 110540;
+    const bx = (bLng - lng) * metresPerLng, by = (bLat - lat) * 110540;
+    const dx = bx - ax, dy = by - ay, denom = dx * dx + dy * dy;
+    const turn = denom ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / denom)) : 0;
+    const distance = Math.hypot(ax + turn * dx, ay + turn * dy);
+    const bearing = ((Math.atan2(dx, dy) * 180 / Math.PI) + 360) % 360;
+    return { distance, bearing };
+  }
+
+  const undirectedHeadingDifference = (left, right) => {
+    const difference = Math.abs(left - right) % 180;
+    return Math.min(difference, 180 - difference);
+  };
+
+  function matchHighwayTile(pack, manifest, lat, lng, gpsAccuracy, heading, speed) {
+    if (!pack || !manifest) return null;
+    const policy = manifest.match;
+    const accurate = Number.isFinite(gpsAccuracy) && gpsAccuracy >= 0
+      && gpsAccuracy <= policy.max_gps_accuracy_m;
+    const threshold = accurate
+      ? Math.min(policy.max_match_distance_m,
+        Math.max(policy.minimum_match_distance_m, gpsAccuracy + 8))
+      : policy.minimum_match_distance_m;
+    const scale = pack.coordinate_scale;
+    const latPad = Math.ceil(policy.max_match_distance_m / 110540 * scale);
+    const lngPad = Math.ceil(policy.max_match_distance_m
+      / Math.max(20000, 111320 * Math.cos(lat * Math.PI / 180)) * scale);
+    const targetLng = Math.round(lng * scale), targetLat = Math.round(lat * scale);
+    let best = null, secondDifferent = null;
+    for (const feature of pack.features) {
+      const ref = feature[0], bbox = feature[1], encoded = feature[2];
+      if (targetLng < bbox[0] - lngPad || targetLng > bbox[2] + lngPad
+          || targetLat < bbox[1] - latPad || targetLat > bbox[3] + latPad) continue;
+      let x = encoded[0], y = encoded[1];
+      for (let index = 2; index < encoded.length; index += 2) {
+        const nextX = x + encoded[index], nextY = y + encoded[index + 1];
+        const segment = pointToHighwaySegment(
+          lng, lat, x / scale, y / scale, nextX / scale, nextY / scale);
+        const candidate = { ref, distance: segment.distance, bearing: segment.bearing };
+        if (!best || candidate.distance < best.distance) {
+          if (best && best.ref !== candidate.ref
+              && (!secondDifferent || best.distance < secondDifferent.distance)) {
+            secondDifferent = best;
+          }
+          best = candidate;
+        } else if (candidate.ref !== best.ref
+            && (!secondDifferent || candidate.distance < secondDifferent.distance)) {
+          secondDifferent = candidate;
+        }
+        x = nextX; y = nextY;
+      }
+    }
+    if (!best || best.distance > threshold) return null;
+    if (!accurate) return { uncertain: true, match: best };
+    if (secondDifferent
+        && secondDifferent.distance <= best.distance + Math.max(6, gpsAccuracy)) {
+      return { uncertain: true, match: best, alternate: secondDifferent };
+    }
+    if (Number.isFinite(heading) && Number.isFinite(speed) && speed >= 2
+        && undirectedHeadingDifference(heading, best.bearing) > 55) return null;
+    return { uncertain: false, match: best };
+  }
+
+  async function nationalHighwayRoute(lat, lng, gpsAccuracy, heading, speed) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const inIndiaEnvelope = lat >= 5 && lat <= 36 && lng >= 67 && lng <= 98;
+    if (!inIndiaEnvelope) return null;
+    const manifest = await getHighwayPackManifest();
+    if (!manifest) return unroutedRoute("road_class_unknown");
+    const identifier = highwayTileIdFor(lat, lng, manifest.match.tile_size_degrees);
+    const resource = identifier && manifest.tiles[identifier];
+    if (!resource) return null;
+    const pack = await loadHighwayTile(identifier);
+    if (!pack) return unroutedRoute("road_class_unknown");
+    const result = matchHighwayTile(pack, manifest, lat, lng, gpsAccuracy, heading, speed);
+    if (!result) return null;
+    if (result.uncertain) return unroutedRoute("location_uncertain", result.match.ref);
+    const route = authorityRoute(NATIONAL_HIGHWAY_AUTHORITY, {
+      routing_source: "osm_national_highway_geometry",
+      match_field: "mapped_carriageway",
+      match_value: `${result.match.ref} · ${Math.round(result.match.distance)} m`,
+      region: "national-highway",
+    });
+    return {
+      ...route,
+      highway_ref: result.match.ref,
+      ownership_unverified: true,
+      tender_eligible: false,
+      ...highwayPackProvenance(identifier),
+    };
   }
 
   async function clearPackCache() {
@@ -2080,12 +2442,17 @@ Evidence rules:
     return _jurP;
   }
 
-  async function routeOfficer(geoOrAddress, lat, lng, gpsAccuracy) {
+  async function routeOfficer(geoOrAddress, lat, lng, gpsAccuracy, heading, speed) {
     if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) {
       return unroutedRoute("no_location");
     }
 
     const geo = geoOrAddress && typeof geoOrAddress === "object" ? geoOrAddress : null;
+    // Road class outranks the containing city. Without this first check, a pothole on an
+    // NH passing through Delhi, Kolkata, Chennai, Hyderabad, Ahmedabad, MMR or Pune can
+    // be addressed to the municipal body even though the highway has another maintainer.
+    const highway = await nationalHighwayRoute(lat, lng, gpsAccuracy, heading, speed);
+    if (highway) return highway;
     const delhi = await delhiRouteFromGeocode(geo, lat, lng, gpsAccuracy);
     if (delhi) return delhi;
 
@@ -2575,7 +2942,18 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
 
     if (route && route.ownership_unverified) {
       const ward = route.ward_code;
-      if (kn) {
+      if (route.authority_id === "in-national-highway") {
+        const highway = route.highway_ref || "National Highway";
+        if (kn) {
+          paras.push(`ನಕ್ಷೆಯ ಪ್ರಕಾರ ರಸ್ತೆ ಉಲ್ಲೇಖ: ${highway}. ನಿರ್ವಹಣಾ ಸಂಸ್ಥೆಯನ್ನು ಈ ಆ್ಯಪ್ ದೃಢಪಡಿಸಿಲ್ಲ. ಸಾಕ್ಷ್ಯವನ್ನು ಪರಿಶೀಲಿಸಿ ರಾಜಮಾರ್ಗಯಾತ್ರಾ ಅಥವಾ 1033 ಮೂಲಕ ನೀವೇ ದೂರು ದಾಖಲಿಸಿ; ಅಗತ್ಯವಿದ್ದರೆ ಸರಿಯಾದ NHAI, NHIDCL, BRO ಅಥವಾ ರಾಜ್ಯ PWD ಘಟಕಕ್ಕೆ ವರ್ಗಾಯಿಸಲು ಕೇಳಿ.`);
+        } else if (mr) {
+          paras.push(`नकाशावरील रस्ता संदर्भ: ${highway}. देखभाल करणारी संस्था या अॅपने पडताळलेली नाही. पुरावा तपासून राजमार्गयात्रा किंवा 1033 द्वारे स्वतः तक्रार नोंदवा आणि आवश्यक असल्यास योग्य NHAI, NHIDCL, BRO किंवा राज्य PWD विभागाकडे पाठवण्याची विनंती करा.`);
+        } else if (bn) {
+          paras.push(`মানচিত্রে রাস্তার পরিচয়: ${highway}। রক্ষণাবেক্ষণকারী সংস্থা এই অ্যাপ যাচাই করেনি। প্রমাণ দেখে রাজমার্গযাত্রা বা ১০৩৩-এর মাধ্যমে নিজে অভিযোগ নথিভুক্ত করুন এবং প্রয়োজনে সঠিক NHAI, NHIDCL, BRO বা রাজ্য PWD দপ্তরে পাঠাতে বলুন।`);
+        } else {
+          paras.push(`Mapped road reference: ${highway}. This app has not verified the maintaining agency. Review the evidence and submit it yourself through Rajmargyatra or 1033; ask for transfer to the correct NHAI, NHIDCL, BRO or State PWD unit when necessary.`);
+        }
+      } else if (kn) {
         if (ward) paras.push(`ಸೂಚಿಸಿದ ಬಿಎಂಸಿ ಆಡಳಿತ ವಾರ್ಡ್: ${ward}. ಇದು OpenStreetMap ಆಡಳಿತ ಗಡಿಯಿಂದ ಪಡೆದ ಸೂಚನೆ ಮಾತ್ರ; ಅಧಿಕೃತ BMC ಆ್ಯಪ್‌ನಲ್ಲಿ ಪರಿಶೀಲಿಸಿ.`);
         paras.push(OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
           ? `ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${route.authority_name || "ಅಧಿಕಾರಿಯನ್ನು ಪರಿಶೀಲಿಸಿ"}. ಇದು ರಸ್ತೆ ಮಾಲೀಕತ್ವದ ದೃಢೀಕರಣವಲ್ಲ. ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ; ಸಾಕ್ಷ್ಯವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ${route.handoff_name || "ಅಧಿಕೃತ ಸೇವೆ"} ಮೂಲಕ ನೀವೇ ಸಲ್ಲಿಸಿ.`
@@ -3039,7 +3417,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       : null;
     const address = shortOf(geo);
     const route = accepted
-      ? await routeOfficer(geo || address, lat, lng, gpsAccuracyRaw)
+      ? await routeOfficer(geo || address, lat, lng, gpsAccuracyRaw, headingRaw, speedRaw)
       : unroutedRoute(null);
     const covered = accepted && route.routed;
     // Drive Mode does not speculate (it would bill a text call for every frame, and most
@@ -3092,6 +3470,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       routing_source: covered ? (route.routing_source || null) : null,
       routing_match_field: covered ? (route.routing_match_field || null) : null,
       routing_match_value: covered ? (route.routing_match_value || null) : null,
+      highway_ref: covered ? (route.highway_ref || null) : null,
       routing_pack_id: covered ? (route.routing_pack_id || null) : null,
       routing_pack_version: covered ? (route.routing_pack_version || null) : null,
       routing_pack_sha256: covered ? (route.routing_pack_sha256 || null) : null,
@@ -3327,7 +3706,8 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     "routing_source", "region", "handoff_name", "handoff_url", "handoff_package",
     "alternate_handoff_name", "alternate_handoff_url", "whatsapp_url", "helpline",
     "requires_official_reference", "routing_pack_id", "routing_pack_version",
-    "routing_pack_sha256", "routing_pack_state_code",
+    "routing_pack_sha256", "routing_pack_state_code", "routing_match_field",
+    "routing_match_value", "highway_ref",
   ];
 
   function applyVerifiedHandoff(rec, verified) {
@@ -3337,6 +3717,35 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     return rec;
   }
 
+  async function openNationalHighwayHandoff(rec) {
+    if (!rec || rec.authority_id !== "in-national-highway") {
+      throw new Error("This report is not bound to the National Highway handoff.");
+    }
+    const provenance = ["routing_pack_id", "routing_pack_version", "routing_pack_sha256",
+      "routing_pack_state_code"];
+    const present = provenance.filter((field) => rec[field] !== undefined
+      && rec[field] !== null && rec[field] !== "");
+    if (present.length !== provenance.length
+        || !/^in-nh-e[0-9]{3}n[0-9]{2}$/.test(String(rec.routing_pack_id || ""))
+        || rec.routing_pack_state_code !== "IN"
+        || !Number.isInteger(rec.routing_pack_version) || rec.routing_pack_version < 1
+        || !/^[0-9a-f]{64}$/.test(String(rec.routing_pack_sha256 || ""))) {
+      throw new Error("This saved highway report has incomplete routing provenance.");
+    }
+    const current = await nationalHighwayRoute(
+      rec.lat, rec.lng, rec.gps_accuracy, rec.heading, rec.speed_mps);
+    if (!current || !current.routed || current.authority_id !== "in-national-highway"
+        || current.region !== "national-highway" || !current.highway_ref) {
+      throw new Error("This saved report no longer matches a verified National Highway tile.");
+    }
+    const oldRefs = new Set(String(rec.highway_ref || "").split(" / ").filter(Boolean));
+    const currentRefs = String(current.highway_ref).split(" / ").filter(Boolean);
+    if (oldRefs.size && !currentRefs.some((ref) => oldRefs.has(ref))) {
+      throw new Error("This saved report's highway reference changed; review the location again.");
+    }
+    return { ...toDict(rec), ...current };
+  }
+
   async function openOfficialHandoff(rec) {
     if (!isOfficialHandoff(rec)) throw new Error("This report has no official app or portal handoff.");
     // v1.14 BMC records did not persist pack metadata. Keep them usable, but never trust
@@ -3344,6 +3753,9 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     // stable authority ID inside its freshly validated registry.
     const legacyBmc = rec.delivery_channel === "bmc_quickfix";
     const authorityId = legacyBmc ? "mh-bmc" : rec.authority_id;
+    if (authorityId === "in-national-highway") {
+      return openNationalHighwayHandoff(rec);
+    }
     const packId = routingPackForAuthority(authorityId);
     if (rec.routing_pack_id && rec.routing_pack_id !== packId) {
       throw new Error("This saved report's authority does not match its verified routing provenance.");
@@ -3418,7 +3830,10 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       rec.email_body || "",
       when ? `Captured (IST): ${when}` : "",
       Number.isFinite(rec.gps_accuracy) ? `GPS accuracy: ±${Math.round(rec.gps_accuracy)} m` : "",
-      rec.authority_name ? `Suggested civic authority: ${rec.authority_name} (verify road ownership)` : "",
+      rec.authority_id === "in-national-highway"
+        ? `Mapped road reference: ${rec.highway_ref || "National Highway"}; verify the maintaining agency in the official service.`
+        : rec.authority_name
+          ? `Suggested civic authority: ${rec.authority_name} (verify road ownership)` : "",
       rec.ward_code ? `Suggested BMC ward: ${rec.ward_code} (verify in the official app)` : "",
       `Local event ID: ${safeId}`,
       submissionTruth,
@@ -3767,6 +4182,9 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    validateStatePackManifest, getStatePackManifest, resolvePackUrl,
                    loadStatePack, pruneStatePacks, resetStatePackMemory,
                    sha256Bytes, statePackProvenance,
+                   validateHighwayManifest, getHighwayPackManifest, loadHighwayTile,
+                   validateHighwayTile, highwayTileIdFor, matchHighwayTile,
+                   nationalHighwayRoute, highwayPackProvenance, openNationalHighwayHandoff,
                    maharashtraCoverage,
                    delhiCoverage, delhiRouteFromGeocode, inDelhiEnvelope,
                    kolkataCoverage, kolkataRouteFromGeocode, isWestBengalGeocode,
@@ -3776,6 +4194,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    isKarnatakaGeocode, routeOfficer,
                    MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY, KMC_AUTHORITY,
                    DELHI_PWD_AUTHORITY, OFFICIAL_AUTHORITIES,
+                   NATIONAL_HIGHWAY_AUTHORITY,
                    DELHI_GEOMETRY_SHA256, KMC_GEOMETRY_SHA256,
                    AUTHORITY_REGISTRY_VERSION };
 

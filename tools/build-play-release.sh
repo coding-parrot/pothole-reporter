@@ -15,6 +15,7 @@ BUNDLE_MANIFEST=$ANDROID_ROOT/app/build/intermediates/bundle_manifest/release/pr
 WWW_ROOT=android-app/www
 PACKAGED_ASSETS_ROOT=$ANDROID_ROOT/app/src/main/assets/public
 PACK_MANIFEST=static/pack-manifest.json
+HIGHWAY_MANIFEST=static/highway-manifest.json
 FORBIDDEN_STATE_ASSETS=(
   delhi-coverage.json
   karnataka-bodies.json
@@ -52,14 +53,16 @@ require_tool sort
 require_tool stat
 require_tool unzip
 
-echo "1/7 validating hosted state packs, municipal schemas and web-source mirrors (read only)"
+echo "1/7 validating hosted data packs, municipal schemas and web-source mirrors (read only)"
 [ -d static ] || fail "static source directory is missing"
 [ -d "$WWW_ROOT" ] || fail "Android www source directory is missing"
 [ -d "$PACKAGED_ASSETS_ROOT" ] || fail "packaged Android assets directory is missing"
 [ -x "$ANDROID_ROOT/gradlew" ] || fail "Gradle wrapper is missing or not executable"
 python3 tools/build-state-packs.py --check
+python3 tools/build-national-highways.py --check
 python3 tests/state_pack_validation_test.py
 same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest.json" "pack manifest mirror"
+same_file "$HIGHWAY_MANIFEST" "$WWW_ROOT/highway-manifest.json" "highway manifest mirror"
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
   [ ! -e "static/$asset" ] || fail "state data must not be bundled in static/: $asset"
   [ ! -e "$WWW_ROOT/$asset" ] || fail "state data must not be bundled in Android www/: $asset"
@@ -91,8 +94,8 @@ rm -f "$AAB_PATH"
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="com.gauravsen.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="36"' "$BUNDLE_MANIFEST" || fail "expected versionCode 36"
-grep -Fq 'android:versionName="1.19.1"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.19.1"
+grep -Fq 'android:versionCode="37"' "$BUNDLE_MANIFEST" || fail "expected versionCode 37"
+grep -Fq 'android:versionName="1.20.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.20.0"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"
@@ -102,6 +105,7 @@ grep -Fq 'com.sis.pwdsewaapp' "$BUNDLE_MANIFEST" || fail "official PWD Sewa app 
 grep -Fq 'com.ceedeev.grivenancev2' "$BUNDLE_MANIFEST" || fail "official Namma Chennai app package query is missing"
 grep -Fq 'cgg.gov.ghmc' "$BUNDLE_MANIFEST" || fail "official My Cure app package query is missing"
 grep -Fq 'com.amplvb.ccrs' "$BUNDLE_MANIFEST" || fail "official AMC CCRS app package query is missing"
+grep -Fq 'com.nhai.rajmargyatra' "$BUNDLE_MANIFEST" || fail "official Rajmargyatra app package query is missing"
 
 if grep -Eq 'android:(debuggable|testOnly)="true"' "$BUNDLE_MANIFEST"; then
   fail "release manifest is debuggable or test-only"
@@ -148,12 +152,15 @@ if ! unzip -p "$AAB_PATH" base/assets/capacitor.plugins.json | grep -Fq '@capaci
   fail "App Launcher plugin is missing from the release bundle"
 fi
 
-echo "6/7 confirming state packs are absent from the AAB"
+echo "6/7 confirming large data packs are absent from the AAB"
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
   if unzip -Z1 "$AAB_PATH" | grep -Fx "base/assets/public/$asset" >/dev/null; then
     fail "state data is bundled in the AAB: $asset"
   fi
 done
+if unzip -Z1 "$AAB_PATH" | grep -Eq '^base/assets/public/packs/v1/highways/'; then
+  fail "National Highway geometry tiles are bundled in the AAB"
+fi
 
 echo "7/7 release bundle accepted"
 bundle_bytes=$(stat -f%z "$AAB_PATH" 2>/dev/null || stat -c%s "$AAB_PATH")

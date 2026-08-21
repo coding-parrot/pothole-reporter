@@ -1,6 +1,6 @@
 # Google Play listing copy
 
-Prepared 21 August 2026. Paste only the text inside each code block into Play Console.
+Prepared 22 August 2026. Paste only the text inside each code block into Play Console.
 
 ## App name (16/30 characters)
 
@@ -11,7 +11,7 @@ Pothole Reporter
 ## Short description (74/80 characters)
 
 ```text
-Detect road damage and prepare reports across eight Indian coverage areas.
+Detect damage and prepare reports on mapped highways and supported cities.
 ```
 
 ## Full description
@@ -20,6 +20,7 @@ Detect road damage and prepare reports across eight Indian coverage areas.
 Pothole Reporter is an independent Android app for documenting visible road damage and preparing an editable civic complaint. Take one photo while safely stopped, or securely mount the phone and use foreground Drive Mode. AI assesses selected images for pothole cavities, failed patches, breakup, ruts, and depressions. Reports stay on your device for review.
 
 Coverage
+• Mapped operational National Highways and National Expressways across India. Matches use Rajmargyatra/1033 before municipal routing; the maintaining agency is not guessed.
 • Delhi NCT, not the wider NCR. PWD Sewa is offered as a cross-agency handoff; this does not claim PWD owns the road.
 • The current Mumbai Metropolitan Region. Valid local polygons can suggest a body; rural, overlapping, and unsupported MMR locations use Aaple Sarkar.
 • Pune Municipal Corporation limits. PCMC is excluded.
@@ -42,7 +43,7 @@ Important limits and data use
 • Probable contract matching is available only for eligible Karnataka routes and is not proof of responsibility or warranty.
 • Core features require camera and foreground location permission, internet, and your own billed OpenAI API key.
 • Selected resized images and API requests go directly to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; Karnataka points also query Karnataka GIS.
-• Regional routing/contact packs and the optional Karnataka tender pack download from this project's GitHub Pages when relevant. Complete downloads are SHA-256 verified and cached locally. A required routing-pack failure stops authority routing; an optional tender-pack failure only omits contract context. Pack requests identify the coarse state but contain no report, photo, or exact coordinates.
+• Regional routing/contact packs, 2° National Highway tiles, and the optional Karnataka tender pack download from this project's GitHub Pages when relevant. Complete downloads are SHA-256 verified and cached locally. A required routing-data failure stops authority routing; an optional tender-pack failure only omits contract context. Requests identify a state or approximate tile but contain no report, photo, or exact coordinates.
 • MMR, PMC, KMC, Delhi NCT, GCC Chennai, and Hyderabad-core polygon checks run locally. Ahmedabad checks a local envelope but intentionally requires Nominatim's exact structured result.
 • Choosing an external handoff transfers selected data or connection metadata under that provider's policy.
 • Drive recording is optional and off by default. Mount the phone before moving.
@@ -52,10 +53,10 @@ Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
 Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.19.0 / version code 35)
+## Release notes (1.20.0 / version code 37)
 
 ```text
-Added GCC Chennai, partial Hyderabad-core, and exact structured Ahmedabad routing. Chennai and Hyderabad use verified local ODbL checks; the Secunderabad Cantonment extent fails closed. Ahmedabad deliberately makes no municipal-boundary claim.
+Added nationwide mapped National Highway and National Expressway detection before municipal routing. Relevant 2° geometry tiles are checksum-verified and cached; unsafe matches fail closed. Matched reports open Rajmargyatra/1033 without guessing the maintaining agency.
 ```
 
 ## Play Console fields

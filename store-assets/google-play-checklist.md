@@ -1,13 +1,13 @@
 # Google Play publication checklist
 
-Status reviewed 21 August 2026 for release 1.19.0 / version code 35. This is a release
+Status reviewed 22 August 2026 for release 1.20.0 / version code 37. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.19.0/code 35 after the state-pack changes,
+- [ ] **Fresh signed release bundle:** build version 1.20.0/code 37 after the highway-pack changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
   it in Play Console.
 - [x] **Hosted privacy page:** verified on the stable public host:
@@ -43,6 +43,10 @@ Do not submit to production until every applicable item above is complete.
 - [ ] On a clean install, first test every region online so each checksum-pinned routing pack
   can download. Then repeat a cached route offline, corrupt a test pack, and confirm the app
   fails closed rather than routing from unverified data.
+- [ ] Test mapped NH/NE samples in west, north, south, and inside Delhi; a junction with two
+  references; poor GPS; conflicting drive heading; an absent tile; and a corrupt tile. Confirm
+  highways route before cities to Rajmargyatra/1033, no maintaining agency is claimed, and
+  unsafe or unavailable highway data fails closed.
 - [ ] Test representative locations in all 19 MMR urban local bodies, a rural MMR point,
   Pune inside PMC, Pune outside PMC, and PCMC. Confirm rural/ambiguous MMR uses Aaple Sarkar,
   PMC uses Road Mitra/PMC CARE, and PCMC stays unrouted.
@@ -98,15 +102,15 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.19.0 release. Include an independent civic handoff and regional-language support
+  the 1.20.0 release. Include an independent civic handoff and regional-language support
   without displaying private coordinates, an API key, a real grievance ID, or civic-body
   marks. Put other city-specific flows in reviewer instructions instead of implying that
   one screenshot proves every supported route.
 - [ ] Use screenshots from the release build and avoid implying government affiliation,
   automatic filing, guaranteed detection, verified responsibility, or benchmarked accuracy.
 - [ ] Enter the hosted privacy-policy URL, support website, and required support email.
-- [ ] Choose the app category and target countries intentionally. Current routing is limited
-  to the eight areas listed in `google-play-listing.md`; keep the wider NCR, PCMC, wider
+- [ ] Choose the app category and target countries intentionally. Current routing covers mapped
+  NH/NE carriageways across India plus the municipal areas listed in `google-play-listing.md`; keep the wider NCR, PCMC, wider
   Chennai metro, partial-Hyderabad, Cantonment, Ahmedabad-structure, and Kolkata-neighbour
   limitations visible.
 - [ ] Keep the non-affiliation statement and the clearly labelled government-information
@@ -126,8 +130,8 @@ Official references: [target API schedule](https://support.google.com/googleplay
   - for eligible Karnataka routes only, road address and procurement shortlist sent to
     OpenAI for probable contract matching; contract matching elsewhere is disabled;
   - API credential and standard network metadata received by external services;
-  - the selected regional routing/tender pack and standard connection metadata disclosed to
-    GitHub Pages when that checksum-pinned public dataset is downloaded;
+  - the selected regional routing/tender pack or 2° National Highway tile and standard
+    connection metadata disclosed to GitHub Pages when that checksum-pinned data is downloaded;
   - map-area tile requests, email-app hand-off, Android sharing, and every included SDK;
   - report text or evidence handed to a selected email, WhatsApp, or share
     destination, plus app/portal, Play-listing, and dialler launch metadata;
@@ -145,7 +149,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
   wipe deletes that folder. Copies already handed to another app remain under that
   destination's control, as the privacy policy explains.
 - [x] Verify the remaining local deletion claims: the in-app wipe clears reports, photos,
-  drive summaries, app-held footage, downloaded state-pack cache, key/name/settings, and the
+  drive summaries, app-held footage, downloaded pack/highway-tile cache, key/name/settings, and the
   app's Documents debug-frame directory. Files copied, shared, attached, or sent elsewhere
   remain under that destination's control.
 - [ ] Re-audit all answers whenever an SDK, model provider, endpoint, permission, storage

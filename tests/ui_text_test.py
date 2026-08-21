@@ -34,7 +34,9 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
             if "OpenAI" not in note:
                 fails.append(f"{name}: {language} settings note does not mention OpenAI")
             if "GitHub Pages" not in note:
-                fails.append(f"{name}: {language} settings note does not disclose the state-pack host")
+                fails.append(f"{name}: {language} settings note does not disclose the pack host")
+            if "2°" not in note:
+                fails.append(f"{name}: {language} settings note omits highway-tile granularity")
 
     # Scope: localized refusals must describe all supported geographies.
     coverage = re.findall(r'outside_coverage_help: "([^"]+)"', s)
@@ -42,15 +44,16 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
         if "ಬೆಂಗಳೂರಿಗೆ" in coverage[1] or "ಜಿಬಿಎ" in coverage[1]:
             fails.append(f"{name}: Kannada out-of-coverage text still says Bengaluru only")
         if any(term not in coverage[0] for term in (
+            "National Highways", "across India",
             "Mumbai Metropolitan Region", "Pune Municipal Corporation",
             "Kolkata Municipal Corporation", "Delhi NCT",
         )):
             fails.append(f"{name}: English out-of-coverage text omits a supported region")
-        if any(term not in coverage[1] for term in ("ಕರ್ನಾಟಕ", "ಮುಂಬೈ", "ಪುಣೆ", "ಕೋಲ್ಕತ್ತಾ", "ದೆಹಲಿ NCT")):
+        if any(term not in coverage[1] for term in ("ಭಾರತದೆಲ್ಲೆಡೆ", "ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಗಳು", "ಕರ್ನಾಟಕ", "ಮುಂಬೈ", "ಪುಣೆ", "ಕೋಲ್ಕತ್ತಾ", "ದೆಹಲಿ NCT")):
             fails.append(f"{name}: Kannada out-of-coverage text omits a supported region")
-        if any(term not in coverage[2] for term in ("कर्नाटक", "मुंबई", "पुणे", "कोलकाता", "दिल्ली NCT")):
+        if any(term not in coverage[2] for term in ("भारतभर", "राष्ट्रीय महामार्ग", "कर्नाटक", "मुंबई", "पुणे", "कोलकाता", "दिल्ली NCT")):
             fails.append(f"{name}: Marathi out-of-coverage text omits a supported region")
-        if any(term not in coverage[3] for term in ("কর্ণাটক", "মুম্বই", "পুনে", "কলকাতা", "দিল্লি NCT")):
+        if any(term not in coverage[3] for term in ("ভারতজুড়ে", "জাতীয় সড়ক", "কর্ণাটক", "মুম্বই", "পুনে", "কলকাতা", "দিল্লি NCT")):
             fails.append(f"{name}: Bengali out-of-coverage text omits a supported region")
     else:
         fails.append(f"{name}: expected 4 outside_coverage_help strings, found {len(coverage)}")

@@ -6,7 +6,7 @@ local matching rules, and AI-generated judgments. A source record is not proof t
 particular defect, authority, or contract match is correct. The user must review the
 photo, routing, and any probable contract match before sending a complaint.
 
-## Versioned state packs
+## Versioned data packs
 
 Large routing, contact, and procurement datasets are not embedded in the APK. The app
 ships a small manifest that pins each supported resource's version, HTTPS URL, byte
@@ -16,7 +16,8 @@ procurement data is a separate optional tender pack and is requested only for an
 Karnataka contract match.
 The Gujarat pack contains routing rules and a relevance envelope, not an AMC polygon.
 
-The app downloads a pack from this project's GitHub Pages site, verifies the complete
+The app also ships a National Highway manifest that pins 101 immutable 2° geometry tiles.
+It downloads a pack or relevant tile from this project's GitHub Pages site, verifies the complete
 response against the manifest before parsing it, and caches only verified bytes on the
 device. Missing, malformed, truncated, or checksum-mismatched required routing/contact
 data makes the affected route fail closed. A geocoder place name is not a fallback for a
@@ -27,10 +28,34 @@ pack can be read locally after its first
 successful download. On a subsequent pack use, caches past their unused limits are pruned
 automatically, and **Delete all app data** removes the entire cache immediately.
 
-The pack URL names the state, so GitHub Pages can receive the device's IP address,
-standard connection metadata, and a coarse indication of the requested state. No report,
-road photo, or exact coordinates are included in the pack request. Adding another state
-adds hosted data rather than continually increasing the core APK.
+The URL names a state or 2° highway tile, so GitHub Pages can receive the device's IP
+address, standard connection metadata, and that coarse location indication. No report,
+road photo, or exact coordinates are included. Hosted packs keep the core APK small.
+
+## National Highway geometry and handoff
+
+- **Source:** OpenStreetMap India extract distributed by
+  [Geofabrik](https://download.geofabrik.de/asia/india.html), ODbL 1.0.
+- **Pinned extract:** 20 August 2026,
+  `https://download.geofabrik.de/asia/india-260820.osm.pbf`, MD5
+  `c5e0a62a1cb00c80d8c5948bf18370d7`.
+- **Filter:** operational drivable ways carrying an `NH*` or `NE*` reference, or the
+  `IN:NH` network tag. Proposed, construction-only, service, residential, path, and
+  track classes are excluded.
+- **Output:** 142,656 accepted source features, 680 distinct mapped references, and
+  101 content-addressed 2° tiles. Geometry is simplified to 2 m and each tile is
+  byte-length and SHA-256 verified before parsing.
+- **Runtime rule:** check the relevant highway tile before any municipal route; require
+  GPS accuracy of 30 m or better; refuse different nearby references, moving-direction
+  conflicts, missing data, and invalid data.
+- **Handoff:** [Rajmargyatra](https://play.google.com/store/apps/details?id=com.nhai.rajmargyatra),
+  [CPGRAMS](https://pgportal.gov.in/), and helpline `1033`.
+
+The geometry describes mapped NH/NE carriageways, not a legal inventory or ownership
+register. It does not infer whether NHAI, NHIDCL, BRO, or a State PWD maintains a matched
+stretch. The user must verify the maintaining agency in the official service. Rebuild and
+verification logic is in `tools/build-national-highways.py`; the complete source receipt
+is `data/national-highways-source.json`.
 
 ## Maharashtra boundaries and complaint handoffs
 

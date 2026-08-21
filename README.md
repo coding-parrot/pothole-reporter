@@ -14,6 +14,7 @@ project-operated backend or account system.
 
 | Area | Current scope |
 | --- | --- |
+| National Highways | Operational NH/NE carriageways mapped across India in the pinned 20 August 2026 OpenStreetMap extract. A match goes to Rajmargyatra/1033; the maintaining agency is not guessed. |
 | Delhi | Full Delhi NCT; the wider NCR is excluded. |
 | Maharashtra | The current Mumbai Metropolitan Region (MMR), including its rural extent, and Pune Municipal Corporation (PMC). PCMC is excluded. |
 | West Bengal | Kolkata Municipal Corporation (KMC) only; Howrah, Bidhannagar/Salt Lake, New Town, and neighbouring bodies are excluded. |
@@ -35,14 +36,12 @@ WhatsApp, dialler, share sheet, or email client. Nothing is submitted automatica
 - Reports, photos, optional recordings, and official reference IDs are stored locally.
 - English, Kannada, Marathi, and Bengali are supported.
 
-## State data packs
+## Downloaded data packs
 
-The APK contains the app, not every region's large reference dataset. When needed, it
-downloads a versioned routing/contact pack for that state from this project's GitHub Pages
-site. Chennai and Hyderabad polygon checks, and Ahmedabad's relevance-envelope check, use
-the verified downloaded pack. The optional Karnataka tender pack is downloaded only for
-eligible Karnataka contract matching. Adding another state therefore adds a hosted pack
-without continually inflating the core APK.
+The APK contains the app and small manifests, not the large reference datasets. When
+needed, it downloads a versioned state pack or the relevant 2° National Highway tile from
+this project's GitHub Pages site. Highway matching runs before municipal routing. The
+optional Karnataka tender pack is downloaded only for eligible contract matching.
 
 Every downloaded pack is checked byte-for-byte against a checksum pinned in the app before
 it is used, then cached locally. A missing, malformed, or altered required routing/contact
@@ -54,8 +53,8 @@ services. On a subsequent pack use, caches past their unused limits are pruned
 automatically; **Delete all app data** removes the entire pack cache immediately.
 
 A pack request contains no report, photo, or exact coordinates. GitHub Pages can receive
-the device's IP address, standard connection metadata, and the requested pack URL; because
-the URL names a state, it reveals that coarse state. See the
+the device's IP address, connection metadata, and requested pack URL; the URL reveals a
+state or an approximate 2° highway tile. See the
 [privacy policy](https://coding-parrot.github.io/pothole-reporter/privacy.html).
 
 ## Install
@@ -75,6 +74,8 @@ the URL names a state, it reveals that coarse state. See the
   OpenStreetMap Nominatim; Karnataka locations also query Karnataka GIS.
 - Contract matching is optional and available only for eligible Karnataka routes. A match
   is not proof that a contractor or warranty applies.
+- National Highway coverage follows mapped NH/NE geometry, not the legal road register.
+  Parallel roads, junctions, weak GPS, missing tiles, and altered data fail closed.
 - The project is not affiliated with or endorsed by a government body or data provider.
 
 Read [data sources and limits](https://coding-parrot.github.io/pothole-reporter/sources.html)

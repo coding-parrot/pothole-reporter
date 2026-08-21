@@ -11,6 +11,7 @@
         <package android:name="com.ceedeev.grivenancev2" />
         <package android:name="cgg.gov.ghmc" />
         <package android:name="com.amplvb.ccrs" />
+        <package android:name="com.nhai.rajmargyatra" />
     </queries>
 
     <application

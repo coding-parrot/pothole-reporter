@@ -28,7 +28,7 @@ async () => {
   // The authority registry is populated only by a checksum-verified state pack.
   const coverage = await P.kolkataCoverage();
 
-  eq("registry: version includes municipal-city packs", P.AUTHORITY_REGISTRY_VERSION, 5);
+  eq("registry: version includes National Highway routing", P.AUTHORITY_REGISTRY_VERSION, 6);
   eq("registry: KMC uses a stable ID", P.KMC_AUTHORITY.id, "wb-kmc");
   ok("registry: KMC validates", P.validateAuthorityRegistry([P.KMC_AUTHORITY]), null);
   eq("registry: primary channel is KMC Grievance 2.0",

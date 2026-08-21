@@ -17,15 +17,16 @@ FORBIDDEN_STATE_ASSETS=(
 )
 
 echo "1/5 mirroring static/ into www/"
-for f in standalone.js index.html pack-manifest.json; do cp "static/$f" "android-app/www/$f"; done
+for f in standalone.js index.html pack-manifest.json highway-manifest.json; do cp "static/$f" "android-app/www/$f"; done
 
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
   [ ! -e "static/$asset" ] || { echo "FAIL: state data must not be bundled in static/: $asset"; exit 1; }
   [ ! -e "android-app/www/$asset" ] || { echo "FAIL: state data must not be bundled in Android www/: $asset"; exit 1; }
 done
 
-echo "2/5 validating hosted state packs"
+echo "2/5 validating hosted data packs"
 python3 tools/build-state-packs.py --check
+python3 tools/build-national-highways.py --check
 
 echo "3/5 syncing www into the android assets gradle actually packages"
 (cd android-app && npx cap copy android >/dev/null)
@@ -47,6 +48,7 @@ same() {  # a file inside the APK must be byte-identical to the source
 same standalone.js
 same index.html
 same pack-manifest.json
+same highway-manifest.json
 
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
   if unzip -Z1 "$APK" | grep -Fx "assets/public/$asset" >/dev/null; then
@@ -55,6 +57,12 @@ for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
     echo "  ok   $asset is not bundled"
   fi
 done
+
+if unzip -Z1 "$APK" | grep -Eq '^assets/public/packs/v1/highways/'; then
+  echo "  FAIL National Highway geometry tiles are bundled in the APK"; fail=1
+else
+  echo "  ok   National Highway geometry tiles are not bundled"
+fi
 
 n=$(unzip -p "$APK" assets/public/standalone.js | grep -c 'sk-proj\|sk-[A-Za-z0-9]\{20\}' || true)
 [ "$n" = "0" ] && echo "  ok   no API key baked in" || { echo "  FAIL an API key is in the APK"; fail=1; }
