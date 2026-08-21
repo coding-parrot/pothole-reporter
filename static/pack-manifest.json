@@ -26,6 +26,25 @@
       "statewide": true,
       "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/dl/routing-848ef7a8b01c84096bd97d0ca3ec1b59500e9798e95c8ec83efd41e759875507.json"
     },
+    "in-gj-routing": {
+      "adapter": "municipal-city-v1",
+      "bytes": 2273,
+      "coverage_scope": "Ahmedabad structured city matches; not a municipal-boundary claim",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0"
+      ],
+      "pack_id": "in-gj-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/gj/routing-727d1865794dfc1a8d9507b6dd0b1411da1d4ee0b04f464bed5be789e96e16a7.json",
+      "review_after": "2026-09-21",
+      "schema_version": 1,
+      "sha256": "727d1865794dfc1a8d9507b6dd0b1411da1d4ee0b04f464bed5be789e96e16a7",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "GJ",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/gj/routing-727d1865794dfc1a8d9507b6dd0b1411da1d4ee0b04f464bed5be789e96e16a7.json"
+    },
     "in-ka-routing": {
       "adapter": "karnataka-kgis-v1",
       "bytes": 36011,
@@ -84,6 +103,44 @@
       "state_code": "MH",
       "statewide": false,
       "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/mh/routing-cd58ba14f184b408f2058a4e416a369bce1bd07813ed7c463182ec5f3225b545.json"
+    },
+    "in-tg-routing": {
+      "adapter": "municipal-city-v1",
+      "bytes": 23084,
+      "coverage_scope": "Hyderabad core; shared CURE grievance intake; partial coverage",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0"
+      ],
+      "pack_id": "in-tg-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/tg/routing-347d72b60bafb1ee170d1a9b45f5d53cddbf24361a7ed4e6d24d668c74dcbde0.json",
+      "review_after": "2026-09-21",
+      "schema_version": 1,
+      "sha256": "347d72b60bafb1ee170d1a9b45f5d53cddbf24361a7ed4e6d24d668c74dcbde0",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "TG",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tg/routing-347d72b60bafb1ee170d1a9b45f5d53cddbf24361a7ed4e6d24d668c74dcbde0.json"
+    },
+    "in-tn-routing": {
+      "adapter": "municipal-city-v1",
+      "bytes": 15737,
+      "coverage_scope": "Greater Chennai Corporation limits",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0"
+      ],
+      "pack_id": "in-tn-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/tn/routing-d1d32b82476c98be6a344e5d4ec788f0acbe63a8b4479453e78c3392eff7bb56.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "d1d32b82476c98be6a344e5d4ec788f0acbe63a8b4479453e78c3392eff7bb56",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "TN",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tn/routing-d1d32b82476c98be6a344e5d4ec788f0acbe63a8b4479453e78c3392eff7bb56.json"
     },
     "in-wb-routing": {
       "adapter": "kolkata-kmc-v1",

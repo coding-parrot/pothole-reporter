@@ -4,12 +4,22 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
+import math
 import pathlib
 import sys
 
 from playwright.sync_api import sync_playwright
 
+TOOLS_ROOT = pathlib.Path(__file__).resolve().parents[1] / "tools"
+sys.path.insert(0, str(TOOLS_ROOT))
+
+from state_pack_tools import (  # noqa: E402
+    PackError,
+    SPECS,
+    _validate_municipal_city_payload,
+)
 from state_pack_utils import (
     MANIFEST_PATH,
     ROOT,
@@ -24,11 +34,41 @@ from state_pack_utils import (
 APP = "http://localhost:8765/"
 PRODUCTION_SITE_ROOT = "https://coding-parrot.github.io/pothole-reporter/"
 EXPECTED_RESOURCES = {
-    "in-dl-routing": ("DL", "routing", "pothole-routing-pack"),
-    "in-mh-routing": ("MH", "routing", "pothole-routing-pack"),
-    "in-wb-routing": ("WB", "routing", "pothole-routing-pack"),
-    "in-ka-routing": ("KA", "routing", "pothole-routing-pack"),
-    "in-ka-tenders": ("KA", "tenders", "pothole-tender-pack"),
+    "in-dl-routing": ("DL", "routing", "pothole-routing-pack", "delhi-nct-v1"),
+    "in-gj-routing": ("GJ", "routing", "pothole-routing-pack", "municipal-city-v1"),
+    "in-ka-routing": ("KA", "routing", "pothole-routing-pack", "karnataka-kgis-v1"),
+    "in-ka-tenders": (
+        "KA", "tenders", "pothole-tender-pack", "karnataka-locally-indexed-v1"
+    ),
+    "in-mh-routing": (
+        "MH", "routing", "pothole-routing-pack", "maharashtra-mmr-pmc-v1"
+    ),
+    "in-tg-routing": ("TG", "routing", "pothole-routing-pack", "municipal-city-v1"),
+    "in-tn-routing": ("TN", "routing", "pothole-routing-pack", "municipal-city-v1"),
+    "in-wb-routing": ("WB", "routing", "pothole-routing-pack", "kolkata-kmc-v1"),
+}
+MUNICIPAL_CITY_RESOURCES = {
+    "in-tn-routing": {
+        "region_id": "chennai-gcc",
+        "authority_id": "tn-gcc",
+        "routing_mode": "boundary",
+        "routing_source": "osm_gcc_boundary",
+        "source_object_id": "osm:relation:1766358",
+    },
+    "in-tg-routing": {
+        "region_id": "hyderabad-cure-core",
+        "authority_id": "tg-cure-shared",
+        "routing_mode": "boundary",
+        "routing_source": "osm_hyderabad_core_boundary",
+        "source_object_id": "osm:relation:7868535",
+    },
+    "in-gj-routing": {
+        "region_id": "ahmedabad-structured",
+        "authority_id": "gj-amc",
+        "routing_mode": "structured_geocode",
+        "routing_source": "nominatim_structured_city",
+        "source_object_id": "osm:node:245711197",
+    },
 }
 LEGACY_BUNDLED_FILES = {
     "delhi-coverage.json",
@@ -84,6 +124,114 @@ const mutatePackRecords = async (mutator) => {
 """
 
 
+def check_municipal_city_pack(pack_id: str, envelope: dict, failures: list[str]) -> None:
+    expected = MUNICIPAL_CITY_RESOURCES[pack_id]
+    payload = envelope.get("payload")
+    try:
+        _validate_municipal_city_payload(
+            SPECS[pack_id],
+            payload,
+            generated_at=envelope.get("generated_at"),
+            authorities=envelope.get("authorities"),
+        )
+    except PackError as error:
+        failures.append(f"{pack_id} fails the release municipal schema: {error}")
+    regions = payload.get("regions") if isinstance(payload, dict) else None
+    if not isinstance(payload, dict) or payload.get("version") != 1:
+        failures.append(f"{pack_id} municipal payload schema/version is invalid")
+        return
+    if payload.get("retrieved_at") != envelope.get("generated_at"):
+        failures.append(f"{pack_id} municipal payload date differs from its pack date")
+    if not isinstance(regions, list) or len(regions) != 1 or not isinstance(regions[0], dict):
+        failures.append(f"{pack_id} must contain exactly one municipal region")
+        return
+
+    region = regions[0]
+    required = {
+        "id", "authority_id", "name", "scope", "routing_mode", "routing_source",
+        "match_value", "state_aliases", "place_aliases", "envelope", "source_name",
+        "source_home_url", "source_url", "source_license", "attribution",
+        "official_scope_reference", "routing_note", "limitations", "exclusions", "source_object_id",
+    }
+    missing = sorted(required - set(region))
+    if missing:
+        failures.append(f"{pack_id} municipal region is missing fields: {missing}")
+    for field in (
+        "region_id", "authority_id", "routing_mode", "routing_source", "source_object_id"
+    ):
+        actual_field = "id" if field == "region_id" else field
+        if region.get(actual_field) != expected[field]:
+            failures.append(
+                f"{pack_id} {actual_field} is {region.get(actual_field)!r}, "
+                f"want {expected[field]!r}"
+            )
+
+    authorities = envelope.get("authorities")
+    authority_ids = {
+        item.get("id") for item in authorities or []
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
+    if authority_ids != {expected["authority_id"]}:
+        failures.append(f"{pack_id} municipal authority inventory is {sorted(authority_ids)!r}")
+    for field in ("source_home_url", "source_url", "official_scope_reference"):
+        if not isinstance(region.get(field), str) or not region[field].startswith("https://"):
+            failures.append(f"{pack_id} {field} is not an HTTPS source")
+    if "ODbL" not in str(region.get("source_license")):
+        failures.append(f"{pack_id} does not identify its ODbL source licence")
+    if "OpenStreetMap" not in str(region.get("attribution")):
+        failures.append(f"{pack_id} does not preserve OpenStreetMap attribution")
+    if not all(
+        isinstance(region.get(field), list) and region[field]
+        for field in ("state_aliases", "place_aliases", "limitations")
+    ):
+        failures.append(f"{pack_id} aliases or limitations are missing")
+    exclusions = region.get("exclusions")
+    if not isinstance(exclusions, list):
+        failures.append(f"{pack_id} has no exclusion inventory")
+    elif pack_id == "in-tg-routing":
+        if len(exclusions) != 1 or exclusions[0].get("id") != "secunderabad-cantonment-extent":
+            failures.append("in-tg-routing does not pin the conservative Cantonment exclusion")
+    elif exclusions:
+        failures.append(f"{pack_id} has an unexpected exclusion")
+
+    relevance = region.get("envelope")
+    envelope_values = [
+        relevance.get(field) if isinstance(relevance, dict) else None
+        for field in ("min_lng", "min_lat", "max_lng", "max_lat")
+    ]
+    if not all(isinstance(value, (int, float)) and math.isfinite(value)
+               for value in envelope_values) or not (
+        envelope_values[0] < envelope_values[2]
+        and envelope_values[1] < envelope_values[3]
+    ):
+        failures.append(f"{pack_id} has an invalid municipal relevance envelope")
+
+    geometry_fields = {"coordinate_precision", "area_km2", "bbox", "geometry_sha256", "geometry"}
+    if expected["routing_mode"] == "boundary":
+        if not geometry_fields.issubset(region):
+            failures.append(f"{pack_id} boundary region has incomplete geometry metadata")
+            return
+        geometry = region.get("geometry")
+        if not isinstance(geometry, dict) or geometry.get("type") not in {"Polygon", "MultiPolygon"}:
+            failures.append(f"{pack_id} boundary geometry is not a polygon")
+            return
+        geometry_bytes = json.dumps(
+            geometry, ensure_ascii=False, separators=(",", ":")
+        ).encode("utf-8")
+        calculated = hashlib.sha256(geometry_bytes).hexdigest()
+        if region.get("geometry_sha256") != calculated:
+            failures.append(
+                f"{pack_id} geometry digest is {region.get('geometry_sha256')!r}, "
+                f"want {calculated!r}"
+            )
+        if region.get("coordinate_precision") != 7:
+            failures.append(f"{pack_id} geometry coordinate precision is not pinned to 7")
+        if not isinstance(region.get("area_km2"), (int, float)) or region["area_km2"] <= 0:
+            failures.append(f"{pack_id} geometry has no positive reviewed area")
+    elif geometry_fields.intersection(region):
+        failures.append(f"{pack_id} structured route must not imply municipal geometry")
+
+
 def check_catalog(failures: list[str]) -> dict:
     static_manifest = ROOT / "static" / "pack-manifest.json"
     if not MANIFEST_PATH.is_file() or not static_manifest.is_file():
@@ -127,7 +275,7 @@ def check_catalog(failures: list[str]) -> dict:
         )
 
     urls: set[str] = set()
-    for pack_id, (state_code, kind, pack_format) in EXPECTED_RESOURCES.items():
+    for pack_id, (state_code, kind, pack_format, adapter) in EXPECTED_RESOURCES.items():
         resource = resources.get(pack_id)
         if not isinstance(resource, dict):
             continue
@@ -139,8 +287,10 @@ def check_catalog(failures: list[str]) -> dict:
             failures.append(f"{pack_id} pack_version is not 1")
         if resource.get("schema_version") != 1:
             failures.append(f"{pack_id} schema_version is not 1")
-        if not isinstance(resource.get("adapter"), str) or not resource["adapter"]:
-            failures.append(f"{pack_id} has no pinned adapter")
+        if resource.get("adapter") != adapter:
+            failures.append(
+                f"{pack_id} adapter is {resource.get('adapter')!r}, want {adapter!r}"
+            )
         sha = resource.get("sha256")
         if not isinstance(sha, str) or len(sha) != 64 or any(c not in "0123456789abcdef" for c in sha):
             failures.append(f"{pack_id} has an invalid SHA-256 pin")
@@ -193,6 +343,8 @@ def check_catalog(failures: list[str]) -> dict:
                 failures.append(f"{pack_id} has an empty authority inventory")
             if not isinstance(envelope.get("payload"), dict):
                 failures.append(f"{pack_id} has no routing payload object")
+            if pack_id in MUNICIPAL_CITY_RESOURCES:
+                check_municipal_city_pack(pack_id, envelope, failures)
         else:
             tenders = envelope.get("tenders")
             if not isinstance(tenders, list) or not tenders:

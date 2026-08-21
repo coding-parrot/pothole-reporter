@@ -52,12 +52,13 @@ require_tool sort
 require_tool stat
 require_tool unzip
 
-echo "1/7 validating hosted state packs and web-source mirrors (read only)"
+echo "1/7 validating hosted state packs, municipal schemas and web-source mirrors (read only)"
 [ -d static ] || fail "static source directory is missing"
 [ -d "$WWW_ROOT" ] || fail "Android www source directory is missing"
 [ -d "$PACKAGED_ASSETS_ROOT" ] || fail "packaged Android assets directory is missing"
 [ -x "$ANDROID_ROOT/gradlew" ] || fail "Gradle wrapper is missing or not executable"
 python3 tools/build-state-packs.py --check
+python3 tests/state_pack_validation_test.py
 same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest.json" "pack manifest mirror"
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
   [ ! -e "static/$asset" ] || fail "state data must not be bundled in static/: $asset"
@@ -90,14 +91,17 @@ rm -f "$AAB_PATH"
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="com.gauravsen.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="34"' "$BUNDLE_MANIFEST" || fail "expected versionCode 34"
-grep -Fq 'android:versionName="1.18.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.18.0"
+grep -Fq 'android:versionCode="35"' "$BUNDLE_MANIFEST" || fail "expected versionCode 35"
+grep -Fq 'android:versionName="1.19.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.19.0"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"
 grep -Fq 'com.nyatitechnologies.pmcroadmitra' "$BUNDLE_MANIFEST" || fail "PMC Road Mitra package query is missing"
 grep -Fq 'com.kmc.app' "$BUNDLE_MANIFEST" || fail "official KMC app package query is missing"
 grep -Fq 'com.sis.pwdsewaapp' "$BUNDLE_MANIFEST" || fail "official PWD Sewa app package query is missing"
+grep -Fq 'com.ceedeev.grivenancev2' "$BUNDLE_MANIFEST" || fail "official Namma Chennai app package query is missing"
+grep -Fq 'cgg.gov.ghmc' "$BUNDLE_MANIFEST" || fail "official My Cure app package query is missing"
+grep -Fq 'com.amplvb.ccrs' "$BUNDLE_MANIFEST" || fail "official AMC CCRS app package query is missing"
 
 if grep -Eq 'android:(debuggable|testOnly)="true"' "$BUNDLE_MANIFEST"; then
   fail "release manifest is debuggable or test-only"

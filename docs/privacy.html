@@ -111,7 +111,7 @@
           </tr>
           <tr>
             <td>Precise location and drive motion data</td>
-            <td>The app reads latitude and longitude and may retain a local drive track with accuracy, speed, heading, and timestamps. Coordinates are sent to OpenStreetMap Nominatim. Karnataka locations also query Karnataka GIS endpoints. After the required verified state pack has been downloaded, MMR, PMC, KMC, and Delhi NCT boundary checks run locally against its cached geometry. Viewing the in-app map requests OpenStreetMap tiles for the displayed area.</td>
+            <td>The app reads latitude and longitude and may retain a local drive track with accuracy, speed, heading, and timestamps. Coordinates are sent to OpenStreetMap Nominatim. Karnataka locations also query Karnataka GIS endpoints. After the required verified state pack has been downloaded, MMR, PMC, KMC, Delhi NCT, GCC Chennai, and Hyderabad-core polygon checks run locally against cached geometry; Hyderabad also refuses a cached conservative Secunderabad Cantonment extent. Ahmedabad checks a cached relevance envelope locally but also requires Nominatim to return an exact structured city or municipality match; it does not use an AMC boundary. Viewing the in-app map requests OpenStreetMap tiles for the displayed area.</td>
             <td>Find an address, check supported coverage, suggest a complaint route, identify a supported Karnataka body, classify Karnataka roads, display report locations, and suppress repeated Drive Mode observations.</td>
           </tr>
           <tr>
@@ -126,7 +126,7 @@
           </tr>
           <tr>
             <td>Road address and procurement candidates</td>
-            <td>For an eligible Karnataka route only, the reverse-geocoded road address and a shortlist of public procurement records may be sent to OpenAI for a probable contract match. Maharashtra, Kolkata, and Delhi routes never enter this flow.</td>
+            <td>For an eligible Karnataka route only, the reverse-geocoded road address and a shortlist of public procurement records may be sent to OpenAI for a probable contract match. Routes outside eligible Karnataka coverage never enter this flow.</td>
             <td>Offer an optional, reviewable Karnataka contract reference. A match is not proof of responsibility or warranty.</td>
           </tr>
           <tr>
@@ -135,7 +135,7 @@
             <td>Run the app, preserve history, allow review, and prepare complaint drafts.</td>
           </tr>
           <tr>
-            <td>Maharashtra, Kolkata, and Delhi handoff text and evidence</td>
+            <td>Official handoff text and evidence</td>
             <td>The offered app or portal opens only after you choose it. A Google Play fallback receives no report attachment. A WhatsApp action places complaint text in a link but does not press Send. Share creates compressed image copies and report text in app cache and invokes Android's share sheet. Call opens the dialler. Email hands an editable draft and attachment to your email app.</td>
             <td>Let you review and complete a complaint yourself in an external official channel. Opening any channel is not treated as a submission.</td>
           </tr>
@@ -158,12 +158,12 @@
     <h2>External recipients</h2>
     <ul>
       <li><strong>OpenAI:</strong> API credentials, selected images, prompts, and—for eligible Karnataka contract matching only—a road address and procurement shortlist. Requests set <code>store: false</code>, which prevents Responses API application-state retention but does not override OpenAI's security, abuse-monitoring, or legal retention. See <a href="https://openai.com/policies/privacy-policy/">OpenAI's privacy policy</a>.</li>
-      <li><strong>OpenStreetMap services:</strong> coordinates sent to Nominatim for reverse geocoding and map-area requests sent to the tile service. See the <a href="https://osmfoundation.org/wiki/Privacy_Policy">OpenStreetMap Foundation privacy policy</a> and <a href="https://operations.osmfoundation.org/policies/nominatim/">Nominatim policy</a>.</li>
+      <li><strong>OpenStreetMap services:</strong> coordinates sent to Nominatim for reverse geocoding and map-area requests sent to the tile service. Ahmedabad routing also reads Nominatim's structured city or municipality field. Downloaded ODbL boundary copies for Delhi, MMR, Chennai, and Hyderabad are checked locally; no coordinate is sent to OpenStreetMap solely for those polygon checks. See the <a href="https://osmfoundation.org/wiki/Privacy_Policy">OpenStreetMap Foundation privacy policy</a> and <a href="https://operations.osmfoundation.org/policies/nominatim/">Nominatim policy</a>.</li>
       <li><strong>Karnataka GIS/KSRSAC:</strong> for Karnataka locations only, coordinates are sent to government map endpoints to check municipal, gram-panchayat, and national-highway layers.</li>
       <li><strong>GitHub Pages:</strong> hosts this project's versioned state data packs. A pack request can disclose the device's IP address, standard connection metadata, and the requested pack URL, which identifies the relevant state at a coarse level. The request contains no report, road photo, or exact coordinates. GitHub handles its logs and metadata under the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub General Privacy Statement</a>.</li>
       <li><strong>Google Play:</strong> when an offered official Android app is absent, its store page may open. The app does not attach report content to that link, although Google receives ordinary connection and device metadata under its <a href="https://policies.google.com/privacy">privacy policy</a>.</li>
-      <li><strong>WhatsApp/Meta:</strong> after a separate confirmation, choosing a published BMC, VVCMC, KMC, or Delhi PWD Sewa WhatsApp route passes the prefilled complaint text, including the exact location, to WhatsApp. It is not sent as a chat until you choose Send there. See <a href="https://www.whatsapp.com/legal/privacy-policy">WhatsApp's privacy policy</a>.</li>
-      <li><strong>Maharashtra, Kolkata, and Delhi official complaint recipients:</strong> opening a plain app or portal link sends ordinary connection or launch metadata; report content reaches that recipient only when you complete a message, email, upload, call, or submission in its external service. Delhi offers PWD Sewa first and PGMS as an alternate; neither handoff claims that PWD owns the road. See BMC's published website policy and <a href="https://www.kmcgov.in/KMCPortal/jsp/Disclaimer.html">KMC's website disclaimer and privacy terms</a>.</li>
+      <li><strong>WhatsApp/Meta:</strong> after a separate confirmation, choosing a published BMC, VVCMC, KMC, Delhi PWD Sewa, GCC Chennai, or AMC CCRS WhatsApp route passes the prefilled complaint text, including the exact location, to WhatsApp. It is not sent as a chat until you choose Send there. See <a href="https://www.whatsapp.com/legal/privacy-policy">WhatsApp's privacy policy</a>.</li>
+      <li><strong>Official complaint recipients:</strong> opening a plain app or portal link sends ordinary connection or launch metadata; report content reaches that recipient only when you complete a message, email, upload, call, or submission in its external service. Available routes include the published Maharashtra, KMC, Delhi, GCC Chennai, shared Hyderabad My Cure, and AMC CCRS channels. The Hyderabad handoff does not attribute a point to one of the three 2026 corporations, and no handoff proves road ownership. See BMC's published website policy and <a href="https://www.kmcgov.in/KMCPortal/jsp/Disclaimer.html">KMC's website disclaimer and privacy terms</a>.</li>
       <li><strong>Your email and sharing providers:</strong> data is transferred only when you open a complaint draft or choose a destination in Android's share sheet. Their own policies and retention rules apply.</li>
     </ul>
     <p>Like other internet services, these recipients can receive an IP address and standard connection metadata. They may process data outside your state or country, including outside India. The project does not control their independent retention or legal obligations.</p>
@@ -197,7 +197,7 @@
 
   <section>
     <h2>Security and your choices</h2>
-    <p>Network calls in the current app use HTTPS. Each state pack has a version, expected byte length, and SHA-256 checksum pinned in the installed app. The complete download is verified before parsing or caching. If a required routing/contact pack is unavailable, malformed, or different from the pinned checksum, authority routing stops rather than using that data or guessing from a place name. Failure of the optional Karnataka tender pack omits contract context but does not block the report. A successfully verified cached pack can be read after its first download; detection, geocoding, and Karnataka GIS still require their own network services.</p>
+    <p>Network calls in the current app use HTTPS. Each state pack has a version, expected byte length, and SHA-256 checksum pinned in the installed app. The complete download is verified before parsing or caching. If a required routing/contact pack is unavailable, malformed, or different from the pinned checksum, authority routing stops. Polygon routes never fall back to a place name. Ahmedabad's documented rule instead requires both a verified pack and an exact structured Nominatim city or municipality match inside its local envelope. Failure of the optional Karnataka tender pack omits contract context but does not block the report. A successfully verified cached pack can be read after its first download; detection, geocoding, and Karnataka GIS still require their own network services.</p>
     <p>Local app data is protected by Android's device and application storage controls, but the app does not add separate at-rest encryption to the OpenAI key stored in WebView storage. Protect your device, use a revocable key with appropriate spending limits, and revoke it through OpenAI if the device or key may be compromised.</p>
     <ul>
       <li>You can deny camera or location permission, but the corresponding capture or routing feature will not work.</li>
@@ -215,7 +215,7 @@
   </section>
 
   <footer>
-    <p>Pothole Reporter is independent and is not affiliated with or endorsed by MMRDA, PMC, BMC, KMC, Delhi PWD, Delhi PGMS, the Governments of Maharashtra, West Bengal, Delhi or Karnataka, OpenAI, OpenStreetMap, KSRSAC, or any other government body or data provider.</p>
+    <p>Pothole Reporter is independent and is not affiliated with or endorsed by MMRDA, PMC, BMC, KMC, Delhi PWD, Delhi PGMS, GCC, the Hyderabad municipal corporations, AMC, their complaint services, the Governments of Maharashtra, West Bengal, Delhi, Karnataka, Tamil Nadu, Telangana or Gujarat, OpenAI, OpenStreetMap, KSRSAC, or any other government body or data provider.</p>
   </footer>
 </main>
 </body>

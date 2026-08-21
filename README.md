@@ -1,9 +1,10 @@
 # Pothole Reporter
 
 An independent Android app that detects visible road damage, groups nearby repeat
-observations, and prepares a complaint for the user to review. Reports and photos stay on
-the phone unless the user chooses an external handoff. There is no project-operated
-backend or account system.
+observations, and prepares a complaint for the user to review. Reports and stored photos
+remain on the phone; selected resized images go directly to OpenAI for analysis, and
+complaint evidence leaves only when the user chooses an external handoff. There is no
+project-operated backend or account system.
 
 <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
 
@@ -17,6 +18,9 @@ backend or account system.
 | Maharashtra | The current Mumbai Metropolitan Region (MMR), including its rural extent, and Pune Municipal Corporation (PMC). PCMC is excluded. |
 | West Bengal | Kolkata Municipal Corporation (KMC) only; Howrah, Bidhannagar/Salt Lake, New Town, and neighbouring bodies are excluded. |
 | Karnataka | Supported urban local bodies with a published recipient; GIS checks refuse highways, rural roads, unknown road classes, and unsupported bodies. |
+| Tamil Nadu | Greater Chennai Corporation (GCC) limits only; the wider metropolitan area and neighbouring urban bodies are excluded. |
+| Telangana | A conservative Hyderabad-core outline only. Coverage is partial, the published Secunderabad Cantonment extent is refused, and My Cure is offered without attributing a point to any one of the three 2026 corporations. |
+| Gujarat | Ahmedabad only when Nominatim returns an exact structured city or municipality match inside a reviewed relevance envelope. This is not an AMC boundary claim. |
 
 Boundaries suggest a complaint route; they do not prove who owns or maintains a road.
 The user must review and complete every complaint in the offered official app, portal,
@@ -33,11 +37,12 @@ WhatsApp, dialler, share sheet, or email client. Nothing is submitted automatica
 
 ## State data packs
 
-The APK contains the app, not every state's large reference dataset. When needed, it
+The APK contains the app, not every region's large reference dataset. When needed, it
 downloads a versioned routing/contact pack for that state from this project's GitHub Pages
-site. The optional Karnataka tender pack is downloaded only for eligible Karnataka
-contract matching. Adding another state therefore adds a hosted pack without continually
-inflating the core APK.
+site. Chennai and Hyderabad polygon checks, and Ahmedabad's relevance-envelope check, use
+the verified downloaded pack. The optional Karnataka tender pack is downloaded only for
+eligible Karnataka contract matching. Adding another state therefore adds a hosted pack
+without continually inflating the core APK.
 
 Every downloaded pack is checked byte-for-byte against a checksum pinned in the app before
 it is used, then cached locally. A missing, malformed, or altered required routing/contact
@@ -85,4 +90,5 @@ for exact coverage, provenance, and known gaps.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Code is MIT; data retains its source licences and terms. See [LICENSE](LICENSE) and
+[data sources and limits](https://coding-parrot.github.io/pothole-reporter/sources.html).

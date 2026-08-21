@@ -1,15 +1,15 @@
 # Google Play publication checklist
 
-Status reviewed 21 August 2026 for release 1.18.0 / version code 34. This is a release
+Status reviewed 21 August 2026 for release 1.19.0 / version code 35. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.18.0/code 34 after the state-pack changes,
+- [ ] **Fresh signed release bundle:** build version 1.19.0/code 35 after the state-pack changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
-  it in Play Console. Earlier bundles still package the large regional datasets in the app.
+  it in Play Console.
 - [x] **Hosted privacy page:** verified on the stable public host:
   `https://coding-parrot.github.io/pothole-reporter/privacy.html` in a signed-out
   browser. It must not redirect to a login, return an error, or serve a PDF.
@@ -24,7 +24,7 @@ checklist, not a substitute for the current Play Console tasks shown for the pub
   claim that the app collects no data.
 - [ ] **Government-information declaration:** disclose that the app is independent,
   identify its official government sources, and complete Play's Government apps
-  declaration without claiming BMC, KMC, Delhi PWD, or PGMS affiliation.
+  declaration without claiming affiliation with any named civic body or complaint service.
 - [ ] **Account gates:** complete any identity, device-verification, package-registration,
   or closed-testing task Play Console shows for this publisher account.
 
@@ -52,6 +52,14 @@ Do not submit to production until every applicable item above is complete.
 - [ ] Test central, north, south, east, and west Delhi NCT locations, plus Noida,
   Gurugram, Ghaziabad, Faridabad, and a boundary-edge accuracy case. Confirm only the
   pinned NCT polygon routes, and neighbouring NCR points stay unrouted.
+- [ ] Test Chennai fixtures in every GCC zone, St Thomas Mount and neighbouring bodies.
+  Confirm the verified GCC polygon routes only GCC points and preserves its interior hole.
+- [ ] Test central Hyderabad-core points, points outside the conservative outline, and the
+  full published Secunderabad Cantonment extent. Confirm Cantonment and uncertain boundary
+  points fail closed, and My Cure never claims one of the three 2026 corporations owns the road.
+- [ ] Test Ahmedabad with an exact structured `city` and `municipality` result, then a
+  `town`, `city_district`, free-text-only, wrong-state, outside-envelope, and missing result.
+  Confirm only the two exact structured cases route and the app makes no AMC-boundary claim.
 - [ ] Test Maharashtra handoffs in English and Marathi, including email, portal, installed
   and uninstalled official apps, Share, BMC WhatsApp at +91 89992 28999, 1916, cancellation,
   and back navigation.
@@ -61,11 +69,20 @@ Do not submit to production until every applicable item above is complete.
 - [ ] Test Delhi handoffs: installed and uninstalled PWD Sewa app, complaint portal,
   Delhi PGMS alternate, WhatsApp at +91 81301 88222, helpline 1908, cancellation, and
   back navigation.
+- [ ] Test Chennai handoffs: installed and uninstalled Namma Chennai package
+  `com.ceedeev.grivenancev2`, GCC portal fallback and alternate, WhatsApp at
+  +91 94450 61913, helpline 1913, cancellation, and back navigation.
+- [ ] Test Hyderabad handoffs: installed and uninstalled My Cure package `cgg.gov.ghmc`,
+  web fallback, complaint-status alternate, cancellation, and back navigation.
+- [ ] Test Ahmedabad handoffs: installed and uninstalled AMC CCRS package
+  `com.amplvb.ccrs`, portal fallback, channel-instructions alternate, WhatsApp at
+  +91 75678 55303, helpline 155303, cancellation, and back navigation.
 - [ ] Verify that opening an app or portal changes only to “official handoff opened,” while
   Share, WhatsApp, Email, and Call never mark the report submitted. Confirm that Mark
   submitted rejects a missing/invalid grievance/reference ID when one is required.
-- [ ] Verify each Maharashtra, Kolkata, and Delhi report states that the route is only a
-  suggestion, does not claim road ownership, and contains no contract or warranty match.
+- [ ] Verify every regional report states that the route is only a suggestion and does not
+  claim road ownership. Outside eligible Karnataka coverage, confirm no contract or warranty
+  match appears; eligible Karnataka matches must remain explicitly probable and reviewable.
 - [ ] Confirm the release contains no API key, test frame, private location, debug-only
   setting, or legacy regional dataset; verify bundled web assets and every hosted pack against
   the reviewed manifest byte count and SHA-256.
@@ -81,7 +98,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.18.0 release. Include an independent civic handoff and regional-language support
+  the 1.19.0 release. Include an independent civic handoff and regional-language support
   without displaying private coordinates, an API key, a real grievance ID, or civic-body
   marks. Put other city-specific flows in reviewer instructions instead of implying that
   one screenshot proves every supported route.
@@ -89,12 +106,13 @@ Official references: [target API schedule](https://support.google.com/googleplay
   automatic filing, guaranteed detection, verified responsibility, or benchmarked accuracy.
 - [ ] Enter the hosted privacy-policy URL, support website, and required support email.
 - [ ] Choose the app category and target countries intentionally. Current routing is limited
-  to Delhi NCT, the MMR, Pune and Kolkata Municipal Corporation limits, and supported
-  Karnataka urban local bodies; keep the wider NCR, PCMC, Howrah, Bidhannagar/Salt Lake,
-  and New Town exclusions visible.
-- [ ] Keep the non-affiliation statement and official-source URLs visible in the full
-  description. Do not use civic names, seals, logos, colours, or screenshots in a way that
-  suggests this is BMC's, KMC's, Delhi PWD's, or Delhi PGMS's app.
+  to the eight areas listed in `google-play-listing.md`; keep the wider NCR, PCMC, wider
+  Chennai metro, partial-Hyderabad, Cantonment, Ahmedabad-structure, and Kolkata-neighbour
+  limitations visible.
+- [ ] Keep the non-affiliation statement and the clearly labelled government-information
+  source directory visible in the full description; confirm that directory exposes direct
+  official links. Do not use civic names, seals, logos, colours, or screenshots in a way
+  that suggests affiliation with a civic body or complaint service.
 
 ## Privacy and Data Safety
 
@@ -104,14 +122,14 @@ Official references: [target API schedule](https://support.google.com/googleplay
   Audit at least:
   - selected manual photos and Drive/VOD image frames sent to OpenAI;
   - precise coordinates sent to Nominatim, and to Karnataka GIS only for Karnataka points;
-    MMR, PMC, KMC, and Delhi NCT polygon checks remain on-device;
+    MMR, PMC, KMC, Delhi NCT, GCC, and Hyderabad-core polygon checks remain on-device;
   - for eligible Karnataka routes only, road address and procurement shortlist sent to
-    OpenAI for probable contract matching; Maharashtra, Kolkata, and Delhi contract matching is disabled;
+    OpenAI for probable contract matching; contract matching elsewhere is disabled;
   - API credential and standard network metadata received by external services;
   - the selected regional routing/tender pack and standard connection metadata disclosed to
     GitHub Pages when that checksum-pinned public dataset is downloaded;
   - map-area tile requests, email-app hand-off, Android sharing, and every included SDK;
-  - Maharashtra, Kolkata, or Delhi report text or evidence handed to a selected email, WhatsApp, or share
+  - report text or evidence handed to a selected email, WhatsApp, or share
     destination, plus app/portal, Play-listing, and dialler launch metadata;
   - an official grievance/reference ID stored locally when the user marks an eligible
     official-channel report submitted.
@@ -146,16 +164,16 @@ and Google's [July 2026 AI/location clarification](https://support.google.com/go
 - [ ] Select only target age groups the product is genuinely designed for. Do not include
   children unless the app, data practices, SDKs, and listing are ready for Families policy.
 - [ ] In **App access**, explain first-run disclosure, permissions, entering the supplied
-  review API key, manual capture, Drive Mode, History, Karnataka email, and each Maharashtra,
-  Kolkata, and Delhi handoff. Access details must remain valid, reusable, and available throughout review.
-- [ ] If Maharashtra, Kolkata, Delhi, or Karnataka routing is hard for an overseas reviewer to exercise, include
+  review API key, manual capture, Drive Mode, History, Karnataka email, and every regional
+  handoff. Access details must remain valid, reusable, and available throughout review.
+- [ ] If any regional route is hard for an overseas reviewer to exercise, include
   lawful, repeatable review steps and test material that expose both flows without falsifying
   device location or policy declarations.
 - [ ] Complete the Government apps declaration as an unaffiliated app that communicates
   government information. Keep easy-to-see official source URLs and the explicit statement
   that the app represents no government body, does not establish road ownership, and does
-  not submit a grievance automatically. Identify the official West Bengal UDMA boundary,
-  KMC grievance portal, Delhi PWD Sewa, and Delhi PGMS without implying affiliation.
+  not submit a grievance automatically. Identify every official source and complaint channel
+  shown in the listing or source page without implying affiliation.
 - [ ] Do not add civic-body marks, copied government graphics, or framing that implies
   official status. Keep every external service clearly labelled as a user-controlled handoff.
 

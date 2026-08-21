@@ -8,6 +8,9 @@
         <package android:name="com.kmc.app" />
         <package android:name="com.newnmmc.app" />
         <package android:name="com.nyatitechnologies.pmcroadmitra" />
+        <package android:name="com.ceedeev.grivenancev2" />
+        <package android:name="cgg.gov.ghmc" />
+        <package android:name="com.amplvb.ccrs" />
     </queries>
 
     <application

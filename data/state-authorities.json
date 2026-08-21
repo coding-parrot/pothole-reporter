@@ -180,5 +180,51 @@
         "helpline": "1908"
       }
     ]
+  },
+  "TN": {
+    "authorities": [
+      {
+        "id": "tn-gcc",
+        "name": "Greater Chennai Corporation complaint intake",
+        "aliases": ["chennai", "madras", "greater chennai corporation", "சென்னை", "சென்னை மாநகராட்சி"],
+        "handoff_name": "GCC Public Grievance",
+        "handoff_url": "https://erp.chennaicorporation.gov.in/pgr/citizen/BeforeReg.do",
+        "handoff_package": "com.ceedeev.grivenancev2",
+        "alternate_handoff_name": "GCC grievance portal",
+        "alternate_handoff_url": "https://erp.chennaicorporation.gov.in/pgr/",
+        "whatsapp_url": "https://wa.me/919445061913",
+        "helpline": "1913"
+      }
+    ]
+  },
+  "TG": {
+    "authorities": [
+      {
+        "id": "tg-cure-shared",
+        "name": "Hyderabad CURE shared civic grievance intake",
+        "aliases": ["hyderabad", "greater hyderabad", "హైదరాబాద్", "హైదరాబాదు"],
+        "handoff_name": "My Cure",
+        "handoff_url": "https://igs.ghmc.gov.in/operator/send_otp_mobile",
+        "handoff_package": "cgg.gov.ghmc",
+        "alternate_handoff_name": "My Cure complaint status",
+        "alternate_handoff_url": "https://igs.ghmc.gov.in/Operator/search"
+      }
+    ]
+  },
+  "GJ": {
+    "authorities": [
+      {
+        "id": "gj-amc",
+        "name": "Amdavad Municipal Corporation complaint intake",
+        "aliases": ["ahmedabad", "amdavad", "અમદાવાદ", "अहमदाबाद"],
+        "handoff_name": "AMC CCRS",
+        "handoff_url": "https://www.amccrs.com/AMCPortal/View/ComplaintRegistration.aspx?m=Online",
+        "handoff_package": "com.amplvb.ccrs",
+        "alternate_handoff_name": "AMC CCRS instructions",
+        "alternate_handoff_url": "https://www.amccrs.com/AMCPortal/View/ComplainRegistrationMobile.aspx",
+        "whatsapp_url": "https://wa.me/917567855303",
+        "helpline": "155303"
+      }
+    ]
   }
 }

@@ -28,6 +28,28 @@ async ({pixel}) => {
     .find((report) => report.id === id);
 
   await StandaloneAPI.handle("/api/reports", {method: "DELETE"});
+  const packManifest = await StandaloneAPI.__pure.getStatePackManifest();
+  const tnResource = packManifest.resources["in-tn-routing"];
+  const gjResource = packManifest.resources["in-gj-routing"];
+  const dlResource = packManifest.resources["in-dl-routing"];
+  const tnProvenance = {
+    routing_pack_id: "in-tn-routing",
+    routing_pack_version: tnResource.pack_version,
+    routing_pack_sha256: tnResource.sha256,
+    routing_pack_state_code: "TN",
+  };
+  const gjProvenance = {
+    routing_pack_id: "in-gj-routing",
+    routing_pack_version: gjResource.pack_version,
+    routing_pack_sha256: gjResource.sha256,
+    routing_pack_state_code: "GJ",
+  };
+  const dlProvenance = {
+    routing_pack_id: "in-dl-routing",
+    routing_pack_version: dlResource.pack_version,
+    routing_pack_sha256: dlResource.sha256,
+    routing_pack_state_code: "DL",
+  };
   const base = {
     created_at: 1787260200,
     captured_at: 1787260200,
@@ -42,6 +64,7 @@ async ({pixel}) => {
     email_body: "Please inspect and repair this pothole.",
     lat: 19.1197,
     lng: 72.8468,
+    gps_accuracy: 12,
     photo: pixel,
     photo_full: pixel,
     official_grievance_id: null,
@@ -51,6 +74,8 @@ async ({pixel}) => {
   const records = [
     {
       ...base, id: 71001, status: "draft",
+      // v1.14 records predate stored GPS-accuracy provenance.
+      gps_accuracy: null,
       delivery_channel: "bmc_quickfix", ward_code: "K/W",
       officer_name: "BMC Pothole QuickFix (K/W Ward suggested)",
       authority_name: "Brihanmumbai Municipal Corporation", officer_email: null,
@@ -146,6 +171,93 @@ async ({pixel}) => {
       whatsapp_url: "https://example.invalid/stale-delhi-whatsapp",
       helpline: "0000", requires_official_reference: true,
     },
+    {
+      ...base, ...tnProvenance, id: 71010, created_at: base.created_at + 9, status: "draft",
+      address: "Anna Salai, Chennai", lat: 13.0604, lng: 80.2496,
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "Old Chennai service", authority_id: "tn-gcc",
+      authority_name: "Old Chennai authority", authority_registry_version: 0,
+      region: "chennai-gcc", routing_source: "osm_gcc_boundary",
+      routing_match_field: "boundary", routing_match_value: "OpenStreetMap relation 1766358",
+      ownership_unverified: true, handoff_name: "Old GCC service",
+      handoff_url: "https://example.invalid/stale-gcc",
+      requires_official_reference: true,
+    },
+    {
+      ...base, ...tnProvenance, id: 71011, created_at: base.created_at + 10, status: "draft",
+      address: "Anna Salai, Chennai", lat: 13.0604, lng: 80.2496,
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "Rebound AMC route", authority_id: "gj-amc",
+      authority_name: "Amdavad Municipal Corporation complaint intake",
+      authority_registry_version: 0, region: "chennai-gcc",
+      routing_source: "osm_gcc_boundary", ownership_unverified: true,
+      handoff_name: "AMC CCRS", handoff_url: "https://example.invalid/rebound",
+      requires_official_reference: true,
+    },
+    {
+      ...base, ...tnProvenance, id: 71012, created_at: base.created_at + 11, status: "draft",
+      routing_pack_state_code: "GJ",
+      address: "Anna Salai, Chennai", lat: 13.0604, lng: 80.2496,
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "Wrong-state GCC route", authority_id: "tn-gcc",
+      authority_name: "Greater Chennai Corporation", authority_registry_version: 0,
+      region: "chennai-gcc", routing_source: "osm_gcc_boundary",
+      ownership_unverified: true, handoff_name: "GCC Public Grievance",
+      handoff_url: "https://example.invalid/wrong-state", requires_official_reference: true,
+    },
+    {
+      ...base, ...tnProvenance, id: 71013, created_at: base.created_at + 12, status: "draft",
+      address: "Anna Salai, Chennai", lat: 13.0604, lng: 80.2496,
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "Wrong-region GCC route", authority_id: "tn-gcc",
+      authority_name: "Greater Chennai Corporation", authority_registry_version: 0,
+      region: "ahmedabad-structured", routing_source: "osm_gcc_boundary",
+      ownership_unverified: true, handoff_name: "GCC Public Grievance",
+      handoff_url: "https://example.invalid/wrong-region", requires_official_reference: true,
+    },
+    {
+      ...base, ...gjProvenance, id: 71014, created_at: base.created_at + 13, status: "draft",
+      // Every routing string was coherently rebound to Ahmedabad, but the evidence
+      // coordinates still locate this report in Chennai.
+      address: "Anna Salai, Chennai", lat: 13.0827, lng: 80.2707,
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "AMC CCRS, Amdavad Municipal Corporation", authority_id: "gj-amc",
+      authority_name: "Amdavad Municipal Corporation complaint intake",
+      authority_registry_version: 0, region: "ahmedabad-structured",
+      routing_source: "nominatim_structured_city", routing_match_field: "structured_place",
+      routing_match_value: "city: Ahmedabad", ownership_unverified: true,
+      handoff_name: "AMC CCRS", handoff_url: "https://example.invalid/coherent-rebind",
+      requires_official_reference: true,
+    },
+    {
+      ...base, ...tnProvenance, id: 71015, created_at: base.created_at + 14, status: "draft",
+      // A previously pinned pack digest remains attributable to the same state/pack;
+      // current boundary containment lets it be safely upgraded to today's digest.
+      routing_pack_sha256: "a".repeat(64),
+      address: "Anna Salai, Chennai", lat: 13.0827, lng: 80.2707,
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "GCC Public Grievance", authority_id: "tn-gcc",
+      authority_name: "Greater Chennai Corporation complaint intake",
+      authority_registry_version: 0, region: "chennai-gcc",
+      routing_source: "osm_gcc_boundary", routing_match_field: "boundary",
+      routing_match_value: "OpenStreetMap relation 1766358", ownership_unverified: true,
+      handoff_name: "GCC Public Grievance", handoff_url: "https://example.invalid/prior-digest",
+      requires_official_reference: true,
+    },
+    {
+      ...base, ...dlProvenance, id: 71016, created_at: base.created_at + 15, status: "draft",
+      // The recipient and every saved provenance string agree with Delhi; only the
+      // immutable evidence coordinates expose the coherent rebinding.
+      address: "Anna Salai, Chennai", lat: 13.0827, lng: 80.2707,
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "PWD Sewa, Delhi road grievance coordination",
+      authority_id: "dl-pwd-sewa", authority_name: "Delhi road grievance coordination",
+      authority_registry_version: 0, region: "delhi",
+      routing_source: "osm_delhi_nct_boundary", routing_match_field: "boundary",
+      routing_match_value: "OpenStreetMap relation 1942586", ownership_unverified: true,
+      handoff_name: "PWD Sewa", handoff_url: "https://example.invalid/coherent-delhi-rebind",
+      requires_official_reference: true,
+    },
   ];
 
   const db = await new Promise((resolve, reject) => {
@@ -198,6 +310,86 @@ async ({pixel}) => {
   const queuedStored = await byId(71001);
   eq("handoff: queued status is persisted", queuedStored.status, "queued");
   eq("handoff: persisted record remains unsubmitted", queuedStored.submitted_at, null);
+
+  // Opening a saved detail refreshes current verified channels before rendering and
+  // persists only authority metadata, never a handoff/submission claim.
+  const staleChennai = await byId(71010);
+  eq("saved municipal handoff: stale record has no WhatsApp route",
+     staleChennai.whatsapp_url, undefined);
+  const chennaiList = [staleChennai];
+  await openReportDetail(staleChennai, chennaiList);
+  const refreshedChennai = await byId(71010);
+  eq("saved municipal handoff: refresh preserves draft status",
+     refreshedChennai.status, "draft");
+  eq("saved municipal handoff: refresh records no handoff time",
+     refreshedChennai.handoff_opened_at, undefined);
+  eq("saved municipal handoff: current authority name is persisted",
+     refreshedChennai.authority_name, "Greater Chennai Corporation complaint intake");
+  eq("saved municipal handoff: current primary service is persisted",
+     refreshedChennai.handoff_name, "GCC Public Grievance");
+  eq("saved municipal handoff: current Android package is persisted",
+     refreshedChennai.handoff_package, "com.ceedeev.grivenancev2");
+  eq("saved municipal handoff: newly added WhatsApp route is persisted",
+     refreshedChennai.whatsapp_url, "https://wa.me/919445061913");
+  eq("saved municipal handoff: newly added helpline is persisted",
+     refreshedChennai.helpline, "1913");
+  eq("saved municipal handoff: current alternate portal is persisted",
+     refreshedChennai.alternate_handoff_url,
+     "https://erp.chennaicorporation.gov.in/pgr/");
+  eq("saved municipal handoff: current pack provenance is retained",
+     [refreshedChennai.routing_pack_id, refreshedChennai.routing_pack_state_code,
+      refreshedChennai.routing_pack_sha256],
+     ["in-tn-routing", "TN", tnResource.sha256]);
+  const chennaiUi = {
+    hasWhatsapp: !!document.getElementById("officialWhatsAppBtn"),
+    hasCall: !!document.getElementById("officialCallBtn"),
+    hasAlternate: !!document.getElementById("alternateHandoffBtn"),
+    text: document.getElementById("detail").textContent,
+  };
+  ok("saved municipal handoff: refreshed channels render before use",
+     chennaiUi.hasWhatsapp && chennaiUi.hasCall && chennaiUi.hasAlternate
+       && /GCC Public Grievance/.test(chennaiUi.text) && /1913/.test(chennaiUi.text),
+     chennaiUi);
+  const chennaiOpened = await StandaloneAPI.handle(
+    "/api/reports/71010/handoff-opened", {method: "POST"});
+  eq("saved municipal handoff: opening remains only queued", chennaiOpened.status, "queued");
+  eq("saved municipal handoff: handoff-opened returns refreshed WhatsApp",
+     chennaiOpened.whatsapp_url, "https://wa.me/919445061913");
+  const chennaiOpenedStored = await byId(71010);
+  eq("saved municipal handoff: refreshed metadata survives handoff-opened storage",
+     [chennaiOpenedStored.handoff_name, chennaiOpenedStored.helpline,
+      chennaiOpenedStored.alternate_handoff_url],
+     ["GCC Public Grievance", "1913", "https://erp.chennaicorporation.gov.in/pgr/"]);
+
+  const priorPackChennai = await StandaloneAPI.handle("/api/reports/71015/handoff");
+  eq("saved municipal handoff: prior same-pack digest refresh succeeds",
+     priorPackChennai.handoff_name, "GCC Public Grievance");
+  eq("saved municipal handoff: prior digest upgrades to the current manifest digest",
+     priorPackChennai.routing_pack_sha256, tnResource.sha256);
+  eq("saved municipal handoff: prior digest refresh makes no handoff claim",
+     priorPackChennai.status, "draft");
+  const priorPackChennaiStored = await byId(71015);
+  eq("saved municipal handoff: upgraded current provenance is persisted",
+     [priorPackChennaiStored.routing_pack_id, priorPackChennaiStored.routing_pack_version,
+      priorPackChennaiStored.routing_pack_sha256, priorPackChennaiStored.routing_pack_state_code],
+     ["in-tn-routing", tnResource.pack_version, tnResource.sha256, "TN"]);
+
+  for (const [id, label] of [
+    [71011, "cross-pack authority"],
+    [71012, "cross-state provenance"],
+    [71013, "cross-region provenance"],
+    [71014, "coordinated Ahmedabad strings with Chennai coordinates"],
+    [71016, "coordinated Delhi strings with Chennai coordinates"],
+  ]) {
+    const error = await errorFrom(StandaloneAPI.handle(
+      `/api/reports/${id}/send`, {method: "POST"}));
+    ok(`saved municipal handoff: ${label} rebinding is blocked`,
+       /does not match its verified routing provenance/i.test(error || ""), error);
+    const stored = await byId(id);
+    eq(`saved municipal handoff: blocked ${label} remains draft`, stored.status, "draft");
+    eq(`saved municipal handoff: blocked ${label} records no handoff time`,
+       stored.handoff_opened_at, undefined);
+  }
 
   // The queued detail must explain the truth and offer the explicit confirmation step.
   openDetail(queuedStored, [queuedStored]);
@@ -611,7 +803,7 @@ def main():
         page.wait_for_load_state("networkidle")
         page.wait_for_function(
             "typeof StandaloneAPI !== 'undefined' && typeof openDetail === 'function' "
-            "&& typeof openDash === 'function'",
+            "&& typeof openReportDetail === 'function' && typeof openDash === 'function'",
             timeout=30000,
         )
         results = page.evaluate(SCENARIO, {"pixel": PIXEL})

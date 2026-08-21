@@ -8,71 +8,54 @@ Prepared 21 August 2026. Paste only the text inside each code block into Play Co
 Pothole Reporter
 ```
 
-## Short description (78/80 characters)
+## Short description (74/80 characters)
 
 ```text
-Detect road damage and prepare Delhi, MMR, Pune, Kolkata or Karnataka reports.
+Detect road damage and prepare reports across eight Indian coverage areas.
 ```
 
 ## Full description
 
 ```text
-Pothole Reporter is an independent Android app for documenting visible road damage and preparing a report for Delhi NCT, the Mumbai Metropolitan Region (MMR), Pune Municipal Corporation (PMC), Kolkata Municipal Corporation (KMC), or a supported Karnataka urban local body.
+Pothole Reporter is an independent Android app for documenting visible road damage and preparing an editable civic complaint. Take one photo while safely stopped, or securely mount the phone and use foreground Drive Mode. AI assesses selected images for pothole cavities, failed patches, breakup, ruts, and depressions. Reports stay on your device for review.
 
-Take one photo while safely stopped, or securely mount the phone and use foreground Drive Mode. AI assesses selected images for pothole cavities, failed patches, surface breakup, and ruts or depressions. Reports stay on your device for review.
+Coverage
+• Delhi NCT, not the wider NCR. PWD Sewa is offered as a cross-agency handoff; this does not claim PWD owns the road.
+• The current Mumbai Metropolitan Region. Valid local polygons can suggest a body; rural, overlapping, and unsupported MMR locations use Aaple Sarkar.
+• Pune Municipal Corporation limits. PCMC is excluded.
+• Kolkata Municipal Corporation limits. Howrah, Bidhannagar/Salt Lake, New Town, and neighbouring bodies are excluded.
+• Supported Karnataka urban local bodies with a published recipient and eligible road classification.
+• Greater Chennai Corporation limits, not the wider Chennai Metropolitan Area or neighbouring urban bodies.
+• A conservative Hyderabad-core outline only. Coverage is partial, the published Secunderabad Cantonment extent is refused, and My Cure is offered without assigning the point to Greater Hyderabad, Cyberabad, or Malkajgiri Municipal Corporation after the 2026 reorganisation.
+• Ahmedabad only when Nominatim returns an exact structured city or municipality match inside a local relevance envelope. This is not an AMC boundary claim.
 
-Maharashtra
-• Cover the current MMR extent. Valid local polygons select a civic body; rural, overlapping, or unsupported MMR locations use Aaple Sarkar instead of a guessed city.
-• Cover current PMC limits using PMC's published GIS boundary. PCMC is excluded.
-• Prepare editable English or Marathi evidence and offer the published external handoff.
+Locations outside these routes are saved locally but are not addressed to an authority.
 
-Kolkata
-• Cover current KMC limits using a checksum-verified download of the official West Bengal UDMA municipal boundary.
-• Exclude Howrah, Bidhannagar/Salt Lake, New Town, and other neighbouring civic bodies.
-• Prepare English or Bengali evidence and offer KMC Grievance 2.0, the official KMC app as an alternate, KMC WhatsApp, or the KMC helpline.
+Reporting
+• Nearby repeat observations are grouped into one draft.
+• The app can open a published app, portal, WhatsApp chat, dialler, share sheet, or editable email draft.
+• Nothing is submitted automatically. The app does not log in, bypass OTP, press Send, or read complaint status. Complete the complaint in the external service and record its reference ID when required.
 
-Delhi
-• Cover the full National Capital Territory of Delhi and exclude the wider NCR, including Noida, Gurugram, Ghaziabad and Faridabad.
-• Offer PWD Sewa as a cross-agency road-grievance handoff, with Delhi PGMS as an alternate, plus published WhatsApp and 1908 channels.
-• Use the local NCT boundary only for coverage. It does not identify who owns or maintains a road.
-
-Karnataka
-For supported urban local bodies, public GIS and a checksum-verified directory download help identify a published municipal recipient. The app opens an editable email draft. An eligible report may include a clearly labelled probable public-procurement match.
-
-Important
-• AI can miss damage or produce false positives. Review every result.
-• A civic boundary suggests a body; it does not prove road ownership.
-• Nothing is submitted automatically. The app does not log in, bypass OTP, press Send, or read complaint status. Complete the complaint in the external service. Where required, enter its grievance/reference ID before marking the local report submitted.
-• Contract matching is Karnataka-only and is not proof of responsibility or warranty.
-• The app is not affiliated with or endorsed by any government body.
+Important limits and data use
+• AI can miss damage or produce false positives. Review the photo, wording, location, and recipient.
+• A boundary or place match suggests a route; it does not prove road ownership.
+• Probable contract matching is available only for eligible Karnataka routes and is not proof of responsibility or warranty.
 • Core features require camera and foreground location permission, internet, and your own billed OpenAI API key.
-• Regional routing, contact, and eligible Karnataka tender data download from this project's GitHub Pages only when relevant and are SHA-256 verified before use. A required routing/contact-pack failure stops authority routing; an optional tender-pack failure only omits contract context. Verified packs are cached locally, pruned on a later pack use after their unused limit, and removed immediately by an in-app data wipe. GitHub Pages receives the requested regional pack path and standard connection metadata, not photos, exact coordinates or report contents. A first use needs internet.
-• Selected images and API requests go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; Karnataka points also query Karnataka GIS. MMR, PMC, KMC, and Delhi NCT boundary checks are local.
-• Choosing an official app, portal, WhatsApp, Share, Email, or another external service transfers selected data or connection metadata under that provider's policy.
+• Selected resized images and API requests go directly to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; Karnataka points also query Karnataka GIS.
+• Regional routing/contact packs and the optional Karnataka tender pack download from this project's GitHub Pages when relevant. Complete downloads are SHA-256 verified and cached locally. A required routing-pack failure stops authority routing; an optional tender-pack failure only omits contract context. Pack requests identify the coarse state but contain no report, photo, or exact coordinates.
+• MMR, PMC, KMC, Delhi NCT, GCC Chennai, and Hyderabad-core polygon checks run locally. Ahmedabad checks a local envelope but intentionally requires Nominatim's exact structured result.
+• Choosing an external handoff transfers selected data or connection metadata under that provider's policy.
 • Drive recording is optional and off by default. Mount the phone before moving.
+• The app is not affiliated with or endorsed by any government body.
 
-Government information sources
-MMRDA: https://www.mmrda.maharashtra.gov.in/en/about-us/about-mmr
-PMC GIS: https://iwmsgis.pmc.gov.in/BP_Docs/index.html
-West Bengal UDMA Nagar GIS: https://nagargispariseva.wb.gov.in
-KMC Grievance 2.0: https://kmc.wb.gov.in/citizen/language-selection
-Official KMC app: https://play.google.com/store/apps/details?id=com.kmc.app
-Delhi PWD Sewa: https://www.pwddelhi.gov.in/sewa/complaint
-Delhi PGMS: https://pgms.delhi.gov.in/
-Karnataka GIS: https://kgis.ksrsac.in/kgismaps/rest/services
-Karnataka procurement: https://kppp.karnataka.gov.in
-
-Privacy and source limits:
-https://coding-parrot.github.io/pothole-reporter/privacy.html
-https://coding-parrot.github.io/pothole-reporter/sources.html
-
-Current routing targets Delhi NCT, the MMR, PMC, KMC, and supported Karnataka urban local bodies. Locations outside these routes are saved locally but not addressed to an authority.
+Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
+Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.18.0 / version code 34)
+## Release notes (1.19.0 / version code 35)
 
 ```text
-Reduced app size with versioned, SHA-256-verified regional data downloads. Required routing data fails closed; an unavailable optional Karnataka tender pack simply omits contract context. Verified cache entries past their unused limits are pruned on a later pack use. Coverage is unchanged.
+Added GCC Chennai, partial Hyderabad-core, and exact structured Ahmedabad routing. Chennai and Hyderabad use verified local ODbL checks; the Secunderabad Cantonment extent fails closed. Ahmedabad deliberately makes no municipal-boundary claim.
 ```
 
 ## Play Console fields
