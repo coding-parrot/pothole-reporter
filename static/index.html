@@ -242,7 +242,7 @@ const I18N = {
     privacy_title: "Before camera and location access",
     privacy_body: "If you continue, the app will ask for camera and precise foreground location. A photo—or sampled frames from Drive Mode—is sent with your API key to OpenAI for road-damage detection. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports also query Karnataka GIS. Processing can occur outside India.",
     privacy_local: "Drive Mode uses no audio and stops when the app leaves the foreground. Optional video recording is off by default; if you enable it, clips stay on this device until you analyse or delete them. Reports, photos, location tracks and settings remain on this device until deleted.",
-    privacy_government: "This independent app is not a government service and does not submit complaints automatically. MMR, PMC and KMC boundary checks run locally; data reaches a civic provider only when you deliberately open or complete an external handoff. Review the destination and content.",
+    privacy_government: "This independent app is not a government service and does not submit complaints automatically. MMR, PMC, KMC and Delhi NCT boundary checks run locally; data reaches a civic provider only when you deliberately open or complete an external handoff. Review the destination and content.",
     privacy_link: "Privacy policy", sources_link: "Data sources and limits",
     privacy_accept: "Continue", privacy_decline: "Not now",
     wipe_btn: "Delete all app data",
@@ -312,7 +312,7 @@ const I18N = {
     model_said: "The app said: {verdict} · {assessment}",
     export_ready: "{n} labelled frames, {mb} MB. Choose where to send it.",
     outside_coverage: "This location is outside the area this app covers.",
-    outside_coverage_help: "This point is outside the supported Karnataka, Mumbai Metropolitan Region, Pune Municipal Corporation, and Kolkata Municipal Corporation routes. The photo and location are saved without a recipient.",
+    outside_coverage_help: "This point is outside the supported Karnataka, Mumbai Metropolitan Region, Pune Municipal Corporation, Kolkata Municipal Corporation, and Delhi NCT routes. The photo and location are saved without a recipient.",
     size_small: "small", size_medium: "medium", size_large: "large",
     damage_pothole_cavity: "pothole cavity", damage_failed_patch: "failed road repair",
     damage_surface_breakup: "broken road surface", damage_rut_or_depression: "road rut / depression",
@@ -400,7 +400,7 @@ const I18N = {
     privacy_title: "ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳ ಅನುಮತಿಯ ಮೊದಲು",
     privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಮುಂಭಾಗದ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ಫೋಟೋ ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು ನಿಮ್ಮ API ಕೀಯೊಂದಿಗೆ ರಸ್ತೆ ಹಾನಿ ಪತ್ತೆಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ವರದಿಗಳಿಗೆ Karnataka GIS ಕೂಡ ಪ್ರಶ್ನಿಸಲಾಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
     privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ ಮತ್ತು ಆ್ಯಪ್ ಮುಂಭಾಗದಿಂದ ಹೊರಬಂದಾಗ ನಿಲ್ಲುತ್ತದೆ. ಐಚ್ಛಿಕ ವಿಡಿಯೋ ರೆಕಾರ್ಡಿಂಗ್ ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್; ನೀವು ಆನ್ ಮಾಡಿದರೆ ವಿಶ್ಲೇಷಣೆ ಅಥವಾ ಅಳಿಸುವವರೆಗೆ ಕ್ಲಿಪ್‌ಗಳು ಸಾಧನದಲ್ಲೇ ಇರುತ್ತವೆ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್ ಮತ್ತು ಸೆಟ್ಟಿಂಗ್ಸ್ ಅಳಿಸುವವರೆಗೆ ಈ ಸಾಧನದಲ್ಲೇ ಇರುತ್ತವೆ.",
-    privacy_government: "ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸರ್ಕಾರಿ ಸೇವೆಯಲ್ಲ ಮತ್ತು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. MMR, PMC ಮತ್ತು KMC ಗಡಿ ಪರಿಶೀಲನೆಗಳು ಸಾಧನದಲ್ಲೇ ನಡೆಯುತ್ತವೆ; ನೀವು ಹೊರಗಿನ ಹಸ್ತಾಂತರವನ್ನು ಉದ್ದೇಶಪೂರ್ವಕವಾಗಿ ತೆರೆಯುವಾಗ ಅಥವಾ ಪೂರ್ಣಗೊಳಿಸುವಾಗ ಮಾತ್ರ ಮಾಹಿತಿ ನಾಗರಿಕ ಸೇವಾ ಪೂರೈಕೆದಾರರಿಗೆ ಹೋಗುತ್ತದೆ. ಗಮ್ಯಸ್ಥಾನ ಮತ್ತು ವಿಷಯ ಪರಿಶೀಲಿಸಿ.",
+    privacy_government: "ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸರ್ಕಾರಿ ಸೇವೆಯಲ್ಲ ಮತ್ತು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. MMR, PMC, KMC ಮತ್ತು ದೆಹಲಿ NCT ಗಡಿ ಪರಿಶೀಲನೆಗಳು ಸಾಧನದಲ್ಲೇ ನಡೆಯುತ್ತವೆ; ನೀವು ಹೊರಗಿನ ಹಸ್ತಾಂತರವನ್ನು ಉದ್ದೇಶಪೂರ್ವಕವಾಗಿ ತೆರೆಯುವಾಗ ಅಥವಾ ಪೂರ್ಣಗೊಳಿಸುವಾಗ ಮಾತ್ರ ಮಾಹಿತಿ ನಾಗರಿಕ ಸೇವಾ ಪೂರೈಕೆದಾರರಿಗೆ ಹೋಗುತ್ತದೆ. ಗಮ್ಯಸ್ಥಾನ ಮತ್ತು ವಿಷಯ ಪರಿಶೀಲಿಸಿ.",
     privacy_link: "ಗೌಪ್ಯತಾ ನೀತಿ", sources_link: "ಡೇಟಾ ಮೂಲಗಳು ಮತ್ತು ಮಿತಿಗಳು",
     privacy_accept: "ಮುಂದುವರಿಸಿ", privacy_decline: "ಈಗ ಬೇಡ",
     wipe_btn: "ಎಲ್ಲಾ ಆ್ಯಪ್ ಡೇಟಾ ಅಳಿಸಿ",
@@ -470,7 +470,7 @@ const I18N = {
     model_said: "ಆ್ಯಪ್ ಹೇಳಿದ್ದು: {verdict} · {assessment}",
     export_ready: "{n} ಗುರುತಿಸಿದ ಫ್ರೇಮ್‌ಗಳು, {mb} MB. ಎಲ್ಲಿಗೆ ಕಳುಹಿಸಬೇಕೆಂದು ಆಯ್ಕೆಮಾಡಿ.",
     outside_coverage: "ಈ ಸ್ಥಳ ಈ ಆ್ಯಪ್ ಒಳಗೊಂಡ ವ್ಯಾಪ್ತಿಯ ಹೊರಗಿದೆ.",
-    outside_coverage_help: "ಈ ಸ್ಥಳ ಬೆಂಬಲಿತ ಕರ್ನಾಟಕ, ಮುಂಬೈ ಮಹಾನಗರ ಪ್ರದೇಶ, ಪುಣೆ ಮಹಾನಗರ ಪಾಲಿಕೆ ಮತ್ತು ಕೋಲ್ಕತ್ತಾ ಮಹಾನಗರ ಪಾಲಿಕೆ ಮಾರ್ಗಗಳ ಹೊರಗಿದೆ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳವನ್ನು ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
+    outside_coverage_help: "ಈ ಸ್ಥಳ ಬೆಂಬಲಿತ ಕರ್ನಾಟಕ, ಮುಂಬೈ ಮಹಾನಗರ ಪ್ರದೇಶ, ಪುಣೆ ಮಹಾನಗರ ಪಾಲಿಕೆ, ಕೋಲ್ಕತ್ತಾ ಮಹಾನಗರ ಪಾಲಿಕೆ ಮತ್ತು ದೆಹಲಿ NCT ಮಾರ್ಗಗಳ ಹೊರಗಿದೆ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳವನ್ನು ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
     size_small: "ಸಣ್ಣ", size_medium: "ಮಧ್ಯಮ", size_large: "ದೊಡ್ಡ",
     damage_pothole_cavity: "ರಸ್ತೆ ಗುಂಡಿ", damage_failed_patch: "ವಿಫಲವಾದ ರಸ್ತೆ ದುರಸ್ತಿ",
     damage_surface_breakup: "ಹಾಳಾದ ರಸ್ತೆ ಮೇಲ್ಮೈ", damage_rut_or_depression: "ರಸ್ತೆ ಕುಸಿತ",
@@ -551,7 +551,7 @@ const I18N = {
     privacy_title: "कॅमेरा आणि स्थान वापरण्यापूर्वी",
     privacy_body: "पुढे गेल्यास अॅप कॅमेरा आणि वापराच्या वेळी अचूक स्थान वापरण्याची परवानगी मागेल. रस्त्याचे नुकसान शोधण्यासाठी फोटो किंवा ड्राइव्ह मोडमधील निवडक फ्रेम्स तुमच्या API कीसह OpenAI कडे पाठवल्या जातात. अचूक स्थान OpenStreetMap/Nominatim कडे आणि कर्नाटकातील अहवालांसाठी Karnataka GIS कडे पाठवले जाते. प्रक्रिया भारताबाहेर होऊ शकते.",
     privacy_local: "ड्राइव्ह मोडमध्ये ऑडिओ वापरला जात नाही आणि अॅप पार्श्वभूमीत गेल्यावर तो थांबतो. ऐच्छिक व्हिडिओ रेकॉर्डिंग सुरुवातीला बंद असते; ते सुरू केल्यास विश्लेषण किंवा हटवण्यापर्यंत क्लिप्स या साधनावर राहतात. अहवाल, फोटो, स्थान मार्ग आणि सेटिंग्ज हटवले जाईपर्यंत या साधनावरच राहतात.",
-    privacy_government: "हे स्वतंत्र अॅप सरकारी सेवा नाही आणि तक्रार आपोआप सादर करत नाही. MMR, PMC आणि KMC सीमा तपासणी उपकरणावरच होते; बाह्य माध्यम जाणीवपूर्वक उघडून किंवा पूर्ण केल्यावरच माहिती नागरी सेवा पुरवठादाराकडे जाते. गंतव्य आणि मजकूर तपासा.",
+    privacy_government: "हे स्वतंत्र अॅप सरकारी सेवा नाही आणि तक्रार आपोआप सादर करत नाही. MMR, PMC, KMC आणि दिल्ली NCT सीमा तपासणी उपकरणावरच होते; बाह्य माध्यम जाणीवपूर्वक उघडून किंवा पूर्ण केल्यावरच माहिती नागरी सेवा पुरवठादाराकडे जाते. गंतव्य आणि मजकूर तपासा.",
     privacy_link: "गोपनीयता धोरण", sources_link: "डेटा स्रोत आणि मर्यादा",
     privacy_accept: "पुढे जा", privacy_decline: "आत्ता नको",
     wipe_btn: "अॅपचा सर्व डेटा हटवा",
@@ -617,7 +617,7 @@ const I18N = {
     model_said: "अॅपचा निष्कर्ष: {verdict} · {assessment}",
     export_ready: "{n} लेबल केलेल्या फ्रेम्स, {mb} MB. कुठे पाठवायचे ते निवडा.",
     outside_coverage: "हे स्थान अॅपच्या कार्यक्षेत्राबाहेर आहे.",
-    outside_coverage_help: "हे ठिकाण समर्थित कर्नाटक, मुंबई महानगर प्रदेश, पुणे महानगरपालिका आणि कोलकाता महानगरपालिका मार्गांबाहेर आहे. फोटो आणि स्थान प्राप्तकर्त्याशिवाय जतन केले आहे.",
+    outside_coverage_help: "हे ठिकाण समर्थित कर्नाटक, मुंबई महानगर प्रदेश, पुणे महानगरपालिका, कोलकाता महानगरपालिका आणि दिल्ली NCT मार्गांबाहेर आहे. फोटो आणि स्थान प्राप्तकर्त्याशिवाय जतन केले आहे.",
     size_small: "लहान", size_medium: "मध्यम", size_large: "मोठे",
     damage_pothole_cavity: "रस्त्यातील खड्डा", damage_failed_patch: "उखडलेली रस्ता दुरुस्ती",
     damage_surface_breakup: "उखडलेला रस्ता पृष्ठभाग", damage_rut_or_depression: "रस्त्यावरील चर / खोलगट भाग",
@@ -692,7 +692,7 @@ const I18N = {
     privacy_title: "ক্যামেরা ও অবস্থান ব্যবহারের আগে",
     privacy_body: "এগিয়ে গেলে অ্যাপটি ক্যামেরা এবং সামনে খোলা থাকাকালীন সঠিক অবস্থান ব্যবহারের অনুমতি চাইবে। রাস্তার ক্ষতি শনাক্ত করতে একটি ছবি—অথবা ড্রাইভ মোড থেকে নেওয়া নির্বাচিত ফ্রেম—আপনার API key-সহ OpenAI-তে পাঠানো হয়। সঠিক স্থানাঙ্ক OpenStreetMap/Nominatim-এ পাঠানো হয়; কর্ণাটকের রিপোর্ট Karnataka GIS-এও অনুসন্ধান করে। তথ্য ভারতের বাইরেও প্রক্রিয়াকৃত হতে পারে।",
     privacy_local: "ড্রাইভ মোডে অডিও ব্যবহৃত হয় না এবং অ্যাপটি সামনে থেকে সরে গেলে মোডটি বন্ধ হয়। ঐচ্ছিক ভিডিও রেকর্ডিং ডিফল্টভাবে বন্ধ থাকে; চালু করলে বিশ্লেষণ বা মুছে ফেলা পর্যন্ত ক্লিপগুলি এই ডিভাইসেই থাকে। রিপোর্ট, ছবি, অবস্থানের ট্র্যাক ও সেটিংস মুছে না ফেলা পর্যন্ত এই ডিভাইসেই থাকে।",
-    privacy_government: "এই স্বাধীন অ্যাপটি সরকারি পরিষেবা নয় এবং নিজে থেকে অভিযোগ জমা দেয় না। MMR, PMC ও KMC-এর সীমানা যাচাই এই ডিভাইসেই হয়; আপনি ইচ্ছাকৃতভাবে কোনও বাইরের পরিষেবা খুললে বা সম্পূর্ণ করলেই তথ্য সেই পৌর পরিষেবা প্রদানকারীর কাছে যায়। গন্তব্য ও বক্তব্য যাচাই করুন।",
+    privacy_government: "এই স্বাধীন অ্যাপটি সরকারি পরিষেবা নয় এবং নিজে থেকে অভিযোগ জমা দেয় না। MMR, PMC, KMC ও দিল্লি NCT-এর সীমানা যাচাই এই ডিভাইসেই হয়; আপনি ইচ্ছাকৃতভাবে কোনও বাইরের পরিষেবা খুললে বা সম্পূর্ণ করলেই তথ্য সেই পৌর পরিষেবা প্রদানকারীর কাছে যায়। গন্তব্য ও বক্তব্য যাচাই করুন।",
     privacy_link: "গোপনীয়তা নীতি", sources_link: "তথ্যের উৎস ও সীমাবদ্ধতা",
     privacy_accept: "এগিয়ে যান", privacy_decline: "এখন নয়",
     wipe_btn: "অ্যাপের সব তথ্য মুছুন",
@@ -761,7 +761,7 @@ const I18N = {
     model_said: "অ্যাপের সিদ্ধান্ত: {verdict} · {assessment}",
     export_ready: "{n}টি লেবেল দেওয়া ফ্রেম, {mb} MB। কোথায় পাঠাবেন বেছে নিন।",
     outside_coverage: "এই অবস্থানটি অ্যাপের আওতাভুক্ত এলাকার বাইরে।",
-    outside_coverage_help: "এই স্থানটি সমর্থিত কর্ণাটক, মুম্বই মহানগর অঞ্চল, পুনে পৌরসংস্থা এবং কলকাতা পৌরসংস্থার এলাকার বাইরে। ছবি ও অবস্থান কোনও প্রাপক ছাড়াই সংরক্ষিত হয়েছে।",
+    outside_coverage_help: "এই স্থানটি সমর্থিত কর্ণাটক, মুম্বই মহানগর অঞ্চল, পুনে পৌরসংস্থা, কলকাতা পৌরসংস্থা এবং দিল্লি NCT এলাকার বাইরে। ছবি ও অবস্থান কোনও প্রাপক ছাড়াই সংরক্ষিত হয়েছে।",
     size_small: "ছোট", size_medium: "মাঝারি", size_large: "বড়",
     damage_pothole_cavity: "রাস্তার গর্ত", damage_failed_patch: "ভেঙে যাওয়া রাস্তা মেরামত",
     damage_surface_breakup: "ভাঙা রাস্তার উপরিভাগ", damage_rut_or_depression: "চাকার খাঁজ / দেবে যাওয়া অংশ",
@@ -1556,7 +1556,7 @@ const RECORD_MIMES = ["video/mp4;codecs=avc1.42E01E", "video/mp4",
 let drive = null;
 let driveStarting = false;
 let driveFinalizing = null;
-const DATA_NOTICE_VERSION = "2026-08-21-v4-kmc";
+const DATA_NOTICE_VERSION = "2026-08-21-v5-delhi";
 let consentWaiter = null;
 
 function finishDataConsent(accepted) {

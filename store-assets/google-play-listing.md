@@ -8,16 +8,16 @@ Prepared 21 August 2026. Paste only the text inside each code block into Play Co
 Pothole Reporter
 ```
 
-## Short description (71/80 characters)
+## Short description (78/80 characters)
 
 ```text
-Detect road damage and prepare MMR, Pune, Kolkata or Karnataka reports.
+Detect road damage and prepare Delhi, MMR, Pune, Kolkata or Karnataka reports.
 ```
 
 ## Full description
 
 ```text
-Pothole Reporter is an independent Android app for documenting visible road damage and preparing a report for the Mumbai Metropolitan Region (MMR), Pune Municipal Corporation (PMC), Kolkata Municipal Corporation (KMC), or a supported Karnataka urban local body.
+Pothole Reporter is an independent Android app for documenting visible road damage and preparing a report for Delhi NCT, the Mumbai Metropolitan Region (MMR), Pune Municipal Corporation (PMC), Kolkata Municipal Corporation (KMC), or a supported Karnataka urban local body.
 
 Take one photo while safely stopped, or securely mount the phone and use foreground Drive Mode. AI assesses selected images for pothole cavities, failed patches, surface breakup, and ruts or depressions. Reports stay on your device for review.
 
@@ -31,6 +31,11 @@ Kolkata
 • Exclude Howrah, Bidhannagar/Salt Lake, New Town, and other neighbouring civic bodies.
 • Prepare English or Bengali evidence and offer KMC Grievance 2.0, the official KMC app as an alternate, KMC WhatsApp, or the KMC helpline.
 
+Delhi
+• Cover the full National Capital Territory of Delhi and exclude the wider NCR, including Noida, Gurugram, Ghaziabad and Faridabad.
+• Offer PWD Sewa as a cross-agency road-grievance handoff, with Delhi PGMS as an alternate, plus published WhatsApp and 1908 channels.
+• Use the local NCT boundary only for coverage. It does not identify who owns or maintains a road.
+
 Karnataka
 For supported urban local bodies, public GIS and a bundled directory help identify a published municipal recipient. The app opens an editable email draft. An eligible report may include a clearly labelled probable public-procurement match.
 
@@ -41,7 +46,7 @@ Important
 • Contract matching is Karnataka-only and is not proof of responsibility or warranty.
 • The app is not affiliated with or endorsed by any government body.
 • Core features require camera and foreground location permission, internet, and your own billed OpenAI API key.
-• Selected images and API requests go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; Karnataka points also query Karnataka GIS. MMR, PMC, and KMC boundary checks are local.
+• Selected images and API requests go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; Karnataka points also query Karnataka GIS. MMR, PMC, KMC, and Delhi NCT boundary checks are local.
 • Choosing an official app, portal, WhatsApp, Share, Email, or another external service transfers selected data or connection metadata under that provider's policy.
 • Drive recording is optional and off by default. Mount the phone before moving.
 
@@ -51,6 +56,8 @@ PMC GIS: https://iwmsgis.pmc.gov.in/BP_Docs/index.html
 West Bengal UDMA Nagar GIS: https://nagargispariseva.wb.gov.in
 KMC Grievance 2.0: https://kmc.wb.gov.in/citizen/language-selection
 Official KMC app: https://play.google.com/store/apps/details?id=com.kmc.app
+Delhi PWD Sewa: https://www.pwddelhi.gov.in/sewa/complaint
+Delhi PGMS: https://pgms.delhi.gov.in/
 Karnataka GIS: https://kgis.ksrsac.in/kgismaps/rest/services
 Karnataka procurement: https://kppp.karnataka.gov.in
 
@@ -58,13 +65,13 @@ Privacy and source limits:
 https://coding-parrot.github.io/pothole-reporter/privacy.html
 https://coding-parrot.github.io/pothole-reporter/sources.html
 
-Current routing targets the MMR, PMC, KMC, and supported Karnataka urban local bodies. Locations outside these routes are saved locally but not addressed to an authority.
+Current routing targets Delhi NCT, the MMR, PMC, KMC, and supported Karnataka urban local bodies. Locations outside these routes are saved locally but not addressed to an authority.
 ```
 
-## Release notes (1.16.1 / version code 32)
+## Release notes (1.17.0 / version code 33)
 
 ```text
-Simplified the home screen to three clear actions: Drive, Photo and Contribution. Drive is now first and highlighted so it is easier to start before moving.
+Added full Delhi NCT coverage with PWD Sewa, Delhi PGMS, WhatsApp and 1908 handoffs. The wider NCR is excluded, and the app does not guess who owns a road.
 ```
 
 ## Play Console fields

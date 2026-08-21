@@ -39,7 +39,7 @@ def main() -> None:
                 """
                 localStorage.setItem('openai_key', 'store-preview-key');
                 localStorage.setItem('sender_name', 'Road volunteer');
-                localStorage.setItem('data_notice_version', '2026-08-21-v4-kmc');
+                localStorage.setItem('data_notice_version', '2026-08-21-v5-delhi');
                 localStorage.setItem('record_video', '0');
                 """
             )
@@ -80,7 +80,7 @@ def main() -> None:
                       address: 'Esplanade, Kolkata', lat: 22.5726, lng: 88.3639,
                       email_subject: subject, email_body: body, officer_email: null,
                       officer_name: route.officer_name, authority_id: route.authority_id,
-                      authority_name: route.authority_name, authority_registry_version: 2,
+                      authority_name: route.authority_name, authority_registry_version: 3,
                       delivery_channel: 'official_handoff', region: 'kolkata',
                       routing_source: route.routing_source, routing_match_field: 'boundary',
                       routing_match_value: route.routing_match_value, ownership_unverified: true,

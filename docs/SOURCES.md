@@ -103,6 +103,39 @@ Contract matching is disabled for Kolkata. The app has no authoritative, road-li
 award, maintenance, or defect-liability feed and does not infer that KMC owns a road merely
 because the point is inside its municipal boundary.
 
+## Delhi NCT boundary and complaint handoffs
+
+Delhi coverage is the full National Capital Territory, not the wider National Capital
+Region. Noida, Gurugram, Ghaziabad, Faridabad, and other NCR cities outside Delhi NCT are
+excluded. The bundled coverage aid is the polygon for
+[OpenStreetMap relation 1942586](https://www.openstreetmap.org/relation/1942586), retrieved
+through Nominatim on 21 August 2026 under the ODbL. Its measured area is 1,483.885 km²,
+consistent with Delhi's published 1,483 km² extent. The runtime pins SHA-256
+`3462ba68bdbbc1fdebc99403aa9e1f9db5e0b78e30ca138b2d25df7463506ab3` over the geometry
+and fails closed if the file is missing, malformed, or replaced without a code release.
+`tools/build-delhi-coverage.py` reproduces the bundle. The official
+[Delhi State GIS map](https://stategisportal.nic.in/stategisportal/Home/Map/7) is the scope
+reference; its access token is not copied into the app.
+
+The polygon answers only whether a point is inside Delhi NCT. It does not identify a road
+owner. Delhi roads can be maintained by PWD, MCD, NDMC, Delhi Cantonment, DDA, NHAI,
+DSIIDC, DMRC, DJB, or another agency, and municipal containment cannot distinguish them.
+The app therefore does not bundle restricted MCD ward maps or guess an owner from a civic
+area.
+
+Every accepted Delhi point is offered the Government of NCT of Delhi's
+[PWD Sewa complaint flow](https://www.pwddelhi.gov.in/sewa/complaint). PWD Sewa's current
+dashboard records road and pothole grievances and forwarding to other Delhi agencies, so
+it is used as a coordination handoff rather than labelled as the confirmed owner. The
+official Android package is `com.sis.pwdsewaapp`; the app also offers the published
+WhatsApp number **+91 81301 88222** and helpline **1908**. The cross-department
+[Delhi PGMS](https://pgms.delhi.gov.in/) is the alternate. Opening any channel is not a
+submission; the citizen must complete the external complaint and record its official
+reference ID.
+
+Contract matching is disabled for Delhi because the project has no authoritative,
+road-linked award, maintenance, and defect-liability feed for all Delhi road agencies.
+
 ## Karnataka road contracts (42,283 rows)
 
 **Source: KPPP, the Karnataka Public Procurement Portal, Government of Karnataka.**
@@ -176,8 +209,9 @@ identifier rather than by matching a place name.
 
 **Source: OpenStreetMap, via Nominatim.** It turns coordinates into a street name and
 pincode for the complaint. In Maharashtra and Kolkata, address fields are display-only
-routing clues; only a bundled civic polygon selects a specific authority. The address is
-not used to expand the MMR, PMC, or KMC boundary. The coordinates themselves
+routing clues; only a bundled civic polygon selects a specific authority. Delhi coverage
+also uses only its bundled NCT polygon, never the geocoder's place name. The address is
+not used to expand the MMR, PMC, KMC, or Delhi NCT boundary. The coordinates themselves
 come from the phone's GPS and are printed in the complaint alongside a map link, so the
 location can be checked independently.
 
@@ -193,7 +227,7 @@ Karnataka route only, the app first builds a deterministic local shortlist from 
 words and contracts indexed to the same local body, then asks an AI model whether one
 candidate clearly covers that road or locality. A confidence threshold can reject weak
 matches, but it cannot turn an accepted match into proof. Contract matching is disabled
-for every Maharashtra and Kolkata route.
+for every Maharashtra, Kolkata, and Delhi route.
 
 For an eligible Karnataka match, warranty status is **inferred** from how recently the
 tender was published because award records carry no defect liability period. The complaint
@@ -213,12 +247,16 @@ That wording is deliberate and should not be strengthened.
 - KMC coverage uses a bundled, validity-repaired copy of the official West Bengal UDMA
   municipal feature. It excludes Howrah, Bidhannagar/Salt Lake, and New Town. A later KMC
   boundary change requires an app data update.
-- There is no automatic Maharashtra or Kolkata filing, status sync, or cross-user report database.
+- Delhi coverage is the full NCT outline only and excludes the wider NCR. Every accepted
+  point uses a cross-agency grievance handoff because the outline cannot establish whether
+  PWD, MCD, NDMC, Cantonment, DDA, NHAI, or another agency maintains the road.
+- There is no automatic Maharashtra, Kolkata, or Delhi filing, status sync, or cross-user report database.
   Evidence remains local until the citizen deliberately opens an external handoff.
 - Maharashtra contract matching is disabled because no authoritative road-linked feed is
   integrated for the MMR or PMC.
 - Kolkata contract matching is disabled for the same reason; a KMC boundary match does not
   establish who owns or maintains a road.
+- Delhi contract matching is disabled; NCT containment is neither ownership nor a contract match.
 - 137 of Karnataka's 319 local bodies have no address in the file, because their district
   pages publish none. Those reports refuse to route.
 - 41,159 of the 42,283 contracts have no winning bidder recorded, for the reason above.
@@ -233,5 +271,5 @@ That wording is deliberate and should not be strengthened.
 - Contracts are a snapshot. Re-run `tools/pull-kppp.py` to refresh.
 - The public Nominatim endpoint is cached on an approximately 11 m grid and serialized
   below one request per second. National or municipal-scale deployment must switch the
-  endpoint to a policy-compliant managed or self-hosted service; MMR/PMC/KMC polygon routing
+  endpoint to a policy-compliant managed or self-hosted service; MMR/PMC/KMC/Delhi polygon routing
   remains local and does not depend on a geocoder response.

@@ -10,7 +10,7 @@ ROOT=$PWD
 APK=android-app/android/app/build/outputs/apk/debug/app-debug.apk
 
 echo "1/4 mirroring static/ into www/"
-for f in standalone.js index.html maharashtra-coverage.json kolkata-coverage.json; do cp "static/$f" "android-app/www/$f"; done
+for f in standalone.js index.html maharashtra-coverage.json kolkata-coverage.json delhi-coverage.json; do cp "static/$f" "android-app/www/$f"; done
 
 echo "2/4 syncing www into the android assets gradle actually packages"
 (cd android-app && npx cap copy android >/dev/null)
@@ -33,6 +33,7 @@ same standalone.js
 same index.html
 same maharashtra-coverage.json
 same kolkata-coverage.json
+same delhi-coverage.json
 same tenders.json
 same karnataka-bodies.json
 

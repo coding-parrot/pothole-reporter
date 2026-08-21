@@ -84,7 +84,7 @@
   const BMC_WHATSAPP_URL = "https://wa.me/918999228999";
   const BMC_HELPLINE = "1916";
   const AAPLE_SARKAR_URL = "https://grievances.maharashtra.gov.in/en";
-  const AUTHORITY_REGISTRY_VERSION = 2;
+  const AUTHORITY_REGISTRY_VERSION = 3;
   const OFFICIAL_HANDOFF_CHANNELS = new Set(["official_handoff", "bmc_quickfix"]);
   const MUMBAI_STATES = new Set(["maharashtra", "महाराष्ट्र"]);
   const WEST_BENGAL_STATES = new Set(["west bengal", "পশ্চিমবঙ্গ"]);
@@ -216,13 +216,31 @@
     helpline: "18003453375",
   };
 
+  // Delhi's civic and road-maintenance boundaries are not road-ownership maps. PWD
+  // Sewa is the cross-agency road grievance workflow: it can forward a complaint to
+  // the appropriate Delhi body instead of this client pretending to know the owner.
+  const DELHI_PWD_AUTHORITY = {
+    id: "dl-pwd-sewa", name: "Delhi road grievance coordination",
+    handoff_name: "PWD Sewa",
+    handoff_url: "https://www.pwddelhi.gov.in/sewa/complaint",
+    handoff_package: "com.sis.pwdsewaapp",
+    alternate_handoff_name: "Delhi PGMS",
+    alternate_handoff_url: "https://pgms.delhi.gov.in/",
+    whatsapp_url: "https://wa.me/918130188222",
+    helpline: "1908",
+  };
+
   const MMR_FALLBACK_AUTHORITY = {
     id: "mh-mmr-unverified", name: "MMR road authority (verify in Aaple Sarkar)",
     handoff_name: "Aaple Sarkar", handoff_url: AAPLE_SARKAR_URL,
   };
+  const OFFICIAL_AUTHORITIES = [
+    ...MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY, KMC_AUTHORITY,
+    DELHI_PWD_AUTHORITY,
+  ];
+  validateOfficialHandoffRegistry(OFFICIAL_AUTHORITIES);
   const OFFICIAL_AUTHORITY_INDEX = new Map(
-    [...MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY, KMC_AUTHORITY]
-      .map((authority) => [authority.id, authority]),
+    OFFICIAL_AUTHORITIES.map((authority) => [authority.id, authority]),
   );
   const MMR_DIRECT_AUTHORITY_IDS = new Set([
     "mh-bmc", "mh-tmc", "mh-kdmc", "mh-nmmc", "mh-umc", "mh-bncmc",
@@ -764,6 +782,40 @@ Evidence rules:
   const normaliseAuthorityValue = (value) => String(value || "")
     .normalize("NFKC").trim().toLowerCase().replace(/\s+/g, " ");
 
+  function validateOfficialHandoffRegistry(authorities) {
+    const ids = new Set();
+    const isHttps = (value) => /^https:\/\/[^\s]+$/.test(String(value || ""));
+    const packageName = /^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+$/;
+    for (const authority of authorities || []) {
+      if (!authority || !authority.id || ids.has(authority.id)) {
+        throw new Error("Duplicate or missing official authority ID.");
+      }
+      ids.add(authority.id);
+      if (!authority.name) throw new Error(`Official authority ${authority.id} has no name.`);
+      if (!authority.officer_email && (!authority.handoff_name || !isHttps(authority.handoff_url))) {
+        throw new Error(`Official authority ${authority.id} has no valid handoff.`);
+      }
+      if (authority.handoff_url && !isHttps(authority.handoff_url)) {
+        throw new Error(`Official authority ${authority.id} has a non-HTTPS handoff.`);
+      }
+      if (!!authority.alternate_handoff_name !== !!authority.alternate_handoff_url
+          || (authority.alternate_handoff_url && !isHttps(authority.alternate_handoff_url))) {
+        throw new Error(`Official authority ${authority.id} has an invalid alternate handoff.`);
+      }
+      if (authority.handoff_package && !packageName.test(authority.handoff_package)) {
+        throw new Error(`Official authority ${authority.id} has an invalid Android package.`);
+      }
+      if (authority.whatsapp_url
+          && !/^https:\/\/wa\.me\/[1-9][0-9]{7,14}$/.test(authority.whatsapp_url)) {
+        throw new Error(`Official authority ${authority.id} has an invalid WhatsApp route.`);
+      }
+      if (authority.helpline && !/^[0-9]{3,15}$/.test(authority.helpline)) {
+        throw new Error(`Official authority ${authority.id} has an invalid helpline.`);
+      }
+    }
+    return true;
+  }
+
   function validateAuthorityRegistry(authorities = MMR_AUTHORITIES) {
     const ids = new Set(), aliases = new Map();
     for (const authority of authorities) {
@@ -952,6 +1004,15 @@ Evidence rules:
     && String(geo.country_code || "").toLowerCase() === "in"
     && MUMBAI_STATES.has(normaliseAuthorityValue(geo.state));
 
+  // The relevance envelope is intentionally wider than Delhi NCT. A point in nearby
+  // Noida, Gurugram, Ghaziabad or Faridabad must get an explicit outside-area result,
+  // not fall through to an unrelated state's GIS. Only the pinned polygon can accept.
+  const DELHI_ENVELOPE = { minLat: 28.10, maxLat: 29.10, minLng: 76.65, maxLng: 77.65 };
+  const DELHI_GEOMETRY_SHA256 = "3462ba68bdbbc1fdebc99403aa9e1f9db5e0b78e30ca138b2d25df7463506ab3";
+  const inDelhiEnvelope = (lat, lng) => Number.isFinite(lat) && Number.isFinite(lng)
+    && lat >= DELHI_ENVELOPE.minLat && lat <= DELHI_ENVELOPE.maxLat
+    && lng >= DELHI_ENVELOPE.minLng && lng <= DELHI_ENVELOPE.maxLng;
+
   const KOLKATA_ENVELOPE = { minLat: 22.35, maxLat: 22.70, minLng: 88.15, maxLng: 88.55 };
   // This digest is over JSON.stringify(region.geometry). IDs and a closed ring are not
   // enough: a valid-shaped but wrong polygon could otherwise send Howrah to KMC. Updating
@@ -969,6 +1030,59 @@ Evidence rules:
     const bytes = new TextEncoder().encode(value);
     const digest = await crypto.subtle.digest("SHA-256", bytes);
     return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  let _delhiCoverage = null, _delhiCoveragePromise = null;
+  async function delhiCoverage() {
+    if (_delhiCoverage) return _delhiCoverage;
+    if (_delhiCoveragePromise) return _delhiCoveragePromise;
+    _delhiCoveragePromise = (async () => {
+      try {
+        const res = await fetchWithTimeout("delhi-coverage.json", {}, 15000);
+        if (!res.ok) return null;
+        const data = await readJson(res);
+        const region = data && data.region;
+        const geometryDigest = region && hasCoverageGeometry(region.geometry)
+          ? await sha256Hex(JSON.stringify(region.geometry)) : null;
+        if (data && data.version === 1 && region
+            && region.id === "delhi-nct"
+            && region.authority_id === DELHI_PWD_AUTHORITY.id
+            && Number(region.osm_relation_id) === 1942586
+            && region.geometry_sha256 === DELHI_GEOMETRY_SHA256
+            && geometryDigest === DELHI_GEOMETRY_SHA256) {
+          _delhiCoverage = data;
+        }
+      } catch (e) { /* fail closed; a retry is allowed on the next report */ }
+      return _delhiCoverage;
+    })();
+    const result = await _delhiCoveragePromise;
+    _delhiCoveragePromise = null;
+    return result;
+  }
+
+  async function delhiRouteFromGeocode(_geo, lat, lng, gpsAccuracy) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !inDelhiEnvelope(lat, lng)) return null;
+    const coverage = await delhiCoverage();
+    if (!coverage) return unroutedRoute("jurisdiction_unavailable");
+
+    const geometry = coverage.region.geometry;
+    const enforceGpsAccuracy = gpsAccuracy !== undefined;
+    if (enforceGpsAccuracy
+        && (!Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 30)) {
+      return unroutedRoute("location_uncertain");
+    }
+    if (Number.isFinite(gpsAccuracy)
+        && geometryBoundaryDistanceMeters(lng, lat, geometry) <= gpsAccuracy) {
+      return unroutedRoute("location_uncertain");
+    }
+    if (!pointInGeometry(lng, lat, geometry)) return unroutedRoute("outside_area");
+
+    return authorityRoute(DELHI_PWD_AUTHORITY, {
+      routing_source: "osm_delhi_nct_boundary",
+      match_field: "boundary",
+      match_value: "OpenStreetMap relation 1942586",
+      region: "delhi",
+    });
   }
 
   let _kolkataCoverage = null, _kolkataCoveragePromise = null;
@@ -1276,6 +1390,9 @@ Evidence rules:
     }
 
     const geo = geoOrAddress && typeof geoOrAddress === "object" ? geoOrAddress : null;
+    const delhi = await delhiRouteFromGeocode(geo, lat, lng, gpsAccuracy);
+    if (delhi) return delhi;
+
     const kolkata = await kolkataRouteFromGeocode(geo, lat, lng, gpsAccuracy);
     if (kolkata) return kolkata;
 
@@ -2665,7 +2782,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           rural_road: "This road is outside every town boundary, so it belongs to the state PWD or a panchayat rather than a city body. The app will not guess an office.",
           no_address_for_body: "This town's body is known, but no official email address for it has been published, so there is no verified recipient to address.",
           jurisdiction_unavailable: "The bundled civic jurisdiction map could not be read. Restart the app and try again; the app will not guess an authority.",
-          outside_area: "This road damage is outside the supported Karnataka, Mumbai Metropolitan Region, Pune Municipal Corporation and Kolkata Municipal Corporation routes, so there is no authority to address.",
+          outside_area: "This road damage is outside the supported Karnataka, Mumbai Metropolitan Region, Pune Municipal Corporation, Kolkata Municipal Corporation and Delhi NCT routes, so there is no authority to address.",
         }[rec.unrouted_reason] || "This report could not be routed to a responsible office, so there is nothing to send.");
       }
       // "queued" stays reopenable: canceling the external composer/app must not strand
@@ -2752,14 +2869,17 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    warrantyFor, shortlistFor, matchTenderFor: matchTender,
                    mumbaiWardFromName, mumbaiFromGeocode, evidenceForReport,
                    normaliseAuthorityValue, validateAuthorityRegistry,
+                   validateOfficialHandoffRegistry,
                    matchedMmrAuthorities, containingMmrAuthorities, bmcWardFromBoundary,
                    pointInGeometry, geometryBoundaryDistanceMeters,
                    validMmrAuthorityBoundaries,
                    maharashtraCoverage,
+                   delhiCoverage, delhiRouteFromGeocode, inDelhiEnvelope,
                    kolkataCoverage, kolkataRouteFromGeocode, isWestBengalGeocode,
                    maharashtraRouteFromGeocode, routeOfficer,
                    MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY, KMC_AUTHORITY,
-                   KMC_GEOMETRY_SHA256,
+                   DELHI_PWD_AUTHORITY, OFFICIAL_AUTHORITIES,
+                   DELHI_GEOMETRY_SHA256, KMC_GEOMETRY_SHA256,
                    AUTHORITY_REGISTRY_VERSION };
 
   window.StandaloneAPI = { __pure, handle, prewarm };

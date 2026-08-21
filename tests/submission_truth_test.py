@@ -128,6 +128,24 @@ async ({pixel}) => {
       whatsapp_url: "https://example.invalid/stale-whatsapp",
       helpline: "0000", requires_official_reference: true,
     },
+    {
+      ...base, id: 71009, created_at: base.created_at + 8, status: "draft",
+      address: "India Gate, New Delhi", lat: 28.6129, lng: 77.2295,
+      delivery_channel: "official_handoff", ward_code: null,
+      officer_name: "Old Delhi service", authority_id: "dl-pwd-sewa",
+      authority_name: "Delhi road grievance coordination",
+      authority_registry_version: 0, region: "delhi",
+      routing_source: "osm_delhi_nct_boundary", routing_match_field: "boundary",
+      routing_match_value: "OpenStreetMap relation 1942586",
+      ownership_unverified: true, officer_email: null,
+      handoff_name: "Malicious saved Delhi service",
+      handoff_url: "https://example.invalid/stale-delhi",
+      handoff_package: "invalid.saved.package",
+      alternate_handoff_name: "Malicious alternate",
+      alternate_handoff_url: "https://example.invalid/stale-delhi-alternate",
+      whatsapp_url: "https://example.invalid/stale-delhi-whatsapp",
+      helpline: "0000", requires_official_reference: true,
+    },
   ];
 
   const db = await new Promise((resolve, reject) => {
@@ -289,6 +307,26 @@ async ({pixel}) => {
      kmcPrepared.alternate_handoff_url);
   eq("KMC handoff: opening has not been claimed yet",
      kmcPrepared.handoff_opened_at, undefined);
+
+  const delhiPrepared = await StandaloneAPI.handle(
+    "/api/reports/71009/send", {method: "POST"});
+  eq("Delhi handoff: preparing PWD Sewa stays draft", delhiPrepared.status, "draft");
+  eq("Delhi handoff: current registry restores PWD Sewa",
+     delhiPrepared.handoff_name, "PWD Sewa");
+  eq("Delhi handoff: current registry restores the complaint portal",
+     delhiPrepared.handoff_url, "https://www.pwddelhi.gov.in/sewa/complaint");
+  eq("Delhi handoff: current registry restores the official Android package",
+     delhiPrepared.handoff_package, "com.sis.pwdsewaapp");
+  eq("Delhi handoff: stale stored alternate cannot survive revalidation",
+     delhiPrepared.alternate_handoff_url, "https://pgms.delhi.gov.in/");
+  eq("Delhi handoff: stale stored WhatsApp cannot survive revalidation",
+     delhiPrepared.whatsapp_url, "https://wa.me/918130188222");
+  eq("Delhi handoff: current helpline is restored", delhiPrepared.helpline, "1908");
+  eq("Delhi handoff: preparation sets no handoff time",
+     delhiPrepared.handoff_opened_at, undefined);
+  const delhiPreparedStored = await byId(71009);
+  eq("Delhi handoff: preparing a URL does not mutate persisted status",
+     delhiPreparedStored.status, "draft");
 
   openDetail(pmcPreparedStored, [pmcPreparedStored]);
   const pmcUi = {
@@ -491,6 +529,39 @@ async ({pixel}) => {
   eq("KMC confirmation: reference-confirmed report becomes sent", kmcSubmitted.status, "sent");
   eq("KMC confirmation: official reference is trimmed and retained",
      kmcSubmitted.official_grievance_id, "KMC-2026-001234");
+
+  const delhiOpened = await StandaloneAPI.handle(
+    "/api/reports/71009/handoff-opened", {method: "POST"});
+  eq("Delhi handoff: a confirmed launcher open is only queued", delhiOpened.status, "queued");
+  ok("Delhi handoff: confirmed open records a handoff timestamp",
+     Number.isFinite(delhiOpened.handoff_opened_at), delhiOpened.handoff_opened_at);
+  eq("Delhi handoff: opening invents no official reference",
+     delhiOpened.official_grievance_id, null);
+  eq("Delhi handoff: opening does not mark submitted", delhiOpened.submitted_at, null);
+  for (const [label, reference] of [["blank", ""], ["short", "123"]]) {
+    const error = await errorFrom(StandaloneAPI.handle(
+      "/api/reports/71009/submitted",
+      {method: "POST", body: JSON.stringify({official_grievance_id: reference})},
+    ));
+    ok(`Delhi confirmation: ${label} official reference is rejected`,
+       /official grievance\/reference ID from Delhi road grievance coordination/i.test(error || ""),
+       error);
+  }
+  const delhiStillQueued = await byId(71009);
+  eq("Delhi confirmation: rejected confirmation stays queued",
+     delhiStillQueued.status, "queued");
+  eq("Delhi confirmation: rejected confirmation stores no submission time",
+     delhiStillQueued.submitted_at, null);
+  const delhiSubmitted = await StandaloneAPI.handle("/api/reports/71009/submitted", {
+    method: "POST",
+    body: JSON.stringify({official_grievance_id: "  DL-PWD-2026-001234  "}),
+  });
+  eq("Delhi confirmation: reference-confirmed report becomes sent",
+     delhiSubmitted.status, "sent");
+  eq("Delhi confirmation: official reference is trimmed and retained",
+     delhiSubmitted.official_grievance_id, "DL-PWD-2026-001234");
+  ok("Delhi confirmation: submitted_at is recorded",
+     Number.isFinite(delhiSubmitted.submitted_at), delhiSubmitted.submitted_at);
 
   // A municipality email inferred from the point is still only a civic-authority
   // suggestion. The warning and the final confirmation must say ownership is unknown.

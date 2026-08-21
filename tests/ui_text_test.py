@@ -36,16 +36,17 @@ for name in ("static/index.html", "android-app/www/index.html"):
     if len(coverage) == 4:
         if "ಬೆಂಗಳೂರಿಗೆ" in coverage[1] or "ಜಿಬಿಎ" in coverage[1]:
             fails.append(f"{name}: Kannada out-of-coverage text still says Bengaluru only")
-        if "Mumbai Metropolitan Region" not in coverage[0] or "Pune Municipal Corporation" not in coverage[0]:
-            fails.append(f"{name}: English out-of-coverage text does not name MMR and PMC")
-        if any(term not in coverage[1] for term in ("ಕರ್ನಾಟಕ", "ಮುಂಬೈ", "ಪುಣೆ")):
-            fails.append(f"{name}: Kannada out-of-coverage text does not name Karnataka, Mumbai and Pune")
-        if any(term not in coverage[2] for term in ("कर्नाटक", "मुंबई", "पुणे")):
-            fails.append(f"{name}: Marathi out-of-coverage text does not name Karnataka, Mumbai and Pune")
-        if any(term not in coverage[3] for term in ("কর্ণাটক", "মুম্বই", "পুনে", "কলকাতা")):
-            fails.append(f"{name}: Bengali out-of-coverage text does not name Karnataka, Mumbai, Pune and Kolkata")
-        if "Kolkata Municipal Corporation" not in coverage[0]:
-            fails.append(f"{name}: English out-of-coverage text does not name KMC")
+        if any(term not in coverage[0] for term in (
+            "Mumbai Metropolitan Region", "Pune Municipal Corporation",
+            "Kolkata Municipal Corporation", "Delhi NCT",
+        )):
+            fails.append(f"{name}: English out-of-coverage text omits a supported region")
+        if any(term not in coverage[1] for term in ("ಕರ್ನಾಟಕ", "ಮುಂಬೈ", "ಪುಣೆ", "ಕೋಲ್ಕತ್ತಾ", "ದೆಹಲಿ NCT")):
+            fails.append(f"{name}: Kannada out-of-coverage text omits a supported region")
+        if any(term not in coverage[2] for term in ("कर्नाटक", "मुंबई", "पुणे", "कोलकाता", "दिल्ली NCT")):
+            fails.append(f"{name}: Marathi out-of-coverage text omits a supported region")
+        if any(term not in coverage[3] for term in ("কর্ণাটক", "মুম্বই", "পুনে", "কলকাতা", "দিল্লি NCT")):
+            fails.append(f"{name}: Bengali out-of-coverage text omits a supported region")
     else:
         fails.append(f"{name}: expected 4 outside_coverage_help strings, found {len(coverage)}")
 

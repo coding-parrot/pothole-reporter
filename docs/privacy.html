@@ -84,7 +84,7 @@
     <h2>Summary</h2>
     <div class="summary">
       <p>Pothole Reporter has no project-operated server, advertising network, or app account system. Reports and any recordings you choose to create are kept on your device.</p>
-      <p>It is not fully offline: selected road images are sent directly to OpenAI for analysis. Precise coordinates are sent to OpenStreetMap Nominatim; Karnataka locations also query Karnataka GIS. MMR, PMC, and KMC boundary checks use geometry bundled in the app and do not send coordinates to MMRDA, PMC GIS, or West Bengal UDMA GIS.</p>
+      <p>It is not fully offline: selected road images are sent directly to OpenAI for analysis. Precise coordinates are sent to OpenStreetMap Nominatim; Karnataka locations also query Karnataka GIS. MMR, PMC, KMC, and Delhi NCT boundary checks use geometry bundled in the app and do not send coordinates to the boundary-data providers.</p>
       <p>Reports are not filed automatically. Only when you choose a handoff does the app open an official app or portal, place prefilled text in WhatsApp, open the dialler, share compressed evidence, or hand an editable draft to your email app. You must review and complete the complaint in that external service.</p>
     </div>
   </section>
@@ -110,8 +110,8 @@
           </tr>
           <tr>
             <td>Precise location and drive motion data</td>
-            <td>The app reads latitude and longitude and may retain a local drive track with accuracy, speed, heading, and timestamps. Coordinates are sent to OpenStreetMap Nominatim. Karnataka locations also query Karnataka GIS endpoints. MMR, PMC, and KMC boundary checks run locally against bundled geometry. Viewing the in-app map requests OpenStreetMap tiles for the displayed area.</td>
-            <td>Find an address, check MMR, PMC, or KMC coverage, suggest a civic body, identify a supported Karnataka body, classify Karnataka roads, display report locations, and suppress repeated Drive Mode observations.</td>
+            <td>The app reads latitude and longitude and may retain a local drive track with accuracy, speed, heading, and timestamps. Coordinates are sent to OpenStreetMap Nominatim. Karnataka locations also query Karnataka GIS endpoints. MMR, PMC, KMC, and Delhi NCT boundary checks run locally against bundled geometry. Viewing the in-app map requests OpenStreetMap tiles for the displayed area.</td>
+            <td>Find an address, check supported coverage, suggest a complaint route, identify a supported Karnataka body, classify Karnataka roads, display report locations, and suppress repeated Drive Mode observations.</td>
           </tr>
           <tr>
             <td>OpenAI API key</td>
@@ -120,7 +120,7 @@
           </tr>
           <tr>
             <td>Road address and procurement candidates</td>
-            <td>For an eligible Karnataka route only, the reverse-geocoded road address and a shortlist of public procurement records may be sent to OpenAI for a probable contract match. Maharashtra and Kolkata routes never enter this flow.</td>
+            <td>For an eligible Karnataka route only, the reverse-geocoded road address and a shortlist of public procurement records may be sent to OpenAI for a probable contract match. Maharashtra, Kolkata, and Delhi routes never enter this flow.</td>
             <td>Offer an optional, reviewable Karnataka contract reference. A match is not proof of responsibility or warranty.</td>
           </tr>
           <tr>
@@ -129,7 +129,7 @@
             <td>Run the app, preserve history, allow review, and prepare complaint drafts.</td>
           </tr>
           <tr>
-            <td>Maharashtra and Kolkata handoff text and evidence</td>
+            <td>Maharashtra, Kolkata, and Delhi handoff text and evidence</td>
             <td>The offered app or portal opens only after you choose it. A Google Play fallback receives no report attachment. A WhatsApp action places complaint text in a link but does not press Send. Share creates compressed image copies and report text in app cache and invokes Android's share sheet. Call opens the dialler. Email hands an editable draft and attachment to your email app.</td>
             <td>Let you review and complete a complaint yourself in an external official channel. Opening any channel is not treated as a submission.</td>
           </tr>
@@ -155,8 +155,8 @@
       <li><strong>OpenStreetMap services:</strong> coordinates sent to Nominatim for reverse geocoding and map-area requests sent to the tile service. See the <a href="https://osmfoundation.org/wiki/Privacy_Policy">OpenStreetMap Foundation privacy policy</a> and <a href="https://operations.osmfoundation.org/policies/nominatim/">Nominatim policy</a>.</li>
       <li><strong>Karnataka GIS/KSRSAC:</strong> for Karnataka locations only, coordinates are sent to government map endpoints to check municipal, gram-panchayat, and national-highway layers.</li>
       <li><strong>Google Play:</strong> when an offered official Android app is absent, its store page may open. The app does not attach report content to that link, although Google receives ordinary connection and device metadata under its <a href="https://policies.google.com/privacy">privacy policy</a>.</li>
-      <li><strong>WhatsApp/Meta:</strong> after a separate confirmation, choosing a published BMC, VVCMC, or KMC WhatsApp route passes the prefilled complaint text, including the exact location, to WhatsApp. It is not sent as a chat until you choose Send there. See <a href="https://www.whatsapp.com/legal/privacy-policy">WhatsApp's privacy policy</a>.</li>
-      <li><strong>Maharashtra and Kolkata civic bodies, Aaple Sarkar, and other official complaint recipients:</strong> opening a plain app or portal link sends ordinary connection or launch metadata; report content reaches that recipient only when you complete a message, email, upload, call, or submission in its external service. See BMC's published website policy and <a href="https://www.kmcgov.in/KMCPortal/jsp/Disclaimer.html">KMC's website disclaimer and privacy terms</a>.</li>
+      <li><strong>WhatsApp/Meta:</strong> after a separate confirmation, choosing a published BMC, VVCMC, KMC, or Delhi PWD Sewa WhatsApp route passes the prefilled complaint text, including the exact location, to WhatsApp. It is not sent as a chat until you choose Send there. See <a href="https://www.whatsapp.com/legal/privacy-policy">WhatsApp's privacy policy</a>.</li>
+      <li><strong>Maharashtra, Kolkata, and Delhi official complaint recipients:</strong> opening a plain app or portal link sends ordinary connection or launch metadata; report content reaches that recipient only when you complete a message, email, upload, call, or submission in its external service. Delhi offers PWD Sewa first and PGMS as an alternate; neither handoff claims that PWD owns the road. See BMC's published website policy and <a href="https://www.kmcgov.in/KMCPortal/jsp/Disclaimer.html">KMC's website disclaimer and privacy terms</a>.</li>
       <li><strong>Your email and sharing providers:</strong> data is transferred only when you open a complaint draft or choose a destination in Android's share sheet. Their own policies and retention rules apply.</li>
     </ul>
     <p>Like other internet services, these recipients can receive an IP address and standard connection metadata. They may process data outside your state or country, including outside India. The project does not control their independent retention or legal obligations.</p>
@@ -206,7 +206,7 @@
   </section>
 
   <footer>
-    <p>Pothole Reporter is independent and is not affiliated with or endorsed by MMRDA, PMC, BMC, KMC, the Government of Maharashtra, the Government of West Bengal, the Government of Karnataka, OpenAI, OpenStreetMap, KSRSAC, or any other government body or data provider.</p>
+    <p>Pothole Reporter is independent and is not affiliated with or endorsed by MMRDA, PMC, BMC, KMC, Delhi PWD, Delhi PGMS, the Governments of Maharashtra, West Bengal, Delhi or Karnataka, OpenAI, OpenStreetMap, KSRSAC, or any other government body or data provider.</p>
   </footer>
 </main>
 </body>

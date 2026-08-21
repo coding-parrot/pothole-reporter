@@ -47,10 +47,10 @@ want on stage.
 - **"Where does the contract data come from?"** KPPP, the state's own procurement portal.
   `docs/SOURCES.md` has the exact request and the check that 341 of the portal's first
   1,000 awarded works appear in the bundle byte-identical.
-- **"Does it work outside Karnataka?"** Yes: the app covers the current MMR extent and
-  Pune and Kolkata Municipal Corporation limits. It suggests a civic body but does not
-  claim road ownership. PCMC, Howrah, Bidhannagar/Salt Lake, and New Town are excluded,
-  and contract matching remains Karnataka-only.
+- **"Does it work outside Karnataka?"** Yes: the app covers Delhi NCT, the current MMR
+  extent, and Pune and Kolkata Municipal Corporation limits. It suggests a complaint route
+  but does not claim road ownership. The wider NCR, PCMC, Howrah, Bidhannagar/Salt Lake,
+  and New Town are excluded, and contract matching remains Karnataka-only.
 - **"What about highways?"** Refused since v1.6. NHAI or the PWD highways division owns
   them, not the town they pass through.
 - **"Where do the photos go?"** To OpenAI, so outside India. Road photos can carry number
@@ -61,10 +61,12 @@ want on stage.
 
 - Not that it covers all of Karnataka: 182 of 319 bodies have a published address, and
   rural and PWD roads are refused.
+- Not that Delhi coverage means the whole NCR: only Delhi NCT is covered. PWD Sewa is a
+  cross-agency handoff, not a claim that PWD owns every road.
 - Not that Kolkata coverage means the whole metropolitan area: only current KMC limits are
   covered, using the bundled official West Bengal UDMA boundary.
-- Not that it produces a ticket number. Karnataka opens an email draft; Maharashtra and
-  Kolkata open a user-selected official channel. Only the external service can return an
+- Not that it produces a ticket number. Karnataka opens an email draft; Maharashtra,
+  Kolkata, and Delhi open a user-selected official channel. Only the external service can return an
   official grievance/reference ID.
 - Not that the contract match is certain. Every complaint says "probable record match,
   kindly verify", and that wording should stay.

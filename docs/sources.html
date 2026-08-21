@@ -83,7 +83,7 @@
   </section>
 
   <section>
-    <h2>Maharashtra and Kolkata coverage</h2>
+    <h2>Maharashtra, Kolkata, and Delhi coverage</h2>
     <div class="notice">
       <p>Pothole Reporter prepares evidence but does not log in, bypass OTP, call a complaint-write API, press Send, or read complaint status. Opening an app, portal, email draft, WhatsApp, Share, or Call is not a submission. An app/portal report can be marked submitted only after the user records the grievance/reference ID returned by the official service.</p>
     </div>
@@ -94,9 +94,11 @@
     <p>Pune coverage uses the <code>PMC_Boundary</code> layer published by the <a href="https://iwmsgis.pmc.gov.in/BP_Docs/index.html">official PMC GIS</a> through its <a href="https://iwmsgis.pmc.gov.in/geoserver/pmc/wms">GeoServer WMS</a> and corresponding <a href="https://iwmsgis.pmc.gov.in/geoserver/pmc/ows?service=WFS&amp;version=1.0.0&amp;request=GetFeature&amp;typeName=pmc:PMC_Boundary&amp;outputFormat=application/json&amp;srsName=EPSG:4326">WFS GeoJSON layer</a>. The geometry is bundled for local checks. It covers current Pune Municipal Corporation limits only and deliberately excludes Pimpri-Chinchwad Municipal Corporation (PCMC).</p>
     <h3>Kolkata Municipal Corporation</h3>
     <p>Kolkata coverage uses the <code>SMARTCITY:wb_municipal_boundary</code> feature published by the Government of West Bengal Urban Development &amp; Municipal Affairs Department through its <a href="https://nagargispariseva.wb.gov.in/geoserver/SMARTCITY/ows?service=WFS&amp;version=2.0.0&amp;request=GetFeature&amp;typeNames=SMARTCITY%3Awb_municipal_boundary&amp;outputFormat=application%2Fjson&amp;srsName=EPSG%3A4326&amp;CQL_FILTER=ULB_Code%3D%27250299%27">official Nagar GIS WFS</a>. The feature was retrieved on 21 August 2026 and has <code>ULB_Code 250299</code> and <code>MUN_ID 250299_0000001</code>. One source self-intersection was repaired with GDAL <code>ogr2ogr -makevalid</code>; the RFC 7946 result was written at seven-decimal precision, validated, and not topologically simplified. The runtime pins the repaired geometry SHA-256 <code>fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5</code> and fails closed if it changes without a reviewed release. The WFS publishes no explicit reuse licence. Coverage is current KMC limits only, excluding Howrah, Bidhannagar/Salt Lake, New Town, and other neighbouring civic bodies. The polygon does not prove road ownership.</p>
+    <h3>National Capital Territory of Delhi</h3>
+    <p>Delhi coverage uses <a href="https://www.openstreetmap.org/relation/1942586">OpenStreetMap relation 1942586</a> under the ODbL, checked against the <a href="https://stategisportal.nic.in/stategisportal/Home/Map/7">official Delhi State GIS scope</a>. The 21 August 2026 bundle measures 1,483.885 km² and the runtime pins geometry SHA-256 <code>3462ba68bdbbc1fdebc99403aa9e1f9db5e0b78e30ca138b2d25df7463506ab3</code>. It covers the full Delhi NCT and excludes the wider NCR, including Noida, Gurugram, Ghaziabad, and Faridabad. The polygon decides coverage only; it cannot establish whether PWD, MCD, NDMC, Cantonment, DDA, NHAI, or another agency maintains a road.</p>
     <h3>External channels</h3>
-    <p>The offered service depends on the suggested civic body: an official app or portal, a published municipal email address, or Aaple Sarkar. PMC uses PMC Road Mitra with PMC CARE as an alternate. Greater Mumbai can use <a href="https://play.google.com/store/apps/details?id=com.bmc.potholequickfix">BMC Pothole QuickFix</a>, MyBMC WhatsApp at <strong>+91 89992 28999</strong>, or <strong>1916</strong>. Kolkata uses <a href="https://kmc.wb.gov.in/citizen/language-selection">KMC Grievance 2.0</a>, with the <a href="https://play.google.com/store/apps/details?id=com.kmc.app">official KMC app</a> as an alternate, WhatsApp at <strong>+91 83359 88888</strong>, and helpline <strong>1800 345 3375</strong>. The user must review and complete the complaint in the external service.</p>
-    <p>Contract matching is disabled throughout Maharashtra and Kolkata because the app has no authoritative, road-linked award and defect-liability feed for those routes.</p>
+    <p>The offered service depends on the suggested route: an official app or portal, a published municipal email address, or Aaple Sarkar. PMC uses PMC Road Mitra with PMC CARE as an alternate. Greater Mumbai can use <a href="https://play.google.com/store/apps/details?id=com.bmc.potholequickfix">BMC Pothole QuickFix</a>, MyBMC WhatsApp at <strong>+91 89992 28999</strong>, or <strong>1916</strong>. Kolkata uses <a href="https://kmc.wb.gov.in/citizen/language-selection">KMC Grievance 2.0</a>, with the <a href="https://play.google.com/store/apps/details?id=com.kmc.app">official KMC app</a> as an alternate, WhatsApp at <strong>+91 83359 88888</strong>, and helpline <strong>1800 345 3375</strong>. Delhi uses <a href="https://www.pwddelhi.gov.in/sewa/complaint">PWD Sewa</a> as a cross-agency road-grievance handoff, with <a href="https://pgms.delhi.gov.in/">Delhi PGMS</a> as an alternate, WhatsApp at <strong>+91 81301 88222</strong>, and helpline <strong>1908</strong>. The user must review and complete the complaint in the external service.</p>
+    <p>Contract matching is disabled throughout Maharashtra, Kolkata, and Delhi because the app has no authoritative, road-linked award and defect-liability feed for those routes.</p>
   </section>
 
   <section>
@@ -120,7 +122,7 @@
           <tr>
             <td>Street address</td>
             <td><a href="https://nominatim.org/">OpenStreetMap Nominatim</a> reverse-geocodes phone coordinates.</td>
-            <td>Map data can be missing, stale, or imprecise. In Maharashtra and Kolkata, only a bundled civic polygon can select the authority; Nominatim place fields are display-only clues. The complaint includes coordinates so the result can be checked.</td>
+            <td>Map data can be missing, stale, or imprecise. In Maharashtra, Kolkata, and Delhi, only a bundled polygon can select the route; Nominatim place fields are display-only clues. The complaint includes coordinates so the result can be checked.</td>
           </tr>
           <tr>
             <td>Maharashtra coverage and civic-body suggestion</td>
@@ -131,6 +133,11 @@
             <td>Kolkata Municipal Corporation coverage</td>
             <td>A bundled, validity-repaired copy of West Bengal UDMA's official municipal feature <code>250299_0000001</code> is checked locally.</td>
             <td>Coverage ends at KMC limits and excludes Howrah, Bidhannagar/Salt Lake, and New Town. The boundary does not prove road ownership.</td>
+          </tr>
+          <tr>
+            <td>Delhi NCT coverage and grievance route</td>
+            <td>A pinned ODbL copy of OpenStreetMap relation <code>1942586</code> is checked locally; accepted points offer PWD Sewa and Delhi PGMS.</td>
+            <td>Coverage ends at Delhi NCT and excludes the wider NCR. The boundary and PWD Sewa handoff do not prove who maintains the road.</td>
           </tr>
           <tr>
             <td>Town boundary, gram-panchayat boundary, and national-highway check</td>
@@ -145,7 +152,7 @@
           <tr>
             <td>Tender number, work title, publication date, and location</td>
             <td>For eligible Karnataka routes only, the current bundle contains 42,283 road-related rows filtered from awarded works on the <a href="https://kppp.karnataka.gov.in/">Karnataka Public Procurement Portal (KPPP)</a>.</td>
-            <td>The title-keyword filter is intentionally broad. A tender row is not proof that its work covers the photographed point. Maharashtra and Kolkata contract matching is disabled.</td>
+            <td>The title-keyword filter is intentionally broad. A tender row is not proof that its work covers the photographed point. Maharashtra, Kolkata, and Delhi contract matching is disabled.</td>
           </tr>
           <tr>
             <td>Winning bidder on some Bengaluru records</td>
@@ -155,17 +162,17 @@
           <tr>
             <td>Probable contract match</td>
             <td>For an eligible Karnataka route, a deterministic local ranking selects up to 25 contracts indexed to the same supported body; an OpenAI model may then select one above the app's confidence threshold.</td>
-            <td>The match is generated and probabilistic. No Maharashtra or Kolkata route enters this flow.</td>
+            <td>The match is generated and probabilistic. No Maharashtra, Kolkata, or Delhi route enters this flow.</td>
           </tr>
           <tr>
             <td>Possible defect-liability or maintenance wording</td>
             <td>For an eligible Karnataka match, a local rule uses the tender's publication date: up to one year is described as possibly within a defect-liability period and up to three years as possibly within maintenance.</td>
-            <td>The award-search row contains no actual warranty term. This is an inference and must never be presented as a contractual fact. It is not generated for Maharashtra or Kolkata.</td>
+            <td>The award-search row contains no actual warranty term. This is an inference and must never be presented as a contractual fact. It is not generated for Maharashtra, Kolkata, or Delhi.</td>
           </tr>
           <tr>
             <td>Complaint text and signature</td>
             <td>A local template combines the reviewed result, coordinates, supported recipient, optional probable contract reference, and the sender name entered in Settings.</td>
-            <td>The user must check and edit the draft. Karnataka opens an email composer; Maharashtra and Kolkata offer the channel recorded for the suggested civic body. No path submits automatically.</td>
+            <td>The user must check and edit the draft. Karnataka opens an email composer; Maharashtra, Kolkata, and Delhi offer a recorded official handoff. No path submits automatically.</td>
           </tr>
         </tbody>
       </table>
@@ -178,13 +185,14 @@
       <li>MMR coverage targets all 19 urban local bodies and the remaining rural extent. The outer OSM outline is approximate and not a legal boundary. Eleven valid civic polygons can select a specific body; the rest use Aaple Sarkar. No suggestion determines road ownership.</li>
       <li>Pune coverage is limited to the current official PMC GIS boundary. PCMC is outside coverage.</li>
       <li>Kolkata coverage is limited to the current official KMC feature. Howrah, Bidhannagar/Salt Lake, New Town, and other neighbouring civic bodies are outside coverage.</li>
-      <li>The project has no Maharashtra or Kolkata complaint-write API, status sync, or cross-user report database. Evidence stays local until the user deliberately opens an external handoff.</li>
-      <li>Contract matching is disabled for the MMR, PMC, and KMC.</li>
+      <li>Delhi coverage is the full NCT only. The wider NCR is outside coverage, and the NCT boundary does not establish road ownership.</li>
+      <li>The project has no Maharashtra, Kolkata, or Delhi complaint-write API, status sync, or cross-user report database. Evidence stays local until the user deliberately opens an external handoff.</li>
+      <li>Contract matching is disabled for the MMR, PMC, KMC, and Delhi.</li>
       <li>The app covers supported Karnataka urban local bodies with a published recipient address; it does not claim statewide routing for every road.</li>
       <li>Of 319 urban local bodies in the roster used to build the bundle, 182 have a supported directory entry and 137 do not.</li>
       <li>Of 42,283 road-related procurement rows, 18,972 are DMA or legacy BBMP records. Only 13,577 are currently indexed to a supported body and can enter a contract shortlist.</li>
       <li>41,159 procurement rows have no winning bidder recorded in the bundle.</li>
-      <li>For Karnataka, national highways, rural roads, unknown road classes, and unsupported bodies are not routed to a municipal recipient. Locations outside Karnataka, the MMR, PMC, and KMC are not routed.</li>
+      <li>For Karnataka, national highways, rural roads, unknown road classes, and unsupported bodies are not routed to a municipal recipient. Locations outside Karnataka, the MMR, PMC, KMC, and Delhi NCT are not routed.</li>
       <li>All counts describe the repository snapshot above, not the current contents of an external portal.</li>
     </ul>
   </section>
@@ -193,7 +201,7 @@
     <h2>How to audit it</h2>
     <ol>
       <li>Use the photo and printed coordinates to check the event itself.</li>
-      <li>For the MMR, PMC, or KMC, verify the suggested civic body and road owner in the official service and keep any grievance/reference ID it returns.</li>
+      <li>For the MMR, PMC, KMC, or Delhi, verify the suggested route and road owner in the official service and keep any grievance/reference ID it returns.</li>
       <li>For Karnataka, follow the address and GIS sources above to check location and routing.</li>
       <li>Search KPPP by tender number and read the tender documents before relying on a probable match, bidder name, or warranty statement.</li>
       <li>Inspect the open-source build scripts and detailed provenance note for filtering and indexing logic.</li>

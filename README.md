@@ -1,9 +1,9 @@
 # Pothole Reporter
 
 An independent Android app that detects visible road damage and prepares a report for
-the Mumbai Metropolitan Region (MMR), Pune Municipal Corporation (PMC), Kolkata Municipal
-Corporation (KMC), or a supported Karnataka urban local body. It has no project-operated
-backend or account system.
+Delhi NCT, the Mumbai Metropolitan Region (MMR), Pune Municipal Corporation (PMC),
+Kolkata Municipal Corporation (KMC), or a supported Karnataka urban local body. It has
+no project-operated backend or account system.
 
 <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
 
@@ -48,6 +48,16 @@ records the grievance/reference ID returned by that service.
   WhatsApp, and the KMC helpline. The user must complete the complaint and record the
   official grievance/reference ID; the app does not submit it automatically.
 
+### Delhi
+
+- Covers the full National Capital Territory of Delhi; the wider NCR—including Noida,
+  Gurugram, Ghaziabad, and Faridabad—is excluded.
+- Offers [PWD Sewa](https://www.pwddelhi.gov.in/sewa/complaint) first because it can
+  forward road complaints across Delhi agencies, with [Delhi PGMS](https://pgms.delhi.gov.in/)
+  as an alternate plus the published WhatsApp and 1908 helpline.
+- The local NCT boundary decides coverage only. It does not claim that PWD, MCD, NDMC,
+  DDA, NHAI, or another agency owns the road.
+
 ### Karnataka
 
 The app uses Karnataka GIS and a directory of published municipal contacts to prepare an
@@ -73,12 +83,12 @@ internet connection.
 - The project is not affiliated with or endorsed by any municipal or government body.
 - Selected images and your API key go directly to OpenAI. Exact coordinates go to
   OpenStreetMap Nominatim; Karnataka locations also query Karnataka GIS.
-- Maharashtra and Kolkata boundary checks use bundled local geometry; coordinates are not
-  sent to MMRDA, PMC GIS, or West Bengal UDMA GIS. Choosing an official app, portal,
+- Maharashtra, Kolkata, and Delhi boundary checks use bundled local geometry; coordinates
+  are not sent to their boundary-data providers. Choosing an official app, portal,
   WhatsApp, Share, Email, or another external service transfers selected data or connection
   metadata to that provider under its own policy.
 - Contract matching is available only for eligible Karnataka routes and is disabled
-  throughout Maharashtra and Kolkata.
+  throughout Maharashtra, Kolkata, and Delhi.
 - Public Nominatim lookups are cached and rate-limited. A large civic deployment should
   use a compliant managed or self-hosted geocoder endpoint.
 

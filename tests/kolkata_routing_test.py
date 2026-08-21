@@ -26,7 +26,7 @@ async () => {
     full: "Kolkata, West Bengal, India", ...overrides,
   });
 
-  eq("registry: version advanced for KMC", P.AUTHORITY_REGISTRY_VERSION, 2);
+  eq("registry: version includes Delhi release", P.AUTHORITY_REGISTRY_VERSION, 3);
   eq("registry: KMC uses a stable ID", P.KMC_AUTHORITY.id, "wb-kmc");
   ok("registry: KMC validates", P.validateAuthorityRegistry([P.KMC_AUTHORITY]), null);
   eq("registry: primary channel is KMC Grievance 2.0",
