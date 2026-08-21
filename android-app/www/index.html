@@ -24,9 +24,9 @@
   .thumb { width:64px; height:64px; object-fit:cover; border-radius:10px; flex:none; }
   .big-photo { width:100%; max-height:280px; object-fit:contain; background:#000; border-radius:10px; margin-bottom:10px; cursor:zoom-in; }
   #viewer { position:fixed; inset:0; background:#000; z-index:50; display:flex; align-items:center; justify-content:center; overflow:hidden; touch-action:none; }
-  #viewerImg { max-width:100%; max-height:100%; transform-origin:0 0; will-change:transform; user-select:none; -webkit-user-drag:none; }
+  #viewerImg { max-width:100%; max-height:100%; transform-origin:center; will-change:transform; user-select:none; -webkit-user-drag:none; pointer-events:none; }
   #viewerClose { position:absolute; top:calc(env(safe-area-inset-top) + 12px); right:12px; background:rgba(255,255,255,.15); color:#fff; font-size:20px; padding:10px 16px; border-radius:12px; }
-  #viewerHint { position:absolute; bottom:calc(env(safe-area-inset-bottom) + 16px); left:0; right:0; text-align:center; color:#9a9ba1; font-size:12px; }
+  #viewerHint { position:absolute; bottom:calc(env(safe-area-inset-bottom) + 16px); left:0; right:0; text-align:center; color:#9a9ba1; font-size:12px; pointer-events:none; }
   .group-head { display:flex; align-items:center; gap:8px; margin:16px 0 6px; cursor:pointer; user-select:none; }
   .group-head .caret { transition:transform .15s; display:inline-block; }
   .photo-wrap { position:relative; }
@@ -2258,20 +2258,59 @@ async function labelCurrent(label) {
 // without going back to the list.
 let vState = { scale: 1, x: 0, y: 0, rec: null }, vPointers = new Map(), vStart = null, vLastTap = 0;
 
+function vClamp() {
+  const v = $("viewer"), img = $("viewerImg");
+  if (vState.scale <= 1) { vState.scale = 1; vState.x = 0; vState.y = 0; return; }
+  const maxX = Math.max(0, (img.clientWidth * vState.scale - v.clientWidth) / 2);
+  const maxY = Math.max(0, (img.clientHeight * vState.scale - v.clientHeight) / 2);
+  vState.x = Math.max(-maxX, Math.min(maxX, vState.x));
+  vState.y = Math.max(-maxY, Math.min(maxY, vState.y));
+}
+
 function vApply() {
+  vClamp();
   $("viewerImg").style.transform =
     `translate(${vState.x}px, ${vState.y}px) scale(${vState.scale})`;
 }
 function vReset() { vState.scale = 1; vState.x = 0; vState.y = 0; vApply(); }
 
+function vPanStart(pointer, tapEligible = false) {
+  return {
+    mode: "pan", pointerId: pointer.id,
+    clientX: pointer.x, clientY: pointer.y,
+    stateX: vState.x, stateY: vState.y,
+    downAt: Date.now(), moved: false, tapEligible,
+  };
+}
+
+function vPinchStart() {
+  const [a, b] = [...vPointers.values()];
+  const v = $("viewer"), rect = v.getBoundingClientRect();
+  const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
+  return {
+    mode: "pinch",
+    dist: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+    scale: vState.scale,
+    anchorX: (midX - (rect.left + rect.width / 2) - vState.x) / vState.scale,
+    anchorY: (midY - (rect.top + rect.height / 2) - vState.y) / vState.scale,
+  };
+}
+
+function vClearGesture() { vPointers.clear(); vStart = null; vLastTap = 0; }
+
 function openViewer(r) {
+  vClearGesture();
   vState.rec = r;
   $("viewerImg").src = photoSrc(r);
   $("viewerHint").innerHTML = t("zoom_hint");
   vReset();
   $("viewer").classList.remove("hidden");
 }
-function closeViewer() { $("viewer").classList.add("hidden"); vState.rec = null; }
+function closeViewer() {
+  vClearGesture();
+  $("viewer").classList.add("hidden");
+  vState.rec = null;
+}
 
 function viewerStep(delta) {
   if (detailList.length < 2) return;
@@ -2284,48 +2323,77 @@ function viewerStep(delta) {
 }
 
 (function wireViewer() {
-  const v = $("viewer"), img = $("viewerImg");
+  const v = $("viewer");
   $("viewerClose").onclick = closeViewer;
   v.addEventListener("pointerdown", (e) => {
-    vPointers.set(e.pointerId, e);
+    if (e.target === $("viewerClose")) return;
+    e.preventDefault();
+    try { v.setPointerCapture(e.pointerId); } catch (_) { /* synthetic/old WebView */ }
+    vPointers.set(e.pointerId, { id: e.pointerId, x: e.clientX, y: e.clientY });
     if (vPointers.size === 1) {
-      const now = Date.now();
-      if (now - vLastTap < 300) { vState.scale > 1 ? vReset() : (vState.scale = 2.5, vApply()); }
-      vLastTap = now;
-      vStart = { x: e.clientX - vState.x, y: e.clientY - vState.y };
+      vStart = vPanStart(vPointers.get(e.pointerId), true);
     } else if (vPointers.size === 2) {
-      const [a, b] = [...vPointers.values()];
-      vStart = { dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), scale: vState.scale };
+      // A pinch is not the first half of a double tap.
+      vLastTap = 0;
+      vStart = vPinchStart();
     }
   });
   v.addEventListener("pointermove", (e) => {
     if (!vPointers.has(e.pointerId)) return;
-    vPointers.set(e.pointerId, e);
-    if (vPointers.size === 2 && vStart && vStart.dist) {
+    e.preventDefault();
+    vPointers.set(e.pointerId, { id: e.pointerId, x: e.clientX, y: e.clientY });
+    if (vPointers.size === 2 && vStart && vStart.mode === "pinch") {
       const [a, b] = [...vPointers.values()];
-      const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      const rect = v.getBoundingClientRect();
+      const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
       vState.scale = Math.min(8, Math.max(1, vStart.scale * (d / vStart.dist)));
-      if (vState.scale === 1) { vState.x = 0; vState.y = 0; }
+      vState.x = midX - (rect.left + rect.width / 2) - vStart.anchorX * vState.scale;
+      vState.y = midY - (rect.top + rect.height / 2) - vStart.anchorY * vState.scale;
       vApply();
-    } else if (vPointers.size === 1 && vStart && vState.scale > 1) {
-      vState.x = e.clientX - vStart.x;
-      vState.y = e.clientY - vStart.y;
+    } else if (vPointers.size === 1 && vStart && vStart.mode === "pan"
+        && vStart.pointerId === e.pointerId && vState.scale > 1) {
+      const dx = e.clientX - vStart.clientX, dy = e.clientY - vStart.clientY;
+      if (Math.hypot(dx, dy) > 6) vStart.moved = true;
+      vState.x = vStart.stateX + dx;
+      vState.y = vStart.stateY + dy;
       vApply();
     }
   });
-  const end = (e) => {
+  const end = (e, cancelled = false) => {
     const was = vPointers.get(e.pointerId);
+    const start = vStart;
     vPointers.delete(e.pointerId);
     // A flick while not zoomed moves to the next record rather than panning nothing.
-    if (was && vState.scale === 1 && vStart && !vStart.dist && vPointers.size === 0) {
-      const dx = e.clientX - (vStart.x + vState.x);
+    if (!cancelled && was && vState.scale === 1 && start && start.mode === "pan"
+        && start.pointerId === e.pointerId && vPointers.size === 0) {
+      const dx = e.clientX - start.clientX;
       if (Math.abs(dx) > 60) viewerStep(dx < 0 ? 1 : -1);
     }
-    if (!vPointers.size) vStart = null;
+    // Only a completed, stationary, single-pointer gesture counts as a tap. This keeps
+    // pinch-then-drag from immediately resetting as a false double tap.
+    if (!cancelled && was && start && start.mode === "pan" && start.tapEligible
+        && !start.moved && vPointers.size === 0
+        && Date.now() - start.downAt < 300) {
+      const now = Date.now();
+      if (now - vLastTap < 300) {
+        vState.scale > 1 ? vReset() : (vState.scale = 2.5, vApply());
+        vLastTap = 0;
+      } else {
+        vLastTap = now;
+      }
+    }
+    // When either finger leaves a pinch, the remaining finger must immediately become
+    // a valid pan origin. Retaining the pinch object made x/y undefined and killed pan.
+    if (vPointers.size === 1 && vState.scale > 1) {
+      vStart = vPanStart([...vPointers.values()][0], false);
+    } else if (!vPointers.size) {
+      vStart = null;
+    }
+    try { v.releasePointerCapture(e.pointerId); } catch (_) { /* not captured */ }
   };
-  v.addEventListener("pointerup", end);
-  v.addEventListener("pointercancel", end);
-  img.addEventListener("click", (e) => e.stopPropagation());
+  v.addEventListener("pointerup", (e) => end(e));
+  v.addEventListener("pointercancel", (e) => end(e, true));
 })();
 
 // ---------- re-analysing recorded footage ----------
