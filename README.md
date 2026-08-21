@@ -18,7 +18,7 @@ project-operated backend or account system.
 | Delhi | Full Delhi NCT; the wider NCR is excluded. |
 | Maharashtra | The current Mumbai Metropolitan Region (MMR), including its rural extent, and Pune Municipal Corporation (PMC). PCMC is excluded. |
 | West Bengal | Kolkata Municipal Corporation (KMC) only; Howrah, Bidhannagar/Salt Lake, New Town, and neighbouring bodies are excluded. |
-| Karnataka | Supported urban local bodies with a published recipient; GIS checks refuse highways, rural roads, unknown road classes, and unsupported bodies. |
+| Karnataka | Supported urban local bodies with a published recipient; nationwide highway routing takes priority, while GIS checks refuse rural roads, unknown road classes, and unsupported bodies. |
 | Tamil Nadu | Greater Chennai Corporation (GCC) limits only; the wider metropolitan area and neighbouring urban bodies are excluded. |
 | Telangana | A conservative Hyderabad-core outline only. Coverage is partial, the published Secunderabad Cantonment extent is refused, and My Cure is offered without attributing a point to any one of the three 2026 corporations. |
 | Gujarat | Ahmedabad only when Nominatim returns an exact structured city or municipality match inside a reviewed relevance envelope. This is not an AMC boundary claim. |
@@ -36,16 +36,29 @@ WhatsApp, dialler, share sheet, or email client. Nothing is submitted automatica
 - Reports, photos, optional recordings, and official reference IDs are stored locally.
 - English, Kannada, Marathi, and Bengali are supported.
 
+### National Highway routing
+
+- Runs before municipal routing anywhere in India.
+- Uses 101 checksum-pinned tiles containing 680 NH/NE references from the pinned
+  20 August 2026 OpenStreetMap India extract.
+- Refuses weak GPS, conflicting direction, nearby different highway references, missing
+  tiles, and altered data instead of guessing.
+- Opens Rajmargyatra or 1033 and asks the official service to identify the maintaining
+  NHAI, NHIDCL, BRO, or State PWD unit.
+
 ## Downloaded data packs
 
 The APK contains the app and small manifests, not the large reference datasets. When
 needed, it downloads a versioned state pack or the relevant 2° National Highway tile from
 this project's GitHub Pages site. Highway matching runs before municipal routing. The
-optional Karnataka tender pack is downloaded only for eligible contract matching.
+101 highway tiles total about 18 MB, but only the relevant tile is downloaded and cached;
+they do not enlarge the APK. The optional Karnataka tender pack is downloaded only for
+eligible contract matching.
 
 Every downloaded pack is checked byte-for-byte against a checksum pinned in the app before
-it is used, then cached locally. A missing, malformed, or altered required routing/contact
-pack makes authority routing fail closed—the app does not guess or reuse unverified data.
+it is used, then cached locally. Missing, malformed, or altered required routing, contact,
+or highway data makes authority routing fail closed—the app does not guess or reuse
+unverified data.
 If the optional Karnataka tender pack is unavailable, the report continues without a
 contract match. A verified cached pack is available after its first successful download,
 although detection, geocoding, and Karnataka GIS still need their respective network
@@ -59,7 +72,7 @@ state or an approximate 2° highway tile. See the
 
 ## Install
 
-1. Install `PotholeReporter.apk` from the
+1. Install the APK attached to the
    [latest release](https://github.com/coding-parrot/pothole-reporter/releases/latest).
 2. Enter your OpenAI API key and allow camera and foreground location access.
 3. Capture while safely stopped, or securely mount the phone before starting **Drive**.
