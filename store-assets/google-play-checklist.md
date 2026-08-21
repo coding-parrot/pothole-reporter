@@ -1,16 +1,16 @@
 # Google Play publication checklist
 
-Status reviewed 21 August 2026 for release 1.17.0 / version code 33. This is a release
+Status reviewed 21 August 2026 for release 1.18.0 / version code 34. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.17.0/code 33 after the Delhi changes,
+- [ ] **Fresh signed release bundle:** build version 1.18.0/code 34 after the state-pack changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
-  it in Play Console. Earlier bundles do not contain Delhi coverage or its verified handoffs.
-- [ ] **Hosted privacy page:** enable a stable public host, then verify
+  it in Play Console. Earlier bundles still package the large regional datasets in the app.
+- [x] **Hosted privacy page:** verified on the stable public host:
   `https://coding-parrot.github.io/pothole-reporter/privacy.html` in a signed-out
   browser. It must not redirect to a login, return an error, or serve a PDF.
 - [x] **In-app privacy link:** link that exact hosted page from the release build. Creating
@@ -40,11 +40,14 @@ Do not submit to production until every applicable item above is complete.
   physical device. Test first launch, disclosure/permissions, manual capture, Drive Mode,
   stopping/final clip, footage analysis/deletion, history, wipe, API-key errors, offline
   errors, and Karnataka email-composer hand-off.
+- [ ] On a clean install, first test every region online so each checksum-pinned routing pack
+  can download. Then repeat a cached route offline, corrupt a test pack, and confirm the app
+  fails closed rather than routing from unverified data.
 - [ ] Test representative locations in all 19 MMR urban local bodies, a rural MMR point,
   Pune inside PMC, Pune outside PMC, and PCMC. Confirm rural/ambiguous MMR uses Aaple Sarkar,
   PMC uses Road Mitra/PMC CARE, and PCMC stays unrouted.
 - [ ] Test central, north, south, and Joka locations inside KMC, plus Howrah,
-  Bidhannagar/Salt Lake, and New Town outside it. Confirm only the bundled official KMC
+  Bidhannagar/Salt Lake, and New Town outside it. Confirm only the checksum-verified KMC
   polygon selects KMC and a place name alone never does.
 - [ ] Test central, north, south, east, and west Delhi NCT locations, plus Noida,
   Gurugram, Ghaziabad, Faridabad, and a boundary-edge accuracy case. Confirm only the
@@ -63,8 +66,9 @@ Do not submit to production until every applicable item above is complete.
   submitted rejects a missing/invalid grievance/reference ID when one is required.
 - [ ] Verify each Maharashtra, Kolkata, and Delhi report states that the route is only a
   suggestion, does not claim road ownership, and contains no contract or warranty match.
-- [ ] Confirm the release contains no API key, test frame, private location, or debug-only
-  setting and that its bundled web assets match reviewed source.
+- [ ] Confirm the release contains no API key, test frame, private location, debug-only
+  setting, or legacy regional dataset; verify bundled web assets and every hosted pack against
+  the reviewed manifest byte count and SHA-256.
 - [ ] Review the Pre-launch report and address crashes, ANRs, accessibility failures, and
   policy warnings before widening the track.
 
@@ -77,7 +81,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.17.0 release. Include an independent civic handoff and regional-language support
+  the 1.18.0 release. Include an independent civic handoff and regional-language support
   without displaying private coordinates, an API key, a real grievance ID, or civic-body
   marks. Put other city-specific flows in reviewer instructions instead of implying that
   one screenshot proves every supported route.
@@ -104,6 +108,8 @@ Official references: [target API schedule](https://support.google.com/googleplay
   - for eligible Karnataka routes only, road address and procurement shortlist sent to
     OpenAI for probable contract matching; Maharashtra, Kolkata, and Delhi contract matching is disabled;
   - API credential and standard network metadata received by external services;
+  - the selected regional routing/tender pack and standard connection metadata disclosed to
+    GitHub Pages when that checksum-pinned public dataset is downloaded;
   - map-area tile requests, email-app hand-off, Android sharing, and every included SDK;
   - Maharashtra, Kolkata, or Delhi report text or evidence handed to a selected email, WhatsApp, or share
     destination, plus app/portal, Play-listing, and dialler launch metadata;
@@ -121,8 +127,9 @@ Official references: [target API schedule](https://support.google.com/googleplay
   wipe deletes that folder. Copies already handed to another app remain under that
   destination's control, as the privacy policy explains.
 - [x] Verify the remaining local deletion claims: the in-app wipe clears reports, photos,
-  drive summaries, app-held footage, key/name/settings, and the app's Documents debug-frame
-  directory. Files copied, shared, attached, or sent elsewhere remain under that destination's control.
+  drive summaries, app-held footage, downloaded state-pack cache, key/name/settings, and the
+  app's Documents debug-frame directory. Files copied, shared, attached, or sent elsewhere
+  remain under that destination's control.
 - [ ] Re-audit all answers whenever an SDK, model provider, endpoint, permission, storage
   rule, or retention behavior changes.
 

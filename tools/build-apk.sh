@@ -8,19 +8,34 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$PWD
 APK=android-app/android/app/build/outputs/apk/debug/app-debug.apk
+FORBIDDEN_STATE_ASSETS=(
+  delhi-coverage.json
+  karnataka-bodies.json
+  kolkata-coverage.json
+  maharashtra-coverage.json
+  tenders.json
+)
 
-echo "1/4 mirroring static/ into www/"
-for f in standalone.js index.html maharashtra-coverage.json kolkata-coverage.json delhi-coverage.json; do cp "static/$f" "android-app/www/$f"; done
+echo "1/5 mirroring static/ into www/"
+for f in standalone.js index.html pack-manifest.json; do cp "static/$f" "android-app/www/$f"; done
 
-echo "2/4 syncing www into the android assets gradle actually packages"
+for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
+  [ ! -e "static/$asset" ] || { echo "FAIL: state data must not be bundled in static/: $asset"; exit 1; }
+  [ ! -e "android-app/www/$asset" ] || { echo "FAIL: state data must not be bundled in Android www/: $asset"; exit 1; }
+done
+
+echo "2/5 validating hosted state packs"
+python3 tools/build-state-packs.py --check
+
+echo "3/5 syncing www into the android assets gradle actually packages"
 (cd android-app && npx cap copy android >/dev/null)
 
-echo "3/4 building"
+echo "4/5 building"
 rm -f "$APK"
 (cd android-app/android && ./gradlew --offline assembleDebug -q)
 [ -f "$APK" ] || { echo "FAIL: gradle produced no APK"; exit 1; }
 
-echo "4/4 verifying the APK contains this source"
+echo "5/5 verifying the APK contains this source"
 fail=0
 same() {  # a file inside the APK must be byte-identical to the source
   if diff -q <(unzip -p "$APK" "assets/public/$1") "android-app/www/$1" >/dev/null; then
@@ -31,11 +46,15 @@ same() {  # a file inside the APK must be byte-identical to the source
 }
 same standalone.js
 same index.html
-same maharashtra-coverage.json
-same kolkata-coverage.json
-same delhi-coverage.json
-same tenders.json
-same karnataka-bodies.json
+same pack-manifest.json
+
+for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
+  if unzip -Z1 "$APK" | grep -Fx "assets/public/$asset" >/dev/null; then
+    echo "  FAIL state data is bundled in the APK: $asset"; fail=1
+  else
+    echo "  ok   $asset is not bundled"
+  fi
+done
 
 n=$(unzip -p "$APK" assets/public/standalone.js | grep -c 'sk-proj\|sk-[A-Za-z0-9]\{20\}' || true)
 [ "$n" = "0" ] && echo "  ok   no API key baked in" || { echo "  FAIL an API key is in the APK"; fail=1; }

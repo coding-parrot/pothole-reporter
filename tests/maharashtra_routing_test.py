@@ -3,6 +3,7 @@
 import sys
 
 from playwright.sync_api import sync_playwright
+from state_pack_utils import read_pack, read_payload, route_pattern
 
 
 APP = "http://localhost:8765/"
@@ -23,6 +24,9 @@ async () => {
   });
   const route = (g, lat, lng) => P.maharashtraRouteFromGeocode(g, lat, lng);
 
+  // Loading the verified routing pack installs the state authority registry.
+  const coverage = await P.maharashtraCoverage();
+
   ok("registry: validates", P.validateAuthorityRegistry(), null);
   eq("registry: contains all 19 MMR urban bodies", P.MMR_AUTHORITIES.length, 19);
   eq("registry: IDs are unique",
@@ -36,7 +40,6 @@ async () => {
   } catch (e) { collision = String(e.message || e); }
   ok("registry: alias collisions fail closed", /collision/i.test(collision || ""), collision);
 
-  const coverage = await P.maharashtraCoverage();
   const boundaryIds = Object.keys(coverage.regions.mmr.authority_boundaries).sort();
   const directAuthorityIds = [
     "mh-bmc", "mh-tmc", "mh-kdmc", "mh-nmmc", "mh-umc", "mh-bncmc",
@@ -325,18 +328,53 @@ async () => {
 """
 
 
+def run_scenario(browser, route_override=None):
+    context = browser.new_context(viewport={"width": 390, "height": 844})
+    page = context.new_page()
+    if route_override is not None:
+        page.route(route_pattern("in-mh-routing"), route_override)
+    page.goto(APP)
+    page.wait_for_load_state("networkidle")
+    page.wait_for_function(
+        "typeof StandaloneAPI !== 'undefined' && StandaloneAPI.__pure",
+        timeout=30000,
+    )
+    return context, page
+
+
 def main():
     failures = []
+    try:
+        envelope, _ = read_pack("in-mh-routing")
+        payload = read_payload("in-mh-routing")
+        if not isinstance(envelope.get("adapter"), str) or not envelope["adapter"]:
+            failures.append("Maharashtra routing pack has no adapter")
+        if not isinstance(payload.get("regions"), dict):
+            failures.append("Maharashtra routing payload has no regions object")
+    except (AssertionError, KeyError, OSError, ValueError) as error:
+        failures.append(f"Maharashtra routing pack pin is invalid: {error}")
+
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(args=["--disable-web-security"])
-        page = browser.new_context(viewport={"width": 390, "height": 844}).new_page()
-        page.goto(APP)
-        page.wait_for_load_state("networkidle")
-        page.wait_for_function(
-            "typeof StandaloneAPI !== 'undefined' && StandaloneAPI.__pure",
-            timeout=30000,
-        )
+        context, page = run_scenario(browser)
         results = page.evaluate(SCENARIO)
+        context.close()
+
+        for label, responder in [
+            ("missing", lambda route: route.fulfill(status=404, body="missing")),
+            ("malformed", lambda route: route.fulfill(
+                status=200, content_type="application/json", body='{"not":"a routing pack"}'
+            )),
+        ]:
+            context, page = run_scenario(browser, responder)
+            reason = page.evaluate(
+                """async () => (await StandaloneAPI.__pure.routeOfficer(
+                  {city:'Thane',state:'Maharashtra',country_code:'in'},
+                  19.2183,72.9781,12)).unrouted_reason"""
+            )
+            if reason != "jurisdiction_unavailable":
+                failures.append(f"{label} Maharashtra routing pack did not fail closed: {reason}")
+            context.close()
         browser.close()
 
     for name, passed, got, want in results:

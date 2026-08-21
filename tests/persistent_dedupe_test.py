@@ -103,11 +103,6 @@ INIT = r"""
       }
       return make();
     }
-    if (target.endsWith("karnataka-bodies.json")) {
-      return new Response('{"bodies":{"test":{"name":"Test body"}}}', {
-        status: 200, headers: { "content-type": "application/json" },
-      });
-    }
     if (target.includes("nominatim.openstreetmap.org")) {
       return new Response(JSON.stringify({
         display_name: "Test Road, Karnataka, India",
@@ -370,7 +365,7 @@ with sync_playwright() as p:
       const baseline = await StandaloneAPI.handle("/api/reports");
       const canonical = baseline.slice().sort((a, b) => a.lat - b.lat)[0];
       await new Promise((resolve, reject) => {
-        const req = indexedDB.open("potholes", 5);
+        const req = indexedDB.open("potholes", 6);
         req.onerror = () => reject(req.error);
         req.onsuccess = () => {
           const db = req.result;

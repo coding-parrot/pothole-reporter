@@ -30,6 +30,8 @@ for name in ("static/index.html", "android-app/www/index.html"):
         for language, note in zip(("English", "Kannada", "Marathi", "Bengali"), notes):
             if "OpenAI" not in note:
                 fails.append(f"{name}: {language} settings note does not mention OpenAI")
+            if "GitHub Pages" not in note:
+                fails.append(f"{name}: {language} settings note does not disclose the state-pack host")
 
     # Scope: localized refusals must describe all supported geographies.
     coverage = re.findall(r'outside_coverage_help: "([^"]+)"', s)

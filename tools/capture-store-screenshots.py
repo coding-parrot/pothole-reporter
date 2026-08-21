@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import base64
 import subprocess
 import time
 from pathlib import Path
@@ -18,7 +19,7 @@ PORT = 8767
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     server = subprocess.Popen(
-        ["python3", "-m", "http.server", str(PORT), "--bind", "127.0.0.1"],
+        ["python3", "tests/serve_app.py", "--port", str(PORT)],
         cwd=ROOT,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -39,15 +40,18 @@ def main() -> None:
                 """
                 localStorage.setItem('openai_key', 'store-preview-key');
                 localStorage.setItem('sender_name', 'Road volunteer');
-                localStorage.setItem('data_notice_version', '2026-08-21-v5-delhi');
+                localStorage.setItem('data_notice_version', '2026-08-21-v6-state-packs');
                 localStorage.setItem('record_video', '0');
                 """
             )
             page = context.new_page()
-            page.goto(f"http://127.0.0.1:{PORT}/static/index.html", wait_until="networkidle")
+            page.goto(f"http://127.0.0.1:{PORT}/", wait_until="networkidle")
+            example_photo = base64.b64encode(
+                (ROOT / "docs" / "example-pothole-thumb.jpg").read_bytes()
+            ).decode("ascii")
             page.evaluate(
-                """async () => {
-                  const photo = await fetch('/docs/example-pothole-thumb.jpg').then(r => r.blob());
+                """async (photoBase64) => {
+                  const photo = await fetch(`data:image/jpeg;base64,${photoBase64}`).then(r => r.blob());
                   const route = await StandaloneAPI.__pure.kolkataRouteFromGeocode(
                     null, 22.5726, 88.3639, 12
                   );
@@ -80,7 +84,8 @@ def main() -> None:
                       address: 'Esplanade, Kolkata', lat: 22.5726, lng: 88.3639,
                       email_subject: subject, email_body: body, officer_email: null,
                       officer_name: route.officer_name, authority_id: route.authority_id,
-                      authority_name: route.authority_name, authority_registry_version: 3,
+                      authority_name: route.authority_name,
+                      authority_registry_version: route.authority_registry_version,
                       delivery_channel: 'official_handoff', region: 'kolkata',
                       routing_source: route.routing_source, routing_match_field: 'boundary',
                       routing_match_value: route.routing_match_value, ownership_unverified: true,
@@ -95,8 +100,11 @@ def main() -> None:
                   });
                   await loadReports();
                   show('home');
-                }"""
+                  window.scrollTo(0, 0);
+                }""",
+                example_photo,
             )
+            page.wait_for_timeout(100)
             page.screenshot(path=OUT / "01-home-and-history.png")
 
             page.evaluate("localStorage.setItem('app_lang', 'bn')")

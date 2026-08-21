@@ -17,7 +17,10 @@ Chincholi and Chinchali) are left unstamped rather than guessed.
 """
 import json, re, difflib, pathlib
 
+from state_pack_tools import publish_resource
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+SOURCE_RETRIEVED_AT = "2026-08-21"  # update when data/tenders-karnataka.json is refreshed
 rows = json.load(open(ROOT / "data/tenders-karnataka.json"))
 rows = rows if isinstance(rows, list) else rows.get("tenders", [])
 towns = json.load(open(ROOT / "data/karnataka-towns.json"))["towns"]
@@ -81,9 +84,20 @@ for r in rows:
     else:
         stats["no_address" if code else "unresolved"] += 1; r.pop("b", None)
 
-json.dump(rows, open(ROOT / "data/tenders-karnataka.json", "w"), separators=(",", ":"))
-json.dump(rows, open(ROOT / "android-app/www/tenders.json", "w"), separators=(",", ":"))
+with (ROOT / "data/tenders-karnataka.json").open("w", encoding="utf-8") as output:
+    json.dump(rows, output, ensure_ascii=False, separators=(",", ":"))
+    output.write("\n")
+published_rows = [row for row in rows if row.get("b")]
+_, pack_output = publish_resource(
+    "in-ka-tenders",
+    published_rows,
+    source_retrieved_at=SOURCE_RETRIEVED_AT,
+)
 print(f"stamped              {stats['mapped']}")
 print(f"legacy BBMP ({BLR})   {stats['blr']}")
 print(f"body has no address  {stats['no_address']}  (never citable, correctly unstamped)")
 print(f"unresolved location  {stats['unresolved']}")
+print(f"published records    {len(published_rows)}")
+print(pack_output.relative_to(ROOT))
+print("static/pack-manifest.json")
+print("android-app/www/pack-manifest.json")

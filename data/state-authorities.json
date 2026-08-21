@@ -1,0 +1,184 @@
+{
+  "MH": {
+    "authorities": [
+      {
+        "id": "mh-bmc",
+        "name": "Brihanmumbai Municipal Corporation",
+        "aliases": ["mumbai", "greater mumbai", "brihanmumbai", "bombay", "मुंबई", "बृहन्मुंबई"],
+        "handoff_name": "BMC Pothole QuickFix",
+        "handoff_url": "https://play.google.com/store/apps/details?id=com.bmc.potholequickfix",
+        "handoff_package": "com.bmc.potholequickfix",
+        "whatsapp_url": "https://wa.me/918999228999",
+        "helpline": "1916"
+      },
+      {
+        "id": "mh-tmc",
+        "name": "Thane Municipal Corporation",
+        "aliases": ["thane", "thana", "ठाणे"],
+        "handoff_name": "Aaple Sarkar",
+        "handoff_url": "https://grievances.maharashtra.gov.in/en"
+      },
+      {
+        "id": "mh-kdmc",
+        "name": "Kalyan-Dombivli Municipal Corporation",
+        "aliases": ["kalyan-dombivli", "kalyan-dombivali", "kalyan dombivli", "kalyan dombivali", "kalyan", "dombivli", "dombivali", "कल्याण", "डोंबिवली"],
+        "handoff_name": "KDMC Citizen Grievance",
+        "handoff_url": "https://kdmc.gov.in/kdmc/CitizenHome.html"
+      },
+      {
+        "id": "mh-nmmc",
+        "name": "Navi Mumbai Municipal Corporation",
+        "aliases": ["navi mumbai", "new bombay", "नवी मुंबई"],
+        "handoff_name": "My NMMC",
+        "handoff_url": "https://online.nmmc.gov.in/Grievance",
+        "handoff_package": "com.newnmmc.app"
+      },
+      {
+        "id": "mh-umc",
+        "name": "Ulhasnagar Municipal Corporation",
+        "aliases": ["ulhasnagar", "ulhas nagar", "उल्हासनगर"],
+        "handoff_name": "UMC official website",
+        "handoff_url": "https://www.umc.gov.in/"
+      },
+      {
+        "id": "mh-bncmc",
+        "name": "Bhiwandi-Nizampur Municipal Corporation",
+        "aliases": ["bhiwandi-nizampur", "bhiwandi-nizamapur", "bhiwandi nizampur", "bhiwandi nizamapur", "bhiwandi", "bhivandi", "nizampur", "भिवंडी", "निजामपूर"],
+        "handoff_name": "BNCMC Grievance Portal",
+        "handoff_url": "https://grp.bncmc.gov.in/en/home"
+      },
+      {
+        "id": "mh-vvcmc",
+        "name": "Vasai-Virar City Municipal Corporation",
+        "aliases": ["vasai-virar", "vasai virar", "vasai", "virar", "nala sopara", "nalasopara", "वसई", "विरार", "नालासोपारा"],
+        "handoff_name": "VClick - VVCMC",
+        "handoff_url": "https://onlinevvcmc.in/CRM/",
+        "whatsapp_url": "https://wa.me/919665877727"
+      },
+      {
+        "id": "mh-mbmc",
+        "name": "Mira-Bhayandar Municipal Corporation",
+        "aliases": ["mira-bhayandar", "mira bhayandar", "mira bhayander", "mira road", "bhayandar", "bhayander", "मीरा-भाईंदर", "भाईंदर"],
+        "handoff_name": "MyMBMC Complaint Portal",
+        "handoff_url": "https://crm.mymbmc.in/"
+      },
+      {
+        "id": "mh-panvel",
+        "name": "Panvel Municipal Corporation",
+        "aliases": ["panvel", "new panvel", "पनवेल"],
+        "handoff_name": "Panvel Connect",
+        "handoff_url": "https://grievance.panvelcorporation.in/",
+        "helpline": "1800227701"
+      },
+      {
+        "id": "mh-ambarnath",
+        "name": "Ambarnath Municipal Council",
+        "aliases": ["ambarnath", "ambernath", "अंबरनाथ"],
+        "officer_email": "coud.ambernath@maharashtra.gov.in"
+      },
+      {
+        "id": "mh-badlapur",
+        "name": "Kulgaon-Badlapur Municipal Council",
+        "aliases": ["kulgaon-badlapur", "kulgaon-badalapur", "kulgaon badlapur", "kulgaon badalapur", "badlapur", "badalapur", "kulgaon", "बदलापूर", "कुळगाव-बदलापूर"],
+        "officer_email": "support@kbmc.gov.in",
+        "helpline": "18002129032"
+      },
+      {
+        "id": "mh-matheran",
+        "name": "Matheran Municipal Council",
+        "aliases": ["matheran", "माथेरान"],
+        "officer_email": "mcomatheran@gmail.com"
+      },
+      {
+        "id": "mh-karjat",
+        "name": "Karjat Municipal Council",
+        "aliases": ["karjat", "कर्जत"],
+        "officer_email": "karjatcouncil@gmail.com"
+      },
+      {
+        "id": "mh-khopoli",
+        "name": "Khopoli Municipal Council",
+        "aliases": ["khopoli", "खोपोली"],
+        "officer_email": "cokmckhopoli@gmail.com"
+      },
+      {
+        "id": "mh-pen",
+        "name": "Pen Municipal Council",
+        "aliases": ["pen", "पेण"],
+        "officer_email": "copenmc@gmail.com"
+      },
+      {
+        "id": "mh-uran",
+        "name": "Uran Municipal Council",
+        "aliases": ["uran", "उरण"],
+        "officer_email": "uranmunicipal@gmail.com"
+      },
+      {
+        "id": "mh-alibag",
+        "name": "Alibag Municipal Council",
+        "aliases": ["alibag", "alibaug", "अलिबाग"],
+        "officer_email": "nagarparishadalibag@gmail.com"
+      },
+      {
+        "id": "mh-palghar",
+        "name": "Palghar Municipal Council",
+        "aliases": ["palghar", "पालघर"],
+        "handoff_name": "Aaple Sarkar",
+        "handoff_url": "https://grievances.maharashtra.gov.in/en"
+      },
+      {
+        "id": "mh-khalapur",
+        "name": "Khalapur Nagar Panchayat",
+        "aliases": ["khalapur", "खालापूर"],
+        "officer_email": "cokmckhalapur@gmail.com"
+      }
+    ],
+    "pmc": {
+      "id": "mh-pmc",
+      "name": "Pune Municipal Corporation",
+      "handoff_name": "PMC Road Mitra",
+      "handoff_url": "https://play.google.com/store/apps/details?id=com.nyatitechnologies.pmcroadmitra",
+      "handoff_package": "com.nyatitechnologies.pmcroadmitra",
+      "alternate_handoff_name": "PMC CARE",
+      "alternate_handoff_url": "https://pmccare.in/",
+      "helpline": "18001030222"
+    },
+    "fallback": {
+      "id": "mh-mmr-unverified",
+      "name": "MMR road authority (verify in Aaple Sarkar)",
+      "handoff_name": "Aaple Sarkar",
+      "handoff_url": "https://grievances.maharashtra.gov.in/en"
+    }
+  },
+  "WB": {
+    "authorities": [
+      {
+        "id": "wb-kmc",
+        "name": "Kolkata Municipal Corporation",
+        "aliases": ["kolkata", "calcutta", "kolkata municipal corporation", "কলকাতা", "কলকাতা পৌরসংস্থা"],
+        "handoff_name": "KMC Grievance 2.0",
+        "handoff_url": "https://kmc.wb.gov.in/citizen/language-selection",
+        "handoff_package": "com.kmc.app",
+        "alternate_handoff_name": "KMC APP",
+        "alternate_handoff_url": "https://play.google.com/store/apps/details?id=com.kmc.app",
+        "whatsapp_url": "https://wa.me/918335988888",
+        "helpline": "18003453375"
+      }
+    ]
+  },
+  "DL": {
+    "authorities": [
+      {
+        "id": "dl-pwd-sewa",
+        "name": "Delhi road grievance coordination",
+        "handoff_name": "PWD Sewa",
+        "handoff_url": "https://www.pwddelhi.gov.in/sewa/complaint",
+        "handoff_package": "com.sis.pwdsewaapp",
+        "alternate_handoff_name": "Delhi PGMS",
+        "alternate_handoff_url": "https://pgms.delhi.gov.in/",
+        "whatsapp_url": "https://wa.me/918130188222",
+        "helpline": "1908"
+      }
+    ]
+  }
+}

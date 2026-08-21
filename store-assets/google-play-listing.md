@@ -27,7 +27,7 @@ Maharashtra
 • Prepare editable English or Marathi evidence and offer the published external handoff.
 
 Kolkata
-• Cover current KMC limits using the official West Bengal UDMA municipal boundary bundled in the app.
+• Cover current KMC limits using a checksum-verified download of the official West Bengal UDMA municipal boundary.
 • Exclude Howrah, Bidhannagar/Salt Lake, New Town, and other neighbouring civic bodies.
 • Prepare English or Bengali evidence and offer KMC Grievance 2.0, the official KMC app as an alternate, KMC WhatsApp, or the KMC helpline.
 
@@ -37,7 +37,7 @@ Delhi
 • Use the local NCT boundary only for coverage. It does not identify who owns or maintains a road.
 
 Karnataka
-For supported urban local bodies, public GIS and a bundled directory help identify a published municipal recipient. The app opens an editable email draft. An eligible report may include a clearly labelled probable public-procurement match.
+For supported urban local bodies, public GIS and a checksum-verified directory download help identify a published municipal recipient. The app opens an editable email draft. An eligible report may include a clearly labelled probable public-procurement match.
 
 Important
 • AI can miss damage or produce false positives. Review every result.
@@ -46,6 +46,7 @@ Important
 • Contract matching is Karnataka-only and is not proof of responsibility or warranty.
 • The app is not affiliated with or endorsed by any government body.
 • Core features require camera and foreground location permission, internet, and your own billed OpenAI API key.
+• Regional routing, contact, and eligible Karnataka tender data download from this project's GitHub Pages only when relevant and are SHA-256 verified before use. A required routing/contact-pack failure stops authority routing; an optional tender-pack failure only omits contract context. Verified packs are cached locally, pruned on a later pack use after their unused limit, and removed immediately by an in-app data wipe. GitHub Pages receives the requested regional pack path and standard connection metadata, not photos, exact coordinates or report contents. A first use needs internet.
 • Selected images and API requests go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; Karnataka points also query Karnataka GIS. MMR, PMC, KMC, and Delhi NCT boundary checks are local.
 • Choosing an official app, portal, WhatsApp, Share, Email, or another external service transfers selected data or connection metadata under that provider's policy.
 • Drive recording is optional and off by default. Mount the phone before moving.
@@ -68,20 +69,20 @@ https://coding-parrot.github.io/pothole-reporter/sources.html
 Current routing targets Delhi NCT, the MMR, PMC, KMC, and supported Karnataka urban local bodies. Locations outside these routes are saved locally but not addressed to an authority.
 ```
 
-## Release notes (1.17.0 / version code 33)
+## Release notes (1.18.0 / version code 34)
 
 ```text
-Added full Delhi NCT coverage with PWD Sewa, Delhi PGMS, WhatsApp and 1908 handoffs. The wider NCR is excluded, and the app does not guess who owns a road.
+Reduced app size with versioned, SHA-256-verified regional data downloads. Required routing data fails closed; an unavailable optional Karnataka tender pack simply omits contract context. Verified cache entries past their unused limits are pruned on a later pack use. Coverage is unchanged.
 ```
 
 ## Play Console fields
 
 - Recommended category: **Tools**.
 - Ads declaration: **No**, provided no advertising SDK or ad content is added before release.
-- Privacy policy URL after GitHub Pages is enabled and verified:
+- Privacy policy URL:
   `https://coding-parrot.github.io/pothole-reporter/privacy.html`
 - Support website: `https://github.com/coding-parrot/pothole-reporter/issues`
-- Data-source page after GitHub Pages is enabled and verified:
+- Data-source page:
   `https://coding-parrot.github.io/pothole-reporter/sources.html`
 - **Publisher action required:** enter a monitored, developer-controlled support email in
   Play Console. No support email is present in the repository, so none is invented here.

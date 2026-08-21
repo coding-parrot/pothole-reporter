@@ -285,7 +285,7 @@ async ({pixel}) => {
   const retiredRouteError = await errorFrom(StandaloneAPI.handle(
     "/api/reports/71007/send", {method: "POST"}));
   ok("generic handoff: an authority absent from the current registry is blocked",
-     /no longer in the verified registry/i.test(retiredRouteError || ""), retiredRouteError);
+     /verified official handoff is unavailable/i.test(retiredRouteError || ""), retiredRouteError);
   const retiredStored = await byId(71007);
   eq("generic handoff: blocked retired route remains a draft", retiredStored.status, "draft");
   eq("generic handoff: blocked retired route records no handoff time",

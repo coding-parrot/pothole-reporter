@@ -6,6 +6,29 @@ local matching rules, and AI-generated judgments. A source record is not proof t
 particular defect, authority, or contract match is correct. The user must review the
 photo, routing, and any probable contract match before sending a complaint.
 
+## Versioned state packs
+
+Large routing, contact, and procurement datasets are not embedded in the APK. The app
+ships a small manifest that pins each supported resource's version, HTTPS URL, byte
+length, and SHA-256 checksum. Routing/contact data is published as a separate pack for
+Delhi, Karnataka, Maharashtra, and West Bengal. Karnataka procurement data is a separate
+optional tender pack and is requested only for an eligible Karnataka contract match.
+This packaging change does not expand or alter any boundary described below.
+
+The app downloads a pack from this project's GitHub Pages site, verifies the complete
+response against the manifest before parsing it, and caches only verified bytes on the
+device. Missing, malformed, truncated, or checksum-mismatched required routing/contact
+data makes the affected route fail closed; a geocoder place name is not used as a
+fallback. Failure of the optional Karnataka tender pack does not block the report—it
+continues without contract context. A verified pack can be read locally after its first
+successful download. On a subsequent pack use, caches past their unused limits are pruned
+automatically, and **Delete all app data** removes the entire cache immediately.
+
+The pack URL names the state, so GitHub Pages can receive the device's IP address,
+standard connection metadata, and a coarse indication of the requested state. No report,
+road photo, or exact coordinates are included in the pack request. Adding another state
+adds hosted data rather than continually increasing the core APK.
+
 ## Maharashtra boundaries and complaint handoffs
 
 ### Mumbai Metropolitan Region
@@ -22,11 +45,11 @@ That extent contains 19 urban local bodies:
 
 The remaining notified rural MMR is also covered, but routes to the neutral
 [Aaple Sarkar grievance service](https://grievances.maharashtra.gov.in/en) rather than to
-the nearest city. The bundled boundary is an offline routing aid made from OpenStreetMap
+the nearest city. The Maharashtra routing pack contains a locally evaluated aid made from OpenStreetMap
 relation 13312356 plus the Palghar, Vasai, Alibag, Pen, Panvel, and Khalapur taluka
 relations named by the notification. OpenStreetMap geometry can be stale or imprecise;
 the notification controls the intended scope. In particular, the 2019 notification
-excludes declared Scheduled Areas from the added taluka remainders, while this bundled
+excludes declared Scheduled Areas from the added taluka remainders, while this downloaded
 outline uses whole OSM taluka polygons and does not subtract those enclaves. Its measured
 area is about 6,264.9 km² versus MMRDA's published 6,328 km². It is therefore a practical
 fail-safe routing outline, not an exact or legal representation of the notified boundary.
@@ -45,8 +68,8 @@ proves road ownership: MMRDA, MSRDC, PWD, NHAI, CIDCO, or another agency may mai
 
 Pune coverage uses the `PMC_Boundary` layer published by the
 [official PMC GIS](https://iwmsgis.pmc.gov.in/BP_Docs/index.html) through its
-[GeoServer WMS](https://iwmsgis.pmc.gov.in/geoserver/pmc/wms). The geometry is bundled
-for local point-in-polygon checks from the corresponding
+[GeoServer WMS](https://iwmsgis.pmc.gov.in/geoserver/pmc/wms). A copy of the geometry is
+included in the verified Maharashtra routing pack for local point-in-polygon checks from the corresponding
 [WFS GeoJSON layer](https://iwmsgis.pmc.gov.in/geoserver/pmc/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=pmc:PMC_Boundary&outputFormat=application/json&srsName=EPSG:4326).
 It covers the current Pune Municipal Corporation boundary only; Pimpri-Chinchwad
 Municipal Corporation (PCMC) and places outside PMC are not included. The app offers PMC
@@ -79,11 +102,11 @@ West Bengal Urban Development & Municipal Affairs Department's
 [Nagar GIS WFS](https://nagargispariseva.wb.gov.in/geoserver/SMARTCITY/ows?service=WFS&version=2.0.0&request=GetFeature&typeNames=SMARTCITY%3Awb_municipal_boundary&outputFormat=application%2Fjson&srsName=EPSG%3A4326&CQL_FILTER=ULB_Code%3D%27250299%27).
 The feature was retrieved on 21 August 2026 and is identified by `ULB_Code 250299` and
 `MUN_ID 250299_0000001`. Its source geometry contained one self-intersection, so the
-bundle was repaired with GDAL `ogr2ogr -makevalid`, written as RFC 7946 GeoJSON at
+published copy was repaired with GDAL `ogr2ogr -makevalid`, written as RFC 7946 GeoJSON at
 seven-decimal coordinate precision, and validated; it was not topologically simplified.
 The runtime pins the repaired geometry SHA-256
 `fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5` and fails closed
-if the bundled polygon changes without a reviewed code-and-data release.
+if the downloaded polygon changes without a reviewed code-and-data release.
 The WFS advertises no fees or access constraints but publishes no explicit reuse licence.
 The geometry is used locally for point-in-polygon checks and is not a road-ownership map.
 
@@ -107,13 +130,13 @@ because the point is inside its municipal boundary.
 
 Delhi coverage is the full National Capital Territory, not the wider National Capital
 Region. Noida, Gurugram, Ghaziabad, Faridabad, and other NCR cities outside Delhi NCT are
-excluded. The bundled coverage aid is the polygon for
+excluded. The Delhi routing pack contains the polygon for
 [OpenStreetMap relation 1942586](https://www.openstreetmap.org/relation/1942586), retrieved
 through Nominatim on 21 August 2026 under the ODbL. Its measured area is 1,483.885 km²,
 consistent with Delhi's published 1,483 km² extent. The runtime pins SHA-256
 `3462ba68bdbbc1fdebc99403aa9e1f9db5e0b78e30ca138b2d25df7463506ab3` over the geometry
-and fails closed if the file is missing, malformed, or replaced without a code release.
-`tools/build-delhi-coverage.py` reproduces the bundle. The official
+and fails closed if the pack is missing, malformed, or replaced without a code release.
+`tools/build-delhi-coverage.py` reproduces the routing data. The official
 [Delhi State GIS map](https://stategisportal.nic.in/stategisportal/Home/Map/7) is the scope
 reference; its access token is not copied into the app.
 
@@ -136,7 +159,7 @@ reference ID.
 Contract matching is disabled for Delhi because the project has no authoritative,
 road-linked award, maintenance, and defect-liability feed for all Delhi road agencies.
 
-## Karnataka road contracts (42,283 rows)
+## Karnataka road-contract data
 
 **Source: KPPP, the Karnataka Public Procurement Portal, Government of Karnataka.**
 <https://kppp.karnataka.gov.in>
@@ -154,25 +177,31 @@ curl -s -X POST "https://kppp.karnataka.gov.in/supplier-registration-service/v1/
 ```
 
 That header reports the total the portal holds: **98,009 awarded works** at the time of
-writing. `tools/pull-kppp.py` walks those pages and keeps the road-related ones by
-matching the work title, which is why the bundle is 42,283 rows rather than all 98,009.
+writing. `tools/pull-kppp.py` walks those pages and keeps **42,283 road-related rows** by
+matching the work title. That is the full source snapshot, not the file downloaded by the
+app. The optional tender pack contains the **13,577** rows that are indexed to a supported
+municipal body and can actually enter its matcher.
 
 **Verification done on 19 Aug 2026:** of the 1,000 rows on the portal's first page,
-**341 appear in the bundled file, byte-identical on title, publication date and
-location**. The rest of that page is non-road work the sweep deliberately drops.
+**341 appear in the full 42,283-row source snapshot, byte-identical on title, publication
+date and location**. This check predates the supported-body reduction and is not a claim
+that all 341 appear in the current 13,577-row downloadable pack. The rest of that page is
+non-road work the title filter deliberately drops.
 
 Fields taken: `tenderNumber`, `description` (the work title), `locationName`,
 `publishedDate`. Nothing is edited beyond truncating long titles.
 
-## Contractor names (1,124 of those rows)
+## Contractor names
 
 **Source: the public-domain snapshot at
 <https://bengaluru-road-contracts.pages.dev>, whose own source is KPPP.**
 
-The portal's *search* results do not include the winning bidder; only the per-tender
-full view does. So contractor names come from that pre-existing snapshot of Bengaluru
-contracts. Outside Bengaluru the complaint names the tender and states plainly that no
-winning bidder is recorded. It never guesses a company name.
+The portal's *search* results do not include the winning bidder; only the per-tender full
+view does. Contractor names therefore come from that pre-existing Bengaluru snapshot.
+The full 42,283-row source contains **1,124** named bidders; the current downloadable pack
+retains **1,121** of them. Its other **12,456** rows have no bidder name. Outside Bengaluru
+the complaint names the tender and states plainly that no winning bidder is recorded. It
+never guesses a company name.
 
 ## Which officer receives the complaint (182 local bodies)
 
@@ -181,7 +210,8 @@ sites on the Municipal Reforms Cell domain.**
 Pattern: `https://<district>.nic.in/en/public-utility-category/municipality/` and
 `https://<name>city.mrc.gov.in`.
 
-Every entry in [`data/karnataka-bodies.json`](../data/karnataka-bodies.json) carries a
+Every entry in [`data/karnataka-bodies.json`](../data/karnataka-bodies.json), which is
+the source for the Karnataka routing/contact pack, carries a
 `source` field naming the page its address was read from. The 18 city corporations were
 each checked twice, by separate passes, because they carry the most traffic. A body whose
 address could not be found on a government page is **not** in the file, and the app
@@ -209,8 +239,8 @@ identifier rather than by matching a place name.
 
 **Source: OpenStreetMap, via Nominatim.** It turns coordinates into a street name and
 pincode for the complaint. In Maharashtra and Kolkata, address fields are display-only
-routing clues; only a bundled civic polygon selects a specific authority. Delhi coverage
-also uses only its bundled NCT polygon, never the geocoder's place name. The address is
+routing clues; only a verified cached civic polygon selects a specific authority. Delhi
+coverage also uses only its verified NCT polygon, never the geocoder's place name. The address is
 not used to expand the MMR, PMC, KMC, or Delhi NCT boundary. The coordinates themselves
 come from the phone's GPS and are printed in the complaint alongside a map link, so the
 location can be checked independently.
@@ -236,17 +266,17 @@ That wording is deliberate and should not be strengthened.
 
 ## Known limits
 
-- MMR coverage targets the official notified extent, but its bundled OpenStreetMap outer
+- MMR coverage targets the official notified extent, but its downloaded OpenStreetMap outer
   outline is approximate, differs from MMRDA's published area by about 1%, and does not
   subtract the Scheduled Areas excluded by the 2019 notification. It must not be used as
   a legal boundary. Eleven available civic polygons can select a body; eight bodies,
   rural points, and ambiguities fall back to Aaple Sarkar. A suggestion does not establish
   road ownership.
-- PMC coverage uses a bundled copy of PMC's official GIS boundary and deliberately excludes
-  PCMC. A later PMC boundary change requires an app data update.
-- KMC coverage uses a bundled, validity-repaired copy of the official West Bengal UDMA
+- PMC coverage uses a verified copy of PMC's official GIS boundary and deliberately excludes
+  PCMC. A later PMC boundary change requires a reviewed state-pack update.
+- KMC coverage uses a verified, validity-repaired copy of the official West Bengal UDMA
   municipal feature. It excludes Howrah, Bidhannagar/Salt Lake, and New Town. A later KMC
-  boundary change requires an app data update.
+  boundary change requires a reviewed state-pack update.
 - Delhi coverage is the full NCT outline only and excludes the wider NCR. Every accepted
   point uses a cross-agency grievance handoff because the outline cannot establish whether
   PWD, MCD, NDMC, Cantonment, DDA, NHAI, or another agency maintains the road.
@@ -259,11 +289,12 @@ That wording is deliberate and should not be strengthened.
 - Delhi contract matching is disabled; NCT containment is neither ownership nor a contract match.
 - 137 of Karnataka's 319 local bodies have no address in the file, because their district
   pages publish none. Those reports refuse to route.
-- 41,159 of the 42,283 contracts have no winning bidder recorded, for the reason above.
-- Of the 42,283 bundled rows, 18,972 are municipal (DMA or legacy BBMP) records. Only
-  13,577 are currently indexed to a supported body and can enter the app's contract
-  shortlist. The remaining municipal rows are unresolved or belong to bodies without a
-  published address; the 23,311 non-municipal rows belong to agencies such as PWD,
+- The full 42,283-row source has 41,159 records without a winning bidder. The downloadable
+  13,577-row pack has 12,456 without one and 1,121 with one.
+- Of the 42,283 source rows, 18,972 are municipal (DMA or legacy BBMP) records. The pack
+  retains the 13,577 indexed to a supported body that can enter the app's contract
+  shortlist. The remaining 5,395 municipal rows are unresolved or belong to bodies without
+  a published address; the 23,311 non-municipal rows belong to agencies such as PWD,
   panchayats, and irrigation departments and are not candidates for a municipal complaint.
 - The road-work filter matches on title keywords, so the candidate pool is inclusive by
   design; the confidence gate on the match is what keeps weak candidates out of a

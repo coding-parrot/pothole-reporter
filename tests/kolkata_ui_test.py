@@ -45,8 +45,8 @@ async () => {
      /OpenAI/.test(document.getElementById("privacyBody").textContent)
        && /ক্যামেরা/.test(document.getElementById("privacyBody").textContent),
      document.getElementById("privacyBody").textContent);
-  ok("privacy: revised Delhi notice preserves fresh consent",
-     /v5-delhi$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
+  ok("privacy: state-pack release forces fresh consent",
+     /v6-state-packs$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
 
   const P = StandaloneAPI.__pure;
   const route = await P.kolkataRouteFromGeocode(null, 22.5726, 88.3639, 12);
@@ -70,7 +70,8 @@ async () => {
     photo: "data:image/png;base64,iVBORw0KGgo=", photo_full: null,
     email_subject: subject, email_body: body, officer_email: null,
     officer_name: route.officer_name, authority_id: route.authority_id,
-    authority_name: route.authority_name, authority_registry_version: 3,
+    authority_name: route.authority_name,
+    authority_registry_version: route.authority_registry_version,
     delivery_channel: "official_handoff", region: "kolkata",
     routing_source: route.routing_source, routing_match_field: "boundary",
     routing_match_value: route.routing_match_value, ownership_unverified: true,

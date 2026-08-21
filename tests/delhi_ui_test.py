@@ -21,13 +21,13 @@ async () => {
     name, !!value, detail === undefined ? value : detail, true,
   ]);
 
-  ok("privacy: Delhi boundary release forces fresh consent",
-     /v5-delhi$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
+  ok("privacy: state-pack release forces fresh consent",
+     /v6-state-packs$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
   for (const [lang, dictionary] of Object.entries(I18N)) {
     ok(`scope: ${lang} names Delhi NCT`, /Delhi NCT|ದೆಹಲಿ NCT|दिल्ली NCT|দিল্লি NCT/.test(
       dictionary.outside_coverage_help), dictionary.outside_coverage_help);
-    ok(`privacy: ${lang} names local Delhi NCT boundary check`,
-       /Delhi NCT|ದೆಹಲಿ NCT|दिल्ली NCT|দিল্লি NCT/.test(dictionary.privacy_government),
+    ok(`privacy: ${lang} discloses the state-pack host`,
+       /GitHub Pages/.test(dictionary.privacy_government),
        dictionary.privacy_government);
   }
 

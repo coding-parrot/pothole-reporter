@@ -2,13 +2,12 @@
 """Delhi routing must cover the full NCT, exclude NCR neighbours, and fail closed."""
 import hashlib
 import json
-import pathlib
 import sys
 
 from playwright.sync_api import sync_playwright
+from state_pack_utils import read_pack, read_payload, route_pattern
 
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
 APP = "http://localhost:8765/"
 EXPECTED_DIGEST = "3462ba68bdbbc1fdebc99403aa9e1f9db5e0b78e30ca138b2d25df7463506ab3"
 
@@ -27,7 +26,11 @@ async () => {
     catch (error) { checks.push([name, true, String(error && error.message || error), "rejected"]); }
   };
 
-  eq("registry: version advanced for Delhi", P.AUTHORITY_REGISTRY_VERSION, 3);
+  // Official contacts are installed only after the state pack passes its full-byte and
+  // envelope checks. This is the same lazy path production routing takes.
+  const coverage = await P.delhiCoverage();
+
+  eq("registry: version advanced for state packs", P.AUTHORITY_REGISTRY_VERSION, 4);
   eq("registry: Delhi route has a stable ID", P.DELHI_PWD_AUTHORITY.id, "dl-pwd-sewa");
   eq("registry: primary route is PWD Sewa", P.DELHI_PWD_AUTHORITY.handoff_name, "PWD Sewa");
   ok("registry: primary complaint route is official HTTPS",
@@ -51,7 +54,6 @@ async () => {
   rejects("registry: invalid WhatsApp routes are rejected", () =>
     P.validateOfficialHandoffRegistry([{...P.DELHI_PWD_AUTHORITY, whatsapp_url: "https://example.invalid"}]));
 
-  const coverage = await P.delhiCoverage();
   ok("coverage: Delhi asset loads", coverage && coverage.region, coverage);
   eq("coverage: NCT ID is pinned", coverage.region.id, "delhi-nct");
   eq("coverage: OSM relation is pinned", coverage.region.osm_relation_id, 1942586);
@@ -160,7 +162,7 @@ def run_scenario(browser, route_override=None):
     context = browser.new_context(viewport={"width": 390, "height": 844})
     page = context.new_page()
     if route_override is not None:
-        page.route("**/delhi-coverage.json", route_override)
+        page.route(route_pattern("in-dl-routing"), route_override)
     page.goto(APP)
     page.wait_for_load_state("networkidle")
     page.wait_for_function(
@@ -171,11 +173,17 @@ def run_scenario(browser, route_override=None):
 
 def main():
     failures = []
-    static = ROOT / "static" / "delhi-coverage.json"
-    android = ROOT / "android-app" / "www" / "delhi-coverage.json"
-    if static.read_bytes() != android.read_bytes():
-        failures.append("coverage asset differs between static and Android")
-    data = json.loads(static.read_text(encoding="utf-8"))
+    try:
+        read_pack("in-dl-routing")
+        data = read_payload("in-dl-routing")
+    except (AssertionError, KeyError, OSError, ValueError) as error:
+        failures.append(f"Delhi routing pack pin is invalid: {error}")
+        data = {}
+    if not data:
+        print("FAIL")
+        for failure in failures:
+            print("  -", failure)
+        sys.exit(1)
     if data["retrieved_at"] != "2026-08-21":
         failures.append("coverage retrieval date is not pinned")
     if not (1480.0 < float(data["region"]["area_km2"]) < 1490.0):

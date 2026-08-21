@@ -76,18 +76,18 @@
     "bengaluru west city corporation": ["Commissioner, Bengaluru West City Corporation (BWCC)", "commissioner.bwcc@gmail.com"],
   };
 
-  // Maharashtra complaints remain inside each authority's official workflow. This app
-  // only prepares evidence and opens a verified app, portal or email composer; it has no
-  // civic credentials and never claims that opening a channel submitted a case.
-  const BMC_QUICKFIX_URL = "https://play.google.com/store/apps/details?id=com.bmc.potholequickfix";
-  const BMC_QUICKFIX_PACKAGE = "com.bmc.potholequickfix";
-  const BMC_WHATSAPP_URL = "https://wa.me/918999228999";
-  const BMC_HELPLINE = "1916";
-  const AAPLE_SARKAR_URL = "https://grievances.maharashtra.gov.in/en";
-  const AUTHORITY_REGISTRY_VERSION = 3;
+  // State-specific contacts and polygons live in immutable data packs. The APK keeps
+  // only the parsers, strict validators and the package IDs Android permits it to query.
+  // A downloaded pack can therefore add data, never executable behaviour.
+  const AUTHORITY_REGISTRY_VERSION = 4;
+  const LAUNCHABLE_PACKAGES = new Set([
+    "com.bmc.potholequickfix", "com.sis.pwdsewaapp", "com.kmc.app",
+    "com.newnmmc.app", "com.nyatitechnologies.pmcroadmitra",
+  ]);
   const OFFICIAL_HANDOFF_CHANNELS = new Set(["official_handoff", "bmc_quickfix"]);
   const MUMBAI_STATES = new Set(["maharashtra", "महाराष्ट्र"]);
   const WEST_BENGAL_STATES = new Set(["west bengal", "পশ্চিমবঙ্গ"]);
+  const KARNATAKA_STATES = new Set(["karnataka", "ಕರ್ನಾಟಕ"]);
   const MUMBAI_DISTRICTS = new Set([
     "mumbai city district", "mumbai city", "mumbai suburban district", "mumbai suburban",
     "मुंबई शहर जिल्हा", "मुंबई शहर", "मुंबई उपनगर जिल्हा", "मुंबई उपनगर",
@@ -98,158 +98,23 @@
     "R/S", "S", "T",
   ]);
 
-  // The MMR roster is the one published by MMRDA. Civic polygons alone may select a
-  // specific authority. Nominatim's structured place fields remain display-only clues;
-  // they never replace containment or prove who owns a road.
-  const MMR_AUTHORITIES = [
-    {
-      id: "mh-bmc", name: "Brihanmumbai Municipal Corporation",
-      aliases: ["mumbai", "greater mumbai", "brihanmumbai", "bombay", "मुंबई", "बृहन्मुंबई"],
-      handoff_name: "BMC Pothole QuickFix", handoff_url: BMC_QUICKFIX_URL,
-      handoff_package: BMC_QUICKFIX_PACKAGE, whatsapp_url: BMC_WHATSAPP_URL,
-      helpline: BMC_HELPLINE,
-    },
-    {
-      id: "mh-tmc", name: "Thane Municipal Corporation",
-      aliases: ["thane", "thana", "ठाणे"], handoff_name: "Aaple Sarkar",
-      handoff_url: AAPLE_SARKAR_URL,
-    },
-    {
-      id: "mh-kdmc", name: "Kalyan-Dombivli Municipal Corporation",
-      aliases: ["kalyan-dombivli", "kalyan-dombivali", "kalyan dombivli", "kalyan dombivali", "kalyan", "dombivli", "dombivali", "कल्याण", "डोंबिवली"],
-      handoff_name: "KDMC Citizen Grievance",
-      handoff_url: "https://kdmc.gov.in/kdmc/CitizenHome.html",
-    },
-    {
-      id: "mh-nmmc", name: "Navi Mumbai Municipal Corporation",
-      aliases: ["navi mumbai", "new bombay", "नवी मुंबई"], handoff_name: "My NMMC",
-      handoff_url: "https://online.nmmc.gov.in/Grievance", handoff_package: "com.newnmmc.app",
-    },
-    {
-      id: "mh-umc", name: "Ulhasnagar Municipal Corporation",
-      aliases: ["ulhasnagar", "ulhas nagar", "उल्हासनगर"], handoff_name: "UMC official website",
-      handoff_url: "https://www.umc.gov.in/",
-    },
-    {
-      id: "mh-bncmc", name: "Bhiwandi-Nizampur Municipal Corporation",
-      aliases: ["bhiwandi-nizampur", "bhiwandi-nizamapur", "bhiwandi nizampur", "bhiwandi nizamapur", "bhiwandi", "bhivandi", "nizampur", "भिवंडी", "निजामपूर"],
-      handoff_name: "BNCMC Grievance Portal", handoff_url: "https://grp.bncmc.gov.in/en/home",
-    },
-    {
-      id: "mh-vvcmc", name: "Vasai-Virar City Municipal Corporation",
-      aliases: ["vasai-virar", "vasai virar", "vasai", "virar", "nala sopara", "nalasopara", "वसई", "विरार", "नालासोपारा"],
-      handoff_name: "VClick - VVCMC", handoff_url: "https://onlinevvcmc.in/CRM/",
-      whatsapp_url: "https://wa.me/919665877727",
-    },
-    {
-      id: "mh-mbmc", name: "Mira-Bhayandar Municipal Corporation",
-      aliases: ["mira-bhayandar", "mira bhayandar", "mira bhayander", "mira road", "bhayandar", "bhayander", "मीरा-भाईंदर", "भाईंदर"],
-      handoff_name: "MyMBMC Complaint Portal", handoff_url: "https://crm.mymbmc.in/",
-    },
-    {
-      id: "mh-panvel", name: "Panvel Municipal Corporation",
-      aliases: ["panvel", "new panvel", "पनवेल"], handoff_name: "Panvel Connect",
-      handoff_url: "https://grievance.panvelcorporation.in/",
-      helpline: "1800227701",
-    },
-    {
-      id: "mh-ambarnath", name: "Ambarnath Municipal Council",
-      aliases: ["ambarnath", "ambernath", "अंबरनाथ"], officer_email: "coud.ambernath@maharashtra.gov.in",
-    },
-    {
-      id: "mh-badlapur", name: "Kulgaon-Badlapur Municipal Council",
-      aliases: ["kulgaon-badlapur", "kulgaon-badalapur", "kulgaon badlapur", "kulgaon badalapur", "badlapur", "badalapur", "kulgaon", "बदलापूर", "कुळगाव-बदलापूर"],
-      officer_email: "support@kbmc.gov.in", helpline: "18002129032",
-    },
-    {
-      id: "mh-matheran", name: "Matheran Municipal Council",
-      aliases: ["matheran", "माथेरान"], officer_email: "mcomatheran@gmail.com",
-    },
-    {
-      id: "mh-karjat", name: "Karjat Municipal Council",
-      aliases: ["karjat", "कर्जत"], officer_email: "karjatcouncil@gmail.com",
-    },
-    {
-      id: "mh-khopoli", name: "Khopoli Municipal Council",
-      aliases: ["khopoli", "खोपोली"], officer_email: "cokmckhopoli@gmail.com",
-    },
-    {
-      id: "mh-pen", name: "Pen Municipal Council",
-      aliases: ["pen", "पेण"], officer_email: "copenmc@gmail.com",
-    },
-    {
-      id: "mh-uran", name: "Uran Municipal Council",
-      aliases: ["uran", "उरण"], officer_email: "uranmunicipal@gmail.com",
-    },
-    {
-      id: "mh-alibag", name: "Alibag Municipal Council",
-      aliases: ["alibag", "alibaug", "अलिबाग"], officer_email: "nagarparishadalibag@gmail.com",
-    },
-    {
-      id: "mh-palghar", name: "Palghar Municipal Council",
-      aliases: ["palghar", "पालघर"], handoff_name: "Aaple Sarkar",
-      handoff_url: AAPLE_SARKAR_URL,
-    },
-    {
-      id: "mh-khalapur", name: "Khalapur Nagar Panchayat",
-      aliases: ["khalapur", "खालापूर"], officer_email: "cokmckhalapur@gmail.com",
-    },
-  ];
-
-  const PMC_AUTHORITY = {
-    id: "mh-pmc", name: "Pune Municipal Corporation", handoff_name: "PMC Road Mitra",
-    handoff_url: "https://play.google.com/store/apps/details?id=com.nyatitechnologies.pmcroadmitra",
-    handoff_package: "com.nyatitechnologies.pmcroadmitra",
-    alternate_handoff_name: "PMC CARE", alternate_handoff_url: "https://pmccare.in/",
-    helpline: "18001030222",
-  };
-
-  const KMC_AUTHORITY = {
-    id: "wb-kmc", name: "Kolkata Municipal Corporation",
-    aliases: ["kolkata", "calcutta", "kolkata municipal corporation", "কলকাতা", "কলকাতা পৌরসংস্থা"],
-    handoff_name: "KMC Grievance 2.0",
-    handoff_url: "https://kmc.wb.gov.in/citizen/language-selection",
-    handoff_package: "com.kmc.app",
-    alternate_handoff_name: "KMC APP",
-    alternate_handoff_url: "https://play.google.com/store/apps/details?id=com.kmc.app",
-    whatsapp_url: "https://wa.me/918335988888",
-    helpline: "18003453375",
-  };
-
-  // Delhi's civic and road-maintenance boundaries are not road-ownership maps. PWD
-  // Sewa is the cross-agency road grievance workflow: it can forward a complaint to
-  // the appropriate Delhi body instead of this client pretending to know the owner.
-  const DELHI_PWD_AUTHORITY = {
-    id: "dl-pwd-sewa", name: "Delhi road grievance coordination",
-    handoff_name: "PWD Sewa",
-    handoff_url: "https://www.pwddelhi.gov.in/sewa/complaint",
-    handoff_package: "com.sis.pwdsewaapp",
-    alternate_handoff_name: "Delhi PGMS",
-    alternate_handoff_url: "https://pgms.delhi.gov.in/",
-    whatsapp_url: "https://wa.me/918130188222",
-    helpline: "1908",
-  };
-
-  const MMR_FALLBACK_AUTHORITY = {
-    id: "mh-mmr-unverified", name: "MMR road authority (verify in Aaple Sarkar)",
-    handoff_name: "Aaple Sarkar", handoff_url: AAPLE_SARKAR_URL,
-  };
-  const OFFICIAL_AUTHORITIES = [
-    ...MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY, KMC_AUTHORITY,
-    DELHI_PWD_AUTHORITY,
-  ];
-  validateOfficialHandoffRegistry(OFFICIAL_AUTHORITIES);
-  const OFFICIAL_AUTHORITY_INDEX = new Map(
-    OFFICIAL_AUTHORITIES.map((authority) => [authority.id, authority]),
-  );
+  // These stable containers are populated only after a routing pack passes its complete
+  // byte, envelope, contact and geometry validation. Keeping the references stable makes
+  // the existing pure helpers and old saved reports upgrade without a second registry.
+  const MMR_AUTHORITIES = [];
+  const PMC_AUTHORITY = {};
+  const MMR_FALLBACK_AUTHORITY = {};
+  const KMC_AUTHORITY = {};
+  const DELHI_PWD_AUTHORITY = {};
+  const OFFICIAL_AUTHORITIES = [];
+  const OFFICIAL_AUTHORITY_INDEX = new Map();
+  const MMR_ALIAS_INDEX = new Map();
+  const PACK_AUTHORITIES_BY_STATE = new Map();
   const MMR_DIRECT_AUTHORITY_IDS = new Set([
     "mh-bmc", "mh-tmc", "mh-kdmc", "mh-nmmc", "mh-umc", "mh-bncmc",
     "mh-vvcmc", "mh-mbmc", "mh-panvel", "mh-ambarnath", "mh-badlapur",
   ]);
-  const MMR_FALLBACK_AUTHORITY_IDS = new Set(
-    MMR_AUTHORITIES.map((authority) => authority.id)
-      .filter((id) => !MMR_DIRECT_AUTHORITY_IDS.has(id)),
-  );
+  const MMR_FALLBACK_AUTHORITY_IDS = new Set();
 
   // Karnataka jurisdiction lookup.
   //
@@ -270,18 +135,17 @@
                            TP: "Chief Officer", NAC: "Chief Officer" };
 
   let _bodies = null;
-  // A failure is never cached. Caching one meant a single slow read of a file that ships
-  // inside the APK disabled routing for the rest of the session, and the app then refused
-  // every report as having no address for its body. Local reads were measured at over four
-  // seconds on a cold start, so this is not a remote possibility.
+  // A routing-pack failure is never converted to an empty registry: empty would wrongly
+  // claim the town has no published address. Null means the verified state data itself
+  // was unavailable, and the caller reports that distinct fail-closed outcome.
   async function bodies() {
     if (_bodies) return _bodies;
     try {
-      const res = await fetchWithTimeout("karnataka-bodies.json", {}, 15000);
-      const loaded = (await readJson(res)).bodies;
+      const pack = await loadStatePack("in-ka-routing");
+      const loaded = pack && pack.payload && pack.payload.bodies;
       if (loaded && Object.keys(loaded).length) { _bodies = loaded; return _bodies; }
     } catch (e) { /* fall through and retry on the next call */ }
-    return {};
+    return null;
   }
 
   // Bengaluru is still resolvable without the network: the five corporations are the
@@ -786,12 +650,27 @@ Evidence rules:
     const ids = new Set();
     const isHttps = (value) => /^https:\/\/[^\s]+$/.test(String(value || ""));
     const packageName = /^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+$/;
+    const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const allowedFields = new Set([
+      "id", "name", "aliases", "officer_email", "handoff_name", "handoff_url",
+      "handoff_package", "alternate_handoff_name", "alternate_handoff_url",
+      "whatsapp_url", "helpline",
+    ]);
     for (const authority of authorities || []) {
       if (!authority || !authority.id || ids.has(authority.id)) {
         throw new Error("Duplicate or missing official authority ID.");
       }
+      if (Object.keys(authority).some((field) => !allowedFields.has(field))) {
+        throw new Error(`Official authority ${authority.id} has an unsupported field.`);
+      }
       ids.add(authority.id);
-      if (!authority.name) throw new Error(`Official authority ${authority.id} has no name.`);
+      if (!/^[a-z]{2}-[a-z0-9-]{2,80}$/.test(authority.id)
+          || !authority.name || authority.name.length > 200) {
+        throw new Error(`Official authority ${authority.id} has an invalid identity.`);
+      }
+      if (authority.officer_email && !email.test(authority.officer_email)) {
+        throw new Error(`Official authority ${authority.id} has an invalid email.`);
+      }
       if (!authority.officer_email && (!authority.handoff_name || !isHttps(authority.handoff_url))) {
         throw new Error(`Official authority ${authority.id} has no valid handoff.`);
       }
@@ -802,7 +681,8 @@ Evidence rules:
           || (authority.alternate_handoff_url && !isHttps(authority.alternate_handoff_url))) {
         throw new Error(`Official authority ${authority.id} has an invalid alternate handoff.`);
       }
-      if (authority.handoff_package && !packageName.test(authority.handoff_package)) {
+      if (authority.handoff_package && (!packageName.test(authority.handoff_package)
+          || !LAUNCHABLE_PACKAGES.has(authority.handoff_package))) {
         throw new Error(`Official authority ${authority.id} has an invalid Android package.`);
       }
       if (authority.whatsapp_url
@@ -811,6 +691,11 @@ Evidence rules:
       }
       if (authority.helpline && !/^[0-9]{3,15}$/.test(authority.helpline)) {
         throw new Error(`Official authority ${authority.id} has an invalid helpline.`);
+      }
+      if (authority.aliases && (!Array.isArray(authority.aliases)
+          || authority.aliases.length > 30
+          || authority.aliases.some((alias) => typeof alias !== "string" || !alias || alias.length > 100))) {
+        throw new Error(`Official authority ${authority.id} has invalid aliases.`);
       }
     }
     return true;
@@ -842,15 +727,80 @@ Evidence rules:
     }
     return true;
   }
-  validateAuthorityRegistry();
 
-  const MMR_ALIAS_INDEX = (() => {
-    const index = new Map();
-    for (const authority of MMR_AUTHORITIES) {
-      for (const alias of authority.aliases) index.set(normaliseAuthorityValue(alias), authority);
+  function replaceStableObject(target, source) {
+    for (const key of Object.keys(target)) delete target[key];
+    Object.assign(target, source);
+  }
+
+  function rebuildOfficialAuthorityIndex() {
+    OFFICIAL_AUTHORITIES.splice(0);
+    OFFICIAL_AUTHORITY_INDEX.clear();
+    for (const authorities of PACK_AUTHORITIES_BY_STATE.values()) {
+      for (const authority of authorities) {
+        if (OFFICIAL_AUTHORITY_INDEX.has(authority.id)) {
+          throw new Error(`Official authority ${authority.id} appears in two state packs.`);
+        }
+        OFFICIAL_AUTHORITIES.push(authority);
+        OFFICIAL_AUTHORITY_INDEX.set(authority.id, authority);
+      }
     }
-    return index;
-  })();
+  }
+
+  function installRoutingAuthorities(pack) {
+    const authorities = pack && pack.authorities;
+    if (!Array.isArray(authorities) || authorities.length > 1000) {
+      throw new Error("Routing pack has an invalid authority registry.");
+    }
+    validateOfficialHandoffRegistry(authorities);
+    const byId = new Map(authorities.map((authority) => [authority.id, authority]));
+    if (pack.state_code === "MH") {
+      const mmr = authorities.filter((authority) => authority.id.startsWith("mh-")
+        && authority.id !== "mh-pmc" && authority.id !== "mh-mmr-unverified");
+      if (authorities.length !== 21 || mmr.length !== 19
+          || !byId.has("mh-pmc") || !byId.has("mh-mmr-unverified")) {
+        throw new Error("Maharashtra routing pack has an incomplete authority registry.");
+      }
+      validateAuthorityRegistry(mmr);
+      MMR_AUTHORITIES.splice(0, MMR_AUTHORITIES.length, ...mmr);
+      replaceStableObject(PMC_AUTHORITY, byId.get("mh-pmc"));
+      replaceStableObject(MMR_FALLBACK_AUTHORITY, byId.get("mh-mmr-unverified"));
+      MMR_ALIAS_INDEX.clear();
+      for (const authority of MMR_AUTHORITIES) {
+        for (const alias of authority.aliases) {
+          MMR_ALIAS_INDEX.set(normaliseAuthorityValue(alias), authority);
+        }
+      }
+      MMR_FALLBACK_AUTHORITY_IDS.clear();
+      for (const authority of MMR_AUTHORITIES) {
+        if (!MMR_DIRECT_AUTHORITY_IDS.has(authority.id)) {
+          MMR_FALLBACK_AUTHORITY_IDS.add(authority.id);
+        }
+      }
+      PACK_AUTHORITIES_BY_STATE.set("MH", [
+        ...MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY,
+      ]);
+    } else if (pack.state_code === "WB") {
+      if (authorities.length !== 1 || !byId.has("wb-kmc")) {
+        throw new Error("West Bengal routing pack has an invalid authority registry.");
+      }
+      replaceStableObject(KMC_AUTHORITY, byId.get("wb-kmc"));
+      PACK_AUTHORITIES_BY_STATE.set("WB", [KMC_AUTHORITY]);
+    } else if (pack.state_code === "DL") {
+      if (authorities.length !== 1 || !byId.has("dl-pwd-sewa")) {
+        throw new Error("Delhi routing pack has an invalid authority registry.");
+      }
+      replaceStableObject(DELHI_PWD_AUTHORITY, byId.get("dl-pwd-sewa"));
+      PACK_AUTHORITIES_BY_STATE.set("DL", [DELHI_PWD_AUTHORITY]);
+    } else if (pack.state_code === "KA") {
+      if (authorities.length) throw new Error("Karnataka contacts must use the LGD registry.");
+      PACK_AUTHORITIES_BY_STATE.set("KA", []);
+    } else {
+      throw new Error("Unsupported routing-pack state.");
+    }
+    rebuildOfficialAuthorityIndex();
+    return true;
+  }
 
   function pointOnSegment(x, y, ax, ay, bx, by) {
     const cross = (x - ax) * (by - ay) - (y - ay) * (bx - ax);
@@ -914,7 +864,7 @@ Evidence rules:
       && geometry.geometries.every(hasCoverageGeometry);
   }
 
-  function validMmrAuthorityBoundaries(mmr) {
+  function validMmrAuthorityBoundaries(mmr, fallbackAuthorityIds = MMR_FALLBACK_AUTHORITY_IDS) {
     const boundaries = mmr && mmr.authority_boundaries;
     if (!boundaries || typeof boundaries !== "object") return false;
     const entries = Object.entries(boundaries);
@@ -924,7 +874,7 @@ Evidence rules:
     if (entries.length !== MMR_DIRECT_AUTHORITY_IDS.size
         || !entries.every(([id]) => MMR_DIRECT_AUTHORITY_IDS.has(id))
         || !sameIds(mmr.boundary_complete_authority_ids, MMR_DIRECT_AUTHORITY_IDS)
-        || !sameIds(mmr.boundary_missing_authority_ids, MMR_FALLBACK_AUTHORITY_IDS)) {
+        || !sameIds(mmr.boundary_missing_authority_ids, fallbackAuthorityIds)) {
       return false;
     }
     return entries.every(([id, boundary]) => {
@@ -976,15 +926,430 @@ Evidence rules:
     return best;
   }
 
+  // ---------- immutable state data packs ----------
+  // The signed APK carries this tiny manifest. It names one immutable URL and full
+  // SHA-256 for every supported resource; GitHub Pages never gets coordinates, photos,
+  // report IDs or the API key, only the state-specific path the phone requests.
+  const PACK_SITE_ROOT = "https://coding-parrot.github.io/pothole-reporter/";
+  const SUPPORTED_STATE_PACKS = Object.freeze({
+    "in-dl-routing": { state_code: "DL", kind: "routing", adapter: "delhi-nct-v1" },
+    "in-mh-routing": { state_code: "MH", kind: "routing", adapter: "maharashtra-mmr-pmc-v1" },
+    "in-wb-routing": { state_code: "WB", kind: "routing", adapter: "kolkata-kmc-v1" },
+    "in-ka-routing": { state_code: "KA", kind: "routing", adapter: "karnataka-kgis-v1" },
+    "in-ka-tenders": { state_code: "KA", kind: "tenders", adapter: "karnataka-locally-indexed-v1" },
+  });
+  const STATE_PACK_MAX_BYTES = 16 * 1024 * 1024;
+  const STATE_PACK_FETCH_TIMEOUT_MS = 30000;
+  let _statePackManifest = null, _statePackManifestPromise = null;
+  const _statePackMemory = new Map(), _statePackPromises = new Map();
+
+  const sameSet = (values, expected) => values.length === expected.size
+    && values.every((value) => expected.has(value));
+  const exactObjectKeys = (value, keys) => !!value && typeof value === "object"
+    && !Array.isArray(value) && sameSet(Object.keys(value), new Set(keys));
+
+  function validateStatePackManifest(manifest) {
+    if (!exactObjectKeys(manifest,
+      ["format", "schema_version", "catalog_version", "cache", "resources"])
+        || manifest.format !== "pothole-pack-manifest"
+        || manifest.schema_version !== 1 || manifest.catalog_version !== 1) {
+      throw new Error("Invalid state-pack manifest.");
+    }
+    const cache = manifest.cache;
+    if (!exactObjectKeys(cache,
+      ["max_bytes", "routing_max_unused_days", "tender_max_unused_days"])
+        || !Number.isInteger(cache.max_bytes) || cache.max_bytes < 1024 * 1024
+        || cache.max_bytes > 128 * 1024 * 1024
+        || !Number.isInteger(cache.routing_max_unused_days)
+        || cache.routing_max_unused_days < 7 || cache.routing_max_unused_days > 365
+        || !Number.isInteger(cache.tender_max_unused_days)
+        || cache.tender_max_unused_days < 1 || cache.tender_max_unused_days > 180) {
+      throw new Error("Invalid state-pack cache policy.");
+    }
+    const resources = manifest.resources;
+    const expectedIds = new Set(Object.keys(SUPPORTED_STATE_PACKS));
+    if (!resources || typeof resources !== "object" || Array.isArray(resources)
+        || !sameSet(Object.keys(resources), expectedIds)) {
+      throw new Error("State-pack manifest resource set is incomplete.");
+    }
+    for (const [packId, resource] of Object.entries(resources)) {
+      const spec = SUPPORTED_STATE_PACKS[packId];
+      const fields = ["pack_id", "state_code", "kind", "pack_version", "schema_version",
+        "adapter", "path", "url", "bytes", "sha256", "coverage_scope", "statewide",
+        "source_retrieved_at", "review_after", "licenses"];
+      if (spec.kind === "tenders") fields.push("records");
+      const pathMatch = resource && typeof resource.path === "string"
+        ? resource.path.match(/^packs\/v[0-9]+\/states\/([a-z]{2})\/(routing|tenders)-([0-9a-f]{64})\.json$/)
+        : null;
+      if (!exactObjectKeys(resource, fields)
+          || resource.pack_id !== packId || resource.state_code !== spec.state_code
+          || resource.kind !== spec.kind || resource.adapter !== spec.adapter
+          || resource.pack_version !== 1 || resource.schema_version !== 1
+          || !pathMatch || pathMatch[1] !== spec.state_code.toLowerCase()
+          || pathMatch[2] !== spec.kind || pathMatch[3] !== resource.sha256
+          || resource.url !== PACK_SITE_ROOT + resource.path
+          || !Number.isInteger(resource.bytes) || resource.bytes <= 0
+          || resource.bytes > STATE_PACK_MAX_BYTES
+          || !/^[0-9a-f]{64}$/.test(resource.sha256)
+          || typeof resource.coverage_scope !== "string" || !resource.coverage_scope
+          || resource.coverage_scope.length > 200 || typeof resource.statewide !== "boolean"
+          || !/^\d{4}-\d{2}-\d{2}$/.test(resource.source_retrieved_at)
+          || !/^\d{4}-\d{2}-\d{2}$/.test(resource.review_after)
+          || !Array.isArray(resource.licenses) || !resource.licenses.length
+          || resource.licenses.length > 10
+          || resource.licenses.some((item) => typeof item !== "string" || !item || item.length > 300)
+          || (spec.kind === "tenders"
+            && (!Number.isInteger(resource.records) || resource.records <= 0 || resource.records > 100000))) {
+        throw new Error(`Invalid state-pack resource: ${packId}`);
+      }
+    }
+    return manifest;
+  }
+
+  async function getStatePackManifest() {
+    if (_statePackManifest) return _statePackManifest;
+    if (_statePackManifestPromise) return _statePackManifestPromise;
+    _statePackManifestPromise = (async () => {
+      try {
+        const response = await fetch("pack-manifest.json", { cache: "no-store" });
+        if (!response.ok) return null;
+        const text = await response.text();
+        if (!text || text.length > 128 * 1024) return null;
+        _statePackManifest = validateStatePackManifest(JSON.parse(text));
+      } catch (e) { /* a malformed bundled manifest disables routing; it never guesses */ }
+      return _statePackManifest;
+    })();
+    const result = await _statePackManifestPromise;
+    _statePackManifestPromise = null;
+    return result;
+  }
+
+  function resolvePackUrl(resource) {
+    if (!resource || typeof resource.path !== "string") return null;
+    const localHost = location.hostname === "localhost" || location.hostname === "127.0.0.1"
+      || location.hostname === "::1";
+    // Capacitor also uses https://localhost. Its files contain no packs, so the native
+    // app must use the pinned production URL; only the browser test/development server
+    // maps the same immutable path locally.
+    return !NATIVE && localHost ? `/${resource.path}` : resource.url;
+  }
+
+  async function sha256Bytes(value) {
+    if (!(window.crypto && window.crypto.subtle)) return null;
+    const bytes = value instanceof ArrayBuffer
+      ? value : value && value.buffer instanceof ArrayBuffer
+        ? value.buffer.slice(value.byteOffset || 0, (value.byteOffset || 0) + value.byteLength)
+        : null;
+    if (!bytes) return null;
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return [...new Uint8Array(digest)]
+      .map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  function validatePackEnvelope(resource, pack, kind) {
+    const fields = kind === "routing"
+      ? ["format", "schema_version", "pack_id", "pack_version", "state_code",
+          "adapter", "generated_at", "authorities", "payload"]
+      : ["format", "schema_version", "pack_id", "pack_version", "state_code",
+          "adapter", "generated_at", "tenders"];
+    if (!exactObjectKeys(pack, fields)
+        || pack.format !== (kind === "routing" ? "pothole-routing-pack" : "pothole-tender-pack")
+        || pack.schema_version !== resource.schema_version
+        || pack.pack_id !== resource.pack_id || pack.pack_version !== resource.pack_version
+        || pack.state_code !== resource.state_code || pack.adapter !== resource.adapter
+        || pack.generated_at !== resource.source_retrieved_at) {
+      throw new Error("State-pack envelope does not match its signed manifest entry.");
+    }
+  }
+
+  function validateKarnatakaBodies(payload) {
+    const bodies = payload && payload.bodies;
+    const entries = bodies && typeof bodies === "object" && !Array.isArray(bodies)
+      ? Object.entries(bodies) : [];
+    const allowed = new Set(["name", "type", "officer", "email", "source", "matched_from", "short"]);
+    const types = new Set(["CC", "CMC", "TMC", "TP", "NAC"]);
+    if (!entries.length || entries.length > 500) return false;
+    return entries.every(([lgd, body]) => /^\d{3,12}$/.test(lgd)
+      && body && typeof body === "object" && !Array.isArray(body)
+      && Object.keys(body).every((field) => allowed.has(field))
+      && typeof body.name === "string" && !!body.name && body.name.length <= 120
+      && typeof body.type === "string" && types.has(body.type)
+      && typeof body.officer === "string" && !!body.officer && body.officer.length <= 100
+      && typeof body.email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)
+      && body.email.length <= 200
+      && typeof body.source === "string" && !!body.source && body.source.length <= 500
+      && ["matched_from", "short"].every((field) => body[field] === undefined
+        || (typeof body[field] === "string" && body[field].length <= 200)));
+  }
+
+  async function validateRoutingPack(resource, pack) {
+    validatePackEnvelope(resource, pack, "routing");
+    if (!Array.isArray(pack.authorities) || pack.authorities.length > 1000) {
+      throw new Error("Routing pack authority list is invalid.");
+    }
+    validateOfficialHandoffRegistry(pack.authorities);
+    const payload = pack.payload;
+    if (resource.pack_id === "in-dl-routing") {
+      const region = payload && payload.region;
+      const digest = region && hasCoverageGeometry(region.geometry)
+        ? await sha256Hex(JSON.stringify(region.geometry)) : null;
+      if (!payload || payload.version !== 1 || !region || pack.authorities.length !== 1
+          || pack.authorities[0].id !== "dl-pwd-sewa" || region.id !== "delhi-nct"
+          || region.authority_id !== "dl-pwd-sewa" || Number(region.osm_relation_id) !== 1942586
+          || region.geometry_sha256 !== DELHI_GEOMETRY_SHA256
+          || digest !== DELHI_GEOMETRY_SHA256) {
+        throw new Error("Delhi routing pack failed its boundary or authority checks.");
+      }
+    } else if (resource.pack_id === "in-wb-routing") {
+      const region = payload && payload.region;
+      const digest = region && hasCoverageGeometry(region.geometry)
+        ? await sha256Hex(JSON.stringify(region.geometry)) : null;
+      if (!payload || payload.version !== 1 || !region || pack.authorities.length !== 1
+          || pack.authorities[0].id !== "wb-kmc" || region.authority_id !== "wb-kmc"
+          || String(region.ulb_code) !== "250299" || String(region.mun_id) !== "250299_0000001"
+          || digest !== KMC_GEOMETRY_SHA256) {
+        throw new Error("West Bengal routing pack failed its boundary or authority checks.");
+      }
+    } else if (resource.pack_id === "in-mh-routing") {
+      const byId = new Map(pack.authorities.map((authority) => [authority.id, authority]));
+      const mmrAuthorities = pack.authorities.filter((authority) => authority.id.startsWith("mh-")
+        && authority.id !== "mh-pmc" && authority.id !== "mh-mmr-unverified");
+      const fallbackIds = new Set(mmrAuthorities.map((authority) => authority.id)
+        .filter((id) => !MMR_DIRECT_AUTHORITY_IDS.has(id)));
+      if (!payload || payload.version !== 1 || !payload.regions || !payload.regions.mmr
+          || !payload.regions.pmc || pack.authorities.length !== 21 || mmrAuthorities.length !== 19
+          || !byId.has("mh-pmc") || !byId.has("mh-mmr-unverified")
+          || !hasCoverageGeometry(payload.regions.mmr.geometry)
+          || !hasCoverageGeometry(payload.regions.pmc.geometry)
+          || !validMmrAuthorityBoundaries(payload.regions.mmr, fallbackIds)) {
+        throw new Error("Maharashtra routing pack failed its boundary or authority checks.");
+      }
+      validateAuthorityRegistry(mmrAuthorities);
+    } else if (resource.pack_id === "in-ka-routing") {
+      if (pack.authorities.length || !validateKarnatakaBodies(payload)) {
+        throw new Error("Karnataka routing pack failed its LGD contact checks.");
+      }
+    } else {
+      throw new Error("Unsupported routing pack.");
+    }
+    // Install contacts only after every byte, identity and resource-specific check passed.
+    installRoutingAuthorities(pack);
+    return pack;
+  }
+
+  function validateTenderPack(resource, pack) {
+    validatePackEnvelope(resource, pack, "tenders");
+    const rows = pack.tenders;
+    const fields = new Set(["tn", "t", "loc", "c", "d", "b"]), seen = new Set();
+    if (!Array.isArray(rows) || rows.length !== resource.records || rows.length > 100000) {
+      throw new Error("Tender-pack record count is invalid.");
+    }
+    for (const row of rows) {
+      if (!exactObjectKeys(row, fields)
+          || typeof row.tn !== "string" || !row.tn || row.tn.length > 100
+          || typeof row.t !== "string" || !row.t || row.t.length > 500
+          || typeof row.loc !== "string" || row.loc.length > 200
+          || typeof row.c !== "string" || row.c.length > 200
+          || typeof row.d !== "string" || !/^\d{2}-\d{2}-\d{4}$/.test(row.d)
+          || typeof row.b !== "string" || !/^(?:BLR|\d{3,12})$/.test(row.b)) {
+        throw new Error("Tender pack contains an invalid record.");
+      }
+      const identity = `${row.tn}\u0000${row.b}`;
+      if (seen.has(identity)) throw new Error("Tender pack contains a duplicate record.");
+      seen.add(identity);
+    }
+    return pack;
+  }
+
+  async function validateDecodedStatePack(resource, bytes) {
+    if (!(bytes instanceof ArrayBuffer) || bytes.byteLength !== resource.bytes) {
+      throw new Error("State-pack byte length does not match its signed manifest.");
+    }
+    const digest = await sha256Bytes(bytes);
+    if (!digest || digest !== resource.sha256) {
+      throw new Error("State-pack checksum does not match its signed manifest.");
+    }
+    if (!window.TextDecoder) throw new Error("This device cannot decode verified state data.");
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    const pack = JSON.parse(text);
+    return resource.kind === "routing"
+      ? validateRoutingPack(resource, pack) : validateTenderPack(resource, pack);
+  }
+
+  const statePackCacheKey = (resource) =>
+    `${resource.pack_id}@${resource.pack_version}:${resource.sha256}`;
+  const allStatePacks = () => op("readonly", (store) => store.getAll(), "state_packs");
+  const getCachedStatePack = (key) => op("readonly", (store) => store.get(key), "state_packs");
+  const putCachedStatePack = (record) => op("readwrite", (store) => store.put(record), "state_packs");
+  const deleteCachedStatePack = (key) => op("readwrite", (store) => store.delete(key), "state_packs");
+
+  async function cachedPackBytes(record) {
+    const value = record && (record.blob || record.payload);
+    if (value instanceof Blob) return value.arrayBuffer();
+    if (value instanceof ArrayBuffer) return value.slice(0);
+    if (ArrayBuffer.isView(value)) {
+      return value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
+    }
+    throw new Error("Cached state pack has no binary payload.");
+  }
+
+  async function touchStatePack(record) {
+    if (!record || Date.now() - Number(record.last_used_at || 0) < 24 * 60 * 60 * 1000) return;
+    record.last_used_at = Date.now();
+    try { await putCachedStatePack(record); } catch (e) { /* usage metadata is optional */ }
+  }
+
+  async function pruneStatePacks(activePackId = null) {
+    const manifest = await getStatePackManifest();
+    if (!manifest) return { removed: 0, bytes: 0 };
+    let records;
+    try { records = await allStatePacks(); } catch (e) { return { removed: 0, bytes: 0 }; }
+    const currentByKey = new Map(Object.values(manifest.resources)
+      .map((resource) => [statePackCacheKey(resource), resource]));
+    const protectedIds = new Set([activePackId, ..._statePackPromises.keys()]
+      .filter(Boolean));
+    const now = Date.now(), toDelete = [], kept = [];
+    for (const record of records || []) {
+      const resource = record && currentByKey.get(record.cache_key);
+      if (!resource || record.pack_id !== resource.pack_id || record.sha256 !== resource.sha256
+          || record.bytes !== resource.bytes) {
+        toDelete.push(record); continue;
+      }
+      const ageDays = Math.max(0, now - Number(record.last_used_at || record.installed_at || 0))
+        / (24 * 60 * 60 * 1000);
+      const unusedLimit = resource.kind === "tenders"
+        ? manifest.cache.tender_max_unused_days : manifest.cache.routing_max_unused_days;
+      if (ageDays > unusedLimit && !protectedIds.has(resource.pack_id)) {
+        toDelete.push(record); continue;
+      }
+      kept.push({ record, resource });
+    }
+    let total = kept.reduce((sum, item) => sum + Math.max(0, Number(item.record.bytes) || 0), 0);
+    kept.sort((left, right) => {
+      const tenderFirst = (left.resource.kind === "tenders" ? 0 : 1)
+        - (right.resource.kind === "tenders" ? 0 : 1);
+      return tenderFirst || Number(left.record.last_used_at || 0) - Number(right.record.last_used_at || 0);
+    });
+    for (const item of kept) {
+      if (total <= manifest.cache.max_bytes) break;
+      if (protectedIds.has(item.resource.pack_id)) continue;
+      toDelete.push(item.record);
+      total -= Math.max(0, Number(item.record.bytes) || 0);
+    }
+    let removed = 0, removedBytes = 0;
+    for (const record of toDelete) {
+      try {
+        await deleteCachedStatePack(record.cache_key);
+        removed++;
+        removedBytes += Math.max(0, Number(record.bytes) || 0);
+      } catch (e) { /* cleanup must never break the active report */ }
+    }
+    return { removed, bytes: removedBytes };
+  }
+
+  async function fetchStatePack(resource) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), STATE_PACK_FETCH_TIMEOUT_MS);
+    try {
+      const response = await fetch(resolvePackUrl(resource), {
+        cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer",
+        signal: controller.signal,
+      });
+      if (!response.ok) return null;
+      const contentType = response.headers.get("content-type") || "";
+      // Content-Length can describe gzip/br transfer bytes while arrayBuffer() contains
+      // decoded bytes. The post-read exact length and SHA below are the authoritative
+      // checks, so a CDN compression choice cannot disable every production pack.
+      if (contentType && !/json/i.test(contentType)) return null;
+      const bytes = await response.arrayBuffer();
+      const pack = await validateDecodedStatePack(resource, bytes);
+      return { pack, bytes };
+    } catch (e) { return null; }
+    finally { clearTimeout(timer); }
+  }
+
+  async function loadStatePack(packId) {
+    if (_statePackPromises.has(packId)) return _statePackPromises.get(packId);
+    const task = (async () => {
+      const manifest = await getStatePackManifest();
+      const resource = manifest && manifest.resources[packId];
+      if (!resource) return null;
+      const cacheKey = statePackCacheKey(resource);
+      const memory = _statePackMemory.get(packId);
+      if (memory && memory.cache_key === cacheKey) return memory.pack;
+
+      let cached = null;
+      try { cached = await getCachedStatePack(cacheKey); } catch (e) { /* download below */ }
+      if (cached) {
+        try {
+          const pack = await validateDecodedStatePack(resource, await cachedPackBytes(cached));
+          _statePackMemory.set(packId, { cache_key: cacheKey, pack, resource });
+          touchStatePack(cached);
+          pruneStatePacks(packId);
+          return pack;
+        } catch (e) {
+          try { await deleteCachedStatePack(cacheKey); } catch (_) {}
+        }
+      }
+
+      const downloaded = await fetchStatePack(resource);
+      if (!downloaded) return null;
+      const { pack, bytes } = downloaded;
+      const now = Date.now();
+      if (bytes instanceof ArrayBuffer) {
+        const record = {
+          cache_key: cacheKey, pack_id: resource.pack_id, pack_version: resource.pack_version,
+          state_code: resource.state_code, kind: resource.kind, sha256: resource.sha256,
+          bytes: resource.bytes, installed_at: now, last_used_at: now,
+          blob: new Blob([bytes], { type: "application/json" }),
+        };
+        try { await putCachedStatePack(record); }
+        catch (e) {
+          await pruneStatePacks(packId);
+          try { await putCachedStatePack(record); } catch (_) { /* valid for this session */ }
+        }
+      }
+      _statePackMemory.set(packId, { cache_key: cacheKey, pack, resource });
+      pruneStatePacks(packId);
+      return pack;
+    })();
+    _statePackPromises.set(packId, task);
+    try { return await task; }
+    finally { _statePackPromises.delete(packId); }
+  }
+
+  function statePackProvenance(packId, prefix = "routing") {
+    const item = _statePackMemory.get(packId);
+    const resource = item && item.resource;
+    if (!resource) return {};
+    return {
+      [`${prefix}_pack_id`]: resource.pack_id,
+      [`${prefix}_pack_version`]: resource.pack_version,
+      [`${prefix}_pack_sha256`]: resource.sha256,
+      [`${prefix}_pack_state_code`]: resource.state_code,
+    };
+  }
+
+  function resetStatePackMemory() {
+    _statePackManifest = null;
+    _statePackManifestPromise = null;
+    _statePackMemory.clear();
+    _statePackPromises.clear();
+  }
+
+  async function clearPackCache() {
+    try { await op("readwrite", (store) => store.clear(), "state_packs"); } catch (e) {}
+    resetStatePackMemory();
+  }
+
   let _maharashtraCoverage = null, _maharashtraCoveragePromise = null;
   async function maharashtraCoverage() {
     if (_maharashtraCoverage) return _maharashtraCoverage;
     if (_maharashtraCoveragePromise) return _maharashtraCoveragePromise;
     _maharashtraCoveragePromise = (async () => {
       try {
-        const res = await fetchWithTimeout("maharashtra-coverage.json", {}, 15000);
-        if (!res.ok) return null;
-        const data = await readJson(res);
+        const pack = await loadStatePack("in-mh-routing");
+        const data = pack && pack.payload;
         if (data && data.version === 1 && data.regions
             && data.regions.mmr && data.regions.pmc
             && hasCoverageGeometry(data.regions.mmr.geometry)
@@ -1003,6 +1368,25 @@ Evidence rules:
   const isMaharashtraGeocode = (geo) => !!geo
     && String(geo.country_code || "").toLowerCase() === "in"
     && MUMBAI_STATES.has(normaliseAuthorityValue(geo.state));
+
+  // Wide enough to reject neighbouring points explicitly, but narrow enough that a
+  // Karnataka or Delhi report never downloads Maharashtra's much larger boundary pack.
+  // Only the verified MMR/PMC polygons can accept a report.
+  const MAHARASHTRA_ROUTING_ENVELOPE = {
+    minLat: 18.20, maxLat: 20.05, minLng: 72.45, maxLng: 74.15,
+  };
+  const inMaharashtraRoutingEnvelope = (lat, lng) => Number.isFinite(lat) && Number.isFinite(lng)
+    && lat >= MAHARASHTRA_ROUTING_ENVELOPE.minLat
+    && lat <= MAHARASHTRA_ROUTING_ENVELOPE.maxLat
+    && lng >= MAHARASHTRA_ROUTING_ENVELOPE.minLng
+    && lng <= MAHARASHTRA_ROUTING_ENVELOPE.maxLng;
+  const isKarnatakaGeocode = (geo) => !!geo
+    && String(geo.country_code || "").toLowerCase() === "in"
+    && KARNATAKA_STATES.has(normaliseAuthorityValue(geo.state));
+  const isKnownNonKarnatakaGeocode = (geo) => !!geo
+    && !!String(geo.state || "").trim()
+    && !!String(geo.country_code || "").trim()
+    && (String(geo.country_code).toLowerCase() !== "in" || !isKarnatakaGeocode(geo));
 
   // The relevance envelope is intentionally wider than Delhi NCT. A point in nearby
   // Noida, Gurugram, Ghaziabad or Faridabad must get an explicit outside-area result,
@@ -1026,10 +1410,9 @@ Evidence rules:
     && lng >= KOLKATA_ENVELOPE.minLng && lng <= KOLKATA_ENVELOPE.maxLng;
 
   async function sha256Hex(value) {
-    if (!(window.crypto && window.crypto.subtle && window.TextEncoder)) return null;
+    if (!window.TextEncoder) return null;
     const bytes = new TextEncoder().encode(value);
-    const digest = await crypto.subtle.digest("SHA-256", bytes);
-    return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    return sha256Bytes(bytes);
   }
 
   let _delhiCoverage = null, _delhiCoveragePromise = null;
@@ -1038,9 +1421,8 @@ Evidence rules:
     if (_delhiCoveragePromise) return _delhiCoveragePromise;
     _delhiCoveragePromise = (async () => {
       try {
-        const res = await fetchWithTimeout("delhi-coverage.json", {}, 15000);
-        if (!res.ok) return null;
-        const data = await readJson(res);
+        const pack = await loadStatePack("in-dl-routing");
+        const data = pack && pack.payload;
         const region = data && data.region;
         const geometryDigest = region && hasCoverageGeometry(region.geometry)
           ? await sha256Hex(JSON.stringify(region.geometry)) : null;
@@ -1091,9 +1473,8 @@ Evidence rules:
     if (_kolkataCoveragePromise) return _kolkataCoveragePromise;
     _kolkataCoveragePromise = (async () => {
       try {
-        const res = await fetchWithTimeout("kolkata-coverage.json", {}, 15000);
-        if (!res.ok) return null;
-        const data = await readJson(res);
+        const pack = await loadStatePack("in-wb-routing");
+        const data = pack && pack.payload;
         const region = data && data.region;
         const geometryDigest = region && hasCoverageGeometry(region.geometry)
           ? await sha256Hex(JSON.stringify(region.geometry)) : null;
@@ -1183,6 +1564,9 @@ Evidence rules:
   function authorityRoute(authority, options = {}) {
     const email = authority.officer_email || null;
     const handoff = !email;
+    const inferredPackId = authority.id && authority.id.startsWith("mh-") ? "in-mh-routing"
+      : authority.id === "wb-kmc" ? "in-wb-routing"
+        : authority.id === "dl-pwd-sewa" ? "in-dl-routing" : null;
     return {
       routed: true,
       officer_name: email ? `Civic complaint desk, ${authority.name}`
@@ -1207,14 +1591,17 @@ Evidence rules:
       helpline: authority.helpline || null,
       requires_official_reference: handoff,
       tender_eligible: false,
+      ...statePackProvenance(options.pack_id || inferredPackId),
     };
   }
 
   async function maharashtraRouteFromGeocode(geo, lat, lng, gpsAccuracy) {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const relevant = inMaharashtraRoutingEnvelope(lat, lng) || isMaharashtraGeocode(geo);
+    if (!relevant) return null;
     const coverage = await maharashtraCoverage();
     if (!coverage) {
-      return isMaharashtraGeocode(geo) ? unroutedRoute("jurisdiction_unavailable") : null;
+      return unroutedRoute("jurisdiction_unavailable");
     }
     const inPmc = pointInGeometry(lng, lat, coverage.regions.pmc.geometry);
     const inMmr = pointInGeometry(lng, lat, coverage.regions.mmr.geometry);
@@ -1401,8 +1788,10 @@ Evidence rules:
     // A Maharashtra geocode outside the two enabled polygons must not fall through to
     // Karnataka GIS and come back with a misleading state-service failure.
     if (isMaharashtraGeocode(geo)) return unroutedRoute("outside_area");
-
-    const registry = await bodies();
+    // A geocoder-confirmed non-Karnataka state must never be sent to Karnataka GIS.
+    // When geocoding failed entirely we still ask KGIS, because its polygon is the
+    // authoritative way to distinguish Karnataka from an unsupported location.
+    if (isKnownNonKarnatakaGeocode(geo)) return unroutedRoute("outside_area");
 
     // If the state cannot tell us what this road is, we do not name anyone. The highway
     // check lives inside kgisJurisdiction, so any path that routes without it can address
@@ -1422,6 +1811,8 @@ Evidence rules:
     if (where.kind === "road_class_unknown") return unroutedRoute("road_class_unknown");
     if (where.kind === "rural") return unroutedRoute("rural_road", where.name);
 
+    const registry = await bodies();
+    if (!registry) return unroutedRoute("jurisdiction_unavailable", where.name);
     const entry = where.lgd && registry[where.lgd];
     if (!entry || !entry.email) return unroutedRoute("no_address_for_body", where.name);
     const title = entry.officer || OFFICER_TITLES[entry.type || where.type] || "Chief Officer";
@@ -1431,6 +1822,7 @@ Evidence rules:
       officer_email: entry.email,
       authority_id: `ka-lgd-${where.lgd}`,
       authority_name: entry.name,
+      authority_registry_version: AUTHORITY_REGISTRY_VERSION,
       delivery_channel: "email",
       ward_code: null,
       routing_source: "kgis",
@@ -1440,6 +1832,7 @@ Evidence rules:
       ownership_unverified: false,
       requires_official_reference: false,
       tender_eligible: true,
+      ...statePackProvenance("in-ka-routing"),
     };
   }
 
@@ -1566,15 +1959,14 @@ Evidence rules:
 
   // ---------- tenders ----------
   let _tenders = null;
-  // Parsed once per app session, which matters far more now the file is 9.5 MB: the
-  // bundled data cannot change while the app runs, so one parse is correct.
-  // As with the registry: a failed read is not cached, or one slow start would silently
-  // stop every complaint naming a contract for the rest of the session.
+  // The optional pack contains only rows with a verified civic-body ID: the other 28,706
+  // procurement rows could never enter the matcher. Failure omits contract context but
+  // never blocks a valid road-damage report.
   async function tenders() {
     if (_tenders) return _tenders;
     try {
-      const res = await fetchWithTimeout("tenders.json", {}, 30000);
-      const loaded = await readJson(res);
+      const pack = await loadStatePack("in-ka-tenders");
+      const loaded = pack && pack.tenders;
       if (Array.isArray(loaded) && loaded.length) { _tenders = loaded; return _tenders; }
     } catch (e) { /* fall through and retry on the next call */ }
     return [];
@@ -1750,6 +2142,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       note: contractor
         ? `Probable contract: ${t.tn}, ${contractor}, published ${t.d}`
         : `Probable contract: ${t.tn}, contractor not listed, published ${t.d}`,
+      ...statePackProvenance("in-ka-tenders", "tender"),
     };
   }
 
@@ -1936,7 +2329,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   function idb() {
     return new Promise((resolve, reject) => {
       if (_db) return resolve(_db);
-      const req = indexedDB.open("potholes", 5);
+      const req = indexedDB.open("potholes", 6);
       req.onupgradeneeded = () => {
         const d = req.result;
         const reports = d.objectStoreNames.contains("reports")
@@ -1963,8 +2356,17 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           const f = d.createObjectStore("footage", { keyPath: "key" });
           f.createIndex("by_drive", "drive_id");
         }
+        if (!d.objectStoreNames.contains("state_packs")) {
+          const packs = d.createObjectStore("state_packs", { keyPath: "cache_key" });
+          packs.createIndex("by_last_used", "last_used_at");
+          packs.createIndex("by_state", "state_code");
+        }
       };
-      req.onsuccess = () => { _db = req.result; resolve(_db); };
+      req.onsuccess = () => {
+        _db = req.result;
+        _db.onversionchange = () => { _db.close(); _db = null; };
+        resolve(_db);
+      };
       req.onerror = () => reject(req.error);
     });
   }
@@ -2376,6 +2778,10 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       routing_source: covered ? (route.routing_source || null) : null,
       routing_match_field: covered ? (route.routing_match_field || null) : null,
       routing_match_value: covered ? (route.routing_match_value || null) : null,
+      routing_pack_id: covered ? (route.routing_pack_id || null) : null,
+      routing_pack_version: covered ? (route.routing_pack_version || null) : null,
+      routing_pack_sha256: covered ? (route.routing_pack_sha256 || null) : null,
+      routing_pack_state_code: covered ? (route.routing_pack_state_code || null) : null,
       region: covered ? (route.region || null) : null,
       ownership_unverified: covered ? !!route.ownership_unverified : null,
       handoff_name: covered ? (route.handoff_name || null) : null,
@@ -2391,6 +2797,10 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       tender_number: tender ? tender.tender_number : null,
       contractor: tender ? tender.contractor : null,
       tender_note: tender ? tender.note : null,
+      tender_pack_id: tender ? (tender.tender_pack_id || null) : null,
+      tender_pack_version: tender ? (tender.tender_pack_version || null) : null,
+      tender_pack_sha256: tender ? (tender.tender_pack_sha256 || null) : null,
+      tender_pack_state_code: tender ? (tender.tender_pack_state_code || null) : null,
       sent_at: null,
       drive_id: driveId,
       capture_source: captureSource,
@@ -2471,15 +2881,27 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
 
   const isOfficialHandoff = (rec) => !!rec && OFFICIAL_HANDOFF_CHANNELS.has(rec.delivery_channel);
 
+  function routingPackForAuthority(authorityId) {
+    const id = String(authorityId || "");
+    if (id.startsWith("mh-")) return "in-mh-routing";
+    if (id === "wb-kmc") return "in-wb-routing";
+    if (id === "dl-pwd-sewa") return "in-dl-routing";
+    return null;
+  }
+
   async function openOfficialHandoff(rec) {
     if (!isOfficialHandoff(rec)) throw new Error("This report has no official app or portal handoff.");
-    // v1.14 BMC records did not persist channel metadata. Keep them usable without
-    // rewriting history or silently re-routing them through today's registry.
+    // v1.14 BMC records did not persist pack metadata. Keep them usable, but never trust
+    // the URL saved in the report: reload the current app-pinned pack and find the same
+    // stable authority ID inside its freshly validated registry.
     const legacyBmc = rec.delivery_channel === "bmc_quickfix";
-    const current = legacyBmc ? OFFICIAL_AUTHORITY_INDEX.get("mh-bmc")
-      : OFFICIAL_AUTHORITY_INDEX.get(rec.authority_id);
+    const authorityId = legacyBmc ? "mh-bmc" : rec.authority_id;
+    const packId = routingPackForAuthority(authorityId);
+    const pack = packId ? await loadStatePack(packId) : null;
+    const current = pack && Array.isArray(pack.authorities)
+      ? pack.authorities.find((authority) => authority.id === authorityId) : null;
     if (!current) {
-      throw new Error("This saved report's official handoff is no longer in the verified registry.");
+      throw new Error("This saved report's verified official handoff is unavailable. Connect and try again.");
     }
     const handoffUrl = current.handoff_url;
     if (!handoffUrl || !String(handoffUrl).startsWith("https://")) {
@@ -2497,6 +2919,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       whatsapp_url: current.whatsapp_url || null,
       helpline: current.helpline || null,
       requires_official_reference: true,
+      ...statePackProvenance(packId),
     };
   }
 
@@ -2656,6 +3079,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       await op("readwrite", (s) => s.clear());
       await op("readwrite", (s) => s.clear(), "drives");
       await op("readwrite", (s) => s.clear(), "footage");
+      await clearPackCache();
       return { ok: true };
     }
     if (path === "/api/drives" && method === "GET") return allDrives();
@@ -2781,7 +3205,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           national_highway: "This stretch is a national highway. It is maintained by NHAI or the state PWD National Highways division, not by the city or town body, so there is no municipal officer to address.",
           rural_road: "This road is outside every town boundary, so it belongs to the state PWD or a panchayat rather than a city body. The app will not guess an office.",
           no_address_for_body: "This town's body is known, but no official email address for it has been published, so there is no verified recipient to address.",
-          jurisdiction_unavailable: "The bundled civic jurisdiction map could not be read. Restart the app and try again; the app will not guess an authority.",
+          jurisdiction_unavailable: "The required verified routing data could not be downloaded or read. Check the connection and try again; the app will not guess an authority.",
           outside_area: "This road damage is outside the supported Karnataka, Mumbai Metropolitan Region, Pune Municipal Corporation, Kolkata Municipal Corporation and Delhi NCT routes, so there is no authority to address.",
         }[rec.unrouted_reason] || "This report could not be routed to a responsible office, so there is nothing to send.");
       }
@@ -2873,10 +3297,14 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    matchedMmrAuthorities, containingMmrAuthorities, bmcWardFromBoundary,
                    pointInGeometry, geometryBoundaryDistanceMeters,
                    validMmrAuthorityBoundaries,
+                   validateStatePackManifest, getStatePackManifest, resolvePackUrl,
+                   loadStatePack, pruneStatePacks, resetStatePackMemory,
+                   sha256Bytes, statePackProvenance,
                    maharashtraCoverage,
                    delhiCoverage, delhiRouteFromGeocode, inDelhiEnvelope,
                    kolkataCoverage, kolkataRouteFromGeocode, isWestBengalGeocode,
-                   maharashtraRouteFromGeocode, routeOfficer,
+                   maharashtraRouteFromGeocode, inMaharashtraRoutingEnvelope,
+                   isKarnatakaGeocode, routeOfficer,
                    MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY, KMC_AUTHORITY,
                    DELHI_PWD_AUTHORITY, OFFICIAL_AUTHORITIES,
                    DELHI_GEOMETRY_SHA256, KMC_GEOMETRY_SHA256,

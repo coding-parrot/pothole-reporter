@@ -2,13 +2,12 @@
 """KMC routing must use the official West Bengal polygon and fail closed."""
 import json
 import hashlib
-import pathlib
 import sys
 
 from playwright.sync_api import sync_playwright
+from state_pack_utils import read_pack, read_payload, route_pattern
 
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
 APP = "http://localhost:8765/"
 
 SCENARIO = r"""
@@ -26,7 +25,10 @@ async () => {
     full: "Kolkata, West Bengal, India", ...overrides,
   });
 
-  eq("registry: version includes Delhi release", P.AUTHORITY_REGISTRY_VERSION, 3);
+  // The authority registry is populated only by a checksum-verified state pack.
+  const coverage = await P.kolkataCoverage();
+
+  eq("registry: version includes state packs", P.AUTHORITY_REGISTRY_VERSION, 4);
   eq("registry: KMC uses a stable ID", P.KMC_AUTHORITY.id, "wb-kmc");
   ok("registry: KMC validates", P.validateAuthorityRegistry([P.KMC_AUTHORITY]), null);
   eq("registry: primary channel is KMC Grievance 2.0",
@@ -39,7 +41,6 @@ async () => {
   eq("registry: verified WhatsApp channel is retained",
      P.KMC_AUTHORITY.whatsapp_url, "https://wa.me/918335988888");
 
-  const coverage = await P.kolkataCoverage();
   ok("coverage: official asset loads", coverage && coverage.region, coverage);
   eq("coverage: ULB code is pinned", coverage.region.ulb_code, "250299");
   eq("coverage: municipal ID is pinned", coverage.region.mun_id, "250299_0000001");
@@ -140,7 +141,7 @@ def run_scenario(browser, route_override=None):
     context = browser.new_context(viewport={"width": 390, "height": 844})
     page = context.new_page()
     if route_override is not None:
-        page.route("**/kolkata-coverage.json", route_override)
+        page.route(route_pattern("in-wb-routing"), route_override)
     page.goto(APP)
     page.wait_for_load_state("networkidle")
     page.wait_for_function(
@@ -151,11 +152,17 @@ def run_scenario(browser, route_override=None):
 
 def main():
     failures = []
-    static = ROOT / "static" / "kolkata-coverage.json"
-    android = ROOT / "android-app" / "www" / "kolkata-coverage.json"
-    if static.read_bytes() != android.read_bytes():
-        failures.append("coverage asset differs between static and Android")
-    data = json.loads(static.read_text(encoding="utf-8"))
+    try:
+        read_pack("in-wb-routing")
+        data = read_payload("in-wb-routing")
+    except (AssertionError, KeyError, OSError, ValueError) as error:
+        failures.append(f"West Bengal routing pack pin is invalid: {error}")
+        data = {}
+    if not data:
+        print("FAIL")
+        for failure in failures:
+            print("  -", failure)
+        sys.exit(1)
     if data["retrieved_at"] != "2026-08-21":
         failures.append("coverage retrieval date is not pinned")
     if not (199.0 < float(data["region"]["area_km2"]) < 201.0):

@@ -16,16 +16,14 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from state_pack_tools import publish_resource
+
 
 RELATION_ID = 1942586
 RETRIEVED_AT = "2026-08-21"
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/lookup"
 RUNTIME_ENVELOPE = {"min_lng": 76.65, "min_lat": 28.10, "max_lng": 77.65, "max_lat": 29.10}
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-OUTPUTS = (
-    PROJECT_ROOT / "static" / "delhi-coverage.json",
-    PROJECT_ROOT / "android-app" / "www" / "delhi-coverage.json",
-)
 
 
 def fetch_relation() -> dict:
@@ -213,10 +211,14 @@ def main() -> None:
             "geometry": geometry,
         },
     }
-    serialized = compact_json(document) + "\n"
-    for output in OUTPUTS:
-        output.write_text(serialized, encoding="utf-8")
-        print(output.relative_to(PROJECT_ROOT))
+    _, output = publish_resource(
+        "in-dl-routing",
+        document,
+        source_retrieved_at=RETRIEVED_AT,
+    )
+    print(output.relative_to(PROJECT_ROOT))
+    print("static/pack-manifest.json")
+    print("android-app/www/pack-manifest.json")
     print(f"area_km2={area_km2}")
     print(f"geometry_sha256={geometry_sha256}")
 

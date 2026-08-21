@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Every check that guards a shipped behaviour. Needs .env with OPENAI_API_KEY.
-# The live ones hit KGIS and OpenAI on purpose: the answers that matter are today's.
+# Local checks that guard shipped behaviour. Some mocked checks still read the test key
+# from .env, but no live service is contacted unless RUN_LIVE_TESTS=1 is explicit.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 PY=.venv/bin/python3
@@ -13,7 +13,7 @@ if [ ! -x "$PY" ]; then
 fi
 
 start_server() {
-  (cd android-app/www && nohup python3 -m http.server 8765 >/tmp/pothole-srv.log 2>&1 &)
+  (nohup python3 tests/serve_app.py --port 8765 >/tmp/pothole-srv.log 2>&1 &)
   for _ in $(seq 1 20); do
     curl -s -o /dev/null http://localhost:8765/index.html && return 0
     sleep 0.5
@@ -25,16 +25,24 @@ start_server() {
 ensure_server() {
   curl -s -o /dev/null --max-time 3 http://localhost:8765/index.html && return 0
   echo "    (restarting the static server)"
-  pkill -f "http.server 8765" >/dev/null 2>&1
+  pkill -f "tests/serve_app.py --port 8765" >/dev/null 2>&1
   start_server
 }
 
 pkill -f "http.server 8765" >/dev/null 2>&1
+pkill -f "tests/serve_app.py --port 8765" >/dev/null 2>&1
 start_server || { echo "could not start the static server"; exit 1; }
-trap 'pkill -f "http.server 8765" >/dev/null 2>&1' EXIT
+trap 'pkill -f "tests/serve_app.py --port 8765" >/dev/null 2>&1' EXIT
 
-TESTS="unit_test home_actions_test mumbai_routing_test maharashtra_routing_test kolkata_routing_test delhi_routing_test submission_truth_test mumbai_ui_test kolkata_ui_test delhi_ui_test eval_contract_test persistent_dedupe_test footage_metadata_test drive_start_stop_test orphan_footage_test capture_cadence_test letter_test tender_determinism_test storage_commit_test stalled_body_test
-       stored_xss_test privacy_consent_test ui_text_test routing_test nh_test gis_failure_test footage_test"
+LOCAL_TESTS="unit_test state_pack_test home_actions_test mumbai_routing_test maharashtra_routing_test kolkata_routing_test delhi_routing_test submission_truth_test mumbai_ui_test kolkata_ui_test delhi_ui_test eval_contract_test persistent_dedupe_test footage_metadata_test drive_start_stop_test orphan_footage_test capture_cadence_test letter_test storage_commit_test stalled_body_test
+             stored_xss_test privacy_consent_test ui_text_test"
+LIVE_TESTS="tender_determinism_test routing_test nh_test gis_failure_test footage_test"
+TESTS="$LOCAL_TESTS"
+if [ "${RUN_LIVE_TESTS:-0}" = "1" ]; then
+  TESTS="$TESTS $LIVE_TESTS"
+else
+  echo "Live OpenAI/KGIS checks skipped (set RUN_LIVE_TESTS=1 to include them)."
+fi
 
 fail=0
 for t in $TESTS; do

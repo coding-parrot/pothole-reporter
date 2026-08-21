@@ -1,0 +1,109 @@
+{
+  "cache": {
+    "max_bytes": 67108864,
+    "routing_max_unused_days": 90,
+    "tender_max_unused_days": 30
+  },
+  "catalog_version": 1,
+  "format": "pothole-pack-manifest",
+  "resources": {
+    "in-dl-routing": {
+      "adapter": "delhi-nct-v1",
+      "bytes": 19890,
+      "coverage_scope": "Delhi NCT",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0"
+      ],
+      "pack_id": "in-dl-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/dl/routing-848ef7a8b01c84096bd97d0ca3ec1b59500e9798e95c8ec83efd41e759875507.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "848ef7a8b01c84096bd97d0ca3ec1b59500e9798e95c8ec83efd41e759875507",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "DL",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/dl/routing-848ef7a8b01c84096bd97d0ca3ec1b59500e9798e95c8ec83efd41e759875507.json"
+    },
+    "in-ka-routing": {
+      "adapter": "karnataka-kgis-v1",
+      "bytes": 36011,
+      "coverage_scope": "Karnataka urban local bodies",
+      "kind": "routing",
+      "licenses": [
+        "Official Karnataka public-body records: respective source terms"
+      ],
+      "pack_id": "in-ka-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/ka/routing-75d521f1356291aff0ea8c75b6e2ac9c7c6fe10e3f410dd348d130ad56705dec.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "75d521f1356291aff0ea8c75b6e2ac9c7c6fe10e3f410dd348d130ad56705dec",
+      "source_retrieved_at": "2026-08-19",
+      "state_code": "KA",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ka/routing-75d521f1356291aff0ea8c75b6e2ac9c7c6fe10e3f410dd348d130ad56705dec.json"
+    },
+    "in-ka-tenders": {
+      "adapter": "karnataka-locally-indexed-v1",
+      "bytes": 3243773,
+      "coverage_scope": "Karnataka municipal procurement records",
+      "kind": "tenders",
+      "licenses": [
+        "Official Karnataka procurement records: respective source terms"
+      ],
+      "pack_id": "in-ka-tenders",
+      "pack_version": 1,
+      "path": "packs/v1/states/ka/tenders-120c24449e9ae02c98368ca77e9a239c7f6757445dc608a092fcf96f09b800ff.json",
+      "records": 13577,
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "120c24449e9ae02c98368ca77e9a239c7f6757445dc608a092fcf96f09b800ff",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "KA",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ka/tenders-120c24449e9ae02c98368ca77e9a239c7f6757445dc608a092fcf96f09b800ff.json"
+    },
+    "in-mh-routing": {
+      "adapter": "maharashtra-mmr-pmc-v1",
+      "bytes": 579230,
+      "coverage_scope": "Mumbai Metropolitan Region and Pune Municipal Corporation",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Maharashtra GIS and public-authority sources: respective source terms"
+      ],
+      "pack_id": "in-mh-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/mh/routing-cd58ba14f184b408f2058a4e416a369bce1bd07813ed7c463182ec5f3225b545.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "cd58ba14f184b408f2058a4e416a369bce1bd07813ed7c463182ec5f3225b545",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "MH",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/mh/routing-cd58ba14f184b408f2058a4e416a369bce1bd07813ed7c463182ec5f3225b545.json"
+    },
+    "in-wb-routing": {
+      "adapter": "kolkata-kmc-v1",
+      "bytes": 229808,
+      "coverage_scope": "Kolkata Municipal Corporation",
+      "kind": "routing",
+      "licenses": [
+        "Official West Bengal UDMA and KMC sources: respective source terms"
+      ],
+      "pack_id": "in-wb-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/wb/routing-f5f6571457543f56cdca9794408398410da35579e7cd7ad82c8eb8053cd94d62.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "f5f6571457543f56cdca9794408398410da35579e7cd7ad82c8eb8053cd94d62",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "WB",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/wb/routing-f5f6571457543f56cdca9794408398410da35579e7cd7ad82c8eb8053cd94d62.json"
+    }
+  },
+  "schema_version": 1
+}

@@ -71,7 +71,12 @@ Tender PDFs are not a complete current award register. Scraping them could misid
 
 ## Architecture and consent boundary
 
-The public Android app remains pure-client: capture, review, detection, and history operate on the phone, with no project-operated account or collection backend. Independent handoff needs no bridge.
+The public Android app remains pure-client: capture, review, detection, and history
+operate on the phone, with no project-operated account or collection backend. Versioned
+state routing packs are downloaded from the project's GitHub Pages site, checksum-verified,
+and cached locally; that request reveals the coarse state in the URL plus ordinary
+connection metadata, but contains no report, photo, or exact coordinates. Independent
+handoff needs no bridge.
 
 Only opted-in pilot users would enable a separate bridge:
 
