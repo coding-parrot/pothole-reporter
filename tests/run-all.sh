@@ -33,7 +33,7 @@ pkill -f "http.server 8765" >/dev/null 2>&1
 start_server || { echo "could not start the static server"; exit 1; }
 trap 'pkill -f "http.server 8765" >/dev/null 2>&1' EXIT
 
-TESTS="unit_test mumbai_routing_test maharashtra_routing_test kolkata_routing_test submission_truth_test mumbai_ui_test kolkata_ui_test eval_contract_test persistent_dedupe_test footage_metadata_test drive_start_stop_test orphan_footage_test capture_cadence_test letter_test tender_determinism_test storage_commit_test stalled_body_test
+TESTS="unit_test home_actions_test mumbai_routing_test maharashtra_routing_test kolkata_routing_test submission_truth_test mumbai_ui_test kolkata_ui_test eval_contract_test persistent_dedupe_test footage_metadata_test drive_start_stop_test orphan_footage_test capture_cadence_test letter_test tender_determinism_test storage_commit_test stalled_body_test
        stored_xss_test privacy_consent_test ui_text_test routing_test nh_test gis_failure_test footage_test"
 
 fail=0

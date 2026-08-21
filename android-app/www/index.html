@@ -73,9 +73,9 @@
   <div id="banner" class="banner"></div>
 
   <div id="home">
-    <button class="primary" id="captureBtn">&#128247; &nbsp;Report road damage</button>
-    <button class="ghost" id="dashBtn" style="width:100%;margin-bottom:14px">&#128506;&#65039; &nbsp;Your contribution</button>
-    <button class="primary" id="driveBtn" style="background:#26272c;color:#f2f2f4;margin-top:-8px">&#128663; &nbsp;Drive mode</button>
+    <button class="primary" id="driveBtn">&#128663; &nbsp;Drive</button>
+    <button class="ghost" id="captureBtn" style="width:100%;margin-bottom:10px">&#128247; &nbsp;Photo</button>
+    <button class="ghost" id="dashBtn" style="width:100%;margin-bottom:14px">&#128506;&#65039; &nbsp;Contribution</button>
     <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden">
     <h2 id="reportsTitle">Your reports</h2>
     <div id="list"><div class="empty">No reports yet.</div></div>
@@ -225,8 +225,8 @@ const $ = (id) => document.getElementById(id);
 const I18N = {
   en: {
     sub: "Capture it. Verify the damage. Prepare a complaint for a suggested office.",
-    report_btn: "&#128247; &nbsp;Report road damage",
-    drive_btn: "&#128663; &nbsp;Drive mode",
+    report_btn: "&#128247; &nbsp;Photo",
+    drive_btn: "&#128663; &nbsp;Drive",
     your_reports: "Your reports",
     no_reports: "No reports yet.",
     banner_setup: "Setup needed: tap the gear icon and paste your OpenAI API key.",
@@ -265,7 +265,7 @@ const I18N = {
     no_address_help: "Road damage was confirmed and the responsible local body identified, but the app holds no official email for it and will not guess one. The photo and location are saved; the address can be added to the directory.",
     no_location_help: "Road damage was confirmed, but without a GPS fix the app cannot tell which corporation is responsible, so it will not address a complaint. The photo is saved.",
     review_btn: "Review and label frames", export_btn: "Export labelled dataset",
-    dash_btn: "&#128506;&#65039; &nbsp;Your contribution", dash_title: "Your contribution",
+    dash_btn: "&#128506;&#65039; &nbsp;Contribution", dash_title: "Your contribution",
     dash_range: "{days} of reporting · first on {first}",
     dash_empty: "No road damage reported yet. Your map fills up as you drive.",
     day_one: "1 day", day_many: "{n} days",
@@ -383,8 +383,8 @@ const I18N = {
   },
   kn: {
     sub: "ಫೋಟೋ ತೆಗೆಯಿರಿ. ಹಾನಿ ಪರಿಶೀಲಿಸಿ. ಸೂಚಿಸಿದ ಕಚೇರಿಗೆ ದೂರು ಕರಡು ಸಿದ್ಧಪಡಿಸಿ.",
-    report_btn: "&#128247; &nbsp;ರಸ್ತೆ ಹಾನಿ ವರದಿ ಮಾಡಿ",
-    drive_btn: "&#128663; &nbsp;ಡ್ರೈವ್ ಮೋಡ್",
+    report_btn: "&#128247; &nbsp;ಫೋಟೋ",
+    drive_btn: "&#128663; &nbsp;ಡ್ರೈವ್",
     your_reports: "ನಿಮ್ಮ ವರದಿಗಳು",
     no_reports: "ಇನ್ನೂ ವರದಿಗಳಿಲ್ಲ. ಗುಂಡಿ ಹುಡುಕಲು ಹೊರಡಿ.",
     banner_setup: "ಸೆಟಪ್ ಅಗತ್ಯ: ಗಿಯರ್ ಐಕಾನ್ ಒತ್ತಿ ನಿಮ್ಮ OpenAI API ಕೀ ಅಂಟಿಸಿ.",
@@ -423,7 +423,7 @@ const I18N = {
     no_address_help: "ಗುಂಡಿ ದೃಢಪಟ್ಟಿದೆ ಮತ್ತು ಜವಾಬ್ದಾರ ಸಂಸ್ಥೆ ಗುರುತಿಸಲಾಗಿದೆ, ಆದರೆ ಅದರ ಅಧಿಕೃತ ಇಮೇಲ್ ಆ್ಯಪ್‌ನಲ್ಲಿ ಇಲ್ಲ, ಮತ್ತು ಊಹಿಸುವುದಿಲ್ಲ. ಫೋಟೋ ಉಳಿಸಲಾಗಿದೆ.",
     no_location_help: "ಗುಂಡಿ ದೃಢಪಟ್ಟಿದೆ, ಆದರೆ GPS ಇಲ್ಲದೆ ಯಾವ ಪಾಲಿಕೆ ಜವಾಬ್ದಾರಿ ಎಂದು ತಿಳಿಯದು, ಆದ್ದರಿಂದ ದೂರು ಸಿದ್ಧಪಡಿಸಿಲ್ಲ. ಫೋಟೋ ಉಳಿಸಲಾಗಿದೆ.",
     review_btn: "ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಗುರುತಿಸಿ", export_btn: "ಗುರುತಿಸಿದ ಡೇಟಾಸೆಟ್ ರಫ್ತು ಮಾಡಿ",
-    dash_btn: "&#128506;&#65039; &nbsp;ನಿಮ್ಮ ಕೊಡುಗೆ", dash_title: "ನಿಮ್ಮ ಕೊಡುಗೆ",
+    dash_btn: "&#128506;&#65039; &nbsp;ಕೊಡುಗೆ", dash_title: "ನಿಮ್ಮ ಕೊಡುಗೆ",
     dash_range: "{days} ವರದಿ · ಮೊದಲನೆಯದು {first}",
     dash_empty: "ಇನ್ನೂ ಗುಂಡಿಗಳ ವರದಿ ಇಲ್ಲ. ಡ್ರೈವ್ ಮಾಡಿದಂತೆ ನಕ್ಷೆ ತುಂಬುತ್ತದೆ.",
     day_one: "1 ದಿನ", day_many: "{n} ದಿನಗಳು",
@@ -534,8 +534,8 @@ const I18N = {
   },
   mr: {
     sub: "फोटो घ्या. नुकसान पडताळा. सुचवलेल्या कार्यालयासाठी तक्रारीचा मसुदा तयार करा.",
-    report_btn: "&#128247; &nbsp;रस्त्याचे नुकसान नोंदवा",
-    drive_btn: "&#128663; &nbsp;ड्राइव्ह मोड",
+    report_btn: "&#128247; &nbsp;फोटो",
+    drive_btn: "&#128663; &nbsp;ड्राइव्ह",
     your_reports: "तुमचे अहवाल",
     no_reports: "अजून कोणतेही अहवाल नाहीत.",
     banner_setup: "सेटअप आवश्यक: गिअर चिन्हावर टॅप करून तुमची OpenAI API की पेस्ट करा.",
@@ -576,7 +576,7 @@ const I18N = {
     no_address_help: "जबाबदार स्थानिक संस्था निश्चित झाली, पण तिचा अधिकृत ईमेल उपलब्ध नाही आणि अॅप अंदाजाने पत्ता वापरणार नाही. फोटो आणि स्थान जतन केले आहे.",
     no_location_help: "रस्त्याचे नुकसान निश्चित झाले, पण GPS स्थानाशिवाय जबाबदार महानगरपालिका ओळखता येत नाही. फोटो जतन केला आहे.",
     review_btn: "फ्रेम्स तपासा आणि लेबल करा", export_btn: "लेबल केलेला डेटासेट निर्यात करा",
-    dash_btn: "&#128506;&#65039; &nbsp;तुमचे योगदान", dash_title: "तुमचे योगदान",
+    dash_btn: "&#128506;&#65039; &nbsp;योगदान", dash_title: "तुमचे योगदान",
     dash_range: "{days} चा अहवाल · पहिली नोंद {first}",
     dash_empty: "अजून रस्त्याचे नुकसान नोंदवलेले नाही. तुम्ही वाहन चालवल्यावर नकाशा भरत जाईल.",
     day_one: "1 दिवस", day_many: "{n} दिवस",
@@ -675,8 +675,8 @@ const I18N = {
   },
   bn: {
     sub: "ছবি তুলুন। ক্ষতি যাচাই করুন। প্রস্তাবিত দপ্তরের জন্য অভিযোগের খসড়া তৈরি করুন।",
-    report_btn: "&#128247; &nbsp;রাস্তার ক্ষতির অভিযোগ জানান",
-    drive_btn: "&#128663; &nbsp;ড্রাইভ মোড",
+    report_btn: "&#128247; &nbsp;ছবি",
+    drive_btn: "&#128663; &nbsp;ড্রাইভ",
     your_reports: "আপনার রিপোর্ট",
     no_reports: "এখনও কোনও রিপোর্ট নেই।",
     banner_setup: "সেটআপ প্রয়োজন: গিয়ার আইকনে ট্যাপ করে আপনার OpenAI API key পেস্ট করুন।",
@@ -715,7 +715,7 @@ const I18N = {
     no_address_help: "রাস্তার ক্ষতি এবং সংশ্লিষ্ট স্থানীয় সংস্থা শনাক্ত হয়েছে, কিন্তু অ্যাপে তার কোনও সরকারি ইমেল নেই এবং অ্যাপটি ঠিকানা অনুমান করবে না। ছবি ও অবস্থান সংরক্ষিত আছে; যাচাই করা ঠিকানা পরে ডিরেক্টরিতে যোগ করা যাবে।",
     no_location_help: "রাস্তার ক্ষতি নিশ্চিত হয়েছে, কিন্তু GPS অবস্থান ছাড়া কোন পৌরসংস্থা দায়িত্বে তা জানা যায় না। তাই অভিযোগে কোনও প্রাপক দেওয়া হয়নি। ছবিটি সংরক্ষিত আছে।",
     review_btn: "ফ্রেম যাচাই করে লেবেল দিন", export_btn: "লেবেল দেওয়া ডেটাসেট এক্সপোর্ট করুন",
-    dash_btn: "&#128506;&#65039; &nbsp;আপনার অবদান", dash_title: "আপনার অবদান",
+    dash_btn: "&#128506;&#65039; &nbsp;অবদান", dash_title: "আপনার অবদান",
     dash_range: "{days} ধরে রিপোর্ট · প্রথম রিপোর্ট {first}",
     dash_empty: "এখনও রাস্তার কোনও ক্ষতি রিপোর্ট করা হয়নি। ড্রাইভ করার সঙ্গে সঙ্গে আপনার মানচিত্র পূর্ণ হবে।",
     day_one: "1 দিন", day_many: "{n} দিন",

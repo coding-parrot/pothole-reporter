@@ -61,10 +61,10 @@ https://coding-parrot.github.io/pothole-reporter/sources.html
 Current routing targets the MMR, PMC, KMC, and supported Karnataka urban local bodies. Locations outside these routes are saved locally but not addressed to an authority.
 ```
 
-## Release notes (1.16.0 / version code 31)
+## Release notes (1.16.1 / version code 32)
 
 ```text
-Added current Kolkata Municipal Corporation coverage using the official West Bengal UDMA boundary, Bengali, and user-controlled KMC Grievance 2.0, official app, WhatsApp, and helpline handoffs. Howrah, Bidhannagar/Salt Lake, and New Town are outside this route. Authority suggestions do not prove road ownership, and complaints are never filed automatically.
+Simplified the home screen to three clear actions: Drive, Photo and Contribution. Drive is now first and highlighted for faster, safer hands-free setup before moving.
 ```
 
 ## Play Console fields

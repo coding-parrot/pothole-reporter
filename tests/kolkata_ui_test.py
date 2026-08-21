@@ -37,8 +37,9 @@ async () => {
   eq("i18n: selector exposes four languages",
      [...document.querySelectorAll("#setLang option")].map((x) => x.value),
      ["en", "kn", "mr", "bn"]);
-  ok("i18n: visible capture action is Bengali",
-     /রাস্তার ক্ষতির অভিযোগ/.test(document.getElementById("captureBtn").textContent),
+  ok("i18n: visible capture action is concise Bengali",
+     document.getElementById("captureBtn").textContent
+       .replace(/^[^\p{L}\p{N}]+/u, "").trim() === "ছবি",
      document.getElementById("captureBtn").textContent);
   ok("i18n: visible disclosure is Bengali and names OpenAI",
      /OpenAI/.test(document.getElementById("privacyBody").textContent)

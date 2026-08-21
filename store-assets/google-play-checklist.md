@@ -1,13 +1,13 @@
 # Google Play publication checklist
 
-Status reviewed 21 August 2026 for release 1.16.0 / version code 31. This is a release
+Status reviewed 21 August 2026 for release 1.16.1 / version code 32. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.16.0/code 31 after the KMC changes,
+- [ ] **Fresh signed release bundle:** build version 1.16.1/code 32 after the home-action changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
   it in Play Console. Earlier bundles do not contain this coverage.
 - [ ] **Hosted privacy page:** enable a stable public host, then verify
@@ -71,7 +71,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.16.0 release. Include independent Maharashtra and Kolkata handoffs and regional
+  the 1.16.1 release. Include independent Maharashtra and Kolkata handoffs and regional
   language support without displaying private coordinates, an API key, a real grievance
   ID, or civic-body marks.
 - [ ] Use screenshots from the release build and avoid implying government affiliation,
