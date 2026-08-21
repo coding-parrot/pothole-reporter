@@ -1,15 +1,15 @@
 # Google Play publication checklist
 
-Status reviewed 21 August 2026 for release 1.14.0 / version code 29. This is a release
+Status reviewed 21 August 2026 for release 1.15.0 / version code 30. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.14.0/code 29 after the Mumbai changes,
+- [ ] **Fresh signed release bundle:** build version 1.15.0/code 30 after the MMR and PMC changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
-  it in Play Console. The previous 1.13.0/code 28 bundle does not contain this launch.
+  it in Play Console. Earlier bundles do not contain this coverage.
 - [ ] **Hosted privacy page:** enable a stable public host, then verify
   `https://coding-parrot.github.io/pothole-reporter/privacy.html` in a signed-out
   browser. It must not redirect to a login, return an error, or serve a PDF.
@@ -40,12 +40,17 @@ Do not submit to production until every applicable item above is complete.
   physical device. Test first launch, disclosure/permissions, manual capture, Drive Mode,
   stopping/final clip, footage analysis/deletion, history, wipe, API-key errors, offline
   errors, and Karnataka email-composer hand-off.
-- [ ] Test a Greater Mumbai report in English and Marathi. Verify evidence sharing,
-  the installed Pothole QuickFix app or its Play listing, prefilled WhatsApp to +91 89992 28999, the 1916 dialler,
-  installed/uninstalled external-app behavior, and cancellation/back navigation.
-- [ ] Verify that Pothole QuickFix changes only to “handoff opened,” while Share, WhatsApp,
-  and Call never mark the report submitted. Confirm that Mark submitted rejects a
-  missing/invalid grievance ID before storing the official ID locally.
+- [ ] Test representative locations in all 19 MMR urban local bodies, a rural MMR point,
+  Pune inside PMC, Pune outside PMC, and PCMC. Confirm rural/ambiguous MMR uses Aaple Sarkar,
+  PMC uses Road Mitra/PMC CARE, and PCMC stays unrouted.
+- [ ] Test Maharashtra handoffs in English and Marathi, including email, portal, installed
+  and uninstalled official apps, Share, BMC WhatsApp at +91 89992 28999, 1916, cancellation,
+  and back navigation.
+- [ ] Verify that opening an app or portal changes only to “official handoff opened,” while
+  Share, WhatsApp, Email, and Call never mark the report submitted. Confirm that Mark
+  submitted rejects a missing/invalid grievance/reference ID when one is required.
+- [ ] Verify each Maharashtra report states that the civic body is only a suggestion, does
+  not claim road ownership, and contains no contract or warranty match.
 - [ ] Confirm the release contains no API key, test frame, private location, or debug-only
   setting and that its bundled web assets match reviewed source.
 - [ ] Review the Pre-launch report and address crashes, ANRs, accessibility failures, and
@@ -60,13 +65,14 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.14.0 release. Include the independent Mumbai handoff and Marathi without displaying
+  the 1.15.0 release. Include the independent Maharashtra handoff and Marathi without displaying
   private coordinates, an API key, a real grievance ID, or BMC marks.
 - [ ] Use screenshots from the release build and avoid implying government affiliation,
   automatic filing, guaranteed detection, verified responsibility, or benchmarked accuracy.
 - [ ] Enter the hosted privacy-policy URL, support website, and required support email.
 - [ ] Choose the app category and target countries intentionally. Current routing is limited
-  to Greater Mumbai and supported Karnataka urban local bodies; keep that limit visible.
+  to the MMR, Pune Municipal Corporation limits, and supported Karnataka urban local bodies;
+  keep that limit and the PCMC exclusion visible.
 - [ ] Keep the non-affiliation statement and official-source URLs visible in the full
   description. Do not use BMC's name, seal, logo, colours, or screenshots in a way that
   suggests this is BMC's app.
@@ -79,12 +85,14 @@ Official references: [target API schedule](https://support.google.com/googleplay
   Audit at least:
   - selected manual photos and Drive/VOD image frames sent to OpenAI;
   - precise coordinates sent to Nominatim, and to Karnataka GIS only for Karnataka points;
-  - road address and procurement shortlist sent to OpenAI for probable contract matching;
+  - for eligible Karnataka routes only, road address and procurement shortlist sent to
+    OpenAI for probable contract matching; Maharashtra contract matching is disabled;
   - API credential and standard network metadata received by external services;
   - map-area tile requests, email-app hand-off, Android sharing, and every included SDK;
-  - Mumbai report text passed in the WhatsApp link, the Pothole QuickFix app/Play-listing request,
-    compressed evidence passed to the chosen share destination, and the 1916 dialler action;
-  - the official BMC grievance ID stored locally when the user marks a report submitted.
+  - Maharashtra report text or evidence handed to a selected email, WhatsApp, or share
+    destination, plus app/portal, Play-listing, and dialler launch metadata;
+  - an official grievance/reference ID stored locally when the user marks an eligible
+    official-channel report submitted.
 - [ ] For each applicable Play data type, answer collection/sharing, purpose,
   required-versus-optional, ephemeral processing, retention/deletion, and encryption in
   transit. Determine “shared” only after documenting whether each recipient meets Google's
@@ -115,18 +123,17 @@ and Google's [July 2026 AI/location clarification](https://support.google.com/go
 - [ ] Select only target age groups the product is genuinely designed for. Do not include
   children unless the app, data practices, SDKs, and listing are ready for Families policy.
 - [ ] In **App access**, explain first-run disclosure, permissions, entering the supplied
-  review API key, manual capture, Drive Mode, History, Karnataka email, and each Mumbai
+  review API key, manual capture, Drive Mode, History, Karnataka email, and each Maharashtra
   handoff. Access details must remain valid, reusable, and available throughout review.
-- [ ] If Mumbai or Karnataka routing is hard for an overseas reviewer to exercise, include
+- [ ] If Maharashtra or Karnataka routing is hard for an overseas reviewer to exercise, include
   lawful, repeatable review steps and test material that expose both flows without falsifying
   device location or policy declarations.
 - [ ] Complete the Government apps declaration as an unaffiliated app that communicates
   government information. Keep easy-to-see official source URLs and the explicit statement
-  that the app neither represents BMC nor submits a grievance automatically.
-- [ ] Do not add BMC marks, copied BMC graphics, embedded BMC pages, or deep links to BMC's
-  website without written permission. BMC's published website policy restricts linking,
-  framing, caching, and reuse of graphics; the current handoff uses Google Play, WhatsApp,
-  and the dialler instead.
+  that the app represents no government body, does not establish road ownership, and does
+  not submit a grievance automatically.
+- [ ] Do not add civic-body marks, copied government graphics, or framing that implies
+  official status. Keep every external service clearly labelled as a user-controlled handoff.
 
 Official references: [content ratings](https://support.google.com/googleplay/android-developer/answer/9898843?hl=en),
 [prepare app for review](https://support.google.com/googleplay/android-developer/answer/9859455?hl=en),

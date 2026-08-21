@@ -84,8 +84,8 @@
     <h2>Summary</h2>
     <div class="summary">
       <p>Pothole Reporter has no project-operated server, advertising network, or app account system. Reports and any recordings you choose to create are kept on your device.</p>
-      <p>It is not fully offline: selected road images are sent directly to OpenAI for analysis. Precise coordinates are sent to OpenStreetMap Nominatim; Karnataka locations also query Karnataka GIS.</p>
-      <p>Mumbai reports are not filed automatically. Only when you choose a handoff does the app open the installed Pothole QuickFix app or its Google Play listing, pass prefilled text to WhatsApp, open the phone dialler, or share compressed evidence with an app you select. Karnataka email data is handed to your email app only when you open a draft.</p>
+      <p>It is not fully offline: selected road images are sent directly to OpenAI for analysis. Precise coordinates are sent to OpenStreetMap Nominatim; Karnataka locations also query Karnataka GIS. MMR and PMC boundary checks use geometry bundled in the app and do not send coordinates to MMRDA or PMC GIS.</p>
+      <p>Reports are not filed automatically. Only when you choose a handoff does the app open an official app or portal, place prefilled text in WhatsApp, open the dialler, share compressed evidence, or hand an editable draft to your email app. You must review and complete the complaint in that external service.</p>
     </div>
   </section>
 
@@ -110,8 +110,8 @@
           </tr>
           <tr>
             <td>Precise location and drive motion data</td>
-            <td>The app reads latitude and longitude and may retain a local drive track with accuracy, speed, heading, and timestamps. Coordinates are sent to OpenStreetMap Nominatim. Karnataka locations also query Karnataka GIS endpoints. Viewing the in-app map requests OpenStreetMap tiles for the displayed area.</td>
-            <td>Find an address, identify Greater Mumbai or a supported Karnataka body, classify Karnataka roads, display report locations, and suppress repeated Drive Mode observations.</td>
+            <td>The app reads latitude and longitude and may retain a local drive track with accuracy, speed, heading, and timestamps. Coordinates are sent to OpenStreetMap Nominatim. Karnataka locations also query Karnataka GIS endpoints. MMR and PMC boundary checks run locally against bundled geometry. Viewing the in-app map requests OpenStreetMap tiles for the displayed area.</td>
+            <td>Find an address, check MMR or PMC coverage, suggest a Maharashtra civic body, identify a supported Karnataka body, classify Karnataka roads, display report locations, and suppress repeated Drive Mode observations.</td>
           </tr>
           <tr>
             <td>OpenAI API key</td>
@@ -120,18 +120,18 @@
           </tr>
           <tr>
             <td>Road address and procurement candidates</td>
-            <td>For a report that can be routed, the reverse-geocoded road address and a shortlist of public procurement records may be sent to OpenAI for a probable contract match.</td>
-            <td>Offer an optional, reviewable contract reference. A match is not proof of responsibility or warranty.</td>
+            <td>For an eligible Karnataka route only, the reverse-geocoded road address and a shortlist of public procurement records may be sent to OpenAI for a probable contract match. Maharashtra routes never enter this flow.</td>
+            <td>Offer an optional, reviewable Karnataka contract reference. A match is not proof of responsibility or warranty.</td>
           </tr>
           <tr>
             <td>Name, settings, reports, labels, photos, footage, and drive summaries</td>
-            <td>These are stored on the device. Your name is placed in the complaint signature. A BMC grievance ID is also stored locally only if you enter it to mark a Mumbai report submitted. Settings include language, model, image detail, recording, frame-saving, and debug choices.</td>
+            <td>These are stored on the device. Your name is placed in the complaint signature. An official grievance/reference ID is stored locally only if you enter it to mark an official-channel report submitted. Settings include language, model, image detail, recording, frame-saving, and debug choices.</td>
             <td>Run the app, preserve history, allow review, and prepare complaint drafts.</td>
           </tr>
           <tr>
-            <td>Mumbai handoff text and evidence</td>
-            <td>“Open Pothole QuickFix” opens the installed official app, or its Google Play listing if unavailable, without attaching the report. “BMC WhatsApp” puts the subject and complaint text into a WhatsApp link; WhatsApp receives that prefilled text when the link opens, but this app does not press Send. “Share evidence” creates compressed image copies and report text in app cache and invokes Android's share sheet. “Call 1916” opens the dialler.</td>
-            <td>Let you review and complete a complaint yourself in an external official channel. Opening any channel is not treated as a BMC submission.</td>
+            <td>Maharashtra handoff text and evidence</td>
+            <td>The offered app or portal opens only after you choose it. A Google Play fallback receives no report attachment. A WhatsApp action places complaint text in a link but does not press Send. Share creates compressed image copies and report text in app cache and invokes Android's share sheet. Call opens the dialler. Email hands an editable draft and attachment to your email app.</td>
+            <td>Let you review and complete a complaint yourself in an external official channel. Opening any channel is not treated as a submission.</td>
           </tr>
           <tr>
             <td>Email draft and attachment</td>
@@ -151,12 +151,12 @@
   <section>
     <h2>External recipients</h2>
     <ul>
-      <li><strong>OpenAI:</strong> API credentials, selected images, prompts, and—in the contract-matching flow—a road address and procurement shortlist. Requests set <code>store: false</code>, which prevents Responses API application-state retention but does not override OpenAI's security, abuse-monitoring, or legal retention. See <a href="https://openai.com/policies/privacy-policy/">OpenAI's privacy policy</a>.</li>
+      <li><strong>OpenAI:</strong> API credentials, selected images, prompts, and—for eligible Karnataka contract matching only—a road address and procurement shortlist. Requests set <code>store: false</code>, which prevents Responses API application-state retention but does not override OpenAI's security, abuse-monitoring, or legal retention. See <a href="https://openai.com/policies/privacy-policy/">OpenAI's privacy policy</a>.</li>
       <li><strong>OpenStreetMap services:</strong> coordinates sent to Nominatim for reverse geocoding and map-area requests sent to the tile service. See the <a href="https://osmfoundation.org/wiki/Privacy_Policy">OpenStreetMap Foundation privacy policy</a> and <a href="https://operations.osmfoundation.org/policies/nominatim/">Nominatim policy</a>.</li>
       <li><strong>Karnataka GIS/KSRSAC:</strong> for Karnataka locations only, coordinates are sent to government map endpoints to check municipal, gram-panchayat, and national-highway layers.</li>
-      <li><strong>Google Play:</strong> choosing Pothole QuickFix opens its store page. The app does not attach report content to that link, although Google receives ordinary connection and device metadata under its <a href="https://policies.google.com/privacy">privacy policy</a>.</li>
-      <li><strong>WhatsApp/Meta:</strong> choosing BMC WhatsApp passes the prefilled complaint text to WhatsApp. It is not sent as a chat until you choose to send it there. See <a href="https://www.whatsapp.com/legal/privacy-policy">WhatsApp's privacy policy</a>.</li>
-      <li><strong>BMC and other official complaint recipients:</strong> they receive information only when you complete a call, message, upload, or submission in their external service. BMC's website privacy policy is published at <code>https://portal.mcgm.gov.in/irj/portal/anonymous/privacy?guest_user=english</code>.</li>
+      <li><strong>Google Play:</strong> when an offered official Android app is absent, its store page may open. The app does not attach report content to that link, although Google receives ordinary connection and device metadata under its <a href="https://policies.google.com/privacy">privacy policy</a>.</li>
+      <li><strong>WhatsApp/Meta:</strong> after a separate confirmation, choosing a published BMC or VVCMC WhatsApp route passes the prefilled complaint text, including the exact location, to WhatsApp. It is not sent as a chat until you choose Send there. See <a href="https://www.whatsapp.com/legal/privacy-policy">WhatsApp's privacy policy</a>.</li>
+      <li><strong>Maharashtra civic bodies, Aaple Sarkar, and other official complaint recipients:</strong> opening a plain app or portal link sends ordinary connection or launch metadata; report content reaches that recipient only when you complete a message, email, upload, call, or submission in its external service. BMC's website privacy policy is published at <code>https://portal.mcgm.gov.in/irj/portal/anonymous/privacy?guest_user=english</code>.</li>
       <li><strong>Your email and sharing providers:</strong> data is transferred only when you open a complaint draft or choose a destination in Android's share sheet. Their own policies and retention rules apply.</li>
     </ul>
     <p>Like other internet services, these recipients can receive an IP address and standard connection metadata. They may process data outside your state or country, including outside India. The project does not control their independent retention or legal obligations.</p>
@@ -177,12 +177,12 @@
     <ul>
       <li>Drive recording is off by default. If you enable it, clips are written to app-private storage on the device.</li>
       <li>Reports, report photos, drive summaries, and recorded footage remain in app-private storage until the app deletes them automatically or you delete them.</li>
-      <li>A BMC grievance ID you enter remains in the local report until that report or all app data is deleted.</li>
-      <li>Sharing Mumbai evidence or an exported dataset creates temporary files in the app's dedicated cache folder. Android may clear cache automatically, and <strong>Delete all app data</strong> removes that folder. Copies already handed to another app are controlled by that destination.</li>
+      <li>An official grievance/reference ID you enter remains in the local report until that report or all app data is deleted.</li>
+      <li>Sharing report evidence or an exported dataset creates temporary files in the app's dedicated cache folder. Android may clear cache automatically, and <strong>Delete all app data</strong> removes that folder. Copies already handed to another app are controlled by that destination.</li>
       <li>With Debug mode off, successfully analysed drive footage is deleted after analysis completes without failed frame requests. Debug mode keeps it. You can also delete footage from History.</li>
       <li><strong>Delete all app data</strong> clears local reports, photos, drive summaries, app-held footage, the API key, sender name, settings, and the app's <code>Documents/pothole-frames</code> folder.</li>
       <li>Files already exported, shared, attached, copied elsewhere, or sent are outside the app's control and must be deleted from their destination separately.</li>
-      <li>Data already processed by OpenAI, OpenStreetMap services, Karnataka GIS, Google Play, WhatsApp, an email or sharing provider, or a complaint recipient is subject to that recipient's retention and deletion process.</li>
+      <li>Data already processed by OpenAI, OpenStreetMap services, Karnataka GIS, Google Play, WhatsApp, an email or sharing provider, or an official complaint service is subject to that recipient's retention and deletion process.</li>
     </ul>
     <p>The app creates no Pothole Reporter account, so there is no project account to delete. Android backup is disabled for the app.</p>
   </section>
@@ -206,7 +206,7 @@
   </section>
 
   <footer>
-    <p>Pothole Reporter is independent and is not affiliated with or endorsed by Brihanmumbai Municipal Corporation (BMC), the Government of Karnataka, OpenAI, OpenStreetMap, KSRSAC, or any other government body or data provider.</p>
+    <p>Pothole Reporter is independent and is not affiliated with or endorsed by MMRDA, PMC, BMC, the Government of Maharashtra, the Government of Karnataka, OpenAI, OpenStreetMap, KSRSAC, or any other government body or data provider.</p>
   </footer>
 </main>
 </body>

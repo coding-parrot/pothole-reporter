@@ -74,10 +74,12 @@ rm -f "$AAB_PATH"
 
 echo "3/6 validating release identity and manifest policy"
 grep -Fq 'package="com.gauravsen.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="29"' "$BUNDLE_MANIFEST" || fail "expected versionCode 29"
-grep -Fq 'android:versionName="1.14.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.14.0"
+grep -Fq 'android:versionCode="30"' "$BUNDLE_MANIFEST" || fail "expected versionCode 30"
+grep -Fq 'android:versionName="1.15.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.15.0"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
+grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"
+grep -Fq 'com.nyatitechnologies.pmcroadmitra' "$BUNDLE_MANIFEST" || fail "PMC Road Mitra package query is missing"
 
 if grep -Eq 'android:(debuggable|testOnly)="true"' "$BUNDLE_MANIFEST"; then
   fail "release manifest is debuggable or test-only"

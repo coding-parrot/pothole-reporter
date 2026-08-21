@@ -30,6 +30,10 @@ MODEL = (
     f"{HOOK}</script><img src=\"xss-model-missing\" "
     f'data-stored-xss="model-event" onerror="{HOOK}"><div>'
 )
+HANDOFF = (
+    'HANDOFF_XSS_MARKER</button><img src="xss-handoff-missing" '
+    f'data-stored-xss="handoff-event" onerror="{HOOK}"><button>'
+)
 
 SEED = r"""
 async ({overrides, secretKey, secret, pixel}) => {
@@ -101,6 +105,9 @@ def run_surface(browser, name, overrides, render, markers):
     if render == "history":
         page.evaluate("loadReports()")
         root = "#list"
+    elif render == "dashboard":
+        page.evaluate("openDash()")
+        root = "#dash"
     else:
         page.evaluate("report => openDetail(report, [report])", report)
         root = "#detail"
@@ -149,6 +156,28 @@ with sync_playwright() as playwright:
             {"status": "rejected", "description": MODEL},
             "detail",
             ["MODEL_XSS_MARKER"],
+        ),
+        run_surface(
+            browser,
+            "detail/handoff-name",
+            {
+                "delivery_channel": "official_handoff",
+                "officer_email": None,
+                "authority_name": "Test Municipal Corporation",
+                "handoff_name": HANDOFF,
+                "handoff_url": "https://example.invalid/official",
+                "ownership_unverified": True,
+                "requires_official_reference": True,
+            },
+            "detail",
+            ["HANDOFF_XSS_MARKER"],
+        ),
+        run_surface(
+            browser,
+            "dashboard/officer-name",
+            {"officer_name": OFFICER},
+            "dashboard",
+            ["OFFICER_XSS_MARKER"],
         ),
     ]
     browser.close()

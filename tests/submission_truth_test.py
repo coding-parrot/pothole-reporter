@@ -7,8 +7,8 @@ from playwright.sync_api import sync_playwright
 
 APP = "http://localhost:8765/"
 PIXEL = (
-    "data:image/gif;base64,"
-    "R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+    "data:image/png;base64,"
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
 
 SCENARIO = r"""
@@ -75,6 +75,42 @@ async ({pixel}) => {
       officer_name: "BMC Pothole QuickFix (K/W Ward suggested)",
       authority_name: "Brihanmumbai Municipal Corporation", officer_email: null,
     },
+    {
+      ...base, id: 71005, created_at: base.created_at + 4, status: "draft",
+      address: "Shivajinagar, Pune", lat: 18.5308, lng: 73.8475,
+      delivery_channel: "official_handoff", ward_code: null,
+      officer_name: "PMC Road Mitra, Pune Municipal Corporation",
+      authority_id: "mh-pmc", authority_name: "Pune Municipal Corporation",
+      authority_registry_version: 1, region: "pune",
+      routing_source: "pmc_official_gis", routing_match_field: "boundary",
+      routing_match_value: "PMC_Boundary", ownership_unverified: true,
+      officer_email: null, handoff_name: "PMC Road Mitra",
+      // Simulate an older saved URL: /send must refresh it from today's registry.
+      handoff_url: "https://example.invalid/stale-road-mitra",
+      handoff_package: "com.nyatitechnologies.pmcroadmitra",
+      alternate_handoff_name: "PMC CARE", alternate_handoff_url: "https://pmccare.in/",
+      helpline: "1800-103-0222", requires_official_reference: true,
+    },
+    {
+      ...base, id: 71006, created_at: base.created_at + 5, status: "draft",
+      address: "Ambarnath, Thane", lat: 19.1860, lng: 73.1910,
+      delivery_channel: "email", ward_code: null,
+      officer_name: "Civic complaint desk, Ambarnath Municipal Council",
+      officer_email: "coud.ambernath@maharashtra.gov.in",
+      authority_id: "mh-ambarnath", authority_name: "Ambarnath Municipal Council",
+      authority_registry_version: 1, region: "mmr",
+      routing_source: "openstreetmap_structured", routing_match_field: "town",
+      routing_match_value: "Ambarnath", ownership_unverified: true,
+      requires_official_reference: false,
+    },
+    {
+      ...base, id: 71007, created_at: base.created_at + 6, status: "draft",
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "Retired handoff", authority_id: "mh-retired-test-body",
+      authority_name: "Retired Test Body", authority_registry_version: 0,
+      handoff_name: "Retired Portal", handoff_url: "https://example.invalid/retired",
+      ownership_unverified: true, requires_official_reference: true,
+    },
   ];
 
   const db = await new Promise((resolve, reject) => {
@@ -101,6 +137,13 @@ async ({pixel}) => {
   ok("handoff: preparation points to BMC's official QuickFix listing",
      String(prepared.handoff_url || "").includes("com.bmc.potholequickfix"),
      prepared.handoff_url);
+  eq("legacy BMC: v1.14 records recover the QuickFix package",
+     prepared.handoff_package, "com.bmc.potholequickfix");
+  eq("legacy BMC: v1.14 records recover the verified WhatsApp route",
+     prepared.whatsapp_url, "https://wa.me/918999228999");
+  eq("legacy BMC: v1.14 records recover the helpline", prepared.helpline, "1916");
+  eq("legacy BMC: official reference remains required",
+     prepared.requires_official_reference, true);
 
   const preparedStored = await byId(71001);
   eq("handoff: preparing a link does not mutate persisted status", preparedStored.status, "draft");
@@ -131,10 +174,32 @@ async ({pixel}) => {
   };
   ok("UI: queued BMC says handoff, not submitted",
      /handoff/i.test(queuedUi.verdict) && !/submitted/i.test(queuedUi.verdict), queuedUi.verdict);
-  ok("UI: queued BMC explicitly says this app does not submit",
-     /does not submit a BMC grievance/i.test(queuedUi.text), queuedUi.text);
+  ok("UI: queued legacy BMC explicitly says this app only prepares evidence",
+     /independent app only prepares evidence/i.test(queuedUi.text), queuedUi.text);
+  ok("UI: queued legacy BMC keeps its official service and helpline",
+     /BMC Pothole QuickFix/i.test(queuedUi.text) && /1916/.test(queuedUi.text), queuedUi.text);
   ok("UI: queued BMC asks for the official reference",
      queuedUi.hasReferenceInput && queuedUi.hasMarkButton, queuedUi);
+
+  const priorWhatsappConfirm = window.confirm, priorWhatsappOpen = window.open;
+  const whatsappConfirms = [];
+  let whatsappOpenCalls = 0;
+  window.confirm = (message) => { whatsappConfirms.push(String(message)); return false; };
+  window.open = () => { whatsappOpenCalls++; return {opener: null}; };
+  await openOfficialWhatsApp(queuedStored);
+  window.confirm = priorWhatsappConfirm;
+  window.open = priorWhatsappOpen;
+  ok("WhatsApp: confirmation discloses report text, exact location and send boundary",
+     whatsappConfirms.some((message) => /Brihanmumbai Municipal Corporation/.test(message)
+       && /report's text and exact location/i.test(message)
+       && /Nothing is sent until you press Send in WhatsApp/i.test(message)),
+     whatsappConfirms);
+  eq("WhatsApp: cancelling confirmation performs no external launch", whatsappOpenCalls, 0);
+  const afterWhatsappCancel = await byId(71001);
+  eq("WhatsApp: cancelling does not change the queued status",
+     afterWhatsappCancel.status, "queued");
+  eq("WhatsApp: cancelling does not replace the recorded primary handoff time",
+     afterWhatsappCancel.handoff_opened_at, queuedStored.handoff_opened_at);
 
   // If Android/the browser refuses to launch QuickFix, sendReport must leave the
   // record as a draft and tell the user; merely preparing the URL is not a handoff.
@@ -154,8 +219,121 @@ async ({pixel}) => {
   eq("UI handoff: blocked launcher stores no handoff time",
      afterBlockedLaunch.handoff_opened_at, undefined);
   ok("UI handoff: blocked launcher produces an actionable error",
-     blockedAlerts.some((message) => /could not open Pothole QuickFix/i.test(message)),
+     blockedAlerts.some((message) => /could not open (?:BMC )?Pothole QuickFix/i.test(message)),
      blockedAlerts);
+
+  // Current generic handoffs persist their verified primary and alternate channels.
+  // Preparing either channel is still not a submission.
+  const pmcPrepared = await StandaloneAPI.handle(
+    "/api/reports/71005/send", {method: "POST"});
+  eq("generic handoff: preparing Road Mitra stays draft", pmcPrepared.status, "draft");
+  eq("generic handoff: returns the persisted primary service name",
+     pmcPrepared.handoff_name, "PMC Road Mitra");
+  eq("generic handoff: returns the persisted Android package",
+     pmcPrepared.handoff_package, "com.nyatitechnologies.pmcroadmitra");
+  ok("generic handoff: refreshes a stale saved URL from the current verified registry",
+     String(pmcPrepared.handoff_url || "").includes("com.nyatitechnologies.pmcroadmitra")
+       && !String(pmcPrepared.handoff_url || "").includes("example.invalid"),
+     pmcPrepared.handoff_url);
+  eq("generic handoff: returns the persisted alternate service name",
+     pmcPrepared.alternate_handoff_name, "PMC CARE");
+  eq("generic handoff: returns the persisted alternate URL",
+     pmcPrepared.alternate_handoff_url, "https://pmccare.in/");
+  eq("generic handoff: preparation does not set a handoff timestamp",
+     pmcPrepared.handoff_opened_at, undefined);
+  const pmcPreparedStored = await byId(71005);
+  eq("generic handoff: alternate service name survives IndexedDB storage",
+     pmcPreparedStored.alternate_handoff_name, "PMC CARE");
+  eq("generic handoff: alternate URL survives IndexedDB storage",
+     pmcPreparedStored.alternate_handoff_url, "https://pmccare.in/");
+
+  const retiredRouteError = await errorFrom(StandaloneAPI.handle(
+    "/api/reports/71007/send", {method: "POST"}));
+  ok("generic handoff: an authority absent from the current registry is blocked",
+     /no longer in the verified registry/i.test(retiredRouteError || ""), retiredRouteError);
+  const retiredStored = await byId(71007);
+  eq("generic handoff: blocked retired route remains a draft", retiredStored.status, "draft");
+  eq("generic handoff: blocked retired route records no handoff time",
+     retiredStored.handoff_opened_at, undefined);
+
+  openDetail(pmcPreparedStored, [pmcPreparedStored]);
+  const pmcUi = {
+    verdict: document.querySelector("#detail .verdict").textContent.trim(),
+    text: document.getElementById("detail").textContent,
+    labels: [...document.querySelectorAll("#detail label")].map((x) => x.textContent.trim()),
+    hasReferenceInput: !!document.getElementById("grievanceId"),
+    hasAlternate: !!document.getElementById("alternateHandoffBtn"),
+    alternateText: document.getElementById("alternateHandoffBtn")?.textContent.trim(),
+  };
+  ok("generic UI: identifies the suggested authority and ownership uncertainty",
+     /Pune Municipal Corporation/.test(pmcUi.text) && /does not prove who owns this road/i.test(pmcUi.text),
+     pmcUi.text);
+  ok("generic UI: primary and alternate official services are visible",
+     /PMC Road Mitra/.test(pmcUi.text) && pmcUi.hasAlternate && /PMC CARE/.test(pmcUi.alternateText || ""),
+     pmcUi);
+  ok("generic UI: asks for a generic official reference, not a BMC-only reference",
+     pmcUi.hasReferenceInput
+       && pmcUi.labels.includes("Official grievance/reference ID")
+       && !pmcUi.labels.includes("Official BMC grievance ID"), pmcUi.labels);
+
+  // A blocked primary-app launch must remain a draft for generic handoffs too.
+  const priorPmcConfirm = window.confirm, priorPmcAlert = window.alert;
+  const pmcBlockedAlerts = [];
+  window.confirm = () => true;
+  window.alert = (message) => pmcBlockedAlerts.push(String(message));
+  window.open = () => null;
+  openDetail(pmcPreparedStored, [pmcPreparedStored]);
+  await sendReport(pmcPreparedStored);
+  window.confirm = priorPmcConfirm;
+  window.alert = priorPmcAlert;
+  window.open = priorOpen;
+  const pmcAfterBlocked = await byId(71005);
+  eq("generic UI handoff: blocked launcher leaves report draft",
+     pmcAfterBlocked.status, "draft");
+  eq("generic UI handoff: blocked launcher stores no handoff time",
+     pmcAfterBlocked.handoff_opened_at, undefined);
+  ok("generic UI handoff: blocked launcher names the failed official service",
+     pmcBlockedAlerts.some((message) => /could not open PMC Road Mitra/i.test(message)),
+     pmcBlockedAlerts);
+
+  const pmcDraftEvidence = await StandaloneAPI.handle("/api/reports/71005/evidence");
+  ok("generic evidence: names the suggested Pune authority",
+     /Pune Municipal Corporation/.test(pmcDraftEvidence.text), pmcDraftEvidence.text);
+  ok("generic evidence: never falsely describes a PMC report as a BMC report",
+     !/\bBMC\b/.test(pmcDraftEvidence.text), pmcDraftEvidence.text);
+
+  // Successfully opening the verified alternate portal records only a handoff.
+  const priorAlternateOpen = window.open;
+  window.open = () => ({opener: null});
+  await openAlternateHandoff(pmcAfterBlocked);
+  window.open = priorAlternateOpen;
+  const pmcQueued = await byId(71005);
+  eq("generic alternate: successful portal open becomes queued", pmcQueued.status, "queued");
+  ok("generic alternate: successful portal open records a handoff timestamp",
+     Number.isFinite(pmcQueued.handoff_opened_at), pmcQueued.handoff_opened_at);
+  eq("generic alternate: opening does not invent a reference",
+     pmcQueued.official_grievance_id, null);
+  eq("generic alternate: opening does not mark submitted", pmcQueued.submitted_at, null);
+
+  const pmcBlankError = await errorFrom(StandaloneAPI.handle(
+    "/api/reports/71005/submitted",
+    {method: "POST", body: JSON.stringify({official_grievance_id: ""})},
+  ));
+  ok("generic confirmation: blank reference is rejected with the authority named",
+     /official grievance\/reference ID from Pune Municipal Corporation/i.test(pmcBlankError || ""),
+     pmcBlankError);
+  const pmcShortError = await errorFrom(StandaloneAPI.handle(
+    "/api/reports/71005/submitted",
+    {method: "POST", body: JSON.stringify({official_grievance_id: "123"})},
+  ));
+  ok("generic confirmation: implausibly short reference is rejected",
+     /official grievance\/reference ID from Pune Municipal Corporation/i.test(pmcShortError || ""),
+     pmcShortError);
+  const pmcAfterRejectedConfirmation = await byId(71005);
+  eq("generic confirmation: rejected attempt stays queued",
+     pmcAfterRejectedConfirmation.status, "queued");
+  eq("generic confirmation: rejected attempt stores no submission time",
+     pmcAfterRejectedConfirmation.submitted_at, null);
 
   const blankError = await errorFrom(StandaloneAPI.handle(
     "/api/reports/71001/submitted",
@@ -214,6 +392,69 @@ async ({pixel}) => {
   ok("dashboard: labels the metric as confirmed submissions", !!submissionTile, stats);
   eq("dashboard: queued handoffs are not counted as submissions",
      submissionTile && submissionTile.value, "1");
+
+  const pmcSubmitted = await StandaloneAPI.handle("/api/reports/71005/submitted", {
+    method: "POST",
+    body: JSON.stringify({official_grievance_id: "  PMC-2026-009876  "}),
+  });
+  eq("generic confirmation: valid reference marks sent", pmcSubmitted.status, "sent");
+  eq("generic confirmation: reference is trimmed",
+     pmcSubmitted.official_grievance_id, "PMC-2026-009876");
+  ok("generic confirmation: submitted_at is recorded",
+     Number.isFinite(pmcSubmitted.submitted_at), pmcSubmitted.submitted_at);
+
+  const pmcSubmittedStored = await byId(71005);
+  eq("generic confirmation: official reference is persisted",
+     pmcSubmittedStored.official_grievance_id, "PMC-2026-009876");
+  openDetail(pmcSubmittedStored, [pmcSubmittedStored]);
+  const pmcSentUi = {
+    verdict: document.querySelector("#detail .verdict").textContent.trim(),
+    text: document.getElementById("detail").textContent,
+    hasSend: !!document.getElementById("sendBtn"),
+    hasMark: !!document.getElementById("markSubmittedBtn"),
+  };
+  ok("generic UI: confirmed PMC report is visibly marked submitted",
+     /marked submitted/i.test(pmcSentUi.verdict), pmcSentUi.verdict);
+  ok("generic UI: confirmed PMC report shows its official reference",
+     pmcSentUi.text.includes("PMC-2026-009876"), pmcSentUi.text);
+  ok("generic UI: confirmed PMC report has no repeat send/mark controls",
+     !pmcSentUi.hasSend && !pmcSentUi.hasMark, pmcSentUi);
+
+  const pmcSentEvidence = await StandaloneAPI.handle("/api/reports/71005/evidence");
+  ok("generic evidence: submitted text includes the official reference",
+     /PMC-2026-009876/.test(pmcSentEvidence.text), pmcSentEvidence.text);
+  ok("generic evidence: submitted PMC text never calls it a BMC reference",
+     !/\bBMC\b/.test(pmcSentEvidence.text), pmcSentEvidence.text);
+
+  await openDash();
+  const postPmcStats = [...document.querySelectorAll("#dashStats .card")].map((card) => ({
+    value: card.querySelector(".verdict").textContent.trim(),
+    label: card.querySelector(".meta").textContent.trim(),
+  }));
+  const postPmcTile = postPmcStats.find((tile) => /confirmed submissions/i.test(tile.label));
+  eq("dashboard: a second reference-confirmed handoff raises the total",
+     postPmcTile && postPmcTile.value, "2");
+
+  // A municipality email inferred from the point is still only a civic-authority
+  // suggestion. The warning and the final confirmation must say ownership is unknown.
+  const councilDraft = await byId(71006);
+  openDetail(councilDraft, [councilDraft]);
+  const councilUiText = document.getElementById("detail").textContent;
+  ok("suggested email route: UI names the authority and warns ownership is unverified",
+     /Ambarnath Municipal Council/.test(councilUiText)
+       && /road ownership is not verified/i.test(councilUiText), councilUiText);
+  const priorCouncilConfirm = window.confirm;
+  const councilConfirms = [];
+  window.confirm = (message) => { councilConfirms.push(String(message)); return false; };
+  await sendReport(councilDraft);
+  window.confirm = priorCouncilConfirm;
+  ok("suggested email route: confirmation repeats the ownership warning",
+     councilConfirms.some((message) => /Ambarnath Municipal Council/.test(message)
+       && /does not prove road ownership/i.test(message)
+       && /coud\.ambernath@maharashtra\.gov\.in/.test(message)), councilConfirms);
+  const councilAfterCancel = await byId(71006);
+  eq("suggested email route: cancelling confirmation leaves the report draft",
+     councilAfterCancel.status, "draft");
 
   // Email also requires an explicit citizen confirmation, but unlike BMC it has no
   // official grievance ID to record.

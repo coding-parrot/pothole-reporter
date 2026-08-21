@@ -219,7 +219,6 @@
 <script src="standalone.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
-const BMC_QUICKFIX_PACKAGE = "com.bmc.potholequickfix";
 
 // ---------- i18n (English / Kannada / Marathi) ----------
 const I18N = {
@@ -249,8 +248,12 @@ const I18N = {
     welcome_hint: "Welcome. Paste your OpenAI API key to enable detection. It is saved on this device and sent to OpenAI only as the request credential.",
     back: "Back", save: "Save", discard: "Discard", del: "Delete", email_btn: "Email", stop: "&#9632; Stop", working: "Working...",
     chip_draft: "Draft", chip_sent: "Marked submitted", chip_queued: "Opened in email", chip_queued_bmc: "BMC handoff opened", chip_rejected: "Not reportable", chip_review: "Needs review",
-    chip_unrouted: "Outside coverage",
+    chip_unrouted: "Not routed",
     no_location: "The location could not be determined.",
+    location_uncertain: "GPS is not accurate enough to choose an authority.",
+    location_uncertain_help: "Road damage was confirmed, but the current GPS accuracy could cross a civic boundary. Retake it with a fresh, more accurate fix; this report was saved without a recipient.",
+    jurisdiction_unavailable: "The bundled Maharashtra boundary map could not be read.",
+    jurisdiction_unavailable_help: "Road damage was confirmed, but the app will not guess a Maharashtra authority without its local boundary map. Restart the app and try again; this report was saved without a recipient.",
     road_unknown: "Could not check who owns this road",
     road_unknown_help: "The app could not reach the state road network to check whether this is a national highway, so it will not name a city officer for a road that may not be theirs. Try again when you have a signal.",
     nat_highway: "{road} is a national highway",
@@ -308,7 +311,7 @@ const I18N = {
     model_said: "The app said: {verdict} · {assessment}",
     export_ready: "{n} labelled frames, {mb} MB. Choose where to send it.",
     outside_coverage: "This location is outside the area this app covers.",
-    outside_coverage_help: "This point is outside the supported Karnataka and Greater Mumbai routes, so the app cannot prepare a correctly addressed complaint. The photo and location are saved.",
+    outside_coverage_help: "This point is outside the supported Karnataka, Mumbai Metropolitan Region, and Pune Municipal Corporation routes. The photo and location are saved without a recipient.",
     size_small: "small", size_medium: "medium", size_large: "large",
     damage_pothole_cavity: "pothole cavity", damage_failed_patch: "failed road repair",
     damage_surface_breakup: "broken road surface", damage_rut_or_depression: "road rut / depression",
@@ -341,6 +344,20 @@ const I18N = {
     drive_end_zero: "No reportable road damage found in this drive ({checked} events checked{debug}).",
     debug_saved_suffix: ", debug frames saved for review",
     confirm_send: "Open your email app with the complaint addressed to {to}?",
+    confirm_suggested_email: "Location suggests {authority}, but this does not prove road ownership. Open your email app with the complaint addressed to {to}?",
+    open_official_btn: "Open {name}",
+    share_evidence_btn: "Share evidence",
+    official_whatsapp_btn: "Official WhatsApp",
+    official_call_btn: "Call {number}",
+    confirm_whatsapp_share: "Open the official WhatsApp for {authority} with this report's text and exact location? Nothing is sent until you press Send in WhatsApp.",
+    official_disclaimer: "Suggested civic authority: {authority}. This does not prove who owns this road. This independent app only prepares evidence; finish the grievance yourself in {service} and save its official reference ID.",
+    authority_disclaimer: "Suggested civic authority from the location: {authority}. Road ownership is not verified; check the recipient before sending.",
+    routing_match: "Routing clue: {field} = {value}. Verify it before submitting.",
+    alternate_handoff_btn: "Open {name}",
+    confirm_official_handoff: "Open {service} for the suggested authority {authority}? This records only that the handoff opened—not that a grievance was submitted.",
+    official_grievance_generic_label: "Official grievance/reference ID",
+    official_grievance_generic_placeholder: "Enter the ID returned by the official service",
+    chip_queued_official: "Official handoff opened",
     bmc_prepare_btn: "Prepare Mumbai report",
     bmc_share_btn: "Share evidence",
     bmc_quickfix_btn: "Open Pothole QuickFix",
@@ -389,8 +406,12 @@ const I18N = {
     welcome_hint: "ಸ್ವಾಗತ. ಪತ್ತೆಗೆ ನಿಮ್ಮ OpenAI API ಕೀ ಅಂಟಿಸಿ. ಇದು ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ ಮತ್ತು OpenAI ಗೆ ಪ್ರಮಾಣಪತ್ರವಾಗಿ ಮಾತ್ರ ಕಳುಹಿಸಲಾಗುತ್ತದೆ.",
     back: "ಹಿಂದೆ", save: "ಉಳಿಸಿ", discard: "ತ್ಯಜಿಸಿ", del: "ಅಳಿಸಿ", email_btn: "ಇಮೇಲ್", stop: "&#9632; ನಿಲ್ಲಿಸಿ", working: "ನಡೆಯುತ್ತಿದೆ...",
     chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_queued_bmc: "BMC ಹಸ್ತಾಂತರ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ವರದಿ ಯೋಗ್ಯವಲ್ಲ", chip_review: "ಪರಿಶೀಲನೆ ಬೇಕು",
-    chip_unrouted: "ವ್ಯಾಪ್ತಿಯ ಹೊರಗೆ",
+    chip_unrouted: "ಮಾರ್ಗ ನಿಗದಿಯಾಗಿಲ್ಲ",
     no_location: "ಸ್ಥಳ ಪತ್ತೆಯಾಗಲಿಲ್ಲ.",
+    location_uncertain: "ಅಧಿಕಾರಿಯನ್ನು ಆಯ್ಕೆ ಮಾಡಲು GPS ಸಾಕಷ್ಟು ನಿಖರವಾಗಿಲ್ಲ.",
+    location_uncertain_help: "ರಸ್ತೆ ಹಾನಿ ದೃಢಪಟ್ಟಿದೆ, ಆದರೆ GPS ನಿಖರತೆಯ ವಲಯವು ನಾಗರಿಕ ಗಡಿಯನ್ನು ದಾಟಬಹುದು. ಹೆಚ್ಚು ನಿಖರವಾದ ಹೊಸ ಸ್ಥಳದೊಂದಿಗೆ ಮತ್ತೆ ಸೆರೆಹಿಡಿಯಿರಿ; ಈ ವರದಿ ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
+    jurisdiction_unavailable: "ಸಾಧನದಲ್ಲಿರುವ ಮಹಾರಾಷ್ಟ್ರ ಗಡಿ ನಕ್ಷೆಯನ್ನು ಓದಲಾಗಲಿಲ್ಲ.",
+    jurisdiction_unavailable_help: "ಸ್ಥಳೀಯ ಗಡಿ ನಕ್ಷೆಯಿಲ್ಲದೆ ಮಹಾರಾಷ್ಟ್ರದ ಅಧಿಕಾರಿಯನ್ನು ಆ್ಯಪ್ ಊಹಿಸುವುದಿಲ್ಲ. ಆ್ಯಪ್ ಮರುಪ್ರಾರಂಭಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ; ವರದಿ ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
     road_unknown: "ಈ ರಸ್ತೆ ಯಾರ ವ್ಯಾಪ್ತಿಗೆ ಬರುತ್ತದೆ ಎಂದು ಪರಿಶೀಲಿಸಲಾಗಲಿಲ್ಲ",
     road_unknown_help: "ಇದು ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಯೇ ಎಂದು ಪರಿಶೀಲಿಸಲು ರಾಜ್ಯ ರಸ್ತೆ ಜಾಲವನ್ನು ತಲುಪಲಾಗಲಿಲ್ಲ. ಆದ್ದರಿಂದ ಬೇರೆಯವರ ರಸ್ತೆಗೆ ನಗರ ಅಧಿಕಾರಿಯ ಹೆಸರು ಸೂಚಿಸುವುದಿಲ್ಲ. ಸಿಗ್ನಲ್ ಬಂದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     nat_highway: "{road} ಒಂದು ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿ",
@@ -448,7 +469,7 @@ const I18N = {
     model_said: "ಆ್ಯಪ್ ಹೇಳಿದ್ದು: {verdict} · {assessment}",
     export_ready: "{n} ಗುರುತಿಸಿದ ಫ್ರೇಮ್‌ಗಳು, {mb} MB. ಎಲ್ಲಿಗೆ ಕಳುಹಿಸಬೇಕೆಂದು ಆಯ್ಕೆಮಾಡಿ.",
     outside_coverage: "ಈ ಸ್ಥಳ ಈ ಆ್ಯಪ್ ಒಳಗೊಂಡ ವ್ಯಾಪ್ತಿಯ ಹೊರಗಿದೆ.",
-    outside_coverage_help: "ಈ ಸ್ಥಳ ಬೆಂಬಲಿತ ಕರ್ನಾಟಕ ಅಥವಾ ಗ್ರೇಟರ್ ಮುಂಬೈ ಮಾರ್ಗಗಳ ಹೊರಗಿದೆ. ಆದ್ದರಿಂದ ಸರಿಯಾಗಿ ವಿಳಾಸಿತ ದೂರು ಸಿದ್ಧಪಡಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳ ಉಳಿಸಲಾಗಿದೆ.",
+    outside_coverage_help: "ಈ ಸ್ಥಳ ಬೆಂಬಲಿತ ಕರ್ನಾಟಕ, ಮುಂಬೈ ಮಹಾನಗರ ಪ್ರದೇಶ ಮತ್ತು ಪುಣೆ ಮಹಾನಗರ ಪಾಲಿಕೆ ಮಾರ್ಗಗಳ ಹೊರಗಿದೆ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳವನ್ನು ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
     size_small: "ಸಣ್ಣ", size_medium: "ಮಧ್ಯಮ", size_large: "ದೊಡ್ಡ",
     damage_pothole_cavity: "ರಸ್ತೆ ಗುಂಡಿ", damage_failed_patch: "ವಿಫಲವಾದ ರಸ್ತೆ ದುರಸ್ತಿ",
     damage_surface_breakup: "ಹಾಳಾದ ರಸ್ತೆ ಮೇಲ್ಮೈ", damage_rut_or_depression: "ರಸ್ತೆ ಕುಸಿತ",
@@ -481,6 +502,18 @@ const I18N = {
     drive_end_zero: "ಈ ಡ್ರೈವ್‌ನಲ್ಲಿ ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಪತ್ತೆಯಾಗಿಲ್ಲ ({checked} ಪರಿಶೀಲನೆ{debug}).",
     debug_saved_suffix: ", ಡೀಬಗ್ ಫ್ರೇಮ್‌ಗಳು ಉಳಿದಿವೆ",
     confirm_send: "{to} ಗೆ ಉದ್ದೇಶಿಸಿದ ದೂರಿನೊಂದಿಗೆ ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ?",
+    confirm_suggested_email: "ಸ್ಥಳವು {authority} ಅನ್ನು ಸೂಚಿಸುತ್ತದೆ, ಆದರೆ ಇದು ರಸ್ತೆ ಮಾಲೀಕತ್ವವನ್ನು ಸಾಬೀತುಪಡಿಸುವುದಿಲ್ಲ. {to} ಗೆ ಉದ್ದೇಶಿಸಿದ ದೂರಿನೊಂದಿಗೆ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ?",
+    open_official_btn: "{name} ತೆರೆಯಿರಿ", share_evidence_btn: "ಸಾಕ್ಷ್ಯ ಹಂಚಿಕೊಳ್ಳಿ",
+    official_whatsapp_btn: "ಅಧಿಕೃತ WhatsApp", official_call_btn: "{number} ಗೆ ಕರೆ ಮಾಡಿ",
+    confirm_whatsapp_share: "ಈ ವರದಿಯ ಪಠ್ಯ ಮತ್ತು ನಿಖರ ಸ್ಥಳದೊಂದಿಗೆ {authority} ಸಂಸ್ಥೆಯ ಅಧಿಕೃತ WhatsApp ತೆರೆಯಬೇಕೆ? WhatsApp ನಲ್ಲಿ Send ಒತ್ತುವವರೆಗೆ ಏನೂ ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ.",
+    official_disclaimer: "ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: {authority}. ಇದು ರಸ್ತೆ ಮಾಲೀಕತ್ವದ ದೃಢೀಕರಣವಲ್ಲ. ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸಾಕ್ಷ್ಯವನ್ನು ಮಾತ್ರ ಸಿದ್ಧಪಡಿಸುತ್ತದೆ; {service} ನಲ್ಲಿ ನೀವೇ ದೂರು ಪೂರ್ಣಗೊಳಿಸಿ ಮತ್ತು ಅಧಿಕೃತ ಉಲ್ಲೇಖ ಸಂಖ್ಯೆಯನ್ನು ಉಳಿಸಿ.",
+    authority_disclaimer: "ಸ್ಥಳದ ಆಧಾರದ ಮೇಲೆ ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: {authority}. ರಸ್ತೆ ಮಾಲೀಕತ್ವ ದೃಢಪಟ್ಟಿಲ್ಲ; ಕಳುಹಿಸುವ ಮೊದಲು ಸ್ವೀಕರಿಸುವವರನ್ನು ಪರಿಶೀಲಿಸಿ.",
+    routing_match: "ಮಾರ್ಗ ಸೂಚನೆ: {field} = {value}. ಸಲ್ಲಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
+    alternate_handoff_btn: "{name} ತೆರೆಯಿರಿ",
+    confirm_official_handoff: "ಸೂಚಿಸಿದ {authority} ಗಾಗಿ {service} ತೆರೆಯಬೇಕೆ? ಇಲ್ಲಿ ಹಸ್ತಾಂತರ ತೆರೆಯಲಾಗಿದೆ ಎಂದು ಮಾತ್ರ ದಾಖಲಾಗುತ್ತದೆ; ದೂರು ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಅಲ್ಲ.",
+    official_grievance_generic_label: "ಅಧಿಕೃತ ದೂರು/ಉಲ್ಲೇಖ ಸಂಖ್ಯೆ",
+    official_grievance_generic_placeholder: "ಅಧಿಕೃತ ಸೇವೆ ನೀಡಿದ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ",
+    chip_queued_official: "ಅಧಿಕೃತ ಹಸ್ತಾಂತರ ತೆರೆಯಲಾಗಿದೆ",
     bmc_prepare_btn: "ಮುಂಬೈ ವರದಿ ಸಿದ್ಧಪಡಿಸಿ", bmc_share_btn: "ಸಾಕ್ಷ್ಯ ಹಂಚಿಕೊಳ್ಳಿ",
     bmc_quickfix_btn: "Pothole QuickFix ತೆರೆಯಿರಿ", bmc_whatsapp_btn: "BMC WhatsApp ತೆರೆಯಿರಿ",
     bmc_call_btn: "1916 ಗೆ ಕರೆ ಮಾಡಿ",
@@ -526,8 +559,12 @@ const I18N = {
     stop: "&#9632; थांबवा", working: "प्रक्रिया सुरू आहे...",
     chip_draft: "मसुदा", chip_sent: "सादर केल्याची नोंद", chip_queued: "ईमेलमध्ये उघडले",
     chip_queued_bmc: "BMC माध्यम उघडले", chip_rejected: "नोंदवण्यायोग्य नाही",
-    chip_review: "पुनर्तपासणी आवश्यक", chip_unrouted: "कार्यक्षेत्राबाहेर",
+    chip_review: "पुनर्तपासणी आवश्यक", chip_unrouted: "मार्ग निश्चित नाही",
     no_location: "स्थान निश्चित करता आले नाही.",
+    location_uncertain: "संस्था निवडण्यासाठी GPS स्थान पुरेसे अचूक नाही.",
+    location_uncertain_help: "रस्त्याचे नुकसान निश्चित झाले, पण GPS अचूकतेचे वर्तुळ नागरी सीमा ओलांडू शकते. अधिक अचूक नवीन स्थानासह पुन्हा फोटो घ्या; हा अहवाल प्राप्तकर्त्याशिवाय जतन केला आहे.",
+    jurisdiction_unavailable: "साधनावरील महाराष्ट्र सीमा नकाशा वाचता आला नाही.",
+    jurisdiction_unavailable_help: "स्थानिक सीमा नकाशाशिवाय अॅप महाराष्ट्रातील संस्था अंदाजाने निवडणार नाही. अॅप पुन्हा सुरू करून प्रयत्न करा; अहवाल प्राप्तकर्त्याशिवाय जतन केला आहे.",
     road_unknown: "हा रस्ता कोणाच्या अखत्यारीत आहे ते तपासता आले नाही",
     road_unknown_help: "हा राष्ट्रीय महामार्ग आहे का हे तपासण्यासाठी अॅपला राज्याच्या रस्ते जाळ्याशी संपर्क करता आला नाही. नेटवर्क मिळाल्यावर पुन्हा प्रयत्न करा.",
     nat_highway: "{road} हा राष्ट्रीय महामार्ग आहे",
@@ -579,7 +616,7 @@ const I18N = {
     model_said: "अॅपचा निष्कर्ष: {verdict} · {assessment}",
     export_ready: "{n} लेबल केलेल्या फ्रेम्स, {mb} MB. कुठे पाठवायचे ते निवडा.",
     outside_coverage: "हे स्थान अॅपच्या कार्यक्षेत्राबाहेर आहे.",
-    outside_coverage_help: "हे ठिकाण समर्थित कर्नाटक किंवा ग्रेटर मुंबई मार्गांबाहेर आहे. फोटो आणि स्थान जतन केले आहे.",
+    outside_coverage_help: "हे ठिकाण समर्थित कर्नाटक, मुंबई महानगर प्रदेश आणि पुणे महानगरपालिका मार्गांबाहेर आहे. फोटो आणि स्थान प्राप्तकर्त्याशिवाय जतन केले आहे.",
     size_small: "लहान", size_medium: "मध्यम", size_large: "मोठे",
     damage_pothole_cavity: "रस्त्यातील खड्डा", damage_failed_patch: "उखडलेली रस्ता दुरुस्ती",
     damage_surface_breakup: "उखडलेला रस्ता पृष्ठभाग", damage_rut_or_depression: "रस्त्यावरील चर / खोलगट भाग",
@@ -607,6 +644,18 @@ const I18N = {
     drive_end_zero: "या ड्राइव्हमध्ये नोंदवण्यायोग्य नुकसान आढळले नाही ({checked} घटना तपासल्या{debug}).",
     debug_saved_suffix: ", डीबग फ्रेम्स पुनर्तपासणीसाठी जतन केल्या",
     confirm_send: "{to} यांना उद्देशून तयार केलेली तक्रार तुमच्या ईमेल अॅपमध्ये उघडायची का?",
+    confirm_suggested_email: "स्थानावरून {authority} ही संस्था सुचते, पण यावरून रस्त्याची मालकी सिद्ध होत नाही. {to} यांना उद्देशून तक्रार ईमेल अॅपमध्ये उघडायची का?",
+    open_official_btn: "{name} उघडा", share_evidence_btn: "पुरावा शेअर करा",
+    official_whatsapp_btn: "अधिकृत WhatsApp", official_call_btn: "{number} वर कॉल करा",
+    confirm_whatsapp_share: "या अहवालाचा मजकूर आणि अचूक स्थान घेऊन {authority} चे अधिकृत WhatsApp उघडायचे का? WhatsApp मध्ये Send दाबेपर्यंत काहीही पाठवले जाणार नाही.",
+    official_disclaimer: "सुचवलेली नागरी संस्था: {authority}. यावरून त्या रस्त्याची मालकी सिद्ध होत नाही. हे स्वतंत्र अॅप फक्त पुरावा तयार करते; {service} मध्ये स्वतः तक्रार पूर्ण करा आणि अधिकृत संदर्भ क्रमांक जतन करा.",
+    authority_disclaimer: "स्थानावरून सुचवलेली नागरी संस्था: {authority}. रस्त्याची मालकी पडताळलेली नाही; पाठवण्यापूर्वी प्राप्तकर्ता तपासा.",
+    routing_match: "मार्ग सूचक: {field} = {value}. सादर करण्यापूर्वी पडताळा करा.",
+    alternate_handoff_btn: "{name} उघडा",
+    confirm_official_handoff: "सुचवलेल्या {authority} साठी {service} उघडायचे का? येथे फक्त माध्यम उघडल्याची नोंद होईल; तक्रार सादर झाल्याची नाही.",
+    official_grievance_generic_label: "अधिकृत तक्रार/संदर्भ क्रमांक",
+    official_grievance_generic_placeholder: "अधिकृत सेवेकडून मिळालेला क्रमांक भरा",
+    chip_queued_official: "अधिकृत माध्यम उघडले",
     bmc_prepare_btn: "मुंबईसाठी अहवाल तयार करा", bmc_share_btn: "पुरावा शेअर करा",
     bmc_quickfix_btn: "Pothole QuickFix उघडा", bmc_whatsapp_btn: "BMC ला WhatsApp करा",
     bmc_call_btn: "1916 वर कॉल करा",
@@ -658,15 +707,19 @@ function show(screen) {
 
 function fmtDate(ts) { return new Date(ts * 1000).toLocaleString([], {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}); }
 
-const sendLabel = (r) => r && r.delivery_channel === "bmc_quickfix"
-  ? t("bmc_quickfix_btn") : t("email_btn");
+const isOfficialHandoffReport = (r) => !!r
+  && (r.delivery_channel === "official_handoff" || r.delivery_channel === "bmc_quickfix");
+const officialServiceName = (r) => (r && r.handoff_name)
+  || (r && r.delivery_channel === "bmc_quickfix" ? "BMC Pothole QuickFix" : "official service");
+const sendLabel = (r) => isOfficialHandoffReport(r)
+  ? t("open_official_btn", { name: officialServiceName(r) }) : t("email_btn");
 
 function chip(status, report) {
   const labels = { draft: t("chip_draft"), sent: t("chip_sent"), queued: t("chip_queued"),
                    rejected: t("chip_rejected"), review: t("chip_review"),
                    unrouted: t("chip_unrouted") };
-  if (status === "queued" && report && report.delivery_channel === "bmc_quickfix") {
-    labels.queued = t("chip_queued_bmc");
+  if (status === "queued" && isOfficialHandoffReport(report)) {
+    labels.queued = t("chip_queued_official");
   }
   const css = Object.prototype.hasOwnProperty.call(labels, status) ? status : "review";
   return `<span class="chip ${css}">${escapeHtml(labels[status] || status)}</span>`;
@@ -800,7 +853,7 @@ async function loadReports() {
     <div class="card row" data-id="${escapeAttr(r.id)}" style="cursor:pointer">
       <img class="thumb" src="${safePhotoSrc(photoSrc(r))}" alt="" loading="lazy" decoding="async">
       <div style="min-width:0">
-        <div>${chip(r.status, r)} ${damageType(r) !== "none" ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tDamage(r)}</span>` : ""} ${r.size ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tSize(r.size)}</span>` : ""}</div>
+        <div>${chip(r.status, r)} ${damageType(r) !== "none" ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${escapeHtml(tDamage(r))}</span>` : ""} ${r.size ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${escapeHtml(tSize(r.size))}</span>` : ""}</div>
         <div class="meta">${escapeHtml(fmtDate(r.created_at))}${r.address ? " · " + escapeHtml(String(r.address).split(",").slice(0, 2).join(", ")) : ""}</div>
       </div>
     </div>`;
@@ -944,7 +997,9 @@ function getPosition() {
         speed: typeof p.coords.speed === "number" && !Number.isNaN(p.coords.speed) ? p.coords.speed : null,
         heading: typeof p.coords.heading === "number" && !Number.isNaN(p.coords.heading) ? p.coords.heading : null }),
       () => resolve(null),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      // A cached fix can put a freshly captured pothole on the road the user left a
+      // minute ago. Maharashtra routing is boundary-sensitive, so require a fresh fix.
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   });
 }
@@ -1006,6 +1061,8 @@ function step(delta) {
 // city was "outside coverage", which was wrong and unhelpful.
 function unroutedTitle(r) {
   if (r.unrouted_reason === "no_location") return t("no_location");
+  if (r.unrouted_reason === "location_uncertain") return t("location_uncertain");
+  if (r.unrouted_reason === "jurisdiction_unavailable") return t("jurisdiction_unavailable");
   if (r.unrouted_reason === "road_class_unknown") return t("road_unknown");
   if (r.unrouted_reason === "national_highway") return t("nat_highway", { road: r.unrouted_body || "" });
   if (r.unrouted_reason === "rural_road") return t("rural_road", { body: r.unrouted_body || "a" });
@@ -1014,6 +1071,8 @@ function unroutedTitle(r) {
 }
 function unroutedHelp(r) {
   if (r.unrouted_reason === "no_location") return t("no_location_help");
+  if (r.unrouted_reason === "location_uncertain") return t("location_uncertain_help");
+  if (r.unrouted_reason === "jurisdiction_unavailable") return t("jurisdiction_unavailable_help");
   if (r.unrouted_reason === "road_class_unknown") return t("road_unknown_help");
   if (r.unrouted_reason === "national_highway") return t("nat_highway_help");
   if (r.unrouted_reason === "rural_road") return t("rural_road_help");
@@ -1063,33 +1122,43 @@ function openDetail(r, list) {
       </div>`;
   } else {
     // "queued" means only that an external handoff was opened. It stays editable and
-    // never becomes a confirmed submission until the citizen says so (and, for BMC,
-    // records the grievance ID returned by an official channel).
+    // never becomes a user-marked submission until the citizen says so and records the
+    // official reference returned by an app/portal when that channel provides one.
     const sent = r.status === "sent";
-    const bmc = r.delivery_channel === "bmc_quickfix";
+    const handoff = isOfficialHandoffReport(r);
+    const legacyBmc = r.delivery_channel === "bmc_quickfix";
+    const service = officialServiceName(r);
+    const authority = r.authority_name || t("the_officer");
+    const hasWhatsapp = !!r.whatsapp_url || legacyBmc;
+    const helpline = r.helpline || (legacyBmc ? "1916" : null);
     const verdictText = r.status === "sent" ? t("verdict_sent")
       : r.status === "queued"
-      ? (bmc ? t("chip_queued_bmc") : t("verdict_queued"))
+      ? (handoff ? t("chip_queued_official") : t("verdict_queued"))
       : detectionVerdict(r);
-    const subjectLabel = bmc ? t("complaint_title_label") : t("email_subject_label");
-    const bodyLabel = bmc ? t("complaint_body_label") : t("email_body_label");
-    const bmcTools = bmc ? `
-        <div class="meta" style="margin-top:10px;color:#ffd9a8">${escapeHtml(t("bmc_disclaimer"))}</div>
+    const subjectLabel = handoff ? t("complaint_title_label") : t("email_subject_label");
+    const bodyLabel = handoff ? t("complaint_body_label") : t("email_body_label");
+    const showAuthorityWarning = handoff || !!r.ownership_unverified;
+    const officialTools = showAuthorityWarning ? `
+        <div class="meta" style="margin-top:10px;color:#ffd9a8">${escapeHtml(handoff
+          ? t("official_disclaimer", { authority, service })
+          : t("authority_disclaimer", { authority }))}</div>
         ${r.ward_code ? `<div class="meta">${escapeHtml(t("bmc_ward", { ward: r.ward_code }))}</div>` : ""}
+        ${r.routing_match_field && r.routing_match_value ? `<div class="meta">${escapeHtml(t("routing_match", { field: r.routing_match_field, value: r.routing_match_value }))}</div>` : ""}
         <div class="btn-row">
-          <button class="ghost" id="shareEvidenceBtn">${t("bmc_share_btn")}</button>
-          <button class="ghost" id="bmcWhatsAppBtn">${t("bmc_whatsapp_btn")}</button>
+          <button class="ghost" id="shareEvidenceBtn">${t("share_evidence_btn")}</button>
+          ${handoff && hasWhatsapp ? `<button class="ghost" id="officialWhatsAppBtn">${t("official_whatsapp_btn")}</button>` : ""}
         </div>
-        <div class="btn-row">
-          <button class="ghost" id="bmcCallBtn">${t("bmc_call_btn")}</button>
-        </div>` : "";
+        ${helpline || r.alternate_handoff_url ? `<div class="btn-row">
+          ${helpline ? `<button class="ghost" id="officialCallBtn">${escapeHtml(t("official_call_btn", { number: helpline }))}</button>` : ""}
+          ${handoff && r.alternate_handoff_url ? `<button class="ghost" id="alternateHandoffBtn">${escapeHtml(t("alternate_handoff_btn", { name: r.alternate_handoff_name || "official fallback" }))}</button>` : ""}
+        </div>` : ""}` : "";
     const confirmation = sent
       ? (r.official_grievance_id
           ? `<div class="meta" style="color:var(--ok);margin-top:10px">${escapeHtml(t("submitted_reference", { id: r.official_grievance_id }))}</div>`
           : "")
-      : bmc
-        ? `<label>${t("official_grievance_label")}</label>
-           <input type="text" id="grievanceId" placeholder="${escapeAttr(t("official_grievance_placeholder"))}" value="">
+      : handoff
+        ? `<label>${t("official_grievance_generic_label")}</label>
+           <input type="text" id="grievanceId" placeholder="${escapeAttr(t("official_grievance_generic_placeholder"))}" value="">
            <button class="send" id="markSubmittedBtn" style="width:100%;margin-top:10px">${t("mark_submitted_btn")}</button>`
         : r.status === "queued"
           ? `<button class="send" id="markSubmittedBtn" style="width:100%;margin-top:10px">${t("mark_submitted_btn")}</button>`
@@ -1103,7 +1172,7 @@ function openDetail(r, list) {
         ${r.address ? `<div class="meta">&#128205; ${escapeHtml(r.address)}</div>` : ""}
         ${r.officer_name ? `<div class="meta">&#128231; ${escapeHtml(t("routes_to"))} ${escapeHtml(r.officer_name)}</div>` : ""}
         ${r.tender_note ? `<div class="meta">&#128209; ${escapeHtml(r.tender_note)}</div>` : ""}
-        ${bmcTools}
+        ${officialTools}
         <label>${subjectLabel}</label>
         <input type="text" id="subj" value="" ${sent ? "disabled" : ""}>
         <label>${bodyLabel}</label>
@@ -1111,7 +1180,7 @@ function openDetail(r, list) {
         <div class="btn-row">
           <button class="ghost" id="backBtn">${t("back")}</button>
           ${sent ? "" : `<button class="ghost danger" id="discardBtn">${t("discard")}</button>
-          <button class="send" id="sendBtn">${sendLabel(r)}</button>`}
+          <button class="send" id="sendBtn">${escapeHtml(sendLabel(r))}</button>`}
         </div>
         ${confirmation}
       </div>`;
@@ -1120,10 +1189,12 @@ function openDetail(r, list) {
     if (!sent) $("sendBtn").onclick = () => sendReport(r);
     const share = $("shareEvidenceBtn");
     if (share) share.onclick = () => shareEvidence(r);
-    const whatsapp = $("bmcWhatsAppBtn");
-    if (whatsapp) whatsapp.onclick = () => openBmcWhatsApp(r);
-    const call = $("bmcCallBtn");
-    if (call) call.onclick = () => { location.href = "tel:1916"; };
+    const whatsapp = $("officialWhatsAppBtn");
+    if (whatsapp) whatsapp.onclick = () => openOfficialWhatsApp(r);
+    const call = $("officialCallBtn");
+    if (call) call.onclick = () => openOfficialCall(r);
+    const alternate = $("alternateHandoffBtn");
+    if (alternate) alternate.onclick = () => openAlternateHandoff(r);
     const mark = $("markSubmittedBtn");
     if (mark) mark.onclick = () => markSubmitted(r);
   }
@@ -1139,11 +1210,21 @@ function openDetail(r, list) {
 }
 
 async function sendReport(r) {
-  // Nothing auto-sends. Mumbai opens BMC's official app; Karnataka opens an addressed
-  // email composer. In both cases "queued" means handoff opened, not submitted.
-  const bmc = r.delivery_channel === "bmc_quickfix";
+  // Nothing auto-sends. Maharashtra opens a verified official app/portal; Karnataka
+  // and supported councils open an addressed email composer. "queued" means only that
+  // the external handoff opened, never that the complaint was submitted.
+  const handoff = isOfficialHandoffReport(r);
   const to = r.officer_email || t("the_officer");
-  if (!confirm(bmc ? t("confirm_bmc_handoff") : t("confirm_send", { to }))) return;
+  const confirmation = handoff
+    ? t("confirm_official_handoff", {
+        service: officialServiceName(r), authority: r.authority_name || t("the_officer"),
+      })
+    : r.ownership_unverified
+      ? t("confirm_suggested_email", {
+          authority: r.authority_name || t("the_officer"), to,
+        })
+      : t("confirm_send", { to });
+  if (!confirm(confirmation)) return;
   const btn = $("sendBtn");
   btn.disabled = true; btn.textContent = t("working");
   try {
@@ -1153,10 +1234,10 @@ async function sendReport(r) {
       body: JSON.stringify({ email_subject: $("subj").value, email_body: $("body").value }),
     });
     let updated = await api(`/api/reports/${r.id}/send`, { method: "POST" });
-    if (bmc && updated.handoff_url) {
+    if (handoff && updated.handoff_url) {
       const opened = await openExternalUrl(updated.handoff_url,
-        updated.handoff_package || BMC_QUICKFIX_PACKAGE);
-      if (!opened) throw new Error("Could not open Pothole QuickFix. Try again or use BMC WhatsApp.");
+        updated.handoff_package || null);
+      if (!opened) throw new Error(`Could not open ${updated.handoff_name || officialServiceName(r)}. Try Share evidence or another official channel.`);
       updated = await api(`/api/reports/${r.id}/handoff-opened`, { method: "POST" });
     }
     await loadReports();
@@ -1209,10 +1290,52 @@ async function openExternalUrl(url, packageName = null) {
   return false;
 }
 
-async function openBmcWhatsApp(r) {
-  const text = `${r.email_subject || "Mumbai road-damage report"}\n\n${r.email_body || ""}`.slice(0, 1800);
-  const opened = await openExternalUrl(`https://wa.me/918999228999?text=${encodeURIComponent(text)}`);
-  if (!opened) alert("Could not open BMC WhatsApp. Try Share evidence or call 1916.");
+async function openOfficialWhatsApp(r) {
+  let verified;
+  try { verified = await api(`/api/reports/${r.id}/handoff`); }
+  catch (e) { alert(e.message); return; }
+  const base = verified.whatsapp_url;
+  if (!base || !String(base).startsWith("https://wa.me/")) {
+    alert("This saved report has no verified official WhatsApp route.");
+    return;
+  }
+  if (!confirm(t("confirm_whatsapp_share", {
+    authority: verified.authority_name || r.authority_name || t("the_officer"),
+  }))) return;
+  const text = `${verified.email_subject || "Road-damage report"}\n\n${verified.email_body || ""}`.slice(0, 1800);
+  const opened = await openExternalUrl(`${base}${base.includes("?") ? "&" : "?"}text=${encodeURIComponent(text)}`);
+  if (!opened) alert("Could not open the official WhatsApp route. Try Share evidence or another official channel.");
+}
+
+async function openOfficialCall(r) {
+  let verified;
+  try { verified = await api(`/api/reports/${r.id}/handoff`); }
+  catch (e) { alert(e.message); return; }
+  const number = String(verified.helpline || "").replace(/[^0-9+]/g, "");
+  if (!number) { alert("This saved report has no verified official helpline."); return; }
+  location.href = `tel:${number}`;
+}
+
+async function openAlternateHandoff(r) {
+  let verified;
+  try { verified = await api(`/api/reports/${r.id}/handoff`); }
+  catch (e) { alert(e.message); return; }
+  const url = String(verified.alternate_handoff_url || "");
+  if (!url.startsWith("https://")) {
+    alert("This saved report has no verified alternate handoff.");
+    return;
+  }
+  const opened = await openExternalUrl(url);
+  if (!opened) {
+    alert(`Could not open ${verified.alternate_handoff_name || "the official fallback"}.`);
+    return;
+  }
+  if (r.status === "draft" || r.status === "queued") {
+    try {
+      const updated = await api(`/api/reports/${r.id}/handoff-opened`, { method: "POST" });
+      await loadReports(); openDetail(updated);
+    } catch (e) { alert(e.message); }
+  }
 }
 
 async function shareEvidence(r) {
@@ -1230,7 +1353,7 @@ async function shareEvidence(r) {
         files.push(crop.uri);
       }
       await P.Share.share({ title: evidence.name, text: evidence.text, files,
-                            dialogTitle: t("bmc_share_btn") });
+                            dialogTitle: t("share_evidence_btn") });
     } else {
       const bin = atob(evidence.base64), arr = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
@@ -1244,7 +1367,7 @@ async function shareEvidence(r) {
       }
     }
   } catch (e) { alert(e.message); }
-  btn.disabled = false; btn.textContent = t("bmc_share_btn");
+  btn.disabled = false; btn.textContent = t("share_evidence_btn");
 }
 
 // ---------- Drive Mode ----------
@@ -1279,7 +1402,7 @@ const RECORD_MIMES = ["video/mp4;codecs=avc1.42E01E", "video/mp4",
 let drive = null;
 let driveStarting = false;
 let driveFinalizing = null;
-const DATA_NOTICE_VERSION = "2026-08-21-v2-mumbai";
+const DATA_NOTICE_VERSION = "2026-08-21-v3-mmr-pmc";
 let consentWaiter = null;
 
 function finishDataConsent(accepted) {
@@ -2344,9 +2467,9 @@ async function openDash() {
   const bars = (title, counts) => {
     const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     const max = Math.max(1, ...rows.map((r) => r[1]));
-    return `<div class="meta" style="font-weight:600;color:#f2f2f4;margin-bottom:6px">${title}</div>` +
+    return `<div class="meta" style="font-weight:600;color:#f2f2f4;margin-bottom:6px">${escapeHtml(title)}</div>` +
       (rows.length ? rows.map(([k, v]) => `<div style="margin:6px 0">
-          <div class="meta" style="display:flex;justify-content:space-between"><span>${k}</span><span>${v}</span></div>
+          <div class="meta" style="display:flex;justify-content:space-between"><span>${escapeHtml(k)}</span><span>${escapeHtml(v)}</span></div>
           <div style="height:6px;background:#26272c;border-radius:6px;overflow:hidden">
             <div style="height:6px;width:${(v / max * 100).toFixed(0)}%;background:var(--accent)"></div></div>
         </div>`).join("") : `<div class="meta">&mdash;</div>`);

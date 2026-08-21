@@ -66,7 +66,7 @@
   <header>
     <p class="meta">Pothole Reporter</p>
     <h1>Data sources and limits</h1>
-    <p class="meta">Current bundled-data snapshot: 19 August 2026 · Page updated: 21 August 2026</p>
+    <p class="meta">Karnataka procurement snapshot: 19 August 2026 · Page updated: 21 August 2026</p>
     <nav aria-label="Related pages">
       <a href="privacy.html">Privacy policy</a>
       <a href="https://github.com/coding-parrot/pothole-reporter/blob/main/docs/SOURCES.md">Detailed source notes</a>
@@ -83,19 +83,18 @@
   </section>
 
   <section>
-    <h2>Greater Mumbai: official handoff, not automatic filing</h2>
+    <h2>Maharashtra coverage and official handoffs</h2>
     <div class="notice">
-      <p>Pothole Reporter is independent. It has no BMC credentials or complaint-write API and does not bypass OTP, submit a grievance, or read its status. Opening Pothole QuickFix records only “handoff opened”; Share, WhatsApp, and Call also never mark the report submitted. A local Mumbai report can be marked submitted only after the user enters the official grievance ID returned by BMC.</p>
+      <p>Pothole Reporter prepares evidence but does not log in, bypass OTP, call a complaint-write API, press Send, or read complaint status. Opening an app, portal, email draft, WhatsApp, Share, or Call is not a submission. An app/portal report can be marked submitted only after the user records the grievance/reference ID returned by the official service.</p>
     </div>
-    <p>Official sources checked on 21 August 2026:</p>
-    <ul>
-      <li><a href="https://play.google.com/store/apps/details?id=com.bmc.potholequickfix">Pothole QuickFix on Google Play</a> identifies Brihanmumbai Municipal Corporation as the developer and describes OTP login, geo-watermarked photo evidence, status tracking, and reopening within 24 hours.</li>
-      <li>BMC's MARG page at <code>https://marg.mcgm.gov.in/MARG/welcomePage.html</code> provides mobile/OTP login, grievance-ID search, and geotagged-image upload. It is a source reference, not an API used by this app.</li>
-      <li>BMC's dashboard at <code>https://marg.mcgm.gov.in/BMC_C_Pothole_Dashboard/</code> identifies Pothole QuickFix, WhatsApp Chatbot, 1916, and Twitter as grievance sources and includes an “other agencies” category. Dashboard availability or a zero count does not prove that a handoff succeeded.</li>
-      <li>BMC's IT page at <code>https://portal.mcgm.gov.in/irj/portal/anonymous/director-it</code> publishes MyBMC WhatsApp at <strong>+91 89992 28999</strong>. Its civic-complaints page at <code>https://portal.mcgm.gov.in/irj/portal/anonymous/qlCLCComp</code> publishes <strong>1916</strong> for roads and traffic complaints. The app opens <code>https://wa.me/918999228999</code> or <code>tel:1916</code> only after the user chooses the action.</li>
-    </ul>
-    <p>“Open Pothole QuickFix” opens the installed official app, with its Google Play listing as a fallback. WhatsApp receives prefilled report text, Call opens the dialler, and Share invokes Android's share sheet with compressed evidence. The citizen must review and complete the complaint in the external service.</p>
-    <p>BMC's policy at <code>https://portal.mcgm.gov.in/irj/portal/anonymous/privacy?guest_user=english</code> requires prior permission for linking, framing, or caching its website and says its graphics should be presumed copyrighted. This app does not embed or frame BMC pages, copy BMC marks, or bundle BMC GIS data.</p>
+    <h3>Mumbai Metropolitan Region</h3>
+    <p>Coverage targets MMRDA's <a href="https://www.mmrda.maharashtra.gov.in/en/about-us/about-mmr">current official MMR extent</a> and its <a href="https://www.mmrda.maharashtra.gov.in/sites/default/files/2021-09/MMR_Extension_Notification_0.pdf">2019 extension notification</a>: 9 municipal corporations, 9 municipal councils, Khalapur Nagar Panchayat, and the remaining rural MMR. Rural or ambiguous locations use the neutral <a href="https://grievances.maharashtra.gov.in/en">Aaple Sarkar</a> fallback instead of the nearest city.</p>
+    <p>The bundled routing outline uses OpenStreetMap relation 13312356 plus the Palghar, Vasai, Alibag, Pen, Panvel, and Khalapur taluka relations named by the notification. It is approximate: it measures about 6,264.9 km² versus MMRDA's published 6,328 km², and its whole-taluka polygons do not subtract the Scheduled Areas excluded by the 2019 notification. It is not a legal MMR boundary. Valid administrative polygons can suggest 11 bodies: BMC, Thane, Kalyan-Dombivli, Navi Mumbai, Ulhasnagar, Bhiwandi-Nizampur, Vasai-Virar, Mira-Bhayandar, Panvel, Ambarnath, and Kulgaon-Badlapur. The other eight bodies have no usable civic polygon in the source snapshot, so they, rural points, and overlaps use Aaple Sarkar. A Nominatim place name never selects the recipient. These are local routing aids, not proof of road ownership.</p>
+    <h3>Pune Municipal Corporation</h3>
+    <p>Pune coverage uses the <code>PMC_Boundary</code> layer published by the <a href="https://iwmsgis.pmc.gov.in/BP_Docs/index.html">official PMC GIS</a> through its <a href="https://iwmsgis.pmc.gov.in/geoserver/pmc/wms">GeoServer WMS</a> and corresponding <a href="https://iwmsgis.pmc.gov.in/geoserver/pmc/ows?service=WFS&amp;version=1.0.0&amp;request=GetFeature&amp;typeName=pmc:PMC_Boundary&amp;outputFormat=application/json&amp;srsName=EPSG:4326">WFS GeoJSON layer</a>. The geometry is bundled for local checks. It covers current Pune Municipal Corporation limits only and deliberately excludes Pimpri-Chinchwad Municipal Corporation (PCMC).</p>
+    <h3>External channels</h3>
+    <p>The offered service depends on the suggested civic body: an official app or portal, a published municipal email address, or Aaple Sarkar. PMC uses PMC Road Mitra with PMC CARE as an alternate. Greater Mumbai can use <a href="https://play.google.com/store/apps/details?id=com.bmc.potholequickfix">BMC Pothole QuickFix</a>, MyBMC WhatsApp at <strong>+91 89992 28999</strong>, or <strong>1916</strong>. The user must review and complete the complaint in the external service.</p>
+    <p>Contract matching is disabled throughout Maharashtra because the app has no authoritative, road-linked award and defect-liability feed for the MMR or PMC.</p>
   </section>
 
   <section>
@@ -119,12 +118,12 @@
           <tr>
             <td>Street address</td>
             <td><a href="https://nominatim.org/">OpenStreetMap Nominatim</a> reverse-geocodes phone coordinates.</td>
-            <td>Map data can be missing, stale, or imprecise. For Mumbai, Nominatim's state and district fields decide whether the Mumbai handoff is offered; a ward phrase may be shown only as a suggestion. The complaint also includes coordinates so the result can be checked.</td>
+            <td>Map data can be missing, stale, or imprecise. In Maharashtra, only a bundled civic polygon can select a specific MMR body; Nominatim place fields are display-only clues. The complaint includes coordinates so the result can be checked.</td>
           </tr>
           <tr>
-            <td>Mumbai complaint destination</td>
-            <td>A location is treated as Greater Mumbai only when Nominatim returns Maharashtra and either Mumbai City district or Mumbai Suburban district. The app then offers the published BMC handoff channels above.</td>
-            <td>This is a city-location check, not a BMC ward polygon or road-ownership lookup. The app cannot establish whether BMC, MMRDA, MSRDC, PWD, NHAI, or another agency owns the road.</td>
+            <td>Maharashtra coverage and civic-body suggestion</td>
+            <td>A bundled OSM outline approximates MMRDA's notified extent; 11 available OSM civic polygons can select a specific MMR handoff; a bundled copy of PMC's official <code>PMC_Boundary</code> layer covers Pune Municipal Corporation.</td>
+            <td>The MMR outline differs from MMRDA's published area and does not subtract notified Scheduled Area exclusions. It is not a legal boundary. Eight bodies without a usable polygon, rural points, and overlaps use Aaple Sarkar. No boundary proves road ownership. PMC coverage excludes PCMC.</td>
           </tr>
           <tr>
             <td>Town boundary, gram-panchayat boundary, and national-highway check</td>
@@ -138,8 +137,8 @@
           </tr>
           <tr>
             <td>Tender number, work title, publication date, and location</td>
-            <td>The current bundle contains 42,283 road-related rows filtered from awarded works on the <a href="https://kppp.karnataka.gov.in/">Karnataka Public Procurement Portal (KPPP)</a>.</td>
-            <td>The title-keyword filter is intentionally broad. A tender row is not proof that its work covers the photographed point.</td>
+            <td>For eligible Karnataka routes only, the current bundle contains 42,283 road-related rows filtered from awarded works on the <a href="https://kppp.karnataka.gov.in/">Karnataka Public Procurement Portal (KPPP)</a>.</td>
+            <td>The title-keyword filter is intentionally broad. A tender row is not proof that its work covers the photographed point. Maharashtra contract matching is disabled.</td>
           </tr>
           <tr>
             <td>Winning bidder on some Bengaluru records</td>
@@ -148,18 +147,18 @@
           </tr>
           <tr>
             <td>Probable contract match</td>
-            <td>A deterministic local ranking selects up to 25 contracts indexed to the same supported body; an OpenAI model may then select one above the app's confidence threshold.</td>
-            <td>The match is generated and probabilistic. The complaint labels it probable and asks the officer to verify it against tender documents.</td>
+            <td>For an eligible Karnataka route, a deterministic local ranking selects up to 25 contracts indexed to the same supported body; an OpenAI model may then select one above the app's confidence threshold.</td>
+            <td>The match is generated and probabilistic. No Maharashtra route enters this flow.</td>
           </tr>
           <tr>
             <td>Possible defect-liability or maintenance wording</td>
-            <td>A local rule uses the tender's publication date: up to one year is described as possibly within a defect-liability period and up to three years as possibly within maintenance.</td>
-            <td>The award-search row contains no actual warranty term. This is an inference and must never be presented as a contractual fact.</td>
+            <td>For an eligible Karnataka match, a local rule uses the tender's publication date: up to one year is described as possibly within a defect-liability period and up to three years as possibly within maintenance.</td>
+            <td>The award-search row contains no actual warranty term. This is an inference and must never be presented as a contractual fact. It is not generated for Maharashtra.</td>
           </tr>
           <tr>
             <td>Complaint text and signature</td>
             <td>A local template combines the reviewed result, coordinates, supported recipient, optional probable contract reference, and the sender name entered in Settings.</td>
-            <td>The user must check and edit the draft. Karnataka opens an email composer; Mumbai offers external BMC handoffs. Neither path submits automatically.</td>
+            <td>The user must check and edit the draft. Karnataka opens an email composer; Maharashtra offers the channel recorded for the suggested civic body. Neither path submits automatically.</td>
           </tr>
         </tbody>
       </table>
@@ -169,13 +168,15 @@
   <section>
     <h2>Current bundle boundaries</h2>
     <ul>
-      <li>Greater Mumbai coverage is inferred from the OpenStreetMap address. A suggested ward is not authoritative, and the app does not determine road ownership.</li>
-      <li>The project has no BMC complaint-write API, status sync, or cross-user report database. Mumbai evidence stays local until the user deliberately opens an external handoff.</li>
+      <li>MMR coverage targets all 19 urban local bodies and the remaining rural extent. The outer OSM outline is approximate and not a legal boundary. Eleven valid civic polygons can select a specific body; the rest use Aaple Sarkar. No suggestion determines road ownership.</li>
+      <li>Pune coverage is limited to the current official PMC GIS boundary. PCMC is outside coverage.</li>
+      <li>The project has no Maharashtra complaint-write API, status sync, or cross-user report database. Evidence stays local until the user deliberately opens an external handoff.</li>
+      <li>Contract matching is disabled for the MMR and PMC.</li>
       <li>The app covers supported Karnataka urban local bodies with a published recipient address; it does not claim statewide routing for every road.</li>
       <li>Of 319 urban local bodies in the roster used to build the bundle, 182 have a supported directory entry and 137 do not.</li>
       <li>Of 42,283 road-related procurement rows, 18,972 are DMA or legacy BBMP records. Only 13,577 are currently indexed to a supported body and can enter a contract shortlist.</li>
       <li>41,159 procurement rows have no winning bidder recorded in the bundle.</li>
-      <li>For Karnataka, national highways, rural roads, unknown road classes, and unsupported bodies are not routed to a municipal recipient. Locations outside Karnataka and Greater Mumbai are not routed.</li>
+      <li>For Karnataka, national highways, rural roads, unknown road classes, and unsupported bodies are not routed to a municipal recipient. Locations outside Karnataka, the MMR, and PMC are not routed.</li>
       <li>All counts describe the repository snapshot above, not the current contents of an external portal.</li>
     </ul>
   </section>
@@ -184,7 +185,7 @@
     <h2>How to audit it</h2>
     <ol>
       <li>Use the photo and printed coordinates to check the event itself.</li>
-      <li>For Mumbai, verify the location and any suggested ward in BMC's official service and keep the grievance ID it returns.</li>
+      <li>For the MMR or PMC, verify the suggested civic body and road owner in the official service and keep any grievance/reference ID it returns.</li>
       <li>For Karnataka, follow the address and GIS sources above to check location and routing.</li>
       <li>Search KPPP by tender number and read the tender documents before relying on a probable match, bidder name, or warranty statement.</li>
       <li>Inspect the open-source build scripts and detailed provenance note for filtering and indexing logic.</li>

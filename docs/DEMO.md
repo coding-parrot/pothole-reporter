@@ -47,8 +47,9 @@ want on stage.
 - **"Where does the contract data come from?"** KPPP, the state's own procurement portal.
   `docs/SOURCES.md` has the exact request and the check that 341 of the portal's first
   1,000 awarded works appear in the bundle byte-identical.
-- **"Does it work outside Karnataka?"** No, and it refuses rather than guessing. The
-  officer directory, contracts and boundaries are all Karnataka's.
+- **"Does it work outside Karnataka?"** Yes: the app covers the current MMR extent and
+  Pune Municipal Corporation limits. It suggests a civic body but does not claim road
+  ownership. PCMC is excluded, and contract matching remains Karnataka-only.
 - **"What about highways?"** Refused since v1.6. NHAI or the PWD highways division owns
   them, not the town they pass through.
 - **"Where do the photos go?"** To OpenAI, so outside India. Road photos can carry number
@@ -59,7 +60,8 @@ want on stage.
 
 - Not that it covers all of Karnataka: 182 of 319 bodies have a published address, and
   rural and PWD roads are refused.
-- Not that it produces a ticket number. It opens an email draft. For a tracked complaint
-  the citizen also files on Sahaaya 2.0.
+- Not that it produces a ticket number. Karnataka opens an email draft; Maharashtra opens
+  a user-selected official channel. Only the external service can return an official
+  grievance/reference ID.
 - Not that the contract match is certain. Every complaint says "probable record match,
   kindly verify", and that wording should stay.
