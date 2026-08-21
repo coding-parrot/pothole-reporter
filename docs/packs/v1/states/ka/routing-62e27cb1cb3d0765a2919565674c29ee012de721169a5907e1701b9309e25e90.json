@@ -1,0 +1,1339 @@
+{
+ "_comment": "Karnataka local bodies keyed by LGD town code, the identifier the KGIS jurisdiction lookup returns. 'officer' is the title to address: a City Corporation has a Commissioner, every other class has a Chief Officer. Every address was read from a government page and carries its source. 'matched_from' records where the source name differed from the GIS name, so a bad match is auditable. A body absent from this file is deliberately unroutable: the app says so rather than guessing an address.",
+ "generated": "2026-08-19",
+ "bodies": {
+  "248127": {
+   "name": "Kalaburagi",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "ka.kalaburagi.cc@gmail.com",
+   "source": "verified: http://www.kalaburagicity.mrc.gov.in/en/contact-us"
+  },
+  "251810": {
+   "name": "Sadalga",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.sadalga.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.sadalgatown.mrc.gov.in",
+   "matched_from": "TMC TMC Sadalaga"
+  },
+  "251811": {
+   "name": "Chikkodi",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.chikkodi.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.chikkoditown.mrc.gov.in"
+  },
+  "251812": {
+   "name": "Athani",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.athani.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.athanitown.mrc.gov.in"
+  },
+  "251813": {
+   "name": "Kudachi",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.kudachi.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.kudachitown.mrc.gov.in"
+  },
+  "251814": {
+   "name": "Raibagh",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.raibag.tp@gmail.com",
+   "source": "ulb-own-site: http://www.raibagtown.mrc.gov.in",
+   "matched_from": "TP TP Raibag"
+  },
+  "251815": {
+   "name": "Mudalagi",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.mudalagi.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.mudalagitown.mrc.gov.in"
+  },
+  "251816": {
+   "name": "Konnur",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.konnur.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.konnurtown.mrc.gov.in"
+  },
+  "251819": {
+   "name": "Sankeshwar",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.sankeshwar.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.sankeshwaratown.mrc.gov.in"
+  },
+  "251820": {
+   "name": "Hukkeri",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.hukkeri.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.hukkeritown.mrc.gov.in"
+  },
+  "251824": {
+   "name": "Belagavi",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "ka.belagavi.cc@gmail.com",
+   "source": "verified: http://www.belagavicity.mrc.gov.in/en/contact-us"
+  },
+  "251825": {
+   "name": "Khanapura",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.khanapura.tp@gmail.com",
+   "source": "ulb-own-site: http://www.khanapurtown.mrc.gov.in",
+   "matched_from": "TP TP Khanapur"
+  },
+  "251830": {
+   "name": "Mahalingapura",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.mahalingapura.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.mahalingapuratown.mrc.gov.in",
+   "matched_from": "TMC TMC Mahalingapur"
+  },
+  "251831": {
+   "name": "Terdal",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.terdal.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.terdaltown.mrc.gov.in"
+  },
+  "251832": {
+   "name": "Jamakhandi",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.jamkhandi.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.jamkhandicity.mrc.gov.in",
+   "matched_from": "CMC CMC Jamkhandi"
+  },
+  "251833": {
+   "name": "Rabkavi Banahatti",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.rabkavibanahatti.cmc@gmail.com",
+   "source": "ulb-own-site: http://rabkavi-banahatticity.mrc.gov.in",
+   "matched_from": "CMC CMC Rabakavi-Banahatti"
+  },
+  "251835": {
+   "name": "Mudhol",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.mudhol.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.mudholcity.mrc.gov.in"
+  },
+  "251837": {
+   "name": "Badami",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.badami.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.badamitown.mrc.gov.in"
+  },
+  "251838": {
+   "name": "Guledagudda",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.guledagudda.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.guledaguddatown.mrc.gov.in",
+   "matched_from": "TMC TMC Guledgudd"
+  },
+  "251839": {
+   "name": "Bagalkote",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.bagalkote.cmc@gmail.com",
+   "source": "ulb-own-site: http://bagalkotecity.mrc.gov.in"
+  },
+  "251840": {
+   "name": "Hunagunda",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.hunagunda.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.hungundtown.mrc.gov.in",
+   "matched_from": "TMC TMC Hungund"
+  },
+  "251841": {
+   "name": "Ilkal",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.ilkal.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.ilkalcity.mrc.gov.in"
+  },
+  "251842": {
+   "name": "Vijayapura",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_vijaypura@yahoo.co.in",
+   "source": "official-government-page: https://bangalorerural.nic.in/en/public-utility-category/municipality/"
+  },
+  "251846": {
+   "name": "Muddebihal",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.muddebihal.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.muddebihaltown.mrc.gov.in/en"
+  },
+  "251847": {
+   "name": "Talikote",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.talikote.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.talikotetown.mrc.gov.in/en/contact-us"
+  },
+  "251861": {
+   "name": "Shahapura",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_shahapur@yahoo.com",
+   "source": "official-government-page: https://yadgir.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "CMC Shahapur City Municipal Council"
+  },
+  "251862": {
+   "name": "Gurumatkal",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_gurmitkal@yahoo.com",
+   "source": "official-government-page: https://yadgir.nic.in/en/public-utility-category/municipality/"
+  },
+  "251863": {
+   "name": "Yadgir",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_yadagir@yahoo.com",
+   "source": "official-government-page: https://yadgir.nic.in/en/public-utility-category/municipality/"
+  },
+  "251864": {
+   "name": "Basavakalyan",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_basavakalyan@yahoo.com",
+   "source": "official-government-page: https://bidar.nic.in/en/public-utility-category/municipality/"
+  },
+  "251865": {
+   "name": "Bhalki",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_bhalki@yahoo.com",
+   "source": "official-government-page: https://bidar.nic.in/en/public-utility-category/municipality/"
+  },
+  "251866": {
+   "name": "Aurad",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_aurad@yahoo.com",
+   "source": "official-government-page: https://bidar.nic.in/en/public-utility-category/municipality/"
+  },
+  "251867": {
+   "name": "Bidar",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "ka.bidar.cmc@gmail.com",
+   "source": "verified: http://www.bidarcity.mrc.gov.in/en/contact-us"
+  },
+  "251868": {
+   "name": "Humnabad",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_humnabad@yahoo.com",
+   "source": "official-government-page: https://bidar.nic.in/en/public-utility-category/municipality/"
+  },
+  "251869": {
+   "name": "Chittaguppa",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_chittguppa@yahoo.com",
+   "source": "official-government-page: https://bidar.nic.in/en/public-utility-category/municipality/"
+  },
+  "251876": {
+   "name": "Raichur",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "ka.raichur.cc@gmail.com",
+   "source": "verified: http://www.raichurcity.mrc.gov.in/en/contact-us"
+  },
+  "251886": {
+   "name": "Gajendragada",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.gajendragad.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.gajendragadatown.mrc.gov.in/en/"
+  },
+  "251887": {
+   "name": "Naregal",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.naregal.tp@gmail.com",
+   "source": "ulb-own-site: http://www.naregaltown.mrc.gov.in/en/",
+   "matched_from": "TP Naregal Town Panchayath"
+  },
+  "251888": {
+   "name": "Gadag_Betageri",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.gadag.betageri.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.gadag-betagericity.mrc.gov.in/en/"
+  },
+  "251889": {
+   "name": "Mulagunda",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.mulagunda.tp@gmail.com",
+   "source": "ulb-own-site: http://www.mulagundatown.mrc.gov.in/en/",
+   "matched_from": "TP Mulagunda Town Panchayath"
+  },
+  "251890": {
+   "name": "Shirahatti",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.shirahatti.tp@gmail.com",
+   "source": "ulb-own-site: http://www.shirahattitown.mrc.gov.in/en/",
+   "matched_from": "TP Shirahatti Town Panchayath"
+  },
+  "251891": {
+   "name": "Lakshmeshwara",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.lakshmeshwara.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.lakshmishwaratown.mrc.gov.in/en/",
+   "matched_from": "TMC Lakshmishwara Town Municipal Council"
+  },
+  "251892": {
+   "name": "Mundargi",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.mundargi.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.mundargitown.mrc.gov.in/en/"
+  },
+  "251893": {
+   "name": "Hubli Dharwad",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "commissioner.hdmc@gmail.com",
+   "source": "verified: http://www.hdmc.mrc.gov.in/en/contact-us"
+  },
+  "251894": {
+   "name": "Alnavara",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.alnavara.tp@gmail.com",
+   "source": "ulb-own-site: http://www.alnavartown.mrc.gov.in/en/",
+   "matched_from": "TP Alnavar Town Panchayath"
+  },
+  "251895": {
+   "name": "Navalagund",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.navalagund.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.navalgundtown.mrc.gov.in/en/",
+   "matched_from": "TMC Navalgund Town Municipal Council"
+  },
+  "251896": {
+   "name": "Annigeri",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.annigeri.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.annigeritown.mrc.gov.in/en/"
+  },
+  "251897": {
+   "name": "Kalaghatagi",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.kalaghatagi.tp@gmail.com",
+   "source": "ulb-own-site: http://www.kalaghatagitown.mrc.gov.in/en/",
+   "matched_from": "TP Kalaghatagi Town Panchayath"
+  },
+  "251898": {
+   "name": "Kundagol",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.kundagol.tp@gmail.com",
+   "source": "ulb-own-site: http://www.kundagoltown.mrc.gov.in/en/",
+   "matched_from": "TP Kundagol Town Panchayath"
+  },
+  "251899": {
+   "name": "Dandeli",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_dandeli@yahoo.com",
+   "source": "official-government-page: https://uttarakannada.nic.in/en/public-utility-category/municipality/"
+  },
+  "251900": {
+   "name": "Karwar",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_karwar@yahoo.com",
+   "source": "official-government-page: https://uttarakannada.nic.in/en/public-utility-category/municipality/"
+  },
+  "251901": {
+   "name": "Haliyala",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "tphaliyal2@yahoo.com",
+   "source": "official-government-page: https://uttarakannada.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TP Town Panchayat, Haliyal"
+  },
+  "251903": {
+   "name": "Yellapura",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "tp_ylp@yahoo.co.in",
+   "source": "official-government-page: https://uttarakannada.nic.in/en/public-utility-category/municipality/page/2/",
+   "matched_from": "TP Town Panchayat Yellapur"
+  },
+  "251904": {
+   "name": "Mundagod",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "tpmundgod@yahoo.co.in",
+   "source": "official-government-page: https://uttarakannada.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TP Town Panchayat, Mundgod"
+  },
+  "251905": {
+   "name": "Sirsi",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "comm_srs@yahoo.com",
+   "source": "official-government-page: https://uttarakannada.nic.in/en/public-utility-category/municipality/"
+  },
+  "251906": {
+   "name": "Ankola",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_ankola@yahoo.com",
+   "source": "official-government-page: https://uttarakannada.nic.in/en/public-utility-category/municipality/"
+  },
+  "251907": {
+   "name": "Kumata",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "cokumta@yahoo.com",
+   "source": "official-government-page: https://uttarakannada.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TMC Town Municipal Council, Kumta"
+  },
+  "251908": {
+   "name": "Siddapura",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_siddapur@yahoo.com",
+   "source": "official-government-page: https://uttarakannada.nic.in/en/public-utility-category/municipality/page/2/",
+   "matched_from": "TP Town Panchayat Siddapur"
+  },
+  "251909": {
+   "name": "Honnavara",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "tphonnavar@gmail.com",
+   "source": "official-government-page: https://uttarakannada.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TP Town Panchayat, Honnavar"
+  },
+  "251911": {
+   "name": "Bhatkal",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "tmcbhatkal1@gmail.com",
+   "source": "official-government-page: https://uttarakannada.nic.in/en/public-utility-category/municipality/"
+  },
+  "251912": {
+   "name": "Shiggaon",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.shiggaon.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.shiggaontown.mrc.gov.in/en/"
+  },
+  "251913": {
+   "name": "Bankapura",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.bankapura.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.bankapurtown.mrc.gov.in/en/",
+   "matched_from": "TMC Bankapur Town Municipal Council"
+  },
+  "251915": {
+   "name": "Hanagal",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.hanagal.tmc@gmail.com",
+   "source": "official-government-page: https://haveri.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TMC Town Municipal Council, Hangal (Hanagal)"
+  },
+  "251916": {
+   "name": "Haveri",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.haveri.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.havericity.mrc.gov.in/en/"
+  },
+  "251917": {
+   "name": "Byadagi",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.byadagi.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.byadagitown.mrc.gov.in/en/"
+  },
+  "251918": {
+   "name": "Hirekerur",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_hirekerur@yahoo.com",
+   "source": "official-government-page: https://haveri.nic.in/en/public-utility-category/municipality/"
+  },
+  "251919": {
+   "name": "Ranebennur",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.ranebennur.cmc@gmail.com",
+   "source": "official-government-page: https://haveri.nic.in/en/public-utility-category/municipality/"
+  },
+  "251922": {
+   "name": "Hospet",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "commissioner_hpt@yahoo.com",
+   "source": "official-government-page: https://vijayanagara.nic.in/en/public-utility-category/municipality/"
+  },
+  "251926": {
+   "name": "Tekkalakote",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "chiefofficertp@yahoo.in",
+   "source": "official-government-page: https://ballari.nic.in/en/public-utility-category/municipality/"
+  },
+  "251927": {
+   "name": "Ballari",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "ka.ballari.cc@gmail.com",
+   "source": "verified: http://www.ballaricity.mrc.gov.in/en/contact-us"
+  },
+  "251931": {
+   "name": "Kottur",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "tp_kottur@rediffmail.com",
+   "source": "official-government-page: https://vijayanagara.nic.in/en/public-utility-category/municipality/"
+  },
+  "251932": {
+   "name": "Molakalmuru",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.molakalmuru.tp@gmail.com",
+   "source": "official-government-page: https://chitradurga.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TP MOLAKALMURU Town Panchayath"
+  },
+  "251933": {
+   "name": "Challakere",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.challakere.cmc@gmail.com",
+   "source": "official-government-page: https://chitradurga.nic.in/en/public-utility-category/municipality/"
+  },
+  "251934": {
+   "name": "Chitradurga",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.chitradurga.cmc@gmail.com",
+   "source": "official-government-page: https://chitradurga.nic.in/en/public-utility-category/municipality/"
+  },
+  "251935": {
+   "name": "Holalkere",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.holalakere.tmc@gmail.com",
+   "source": "official-government-page: https://chitradurga.nic.in/en/public-utility-category/municipality/"
+  },
+  "251936": {
+   "name": "Hosadurga",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.hosadurga.tmc@gmail.com",
+   "source": "official-government-page: https://chitradurga.nic.in/en/public-utility-category/municipality/"
+  },
+  "251937": {
+   "name": "Hiriyur",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.hiriyur.cmc@gmail.com",
+   "source": "official-government-page: https://chitradurga.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "CMC HIRIYURU City Municipal Council"
+  },
+  "251938": {
+   "name": "Harihar",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.harihar.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.hariharcity.mrc.gov.in/en/"
+  },
+  "251940": {
+   "name": "Jagalur",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.jagalur.tp@gmail.com",
+   "source": "ulb-own-site: http://www.jagalurtown.mrc.gov.in/en/",
+   "matched_from": "TP Jagalur Town Panchayath"
+  },
+  "251941": {
+   "name": "Davanagere",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "commissioner_davanagere@yahoo.com",
+   "source": "verified: http://www.davanagerecity.mrc.gov.in/en/contact-us"
+  },
+  "251942": {
+   "name": "Honnali",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.honnali.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.honnalitown.mrc.gov.in/en/"
+  },
+  "251943": {
+   "name": "Channagiri",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.channagiri.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.channagiritown.mrc.gov.in/en/"
+  },
+  "251945": {
+   "name": "Sagara",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.sagar.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.sagaracity.mrc.gov.in/en"
+  },
+  "251946": {
+   "name": "Soraba",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.soraba.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.sorabatown.mrc.gov.in/en",
+   "matched_from": "TP Town Panchayath Soraba"
+  },
+  "251948": {
+   "name": "Shikaripura",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.shikaripura.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.shikaripuratown.mrc.gov.in/en",
+   "matched_from": "TMC Town Municipal Councils, Shikaripura"
+  },
+  "251949": {
+   "name": "Hosanagara",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.hosanagara.tp@gmail.com",
+   "source": "ulb-own-site: http://www.hosanagaratown.mrc.gov.in/en",
+   "matched_from": "TP Town Panchayath Hosanagara"
+  },
+  "251950": {
+   "name": "Thirthahalli",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.thirthahalli.tp@gmail.com",
+   "source": "ulb-own-site: http://www.thirthahallitown.mrc.gov.in/en",
+   "matched_from": "TP Town Panchayath Thirthahalli"
+  },
+  "251951": {
+   "name": "Shivamogga",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "ka.shivamogga.cc@gmail.com",
+   "source": "verified: http://www.shivamoggacity.mrc.gov.in/en/contact-us"
+  },
+  "251952": {
+   "name": "Bhadravathi",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.bhadravathi.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.bhadravathicity.mrc.gov.in/en",
+   "matched_from": "CMC City Municipal Council Bhadravati"
+  },
+  "251953": {
+   "name": "Kundapur",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.kundapur.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.kundapurtown.mrc.gov.in/en"
+  },
+  "251955": {
+   "name": "Udupi",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.udupi.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.udupicity.mrc.gov.in/en"
+  },
+  "251958": {
+   "name": "Karkala",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.karkala.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.karkalatown.mrc.gov.in/en"
+  },
+  "251959": {
+   "name": "Shringeri",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "tpshringeri@gmail.com",
+   "source": "official-government-page: https://chikkamagaluru.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TP Town Panchayath Sringeri"
+  },
+  "251960": {
+   "name": "Koppa",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "koppatown@yahoo.co.in",
+   "source": "official-government-page: https://chikkamagaluru.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TP Town Panchayath Koppa"
+  },
+  "251961": {
+   "name": "Narasimharajapura",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.narasimharajapura.tp@gmail.com",
+   "source": "ulb-own-site: http://www.narasimharajapuratown.mrc.gov.in/en/",
+   "matched_from": "TP Narasimharajapura Town Panchayath"
+  },
+  "251962": {
+   "name": "Tarikere",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.tarikere.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.tarikeretown.mrc.gov.in/en/"
+  },
+  "251963": {
+   "name": "Birur",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.birur.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.birurtown.mrc.gov.in/en/"
+  },
+  "251964": {
+   "name": "Kadur",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.kadur.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.kadurtown.mrc.gov.in/en/"
+  },
+  "251965": {
+   "name": "Chikkamagaluru",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.chikkamagaluru.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.chickamagalurcity.mrc.gov.in/en/"
+  },
+  "251968": {
+   "name": "Chikkanayakanahalli",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.chikkanayakanahalli.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.chikkanayakanahallitown.mrc.gov.in/en"
+  },
+  "251970": {
+   "name": "Pavagada",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.pavagada.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.pavagadatown.mrc.gov.in/en"
+  },
+  "251971": {
+   "name": "Madhugiri",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.madhugiri.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.madhugiritown.mrc.gov.in/en"
+  },
+  "251973": {
+   "name": "Tumakuru",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "commissionertcc@gmail.com",
+   "source": "verified: http://www.tumakurucity.mrc.gov.in/en/contact-us"
+  },
+  "251975": {
+   "name": "Tiptur",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.tiptur.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.tipturcity.mrc.gov.in/en"
+  },
+  "251977": {
+   "name": "Kunigal",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.kunigal.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.kunigaltown.mrc.gov.in/en"
+  },
+  "251978": {
+   "name": "Gowribidanur",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.gouribidanur.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.gowribidanurcity.mrc.gov.in"
+  },
+  "251979": {
+   "name": "Chikkaballapur",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.chikkaballapur.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.chikkaballapurcity.mrc.gov.in"
+  },
+  "251980": {
+   "name": "Gudibande",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.gudibande.tp@gmail.com",
+   "source": "ulb-own-site: http://www.gudibandetown.mrc.gov.in"
+  },
+  "251981": {
+   "name": "Bagepalli",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.bagepalli.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.bagepallitown.mrc.gov.in"
+  },
+  "251982": {
+   "name": "Shidlaghatta",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.shidlaghatta.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.shidlaghattacity.mrc.gov.in",
+   "matched_from": "CMC Sidlaghatta"
+  },
+  "251983": {
+   "name": "Chintamani",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.chintamani.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.chintamanicity.mrc.gov.in"
+  },
+  "251990": {
+   "name": "Nelmangala",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "itstaffnelamangala@gmail.com",
+   "source": "official-government-page: https://bangalorerural.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "CMC Nelamangala CMC"
+  },
+  "251993": {
+   "name": "Vijayapura",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "ka.vijapura.cc@gmail.com",
+   "source": "verified: http://www.vijayapuracity.mrc.gov.in/en/contact-us"
+  },
+  "251994": {
+   "name": "Devanahalli",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_devanahalli@yahoo.co.in",
+   "source": "official-government-page: https://bangalorerural.nic.in/en/public-utility-category/municipality/"
+  },
+  "251995": {
+   "name": "Hoskote",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "hoscmc@gmail.com",
+   "source": "official-government-page: https://bangalorerural.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "CMC Hosakote CMC"
+  },
+  "252008": {
+   "name": "Sakaleshpura",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.sakaleshpura.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.sakaleshpuratown.mrc.gov.in/en/"
+  },
+  "252009": {
+   "name": "Belur",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.belur.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.belurtown.mrc.gov.in/en/"
+  },
+  "252010": {
+   "name": "Arsikere",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.arsikere.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.arasikerecity.mrc.gov.in/en/",
+   "matched_from": "CMC Arasikere City Municipal Council"
+  },
+  "252012": {
+   "name": "Hassan",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "ka.hassan.cmc@gmail.com",
+   "source": "verified: https://hassan.nic.in/en/public-utility/city-municipal-council-cmc-hassan/"
+  },
+  "252013": {
+   "name": "Alur",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.alur.tp@gmail.com",
+   "source": "ulb-own-site: http://www.alurtown.mrc.gov.in/en/",
+   "matched_from": "TP Alur Town Panchayath"
+  },
+  "252014": {
+   "name": "Arkalgudu",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "townpanchayath.arkalagud62@gmail.com",
+   "source": "official-government-page: https://hassan.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TP Arkalgud Town Panchayath"
+  },
+  "252015": {
+   "name": "Holenarsipura",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.holenarsipura.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.holenarasipurtown.mrc.gov.in/en/",
+   "matched_from": "TMC Holenarasipura Town Municipal Council"
+  },
+  "252017": {
+   "name": "Mulki",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.mulki.tp@gmail.com",
+   "source": "ulb-own-site: http://www.mulkitown.mrc.gov.in/en/",
+   "matched_from": "TP Mulki Town Panchayath"
+  },
+  "252018": {
+   "name": "Moodbidri",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.moodbidri.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.moodbidritown.mrc.gov.in/en/"
+  },
+  "252021": {
+   "name": "Mangaluru",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "commissioner.mcc@gmail.com",
+   "source": "verified: http://www.mangalurucity.mrc.gov.in/en/contact-us"
+  },
+  "252027": {
+   "name": "Ullal",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.ullal.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.ullalcity.mrc.gov.in/en/"
+  },
+  "252033": {
+   "name": "Bantwal",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.bantwal.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.bantwaltown.mrc.gov.in/en/"
+  },
+  "252034": {
+   "name": "Belthangadi",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.belthangadi.tp@gmail.com",
+   "source": "ulb-own-site: http://www.belthangaditown.mrc.gov.in/en/"
+  },
+  "252035": {
+   "name": "Puttur",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.puttur.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.putturcity.mrc.gov.in/en/"
+  },
+  "252045": {
+   "name": "Mysuru",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "ka.mysuru.cc@gmail.com",
+   "source": "verified: http://www.mysurucity.mrc.gov.in/en/contact-us"
+  },
+  "252053": {
+   "name": "Gundlupete",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.gundlupete.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.gundlupettown.mrc.gov.in",
+   "matched_from": "TMC Gundlupet Town Municipal Council"
+  },
+  "252054": {
+   "name": "Chamarajanagara",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.chamarajanagara.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.chamarajanagaracity.mrc.gov.in"
+  },
+  "252055": {
+   "name": "Yelandur",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.yelandur.tp@gmail.com",
+   "source": "ulb-own-site: http://www.yelandurtown.mrc.gov.in"
+  },
+  "252056": {
+   "name": "Kollegal",
+   "type": "CMC",
+   "officer": "Chief Officer",
+   "email": "ka.kollegal.cmc@gmail.com",
+   "source": "ulb-own-site: http://www.kollegalacity.mrc.gov.in"
+  },
+  "253130": {
+   "name": "Hanur",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.hannur.tp@gmail.com",
+   "source": "ulb-own-site: http://www.hanurtown.mrc.gov.in"
+  },
+  "253189": {
+   "name": "Anekal",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.anekal.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.anekaltown.mrc.gov.in"
+  },
+  "263293": {
+   "name": "Kargal",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.jogkargal.tp@gmail.com",
+   "source": "ulb-own-site: http://www.jogkargaltown.mrc.gov.in/en",
+   "matched_from": "TP Town Panchayath Kargal"
+  },
+  "276474": {
+   "name": "Mariyammanahalli",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "mariyammanaha.hpt.bly@gmail.com",
+   "source": "official-government-page: https://vijayanagara.nic.in/en/public-utility-category/municipality/"
+  },
+  "276477": {
+   "name": "Chinchali",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.chinchali.tp@gmail.com",
+   "source": "ulb-own-site: http://www.chinchalitown.mrc.gov.in"
+  },
+  "276516": {
+   "name": "Kembhavi",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_kembhavi@yahoo.com",
+   "source": "official-government-page: https://yadgir.nic.in/en/public-utility-category/municipality/"
+  },
+  "276521": {
+   "name": "Guttal",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_guttal@yahoo.co.in",
+   "source": "official-government-page: https://haveri.nic.in/en/public-utility-category/municipality/"
+  },
+  "276534": {
+   "name": "Kudathini",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "cokudathini@gmail.com",
+   "source": "official-government-page: https://ballari.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TP Town Panchayat Kudatini"
+  },
+  "276535": {
+   "name": "Hagaribommanahalli",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_hbhalli@yahoo.in",
+   "source": "official-government-page: https://vijayanagara.nic.in/en/public-utility-category/municipality/"
+  },
+  "276537": {
+   "name": "Bommasandra",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.bommasandra.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.bommasandratown.mrc.gov.in"
+  },
+  "276539": {
+   "name": "Attibele",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.attibele.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.attibeletown.mrc.gov.in"
+  },
+  "276541": {
+   "name": "Managuli",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.managuli.tp@gmail.com",
+   "source": "ulb-own-site: http://www.managulitown.mrc.gov.in/en"
+  },
+  "276542": {
+   "name": "Nayakanahatti",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.nayakanahatti.tp@gmail.com",
+   "source": "official-government-page: https://chitradurga.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TP NAYAKANHATTI Town Panchayath"
+  },
+  "276554": {
+   "name": "Vitla",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.vitla.tp@gmail.com",
+   "source": "ulb-own-site: http://www.vitlatown.mrc.gov.in/en/"
+  },
+  "276555": {
+   "name": "Kotekar",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.kotekar.tp@gmail.com",
+   "source": "ulb-own-site: http://www.kotekartown.mrc.gov.in/en/"
+  },
+  "276556": {
+   "name": "Malebennuru",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.malebennuru.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.malebennurutown.mrc.gov.in/en/"
+  },
+  "276557": {
+   "name": "Nidgundi",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.nidagundi.tp@gmail.com",
+   "source": "ulb-own-site: http://www.nidagunditown.mrc.gov.in/en",
+   "matched_from": "TP Nidagundi Town Panchayat"
+  },
+  "276558": {
+   "name": "Devarahipparagi",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.devarahipparagi.tp@gmail.com",
+   "source": "ulb-own-site: http://www.devarahipparagitown.mrc.gov.in/en/contact-us"
+  },
+  "276560": {
+   "name": "Kakkera",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_kakkera@yahoo.com",
+   "source": "official-government-page: https://yadgir.nic.in/en/public-utility-category/municipality/"
+  },
+  "276563": {
+   "name": "Mugalkhod",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.mugalakhod.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.mugalkhodtown.mrc.gov.in"
+  },
+  "276564": {
+   "name": "Munavalli",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.munavalli.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.munavallitown.mrc.gov.in"
+  },
+  "276567": {
+   "name": "Kankanawadi",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.kankanawadi.tp@gmail.com",
+   "source": "ulb-own-site: http://www.kankanawaditown.mrc.gov.in",
+   "matched_from": "TP TP Kankanwadi"
+  },
+  "276569": {
+   "name": "Harugeri",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.harugeri.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.harugeritown.mrc.gov.in"
+  },
+  "276575": {
+   "name": "Examba",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.examba.tp@gmail.com",
+   "source": "ulb-own-site: http://www.exambatown.mrc.gov.in"
+  },
+  "276576": {
+   "name": "Kallolli",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.kallolli.tp@gmail.com",
+   "source": "ulb-own-site: http://www.kallollitown.mrc.gov.in"
+  },
+  "276577": {
+   "name": "Arabhavi",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.arabhavi.tp@gmail.com",
+   "source": "ulb-own-site: http://www.arabhavitown.mrc.gov.in"
+  },
+  "276579": {
+   "name": "Shedbal",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.shedbal.tp@gmail.com",
+   "source": "ulb-own-site: http://www.shedbaltown.mrc.gov.in"
+  },
+  "276583": {
+   "name": "Boragaon",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.boragaon.tp@gmail.com",
+   "source": "ulb-own-site: http://www.boragaontown.mrc.gov.in"
+  },
+  "276618": {
+   "name": "Ainapur",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.ainapur.tp@gmail.com",
+   "source": "ulb-own-site: http://www.ainapurtown.mrc.gov.in"
+  },
+  "277668": {
+   "name": "Hallikhed",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_hallikhedab@yahoo.com",
+   "source": "official-government-page: https://bidar.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TMC HALLIKHEDA TOWN MUNICIPAL COUNCIL"
+  },
+  "296954": {
+   "name": "Kadaba",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.kadaba.tp@gmail.com",
+   "source": "ulb-own-site: http://www.kadabatown.mrc.gov.in/en/"
+  },
+  "296955": {
+   "name": "Rattihalli",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_rattihalli@yahoo.com",
+   "source": "official-government-page: https://haveri.nic.in/en/public-utility-category/municipality/"
+  },
+  "296976": {
+   "name": "Hunasagi",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "itstaff_ulb_hunasagi@yahoo.com",
+   "source": "official-government-page: https://yadgir.nic.in/en/public-utility-category/municipality/"
+  },
+  "296977": {
+   "name": "Ajjampura",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.ajjampura1.tp@gmail.com",
+   "source": "ulb-own-site: http://www.ajjampuratown.mrc.gov.in/en/",
+   "matched_from": "TP Ajjampura Town Panchayath"
+  },
+  "297131": {
+   "name": "Tikota",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.tikota.tp@gmail.com",
+   "source": "ulb-own-site: http://www.tikotatown.mrc.gov.in/en"
+  },
+  "299183": {
+   "name": "Nyamthi",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.nyamathi.tp@gmail.com",
+   "source": "ulb-own-site: http://www.nyamathitown.mrc.gov.in/en/",
+   "matched_from": "TP Nyamathi Town Panchayath"
+  },
+  "299320": {
+   "name": "Bajape",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.bajape.tp@gmail.com",
+   "source": "ulb-own-site: http://www.bajapetown.mrc.gov.in/en/"
+  },
+  "299321": {
+   "name": "Kinnigoli",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.kinnigoli.tp@gmail.com",
+   "source": "ulb-own-site: http://www.kinnigolitown.mrc.gov.in/en/"
+  },
+  "299327": {
+   "name": "Babaleshwar",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.babaleshwar.tp@gmail.com",
+   "source": "ulb-own-site: http://www.babaleshwartown.mrc.gov.in/en"
+  },
+  "299417": {
+   "name": "M.K.Hubballi",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.mk.hubballi.tp@gmail.com",
+   "source": "ulb-own-site: http://www.mkhubballitown.mrc.gov.in"
+  },
+  "301055": {
+   "name": "Kaup",
+   "type": "TMC",
+   "officer": "Chief Officer",
+   "email": "ka.kaup.tmc@gmail.com",
+   "source": "ulb-own-site: http://www.kauptown.mrc.gov.in/en"
+  },
+  "301061": {
+   "name": "Naganur",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "ka.nagnur.tp@gmail.com",
+   "source": "ulb-own-site: http://www.naganurtown.mrc.gov.in"
+  },
+  "301080": {
+   "name": "Kamalapur",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "co_kamalapur@yahoo.com",
+   "source": "official-government-page: https://vijayanagara.nic.in/en/public-utility-category/municipality/"
+  },
+  "301082": {
+   "name": "Mudigere",
+   "type": "TP",
+   "officer": "Chief Officer",
+   "email": "mudigeretp@yahoo.in",
+   "source": "official-government-page: https://chikkamagaluru.nic.in/en/public-utility-category/municipality/",
+   "matched_from": "TP Town Panchayath Mudigere"
+  },
+  "305850": {
+   "name": "Bengaluru East City Corporation",
+   "short": "BECC",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "commissioner.becc@gmail.com",
+   "source": "official GBA site, verified Aug 2026"
+  },
+  "305851": {
+   "name": "Bengaluru Central City Corporation",
+   "short": "BCCC",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "commissionerbccc@gmail.com",
+   "source": "official GBA site, verified Aug 2026"
+  },
+  "305852": {
+   "name": "Bengaluru South City Corporation",
+   "short": "BSCC",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "comm.south.gba@gmail.com",
+   "source": "official GBA site, verified Aug 2026"
+  },
+  "305853": {
+   "name": "Bengaluru North City Corporation",
+   "short": "BNCC",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "bengalurunorthcitycorporation@gmail.com",
+   "source": "official GBA site, verified Aug 2026"
+  },
+  "305854": {
+   "name": "Bengaluru West City Corporation",
+   "short": "BWCC",
+   "type": "CC",
+   "officer": "Commissioner",
+   "email": "commissioner.bwcc@gmail.com",
+   "source": "official GBA site, verified Aug 2026"
+  }
+ }
+}
