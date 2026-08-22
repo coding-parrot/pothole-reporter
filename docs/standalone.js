@@ -3540,6 +3540,137 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     }
   }
 
+  // Imports an accepted detection produced by Android's foreground Drive service.
+  // Android owns capture and inference while the WebView is backgrounded; this layer
+  // remains the single authority for routing, complaint drafting and the user's report
+  // history. The stable source key makes retries safe if the WebView closes mid-sync.
+  async function importNativeReport(native) {
+    if (!native || typeof native !== "object") throw new Error("Native report missing.");
+    const nativeId = Number(native.id);
+    const lat = Number(native.lat), lng = Number(native.lng);
+    if (!Number.isFinite(nativeId) || nativeId <= 0) throw new Error("Native report id missing.");
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      throw new Error("Native report location is invalid.");
+    }
+    const sourceEventKey = String(native.source_event_key || `native:${nativeId}`).slice(0, 180);
+    const gpsAccuracy = Number(native.gps_accuracy);
+    const speed = Number(native.speed_mps);
+    const heading = Number(native.heading);
+    const geo = await reverseGeocode(lat, lng).catch(() => null);
+    const address = (geo && geo.short) || native.address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    const route = await routeOfficer(
+      geo || address, lat, lng,
+      Number.isFinite(gpsAccuracy) ? gpsAccuracy : null,
+      Number.isFinite(heading) ? heading : null,
+      Number.isFinite(speed) ? speed : null
+    );
+    const covered = !!route.routed;
+    const tender = covered && route.tender_eligible === true
+      ? await jurisdictionOf(lat, lng)
+          .then((w) => w && w.kind === "town" && w.lgd ? matchTender(address, w.lgd) : null)
+          .catch(() => null)
+      : null;
+    const assessment = {
+      reportable: native.is_reportable === true || Number(native.is_reportable) === 1,
+      assessment: native.assessment || "clear",
+      image_quality: native.image_quality || "usable",
+      damage_type: native.damage_type || "pothole_cavity",
+      on_drivable_surface: native.on_drivable_surface !== false,
+      has_broken_edge_or_rim: native.has_broken_edge_or_rim !== false,
+      has_depth_or_surface_loss: native.has_depth_or_surface_loss !== false,
+      temporal_consistency: native.temporal_consistency || "consistent",
+      size: native.size || null,
+      description: native.description || "Reportable road damage detected during Drive Mode.",
+    };
+    const [subject, body] = covered
+      ? draftEmail(assessment, lat, lng, address, route.officer_name, tender, route)
+      : [null, null];
+    const capturedAt = Number(native.captured_at);
+    const offset = Number(native.source_offset_s);
+    const driveId = native.drive_id == null ? null : String(native.drive_id);
+    const debug = !!native.debug_capture;
+    const rec = {
+      created_at: Number(native.created_at) || Date.now() / 1000,
+      lat, lng, address,
+      photo: await dataUrlToBlob(native.photo_data_url),
+      photo_full: await dataUrlToBlob(native.photo_full_data_url || native.photo_data_url),
+      is_reportable: assessment.reportable ? 1 : 0,
+      is_pothole: assessment.damage_type === "pothole_cavity" ? 1 : 0,
+      damage_type: assessment.damage_type, assessment: assessment.assessment,
+      image_quality: assessment.image_quality,
+      on_drivable_surface: assessment.on_drivable_surface,
+      has_broken_edge_or_rim: assessment.has_broken_edge_or_rim,
+      has_depth_or_surface_loss: assessment.has_depth_or_surface_loss,
+      temporal_consistency: assessment.temporal_consistency,
+      size: assessment.size, decision: native.decision || "accept",
+      description: assessment.description, email_subject: subject, email_body: body,
+      status: covered ? "draft" : "unrouted",
+      detection_model: native.detection_model || S.model,
+      image_detail: native.image_detail || S.detail,
+      prompt_version: native.prompt_version || PROMPT_VERSION,
+      schema_version: Number(native.schema_version) || SCHEMA_VERSION,
+      evidence_count: Number(native.evidence_count) || 1,
+      unrouted_reason: covered ? null : (route.unrouted_reason || "outside_area"),
+      unrouted_body: covered ? null : (route.authority_name || null),
+      officer_name: covered ? (route.officer_name || null) : null,
+      officer_email: covered ? (route.officer_email || null) : null,
+      authority_id: covered ? (route.authority_id || null) : null,
+      authority_name: covered ? (route.authority_name || null) : null,
+      authority_registry_version: covered ? (route.authority_registry_version || null) : null,
+      delivery_channel: covered ? (route.delivery_channel || "email") : null,
+      ward_code: covered ? (route.ward_code || null) : null,
+      routing_source: covered ? (route.routing_source || null) : null,
+      routing_match_field: covered ? (route.routing_match_field || null) : null,
+      routing_match_value: covered ? (route.routing_match_value || null) : null,
+      highway_ref: covered ? (route.highway_ref || null) : null,
+      routing_pack_id: covered ? (route.routing_pack_id || null) : null,
+      routing_pack_version: covered ? (route.routing_pack_version || null) : null,
+      routing_pack_sha256: covered ? (route.routing_pack_sha256 || null) : null,
+      routing_pack_state_code: covered ? (route.routing_pack_state_code || null) : null,
+      region: covered ? (route.region || null) : null,
+      ownership_unverified: covered ? !!route.ownership_unverified : null,
+      handoff_name: covered ? (route.handoff_name || null) : null,
+      handoff_url: covered ? (route.handoff_url || null) : null,
+      handoff_package: covered ? (route.handoff_package || null) : null,
+      alternate_handoff_name: covered ? (route.alternate_handoff_name || null) : null,
+      alternate_handoff_url: covered ? (route.alternate_handoff_url || null) : null,
+      whatsapp_url: covered ? (route.whatsapp_url || null) : null,
+      helpline: covered ? (route.helpline || null) : null,
+      requires_official_reference: covered ? !!route.requires_official_reference : false,
+      official_grievance_id: null, submitted_at: null,
+      tender_number: tender ? tender.tender_number : null,
+      contractor: tender ? tender.contractor : null,
+      tender_note: tender ? tender.note : null,
+      tender_pack_id: tender ? (tender.tender_pack_id || null) : null,
+      tender_pack_version: tender ? (tender.tender_pack_version || null) : null,
+      tender_pack_sha256: tender ? (tender.tender_pack_sha256 || null) : null,
+      tender_pack_state_code: tender ? (tender.tender_pack_state_code || null) : null,
+      sent_at: null, drive_id: driveId, capture_source: "drive_live",
+      source_event_key: sourceEventKey, source_event_keys: [sourceEventKey],
+      captured_at: Number.isFinite(capturedAt) ? capturedAt : null,
+      source_offset_s: Number.isFinite(offset) ? offset : null,
+      gps_accuracy: Number.isFinite(gpsAccuracy) ? gpsAccuracy : null,
+      speed_mps: Number.isFinite(speed) ? speed : null,
+      heading: Number.isFinite(heading) ? ((heading % 360) + 360) % 360 : null,
+      frame_quality: null, primary_frame_index: Number(native.primary_frame_index) || 0,
+      debug_capture: debug, dedupe_eligible: !debug,
+      event_sightings: [eventSighting({
+        drive_id: driveId, lat, lng,
+        source_offset_s: Number.isFinite(offset) ? offset : null,
+        captured_at: Number.isFinite(capturedAt) ? capturedAt : null,
+        gps_accuracy: Number.isFinite(gpsAccuracy) ? gpsAccuracy : null,
+        speed_mps: Number.isFinite(speed) ? speed : null,
+        heading: Number.isFinite(heading) ? heading : null,
+        source_event_key: sourceEventKey,
+      })],
+      sighting_drive_ids: driveId ? [driveId] : [], seen_count: 1,
+      last_seen_at: Number.isFinite(capturedAt) ? capturedAt : Date.now() / 1000,
+    };
+    const committed = await addReportUnlessDuplicate(rec, !debug);
+    return { native_id: nativeId, id: committed.duplicate ? committed.duplicate.id : committed.id,
+             duplicate: !!committed.duplicate };
+  }
+
 
   async function openInGmail(rec) {
     // Always the routed officer. The app never sends; the user does, in their email app.
@@ -4073,6 +4204,9 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     }
     if (path === "/api/report" && method === "POST") return createReport(opts.body, false);
     if (path === "/api/frame" && method === "POST") return createReport(opts.body, true);
+    if (path === "/api/native-report" && method === "POST") {
+      return importNativeReport(JSON.parse(opts.body || "{}"));
+    }
     if ((m = path.match(/^\/api\/reports\/(\d+)\/send$/)) && method === "POST") {
       const rec = await getReport(m[1]);
       if (!rec) throw new Error("Report not found.");

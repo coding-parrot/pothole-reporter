@@ -89,7 +89,7 @@
   <div id="detail" class="hidden"></div>
 
   <div id="drive" class="hidden">
-    <div style="position:relative">
+    <div id="webDrivePanel" style="position:relative">
       <video id="driveVideo" autoplay playsinline muted style="width:100%;border-radius:14px;background:#000;min-height:340px"></video>
       <div aria-hidden="true" style="position:absolute;left:8%;right:8%;top:34%;bottom:7%;border:2px dashed rgba(255,122,26,.8);border-radius:14px;pointer-events:none"></div>
       <button id="driveStop" style="position:absolute;top:12px;right:12px;background:var(--bad);color:#fff;font-size:17px;font-weight:700;padding:14px 24px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.5)">&#9632; Stop</button>
@@ -97,6 +97,16 @@
       <div style="position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:10px;max-width:75%">
         <div class="verdict" id="driveCount" style="margin:0;font-size:16px;color:#fff">0 road-damage events</div>
         <div class="meta" id="driveStatus" style="color:#d5d5da">Starting...</div>
+      </div>
+    </div>
+    <div id="nativeDrivePanel" class="card hidden" style="padding:22px;text-align:center">
+      <div style="font-size:44px;margin-bottom:8px">&#128663;</div>
+      <div class="verdict" id="nativeDriveCount">0 road-damage events</div>
+      <div class="meta" id="nativeDriveStatus" style="min-height:36px;margin:6px 0 16px">Starting camera and GPS...</div>
+      <button class="primary" id="openMapsBtn" style="margin:0 0 10px">Open Google Maps</button>
+      <div class="btn-row" style="margin:0">
+        <button class="ghost" id="nativePauseBtn">Pause</button>
+        <button class="ghost danger" id="nativeDriveStop">Stop</button>
       </div>
     </div>
     <div class="meta" id="driveTip" style="text-align:center;margin-top:10px">Mount the phone facing the road. Frames are checked continuously while you move (about every 10 meters). The back button also stops the drive.</div>
@@ -168,11 +178,11 @@
         <span id="debugLabel">Debug mode: keep the drive video after analysing it</span>
       </label>
       <div class="meta" id="debugNote"></div>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#f2f2f4">
+      <label id="recordSetting" style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#f2f2f4">
         <input type="checkbox" id="setRecord" style="width:18px;height:18px;accent-color:var(--accent)">
         <span id="recordLabel">Record video during a drive</span>
       </label>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#f2f2f4">
+      <label id="keepFramesSetting" style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#f2f2f4">
         <input type="checkbox" id="setKeepFrames" style="width:18px;height:18px;accent-color:var(--accent)">
         <span id="keepFramesLabel">Save every analysed frame to the device</span>
       </label>
@@ -241,7 +251,7 @@ const I18N = {
     independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
     privacy_title: "Before camera and location access",
     privacy_body: "If you continue, the app will ask for camera and precise foreground location. A photo—or sampled frames from Drive Mode—is sent with your API key to OpenAI for road-damage detection. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports also query Karnataka GIS. The required state routing pack is downloaded from GitHub Pages. Processing can occur outside India.",
-    privacy_local: "Drive Mode uses no audio and stops when the app leaves the foreground. Optional video recording is off by default; clips stay here until analysed or deleted. Reports, photos, location tracks, settings, verified state packs and highway tiles remain on this device until deleted; unused data is evicted automatically.",
+    privacy_local: "Drive Mode uses no audio. On Android, camera and location continue through a visible foreground-service notification while Google Maps or a phone call is on screen; pause or stop them from the app or notification. Optional web video recording is off by default. Reports, photos, location tracks, settings, verified state packs and highway tiles remain on this device until deleted; unused data is evicted automatically.",
     privacy_government: "This independent app is not a government service and never submits automatically. GitHub Pages receives your IP address, time, user agent and the requested state-pack or 2° highway-tile path, which reveals a state or approximate tile but not exact coordinates, photos or report content. After download, matching runs locally. Data reaches an official provider only when you deliberately open or complete a handoff. Review the destination and content.",
     privacy_link: "Privacy policy", sources_link: "Data sources and limits",
     privacy_accept: "Continue", privacy_decline: "Not now",
@@ -399,7 +409,7 @@ const I18N = {
     independent_note: "ಇದು ಸ್ವತಂತ್ರ, ಅನಧಿಕೃತ ಆ್ಯಪ್. ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯೊಂದಿಗೆ ಸಂಬಂಧ ಅಥವಾ ಅನುಮೋದನೆ ಇಲ್ಲ. ಕಚೇರಿ ಸೂಚನೆ ಅತ್ಯುತ್ತಮ ಪ್ರಯತ್ನ ಮಾತ್ರ; ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
     privacy_title: "ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳ ಅನುಮತಿಯ ಮೊದಲು",
     privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಮುಂಭಾಗದ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ಫೋಟೋ ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು API ಕೀಯೊಂದಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ವರದಿಗಳು Karnataka GIS ಅನ್ನು ಬಳಸುತ್ತವೆ. ಅಗತ್ಯ ರಾಜ್ಯ ರೂಟಿಂಗ್ ಪ್ಯಾಕ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
-    privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ ಮತ್ತು ಆ್ಯಪ್ ಮುಂಭಾಗದಿಂದ ಹೊರಬಂದಾಗ ನಿಲ್ಲುತ್ತದೆ. ಐಚ್ಛಿಕ ವಿಡಿಯೋ ಕ್ಲಿಪ್‌ಗಳು ವಿಶ್ಲೇಷಣೆ ಅಥವಾ ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲೇ ಇರುತ್ತವೆ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್, ಸೆಟ್ಟಿಂಗ್ಸ್, ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್‌ಗಳು ಮತ್ತು ಹೆದ್ದಾರಿ ಟೈಲ್‌ಗಳು ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲಿರುತ್ತವೆ; ಬಳಸದ ಡೇಟಾ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ತೆರವುಗೊಳ್ಳುತ್ತದೆ.",
+    privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ. Android ನಲ್ಲಿ Google Maps ಅಥವಾ ಕರೆ ಪರದೆ ತೆರೆದಿದ್ದರೂ, ಕಾಣುವ foreground-service ಅಧಿಸೂಚನೆಯೊಂದಿಗೆ ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳ ಬಳಕೆ ಮುಂದುವರಿಯುತ್ತದೆ; ಆ್ಯಪ್ ಅಥವಾ ಅಧಿಸೂಚನೆಯಿಂದ ವಿರಾಮಗೊಳಿಸಿ ಅಥವಾ ನಿಲ್ಲಿಸಿ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್, ಸೆಟ್ಟಿಂಗ್ಸ್, ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್‌ಗಳು ಮತ್ತು ಹೆದ್ದಾರಿ ಟೈಲ್‌ಗಳು ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲಿರುತ್ತವೆ; ಬಳಸದ ಡೇಟಾ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ತೆರವುಗೊಳ್ಳುತ್ತದೆ.",
     privacy_government: "ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸರ್ಕಾರಿ ಸೇವೆಯಲ್ಲ ಮತ್ತು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. GitHub Pages ನಿಮ್ಮ IP, ಸಮಯ, user agent ಮತ್ತು ಕೇಳಿದ ರಾಜ್ಯ-ಪ್ಯಾಕ್ ಅಥವಾ 2° ಹೆದ್ದಾರಿ-ಟೈಲ್ ಮಾರ್ಗವನ್ನು ಪಡೆಯುತ್ತದೆ; ಇದರಿಂದ ರಾಜ್ಯ ಅಥವಾ ಅಂದಾಜು ಟೈಲ್ ತಿಳಿಯಬಹುದು, ನಿಖರ ಸ್ಥಳ, ಫೋಟೋ ಅಥವಾ ವರದಿ ವಿಷಯವಲ್ಲ. ಡೌನ್‌ಲೋಡ್ ನಂತರ ಹೊಂದಾಣಿಕೆ ಸಾಧನದಲ್ಲೇ ನಡೆಯುತ್ತದೆ. ನೀವು ಹಸ್ತಾಂತರವನ್ನು ತೆರೆಯುವಾಗ ಮಾತ್ರ ಮಾಹಿತಿ ಅಧಿಕೃತ ಸೇವೆಗೆ ಹೋಗುತ್ತದೆ.",
     privacy_link: "ಗೌಪ್ಯತಾ ನೀತಿ", sources_link: "ಡೇಟಾ ಮೂಲಗಳು ಮತ್ತು ಮಿತಿಗಳು",
     privacy_accept: "ಮುಂದುವರಿಸಿ", privacy_decline: "ಈಗ ಬೇಡ",
@@ -550,7 +560,7 @@ const I18N = {
     independent_note: "हे स्वतंत्र, अनधिकृत अॅप आहे. कोणत्याही सरकारी संस्थेशी संलग्न नाही किंवा तिची मान्यता नाही. सुचवलेले कार्यालय पाठवण्यापूर्वी तपासा.",
     privacy_title: "कॅमेरा आणि स्थान वापरण्यापूर्वी",
     privacy_body: "पुढे गेल्यास अॅप कॅमेरा आणि वापराच्या वेळी अचूक स्थान वापरण्याची परवानगी मागेल. फोटो किंवा ड्राइव्ह मोडमधील निवडक फ्रेम्स API कीसह OpenAI कडे पाठवल्या जातात. अचूक स्थान OpenStreetMap/Nominatim कडे आणि कर्नाटकासाठी Karnataka GIS कडे जाते. आवश्यक राज्य routing pack GitHub Pages वरून डाउनलोड होतो. प्रक्रिया भारताबाहेर होऊ शकते.",
-    privacy_local: "ड्राइव्ह मोडमध्ये ऑडिओ वापरला जात नाही आणि अॅप पार्श्वभूमीत गेल्यावर तो थांबतो. ऐच्छिक व्हिडिओ क्लिप्स विश्लेषण किंवा हटवण्यापर्यंत या साधनावर राहतात. अहवाल, फोटो, स्थान मार्ग, सेटिंग्ज, पडताळलेले राज्य packs आणि महामार्ग tiles हटवेपर्यंत साधनावर राहतात; न वापरलेला डेटा आपोआप काढला जातो.",
+    privacy_local: "ड्राइव्ह मोडमध्ये ऑडिओ वापरला जात नाही. Android वर Google Maps किंवा कॉल स्क्रीन समोर असतानाही, दिसणाऱ्या foreground-service सूचनेसह कॅमेरा आणि स्थान वापर सुरू राहतो; अॅप किंवा सूचनेतून विराम द्या किंवा थांबवा. अहवाल, फोटो, स्थान मार्ग, सेटिंग्ज, पडताळलेले राज्य packs आणि महामार्ग tiles हटवेपर्यंत साधनावर राहतात; न वापरलेला डेटा आपोआप काढला जातो.",
     privacy_government: "हे स्वतंत्र अॅप सरकारी सेवा नाही आणि तक्रार आपोआप सादर करत नाही. GitHub Pages ला तुमचा IP, वेळ, user agent आणि मागितलेला राज्य-pack किंवा 2° महामार्ग-tile मार्ग मिळतो; त्यामुळे राज्य किंवा अंदाजे tile समजू शकते, अचूक स्थान, फोटो किंवा अहवालाचा मजकूर नाही. डाउनलोडनंतर जुळणी साधनावर होते. तुम्ही बाह्य माध्यम उघडल्यावरच माहिती अधिकृत सेवेकडे जाते.",
     privacy_link: "गोपनीयता धोरण", sources_link: "डेटा स्रोत आणि मर्यादा",
     privacy_accept: "पुढे जा", privacy_decline: "आत्ता नको",
@@ -691,7 +701,7 @@ const I18N = {
     independent_note: "এটি একটি স্বাধীন, বেসরকারি অ্যাপ। কোনও সরকারি সংস্থার সঙ্গে এর সম্পর্ক নেই এবং কোনও সরকারি সংস্থা এটি অনুমোদন করেনি। প্রাপক নির্বাচন সর্বোত্তম প্রচেষ্টার ভিত্তিতে; পাঠানোর আগে যাচাই করুন।",
     privacy_title: "ক্যামেরা ও অবস্থান ব্যবহারের আগে",
     privacy_body: "এগিয়ে গেলে অ্যাপটি ক্যামেরা ও সামনে খোলা থাকাকালীন সঠিক অবস্থানের অনুমতি চাইবে। ছবি বা ড্রাইভ মোডের নির্বাচিত ফ্রেম API key-সহ OpenAI-তে পাঠানো হয়। সঠিক স্থানাঙ্ক OpenStreetMap/Nominatim-এ এবং কর্ণাটকের জন্য Karnataka GIS-এ যায়। প্রয়োজনীয় রাজ্য routing pack GitHub Pages থেকে ডাউনলোড হয়। তথ্য ভারতের বাইরেও প্রক্রিয়াকৃত হতে পারে।",
-    privacy_local: "ড্রাইভ মোডে অডিও ব্যবহৃত হয় না এবং অ্যাপটি সামনে থেকে সরে গেলে বন্ধ হয়। ঐচ্ছিক ভিডিও ক্লিপ বিশ্লেষণ বা মুছে ফেলা পর্যন্ত ডিভাইসে থাকে। রিপোর্ট, ছবি, অবস্থানের ট্র্যাক, সেটিংস, যাচাই-করা রাজ্য pack ও জাতীয় সড়ক tile মুছে না ফেলা পর্যন্ত থাকে; অব্যবহৃত ডেটা স্বয়ংক্রিয়ভাবে সরানো হয়।",
+    privacy_local: "ড্রাইভ মোডে অডিও ব্যবহৃত হয় না। Android-এ Google Maps বা কল স্ক্রিন সামনে থাকলেও, দৃশ্যমান foreground-service বিজ্ঞপ্তিসহ ক্যামেরা ও অবস্থান ব্যবহার চলতে থাকে; অ্যাপ বা বিজ্ঞপ্তি থেকে বিরতি দিন বা বন্ধ করুন। রিপোর্ট, ছবি, অবস্থানের ট্র্যাক, সেটিংস, যাচাই-করা রাজ্য pack ও জাতীয় সড়ক tile মুছে না ফেলা পর্যন্ত থাকে; অব্যবহৃত ডেটা স্বয়ংক্রিয়ভাবে সরানো হয়।",
     privacy_government: "এই স্বাধীন অ্যাপটি সরকারি পরিষেবা নয় এবং নিজে থেকে অভিযোগ জমা দেয় না। GitHub Pages আপনার IP, সময়, user agent ও চাওয়া রাজ্য-pack বা 2° জাতীয় সড়ক-tile পথ পায়; এতে রাজ্য বা আনুমানিক tile বোঝা যায়, সঠিক স্থানাঙ্ক, ছবি বা রিপোর্টের বিষয় নয়। ডাউনলোডের পরে মিল যাচাই ডিভাইসেই হয়। আপনি বাইরের পরিষেবা খুললেই কেবল তথ্য সরকারি পরিষেবায় যায়।",
     privacy_link: "গোপনীয়তা নীতি", sources_link: "তথ্যের উৎস ও সীমাবদ্ধতা",
     privacy_accept: "এগিয়ে যান", privacy_decline: "এখন নয়",
@@ -922,6 +932,13 @@ function applyLang() {
   $("lblSkip").textContent = t("lbl_skip");
   $("reviewBack").textContent = t("lbl_done");
   $("driveStop").innerHTML = t("stop");
+  if (nativeDrivePlugin()) {
+    $("recordSetting").classList.add("hidden");
+    $("keepFramesSetting").classList.add("hidden");
+    $("keepFramesNote").classList.add("hidden");
+    $("debugLabel").textContent = "Debug mode: keep repeat detections as separate reports";
+    $("debugNote").textContent = "Normally, nearby sightings of the same road damage are grouped into one report.";
+  }
 }
 
 async function api(path, opts) {
@@ -1573,8 +1590,87 @@ const RECORD_MIMES = ["video/mp4;codecs=avc1.42E01E", "video/mp4",
 let drive = null;
 let driveStarting = false;
 let driveFinalizing = null;
-const DATA_NOTICE_VERSION = "2026-08-22-v7-highway-packs";
+const DATA_NOTICE_VERSION = "2026-08-22-v8-background-drive";
 let consentWaiter = null;
+let nativeDriveListenersReady = false;
+const handledNativeEnds = new Set();
+
+function nativeDrivePlugin() {
+  if (!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())) return null;
+  try {
+    return Capacitor.registerPlugin ? Capacitor.registerPlugin("DriveMode")
+      : (Capacitor.Plugins && Capacitor.Plugins.DriveMode);
+  } catch (e) { return null; }
+}
+
+function setDrivePanels(native) {
+  $("webDrivePanel").classList.toggle("hidden", native);
+  $("nativeDrivePanel").classList.toggle("hidden", !native);
+}
+
+function updateNativeDriveHud(status) {
+  if (!status) return;
+  const found = Number(status.found) || 0;
+  const already = Number(status.already) || 0;
+  $("nativeDriveCount").textContent = eventCountText(found)
+    + (already ? ` · ${alreadyCountText(already)}` : "");
+  const queued = Number(status.queued) || 0;
+  const dropped = Number(status.dropped) || 0;
+  $("nativeDriveStatus").textContent = String(status.status || "Scanning live")
+    + (queued ? ` · ${queued} queued` : "") + (dropped ? ` · ${dropped} skipped` : "");
+  $("nativePauseBtn").textContent = status.isPaused ? "Resume" : "Pause";
+}
+
+async function syncNativeData() {
+  const plugin = nativeDrivePlugin();
+  if (!plugin) return { reports: 0, drives: 0 };
+  const pending = await plugin.syncReports().catch(() => ({ reports: [] }));
+  const acknowledged = [];
+  for (const report of (pending.reports || [])) {
+    try {
+      await api("/api/native-report", { method: "POST", body: JSON.stringify(report) });
+      acknowledged.push(Number(report.id));
+    } catch (e) { /* leave it unsynced; next resume retries safely */ }
+  }
+  if (acknowledged.length) await plugin.acknowledgeReports({ ids: acknowledged }).catch(() => {});
+  const sessions = await plugin.getDrives().catch(() => ({ drives: [] }));
+  let driveCount = 0;
+  for (const session of (sessions.drives || []).filter((x) => x.status === "stopped")) {
+    try {
+      await api("/api/drives", { method: "POST", body: JSON.stringify(session) });
+      driveCount++;
+    } catch (e) {}
+  }
+  return { reports: acknowledged.length, drives: driveCount };
+}
+
+async function finishNativeDrive(summary) {
+  const sessionId = summary && summary.sessionId ? String(summary.sessionId) : null;
+  if (sessionId && handledNativeEnds.has(sessionId)) return;
+  if (sessionId) handledNativeEnds.add(sessionId);
+  drive = null;
+  await syncNativeData();
+  await loadReports().catch(() => {});
+  show("home");
+  if (summary) {
+    const found = Number(summary.found) || 0, checked = Number(summary.checked) || 0;
+    alert(found ? `${eventCountText(found)} · ${checked} frames checked`
+      : `No new road damage found · ${checked} frames checked`);
+  }
+}
+
+async function ensureNativeDriveListeners() {
+  const plugin = nativeDrivePlugin();
+  if (!plugin || nativeDriveListenersReady) return;
+  nativeDriveListenersReady = true;
+  await plugin.addListener("driveStatusChange", (status) => {
+    if (status && status.isRunning) {
+      if (!drive || !drive.native) drive = { native: true, sessionId: status.sessionId };
+      updateNativeDriveHud(status);
+    }
+  });
+  await plugin.addListener("driveEnded", (summary) => { finishNativeDrive(summary); });
+}
 
 function finishDataConsent(accepted) {
   if (accepted) localStorage.setItem("data_notice_version", DATA_NOTICE_VERSION);
@@ -1595,6 +1691,10 @@ function ensureDataConsent() {
 async function requestNativeCapturePermissions() {
   if (!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())) return;
   const plugins = Capacitor.Plugins || {};
+  const drivePlugin = nativeDrivePlugin();
+  if (drivePlugin && drivePlugin.requestDrivePermissions) {
+    try { return await drivePlugin.requestDrivePermissions(); } catch (e) { return { granted: false }; }
+  }
   try {
     if (plugins.Camera && plugins.Camera.requestPermissions) {
       await plugins.Camera.requestPermissions({ permissions: ["camera"] });
@@ -1626,6 +1726,30 @@ async function startDrive() {
   await requestNativeCapturePermissions();
   if (drive || driveFinalizing) { driveStarting = false; return; }
   StandaloneAPI.prewarm();
+  const nativePlugin = nativeDrivePlugin();
+  if (nativePlugin) {
+    await ensureNativeDriveListeners();
+    const ctx = { native: true, sessionId: null };
+    drive = ctx;
+    setDrivePanels(true);
+    updateNativeDriveHud({ found: 0, already: 0, queued: 0, dropped: 0, status: "Starting camera and GPS" });
+    show("drive");
+    try {
+      const status = await nativePlugin.startDrive({
+        apiKey: localStorage.getItem("openai_key") || "",
+        model: localStorage.getItem("detection_model") || "gpt-5-mini",
+        detail: localStorage.getItem("image_detail") || "high",
+        language: LANG,
+        debug: localStorage.getItem("debug_mode") === "1",
+      });
+      ctx.sessionId = status.sessionId || null;
+      updateNativeDriveHud(status);
+    } catch (e) {
+      drive = null; show("home"); alert(t("camera_failed") + (e.message || e));
+    } finally { driveStarting = false; }
+    return;
+  }
+  setDrivePanels(false);
   let stream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({
@@ -1946,6 +2070,19 @@ async function driveTick() {
 
 function stopDrive() {
   if (!drive) return driveFinalizing || Promise.resolve();
+  if (drive.native) {
+    const plugin = nativeDrivePlugin();
+    $("nativeDriveStatus").textContent = t("working");
+    return plugin.stopDrive().then(async () => {
+      // The service emits driveEnded after its Room transaction commits. If the WebView
+      // missed that event, reconcile from the durable status instead of leaving a stuck UI.
+      for (let i = 0; i < 30; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        const status = await plugin.getStatus().catch(() => ({ isRunning: false }));
+        if (!status.isRunning) { await finishNativeDrive(null); break; }
+      }
+    }).catch((e) => { $("nativeDriveStatus").textContent = e.message || String(e); });
+  }
   const ctx = drive;
   ctx.stopping = true;
   // Captured bursts already queued are still checked. The summary waits for the queue,
@@ -2014,12 +2151,40 @@ function stopDrive() {
 
 $("driveBtn").onclick = startDrive;
 $("driveStop").onclick = stopDrive;
+$("nativeDriveStop").onclick = stopDrive;
+$("nativePauseBtn").onclick = async () => {
+  const plugin = nativeDrivePlugin();
+  if (!plugin || !drive || !drive.native) return;
+  const current = await plugin.getStatus();
+  const next = current.isPaused ? await plugin.resumeDrive() : await plugin.pauseDrive();
+  updateNativeDriveHud(next);
+};
+$("openMapsBtn").onclick = async () => {
+  const plugin = nativeDrivePlugin();
+  if (plugin) await plugin.openMaps().catch((e) => alert(e.message || e));
+};
 
-// Camera and precise location are foreground-only. Leaving the app ends Drive Mode
-// instead of relying on WebView suspension timing while capture continues unseen.
 document.addEventListener("visibilitychange", () => {
-  if (drive && document.visibilityState === "hidden") stopDrive();
+  if (drive && !drive.native && document.visibilityState === "hidden") stopDrive();
+  if (document.visibilityState === "visible") restoreNativeDrive();
 });
+
+async function restoreNativeDrive() {
+  const plugin = nativeDrivePlugin();
+  if (!plugin) return;
+  await ensureNativeDriveListeners();
+  const status = await plugin.getStatus().catch(() => null);
+  if (status && status.isRunning) {
+    drive = { native: true, sessionId: status.sessionId };
+    setDrivePanels(true);
+    updateNativeDriveHud(status);
+    show("drive");
+  } else {
+    if (drive && drive.native) drive = null;
+    await syncNativeData();
+    await loadReports().catch(() => {});
+  }
+}
 
 // Opening the camera is the cue that a call is coming: warm the connection now
 // so the photo does not also pay for a TLS handshake.
@@ -2889,6 +3054,8 @@ $("wipeBtn").onclick = async () => {
   if (!confirm(t("confirm_wipe"))) return;
   try { await api("/api/reports", { method: "DELETE" }); } catch (e) { alert(e.message); return; }
   const plugins = window.Capacitor && Capacitor.Plugins;
+  const nativePlugin = nativeDrivePlugin();
+  try { if (nativePlugin) await nativePlugin.clearNativeData(); } catch (e) {}
   try {
     if (plugins && plugins.Filesystem && plugins.Filesystem.rmdir) {
       await plugins.Filesystem.rmdir({ path: FRAME_DIR, directory: "DOCUMENTS", recursive: true });
@@ -2909,6 +3076,7 @@ applyLang();
 (async () => {
   await loadHealth();
   await loadReports();
+  await restoreNativeDrive();
   const m = location.hash.match(/^#report-(\d+)$/);
   if (m) {
     const r = (loadReports.latest || []).find((x) => x.id == m[1]);

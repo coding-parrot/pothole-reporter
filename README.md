@@ -29,7 +29,8 @@ WhatsApp, dialler, share sheet, or email client. Nothing is submitted automatica
 
 ## How it works
 
-- **Drive** samples the road while the mounted phone remains in the foreground.
+- **Drive** uses an Android foreground service, so scanning continues while Google Maps or
+  the phone-call screen is open. Pause or stop it from the app or its persistent notification.
 - **Photo** analyses one stopped capture.
 - OpenAI vision assesses visible potholes, failed patches, breakup, ruts, and depressions.
 - Nearby repeat observations are grouped into one report; Debug mode retains each one.
@@ -74,7 +75,7 @@ state or an approximate 2° highway tile. See the
 
 1. Install the APK attached to the
    [latest release](https://github.com/coding-parrot/pothole-reporter/releases/latest).
-2. Enter your OpenAI API key and allow camera and foreground location access.
+2. Enter your OpenAI API key and allow camera, location, and notification access.
 3. Capture while safely stopped, or securely mount the phone before starting **Drive**.
 4. Review the image, location, authority, wording, and any probable contract match before
    choosing an external complaint channel.
@@ -83,6 +84,9 @@ state or an approximate 2° highway tile. See the
 
 - AI can miss damage or produce false positives. No field-validated accuracy percentage is
   claimed.
+- Android may temporarily take the camera for a video call or another higher-priority app;
+  Drive pauses camera sampling and resumes automatically. Normal audio calls do not require
+  the camera. Device-specific battery managers can still stop long-running services.
 - Selected images and the user's API key go directly to OpenAI. Exact coordinates go to
   OpenStreetMap Nominatim; Karnataka locations also query Karnataka GIS.
 - Contract matching is optional and available only for eligible Karnataka routes. A match

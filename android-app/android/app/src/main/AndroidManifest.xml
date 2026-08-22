@@ -12,6 +12,7 @@
         <package android:name="cgg.gov.ghmc" />
         <package android:name="com.amplvb.ccrs" />
         <package android:name="com.nhai.rajmargyatra" />
+        <package android:name="com.google.android.apps.maps" />
     </queries>
 
     <application
@@ -47,6 +48,15 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <service
+            android:name=".drive.DriveForegroundService"
+            android:foregroundServiceType="camera|location"
+            android:exported="false" />
+
+        <receiver
+            android:name=".drive.NotificationActionReceiver"
+            android:exported="false" />
     </application>
 
     <!-- Permissions -->
@@ -55,5 +65,10 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
