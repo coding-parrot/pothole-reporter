@@ -60,6 +60,9 @@
   h2 { font-size:15px; color:var(--mut); font-weight:600; margin:18px 0 10px; }
   .policy-links { display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:10px; }
   .policy-links a { color:#ffb36f; font-size:13px; }
+  html.native-preview-active, html.native-preview-active body { background:transparent !important; }
+  html.native-preview-active #nativePreviewFrame,
+  html.native-preview-active #nativePreviewSlot { background:transparent !important; }
 </style>
 </head>
 <body>
@@ -99,17 +102,25 @@
         <div class="meta" id="driveStatus" style="color:#d5d5da">Starting...</div>
       </div>
     </div>
-    <div id="nativeDrivePanel" class="card hidden" style="padding:22px;text-align:center">
-      <div style="font-size:44px;margin-bottom:8px">&#128663;</div>
-      <div class="verdict" id="nativeDriveCount">0 road-damage events</div>
-      <div class="meta" id="nativeDriveStatus" style="min-height:36px;margin:6px 0 16px">Starting camera and GPS...</div>
-      <button class="primary" id="openMapsBtn" style="margin:0 0 10px">Open Google Maps</button>
-      <div class="btn-row" style="margin:0">
-        <button class="ghost" id="nativePauseBtn">Pause</button>
-        <button class="ghost danger" id="nativeDriveStop">Stop</button>
+    <div id="nativeDrivePanel" class="hidden">
+      <div id="nativePreviewFrame" style="position:relative;min-height:340px;border-radius:14px;overflow:hidden;background:#000">
+        <div id="nativePreviewSlot" role="img" aria-label="Live road camera preview" style="width:100%;height:clamp(340px,58vh,560px);background:transparent"></div>
+        <div aria-hidden="true" style="position:absolute;left:8%;right:8%;top:34%;bottom:7%;border:2px dashed rgba(255,122,26,.8);border-radius:14px;pointer-events:none"></div>
+        <div id="nativeCameraBadge" style="position:absolute;top:12px;left:12px;background:rgba(120,0,0,.82);color:#fff;font-size:12px;font-weight:800;padding:8px 10px;border-radius:99px;letter-spacing:.04em">&#9679; CAMERA ACTIVE</div>
+        <button id="nativeDriveStop" style="position:absolute;top:12px;right:12px;background:var(--bad);color:#fff;font-size:17px;font-weight:700;padding:14px 24px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.5)">&#9632; Stop</button>
+        <div style="position:absolute;left:12px;right:12px;bottom:12px;background:rgba(0,0,0,.68);padding:9px 12px;border-radius:10px">
+          <div class="verdict" id="nativeDriveCount" style="margin:0;font-size:16px;color:#fff">0 road-damage events</div>
+          <div class="meta" id="nativeDriveStatus" style="color:#d5d5da">Starting camera and GPS...</div>
+        </div>
       </div>
+      <div class="btn-row">
+        <button class="ghost" id="openMapsBtn">Maps</button>
+        <button class="ghost" id="nativePauseBtn">Pause</button>
+        <button class="ghost" id="nativeRecordBtn">Video: Off</button>
+      </div>
+      <div class="meta" id="nativeBackgroundNotice" style="text-align:center;margin-top:10px;line-height:1.4">Camera scanning continues only while the persistent Android “Drive Mode” notification is visible—even when Maps or a call is on screen. Pause or stop it at any time.</div>
     </div>
-    <div class="meta" id="driveTip" style="text-align:center;margin-top:10px">Mount the phone facing the road. Frames are checked continuously while you move (about every 10 meters). The back button also stops the drive.</div>
+    <div class="meta" id="driveTip" style="text-align:center;margin-top:10px">Mount the phone facing the road. Frames are checked continuously while you move (about every 10 meters).</div>
   </div>
 
   <div id="dash" class="hidden">
@@ -251,7 +262,7 @@ const I18N = {
     independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
     privacy_title: "Before camera and location access",
     privacy_body: "If you continue, the app will ask for camera and precise foreground location. A photo—or sampled frames from Drive Mode—is sent with your API key to OpenAI for road-damage detection. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports also query Karnataka GIS. The required state routing pack is downloaded from GitHub Pages. Processing can occur outside India.",
-    privacy_local: "Drive Mode uses no audio. On Android, camera and location continue through a visible foreground-service notification while Google Maps or a phone call is on screen; pause or stop them from the app or notification. Optional web video recording is off by default. Reports, photos, location tracks, settings, verified state packs and highway tiles remain on this device until deleted; unused data is evicted automatically.",
+    privacy_local: "Drive Mode uses no audio. On Android, camera and location continue through a visible foreground-service notification while Google Maps or a phone call is on screen; pause or stop them from the app or notification. Optional local video recording is off by default, is always labelled on screen and in the notification, and is stored in app-private 60-second clips. Reports, photos, footage, location tracks, settings, verified state packs and highway tiles remain on this device until deleted; unused data is evicted automatically.",
     privacy_government: "This independent app is not a government service and never submits automatically. GitHub Pages receives your IP address, time, user agent and the requested state-pack or 2° highway-tile path, which reveals a state or approximate tile but not exact coordinates, photos or report content. After download, matching runs locally. Data reaches an official provider only when you deliberately open or complete a handoff. Review the destination and content.",
     privacy_link: "Privacy policy", sources_link: "Data sources and limits",
     privacy_accept: "Continue", privacy_decline: "Not now",
@@ -858,8 +869,15 @@ const safePhotoSrc = (value) => {
     ? escapeAttr(src) : "";
 };
 let health = { ai_configured: true, email_configured: false, delivery: "gmail_draft" };
+let nativePreviewGeneration = 0;
+let nativePreviewAttached = false;
+let nativePreviewScrollFrame = null;
 
 function show(screen) {
+  if (screen !== "drive" &&
+      (nativePreviewAttached || document.documentElement.classList.contains("native-preview-active"))) {
+    stopNativePreview();
+  }
   for (const s of ["home", "progress", "detail", "drive", "settings", "review", "dash", "dataConsent"]) {
     $(s).classList.toggle("hidden", s !== screen);
   }
@@ -933,7 +951,6 @@ function applyLang() {
   $("reviewBack").textContent = t("lbl_done");
   $("driveStop").innerHTML = t("stop");
   if (nativeDrivePlugin()) {
-    $("recordSetting").classList.add("hidden");
     $("keepFramesSetting").classList.add("hidden");
     $("keepFramesNote").classList.add("hidden");
     $("debugLabel").textContent = "Debug mode: keep repeat detections as separate reports";
@@ -1024,11 +1041,34 @@ function wireCards(root, items) {
   }
 }
 
+async function mergeNativeDriveHistory(drives, footage) {
+  const plugin = nativeDrivePlugin();
+  if (!plugin) return;
+  const result = await plugin.getDrives().catch(() => ({ drives: [] }));
+  for (const nativeDrive of (result.drives || [])) {
+    const id = String(nativeDrive.id);
+    if (!drives.some((item) => String(item.id) === id)) drives.push({ ...nativeDrive, native: true });
+    const segments = Number(nativeDrive.footage_segments) || 0;
+    if (segments && !footage.some((item) => String(item.drive_id) === id)) {
+      footage.push({
+        drive_id: id,
+        bytes: Number(nativeDrive.footage_bytes) || 0,
+        segments,
+        duration_ms: Number(nativeDrive.footage_duration_ms) || 0,
+        started_at: nativeDrive.started_at,
+        ended_at: nativeDrive.ended_at,
+        native: true,
+      });
+    }
+  }
+}
+
 async function loadReports() {
   const [reports, drives, footage] = await Promise.all([
     api("/api/reports"), api("/api/drives").catch(() => []),
     api("/api/footage").catch(() => []),
   ]);
+  await mergeNativeDriveHistory(drives, footage);
   loadReports.latest = reports;
   const list = $("list");
   // A recorded drive is history even when GPS never arrived and therefore no frame was
@@ -1092,7 +1132,9 @@ async function loadReports() {
     `<div class="card" data-footagerow="${driveId}" style="padding:10px 12px;${open ? "" : "display:none"}">
       <div class="meta">${t("footage_line", { mb: (fo.bytes / 1048576).toFixed(0), segments: fo.segments })}</div>
       <div class="btn-row" style="margin-top:8px">
-        <button class="ghost" data-analyse="${driveId}">${t("analyse_btn")}</button>
+        ${fo.native
+          ? `<button class="ghost" data-sharenative="${driveId}">${t("share_evidence_btn")}</button>`
+          : `<button class="ghost" data-analyse="${driveId}">${t("analyse_btn")}</button>`}
         <button class="ghost danger" data-delfootage="${driveId}">${t("delete_footage")}</button>
       </div>
     </div>`;
@@ -1163,11 +1205,25 @@ async function loadReports() {
   for (const el of list.querySelectorAll("[data-analyse]")) {
     el.onclick = (ev) => { ev.stopPropagation(); analyseFootage(el.dataset.analyse, driveById[el.dataset.analyse]); };
   }
+  for (const el of list.querySelectorAll("[data-sharenative]")) {
+    el.onclick = async (ev) => {
+      ev.stopPropagation();
+      try { await nativeDrivePlugin().shareFootage({ sessionId: el.dataset.sharenative }); }
+      catch (e) { alert(e.message || e); }
+    };
+  }
   for (const el of list.querySelectorAll("[data-delfootage]")) {
     el.onclick = async (ev) => {
       ev.stopPropagation();
       if (!confirm(t("confirm_delete_footage"))) return;
-      try { await api(`/api/footage/${encodeURIComponent(el.dataset.delfootage)}`, { method: "DELETE" }); }
+      try {
+        const id = el.dataset.delfootage;
+        if (footageById[id] && footageById[id].native) {
+          await nativeDrivePlugin().deleteFootage({ sessionId: id });
+        } else {
+          await api(`/api/footage/${encodeURIComponent(id)}`, { method: "DELETE" });
+        }
+      }
       catch (e) { alert(e.message); }
       loadReports();
     };
@@ -1590,10 +1646,14 @@ const RECORD_MIMES = ["video/mp4;codecs=avc1.42E01E", "video/mp4",
 let drive = null;
 let driveStarting = false;
 let driveFinalizing = null;
-const DATA_NOTICE_VERSION = "2026-08-22-v8-background-drive";
+const DATA_NOTICE_VERSION = "2026-08-23-v9-visible-background-drive";
 let consentWaiter = null;
 let nativeDriveListenersReady = false;
 const handledNativeEnds = new Set();
+let nativeStopPromise = null;
+let nativeFinishPromise = null;
+let nativeFinishLocked = false;
+let nativeWipeLocked = false;
 
 function nativeDrivePlugin() {
   if (!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())) return null;
@@ -1606,6 +1666,60 @@ function nativeDrivePlugin() {
 function setDrivePanels(native) {
   $("webDrivePanel").classList.toggle("hidden", native);
   $("nativeDrivePanel").classList.toggle("hidden", !native);
+  $("driveTip").textContent = native
+    ? "The live view is visible here. Maps and calls may cover it, but the persistent Drive Mode notification always shows whether the camera or video is active."
+    : "Mount the phone facing the road. Frames are checked continuously while you move (about every 10 meters).";
+}
+
+function setDriveActiveButton(active) {
+  $("driveBtn").innerHTML = t("drive_btn") + (active ? " &nbsp;&#9679;" : "");
+  $("driveBtn").setAttribute("aria-label", active ? "Drive active — view" : "Drive");
+}
+
+function setNativeFinishLocked(locked) {
+  nativeFinishLocked = locked;
+  const disabled = nativeFinishLocked || nativeWipeLocked;
+  $("gearBtn").disabled = disabled;
+  $("wipeBtn").disabled = disabled;
+}
+
+function setNativeWipeLocked(locked) {
+  nativeWipeLocked = locked;
+  const disabled = nativeFinishLocked || nativeWipeLocked;
+  $("gearBtn").disabled = disabled;
+  $("wipeBtn").disabled = disabled;
+}
+
+function stopNativePreview() {
+  nativePreviewGeneration++;
+  nativePreviewAttached = false;
+  if (nativePreviewScrollFrame) cancelAnimationFrame(nativePreviewScrollFrame);
+  nativePreviewScrollFrame = null;
+  document.documentElement.classList.remove("native-preview-active");
+  const plugin = nativeDrivePlugin();
+  if (plugin) plugin.detachPreview().catch(() => {});
+}
+
+function startNativePreview() {
+  const generation = ++nativePreviewGeneration;
+  if (!drive || !drive.native || document.visibilityState !== "visible" ||
+      $("drive").classList.contains("hidden")) return;
+  document.documentElement.classList.add("native-preview-active");
+  requestAnimationFrame(() => requestAnimationFrame(async () => {
+    if (generation !== nativePreviewGeneration || !drive || !drive.native) return;
+    const slot = $("nativePreviewSlot");
+    const rect = slot.getBoundingClientRect();
+    const plugin = nativeDrivePlugin();
+    if (plugin) {
+      try {
+        await plugin.attachPreview({
+          left: rect.left, top: rect.top, width: rect.width, height: rect.height,
+          viewportWidth: window.innerWidth, viewportHeight: window.innerHeight,
+        });
+        nativePreviewAttached = true;
+      } catch (_) { nativePreviewAttached = false; }
+    }
+  }));
 }
 
 function updateNativeDriveHud(status) {
@@ -1616,9 +1730,47 @@ function updateNativeDriveHud(status) {
     + (already ? ` · ${alreadyCountText(already)}` : "");
   const queued = Number(status.queued) || 0;
   const dropped = Number(status.dropped) || 0;
+  const segments = Number(status.segmentCount) || 0;
+  const savedMb = (Number(status.recordedBytes) || 0) / 1048576;
   $("nativeDriveStatus").textContent = String(status.status || "Scanning live")
-    + (queued ? ` · ${queued} queued` : "") + (dropped ? ` · ${dropped} skipped` : "");
+    + (queued ? ` · ${queued} queued` : "") + (dropped ? ` · ${dropped} skipped` : "")
+    + (segments ? ` · ${segments} video clip${segments === 1 ? "" : "s"} (${savedMb.toFixed(0)} MB)` : "");
   $("nativePauseBtn").textContent = status.isPaused ? "Resume" : "Pause";
+  const badge = $("nativeCameraBadge");
+  if (status.isStopping) {
+    badge.innerHTML = "FINALIZING · CAMERA STOPPING";
+    badge.style.background = "rgba(60,60,60,.88)";
+  } else if (status.isPausing) {
+    badge.innerHTML = "PAUSING · CAMERA STOPPING";
+    badge.style.background = "rgba(60,60,60,.88)";
+  } else if (status.isPaused) {
+    badge.innerHTML = "&#10074;&#10074; PAUSED · CAMERA OFF";
+    badge.style.background = "rgba(60,60,60,.88)";
+  } else if (status.cameraActive !== true) {
+    const starting = /starting|waiting/i.test(String(status.status || ""));
+    badge.innerHTML = starting ? "CAMERA STARTING" : "CAMERA INTERRUPTED · RETRYING";
+    badge.style.background = "rgba(130,70,0,.88)";
+  } else if (status.recordingEnabled && status.isRecording) {
+    badge.innerHTML = "&#9679; RECORDING VIDEO";
+    badge.style.background = "rgba(150,0,0,.88)";
+  } else if (status.recordingEnabled && status.recordingIssue) {
+    badge.innerHTML = "CAMERA ACTIVE · VIDEO NOT RECORDING";
+    badge.style.background = "rgba(150,0,0,.88)";
+  } else if (status.recordingEnabled && status.videoSupported !== false) {
+    badge.innerHTML = "&#9679; CAMERA ACTIVE · VIDEO STARTING";
+    badge.style.background = "rgba(130,70,0,.88)";
+  } else if (status.videoSupported === false) {
+    badge.innerHTML = "&#9679; CAMERA ACTIVE · VIDEO UNAVAILABLE";
+    badge.style.background = "rgba(130,70,0,.88)";
+  } else {
+    badge.innerHTML = "&#9679; CAMERA ACTIVE · VIDEO NOT SAVED";
+    badge.style.background = "rgba(130,70,0,.88)";
+  }
+  $("nativeRecordBtn").textContent = status.recordingEnabled ? "Video: On" : "Video: Off";
+  $("nativeRecordBtn").disabled = Boolean(status.isStopping || status.isPausing) ||
+    (status.videoSupported === false && !status.recordingEnabled);
+  $("nativePauseBtn").disabled = Boolean(status.isStopping || status.isPausing);
+  $("nativeDriveStop").disabled = Boolean(status.isStopping);
 }
 
 async function syncNativeData() {
@@ -1635,7 +1787,8 @@ async function syncNativeData() {
   if (acknowledged.length) await plugin.acknowledgeReports({ ids: acknowledged }).catch(() => {});
   const sessions = await plugin.getDrives().catch(() => ({ drives: [] }));
   let driveCount = 0;
-  for (const session of (sessions.drives || []).filter((x) => x.status === "stopped")) {
+  for (const session of (sessions.drives || []).filter((x) =>
+    x.status === "stopped" || x.status === "interrupted")) {
     try {
       await api("/api/drives", { method: "POST", body: JSON.stringify(session) });
       driveCount++;
@@ -1646,17 +1799,32 @@ async function syncNativeData() {
 
 async function finishNativeDrive(summary) {
   const sessionId = summary && summary.sessionId ? String(summary.sessionId) : null;
-  if (sessionId && handledNativeEnds.has(sessionId)) return;
+  if (sessionId && handledNativeEnds.has(sessionId)) return nativeFinishPromise || Promise.resolve();
+  if (nativeFinishPromise) return nativeFinishPromise.then(() => finishNativeDrive(summary));
   if (sessionId) handledNativeEnds.add(sessionId);
-  drive = null;
-  await syncNativeData();
-  await loadReports().catch(() => {});
-  show("home");
-  if (summary) {
-    const found = Number(summary.found) || 0, checked = Number(summary.checked) || 0;
-    alert(found ? `${eventCountText(found)} · ${checked} frames checked`
-      : `No new road damage found · ${checked} frames checked`);
-  }
+  const current = drive;
+  const belongsToCurrent = current && current.native &&
+    (!sessionId || !current.sessionId || String(current.sessionId) === sessionId);
+  nativeFinishPromise = (async () => {
+    if (belongsToCurrent) {
+      setNativeFinishLocked(true);
+      stopNativePreview();
+      drive = null;
+      setDriveActiveButton(false);
+    }
+    // A wipe stops the foreground service before deleting its Room rows and files.
+    // Do not race that deletion by syncing the just-ended session back into web data.
+    if (!(summary && summary.discarded)) {
+      await syncNativeData();
+      await loadReports().catch(() => {});
+    }
+    if (belongsToCurrent) show("home");
+  })().finally(() => {
+    setNativeFinishLocked(false);
+    nativeStopPromise = null;
+    nativeFinishPromise = null;
+  });
+  return nativeFinishPromise;
 }
 
 async function ensureNativeDriveListeners() {
@@ -1666,6 +1834,12 @@ async function ensureNativeDriveListeners() {
   await plugin.addListener("driveStatusChange", (status) => {
     if (status && status.isRunning) {
       if (!drive || !drive.native) drive = { native: true, sessionId: status.sessionId };
+      setDriveActiveButton(true);
+      updateNativeDriveHud(status);
+      if (!nativePreviewAttached && !$("drive").classList.contains("hidden")) startNativePreview();
+    } else if (status && status.isStopping && drive && drive.native) {
+      drive.stopping = true;
+      setNativeFinishLocked(true);
       updateNativeDriveHud(status);
     }
   });
@@ -1720,19 +1894,34 @@ function distMeters(a, b) {
 async function startDrive() {
   // Synchronous reentry guard: a second tap during the camera permission prompt
   // must not start a parallel drive session and leak the first camera stream.
-  if (drive || driveStarting || driveFinalizing) return;
+  if (drive && drive.native && !drive.stopping) {
+    setDrivePanels(true);
+    show("drive");
+    startNativePreview();
+    return;
+  }
+  if (drive || driveStarting || driveFinalizing || nativeFinishPromise) return;
   driveStarting = true;
   if (!(await ensureDataConsent())) { driveStarting = false; return; }
-  await requestNativeCapturePermissions();
-  if (drive || driveFinalizing) { driveStarting = false; return; }
-  StandaloneAPI.prewarm();
   const nativePlugin = nativeDrivePlugin();
+  const permissions = await requestNativeCapturePermissions();
+  if (nativePlugin && (!permissions || !permissions.granted || permissions.notificationsGranted === false)) {
+    driveStarting = false;
+    alert("Drive needs camera, location and notification permission. The notification is required so camera use is always visible.");
+    return;
+  }
+  if (drive || driveFinalizing || nativeFinishPromise) { driveStarting = false; return; }
+  StandaloneAPI.prewarm();
   if (nativePlugin) {
     await ensureNativeDriveListeners();
     const ctx = { native: true, sessionId: null };
     drive = ctx;
+    setDriveActiveButton(true);
     setDrivePanels(true);
-    updateNativeDriveHud({ found: 0, already: 0, queued: 0, dropped: 0, status: "Starting camera and GPS" });
+    updateNativeDriveHud({
+      found: 0, already: 0, queued: 0, dropped: 0,
+      cameraActive: false, status: "Starting camera and GPS",
+    });
     show("drive");
     try {
       const status = await nativePlugin.startDrive({
@@ -1741,11 +1930,17 @@ async function startDrive() {
         detail: localStorage.getItem("image_detail") || "high",
         language: LANG,
         debug: localStorage.getItem("debug_mode") === "1",
+        recordVideo: localStorage.getItem("record_video") === "1",
       });
       ctx.sessionId = status.sessionId || null;
       updateNativeDriveHud(status);
+      startNativePreview();
     } catch (e) {
-      drive = null; show("home"); alert(t("camera_failed") + (e.message || e));
+      // If the user pressed Stop while native startup was still waiting for CameraX,
+      // the Stop barrier owns the UI. Do not flash a false camera-failure alert or
+      // expose Home before that service has actually finished.
+      if (ctx.stopping) return;
+      drive = null; setDriveActiveButton(false); show("home"); alert(t("camera_failed") + (e.message || e));
     } finally { driveStarting = false; }
     return;
   }
@@ -2071,17 +2266,23 @@ async function driveTick() {
 function stopDrive() {
   if (!drive) return driveFinalizing || Promise.resolve();
   if (drive.native) {
+    if (nativeStopPromise) return nativeStopPromise;
+    const ctx = drive;
+    ctx.stopping = true;
     const plugin = nativeDrivePlugin();
     $("nativeDriveStatus").textContent = t("working");
-    return plugin.stopDrive().then(async () => {
-      // The service emits driveEnded after its Room transaction commits. If the WebView
-      // missed that event, reconcile from the durable status instead of leaving a stuck UI.
-      for (let i = 0; i < 30; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        const status = await plugin.getStatus().catch(() => ({ isRunning: false }));
-        if (!status.isRunning) { await finishNativeDrive(null); break; }
-      }
-    }).catch((e) => { $("nativeDriveStatus").textContent = e.message || String(e); });
+    $("nativeDriveStop").disabled = true;
+    setNativeFinishLocked(true);
+    nativeStopPromise = plugin.stopDrive()
+      .then((summary) => finishNativeDrive(summary))
+      .catch((e) => {
+        ctx.stopping = false;
+        setNativeFinishLocked(false);
+        $("nativeDriveStop").disabled = false;
+        $("nativeDriveStatus").textContent = e.message || String(e);
+        nativeStopPromise = null;
+      });
+    return nativeStopPromise;
   }
   const ctx = drive;
   ctx.stopping = true;
@@ -2159,6 +2360,15 @@ $("nativePauseBtn").onclick = async () => {
   const next = current.isPaused ? await plugin.resumeDrive() : await plugin.pauseDrive();
   updateNativeDriveHud(next);
 };
+$("nativeRecordBtn").onclick = async () => {
+  const plugin = nativeDrivePlugin();
+  if (!plugin || !drive || !drive.native || drive.stopping) return;
+  const current = await plugin.getStatus();
+  const enabled = !current.recordingEnabled;
+  const next = await plugin.setVideoRecording({ enabled });
+  localStorage.setItem("record_video", enabled ? "1" : "0");
+  updateNativeDriveHud(next);
+};
 $("openMapsBtn").onclick = async () => {
   const plugin = nativeDrivePlugin();
   if (plugin) await plugin.openMaps().catch((e) => alert(e.message || e));
@@ -2166,7 +2376,23 @@ $("openMapsBtn").onclick = async () => {
 
 document.addEventListener("visibilitychange", () => {
   if (drive && !drive.native && document.visibilityState === "hidden") stopDrive();
-  if (document.visibilityState === "visible") restoreNativeDrive();
+  if (drive && drive.native && document.visibilityState === "hidden") stopNativePreview();
+  if (document.visibilityState === "visible") {
+    restoreNativeDrive();
+    if (drive && drive.native) startNativePreview();
+  }
+});
+window.addEventListener("resize", () => { if (drive && drive.native) startNativePreview(); });
+window.addEventListener("scroll", () => {
+  if (!drive || !drive.native || $("drive").classList.contains("hidden")) return;
+  if (nativePreviewScrollFrame) cancelAnimationFrame(nativePreviewScrollFrame);
+  nativePreviewScrollFrame = requestAnimationFrame(() => {
+    nativePreviewScrollFrame = null;
+    startNativePreview();
+  });
+}, { passive: true });
+if (window.visualViewport) visualViewport.addEventListener("resize", () => {
+  if (drive && drive.native) startNativePreview();
 });
 
 async function restoreNativeDrive() {
@@ -2176,11 +2402,24 @@ async function restoreNativeDrive() {
   const status = await plugin.getStatus().catch(() => null);
   if (status && status.isRunning) {
     drive = { native: true, sessionId: status.sessionId };
+    setDriveActiveButton(true);
     setDrivePanels(true);
     updateNativeDriveHud(status);
     show("drive");
+    startNativePreview();
+  } else if (status && status.isStopping) {
+    if (drive && drive.native) {
+      drive.stopping = true;
+      updateNativeDriveHud(status);
+      show("drive");
+    }
   } else {
-    if (drive && drive.native) drive = null;
+    if (drive && drive.native) {
+      stopNativePreview();
+      drive = null;
+      setDriveActiveButton(false);
+      show("home");
+    }
     await syncNativeData();
     await loadReports().catch(() => {});
   }
@@ -2845,6 +3084,7 @@ async function openDash() {
   const [reports, drives, footage] = await Promise.all([
     api("/api/reports"), api("/api/drives").catch(() => []), api("/api/footage").catch(() => []),
   ]);
+  await mergeNativeDriveHistory(drives, footage);
   const FOUND = ["draft", "queued", "sent", "unrouted"];
   const holes = reports.filter((r) => FOUND.includes(r.status));
   // Opening an email app or BMC channel proves only that a handoff was opened. Count a
@@ -2999,10 +3239,16 @@ window.addEventListener("pipeline-verdict", (e) => {
     : e.detail.review ? t("early_review") : t("early_no");
 });
 
-// Native Android back button: navigate inside the app instead of exiting.
-// Drive mode stops; any other screen returns home; home lets the app exit.
+// Native Android back button: leaving the Drive screen does not stop its foreground
+// service. The explicit Stop control is the only in-app action that ends a native drive.
 window.handleAppBack = () => {
-  if (drive) { stopDrive(); return true; }
+  if (drive && drive.native && !$("drive").classList.contains("hidden")) {
+    stopNativePreview();
+    setDriveActiveButton(true);
+    show("home");
+    return true;
+  }
+  if (drive && !drive.native) { stopDrive(); return true; }
   // Stop has already torn down the live camera, but its final MediaRecorder data and
   // queued detections may still be committing. Do not expose Home/Settings/Wipe until
   // that barrier completes or a late write could resurrect data after a user wipe.
@@ -3030,32 +3276,60 @@ window.openSettings = (firstRun) => {
   $("settingsHint").textContent = firstRun ? t("welcome_hint") : "";
   show("settings");
 };
-$("gearBtn").onclick = () => openSettings(false);
+$("gearBtn").onclick = () => {
+  if (nativeFinishPromise || (drive && drive.native && drive.stopping)) return;
+  openSettings(false);
+};
 $("setBack").onclick = () => show("home");
 $("setSave").onclick = async () => {
-  localStorage.setItem("openai_key", $("setKey").value.trim());
-  localStorage.setItem("sender_name", $("setName").value.trim());
+  const saveButton = $("setSave");
+  if (saveButton.disabled) return;
+  saveButton.disabled = true;
   const selectedModel = $("setModel").value === "gpt-5.6" ? "gpt-5.6" : "gpt-5-mini";
   const selectedDetail = $("setDetail").value === "original" && selectedModel === "gpt-5.6"
     ? "original" : "high";
-  localStorage.setItem("detection_model", selectedModel);
-  localStorage.setItem("image_detail", selectedDetail);
-  localStorage.setItem("debug_mode", $("setDebug").checked ? "1" : "0");
-  localStorage.setItem("keep_frames", $("setKeepFrames").checked ? "1" : "0");
-  localStorage.setItem("record_video", $("setRecord").checked ? "1" : "0");
+  const recordVideo = $("setRecord").checked;
   const newLang = $("setLang").value;
-  localStorage.setItem("app_lang", newLang);
-  if (newLang !== LANG) { location.reload(); return; }
-  await loadHealth();
-  await loadReports();
-  show("home");
+  try {
+    const plugin = nativeDrivePlugin();
+    if (plugin && drive && drive.native && !drive.stopping) {
+      const current = await plugin.getStatus();
+      if (Boolean(current.recordingEnabled) !== recordVideo) {
+        const updated = await plugin.setVideoRecording({ enabled: recordVideo });
+        updateNativeDriveHud(updated);
+      }
+    }
+    localStorage.setItem("openai_key", $("setKey").value.trim());
+    localStorage.setItem("sender_name", $("setName").value.trim());
+    localStorage.setItem("detection_model", selectedModel);
+    localStorage.setItem("image_detail", selectedDetail);
+    localStorage.setItem("debug_mode", $("setDebug").checked ? "1" : "0");
+    localStorage.setItem("keep_frames", $("setKeepFrames").checked ? "1" : "0");
+    localStorage.setItem("record_video", recordVideo ? "1" : "0");
+    localStorage.setItem("app_lang", newLang);
+    if (newLang !== LANG) { location.reload(); return; }
+    await loadHealth();
+    await loadReports();
+    show("home");
+  } catch (error) {
+    alert(error.message || "The settings could not be applied.");
+  } finally {
+    saveButton.disabled = false;
+  }
 };
 $("wipeBtn").onclick = async () => {
   if (!confirm(t("confirm_wipe"))) return;
-  try { await api("/api/reports", { method: "DELETE" }); } catch (e) { alert(e.message); return; }
+  setNativeWipeLocked(true);
+  try { await api("/api/reports", { method: "DELETE" }); }
+  catch (e) { setNativeWipeLocked(false); alert(e.message); return; }
   const plugins = window.Capacitor && Capacitor.Plugins;
   const nativePlugin = nativeDrivePlugin();
-  try { if (nativePlugin) await nativePlugin.clearNativeData(); } catch (e) {}
+  try { if (nativePlugin) await nativePlugin.clearNativeData(); }
+  catch (e) {
+    setNativeWipeLocked(false);
+    alert(e.message || "Some on-device footage could not be deleted.");
+    return;
+  }
   try {
     if (plugins && plugins.Filesystem && plugins.Filesystem.rmdir) {
       await plugins.Filesystem.rmdir({ path: FRAME_DIR, directory: "DOCUMENTS", recursive: true });

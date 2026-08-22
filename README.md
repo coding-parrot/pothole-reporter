@@ -29,8 +29,7 @@ WhatsApp, dialler, share sheet, or email client. Nothing is submitted automatica
 
 ## How it works
 
-- **Drive** uses an Android foreground service, so scanning continues while Google Maps or
-  the phone-call screen is open. Pause or stop it from the app or its persistent notification.
+- **Drive** shows a live road view and counters. Its Android foreground service keeps scanning—and, when explicitly enabled, recording silent local video—under a truthful persistent notification while Maps or a call is open.
 - **Photo** analyses one stopped capture.
 - OpenAI vision assesses visible potholes, failed patches, breakup, ruts, and depressions.
 - Nearby repeat observations are grouped into one report; Debug mode retains each one.

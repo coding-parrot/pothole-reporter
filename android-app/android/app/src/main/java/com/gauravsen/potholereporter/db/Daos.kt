@@ -63,4 +63,31 @@ interface SessionDao {
 
     @Query("DELETE FROM sessions")
     suspend fun clearAll()
+
+    @Query("UPDATE sessions SET status = 'interrupted', endedAt = :endedAt WHERE status IN ('active', 'paused')")
+    suspend fun markAllStaleInterrupted(endedAt: Long)
+
+    @Query("UPDATE sessions SET status = 'interrupted', endedAt = :endedAt WHERE status IN ('active', 'paused') AND id != :activeSessionId")
+    suspend fun markOtherStaleInterrupted(activeSessionId: String, endedAt: Long)
+}
+
+@Dao
+interface FootageDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSegment(segment: FootageSegmentEntity): Long
+
+    @Query("SELECT * FROM footage_segments WHERE sessionId = :sessionId ORDER BY startedAt ASC")
+    suspend fun getSegmentsForSession(sessionId: String): List<FootageSegmentEntity>
+
+    @Query("SELECT * FROM footage_segments ORDER BY startedAt DESC")
+    suspend fun getAllSegments(): List<FootageSegmentEntity>
+
+    @Query("DELETE FROM footage_segments WHERE sessionId = :sessionId")
+    suspend fun deleteForSession(sessionId: String)
+
+    @Query("DELETE FROM footage_segments WHERE id = :id")
+    suspend fun deleteSegment(id: Long)
+
+    @Query("DELETE FROM footage_segments")
+    suspend fun clearAll()
 }

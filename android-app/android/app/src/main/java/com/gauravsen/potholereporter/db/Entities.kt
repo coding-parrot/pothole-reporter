@@ -106,5 +106,25 @@ data class SessionEntity(
     val alreadyCount: Int = 0,
     val alreadyIdsJson: String = "[]",
     val gpsTrackJson: String = "[]",
-    val status: String = "active" // active, paused, stopped
+    val status: String = "active" // active, paused, stopped, interrupted
+)
+
+@Entity(
+    tableName = "footage_segments",
+    indices = [
+        Index(value = ["sessionId"]),
+        Index(value = ["filePath"], unique = true)
+    ]
+)
+data class FootageSegmentEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val sessionId: String,
+    val filePath: String,
+    val startedAt: Long,
+    val endedAt: Long,
+    val durationMs: Long,
+    val bytes: Long,
+    val errorCode: Int? = null,
+    val complete: Boolean = true
 )

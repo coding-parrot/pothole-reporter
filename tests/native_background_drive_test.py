@@ -10,40 +10,82 @@ INIT = r"""
 (() => {
   localStorage.setItem("openai_key", "test-key-never-sent");
   const probe = window.__nativeDriveProbe = {
-    listeners: {}, start: 0, stop: 0, pause: 0, resume: 0, maps: 0, ack: 0,
-    status: {isRunning: false, isPaused: false, sessionId: null, checked: 0,
-             found: 0, already: 0, queued: 0, dropped: 0, status: "Idle"},
+    listeners: {}, appListeners: {}, start: 0, stop: 0, stopCompleted: 0,
+    pause: 0, resume: 0, maps: 0, attach: 0, detach: 0, setVideo: 0,
+    exit: 0, ack: 0, lastPreview: null,
+    status: {isRunning: false, isPaused: false, isStopping: false,
+             sessionId: null, checked: 0, found: 0, already: 0, queued: 0,
+             dropped: 0, recordingEnabled: false, isRecording: false,
+             videoSupported: true, cameraActive: false, status: "Idle"},
   };
   const emit = (name, data) => (probe.listeners[name] || []).forEach((fn) => fn(data));
+  const emitStatus = () => emit("driveStatusChange", {...probe.status});
   const DriveMode = {
     addListener: async (name, fn) => { (probe.listeners[name] ||= []).push(fn); },
     requestDrivePermissions: async () => ({granted: true, notificationsGranted: true}),
-    startDrive: async () => {
+    startDrive: async ({recordVideo = false} = {}) => {
       probe.start++;
-      probe.status = {...probe.status, isRunning: true, sessionId: "native-test", status: "Scanning live"};
-      queueMicrotask(() => emit("driveStatusChange", probe.status));
-      return probe.status;
+      probe.status = {...probe.status, isRunning: true, isStopping: false,
+        sessionId: "native-test", recordingEnabled: recordVideo,
+        isRecording: recordVideo, cameraActive: true, status: "Scanning live"};
+      queueMicrotask(emitStatus);
+      return {...probe.status};
     },
-    getStatus: async () => probe.status,
-    pauseDrive: async () => { probe.pause++; probe.status = {...probe.status, isPaused: true, status: "Paused"}; return probe.status; },
-    resumeDrive: async () => { probe.resume++; probe.status = {...probe.status, isPaused: false, status: "Scanning live"}; return probe.status; },
+    getStatus: async () => ({...probe.status}),
+    attachPreview: async (rect) => { probe.attach++; probe.lastPreview = rect; },
+    detachPreview: async () => { probe.detach++; },
+    pauseDrive: async () => {
+      probe.pause++;
+      probe.status = {...probe.status, isPaused: true, isRecording: false,
+        cameraActive: false, status: "Paused"};
+      emitStatus();
+      return {...probe.status};
+    },
+    resumeDrive: async () => {
+      probe.resume++;
+      probe.status = {...probe.status, isPaused: false,
+        isRecording: probe.status.recordingEnabled, cameraActive: true, status: "Scanning live"};
+      emitStatus();
+      return {...probe.status};
+    },
+    setVideoRecording: async ({enabled}) => {
+      probe.setVideo++;
+      probe.status = {...probe.status, recordingEnabled: enabled,
+        isRecording: enabled && !probe.status.isPaused,
+        status: enabled ? "Recording video" : "Scanning live; video not saved"};
+      emitStatus();
+      return {...probe.status};
+    },
     openMaps: async () => { probe.maps++; },
     stopDrive: async () => {
       probe.stop++;
-      const summary = {sessionId: "native-test", checked: 7, found: 1, already: 0};
-      probe.status = {...probe.status, isRunning: false, status: "Stopped"};
-      queueMicrotask(() => emit("driveEnded", summary));
-      return {stopped: true};
+      probe.status = {...probe.status, isStopping: true, status: "Stopping safely"};
+      emitStatus();
+      return await new Promise((resolve) => {
+        probe.completeStop = () => {
+          if (probe.stopCompleted) return;
+          probe.stopCompleted++;
+          const summary = {sessionId: "native-test", checked: 7, found: 1, already: 0};
+          probe.status = {...probe.status, isRunning: false, isStopping: false,
+            isRecording: false, status: "Stopped"};
+          emit("driveEnded", summary);
+          resolve(summary);
+        };
+      });
     },
     syncReports: async () => ({reports: [], count: 0}),
     acknowledgeReports: async ({ids}) => { probe.ack += ids.length; },
     getDrives: async () => ({drives: []}),
     clearNativeData: async () => {},
   };
+  const App = {
+    addListener: async (name, fn) => { probe.appListeners[name] = fn; },
+    exitApp: () => { probe.exit++; },
+  };
   Object.defineProperty(window, "Capacitor", {configurable: true, value: {
     isNativePlatform: () => true,
     registerPlugin: (name) => name === "DriveMode" ? DriveMode : {},
-    Plugins: {DriveMode, App: {addListener: async () => {}}},
+    Plugins: {DriveMode, App},
   }});
 })();
 """
@@ -60,16 +102,102 @@ with sync_playwright() as playwright:
     page.evaluate("localStorage.setItem('data_notice_version', DATA_NOTICE_VERSION); window.alert = () => {}")
     page.locator("#driveBtn").click()
     page.locator("#nativeDrivePanel").wait_for(state="visible")
+    page.wait_for_function("__nativeDriveProbe.attach >= 1")
+
+    initial = page.evaluate("""() => ({
+      start: __nativeDriveProbe.start,
+      attach: __nativeDriveProbe.attach,
+      running: __nativeDriveProbe.status.isRunning,
+      preview: __nativeDriveProbe.lastPreview,
+      badge: document.querySelector('#nativeCameraBadge').textContent,
+    })""")
+    if initial["start"] != 1 or not initial["running"]:
+        failures.append(f"native Drive did not start exactly one service session: {initial}")
+    preview = initial["preview"] or {}
+    if preview.get("width", 0) <= 0 or preview.get("height", 0) <= 0:
+        failures.append(f"native Preview was not attached to a visible slot: {initial}")
+    if "VIDEO NOT SAVED" not in initial["badge"]:
+        failures.append(f"initial camera badge did not disclose video status: {initial}")
 
     page.evaluate("""() => {
-      let state = "hidden";
-      Object.defineProperty(document, "visibilityState", {configurable: true, get: () => state});
+      window.__testVisibility = "hidden";
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true, get: () => window.__testVisibility,
+      });
       document.dispatchEvent(new Event("visibilitychange"));
     }""")
-    page.wait_for_timeout(50)
-    before = page.evaluate("__nativeDriveProbe")
-    if before["stop"] != 0 or not before["status"]["isRunning"]:
-        failures.append(f"backgrounding stopped native Drive: {before}")
+    page.wait_for_function("__nativeDriveProbe.detach >= 1")
+    background = page.evaluate("""() => ({
+      stop: __nativeDriveProbe.stop, detach: __nativeDriveProbe.detach,
+      running: __nativeDriveProbe.status.isRunning,
+    })""")
+    if background["stop"] != 0 or not background["running"]:
+        failures.append(f"backgrounding stopped the native capture service: {background}")
+
+    page.evaluate("""() => {
+      window.__testVisibility = "visible";
+      document.dispatchEvent(new Event("visibilitychange"));
+    }""")
+    page.wait_for_function(f"__nativeDriveProbe.attach > {initial['attach']}")
+    page.locator("#nativeDrivePanel").wait_for(state="visible")
+
+    # Hardware Back is navigation, not Stop: hide the preview but keep the foreground
+    # capture service alive so Maps/calls can remain the foreground app.
+    page.wait_for_function("!!__nativeDriveProbe.appListeners.backButton")
+    detach_before_back = page.evaluate("__nativeDriveProbe.detach")
+    page.evaluate("__nativeDriveProbe.appListeners.backButton()")
+    page.locator("#home").wait_for(state="visible")
+    page.wait_for_function(f"__nativeDriveProbe.detach > {detach_before_back}")
+    after_back = page.evaluate("""() => ({
+      start: __nativeDriveProbe.start, stop: __nativeDriveProbe.stop,
+      exit: __nativeDriveProbe.exit, running: __nativeDriveProbe.status.isRunning,
+    })""")
+    if after_back != {"start": 1, "stop": 0, "exit": 0, "running": True}:
+        failures.append(f"Back stopped or exited instead of returning Home: {after_back}")
+
+    # Tapping Drive while that service is active reopens its transparent live UI. It
+    # must not launch a second camera/service session.
+    attach_before_reentry = page.evaluate("__nativeDriveProbe.attach")
+    page.locator("#driveBtn").click()
+    page.locator("#nativeDrivePanel").wait_for(state="visible")
+    page.wait_for_function(f"__nativeDriveProbe.attach > {attach_before_reentry}")
+    reentered = page.evaluate("""() => ({
+      start: __nativeDriveProbe.start, stop: __nativeDriveProbe.stop,
+      running: __nativeDriveProbe.status.isRunning,
+    })""")
+    if reentered != {"start": 1, "stop": 0, "running": True}:
+        failures.append(f"Drive re-entry started a duplicate native session: {reentered}")
+
+    # The opt-in is explicit, and every visible label must follow native recording
+    # truth rather than implying that frame analysis is saved video.
+    page.locator("#nativeRecordBtn").click()
+    page.wait_for_function("__nativeDriveProbe.status.isRecording === true")
+    video_on = page.evaluate("""() => ({
+      calls: __nativeDriveProbe.setVideo,
+      enabled: __nativeDriveProbe.status.recordingEnabled,
+      recording: __nativeDriveProbe.status.isRecording,
+      button: document.querySelector('#nativeRecordBtn').textContent,
+      badge: document.querySelector('#nativeCameraBadge').textContent,
+      saved: localStorage.getItem('record_video'),
+    })""")
+    if (video_on["calls"] != 1 or not video_on["enabled"] or not video_on["recording"]
+            or video_on["button"] != "Video: On" or "RECORDING VIDEO" not in video_on["badge"]
+            or video_on["saved"] != "1"):
+        failures.append(f"video-on UI diverged from native recording truth: {video_on}")
+
+    page.locator("#nativeRecordBtn").click()
+    page.wait_for_function("__nativeDriveProbe.status.recordingEnabled === false")
+    video_off = page.evaluate("""() => ({
+      calls: __nativeDriveProbe.setVideo,
+      recording: __nativeDriveProbe.status.isRecording,
+      button: document.querySelector('#nativeRecordBtn').textContent,
+      badge: document.querySelector('#nativeCameraBadge').textContent,
+      saved: localStorage.getItem('record_video'),
+    })""")
+    if (video_off["calls"] != 2 or video_off["recording"]
+            or video_off["button"] != "Video: Off" or "VIDEO NOT SAVED" not in video_off["badge"]
+            or video_off["saved"] != "0"):
+        failures.append(f"video-off UI diverged from native recording truth: {video_off}")
 
     page.locator("#openMapsBtn").click()
     page.locator("#nativePauseBtn").click()
@@ -78,12 +206,54 @@ with sync_playwright() as playwright:
     page.wait_for_function("__nativeDriveProbe.resume === 1")
     page.locator("#nativeDriveStop").click()
     page.wait_for_function("__nativeDriveProbe.stop === 1")
+
+    # Stop remains on the transparent Drive screen until native finalization and
+    # persistence complete. In particular, neither a double event nor App.exitApp may
+    # close the Activity during this barrier.
+    page.wait_for_timeout(100)
+    while_stopping = page.evaluate("""() => ({
+      driveVisible: !document.querySelector('#drive').classList.contains('hidden'),
+      homeVisible: !document.querySelector('#home').classList.contains('hidden'),
+      disabled: document.querySelector('#nativeDriveStop').disabled,
+      stopping: __nativeDriveProbe.status.isStopping,
+      completed: __nativeDriveProbe.stopCompleted,
+      exit: __nativeDriveProbe.exit,
+    })""")
+    if while_stopping != {"driveVisible": True, "homeVisible": False, "disabled": True,
+                          "stopping": True, "completed": 0, "exit": 0}:
+        failures.append(f"Stop UI did not await durable native completion: {while_stopping}")
+
+    page.evaluate("__nativeDriveProbe.completeStop()")
+    page.wait_for_function("__nativeDriveProbe.stopCompleted === 1")
     page.locator("#home").wait_for(state="visible")
-    final = page.evaluate("__nativeDriveProbe")
-    if final["start"] != 1 or final["maps"] != 1 or final["stop"] != 1:
+    final = page.evaluate("""() => ({
+      start: __nativeDriveProbe.start, maps: __nativeDriveProbe.maps,
+      stop: __nativeDriveProbe.stop, completed: __nativeDriveProbe.stopCompleted,
+      exit: __nativeDriveProbe.exit,
+    })""")
+    if final != {"start": 1, "maps": 1, "stop": 1, "completed": 1, "exit": 0}:
         failures.append(f"native controls did not call the bridge exactly once: {final}")
     if page.evaluate("!!drive"):
         failures.append("native Drive state remained after driveEnded")
+
+    # A data wipe ends the native service before deleting Room/files. Its end event
+    # must never re-import the data that the user is in the process of deleting.
+    discarded = page.evaluate("""async () => {
+      const originalSync = window.syncNativeData;
+      const originalLoad = window.loadReports;
+      let syncCalls = 0, loadCalls = 0;
+      window.syncNativeData = async () => { syncCalls++; };
+      window.loadReports = async () => { loadCalls++; };
+      try {
+        await finishNativeDrive({sessionId: "discard-test", discarded: true});
+        return {syncCalls, loadCalls};
+      } finally {
+        window.syncNativeData = originalSync;
+        window.loadReports = originalLoad;
+      }
+    }""")
+    if discarded != {"syncCalls": 0, "loadCalls": 0}:
+        failures.append(f"discarded native data was synced back during wipe: {discarded}")
 
     imported = page.evaluate(r"""async () => {
       const native = {
