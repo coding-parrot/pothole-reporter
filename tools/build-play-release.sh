@@ -94,8 +94,8 @@ rm -f "$AAB_PATH"
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="com.gauravsen.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="37"' "$BUNDLE_MANIFEST" || fail "expected versionCode 37"
-grep -Fq 'android:versionName="1.20.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.20.0"
+grep -Fq 'android:versionCode="38"' "$BUNDLE_MANIFEST" || fail "expected versionCode 38"
+grep -Fq 'android:versionName="1.21.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.21.0"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"
@@ -106,6 +106,9 @@ grep -Fq 'com.ceedeev.grivenancev2' "$BUNDLE_MANIFEST" || fail "official Namma C
 grep -Fq 'cgg.gov.ghmc' "$BUNDLE_MANIFEST" || fail "official My Cure app package query is missing"
 grep -Fq 'com.amplvb.ccrs' "$BUNDLE_MANIFEST" || fail "official AMC CCRS app package query is missing"
 grep -Fq 'com.nhai.rajmargyatra' "$BUNDLE_MANIFEST" || fail "official Rajmargyatra app package query is missing"
+grep -Fq 'com.google.android.apps.maps' "$BUNDLE_MANIFEST" || fail "Google Maps package query is missing"
+grep -Fq 'com.gauravsen.potholereporter.drive.DriveForegroundService' "$BUNDLE_MANIFEST" || fail "native Drive foreground service is missing"
+grep -Fq 'android:foregroundServiceType="camera|location"' "$BUNDLE_MANIFEST" || fail "Drive foreground service types are wrong"
 
 if grep -Eq 'android:(debuggable|testOnly)="true"' "$BUNDLE_MANIFEST"; then
   fail "release manifest is debuggable or test-only"
@@ -115,7 +118,7 @@ if grep -Fq 'android:requestLegacyExternalStorage=' "$BUNDLE_MANIFEST"; then
 fi
 
 actual_permissions=$(sed -n 's/.*<uses-permission android:name="\([^"]*\)".*/\1/p' "$BUNDLE_MANIFEST" | sort -u)
-expected_permissions=$'android.permission.ACCESS_COARSE_LOCATION\nandroid.permission.ACCESS_FINE_LOCATION\nandroid.permission.ACCESS_NETWORK_STATE\nandroid.permission.CAMERA\nandroid.permission.INTERNET\ncom.gauravsen.potholereporter.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+expected_permissions=$'android.permission.ACCESS_COARSE_LOCATION\nandroid.permission.ACCESS_FINE_LOCATION\nandroid.permission.ACCESS_NETWORK_STATE\nandroid.permission.CAMERA\nandroid.permission.FOREGROUND_SERVICE\nandroid.permission.FOREGROUND_SERVICE_CAMERA\nandroid.permission.FOREGROUND_SERVICE_LOCATION\nandroid.permission.INTERNET\nandroid.permission.POST_NOTIFICATIONS\nandroid.permission.WAKE_LOCK\ncom.gauravsen.potholereporter.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
 if [ "$actual_permissions" != "$expected_permissions" ]; then
   echo "Expected permissions:" >&2
   printf '%s\n' "$expected_permissions" >&2
