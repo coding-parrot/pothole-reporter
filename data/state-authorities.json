@@ -172,7 +172,16 @@
         "whatsapp_url": "https://wa.me/918335988888",
         "helpline": "18003453375"
       }
-    ]
+    ],
+    "statewide": {
+      "id": "wb-statewide-unverified",
+      "name": "West Bengal authority (select in PGRS)",
+      "aliases": ["west bengal", "পশ্চিমবঙ্গ"],
+      "handoff_name": "West Bengal PGRS",
+      "handoff_url": "https://finance.wb.gov.in/pgrs/page/PGMS_Lodge_Greivance.aspx",
+      "alternate_handoff_name": "CMO Grievance",
+      "alternate_handoff_url": "https://cmo.wb.gov.in/landing/raise-grievance"
+    }
   },
   "DL": {
     "authorities": [

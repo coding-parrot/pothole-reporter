@@ -154,7 +154,27 @@ Maharashtra contract matching is disabled. The project has no current, authorita
 road-linked award and defect-liability feed covering the state, so it does not guess
 a contractor, warranty, or road owner from general tender notices.
 
-## Kolkata Municipal Corporation boundary and complaint handoffs
+## West Bengal statewide and Kolkata complaint handoffs
+
+### Statewide fallback
+
+Every point confidently inside
+[OpenStreetMap relation 1960177](https://www.openstreetmap.org/relation/1960177) is
+covered after the National Highway and exact KMC checks. The ODbL MultiPolygon was
+retrieved on 24 August 2026 at seven-decimal precision; the runtime pins geometry
+SHA-256 `aa4ab13c3064be2e168889f6eb02e87c59e01bc709d36b66bece534dfea23015`.
+It is a routing aid, not a legal boundary or ownership record. A GPS circle touching the
+state or KMC boundary fails closed rather than guessing.
+
+Outside the exact KMC polygon, the app offers the Government of West Bengal's general
+[Public Grievance Redressal System](https://finance.wb.gov.in/pgrs/page/PGMS_Lodge_Greivance.aspx),
+with [CMO Grievance](https://cmo.wb.gov.in/landing/raise-grievance) as an alternate.
+PGRS is offered for road damage, garbage, and open or damaged manholes as a neutral
+handoff. The user must select and verify the district or department and complete the
+complaint externally. The app does not infer a municipality, PWD, panchayat, road owner,
+contractor, or guaranteed category acceptance, and it does not submit automatically.
+
+### Kolkata Municipal Corporation
 
 Kolkata coverage uses the `SMARTCITY:wb_municipal_boundary` layer from the Government of
 West Bengal Urban Development & Municipal Affairs Department's
@@ -169,9 +189,10 @@ if the downloaded polygon changes without a reviewed code-and-data release.
 The WFS advertises no fees or access constraints but publishes no explicit reuse licence.
 The geometry is used locally for point-in-polygon checks and is not a road-ownership map.
 
-Coverage is limited to current Kolkata Municipal Corporation limits. Howrah,
-Bidhannagar/Salt Lake, New Town, and other neighbouring civic bodies are outside this
-route. A place name from Nominatim is contextual only and cannot select KMC.
+The KMC-specific route is limited to current Kolkata Municipal Corporation limits.
+Howrah, Bidhannagar/Salt Lake, New Town, and every other West Bengal point outside KMC
+use the statewide PGRS route instead. A place name from Nominatim is contextual only and
+cannot select KMC or statewide containment.
 
 The primary handoff is [KMC Grievance 2.0](https://kmc.wb.gov.in/citizen/language-selection),
 which requires the user to continue through KMC's external login and complaint flow. The
@@ -181,9 +202,9 @@ alternate. KMC also publishes WhatsApp at **+91 83359 88888** and the civic help
 Opening any channel is not submission. The user must complete the complaint externally
 and enter the KMC grievance/reference ID before marking the local report submitted.
 
-Contract matching is disabled for Kolkata. The app has no authoritative, road-linked KMC
-award, maintenance, or defect-liability feed and does not infer that KMC owns a road merely
-because the point is inside its municipal boundary.
+Contract matching is disabled throughout West Bengal. The app has no authoritative,
+road-linked statewide or KMC award, maintenance, or defect-liability feed and does not
+infer that KMC or another body owns a road from boundary containment.
 
 ## Delhi NCT boundary and complaint handoffs
 
@@ -401,7 +422,7 @@ unless a category-appropriate official channel is separately reviewed.
 ## Street address
 
 **Source: OpenStreetMap, via Nominatim.** It turns coordinates into a street name and
-pincode for the complaint. In Maharashtra, Kolkata, Delhi, Chennai, and Hyderabad, address
+pincode for the complaint. In Maharashtra, West Bengal, Delhi, Chennai, and Hyderabad, address
 fields are display-only routing clues; only a verified cached polygon selects coverage.
 Ahmedabad now follows the same rule: its verified cached AMC ward union selects coverage,
 and the geocoder result is display-only. Free-form geocoder text is never used to expand
@@ -442,9 +463,14 @@ That wording is deliberate and should not be strengthened.
 - PMC-specific routing uses a verified copy of PMC's official GIS boundary. PCMC remains
   in statewide Maharashtra coverage but is not labelled or routed as PMC. A later PMC
   boundary change requires a reviewed state-pack update.
-- KMC coverage uses a verified, validity-repaired copy of the official West Bengal UDMA
-  municipal feature. It excludes Howrah, Bidhannagar/Salt Lake, and New Town. A later KMC
-  boundary change requires a reviewed state-pack update.
+- West Bengal-wide evidence and official-handoff coverage uses a pinned ODbL state
+  boundary. Outside the exact KMC polygon, PGRS is neutral: it does not prove the
+  responsible district, department, local body, complaint category, road owner, or
+  successful submission.
+- The KMC-specific route uses a verified, validity-repaired copy of the official West
+  Bengal UDMA municipal feature. Howrah, Bidhannagar/Salt Lake, and New Town use the
+  statewide fallback rather than KMC. A later KMC boundary change requires a reviewed
+  state-pack update.
 - Delhi coverage is the full NCT outline only and excludes the wider NCR. Every accepted
   point uses a cross-agency grievance handoff because the outline cannot establish whether
   PWD, MCD, NDMC, Cantonment, DDA, NHAI, or another agency maintains the road.
@@ -461,8 +487,8 @@ That wording is deliberate and should not be strengthened.
   Evidence remains local until the citizen deliberately opens an external handoff.
 - Maharashtra contract matching is disabled because no authoritative road-linked feed is
   integrated statewide.
-- Kolkata contract matching is disabled for the same reason; a KMC boundary match does not
-  establish who owns or maintains a road.
+- West Bengal contract matching is disabled for the same reason; neither state nor KMC
+  containment establishes who owns or maintains a road.
 - Delhi, Chennai, Hyderabad, and Ahmedabad contract matching is disabled; a coverage response
   is neither ownership nor a contract match.
 - 137 of Karnataka's 319 local bodies have no address in the file, because their district
@@ -480,7 +506,7 @@ That wording is deliberate and should not be strengthened.
 - Contracts are a snapshot. Re-run `tools/pull-kppp.py` to refresh.
 - The public Nominatim endpoint is cached on an approximately 11 m grid and serialized
   below one request per second. National or municipal-scale deployment must switch the
-  endpoint to a policy-compliant managed or self-hosted service. Maharashtra, KMC, Delhi,
+  endpoint to a policy-compliant managed or self-hosted service. Maharashtra, West Bengal, Delhi,
   Chennai, and Ahmedabad boundary routing remains local and does not depend on a geocoder
   response. Native Android Hyderabad routing sends the GPS-accuracy envelope to TGRAC's
   official CURE and Cantonment query services.

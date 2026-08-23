@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="568" viewBox="0 0 320 568" role="img" aria-labelledby="title description">
   <title id="title">Pothole Reporter coverage overview</title>
-  <desc id="description">Complaint handoff coverage across all of Maharashtra, Delhi, Ahmedabad, Bengaluru, Hyderabad, Chennai and Kolkata, plus mapped National Highways across India for potholes.</desc>
+  <desc id="description">Complaint handoff coverage across all of Maharashtra and West Bengal, Delhi, Ahmedabad, Bengaluru, Hyderabad and Chennai, plus mapped National Highways across India for potholes.</desc>
   <defs>
     <linearGradient id="state-card" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#3a2416"/>
@@ -37,11 +37,13 @@
   <rect x="20" y="83" width="280" height="112" rx="16" fill="url(#state-card)" stroke="#ff7a1a"/>
   <rect x="36" y="99" width="76" height="20" rx="10" fill="#ff7a1a"/>
   <text x="74" y="113" text-anchor="middle" fill="#1a1206" font-size="9" font-weight="800" letter-spacing="0.8">STATEWIDE</text>
-  <text x="36" y="147" fill="#ffffff" font-size="22" font-weight="750">Maharashtra</text>
-  <text x="36" y="167" fill="#ffc79e" font-size="11" font-weight="600">Civic complaint handoff</text>
-  <text x="36" y="182" fill="#d8b499" font-size="10">throughout the state</text>
-  <circle cx="258" cy="139" r="26" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.45"/>
-  <text x="258" y="145" text-anchor="middle" fill="#ff9b54" font-size="18" font-weight="800">MH</text>
+  <text x="36" y="146" fill="#ffffff" font-size="18" font-weight="750">Maharashtra + West Bengal</text>
+  <text x="36" y="166" fill="#ffc79e" font-size="11" font-weight="600">Civic complaint handoffs statewide</text>
+  <text x="36" y="182" fill="#d8b499" font-size="10">Exact MMR, PMC and KMC routes retained</text>
+  <circle cx="246" cy="111" r="15" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.45"/>
+  <text x="246" y="115" text-anchor="middle" fill="#ff9b54" font-size="10" font-weight="800">MH</text>
+  <circle cx="277" cy="111" r="15" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.45"/>
+  <text x="277" y="115" text-anchor="middle" fill="#ff9b54" font-size="10" font-weight="800">WB</text>
 
   <text x="20" y="220" class="section">CITY-SCOPE HANDOFFS</text>
 
@@ -54,7 +56,7 @@
     <rect x="166" y="234" width="134" height="45" rx="11" fill="#1c1d21" stroke="#2a2b30"/>
     <circle cx="181" cy="249" r="4" fill="#ff7a1a"/>
     <text x="191" y="253" class="place">Kolkata</text>
-    <text x="181" y="269" class="scope">KMC limits</text>
+    <text x="181" y="269" class="scope">Exact KMC channel</text>
 
     <rect x="20" y="288" width="134" height="45" rx="11" fill="#1c1d21" stroke="#2a2b30"/>
     <circle cx="35" cy="303" r="4" fill="#ff7a1a"/>

@@ -24,7 +24,7 @@ from state_pack_tools import (  # noqa: E402
 
 Mutation = Callable[[dict[str, Any], list[dict[str, Any]]], None]
 MUNICIPAL_IDS = ("in-tn-routing", "in-tg-routing", "in-gj-routing")
-VALIDATED_IDS = (*MUNICIPAL_IDS, "in-mh-routing")
+VALIDATED_IDS = (*MUNICIPAL_IDS, "in-mh-routing", "in-wb-routing")
 
 
 def load_case(pack_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -149,6 +149,25 @@ def main() -> int:
         ("in-mh-routing", "missing statewide authority", lambda p, a: a.__setitem__(
             slice(None), [item for item in a if item.get("id") != "mh-statewide-unverified"]
         )),
+        ("in-wb-routing", "legacy KMC-only payload version", lambda p, a: p.update(
+            {"version": 1}
+        )),
+        ("in-wb-routing", "wrong state relation", lambda p, a: p["regions"][
+            "west_bengal"
+        ].update({"source_relation_id": 1})),
+        ("in-wb-routing", "state geometry digest mismatch", lambda p, a: p["regions"][
+            "west_bengal"
+        ].update({"geometry_sha256": "0" * 64})),
+        ("in-wb-routing", "KMC geometry digest mismatch", lambda p, a: p["regions"][
+            "kmc"
+        ].update({"geometry_sha256": "0" * 64})),
+        ("in-wb-routing", "missing KMC region", lambda p, a: p["regions"].pop("kmc")),
+        ("in-wb-routing", "missing statewide authority", lambda p, a: a.__setitem__(
+            slice(None), [item for item in a if item.get("id") != "wb-statewide-unverified"]
+        )),
+        ("in-wb-routing", "unreviewed statewide grievance URL", lambda p, a: next(
+            item for item in a if item.get("id") == "wb-statewide-unverified"
+        ).update({"handoff_url": "https://example.invalid/unreviewed"})),
     ]
 
     for pack_id, label, mutate in cases:

@@ -45,10 +45,24 @@ DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 MAHARASHTRA_STATE_GEOMETRY_SHA256 = (
     "1f5555fede30d19d58ffafabb7d38c8cba0af7b27f7c7129d10480351a0304ce"
 )
+WEST_BENGAL_STATE_GEOMETRY_SHA256 = (
+    "aa4ab13c3064be2e168889f6eb02e87c59e01bc709d36b66bece534dfea23015"
+)
+KMC_GEOMETRY_SHA256 = (
+    "fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5"
+)
 MAHARASHTRA_STATE_REGION_KEYS = {
     "name", "scope", "authority_id", "source", "source_lookup",
     "source_relation_id", "retrieved_at", "licence", "coordinate_precision",
     "bbox", "geometry_sha256", "routing_note", "limitations", "geometry",
+}
+WEST_BENGAL_STATE_REGION_KEYS = set(MAHARASHTRA_STATE_REGION_KEYS)
+KMC_REGION_KEYS = {
+    "authority_id", "authority_name", "scope", "ulb_code", "mun_id",
+    "retrieved_at",
+    "source_feature_id", "source_name", "source_home_url", "source_url",
+    "source_filter", "source_access", "attribution", "repair",
+    "repaired_source_sha256", "area_km2", "geometry_sha256", "geometry",
 }
 
 
@@ -92,11 +106,14 @@ SPECS = {
         "in-wb-routing",
         "WB",
         "routing",
-        "kolkata-kmc-v1",
-        "Kolkata Municipal Corporation",
-        False,
-        ("Official West Bengal UDMA and KMC sources: respective source terms",),
-        "static/kolkata-coverage.json",
+        "west-bengal-statewide-v1",
+        "Full State of West Bengal; exact Kolkata Municipal Corporation route where verified",
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official West Bengal UDMA and KMC sources: respective source terms",
+        ),
+        "data/metro-coverage/wb.json",
     ),
     "in-ka-routing": ResourceSpec(
         "in-ka-routing",
@@ -532,6 +549,10 @@ def _authority_snapshot(state_code: str) -> list[dict[str, Any]]:
             if not isinstance(state.get(key), dict):
                 raise PackError(f"state-authorities.json has no MH {key} authority")
             authorities.append(state[key])
+    if state_code == "WB":
+        if not isinstance(state.get("statewide"), dict):
+            raise PackError("state-authorities.json has no WB statewide authority")
+        authorities.append(state["statewide"])
     identifiers = [entry.get("id") for entry in authorities if isinstance(entry, dict)]
     if len(identifiers) != len(authorities) or any(not value for value in identifiers):
         raise PackError(f"{state_code} authority snapshot contains an invalid entry")
@@ -732,6 +753,126 @@ def _validate_maharashtra_payload(
         and sum(item.get("id") == "mh-statewide-unverified"
                 for item in authorities if isinstance(item, dict)) == 1,
         "in-mh-routing statewide authority registry is incomplete",
+    )
+
+
+def _validate_west_bengal_payload(
+    payload: Any,
+    *,
+    generated_at: str | None = None,
+    authorities: Any = None,
+) -> None:
+    _expect(
+        isinstance(payload, dict) and set(payload) == {"version", "retrieved_at", "regions"},
+        "in-wb-routing payload fields differ from the statewide contract",
+    )
+    _expect(type(payload.get("version")) is int and payload["version"] == 2,
+            "in-wb-routing payload version must be 2")
+    retrieved_at = payload.get("retrieved_at")
+    _expect(_is_date(retrieved_at), "in-wb-routing retrieved_at is invalid")
+    if generated_at is not None:
+        _expect(retrieved_at == generated_at,
+                "in-wb-routing retrieved_at differs from the pack date")
+    regions = payload.get("regions")
+    _expect(
+        isinstance(regions, dict) and set(regions) == {"west_bengal", "kmc"},
+        "in-wb-routing must contain the statewide and KMC regions",
+    )
+
+    kmc = regions["kmc"]
+    _expect(isinstance(kmc, dict) and set(kmc) == KMC_REGION_KEYS,
+            "in-wb-routing KMC region fields differ from the reviewed contract")
+    expected_kmc = {
+        "authority_id": "wb-kmc",
+        "authority_name": "Kolkata Municipal Corporation",
+        "ulb_code": "250299",
+        "mun_id": "250299_0000001",
+        "retrieved_at": "2026-08-21",
+        "source_feature_id": "wb_municipal_boundary.250299_0000001",
+        "source_home_url": "https://nagargispariseva.wb.gov.in/",
+        "source_filter": "ULB_Code='250299'",
+        "repaired_source_sha256": (
+            "6a0bc369e6bd66cab1f9345d6effd7139ae6fb57fffc256ccb4579c4314b0562"
+        ),
+        "geometry_sha256": KMC_GEOMETRY_SHA256,
+    }
+    for field, value in expected_kmc.items():
+        _expect(kmc.get(field) == value,
+                f"in-wb-routing KMC {field} differs from its reviewed pin")
+    _expect(
+        isinstance(kmc.get("source_url"), str)
+        and kmc["source_url"].startswith("https://nagargispariseva.wb.gov.in/")
+        and "wb_municipal_boundary" in kmc["source_url"]
+        and "250299" in kmc["source_url"],
+        "in-wb-routing KMC source URL is invalid",
+    )
+    _expect(_is_finite_number(kmc.get("area_km2")) and 199 < kmc["area_km2"] < 201,
+            "in-wb-routing KMC area differs materially from the reviewed source")
+    _validate_municipal_geometry(kmc.get("geometry"), "in-wb-routing.kmc")
+    kmc_digest = hashlib.sha256(json.dumps(
+        kmc["geometry"], ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")).hexdigest()
+    _expect(kmc_digest == KMC_GEOMETRY_SHA256,
+            "in-wb-routing KMC geometry digest does not match")
+
+    state = regions["west_bengal"]
+    _expect(isinstance(state, dict) and set(state) == WEST_BENGAL_STATE_REGION_KEYS,
+            "in-wb-routing West Bengal region fields differ from the contract")
+    expected_state = {
+        "name": "West Bengal",
+        "scope": "Full State of West Bengal",
+        "authority_id": "wb-statewide-unverified",
+        "source": "https://www.openstreetmap.org/relation/1960177",
+        "source_relation_id": 1_960_177,
+        "licence": "OpenStreetMap contributors, ODbL 1.0",
+        "coordinate_precision": 7,
+        "geometry_sha256": WEST_BENGAL_STATE_GEOMETRY_SHA256,
+    }
+    for field, value in expected_state.items():
+        _expect(state.get(field) == value,
+                f"in-wb-routing West Bengal {field} differs from its reviewed pin")
+    _expect(state.get("retrieved_at") == retrieved_at,
+            "in-wb-routing West Bengal retrieval date differs from the payload")
+    _expect(
+        isinstance(state.get("source_lookup"), str)
+        and state["source_lookup"].startswith("https://nominatim.openstreetmap.org/lookup?")
+        and "osm_ids=R1960177" in state["source_lookup"],
+        "in-wb-routing West Bengal lookup URL is invalid",
+    )
+    _expect(isinstance(state.get("routing_note"), str) and state["routing_note"],
+            "in-wb-routing West Bengal routing note is missing")
+    limitations = state.get("limitations")
+    _expect(
+        isinstance(limitations, list) and 1 <= len(limitations) <= 10
+        and all(isinstance(item, str) and item and len(item) <= 500 for item in limitations),
+        "in-wb-routing West Bengal limitations are invalid",
+    )
+    bounds = _validate_municipal_geometry(
+        state.get("geometry"), "in-wb-routing.west_bengal"
+    )
+    _validate_municipal_envelope(
+        state.get("bbox"), "in-wb-routing.west_bengal.bbox"
+    )
+    _expect(bounds == state["bbox"],
+            "in-wb-routing West Bengal geometry does not match its bounding box")
+    state_digest = hashlib.sha256(json.dumps(
+        state["geometry"], ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")).hexdigest()
+    _expect(state_digest == WEST_BENGAL_STATE_GEOMETRY_SHA256,
+            "in-wb-routing West Bengal geometry digest does not match")
+
+    by_id = {
+        item.get("id"): item for item in authorities or [] if isinstance(item, dict)
+    }
+    statewide = by_id.get("wb-statewide-unverified")
+    _expect(
+        isinstance(authorities, list) and len(authorities) == 2
+        and set(by_id) == {"wb-kmc", "wb-statewide-unverified"}
+        and isinstance(statewide, dict)
+        and statewide.get("handoff_name") == "West Bengal PGRS"
+        and statewide.get("handoff_url")
+            == "https://finance.wb.gov.in/pgrs/page/PGMS_Lodge_Greivance.aspx",
+        "in-wb-routing statewide authority registry differs from its reviewed pin",
     )
 
 
@@ -992,6 +1133,12 @@ def _validate_raw_payload(
             raise PackError("in-ka-routing payload has no bodies")
     elif spec.pack_id == "in-mh-routing":
         _validate_maharashtra_payload(
+            payload,
+            generated_at=generated_at,
+            authorities=authorities,
+        )
+    elif spec.pack_id == "in-wb-routing":
+        _validate_west_bengal_payload(
             payload,
             generated_at=generated_at,
             authorities=authorities,

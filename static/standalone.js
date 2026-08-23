@@ -83,7 +83,7 @@
   // State-specific contacts and polygons live in immutable data packs. The APK keeps
   // only the parsers, strict validators and the package IDs Android permits it to query.
   // A downloaded pack can therefore add data, never executable behaviour.
-  const AUTHORITY_REGISTRY_VERSION = 7;
+  const AUTHORITY_REGISTRY_VERSION = 8;
   const LAUNCHABLE_PACKAGES = new Set([
     "com.bmc.potholequickfix", "com.sis.pwdsewaapp", "com.kmc.app",
     "com.newnmmc.app", "com.nyatitechnologies.pmcroadmitra",
@@ -177,7 +177,7 @@
   // route for garbage and manhole reports. Other municipal email/road routes fail
   // closed instead of assuming that a recipient accepts an unrelated category.
   const GENERAL_CIVIC_AUTHORITY_IDS = new Set([
-    "wb-kmc", "tn-gcc", "tg-cure-shared", "gj-amc",
+    "wb-kmc", "wb-statewide-unverified", "tn-gcc", "tg-cure-shared", "gj-amc",
   ]);
   const MUMBAI_STATES = new Set(["maharashtra", "महाराष्ट्र"]);
   const WEST_BENGAL_STATES = new Set(["west bengal", "পশ্চিমবঙ্গ"]);
@@ -200,6 +200,7 @@
   const MMR_FALLBACK_AUTHORITY = {};
   const MAHARASHTRA_STATE_AUTHORITY = {};
   const KMC_AUTHORITY = {};
+  const WEST_BENGAL_STATE_AUTHORITY = {};
   const DELHI_PWD_AUTHORITY = {};
   const NATIONAL_HIGHWAY_AUTHORITY = {};
   const OFFICIAL_AUTHORITIES = [];
@@ -883,11 +884,14 @@ Evidence rules:
         MAHARASHTRA_STATE_AUTHORITY,
       ]);
     } else if (pack.state_code === "WB") {
-      if (authorities.length !== 1 || !byId.has("wb-kmc")) {
+      if (authorities.length !== 2 || !byId.has("wb-kmc")
+          || !byId.has("wb-statewide-unverified")) {
         throw new Error("West Bengal routing pack has an invalid authority registry.");
       }
       replaceStableObject(KMC_AUTHORITY, byId.get("wb-kmc"));
-      PACK_AUTHORITIES_BY_STATE.set("WB", [KMC_AUTHORITY]);
+      replaceStableObject(WEST_BENGAL_STATE_AUTHORITY,
+        byId.get("wb-statewide-unverified"));
+      PACK_AUTHORITIES_BY_STATE.set("WB", [KMC_AUTHORITY, WEST_BENGAL_STATE_AUTHORITY]);
     } else if (pack.state_code === "DL") {
       if (authorities.length !== 1 || !byId.has("dl-pwd-sewa")) {
         throw new Error("Delhi routing pack has an invalid authority registry.");
@@ -1045,7 +1049,7 @@ Evidence rules:
   const SUPPORTED_STATE_PACKS = Object.freeze({
     "in-dl-routing": { state_code: "DL", kind: "routing", adapter: "delhi-nct-v1" },
     "in-mh-routing": { state_code: "MH", kind: "routing", adapter: "maharashtra-statewide-v1" },
-    "in-wb-routing": { state_code: "WB", kind: "routing", adapter: "kolkata-kmc-v1" },
+    "in-wb-routing": { state_code: "WB", kind: "routing", adapter: "west-bengal-statewide-v1" },
     "in-ka-routing": { state_code: "KA", kind: "routing", adapter: "karnataka-kgis-v1" },
     "in-ka-tenders": { state_code: "KA", kind: "tenders", adapter: "karnataka-locally-indexed-v1" },
     "in-tn-routing": { state_code: "TN", kind: "routing", adapter: "municipal-city-v1" },
@@ -1389,13 +1393,25 @@ Evidence rules:
         throw new Error("Delhi routing pack failed its boundary or authority checks.");
       }
     } else if (resource.pack_id === "in-wb-routing") {
-      const region = payload && payload.region;
-      const digest = region && hasCoverageGeometry(region.geometry)
-        ? await sha256Hex(JSON.stringify(region.geometry)) : null;
-      if (!payload || payload.version !== 1 || !region || pack.authorities.length !== 1
-          || pack.authorities[0].id !== "wb-kmc" || region.authority_id !== "wb-kmc"
-          || String(region.ulb_code) !== "250299" || String(region.mun_id) !== "250299_0000001"
-          || digest !== KMC_GEOMETRY_SHA256) {
+      const byId = new Map(pack.authorities.map((authority) => [authority.id, authority]));
+      const regions = payload && payload.regions;
+      const kmc = regions && regions.kmc;
+      const state = regions && regions.west_bengal;
+      const kmcDigest = kmc && hasCoverageGeometry(kmc.geometry)
+        ? await sha256Hex(JSON.stringify(kmc.geometry)) : null;
+      const stateDigest = state && hasCoverageGeometry(state.geometry)
+        ? await sha256Hex(JSON.stringify(state.geometry)) : null;
+      if (!payload || payload.version !== 2 || !regions || !kmc || !state
+          || pack.authorities.length !== 2 || !byId.has("wb-kmc")
+          || !byId.has("wb-statewide-unverified")
+          || kmc.authority_id !== "wb-kmc"
+          || String(kmc.ulb_code) !== "250299" || String(kmc.mun_id) !== "250299_0000001"
+          || kmc.geometry_sha256 !== KMC_GEOMETRY_SHA256
+          || kmcDigest !== KMC_GEOMETRY_SHA256
+          || state.authority_id !== "wb-statewide-unverified"
+          || Number(state.source_relation_id) !== 1960177
+          || state.geometry_sha256 !== WEST_BENGAL_STATE_GEOMETRY_SHA256
+          || stateDigest !== WEST_BENGAL_STATE_GEOMETRY_SHA256) {
         throw new Error("West Bengal routing pack failed its boundary or authority checks.");
       }
     } else if (resource.pack_id === "in-mh-routing") {
@@ -2064,17 +2080,25 @@ Evidence rules:
     && lat >= DELHI_ENVELOPE.minLat && lat <= DELHI_ENVELOPE.maxLat
     && lng >= DELHI_ENVELOPE.minLng && lng <= DELHI_ENVELOPE.maxLng;
 
-  const KOLKATA_ENVELOPE = { minLat: 22.35, maxLat: 22.70, minLng: 88.15, maxLng: 88.55 };
+  // This coarse rectangle only decides whether to download the West Bengal pack. The
+  // checksum-pinned state polygon—not the rectangle or a geocoder label—accepts a point.
+  const WEST_BENGAL_ROUTING_ENVELOPE = {
+    minLat: 21.40, maxLat: 27.40, minLng: 85.60, maxLng: 90.10,
+  };
   // This digest is over JSON.stringify(region.geometry). IDs and a closed ring are not
   // enough: a valid-shaped but wrong polygon could otherwise send Howrah to KMC. Updating
   // the boundary is therefore an explicit code-and-data release, never a silent asset swap.
   const KMC_GEOMETRY_SHA256 = "fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5";
+  const WEST_BENGAL_STATE_GEOMETRY_SHA256 =
+    "aa4ab13c3064be2e168889f6eb02e87c59e01bc709d36b66bece534dfea23015";
   const isWestBengalGeocode = (geo) => !!geo
     && String(geo.country_code || "").toLowerCase() === "in"
     && WEST_BENGAL_STATES.has(normaliseAuthorityValue(geo.state));
-  const inKolkataEnvelope = (lat, lng) => Number.isFinite(lat) && Number.isFinite(lng)
-    && lat >= KOLKATA_ENVELOPE.minLat && lat <= KOLKATA_ENVELOPE.maxLat
-    && lng >= KOLKATA_ENVELOPE.minLng && lng <= KOLKATA_ENVELOPE.maxLng;
+  const inWestBengalRoutingEnvelope = (lat, lng) => Number.isFinite(lat) && Number.isFinite(lng)
+    && lat >= WEST_BENGAL_ROUTING_ENVELOPE.minLat
+    && lat <= WEST_BENGAL_ROUTING_ENVELOPE.maxLat
+    && lng >= WEST_BENGAL_ROUTING_ENVELOPE.minLng
+    && lng <= WEST_BENGAL_ROUTING_ENVELOPE.maxLng;
 
   async function sha256Hex(value) {
     if (!window.TextEncoder) return null;
@@ -2134,57 +2158,83 @@ Evidence rules:
     });
   }
 
-  let _kolkataCoverage = null, _kolkataCoveragePromise = null;
-  async function kolkataCoverage() {
-    if (_kolkataCoverage) return _kolkataCoverage;
-    if (_kolkataCoveragePromise) return _kolkataCoveragePromise;
-    _kolkataCoveragePromise = (async () => {
+  let _westBengalCoverage = null, _westBengalCoveragePromise = null;
+  async function westBengalCoverage() {
+    if (_westBengalCoverage) return _westBengalCoverage;
+    if (_westBengalCoveragePromise) return _westBengalCoveragePromise;
+    _westBengalCoveragePromise = (async () => {
       try {
         const pack = await loadStatePack("in-wb-routing");
         const data = pack && pack.payload;
-        const region = data && data.region;
-        const geometryDigest = region && hasCoverageGeometry(region.geometry)
-          ? await sha256Hex(JSON.stringify(region.geometry)) : null;
-        if (data && data.version === 1 && region
-            && region.authority_id === KMC_AUTHORITY.id
-            && String(region.ulb_code) === "250299"
-            && String(region.mun_id) === "250299_0000001"
-            && geometryDigest === KMC_GEOMETRY_SHA256) {
-          _kolkataCoverage = data;
+        const regions = data && data.regions;
+        const kmc = regions && regions.kmc;
+        const state = regions && regions.west_bengal;
+        const kmcDigest = kmc && hasCoverageGeometry(kmc.geometry)
+          ? await sha256Hex(JSON.stringify(kmc.geometry)) : null;
+        const stateDigest = state && hasCoverageGeometry(state.geometry)
+          ? await sha256Hex(JSON.stringify(state.geometry)) : null;
+        if (data && data.version === 2 && kmc && state
+            && kmc.authority_id === KMC_AUTHORITY.id
+            && String(kmc.ulb_code) === "250299"
+            && String(kmc.mun_id) === "250299_0000001"
+            && kmc.geometry_sha256 === KMC_GEOMETRY_SHA256
+            && kmcDigest === KMC_GEOMETRY_SHA256
+            && state.authority_id === WEST_BENGAL_STATE_AUTHORITY.id
+            && Number(state.source_relation_id) === 1960177
+            && state.geometry_sha256 === WEST_BENGAL_STATE_GEOMETRY_SHA256
+            && stateDigest === WEST_BENGAL_STATE_GEOMETRY_SHA256) {
+          _westBengalCoverage = data;
         }
       } catch (e) { /* fail closed; a retry is allowed on the next report */ }
-      return _kolkataCoverage;
+      return _westBengalCoverage;
     })();
-    const result = await _kolkataCoveragePromise;
-    _kolkataCoveragePromise = null;
+    const result = await _westBengalCoveragePromise;
+    _westBengalCoveragePromise = null;
     return result;
   }
 
+  // Kept as a compatibility alias for existing KMC tests and saved-report code.
+  const kolkataCoverage = westBengalCoverage;
+
   async function kolkataRouteFromGeocode(geo, lat, lng, gpsAccuracy) {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    const relevant = inKolkataEnvelope(lat, lng) || isWestBengalGeocode(geo);
-    if (!relevant) return null;
-    const coverage = await kolkataCoverage();
+    // Coordinates decide which state pack gets a vote. A stale reverse-geocoder label
+    // must not let West Bengal block a coordinate-verified Chennai or Maharashtra route.
+    if (!inWestBengalRoutingEnvelope(lat, lng)) return null;
+    const coverage = await westBengalCoverage();
     if (!coverage) return unroutedRoute("jurisdiction_unavailable");
 
-    const geometry = coverage.region.geometry;
-    const inside = pointInGeometry(lng, lat, geometry);
+    const stateGeometry = coverage.regions.west_bengal.geometry;
+    const kmcGeometry = coverage.regions.kmc.geometry;
+    const inState = pointInGeometry(lng, lat, stateGeometry);
+    const inKmc = pointInGeometry(lng, lat, kmcGeometry);
     const enforceGpsAccuracy = gpsAccuracy !== undefined;
     if (enforceGpsAccuracy
         && (!Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 30)) {
-      return unroutedRoute("location_uncertain");
+      return (inState || inKmc) ? unroutedRoute("location_uncertain") : null;
     }
-    if (Number.isFinite(gpsAccuracy)
-        && geometryBoundaryDistanceMeters(lng, lat, geometry) <= gpsAccuracy) {
-      return unroutedRoute("location_uncertain");
+    if (Number.isFinite(gpsAccuracy)) {
+      const stateEdgeDistance = geometryBoundaryDistanceMeters(lng, lat, stateGeometry);
+      const kmcEdgeDistance = geometryBoundaryDistanceMeters(lng, lat, kmcGeometry);
+      if (stateEdgeDistance <= gpsAccuracy || kmcEdgeDistance <= gpsAccuracy) {
+        return unroutedRoute("location_uncertain");
+      }
     }
-    if (!inside) return unroutedRoute("outside_area");
+    if (!inState) return unroutedRoute("outside_area");
 
-    return authorityRoute(KMC_AUTHORITY, {
-      routing_source: "wb_udma_official_gis",
+    if (inKmc) {
+      return authorityRoute(KMC_AUTHORITY, {
+        routing_source: "wb_udma_official_gis",
+        match_field: "boundary",
+        match_value: "wb_municipal_boundary:250299_0000001",
+        region: "kolkata",
+      });
+    }
+    return authorityRoute(WEST_BENGAL_STATE_AUTHORITY, {
+      routing_source: "osm_west_bengal_state_boundary",
       match_field: "boundary",
-      match_value: "wb_municipal_boundary:250299_0000001",
-      region: "kolkata",
+      match_value: "West Bengal (OpenStreetMap relation 1960177)",
+      region: "west-bengal",
     });
   }
 
@@ -2468,7 +2518,7 @@ Evidence rules:
     const email = authority.officer_email || null;
     const handoff = !email;
     const inferredPackId = authority.id && authority.id.startsWith("mh-") ? "in-mh-routing"
-      : authority.id === "wb-kmc" ? "in-wb-routing"
+      : authority.id && authority.id.startsWith("wb-") ? "in-wb-routing"
         : authority.id === "dl-pwd-sewa" ? "in-dl-routing" : null;
     return {
       routed: true,
@@ -3283,6 +3333,16 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
         } else {
           paras.push(`Mapped road reference: ${highway}. This app has not verified the maintaining agency. Review the evidence and submit it yourself through Rajmargyatra or 1033; ask for transfer to the correct NHAI, NHIDCL, BRO or State PWD unit when necessary.`);
         }
+      } else if (route.authority_id === "wb-statewide-unverified") {
+        if (bn) {
+          paras.push("স্থানটি পিন-করা OpenStreetMap পশ্চিমবঙ্গ সীমানার ভিতরে মানচিত্রভুক্ত, কিন্তু দায়িত্বপ্রাপ্ত জেলা, দপ্তর বা রাস্তার মালিক চিহ্নিত করা হয়নি। এই স্বাধীন অ্যাপটি অভিযোগ জমা দেয় না; প্রমাণ যাচাই করে West Bengal PGRS-এ দায়িত্বপ্রাপ্ত জেলা বা দপ্তর নিজে নির্বাচন ও যাচাই করুন এবং অভিযোগ নম্বরটি সংরক্ষণ করুন।");
+        } else if (kn) {
+          paras.push("ಸ್ಥಳವು ಪಿನ್ ಮಾಡಿದ OpenStreetMap ಪಶ್ಚಿಮ ಬಂಗಾಳ ಗಡಿಯೊಳಗೆ ನಕ್ಷೆಗೊಂಡಿದೆ; ಆದರೆ ಜವಾಬ್ದಾರ ಜಿಲ್ಲೆ, ಇಲಾಖೆ ಅಥವಾ ರಸ್ತೆ ಮಾಲೀಕರನ್ನು ಗುರುತಿಸಲಾಗಿಲ್ಲ. ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ; ಸಾಕ್ಷ್ಯವನ್ನು ಪರಿಶೀಲಿಸಿ West Bengal PGRS ನಲ್ಲಿ ಸರಿಯಾದ ಜಿಲ್ಲೆ ಅಥವಾ ಇಲಾಖೆಯನ್ನು ನೀವೇ ಆಯ್ದು ದೃಢಪಡಿಸಿ.");
+        } else if (mr) {
+          paras.push("हे ठिकाण पिन केलेल्या OpenStreetMap पश्चिम बंगाल सीमेत नकाशित आहे; परंतु जबाबदार जिल्हा, विभाग किंवा रस्त्याचा मालक ओळखलेला नाही. हे स्वतंत्र अॅप तक्रार दाखल करत नाही; पुरावा तपासा आणि West Bengal PGRS मध्ये योग्य जिल्हा किंवा विभाग स्वतः निवडून पडताळा.");
+        } else {
+          paras.push("The location is mapped inside the pinned OpenStreetMap West Bengal boundary, but the responsible district, department and road owner have not been identified. This independent app does not submit the grievance; review the evidence, then select and verify the responsible district or department in West Bengal PGRS.");
+        }
       } else if (kn) {
         if (ward) paras.push(`ಸೂಚಿಸಿದ ಬಿಎಂಸಿ ಆಡಳಿತ ವಾರ್ಡ್: ${ward}. ಇದು OpenStreetMap ಆಡಳಿತ ಗಡಿಯಿಂದ ಪಡೆದ ಸೂಚನೆ ಮಾತ್ರ; ಅಧಿಕೃತ BMC ಆ್ಯಪ್‌ನಲ್ಲಿ ಪರಿಶೀಲಿಸಿ.`);
         paras.push(OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
@@ -3412,8 +3472,14 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       mr: `धन्यवाद.\n\nआपला/आपली,\n${sender}`,
       bn: `ধন্যবাদ।\n\nবিনীত,\n${sender}` }[lang]
       || `Thank you.\n\nRegards,\n${sender}`);
+    const statewideWestBengal = route && route.authority_id === "wb-statewide-unverified";
     const authorityNote = route && route.authority_name
-      ? (lang === "kn" ? `ಸ್ಥಳದ ಆಧಾರದ ಮೇಲೆ ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${route.authority_name}. ಅಧಿಕೃತ ಸೇವೆಯಲ್ಲಿ ಪರಿಶೀಲಿಸಿ.`
+      ? (statewideWestBengal
+        ? (lang === "kn" ? "ಸ್ಥಳವು ಪಶ್ಚಿಮ ಬಂಗಾಳದೊಳಗಿದೆ; ಜವಾಬ್ದಾರ ಸಂಸ್ಥೆಯನ್ನು ಗುರುತಿಸಲಾಗಿಲ್ಲ. West Bengal PGRS ನಲ್ಲಿ ಸರಿಯಾದ ಜಿಲ್ಲೆ ಅಥವಾ ಇಲಾಖೆಯನ್ನು ಆಯ್ದು ದೃಢಪಡಿಸಿ."
+          : lang === "mr" ? "ठिकाण पश्चिम बंगालमध्ये आहे; जबाबदार संस्था ओळखलेली नाही. West Bengal PGRS मध्ये योग्य जिल्हा किंवा विभाग निवडून पडताळा."
+          : lang === "bn" ? "স্থানটি পিন-করা OpenStreetMap পশ্চিমবঙ্গ সীমানার মধ্যে; দায়িত্বপ্রাপ্ত সংস্থা চিহ্নিত করা হয়নি। West Bengal PGRS-এ দায়িত্বপ্রাপ্ত জেলা বা দপ্তর নির্বাচন ও যাচাই করুন।"
+          : "The location is inside the pinned OpenStreetMap West Bengal boundary; the responsible authority has not been identified. Select and verify the responsible district or department in West Bengal PGRS.")
+        : lang === "kn" ? `ಸ್ಥಳದ ಆಧಾರದ ಮೇಲೆ ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${route.authority_name}. ಅಧಿಕೃತ ಸೇವೆಯಲ್ಲಿ ಪರಿಶೀಲಿಸಿ.`
         : lang === "mr" ? `ठिकाणावरून सुचवलेली नागरी संस्था: ${route.authority_name}. अधिकृत सेवेत पडताळा करा.`
         : lang === "bn" ? `অবস্থানের ভিত্তিতে প্রস্তাবিত পৌর কর্তৃপক্ষ: ${route.authority_name}। সরকারি পরিষেবায় যাচাই করুন।`
         : `Suggested civic authority from the location: ${route.authority_name}. Please verify it in the official service.`)
@@ -4348,6 +4414,9 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if (packId === "in-wb-routing" && authorityId === "wb-kmc") {
       return { region: "kolkata", routing_source: "wb_udma_official_gis" };
     }
+    if (packId === "in-wb-routing" && authorityId === "wb-statewide-unverified") {
+      return { region: "west-bengal", routing_source: "osm_west_bengal_state_boundary" };
+    }
     if (packId === "in-mh-routing" && authorityId === "mh-pmc") {
       return { region: "pune", routing_source: "pmc_official_gis" };
     }
@@ -4405,7 +4474,24 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       return savedBoundaryLocationMatches(rec, payload && payload.region && payload.region.geometry);
     }
     if (packId === "in-wb-routing") {
-      return savedBoundaryLocationMatches(rec, payload && payload.region && payload.region.geometry);
+      const regions = payload && payload.regions;
+      if (!regions) return false;
+      if (authorityId === "wb-kmc") {
+        return savedBoundaryLocationMatches(rec,
+          regions.kmc && regions.kmc.geometry);
+      }
+      if (authorityId === "wb-statewide-unverified") {
+        const stateMatches = savedBoundaryLocationMatches(rec,
+          regions.west_bengal && regions.west_bengal.geometry);
+        if (!stateMatches) return false;
+        // A statewide fallback report must still be outside KMC by more than its stated
+        // accuracy. Otherwise revalidation could silently change the exact recipient.
+        const accuracy = rec.gps_accuracy;
+        const kmcGeometry = regions.kmc && regions.kmc.geometry;
+        if (!kmcGeometry || pointInGeometry(rec.lng, rec.lat, kmcGeometry)) return false;
+        return geometryBoundaryDistanceMeters(rec.lng, rec.lat, kmcGeometry) > accuracy;
+      }
+      return false;
     }
     if (packId !== "in-mh-routing" || !payload || !payload.regions) return false;
     if (authorityId === "mh-pmc") {
@@ -4439,6 +4525,10 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if (present.length && present.length !== provenanceFields.length) return null;
     const municipal = MUNICIPAL_CITY_CONFIGS[packId];
     if (municipal && present.length !== provenanceFields.length) return null;
+    // The statewide West Bengal route did not exist before this pack release, so there
+    // is no legitimate provenance-free legacy record to upgrade.
+    if (authorityId === "wb-statewide-unverified"
+        && present.length !== provenanceFields.length) return null;
     if (present.length) {
       const resource = _statePackManifest && _statePackManifest.resources
         && _statePackManifest.resources[packId];
@@ -4454,6 +4544,17 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       if (digestOwner && digestOwner.pack_id !== packId) return null;
     }
     if (rec.region && rec.region !== binding.region) return null;
+    if (packId === "in-wb-routing" && rec.routing_source
+        && rec.routing_source !== binding.routing_source) return null;
+    if (packId === "in-wb-routing" && rec.routing_match_field
+        && rec.routing_match_field !== "boundary") return null;
+    if (authorityId === "wb-kmc" && rec.routing_match_value
+        && rec.routing_match_value !== "wb_municipal_boundary:250299_0000001") return null;
+    if (authorityId === "wb-statewide-unverified"
+        && (rec.routing_match_field !== "boundary"
+          || rec.routing_match_value !== "West Bengal (OpenStreetMap relation 1960177)")) {
+      return null;
+    }
     if (municipal && rec.routing_source && rec.routing_source !== binding.routing_source) return null;
     if (municipal && !await savedMunicipalLocationMatches(rec, municipal, pack)) return null;
     if (!municipal && !savedNonMunicipalLocationMatches(rec, packId, authorityId, pack)) return null;
@@ -4926,7 +5027,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           rural_road: "This road is outside every town boundary, so it belongs to the state PWD or a panchayat rather than a city body. The app will not guess an office.",
           no_address_for_body: "This town's body is known, but no official email address for it has been published, so there is no verified recipient to address.",
           jurisdiction_unavailable: "The required verified routing data could not be downloaded or read. Check the connection and try again; the app will not guess an authority.",
-          outside_area: "This road damage is outside the enabled Maharashtra, Karnataka urban-body, Kolkata Municipal Corporation, Delhi NCT, Greater Chennai Corporation, Android-verified 2,053 km² Hyderabad CURE, and Ahmedabad Municipal Corporation coverage, so there is no verified authority to address.",
+          outside_area: "This road damage is outside the enabled Maharashtra, West Bengal, Karnataka urban-body, Delhi NCT, Greater Chennai Corporation, Android-verified 2,053 km² Hyderabad CURE, and Ahmedabad Municipal Corporation coverage, so there is no verified authority to address.",
         };
         throw new Error((civic ? civicErrors : roadErrors)[rec.unrouted_reason]
           || "This report could not be routed to a responsible office, so there is nothing to send.");
@@ -5029,7 +5130,8 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    nationalHighwayRoute, highwayPackProvenance, openNationalHighwayHandoff,
                    maharashtraCoverage,
                    delhiCoverage, delhiRouteFromGeocode, inDelhiEnvelope,
-                   kolkataCoverage, kolkataRouteFromGeocode, isWestBengalGeocode,
+                   westBengalCoverage, kolkataCoverage, kolkataRouteFromGeocode,
+                   isWestBengalGeocode, inWestBengalRoutingEnvelope,
                    municipalCityCoverage, municipalCityRouteFromGeocode,
                    gpsAccuracyEnvelope, officialArcGisCount, officialPointRegionMatch,
                    savedMunicipalLocationMatches,
@@ -5038,9 +5140,11 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    isKarnatakaGeocode, routeOfficer, routeForIssue,
                    MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY,
                    MAHARASHTRA_STATE_AUTHORITY, KMC_AUTHORITY,
+                   WEST_BENGAL_STATE_AUTHORITY,
                    DELHI_PWD_AUTHORITY, OFFICIAL_AUTHORITIES,
                    NATIONAL_HIGHWAY_AUTHORITY,
                    DELHI_GEOMETRY_SHA256, KMC_GEOMETRY_SHA256,
+                   WEST_BENGAL_STATE_GEOMETRY_SHA256,
                    MAHARASHTRA_STATE_GEOMETRY_SHA256,
                    AUTHORITY_REGISTRY_VERSION, ISSUE_TYPES, CIVIC_HANDOFF_OVERRIDES,
                    BENGALURU_HANDOFF, BENGALURU_AUTHORITY_NAMES,

@@ -53,13 +53,14 @@ want on stage.
   `docs/SOURCES.md` distinguishes the 42,283-row road-work source snapshot from the
   13,577 supported-body candidates in the optional downloadable pack. Its old 341-row
   spot-check applies to the full source snapshot, not to the reduced pack.
-- **"Does it work outside Karnataka?"** Yes: the app covers the full State of Maharashtra,
-  Delhi NCT, Kolkata Municipal Corporation limits, Greater Chennai Corporation limits,
+- **"Does it work outside Karnataka?"** Yes: the app covers the full States of Maharashtra
+  and West Bengal, Delhi NCT, Greater Chennai Corporation limits,
   Android-verified official 2,053 km² Hyderabad CURE coverage, and a reviewed 48-ward
   Ahmedabad footprint.
   Maharashtra-wide coverage uses exact MMR/PMC routes where available and a neutral
-  Aaple Sarkar handoff elsewhere; it does not claim road ownership. The wider NCR,
-  Kolkata's neighbours, the wider Chennai metro, the published Secunderabad Cantonment
+  Aaple Sarkar handoff elsewhere. West Bengal keeps the exact KMC route inside KMC and
+  uses the neutral state PGRS elsewhere; neither state fallback identifies a road owner,
+  district, department, or local body. The wider NCR, the wider Chennai metro, the published Secunderabad Cantonment
   extent, and the wider AUDA area are excluded. Contract matching remains
   Karnataka-only.
 - **"Why is the APK smaller?"** State routing/contact datasets are versioned downloads,
@@ -84,8 +85,9 @@ want on stage.
   rural and PWD roads are refused.
 - Not that Delhi coverage means the whole NCR: only Delhi NCT is covered. PWD Sewa is a
   cross-agency handoff, not a claim that PWD owns every road.
-- Not that Kolkata coverage means the whole metropolitan area: only current KMC limits are
-  covered, using a verified downloaded copy of the official West Bengal UDMA boundary.
+- Not that statewide West Bengal coverage identifies a local body or road owner. Only the
+  verified KMC polygon selects KMC; every other in-state point uses the neutral West Bengal
+  PGRS handoff and requires the user to select and verify the district or department.
 - Not that Chennai coverage means the whole metropolitan area: only the verified GCC
   polygon is covered.
 - Not that Hyderabad CURE containment identifies a corporation or road owner: Android checks
@@ -94,7 +96,7 @@ want on stage.
 - Not that Ahmedabad coverage means the wider AUDA area: only the reviewed ODbL union of
   48 AMC wards is covered, and containment is not proof of road ownership.
 - Not that it produces a ticket number. Karnataka opens an email draft; Maharashtra,
-  Kolkata, Delhi, Chennai, Hyderabad, and Ahmedabad open a user-selected official channel.
+  West Bengal, Delhi, Chennai, Hyderabad, and Ahmedabad open a user-selected official channel.
   Only the external service can return an official grievance/reference ID.
 - Not that the contract match is certain. Every complaint says "probable record match,
   kindly verify", and that wording should stay.

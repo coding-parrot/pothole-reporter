@@ -143,23 +143,24 @@
       "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tn/routing-d1d32b82476c98be6a344e5d4ec788f0acbe63a8b4479453e78c3392eff7bb56.json"
     },
     "in-wb-routing": {
-      "adapter": "kolkata-kmc-v1",
-      "bytes": 229808,
-      "coverage_scope": "Kolkata Municipal Corporation",
+      "adapter": "west-bengal-statewide-v1",
+      "bytes": 2069831,
+      "coverage_scope": "Full State of West Bengal; exact Kolkata Municipal Corporation route where verified",
       "kind": "routing",
       "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
         "Official West Bengal UDMA and KMC sources: respective source terms"
       ],
       "pack_id": "in-wb-routing",
       "pack_version": 1,
-      "path": "packs/v1/states/wb/routing-f5f6571457543f56cdca9794408398410da35579e7cd7ad82c8eb8053cd94d62.json",
+      "path": "packs/v1/states/wb/routing-32d83cef19eb490cedfec38323ae17ad225c9a1f1ae267e385e9635eab5ccb83.json",
       "review_after": "2026-11-21",
       "schema_version": 1,
-      "sha256": "f5f6571457543f56cdca9794408398410da35579e7cd7ad82c8eb8053cd94d62",
-      "source_retrieved_at": "2026-08-21",
+      "sha256": "32d83cef19eb490cedfec38323ae17ad225c9a1f1ae267e385e9635eab5ccb83",
+      "source_retrieved_at": "2026-08-24",
       "state_code": "WB",
-      "statewide": false,
-      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/wb/routing-f5f6571457543f56cdca9794408398410da35579e7cd7ad82c8eb8053cd94d62.json"
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/wb/routing-32d83cef19eb490cedfec38323ae17ad225c9a1f1ae267e385e9635eab5ccb83.json"
     }
   },
   "schema_version": 1

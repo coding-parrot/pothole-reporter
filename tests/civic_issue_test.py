@@ -38,10 +38,11 @@ def authority_inventory() -> list[dict]:
     for state, state_config in configured.items():
         for authority in state_config.get("authorities", []):
             inventory.append({**authority, "source_state": state})
-    # PMC and the conservative MMR/statewide fallbacks are separately shaped entries.
+    # PMC and conservative state/metro fallbacks are separately shaped entries.
     inventory.append({**configured["MH"]["pmc"], "source_state": "MH"})
     inventory.append({**configured["MH"]["fallback"], "source_state": "MH"})
     inventory.append({**configured["MH"]["statewide"], "source_state": "MH"})
+    inventory.append({**configured["WB"]["statewide"], "source_state": "WB"})
     for lgd, body in bodies.items():
         inventory.append(
             {
@@ -184,6 +185,16 @@ async ({authorities, pixel}) => {
        statewide && statewide.alternate_handoff_url, "https://mahaulb.in/MahaULB/index");
     eq(`Maharashtra ${issue}: technical-support number is not shown as a civic helpline`,
        statewide && statewide.helpline, null);
+
+    const westBengal = routeFor("wb-statewide-unverified", issue);
+    eq(`West Bengal ${issue}: statewide PGRS route`,
+       westBengal && westBengal.handoff_url,
+       "https://finance.wb.gov.in/pgrs/page/PGMS_Lodge_Greivance.aspx");
+    eq(`West Bengal ${issue}: CMO alternate is retained`,
+       westBengal && westBengal.alternate_handoff_url,
+       "https://cmo.wb.gov.in/landing/raise-grievance");
+    eq(`West Bengal ${issue}: no unsupported helpline is invented`,
+       westBengal && westBengal.helpline, null);
   }
 
   const bengaluru = authorities.filter((authority) =>
@@ -234,6 +245,18 @@ async ({authorities, pixel}) => {
      "https://grievances.maharashtra.gov.in/en");
   eq("routeOfficer: civic Nagpur can never be tender matched",
      maharashtraCivic && maharashtraCivic.tender_eligible, false);
+
+  const westBengalCivic = await P.routeOfficer(
+    {city: "Darjeeling", state: "West Bengal", country_code: "in",
+     full: "Darjeeling, West Bengal, India"},
+    27.0410, 88.2663, 8, 0, 0, "open_manhole");
+  eq("routeOfficer: civic Darjeeling uses the statewide route",
+     westBengalCivic && westBengalCivic.authority_id, "wb-statewide-unverified");
+  eq("routeOfficer: civic Darjeeling uses West Bengal PGRS",
+     westBengalCivic && westBengalCivic.handoff_url,
+     "https://finance.wb.gov.in/pgrs/page/PGMS_Lodge_Greivance.aspx");
+  eq("routeOfficer: civic Darjeeling can never be tender matched",
+     westBengalCivic && westBengalCivic.tender_eligible, false);
 
   const uiSource = document.documentElement.innerHTML;
   ok("capture UI: native Photo flow requests the live camera explicitly",
@@ -422,8 +445,8 @@ def main() -> None:
     inventory = authority_inventory()
     # These counts pin the intended current scope and make an accidental source omission
     # visible instead of silently reducing the matrix.
-    if len(inventory) != 209:
-        raise AssertionError(f"expected 209 configured routes/bodies, found {len(inventory)}")
+    if len(inventory) != 210:
+        raise AssertionError(f"expected 210 configured routes/bodies, found {len(inventory)}")
     if sum(item["source_state"] == "KA" for item in inventory) != 182:
         raise AssertionError("expected all 182 configured Karnataka ULBs")
 

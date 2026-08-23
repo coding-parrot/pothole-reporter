@@ -45,7 +45,9 @@ EXPECTED_RESOURCES = {
     ),
     "in-tg-routing": ("TG", "routing", "pothole-routing-pack", "municipal-city-v1"),
     "in-tn-routing": ("TN", "routing", "pothole-routing-pack", "municipal-city-v1"),
-    "in-wb-routing": ("WB", "routing", "pothole-routing-pack", "kolkata-kmc-v1"),
+    "in-wb-routing": (
+        "WB", "routing", "pothole-routing-pack", "west-bengal-statewide-v1"
+    ),
 }
 MUNICIPAL_CITY_RESOURCES = {
     "in-tn-routing": {
@@ -328,6 +330,13 @@ def check_catalog(failures: list[str]) -> dict:
             failures.append(
                 f"{pack_id} adapter is {resource.get('adapter')!r}, want {adapter!r}"
             )
+        if pack_id == "in-wb-routing":
+            if resource.get("statewide") is not True:
+                failures.append("in-wb-routing is not declared statewide")
+            if not str(resource.get("coverage_scope") or "").startswith(
+                "Full State of West Bengal"
+            ):
+                failures.append("in-wb-routing does not declare full West Bengal coverage")
         sha = resource.get("sha256")
         if not isinstance(sha, str) or len(sha) != 64 or any(c not in "0123456789abcdef" for c in sha):
             failures.append(f"{pack_id} has an invalid SHA-256 pin")
@@ -382,6 +391,30 @@ def check_catalog(failures: list[str]) -> dict:
                 failures.append(f"{pack_id} has no routing payload object")
             if pack_id in MUNICIPAL_CITY_RESOURCES:
                 check_municipal_city_pack(pack_id, envelope, failures)
+            if pack_id == "in-wb-routing":
+                wb_authority_ids = {
+                    item.get("id") for item in authorities or [] if isinstance(item, dict)
+                }
+                if wb_authority_ids != {"wb-kmc", "wb-statewide-unverified"}:
+                    failures.append(
+                        "in-wb-routing authority inventory is "
+                        f"{sorted(wb_authority_ids)!r}"
+                    )
+                payload = envelope.get("payload")
+                regions = payload.get("regions") if isinstance(payload, dict) else None
+                if not isinstance(payload, dict) or payload.get("version") != 2:
+                    failures.append("in-wb-routing payload is not statewide schema version 2")
+                elif not isinstance(regions, dict) or set(regions) != {"kmc", "west_bengal"}:
+                    failures.append("in-wb-routing does not contain exactly KMC and West Bengal")
+                else:
+                    if regions["kmc"].get("authority_id") != "wb-kmc":
+                        failures.append("in-wb-routing KMC authority pin changed")
+                    state = regions["west_bengal"]
+                    if (
+                        state.get("authority_id") != "wb-statewide-unverified"
+                        or state.get("source_relation_id") != 1_960_177
+                    ):
+                        failures.append("in-wb-routing statewide authority or relation pin changed")
         else:
             tenders = envelope.get("tenders")
             if not isinstance(tenders, list) or not tenders:

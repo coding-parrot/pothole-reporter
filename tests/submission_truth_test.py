@@ -32,6 +32,7 @@ async ({pixel}) => {
   const tnResource = packManifest.resources["in-tn-routing"];
   const gjResource = packManifest.resources["in-gj-routing"];
   const dlResource = packManifest.resources["in-dl-routing"];
+  const wbResource = packManifest.resources["in-wb-routing"];
   const tnProvenance = {
     routing_pack_id: "in-tn-routing",
     routing_pack_version: tnResource.pack_version,
@@ -49,6 +50,12 @@ async ({pixel}) => {
     routing_pack_version: dlResource.pack_version,
     routing_pack_sha256: dlResource.sha256,
     routing_pack_state_code: "DL",
+  };
+  const wbProvenance = {
+    routing_pack_id: "in-wb-routing",
+    routing_pack_version: wbResource.pack_version,
+    routing_pack_sha256: wbResource.sha256,
+    routing_pack_state_code: "WB",
   };
   const base = {
     created_at: 1787260200,
@@ -257,6 +264,23 @@ async ({pixel}) => {
       routing_source: "osm_delhi_nct_boundary", routing_match_field: "boundary",
       routing_match_value: "OpenStreetMap relation 1942586", ownership_unverified: true,
       handoff_name: "PWD Sewa", handoff_url: "https://example.invalid/coherent-delhi-rebind",
+      requires_official_reference: true,
+    },
+    {
+      ...base, ...wbProvenance, id: 71017, created_at: base.created_at + 16, status: "draft",
+      address: "Darjeeling, West Bengal", lat: 27.0410, lng: 88.2663,
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "Old West Bengal service",
+      authority_id: "wb-statewide-unverified",
+      authority_name: "West Bengal authority (select in PGRS)",
+      authority_registry_version: 0, region: "west-bengal",
+      routing_source: "osm_west_bengal_state_boundary",
+      routing_match_field: "boundary",
+      routing_match_value: "West Bengal (OpenStreetMap relation 1960177)",
+      ownership_unverified: true, handoff_name: "Old state grievance service",
+      handoff_url: "https://example.invalid/stale-west-bengal",
+      alternate_handoff_name: "Old alternate",
+      alternate_handoff_url: "https://example.invalid/stale-west-bengal-alternate",
       requires_official_reference: true,
     },
   ];
@@ -500,6 +524,25 @@ async ({pixel}) => {
      kmcPrepared.alternate_handoff_url);
   eq("KMC handoff: opening has not been claimed yet",
      kmcPrepared.handoff_opened_at, undefined);
+
+  const westBengalPrepared = await StandaloneAPI.handle(
+    "/api/reports/71017/send", {method: "POST"});
+  eq("West Bengal handoff: preparing PGRS stays draft",
+     westBengalPrepared.status, "draft");
+  eq("West Bengal handoff: current registry restores PGRS",
+     westBengalPrepared.handoff_name, "West Bengal PGRS");
+  eq("West Bengal handoff: stale primary URL cannot survive revalidation",
+     westBengalPrepared.handoff_url,
+     "https://finance.wb.gov.in/pgrs/page/PGMS_Lodge_Greivance.aspx");
+  eq("West Bengal handoff: current CMO alternate is restored",
+     westBengalPrepared.alternate_handoff_url,
+     "https://cmo.wb.gov.in/landing/raise-grievance");
+  eq("West Bengal handoff: current pack provenance is retained",
+     [westBengalPrepared.routing_pack_id, westBengalPrepared.routing_pack_state_code,
+      westBengalPrepared.routing_pack_sha256],
+     ["in-wb-routing", "WB", wbResource.sha256]);
+  eq("West Bengal handoff: preparing PGRS records no handoff time",
+     westBengalPrepared.handoff_opened_at, undefined);
 
   const delhiPrepared = await StandaloneAPI.handle(
     "/api/reports/71009/send", {method: "POST"});

@@ -1,13 +1,13 @@
 # Google Play publication checklist
 
-Status reviewed 23 August 2026 for release 1.23.0 / version code 41. This is a release
+Status reviewed 24 August 2026 for release 1.24.0 / version code 42. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.23.0/code 41 after the statewide Maharashtra changes,
+- [ ] **Fresh signed release bundle:** build version 1.24.0/code 42 after the statewide West Bengal changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
   it in Play Console.
 - [x] **Hosted privacy page:** verified on the stable public host:
@@ -51,9 +51,11 @@ Do not submit to production until every applicable item above is complete.
   Pune inside PMC, PCMC, Nagpur, Nashik, Kolhapur, Solapur, a rural Maharashtra point, and
   neighbouring-state fixtures. Confirm rural/ambiguous MMR uses Aaple Sarkar, PMC uses Road
   Mitra/PMC CARE, other Maharashtra points use the statewide handoff, and outside points fail closed.
-- [ ] Test central, north, south, and Joka locations inside KMC, plus Howrah,
-  Bidhannagar/Salt Lake, and New Town outside it. Confirm only the checksum-verified KMC
-  polygon selects KMC and a place name alone never does.
+- [ ] Test central, north, south, and Joka locations inside KMC; Howrah,
+  Bidhannagar/Salt Lake, New Town, Siliguri, Durgapur, Asansol, district/rural points, a
+  neighbouring-state point, and a state-edge accuracy case. Confirm only the checksum-verified
+  KMC polygon selects KMC, every other confidently contained West Bengal point uses PGRS,
+  and a place name alone never selects either route.
 - [ ] Test central, north, south, east, and west Delhi NCT locations, plus Noida,
   Gurugram, Ghaziabad, Faridabad, and a boundary-edge accuracy case. Confirm only the
   pinned NCT polygon routes, and neighbouring NCR points stay unrouted.
@@ -67,7 +69,7 @@ Do not submit to production until every applicable item above is complete.
   union, including South Bopal/Ghuma as known outer-expansion gap fixtures. Confirm the
   app does not claim current outer AMC or wider AUDA completeness and never falls back to
   an Ahmedabad place-name guess.
-- [ ] Across Maharashtra, and in KMC, Delhi, all five Bengaluru city corporations, Chennai, Hyderabad,
+- [ ] Across Maharashtra and West Bengal, and in Delhi, all five Bengaluru city corporations, Chennai, Hyderabad,
   and Ahmedabad, create Pothole, Garbage, and Manhole reports. Confirm road damage keeps
   its road-specific route, the other categories use only reviewed general-civic channels,
   and unverified categories fail closed. Simulate a routing-pack/network failure, keep the
@@ -78,6 +80,10 @@ Do not submit to production until every applicable item above is complete.
 - [ ] Test Kolkata handoffs in English and Bengali: KMC Grievance 2.0, installed and
   uninstalled official KMC app, WhatsApp at +91 83359 88888, helpline 1800 345 3375,
   cancellation, and back navigation.
+- [ ] Test non-KMC West Bengal handoffs in English and Bengali: West Bengal PGRS, the CMO
+  Grievance alternate, cancellation, back navigation, and the instruction to select and
+  verify the district or department. Confirm no local body, road owner, contract, category
+  acceptance, or submission is claimed.
 - [ ] Test Delhi handoffs: installed and uninstalled PWD Sewa app, complaint portal,
   Delhi PGMS alternate, WhatsApp at +91 81301 88222, helpline 1908, cancellation, and
   back navigation.
@@ -110,7 +116,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.23.0 release. Include the issue picker, an independent civic handoff, and regional-language support
+  the 1.24.0 release. Include the issue picker, an independent civic handoff, and regional-language support
   without displaying private coordinates, an API key, a real grievance ID, or civic-body
   marks. Put other city-specific flows in reviewer instructions instead of implying that
   one screenshot proves every supported route.
@@ -119,8 +125,8 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Enter the hosted privacy-policy URL, support website, and required support email.
 - [ ] Choose the app category and target countries intentionally. Current routing covers mapped
   NH/NE carriageways across India plus the areas listed in `google-play-listing.md`; keep the wider NCR, wider
-  Chennai metro, Cantonment, Ahmedabad outer-expansion, and Kolkata-neighbour
-  limitations visible.
+  Chennai metro, Cantonment, and Ahmedabad outer-expansion limitations visible; explain that
+  non-KMC West Bengal routes require the user to select the responsible district or department.
 - [ ] Keep the non-affiliation statement and the clearly labelled government-information
   source directory visible in the full description; confirm that directory exposes direct
   official links. Do not use civic names, seals, logos, colours, or screenshots in a way
@@ -136,7 +142,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
     Garbage and Manhole photos are not sent to OpenAI;
   - precise coordinates sent to Nominatim, to Karnataka GIS for Karnataka points, and with
     the GPS-accuracy envelope to official Telangana GIS for Hyderabad routing; Maharashtra,
-    KMC, Delhi NCT, GCC, and Ahmedabad boundary checks remain on-device;
+    West Bengal, Delhi NCT, GCC, and Ahmedabad boundary checks remain on-device;
   - for eligible Karnataka routes only, road address and procurement shortlist sent to
     OpenAI for probable contract matching; contract matching elsewhere is disabled;
   - API credential and standard network metadata received by external services;
