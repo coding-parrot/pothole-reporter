@@ -5,22 +5,24 @@ detects visible road damage; **Photo** lets the user choose the issue and prepar
 for an official complaint channel. Reports remain on the phone, and nothing is filed
 automatically. There is no project-operated backend or account system.
 
+Current release: [v1.22.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.22.0)
+
 <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
 
 <sub>Example detected by the app. Select the thumbnail for the full-size photo.</sub>
 
 ## Coverage
 
-| Area | Current scope |
+| Area | Current scope and handoff |
 | --- | --- |
-| National Highways | Operational NH/NE carriageways mapped across India in the pinned 20 August 2026 OpenStreetMap extract. A match goes to Rajmargyatra/1033; the maintaining agency is not guessed. |
-| Delhi | Full Delhi NCT; the wider NCR is excluded. |
-| Maharashtra | The current Mumbai Metropolitan Region (MMR), including its rural extent, and Pune Municipal Corporation (PMC). PCMC is excluded. |
-| West Bengal | Kolkata Municipal Corporation (KMC) only; Howrah, Bidhannagar/Salt Lake, New Town, and neighbouring bodies are excluded. |
-| Karnataka | Road-damage routing for supported urban local bodies with a published recipient. Garbage and manhole handoff is enabled only for the five Bengaluru city corporations through Sahaaya 2.0; other Karnataka bodies fail closed for those categories. |
-| Tamil Nadu | Greater Chennai Corporation (GCC) limits only; the wider metropolitan area and neighbouring urban bodies are excluded. |
-| Telangana | The official 2,053 km² Telangana Core Urban Region around Hyderabad, checked live against Telangana GIS. Secunderabad Cantonment is excluded. My Cure is offered without guessing which of the three 2026 city corporations owns the issue. |
-| Gujarat | A reviewed 48-ward Ahmedabad footprint (439.397 km²). Wider AUDA is excluded; available licensed geometry does not prove that every recent outer AMC expansion is included. |
+| National Highways | Potholes only, on operational NH/NE carriageways mapped in the pinned 20 August 2026 OpenStreetMap extract. Matches open Rajmargyatra/1033; the maintainer is not guessed. |
+| Delhi | Full Delhi NCT. Road damage uses PWD Sewa; garbage and manholes use CM JanSunwai. The wider NCR is excluded. |
+| Maharashtra | The current MMR and Pune Municipal Corporation. Civic issues use BMC MARG, Aaple Sarkar, or PMC CARE as applicable. PCMC is excluded. |
+| West Bengal | Kolkata Municipal Corporation limits through KMC Grievance 2.0. Howrah, Bidhannagar/Salt Lake, New Town, and neighbouring bodies are excluded. |
+| Karnataka | Road-damage routing for supported urban bodies. Garbage and manholes are enabled only in the five Bengaluru city corporations through Sahaaya 2.0. |
+| Tamil Nadu | Greater Chennai Corporation limits through GCC Public Grievance. The wider metropolitan area and neighbouring bodies are excluded. |
+| Telangana | Android checks Hyderabad's official 2,053 km² CURE boundary live and opens My Cure. Secunderabad Cantonment is excluded; the app does not guess among the three 2026 corporations. |
+| Gujarat | AMC CCRS for a reviewed 48-ward Ahmedabad footprint (439.397 km²). Wider AUDA is excluded, and complete recent outer-expansion coverage is not claimed. |
 
 Boundaries suggest a complaint route; they do not prove who owns or maintains a road.
 The user must review and complete every complaint in the offered official app, portal,
