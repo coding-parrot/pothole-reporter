@@ -14,15 +14,14 @@ length, and SHA-256 checksum. Routing/contact data is published as a separate pa
 Delhi, Gujarat, Karnataka, Maharashtra, Tamil Nadu, Telangana, and West Bengal. Karnataka
 procurement data is a separate optional tender pack and is requested only for an eligible
 Karnataka contract match.
-The Gujarat pack contains routing rules and a relevance envelope, not an AMC polygon.
+The Gujarat pack contains a dissolved copy of the reviewed 48-ward AMC boundary.
 
 The app also ships a National Highway manifest that pins 101 immutable 2° geometry tiles.
 It downloads a pack or relevant tile from this project's GitHub Pages site, verifies the complete
 response against the manifest before parsing it, and caches only verified bytes on the
 device. Missing, malformed, truncated, or checksum-mismatched required routing/contact
 data makes the affected route fail closed. A geocoder place name is not a fallback for a
-polygon route; Ahmedabad is the documented exception and requires an exact structured
-city-or-municipality result as part of its routing rule. Failure of the optional Karnataka
+polygon route. Failure of the optional Karnataka
 tender pack does not block the report—it continues without contract context. A verified
 pack can be read locally after its first
 successful download. On a subsequent pack use, caches past their unused limits are pruned
@@ -73,7 +72,11 @@ That extent contains 19 urban local bodies:
 
 The remaining notified rural MMR is also covered, but routes to the neutral
 [Aaple Sarkar grievance service](https://grievances.maharashtra.gov.in/en) rather than to
-the nearest city. The Maharashtra routing pack contains a locally evaluated aid made from OpenStreetMap
+the nearest city. Maharashtra's official
+[grievance-management resolution](https://grievances.maharashtra.gov.in/uploads/files/GR_GrievanceManagement_24082016.pdf)
+documents online lodging and tracking, attachments, district-level municipal-corporation
+routing, and the nodal-officer process. The app still does not claim that Aaple Sarkar has
+identified a particular MMR body or issue owner. The Maharashtra routing pack contains a locally evaluated aid made from OpenStreetMap
 relation 13312356 plus the Palghar, Vasai, Alibag, Pen, Panvel, and Khalapur taluka
 relations named by the notification. OpenStreetMap geometry can be stale or imprecise;
 the notification controls the intended scope. In particular, the 2019 notification
@@ -100,8 +103,15 @@ Pune coverage uses the `PMC_Boundary` layer published by the
 included in the verified Maharashtra routing pack for local point-in-polygon checks from the corresponding
 [WFS GeoJSON layer](https://iwmsgis.pmc.gov.in/geoserver/pmc/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=pmc:PMC_Boundary&outputFormat=application/json&srsName=EPSG:4326).
 It covers the current Pune Municipal Corporation boundary only; Pimpri-Chinchwad
-Municipal Corporation (PCMC) and places outside PMC are not included. The app offers PMC
-Road Mitra, with PMC CARE as an alternate handoff.
+Municipal Corporation (PCMC) and places outside PMC are not included. Road damage is
+offered PMC Road Mitra. Garbage and manhole reports use
+[PMC CARE](https://www.pmccare.in/); PMC's official
+[CARE booklet](https://opendata.pmc.gov.in/opendata/PMCReports/PMC-CARE-Booklet.pdf)
+describes a single-window civic-grievance framework, trackable tickets, WhatsApp
+**+91 96899 00002**, and toll-free **1800 103 0222**. The current Android package is
+[`in.gov.pmc.pmccare`](https://play.google.com/store/apps/details?id=in.gov.pmc.pmccare).
+The public material does not expose every category name before login, so the app calls
+this a general civic handoff rather than guaranteed category acceptance.
 
 ### What a handoff proves
 
@@ -112,10 +122,17 @@ Where the report uses an official app or portal, it can be marked submitted only
 user records the grievance/reference ID returned by that service. The user must review and
 complete every complaint in the external channel.
 
-For Greater Mumbai, [Pothole QuickFix](https://play.google.com/store/apps/details?id=com.bmc.potholequickfix)
-identifies BMC as its developer. BMC also publishes MyBMC WhatsApp at **+91 89992 28999**
-and the **1916** civic helpline. The app opens those channels only after the user chooses
-the action. BMC's website policy at
+For Greater Mumbai, road damage can use
+[Pothole QuickFix](https://play.google.com/store/apps/details?id=com.bmc.potholequickfix),
+which identifies BMC as its developer. Garbage and manhole reports use BMC's
+[Management and Redressal of Grievance (MyBMC MARG)](https://marg.mcgm.gov.in/MARG/welcomePage.html)
+portal and its linked Android package
+[`com.esri.ugms_bmc`](https://play.google.com/store/apps/details?id=com.esri.ugms_bmc).
+BMC's [main website](https://www.mcgm.gov.in/irj/portal/anonymous?guest_user=english)
+lists MyBMC MARG as a civic service; the public pre-login portal does not enumerate every
+category, so the app does not promise that a specific category will be accepted. BMC also
+publishes **1916** as its civic helpline. The app opens those channels only after the user
+chooses the action. BMC's website policy at
 `https://portal.mcgm.gov.in/irj/portal/anonymous/privacy?guest_user=english` is why the app
 does not frame BMC pages, copy BMC marks, or claim affiliation.
 
@@ -174,7 +191,7 @@ DSIIDC, DMRC, DJB, or another agency, and municipal containment cannot distingui
 The app therefore does not bundle restricted MCD ward maps or guess an owner from a civic
 area.
 
-Every accepted Delhi point is offered the Government of NCT of Delhi's
+Every accepted Delhi road-damage point is offered the Government of NCT of Delhi's
 [PWD Sewa complaint flow](https://www.pwddelhi.gov.in/sewa/complaint). PWD Sewa's current
 dashboard records road and pothole grievances and forwarding to other Delhi agencies, so
 it is used as a coordination handoff rather than labelled as the confirmed owner. The
@@ -183,6 +200,14 @@ WhatsApp number **+91 81301 88222** and helpline **1908**. The cross-department
 [Delhi PGMS](https://pgms.delhi.gov.in/) is the alternate. Opening any channel is not a
 submission; the citizen must complete the external complaint and record its official
 reference ID.
+
+Garbage and manhole reports use GNCTD/NIC's
+[CM JanSunwai](https://cmjansunwai.delhi.gov.in/) as a cross-department grievance
+coordination handoff, with Delhi PGMS as the alternate and helpline **1902**. The official
+page documents complaint filing, tracking, reminders, feedback, and the linked JanMitra
+Android app; its [app privacy page](https://cmjansunwai.delhi.gov.in/PrivacyPolicyApp)
+confirms the Government of NCT of Delhi service. This route does not identify a municipal
+owner or guarantee a category outcome.
 
 Contract matching is disabled for Delhi because the project has no authoritative,
 road-linked award, maintenance, and defect-liability feed for all Delhi road agencies.
@@ -209,61 +234,55 @@ the published Android package is
 The app also offers GCC's published WhatsApp number **+91 94450 61913** and helpline
 **1913**. Opening any channel is not submission, and contract matching is disabled.
 
-## Hyderabad core boundary and shared complaint handoff
+## Hyderabad CURE official point query and shared complaint handoff
 
-The Telangana routing pack contains a conservative polygon from
-[OpenStreetMap relation 7868535](https://www.openstreetmap.org/relation/7868535), retrieved
-through this [Nominatim lookup](https://nominatim.openstreetmap.org/lookup?osm_ids=R7868535&format=jsonv2&polygon_geojson=1&polygon_threshold=0.00001)
-on 21 August 2026 and redistributed under the ODbL. The app checks it locally. This is
-partial Hyderabad-core coverage, not a representation of the current Core Urban Region or
-a current municipal-corporation map. The published geometry measures about 610.897 km² and
-has SHA-256 `6d5ef9edbf927d4037a104d12fe490630b979fbbcbfcfd948550b1d93217de31`.
+The Telangana routing pack contains query metadata but no boundary polygon. In the native
+Android app, an accepted GPS fix (at most 30 m reported accuracy) is converted to its complete
+accuracy envelope. The app asks TGRAC's official
+[`Proposed Core Urban Area -2053 Sq.Km` layer 22](https://tgrac.telangana.gov.in/arcgis/rest/services/TCUR_Folder/TCUR_Telangana_Core_Urban_Region_V2/MapServer/22)
+whether that entire envelope is within the Core Urban Region. The route is accepted only when
+the service returns one containing feature. This covers the official 2,053 km² CURE service
+scope without redistributing government geometry.
 
-That OSM outline overlaps part of Secunderabad Cantonment. The pack therefore pins the
-published extent of TGRAC's official
-[`Cantonment Boundary` layer](https://tgrac.telangana.gov.in/arcgis/rest/services/Hydra_Folder/Administrative_Layer/MapServer/1)
-and refuses the whole extent before testing the OSM polygon. Only the four-number extent is
-stored; the unlicensed government polygon is not redistributed. This intentionally excludes
-some neighbouring civic locations as well as the Cantonment, which is safer than assigning a
-Cantonment point to My Cure. A narrower exclusion needs a current reusable boundary or a
-confirmed cross-authority grievance route.
+The same request checks TGRAC's exact official
+[`Cantonment Boundary` layer 1](https://tgrac.telangana.gov.in/arcgis/rest/services/Hydra_Folder/Administrative_Layer/MapServer/1).
+Any accuracy envelope intersecting Secunderabad Cantonment is refused. If either official
+query is unavailable, malformed, or inconclusive, routing fails closed. Browser/PWA use also
+fails closed and does not send a Hyderabad coordinate to TGRAC; live Hyderabad routing is an
+Android feature and depends on the government query service being available.
 
-Telangana's [G.O.Ms.No.55 dated 11 February 2026](https://tg-bn-website-assets.flowwlabs.tech/GOs-and-ACTs/GO.Ms.No.55_11-02-2026.pdf),
-linked from the official [BuildNow government-order register](https://buildnow.telangana.gov.in/go-and-act/),
-constituted Greater Hyderabad, Cyberabad, and Malkajgiri as three separate municipal
-corporations. The OSM relation does not encode that three-way 2026 attribution. The app
-therefore does not label an accepted point as belonging to any one of them. It offers the
-shared [My Cure](https://play.google.com/store/apps/details?id=cgg.gov.ghmc) civic-grievance
-handoff, whose current listing expressly includes pothole grievances, plus its
-[web flow](https://igs.ghmc.gov.in/operator/send_otp_mobile). Points outside the conservative
-polygon are not routed. Neither containment nor the shared handoff proves road ownership;
-contract matching is disabled.
+[G.O.Ms.No.292 dated 24 December 2025](https://goir.telangana.gov.in/) reorganised the
+expanded area into 12 zones and 60 circles. Telangana's
+[G.O.Ms.No.55 dated 11 February 2026](https://tg-bn-website-assets.flowwlabs.tech/GOs-and-ACTs/GO.Ms.No.55_11-02-2026.pdf)
+then constituted Greater Hyderabad, Cyberabad, and Malkajgiri as three separate municipal
+corporations. The CURE query does not establish which corporation or road maintainer owns a
+point, so the app makes no such attribution. It offers the shared
+[My Cure](https://play.google.com/store/apps/details?id=cgg.gov.ghmc) civic-grievance handoff,
+whose current listing expressly includes pothole grievances, plus its
+[web flow](https://igs.ghmc.gov.in/operator/send_otp_mobile). Opening either service is not
+submission; contract matching is disabled.
 
-## Ahmedabad structured match and AMC complaint handoff
+## Ahmedabad AMC boundary and complaint handoff
 
-The Gujarat pack deliberately contains no Ahmedabad municipal polygon. Its reviewed place
-identity is [OpenStreetMap node 245711197](https://www.openstreetmap.org/node/245711197),
-retrieved through this [structured Nominatim search](https://nominatim.openstreetmap.org/search?city=Ahmedabad&state=Gujarat&country=India&format=jsonv2&polygon_geojson=1&addressdetails=1&limit=10)
-on 21 August 2026 under the ODbL. A coordinate must first fall inside a local relevance
-envelope, then Nominatim must return an exact accepted Ahmedabad
-or Amdavad value in the structured `city` or `municipality` field, with Gujarat as the
-state. A district, county, postcode, free-form display name, or nearby place name is not
-enough. If geocoding fails or the structured result is not exact, routing fails closed.
-The local rectangle is 72.4200568–72.7400568 E and 22.8615374–23.1815374 N. It is only a
-relevance guard: the envelope and structured result are not an AMC boundary or
-road-ownership claim, and the wider AUDA planning area and nearby urban bodies are not
-treated as Ahmedabad.
+The Gujarat pack contains a dissolved union of the 48 Ahmedabad Municipal Corporation ward
+polygons from [OpenCity / Oorvani Foundation via Bharatlas](https://bharatlas.com/view/wards_ahmedabad),
+published under the ODbL 1.0. The source snapshot is dated 26 May 2026 and was retrieved on
+23 August 2026; the downloaded GeoJSON SHA-256 was
+`c5015c0cd147118e34ddf60fccce4f4c93d72118b21ae5d5dc36d1723c17043a`. The build validates
+one copy of every ward code 1–48, corrects the source file's reviewed latitude/longitude
+axis order, dissolves internal ward edges, rounds to seven decimal places, and pins the
+resulting geometry digest
+`48de18a521d2ece507ebda91976064353b477283a251bf45d271fdd0c7b82cb7`.
 
-No current reusable AMC polygon was found during the 21 August 2026 review. AMC's public
-[`AMC_Boundary` ArcGIS layer](http://gis.ahmedabadcity.gov.in/arcgis/rest/services/Our_Ahmedabad/MapServer/10)
-exposed an older boundary of about 440.5 km², while an
-[AMC publication](https://ahmedabadcity.gov.in/ViewFile/ViewFile?TYPE=FileRepository%2C2204)
-describes about 481 km² and merged Bopal-Ghuma, Chiloda, and Kathwada areas. The GIS service
-publishes no explicit reuse licence; its HTTPS certificate had expired on 10 July 2024 and
-was still invalid during review, although the HTTP service responded. The project therefore
-does not redistribute or claim that geometry.
+The bundled union covers about 439.397 km², with bounds 72.4472434–72.7036946 E and
+22.9121407–23.1386475 N. AMC's official corporation page independently states that the
+city has [seven zones and 48 wards](https://ahmedabadcity.gov.in/Home/AboutTheCorporation).
+AMC materials also publish larger total areas after outer-city mergers, so this snapshot
+cannot prove that every current expansion is included. The geometry is a reviewed routing
+aid, not a legal survey or proof that AMC owns a particular road. The wider AUDA planning
+area and neighbouring municipal bodies remain outside this route.
 
-An accepted match is offered AMC's official
+A contained point is offered AMC's official
 [CCRS online complaint flow](https://www.amccrs.com/AMCPortal/View/ComplaintRegistration.aspx?m=Online).
 The current citizen Android package is
 [`com.amplvb.ccrs`](https://play.google.com/store/apps/details?id=com.amplvb.ccrs).
@@ -348,14 +367,31 @@ The officer directory is keyed on **LGD_TownCode**, the Local Government Directo
 issued by the Ministry of Panchayati Raj, so a body is identified by a national
 identifier rather than by matching a place name.
 
+### Bengaluru general civic handoff
+
+For garbage and manhole reports inside any of the five configured Bengaluru city
+corporations, the app offers **Namma Bengaluru (Sahaaya 2.0)** instead of borrowing a
+road-recipient email. The current [Greater Bengaluru Authority site](https://gba.karnataka.gov.in/)
+lists all five corporations, Sahaaya 2.0 as a public-grievance service, Namma Bengaluru
+under mobile apps, and helpline **1533**. BBMP's official
+[mobile-app directory](https://site.bbmp.gov.in/departmentwebsites/BBMPIT/mobileapps.html)
+says Sahaaya 2.0 lets citizens file complaints and check status, and its
+[administrative review](https://bbmp.gov.in/ucc_file/KarnatakaAdministrativeReforms.pdf)
+describes the unified platform, integrated agencies, and text/photo/video evidence. The
+Android package is
+[`com.nammabengaluruNew.org`](https://play.google.com/store/apps/details?id=com.nammabengaluruNew.org).
+Public pages do not enumerate every garbage/manhole subcategory, so this is labelled a
+general public-grievance handoff. Other Karnataka local bodies remain civic-unroutable
+unless a category-appropriate official channel is separately reviewed.
+
 ## Street address
 
 **Source: OpenStreetMap, via Nominatim.** It turns coordinates into a street name and
 pincode for the complaint. In Maharashtra, Kolkata, Delhi, Chennai, and Hyderabad, address
 fields are display-only routing clues; only a verified cached polygon selects coverage.
-Ahmedabad is the narrow exception described above: it requires an exact structured `city`
-or `municipality` value after a local envelope check and makes no boundary claim. Free-form
-geocoder text is never used to expand any polygon route. The coordinates themselves
+Ahmedabad now follows the same rule: its verified cached AMC ward union selects coverage,
+and the geocoder result is display-only. Free-form geocoder text is never used to expand
+any polygon route. The coordinates themselves
 come from the phone's GPS and are printed in the complaint alongside a map link, so the
 location can be checked independently.
 
@@ -396,20 +432,21 @@ That wording is deliberate and should not be strengthened.
   PWD, MCD, NDMC, Cantonment, DDA, NHAI, or another agency maintains the road.
 - Chennai coverage is GCC only. Its ODbL polygon was checked against, but is not copied
   from, GCC's official 2025 layer; later boundary changes require a reviewed pack update.
-- Hyderabad coverage is a conservative ODbL core outline and is deliberately partial. It
-  offers shared My Cure without assigning a point to one of the three corporations created
-  in 2026. The complete official Secunderabad Cantonment layer extent is conservatively
-  refused, so some neighbouring civic points are also excluded.
-- Ahmedabad depends on Nominatim and an exact structured city-or-municipality match inside
-  a local envelope. It is not a municipal boundary and does not cover the wider AUDA area.
+- Hyderabad coverage uses the official 2,053 km² CURE point-query service on Android and
+  fails closed on the web or when that service is unavailable. The complete GPS-accuracy
+  envelope must be within CURE and must not intersect the exact official Secunderabad
+  Cantonment layer. Shared My Cure does not assign one of the three 2026 corporations.
+- Ahmedabad coverage uses the pinned 439.397 km² ODbL union of 48 AMC wards. AMC materials
+  publish larger post-merger areas, so complete current outer-expansion coverage is not
+  proven. The wider AUDA area is excluded.
 - There is no automatic filing, status sync, or cross-user report database for any route.
   Evidence remains local until the citizen deliberately opens an external handoff.
 - Maharashtra contract matching is disabled because no authoritative road-linked feed is
   integrated for the MMR or PMC.
 - Kolkata contract matching is disabled for the same reason; a KMC boundary match does not
   establish who owns or maintains a road.
-- Delhi, Chennai, Hyderabad, and Ahmedabad contract matching is disabled; containment or
-  a structured place match is neither ownership nor a contract match.
+- Delhi, Chennai, Hyderabad, and Ahmedabad contract matching is disabled; a coverage response
+  is neither ownership nor a contract match.
 - 137 of Karnataka's 319 local bodies have no address in the file, because their district
   pages publish none. Those reports refuse to route.
 - The full 42,283-row source has 41,159 records without a winning bidder. The downloadable
@@ -426,5 +463,6 @@ That wording is deliberate and should not be strengthened.
 - The public Nominatim endpoint is cached on an approximately 11 m grid and serialized
   below one request per second. National or municipal-scale deployment must switch the
   endpoint to a policy-compliant managed or self-hosted service. MMR, PMC, KMC, Delhi,
-  Chennai, and Hyderabad polygon routing remains local and does not depend on a geocoder
-  response; Ahmedabad intentionally does.
+  Chennai, and Ahmedabad boundary routing remains local and does not depend on a geocoder
+  response. Native Android Hyderabad routing sends the GPS-accuracy envelope to TGRAC's
+  official CURE and Cantonment query services.

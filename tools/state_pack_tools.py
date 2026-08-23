@@ -28,8 +28,8 @@ CATALOG_VERSION = 1
 PACK_VERSION = 1
 REVIEW_AFTER = "2026-11-21"
 RESOURCE_REVIEW_AFTER = {
-    # Hyderabad's 2026 three-corporation reorganisation and Ahmedabad's lack of a
-    # reusable current polygon deserve a much shorter re-review interval.
+    # Hyderabad's 2026 three-corporation reorganisation and Ahmedabad's secondary
+    # ward-boundary snapshot deserve a much shorter re-review interval.
     "in-tg-routing": "2026-09-21",
     "in-gj-routing": "2026-09-21",
 }
@@ -125,9 +125,9 @@ SPECS = {
         "TG",
         "routing",
         "municipal-city-v1",
-        "Hyderabad core; shared CURE grievance intake; partial coverage",
+        "Official Hyderabad 2,053 km² CURE point-query coverage; shared grievance intake",
         False,
-        ("OpenStreetMap data: ODbL 1.0",),
+        ("Official TGRAC public query service; no boundary geometry redistributed",),
         "data/metro-coverage/tg.json",
     ),
     "in-gj-routing": ResourceSpec(
@@ -135,9 +135,9 @@ SPECS = {
         "GJ",
         "routing",
         "municipal-city-v1",
-        "Ahmedabad structured city matches; not a municipal-boundary claim",
+        "Reviewed Ahmedabad 48-ward footprint; excludes wider AUDA",
         False,
-        ("OpenStreetMap data: ODbL 1.0",),
+        ("OpenCity / Oorvani Foundation data via Bharatlas: ODbL 1.0",),
         "data/metro-coverage/gj.json",
     ),
 }
@@ -154,6 +154,10 @@ MUNICIPAL_COMMON_REGION_KEYS = {
 MUNICIPAL_BOUNDARY_REGION_KEYS = {
     "coordinate_precision", "area_km2", "bbox", "geometry_sha256", "geometry",
 }
+MUNICIPAL_OFFICIAL_POINT_REGION_KEYS = {
+    "query_url", "query_where", "query_geometry_type", "query_in_sr",
+    "query_spatial_rel", "official_area_km2", "legal_references",
+}
 MUNICIPAL_STRING_FIELDS = {
     "id", "authority_id", "name", "scope", "routing_source", "match_value",
     "source_name", "source_home_url", "source_url", "source_license", "attribution",
@@ -163,6 +167,11 @@ MUNICIPAL_ENVELOPE_KEYS = {"min_lng", "min_lat", "max_lng", "max_lat"}
 MUNICIPAL_EXCLUSION_KEYS = {
     "id", "name", "mode", "bbox", "source_name", "source_url", "routing_note",
 }
+MUNICIPAL_POINT_EXCLUSION_KEYS = MUNICIPAL_EXCLUSION_KEYS | {
+    "query_url", "query_where", "query_geometry_type", "query_in_sr",
+    "query_spatial_rel", "source_object_id",
+}
+MUNICIPAL_LEGAL_REFERENCE_KEYS = {"title", "date", "url"}
 MUNICIPAL_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,100}$")
 HTTPS_RE = re.compile(r"^https://\S+$")
 
@@ -219,48 +228,64 @@ MUNICIPAL_CITY_PINS: dict[str, dict[str, Any]] = {
         "geometry_sha256": "88f13a9949f34b9c7aa9973db2b7f00659839ef3d434454208314d4479cd6cd5",
     },
     "in-tg-routing": {
-        "id": "hyderabad-cure-core",
+        "id": "hyderabad-cure-2053",
         "authority_id": "tg-cure-shared",
-        "name": "Hyderabad CURE core coverage",
-        "scope": "Partial Hyderabad core only; shared My Cure intake, without per-corporation attribution",
-        "routing_mode": "boundary",
-        "routing_source": "osm_hyderabad_core_boundary",
-        "match_value": "OpenStreetMap relation 7868535",
+        "name": "Hyderabad Core Urban Region official service coverage",
+        "scope": (
+            "Official 2,053 km² CURE point-query coverage; shared My Cure intake "
+            "without per-corporation attribution"
+        ),
+        "routing_mode": "official_point_query",
+        "routing_source": "tgrac_cure_2053_point_query",
+        "match_value": (
+            "TGRAC CURE layer 22; GPS-accuracy envelope within the official "
+            "2,053 km² coverage"
+        ),
         "state_aliases": ["telangana", "తెలంగాణ"],
         "place_aliases": ["hyderabad", "secunderabad", "హైదరాబాద్", "హైదరాబాదు"],
         "envelope": {
             "min_lng": 78.15,
-            "min_lat": 17.2,
-            "max_lng": 78.7,
-            "max_lat": 17.65,
+            "min_lat": 17.1,
+            "max_lng": 78.82,
+            "max_lat": 17.72,
         },
-        "source_name": "OpenStreetMap contributors",
-        "source_home_url": "https://www.openstreetmap.org/relation/7868535",
-        "source_url": (
-            "https://nominatim.openstreetmap.org/lookup?osm_ids=R7868535&format=jsonv2"
-            "&polygon_geojson=1&polygon_threshold=0.00001"
+        "source_name": "Telangana Remote Sensing Applications Centre (TGRAC)",
+        "source_home_url": (
+            "https://tgrac.telangana.gov.in/arcgis/rest/services/TCUR_Folder/"
+            "TCUR_Telangana_Core_Urban_Region_V2/MapServer"
         ),
-        "source_license": "Open Data Commons Open Database License (ODbL) 1.0",
-        "attribution": "© OpenStreetMap contributors",
-        "official_scope_reference": "https://ipass.telangana.gov.in/Downloads.aspx",
+        "source_url": (
+            "https://tgrac.telangana.gov.in/arcgis/rest/services/TCUR_Folder/"
+            "TCUR_Telangana_Core_Urban_Region_V2/MapServer/22"
+        ),
+        "source_license": (
+            "Official public query service; no boundary geometry is redistributed"
+        ),
+        "attribution": (
+            "Telangana Remote Sensing Applications Centre (TGRAC), Government of Telangana"
+        ),
+        "official_scope_reference": (
+            "https://tg-bn-website-assets.flowwlabs.tech/GOs-and-ACTs/"
+            "GO.Ms.No.55_11-02-2026.pdf"
+        ),
         "routing_note": (
-            "Coverage only. My Cure categorizes complaints across the 2026 GHMC, CMC and MMC "
-            "structure; the app does not select one corporation."
+            "The Android app asks the official TGRAC service whether the complete "
+            "GPS-accuracy envelope is within CURE layer 22. G.O.Ms.No.292 reorganised "
+            "the expanded area into 12 zones and 60 circles; G.O.Ms.No.55 later "
+            "constituted three corporations. The app deliberately uses the shared My "
+            "Cure intake instead of guessing one corporation."
         ),
         "limitations": [
-            "No authoritative reusable 2026 three-corporation vector boundaries were publicly available.",
-            "Coverage is partial and must not be read as the current GHMC, CMC or MMC boundary.",
-            (
-                "The full published Secunderabad Cantonment layer extent is conservatively refused, "
-                "so some neighbouring civic points are also excluded."
-            ),
-            "NHAI, TG R&B, HMDA, airport, private and other roads can have a different maintainer.",
+            "A live response from the official TGRAC service is required; browser/PWA use and service failures fail closed.",
+            "The shared My Cure handoff does not identify which of Greater Hyderabad, Cyberabad or Malkajgiri Municipal Corporation owns the issue.",
+            "The exact official Secunderabad Cantonment layer is queried and any intersecting accuracy envelope is refused.",
+            "NHAI, TG R&B, HMDA, airport, railway, defence, private and other roads may have a different maintainer.",
         ],
         "exclusions": [
             {
-                "id": "secunderabad-cantonment-extent",
-                "name": "Secunderabad Cantonment conservative exclusion",
-                "mode": "bbox",
+                "id": "secunderabad-cantonment",
+                "name": "Secunderabad Cantonment official boundary",
+                "mode": "official_point_query",
                 "bbox": {
                     "min_lng": 78.459155005,
                     "min_lat": 17.443033296,
@@ -273,61 +298,106 @@ MUNICIPAL_CITY_PINS: dict[str, dict[str, Any]] = {
                     "Hydra_Folder/Administrative_Layer/MapServer/1"
                 ),
                 "routing_note": (
-                    "The complete official layer extent is refused; "
-                    "no unlicensed Cantonment polygon is redistributed."
+                    "The Android app refuses any GPS-accuracy envelope intersecting the "
+                    "exact official layer; no Cantonment polygon is redistributed."
                 ),
+                "query_url": (
+                    "https://tgrac.telangana.gov.in/arcgis/rest/services/"
+                    "Hydra_Folder/Administrative_Layer/MapServer/1/query"
+                ),
+                "query_where": "1=1",
+                "query_geometry_type": "esriGeometryEnvelope",
+                "query_in_sr": 4326,
+                "query_spatial_rel": "esriSpatialRelIntersects",
+                "source_object_id": "tgrac:Hydra_Folder:Administrative_Layer:MapServer:1",
             }
         ],
-        "source_object_id": "osm:relation:7868535",
-        "coordinate_precision": 7,
-        "area_km2": 610.897,
-        "bbox": {
-            "min_lng": 78.2387067,
-            "min_lat": 17.2916377,
-            "max_lng": 78.6223912,
-            "max_lat": 17.5608321,
-        },
-        "geometry_sha256": "6d5ef9edbf927d4037a104d12fe490630b979fbbcbfcfd948550b1d93217de31",
+        "source_object_id": (
+            "tgrac:TCUR_Folder:TCUR_Telangana_Core_Urban_Region_V2:MapServer:22"
+        ),
+        "query_url": (
+            "https://tgrac.telangana.gov.in/arcgis/rest/services/TCUR_Folder/"
+            "TCUR_Telangana_Core_Urban_Region_V2/MapServer/22/query"
+        ),
+        "query_where": "1=1",
+        "query_geometry_type": "esriGeometryEnvelope",
+        "query_in_sr": 4326,
+        "query_spatial_rel": "esriSpatialRelWithin",
+        "official_area_km2": 2053,
+        "legal_references": [
+            {
+                "title": (
+                    "G.O.Ms.No.292, MA&UD (GHMC-1): reorganisation into 12 zones "
+                    "and 60 circles"
+                ),
+                "date": "2025-12-24",
+                "url": "https://goir.telangana.gov.in/",
+            },
+            {
+                "title": (
+                    "G.O.Ms.No.55, MA&UD (GHMC-1): constitution of three municipal "
+                    "corporations"
+                ),
+                "date": "2026-02-11",
+                "url": (
+                    "https://tg-bn-website-assets.flowwlabs.tech/GOs-and-ACTs/"
+                    "GO.Ms.No.55_11-02-2026.pdf"
+                ),
+            },
+        ],
     },
     "in-gj-routing": {
-        "id": "ahmedabad-structured",
+        "id": "ahmedabad-amc",
         "authority_id": "gj-amc",
-        "name": "Ahmedabad structured city coverage",
-        "scope": (
-            "Exact Ahmedabad/Amdavad structured address matches inside a reviewed relevance "
-            "envelope; not a municipal-boundary claim"
-        ),
-        "routing_mode": "structured_geocode",
-        "routing_source": "nominatim_structured_city",
-        "match_value": "Nominatim structured city/municipality Ahmedabad",
+        "name": "Ahmedabad Municipal Corporation 48-ward coverage",
+        "scope": "Reviewed Ahmedabad 48-ward coverage footprint; not the wider AUDA area",
+        "routing_mode": "boundary",
+        "routing_source": "opencity_amc_wards_union",
+        "match_value": "OpenCity AMC 48-ward union, snapshot 2026-05-26",
         "state_aliases": ["gujarat", "ગુજરાત"],
         "place_aliases": ["ahmedabad", "amdavad", "અમદાવાદ", "अहमदाबाद"],
         "envelope": {
-            "min_lng": 72.4200568,
-            "min_lat": 22.8615374,
-            "max_lng": 72.7400568,
-            "max_lat": 23.1815374,
+            "min_lng": 72.4,
+            "min_lat": 22.85,
+            "max_lng": 72.75,
+            "max_lat": 23.2,
         },
-        "source_name": "OpenStreetMap contributors via Nominatim",
-        "source_home_url": "https://www.openstreetmap.org/node/245711197",
+        "source_name": "OpenCity / Oorvani Foundation via Bharatlas",
+        "source_home_url": "https://bharatlas.com/view/wards_ahmedabad",
         "source_url": (
-            "https://nominatim.openstreetmap.org/search?city=Ahmedabad&state=Gujarat"
-            "&country=India&format=jsonv2&polygon_geojson=1&addressdetails=1&limit=10"
+            "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/"
+            "admin/wards-ahmedabad/wards_ahmedabad.geojson"
         ),
         "source_license": "Open Data Commons Open Database License (ODbL) 1.0",
-        "attribution": "© OpenStreetMap contributors",
-        "official_scope_reference": "https://www.amccrs.com/AMCPortal/View/AMCDetail.aspx",
+        "attribution": "© OpenCity / Oorvani Foundation contributors",
+        "official_scope_reference": "https://ahmedabadcity.gov.in/Home/AboutTheCorporation",
         "routing_note": (
-            "No current reusable AMC polygon was found. Exact structured fields gate an editable "
-            "CCRS handoff and never assert road ownership."
+            "The 48 reviewed ward polygons are dissolved into one coverage boundary. "
+            "Containment supports AMC complaint intake and does not prove road ownership."
         ),
         "limitations": [
-            "This is not point-in-polygon municipal containment.",
-            "A missing or conflicting structured city/state field fails closed.",
-            "AMC's public GIS is stale, lacks a reuse licence and is not bundled.",
+            (
+                "The ward snapshot is an ODbL secondary-source copy, checked against AMC's "
+                "current 48-ward inventory."
+            ),
+            (
+                "The 439.397 km² union is not proven to include every current outer AMC "
+                "expansion; AMC materials publish larger total areas."
+            ),
+            "AUDA and neighbouring municipal areas outside AMC are not covered.",
+            "NHAI, state, railway, airport, private and other roads may have a different maintainer.",
         ],
         "exclusions": [],
-        "source_object_id": "osm:node:245711197",
+        "source_object_id": "opencity:wards-ahmedabad:2026-05-26",
+        "coordinate_precision": 7,
+        "area_km2": 439.397,
+        "bbox": {
+            "min_lng": 72.4472434,
+            "min_lat": 22.9121407,
+            "max_lng": 72.7036946,
+            "max_lat": 23.1386475,
+        },
+        "geometry_sha256": "48de18a521d2ece507ebda91976064353b477283a251bf45d271fdd0c7b82cb7",
     },
 }
 
@@ -587,6 +657,23 @@ def _validate_municipal_authorities(spec: ResourceSpec, authorities: Any) -> Non
     )
 
 
+def _validate_official_point_query(value: dict[str, Any], label: str, spatial_rel: str) -> None:
+    query_url = value.get("query_url")
+    _expect(
+        isinstance(query_url, str) and HTTPS_RE.fullmatch(query_url) is not None,
+        f"{label}.query_url must be HTTPS",
+    )
+    _expect(value.get("query_where") == "1=1", f"{label}.query_where must be 1=1")
+    _expect(
+        value.get("query_geometry_type") == "esriGeometryEnvelope",
+        f"{label}.query_geometry_type must be esriGeometryEnvelope",
+    )
+    _expect(type(value.get("query_in_sr")) is int and value["query_in_sr"] == 4326,
+            f"{label}.query_in_sr must be integer EPSG:4326")
+    _expect(value.get("query_spatial_rel") == spatial_rel,
+            f"{label}.query_spatial_rel must be {spatial_rel}")
+
+
 def _validate_municipal_city_payload(
     spec: ResourceSpec,
     payload: Any,
@@ -614,11 +701,13 @@ def _validate_municipal_city_payload(
     _expect(isinstance(region, dict), f"{spec.pack_id} municipal region must be an object")
 
     routing_mode = region.get("routing_mode")
-    _expect(routing_mode in {"boundary", "structured_geocode"},
+    _expect(routing_mode in {"boundary", "structured_geocode", "official_point_query"},
             f"{spec.pack_id} municipal routing_mode is invalid")
     expected_fields = set(MUNICIPAL_COMMON_REGION_KEYS)
     if routing_mode == "boundary":
         expected_fields.update(MUNICIPAL_BOUNDARY_REGION_KEYS)
+    elif routing_mode == "official_point_query":
+        expected_fields.update(MUNICIPAL_OFFICIAL_POINT_REGION_KEYS)
     _expect(set(region) == expected_fields,
             f"{spec.pack_id} municipal region fields differ from the {routing_mode} contract")
 
@@ -660,8 +749,15 @@ def _validate_municipal_city_payload(
     exclusion_ids: set[str] = set()
     for index, exclusion in enumerate(exclusions):
         label = f"{spec.pack_id}.exclusions[{index}]"
-        _expect(isinstance(exclusion, dict) and set(exclusion) == MUNICIPAL_EXCLUSION_KEYS,
-                f"{label} fields differ from the contract")
+        _expect(isinstance(exclusion, dict), f"{label} must be an object")
+        exclusion_mode = exclusion.get("mode")
+        expected_exclusion_keys = (
+            MUNICIPAL_POINT_EXCLUSION_KEYS
+            if exclusion_mode == "official_point_query"
+            else MUNICIPAL_EXCLUSION_KEYS
+        )
+        _expect(set(exclusion) == expected_exclusion_keys,
+                f"{label} fields differ from the {exclusion_mode} contract")
         exclusion_id = exclusion.get("id")
         _expect(
             isinstance(exclusion_id, str)
@@ -670,7 +766,8 @@ def _validate_municipal_city_payload(
             f"{label} id is invalid or duplicated",
         )
         exclusion_ids.add(exclusion_id)
-        _expect(exclusion.get("mode") == "bbox", f"{label} mode must be bbox")
+        _expect(exclusion_mode in {"bbox", "official_point_query"},
+                f"{label} mode is invalid")
         for field in ("name", "source_name", "routing_note"):
             value = exclusion.get(field)
             _expect(isinstance(value, str) and value and len(value) <= 500,
@@ -688,6 +785,14 @@ def _validate_municipal_city_payload(
             and bbox["max_lat"] <= envelope["max_lat"],
             f"{label}.bbox falls outside the municipal relevance envelope",
         )
+        if exclusion_mode == "official_point_query":
+            source_object_id = exclusion.get("source_object_id")
+            _expect(
+                isinstance(source_object_id, str) and source_object_id
+                and len(source_object_id) <= 200,
+                f"{label}.source_object_id is invalid",
+            )
+            _validate_official_point_query(exclusion, label, "esriSpatialRelIntersects")
 
     for field, expected in pin.items():
         _expect(region.get(field) == expected,
@@ -728,6 +833,34 @@ def _validate_municipal_city_payload(
             and geometry_digest == region["geometry_sha256"],
             f"{spec.pack_id} geometry SHA-256 is invalid",
         )
+    elif routing_mode == "official_point_query":
+        _validate_official_point_query(region, spec.pack_id, "esriSpatialRelWithin")
+        area = region.get("official_area_km2")
+        _expect(_is_finite_number(area) and 1 < area <= 10_000,
+                f"{spec.pack_id} official_area_km2 is outside the runtime range")
+        legal_references = region.get("legal_references")
+        _expect(
+            isinstance(legal_references, list) and 1 <= len(legal_references) <= 10,
+            f"{spec.pack_id} legal_references must contain between 1 and 10 entries",
+        )
+        for index, reference in enumerate(legal_references):
+            label = f"{spec.pack_id}.legal_references[{index}]"
+            _expect(
+                isinstance(reference, dict)
+                and set(reference) == MUNICIPAL_LEGAL_REFERENCE_KEYS,
+                f"{label} fields differ from the contract",
+            )
+            _expect(
+                isinstance(reference.get("title"), str) and reference["title"]
+                and len(reference["title"]) <= 500,
+                f"{label}.title is invalid",
+            )
+            _expect(_is_date(reference.get("date")), f"{label}.date is invalid")
+            _expect(
+                isinstance(reference.get("url"), str)
+                and HTTPS_RE.fullmatch(reference["url"]) is not None,
+                f"{label}.url must be HTTPS",
+            )
 
     if authorities is not None:
         _validate_municipal_authorities(spec, authorities)

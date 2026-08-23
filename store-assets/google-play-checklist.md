@@ -1,13 +1,13 @@
 # Google Play publication checklist
 
-Status reviewed 23 August 2026 for release 1.21.1 / version code 39. This is a release
+Status reviewed 23 August 2026 for release 1.22.0 / version code 40. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.21.1/code 39 after the background Drive changes,
+- [ ] **Fresh signed release bundle:** build version 1.22.0/code 40 after the civic-reporting changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
   it in Play Console.
 - [x] **Hosted privacy page:** verified on the stable public host:
@@ -15,9 +15,9 @@ checklist, not a substitute for the current Play Console tasks shown for the pub
   browser. It must not redirect to a login, return an error, or serve a PDF.
 - [x] **In-app privacy link:** link that exact hosted page from the release build. Creating
   the page alone does not satisfy the in-app-link requirement.
-- [ ] **Support email:** supply a monitored, developer-controlled email address in Play
-  Console. The repository contains none, so this remains a publisher decision.
-- [ ] **Reviewer access:** core detection requires an OpenAI key. Give Play reviewers
+- [ ] **Support email:** enter and monitor `contact@aiengg.dev` in Play Console.
+- [ ] **Reviewer access:** Pothole and Drive require an OpenAI key; Garbage and Manhole do
+  not. Give Play reviewers
   reusable English instructions and a dedicated revocable, spend-limited credential that
   unlocks every reviewable feature. Do not expose a personal production key.
 - [ ] **Data Safety and App content:** complete and submit the declarations below; do not
@@ -58,12 +58,19 @@ Do not submit to production until every applicable item above is complete.
   pinned NCT polygon routes, and neighbouring NCR points stay unrouted.
 - [ ] Test Chennai fixtures in every GCC zone, St Thomas Mount and neighbouring bodies.
   Confirm the verified GCC polygon routes only GCC points and preserves its interior hole.
-- [ ] Test central Hyderabad-core points, points outside the conservative outline, and the
-  full published Secunderabad Cantonment extent. Confirm Cantonment and uncertain boundary
-  points fail closed, and My Cure never claims one of the three 2026 corporations owns the road.
-- [ ] Test Ahmedabad with an exact structured `city` and `municipality` result, then a
-  `town`, `city_district`, free-text-only, wrong-state, outside-envelope, and missing result.
-  Confirm only the two exact structured cases route and the app makes no AMC-boundary claim.
+- [ ] Test representative points across the official 2,053 km² Hyderabad CURE, points just
+  outside it, a failed TGRAC response, and Secunderabad Cantonment. Confirm the full
+  GPS-accuracy envelope must be inside CURE, any Cantonment intersection fails closed, the
+  web/PWA build fails closed, and My Cure never claims one of the three 2026 corporations.
+- [ ] Test central, edge, and just-outside points against the reviewed 48-ward Ahmedabad
+  union, including South Bopal/Ghuma as known outer-expansion gap fixtures. Confirm the
+  app does not claim current outer AMC or wider AUDA completeness and never falls back to
+  an Ahmedabad place-name guess.
+- [ ] In MMR, PMC, KMC, Delhi, all five Bengaluru city corporations, Chennai, Hyderabad,
+  and Ahmedabad, create Pothole, Garbage, and Manhole reports. Confirm road damage keeps
+  its road-specific route, the other categories use only reviewed general-civic channels,
+  and unverified categories fail closed. Simulate a routing-pack/network failure, keep the
+  full civic photo and original timestamp, then confirm Retry routing uses the saved point.
 - [ ] Test Maharashtra handoffs in English and Marathi, including email, portal, installed
   and uninstalled official apps, Share, BMC WhatsApp at +91 89992 28999, 1916, cancellation,
   and back navigation.
@@ -102,7 +109,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.20.0 release. Include an independent civic handoff and regional-language support
+  the 1.22.0 release. Include the issue picker, an independent civic handoff, and regional-language support
   without displaying private coordinates, an API key, a real grievance ID, or civic-body
   marks. Put other city-specific flows in reviewer instructions instead of implying that
   one screenshot proves every supported route.
@@ -111,7 +118,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Enter the hosted privacy-policy URL, support website, and required support email.
 - [ ] Choose the app category and target countries intentionally. Current routing covers mapped
   NH/NE carriageways across India plus the municipal areas listed in `google-play-listing.md`; keep the wider NCR, PCMC, wider
-  Chennai metro, partial-Hyderabad, Cantonment, Ahmedabad-structure, and Kolkata-neighbour
+  Chennai metro, Cantonment, Ahmedabad outer-expansion, and Kolkata-neighbour
   limitations visible.
 - [ ] Keep the non-affiliation statement and the clearly labelled government-information
   source directory visible in the full description; confirm that directory exposes direct
@@ -124,9 +131,11 @@ Official references: [target API schedule](https://support.google.com/googleplay
   release behavior agree exactly.
 - [ ] Treat off-device transmission as collection even when processing is short-lived.
   Audit at least:
-  - selected manual photos and Drive/VOD image frames sent to OpenAI;
-  - precise coordinates sent to Nominatim, and to Karnataka GIS only for Karnataka points;
-    MMR, PMC, KMC, Delhi NCT, GCC, and Hyderabad-core polygon checks remain on-device;
+  - selected road-damage photos and Drive/VOD image frames sent to OpenAI; user-confirmed
+    Garbage and Manhole photos are not sent to OpenAI;
+  - precise coordinates sent to Nominatim, to Karnataka GIS for Karnataka points, and with
+    the GPS-accuracy envelope to official Telangana GIS for Hyderabad routing; MMR, PMC,
+    KMC, Delhi NCT, GCC, and Ahmedabad boundary checks remain on-device;
   - for eligible Karnataka routes only, road address and procurement shortlist sent to
     OpenAI for probable contract matching; contract matching elsewhere is disabled;
   - API credential and standard network metadata received by external services;

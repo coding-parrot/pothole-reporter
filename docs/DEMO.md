@@ -8,7 +8,8 @@ run from the verified cache.
 
 1. **Install and open it once, before the room is watching.** Measure the cold launch on
    the target phone; do not infer it from an emulator or an older release.
-2. **Paste the OpenAI key** in Settings. Nothing detects without it.
+2. **Paste the OpenAI key** in Settings for Pothole and Drive. Garbage and Manhole work
+   without it because the user explicitly selects those categories.
 3. **Set your name** in Settings. Without it, complaints are signed "A concerned citizen".
 4. **Take one report in the area you will demonstrate.** It proves the key works and
    downloads and verifies that state's routing pack. Delete the report afterwards if you
@@ -24,9 +25,10 @@ plus clear/probable/uncertain/absent and does not display an uncalibrated model 
 
 ## What needs the network, and what happens without it
 
-Five services, and a demo venue's wifi can break any of them:
+Six services, and a demo venue's wifi can break any of them:
 
-- **OpenAI** for detection. Without it, nothing is detected and the app says so.
+- **OpenAI** for pothole detection. Without it, Pothole and Drive cannot detect damage;
+  user-confirmed Garbage and Manhole reports still work.
 - **GitHub Pages** for a state's first routing/contact-pack download and, only when
   eligible, the optional Karnataka tender pack. After a successful verified download, that
   pack can be read from local cache. If a required routing/contact pack is missing or fails
@@ -34,9 +36,11 @@ Five services, and a demo venue's wifi can break any of them:
   pack fails, the report continues without contract context.
 - **Karnataka's state GIS** for the officer and the highway check. Without it, the app
   refuses to name anyone and says the road could not be checked. It does not guess.
-- **OpenStreetMap Nominatim** for the street address and, in Ahmedabad only, the required
-  exact structured `city` or `municipality` routing match. Without that exact Ahmedabad
-  result, routing fails closed even when the point is inside the local relevance envelope.
+- **Telangana's official TGRAC GIS** for Hyderabad CURE and Cantonment checks. Android
+  requires both live responses and fails closed if either is unavailable; the web demo
+  deliberately does not route Hyderabad.
+- **OpenStreetMap Nominatim** for the street address. City routing does not depend on the
+  returned place name; Ahmedabad uses the verified cached 48-ward AMC union.
 - **OpenStreetMap tiles** for the map on the dashboard. Without them the map renders
   half-blank while the pins and the counts stay correct.
 
@@ -50,11 +54,12 @@ want on stage.
   13,577 supported-body candidates in the optional downloadable pack. Its old 341-row
   spot-check applies to the full source snapshot, not to the reduced pack.
 - **"Does it work outside Karnataka?"** Yes: the app covers Delhi NCT, the current MMR,
-  Pune and Kolkata Municipal Corporation limits, Greater Chennai Corporation limits, a
-  conservative partial Hyderabad-core outline, and strict structured Ahmedabad matches.
+  Pune and Kolkata Municipal Corporation limits, Greater Chennai Corporation limits,
+  Android-verified official 2,053 km² Hyderabad CURE coverage, and a reviewed 48-ward
+  Ahmedabad footprint.
   It suggests a complaint route but does not claim road ownership. The wider NCR, PCMC,
   Kolkata's neighbours, the wider Chennai metro, the published Secunderabad Cantonment
-  extent, and ambiguous Ahmedabad results are excluded. Contract matching remains
+  extent, and the wider AUDA area is excluded. Contract matching remains
   Karnataka-only.
 - **"Why is the APK smaller?"** State routing/contact datasets are versioned downloads,
   and Karnataka tenders are a separate optional download. The app verifies each file
@@ -66,9 +71,10 @@ want on stage.
   contains no report, photo, or exact coordinates.
 - **"What about highways?"** Municipal routing is refused because the app cannot verify
   that a supported civic body owns or maintains the road.
-- **"Where do the photos go?"** Selected images go directly to OpenAI and may be processed
-  outside India. Road photos can contain number plates and faces; see the privacy policy
-  and the in-app disclosure.
+- **"Where do the photos go?"** Selected road-damage images go directly to OpenAI and may
+  be processed outside India. User-confirmed garbage and manhole photos stay local unless
+  the user chooses an external handoff. Photos can contain number plates and faces; see the
+  privacy policy and in-app disclosure.
 - **"Does it send complaints automatically?"** No. Every one is a draft you press send on.
 
 ## What not to claim
@@ -81,10 +87,11 @@ want on stage.
   covered, using a verified downloaded copy of the official West Bengal UDMA boundary.
 - Not that Chennai coverage means the whole metropolitan area: only the verified GCC
   polygon is covered.
-- Not that the Hyderabad outline is any current corporation boundary: coverage is partial,
-  the Cantonment extent is refused, and My Cure is shared without corporation attribution.
-- Not that Ahmedabad uses an AMC boundary: it requires an exact structured geocoder result
-  inside a relevance envelope, and neither is proof of municipal containment.
+- Not that Hyderabad CURE containment identifies a corporation or road owner: Android checks
+  the official CURE and exact Cantonment layers live, while My Cure is shared without
+  corporation attribution. Web use and unavailable service responses fail closed.
+- Not that Ahmedabad coverage means the wider AUDA area: only the reviewed ODbL union of
+  48 AMC wards is covered, and containment is not proof of road ownership.
 - Not that it produces a ticket number. Karnataka opens an email draft; Maharashtra,
   Kolkata, Delhi, Chennai, Hyderabad, and Ahmedabad open a user-selected official channel.
   Only the external service can return an official grievance/reference ID.

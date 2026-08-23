@@ -56,18 +56,20 @@ MUNICIPAL_CITY_RESOURCES = {
         "source_object_id": "osm:relation:1766358",
     },
     "in-tg-routing": {
-        "region_id": "hyderabad-cure-core",
+        "region_id": "hyderabad-cure-2053",
         "authority_id": "tg-cure-shared",
-        "routing_mode": "boundary",
-        "routing_source": "osm_hyderabad_core_boundary",
-        "source_object_id": "osm:relation:7868535",
+        "routing_mode": "official_point_query",
+        "routing_source": "tgrac_cure_2053_point_query",
+        "source_object_id": (
+            "tgrac:TCUR_Folder:TCUR_Telangana_Core_Urban_Region_V2:MapServer:22"
+        ),
     },
     "in-gj-routing": {
-        "region_id": "ahmedabad-structured",
+        "region_id": "ahmedabad-amc",
         "authority_id": "gj-amc",
-        "routing_mode": "structured_geocode",
-        "routing_source": "nominatim_structured_city",
-        "source_object_id": "osm:node:245711197",
+        "routing_mode": "boundary",
+        "routing_source": "opencity_amc_wards_union",
+        "source_object_id": "opencity:wards-ahmedabad:2026-05-26",
     },
 }
 LEGACY_BUNDLED_FILES = {
@@ -176,10 +178,18 @@ def check_municipal_city_pack(pack_id: str, envelope: dict, failures: list[str])
     for field in ("source_home_url", "source_url", "official_scope_reference"):
         if not isinstance(region.get(field), str) or not region[field].startswith("https://"):
             failures.append(f"{pack_id} {field} is not an HTTPS source")
-    if "ODbL" not in str(region.get("source_license")):
+    if pack_id != "in-tg-routing" and "ODbL" not in str(region.get("source_license")):
         failures.append(f"{pack_id} does not identify its ODbL source licence")
-    if "OpenStreetMap" not in str(region.get("attribution")):
-        failures.append(f"{pack_id} does not preserve OpenStreetMap attribution")
+    if pack_id == "in-tg-routing" and "no boundary geometry" not in str(
+        region.get("source_license")
+    ):
+        failures.append("in-tg-routing does not state its no-redistribution policy")
+    expected_attribution = {
+        "in-gj-routing": "OpenCity",
+        "in-tg-routing": "TGRAC",
+    }.get(pack_id, "OpenStreetMap")
+    if expected_attribution not in str(region.get("attribution")):
+        failures.append(f"{pack_id} does not preserve {expected_attribution} attribution")
     if not all(
         isinstance(region.get(field), list) and region[field]
         for field in ("state_aliases", "place_aliases", "limitations")
@@ -189,8 +199,13 @@ def check_municipal_city_pack(pack_id: str, envelope: dict, failures: list[str])
     if not isinstance(exclusions, list):
         failures.append(f"{pack_id} has no exclusion inventory")
     elif pack_id == "in-tg-routing":
-        if len(exclusions) != 1 or exclusions[0].get("id") != "secunderabad-cantonment-extent":
-            failures.append("in-tg-routing does not pin the conservative Cantonment exclusion")
+        if (
+            len(exclusions) != 1
+            or exclusions[0].get("id") != "secunderabad-cantonment"
+            or exclusions[0].get("mode") != "official_point_query"
+            or exclusions[0].get("query_spatial_rel") != "esriSpatialRelIntersects"
+        ):
+            failures.append("in-tg-routing does not pin the exact Cantonment query")
     elif exclusions:
         failures.append(f"{pack_id} has an unexpected exclusion")
 
@@ -207,6 +222,10 @@ def check_municipal_city_pack(pack_id: str, envelope: dict, failures: list[str])
         failures.append(f"{pack_id} has an invalid municipal relevance envelope")
 
     geometry_fields = {"coordinate_precision", "area_km2", "bbox", "geometry_sha256", "geometry"}
+    point_query_fields = {
+        "query_url", "query_where", "query_geometry_type", "query_in_sr",
+        "query_spatial_rel", "official_area_km2", "legal_references",
+    }
     if expected["routing_mode"] == "boundary":
         if not geometry_fields.issubset(region):
             failures.append(f"{pack_id} boundary region has incomplete geometry metadata")
@@ -228,8 +247,23 @@ def check_municipal_city_pack(pack_id: str, envelope: dict, failures: list[str])
             failures.append(f"{pack_id} geometry coordinate precision is not pinned to 7")
         if not isinstance(region.get("area_km2"), (int, float)) or region["area_km2"] <= 0:
             failures.append(f"{pack_id} geometry has no positive reviewed area")
-    elif geometry_fields.intersection(region):
-        failures.append(f"{pack_id} structured route must not imply municipal geometry")
+    elif expected["routing_mode"] == "official_point_query":
+        if not point_query_fields.issubset(region):
+            failures.append(f"{pack_id} official point route has incomplete query metadata")
+        if region.get("query_spatial_rel") != "esriSpatialRelWithin":
+            failures.append(f"{pack_id} CURE query does not require full envelope containment")
+        if region.get("query_in_sr") != 4326:
+            failures.append(f"{pack_id} CURE query is not pinned to EPSG:4326")
+        references = region.get("legal_references")
+        titles = [item.get("title", "") for item in references or [] if isinstance(item, dict)]
+        if not any("G.O.Ms.No.292" in title for title in titles):
+            failures.append(f"{pack_id} does not pin G.O.Ms.No.292")
+        if not any("G.O.Ms.No.55" in title for title in titles):
+            failures.append(f"{pack_id} does not pin G.O.Ms.No.55")
+        if geometry_fields.intersection(region):
+            failures.append(f"{pack_id} redistributes geometry for a live official query")
+    elif geometry_fields.intersection(region) or point_query_fields.intersection(region):
+        failures.append(f"{pack_id} structured route implies unsupported spatial data")
 
 
 def check_catalog(failures: list[str]) -> dict:

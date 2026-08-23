@@ -27,7 +27,7 @@ async () => {
   const enKeys = Object.keys(I18N.en).sort();
   const bnKeys = Object.keys(I18N.bn || {}).sort();
   eq("i18n: Bengali has exactly the English key set", bnKeys, enKeys);
-  eq("i18n: Bengali key count is pinned", bnKeys.length, 196);
+  eq("i18n: Bengali key count is pinned", bnKeys.length, 222);
   for (const key of enKeys) {
     eq(`i18n placeholder parity: ${key}`,
        placeholders(I18N.bn[key]), placeholders(I18N.en[key]));
@@ -46,7 +46,7 @@ async () => {
        && /ক্যামেরা/.test(document.getElementById("privacyBody").textContent),
      document.getElementById("privacyBody").textContent);
   ok("privacy: background-drive disclosure forces fresh consent",
-     /v10-play-background-disclosure$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
+     /v12-civic-and-hyderabad-gis-disclosure$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
 
   const P = StandaloneAPI.__pure;
   const route = await P.kolkataRouteFromGeocode(null, 22.5726, 88.3639, 12);

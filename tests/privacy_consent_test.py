@@ -136,6 +136,8 @@ with sync_playwright() as playwright:
     page.locator("#captureBtn").click()
     page.locator("#dataConsent").wait_for(state="visible")
     page.locator("#privacyAccept").click()
+    page.locator("#issuePicker").wait_for(state="visible")
+    page.locator("#issueRoad").click()
     wait_for_event(page, "camera")
     camera_held = snapshot(page)
     if camera_held["version"] != camera_held["currentVersion"]:
@@ -155,8 +157,11 @@ with sync_playwright() as playwright:
         failures.append(f"capture: accepted action did not resume exactly once: {accepted}")
 
     # The accepted version skips the disclosure but still goes through Android's idempotent
-    # permission checks before opening the file picker.
+    # permission checks before opening the file picker, after an issue is chosen.
+    page.locator("#issueBack").click()
     page.locator("#captureBtn").click()
+    page.locator("#issuePicker").wait_for(state="visible")
+    page.locator("#issueRoad").click()
     wait_for_event(page, "camera", 2)
     repeated = snapshot(page)
     if repeated["consentVisible"]:
@@ -168,6 +173,7 @@ with sync_playwright() as playwright:
 
     # A stale notice version must disclose again. Android Back is a decline: it must not
     # upgrade the stored version or continue the interrupted capture action.
+    page.locator("#issueBack").click()
     page.evaluate("localStorage.setItem('data_notice_version', 'obsolete-notice')")
     page.locator("#captureBtn").click()
     page.locator("#dataConsent").wait_for(state="visible")

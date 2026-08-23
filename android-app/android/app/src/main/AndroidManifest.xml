@@ -12,6 +12,10 @@
         <package android:name="cgg.gov.ghmc" />
         <package android:name="com.amplvb.ccrs" />
         <package android:name="com.nhai.rajmargyatra" />
+        <package android:name="com.nammabengaluruNew.org" />
+        <package android:name="com.esri.ugms_bmc" />
+        <package android:name="in.gov.pmc.pmccare" />
+        <package android:name="com.nic.dl.delhijanmitra" />
         <package android:name="com.google.android.apps.maps" />
     </queries>
 

@@ -7,6 +7,7 @@ import copy
 import hashlib
 import json
 import sys
+from urllib.parse import parse_qs, urlsplit
 
 from playwright.sync_api import sync_playwright
 
@@ -26,31 +27,32 @@ PACKS = {
     },
     "in-tg-routing": {
         "state_code": "TG",
-        "region_id": "hyderabad-cure-core",
+        "region_id": "hyderabad-cure-2053",
         "authority_id": "tg-cure-shared",
-        "routing_mode": "boundary",
-        "routing_source": "osm_hyderabad_core_boundary",
-        "envelope": {"min_lng": 78.15, "min_lat": 17.20, "max_lng": 78.70, "max_lat": 17.65},
-        "has_geometry": True,
+        "routing_mode": "official_point_query",
+        "routing_source": "tgrac_cure_2053_point_query",
+        "envelope": {"min_lng": 78.15, "min_lat": 17.10, "max_lng": 78.82, "max_lat": 17.72},
+        "has_geometry": False,
     },
     "in-gj-routing": {
         "state_code": "GJ",
-        "region_id": "ahmedabad-structured",
+        "region_id": "ahmedabad-amc",
         "authority_id": "gj-amc",
-        "routing_mode": "structured_geocode",
-        "routing_source": "nominatim_structured_city",
+        "routing_mode": "boundary",
+        "routing_source": "opencity_amc_wards_union",
         "envelope": {
-            "min_lng": 72.4200568, "min_lat": 22.8615374,
-            "max_lng": 72.7400568, "max_lat": 23.1815374,
+            "min_lng": 72.40, "min_lat": 22.85,
+            "max_lng": 72.75, "max_lat": 23.20,
         },
-        "has_geometry": False,
+        "has_geometry": True,
     },
 }
 
 HOOKS_READY = """
 () => {
   const P = window.StandaloneAPI && StandaloneAPI.__pure;
-  return P && ["municipalCityCoverage", "municipalCityRouteFromGeocode", "routeOfficer"]
+  return P && ["municipalCityCoverage", "municipalCityRouteFromGeocode", "routeOfficer",
+    "gpsAccuracyEnvelope", "officialPointRegionMatch", "savedMunicipalLocationMatches"]
     .every((name) => typeof P[name] === "function");
 }
 """
@@ -80,16 +82,16 @@ async () => {
   };
   const regions = {
     tn: regionOf(coverage.tn, "chennai-gcc"),
-    tg: regionOf(coverage.tg, "hyderabad-cure-core"),
-    gj: regionOf(coverage.gj, "ahmedabad-structured"),
+    tg: regionOf(coverage.tg, "hyderabad-cure-2053"),
+    gj: regionOf(coverage.gj, "ahmedabad-amc"),
   };
 
   for (const [name, packId, regionId, authorityId, source, geometry] of [
     ["Chennai", "in-tn-routing", "chennai-gcc", "tn-gcc", "osm_gcc_boundary", true],
-    ["Hyderabad", "in-tg-routing", "hyderabad-cure-core", "tg-cure-shared",
-      "osm_hyderabad_core_boundary", true],
-    ["Ahmedabad", "in-gj-routing", "ahmedabad-structured", "gj-amc",
-      "nominatim_structured_city", false],
+    ["Hyderabad", "in-tg-routing", "hyderabad-cure-2053", "tg-cure-shared",
+      "tgrac_cure_2053_point_query", false],
+    ["Ahmedabad", "in-gj-routing", "ahmedabad-amc", "gj-amc",
+      "opencity_amc_wards_union", true],
   ]) {
     const key = packId === "in-tn-routing" ? "tn" : packId === "in-tg-routing" ? "tg" : "gj";
     const region = regions[key];
@@ -176,33 +178,41 @@ async () => {
                  full: "Hyderabad, Telangana, India"};
   const tgInside = await P.municipalCityRouteFromGeocode(
     "in-tg-routing", tgGeo, 17.3616, 78.4747, 12);
-  assertRoute("Hyderabad core inside", tgInside, "in-tg-routing", regions.tg,
+  assertRoute("Hyderabad CURE inside", tgInside, "in-tg-routing", regions.tg,
               "tg-cure-shared",
-              "osm_hyderabad_core_boundary", "boundary");
+              "tgrac_cure_2053_point_query", "official_accuracy_envelope");
   eq("Hyderabad: shared My Cure portal", tgInside && tgInside.handoff_url,
      "https://igs.ghmc.gov.in/operator/send_otp_mobile");
   eq("Hyderabad: shared My Cure package", tgInside && tgInside.handoff_package,
      "cgg.gov.ghmc");
   eq("Hyderabad: no false corporation attribution",
      tgInside && tgInside.authority_id, "tg-cure-shared");
+  eq("Hyderabad: official area metadata", regions.tg && regions.tg.official_area_km2, 2053);
+  eq("Hyderabad: CURE requires the entire accuracy envelope within the official layer",
+     regions.tg && regions.tg.query_spatial_rel, "esriSpatialRelWithin");
+  eq("Hyderabad: no unlicensed CURE polygon is bundled",
+     regions.tg && regions.tg.geometry, undefined);
 
-  ok("Hyderabad fixture: outer Shamshabad is outside partial core coverage",
-     regions.tg && !P.pointInGeometry(78.3982, 17.2599, regions.tg.geometry), regions.tg);
   const tgOuter = await P.municipalCityRouteFromGeocode(
     "in-tg-routing", tgGeo, 17.2599, 78.3982, 12);
-  eq("Hyderabad outer: newly merged area is not claimed by the partial core",
-     tgOuter && tgOuter.routed, false);
-  eq("Hyderabad outer: reason is explicit",
-     tgOuter && tgOuter.unrouted_reason, "outside_area");
+  eq("Hyderabad outer: newly merged Shamshabad area is covered by official CURE",
+     tgOuter && tgOuter.authority_id, "tg-cure-shared");
+  const tgOutside = await P.municipalCityRouteFromGeocode(
+    "in-tg-routing", tgGeo, 17.1500, 78.1800, 12);
+  eq("Hyderabad outside: official service refusal is honoured",
+     tgOutside && tgOutside.unrouted_reason, "outside_area");
   const cantonment = await P.municipalCityRouteFromGeocode(
     "in-tg-routing", tgGeo, 17.4815673, 78.4980533, 12);
-  eq("Hyderabad exclusion: overlapping Secunderabad Cantonment point is refused",
+  eq("Hyderabad exclusion: exact Secunderabad Cantonment query is refused",
      cantonment && cantonment.routed, false);
   eq("Hyderabad exclusion: Cantonment refusal is explicit",
      cantonment && cantonment.unrouted_reason, "outside_area");
-  eq("Hyderabad exclusion: official extent is pinned",
+  eq("Hyderabad exclusion: official layer is pinned",
      regions.tg && regions.tg.exclusions[0] && regions.tg.exclusions[0].id,
-     "secunderabad-cantonment-extent");
+     "secunderabad-cantonment");
+  eq("Hyderabad exclusion: accuracy envelope must not intersect Cantonment",
+     regions.tg && regions.tg.exclusions[0] && regions.tg.exclusions[0].query_spatial_rel,
+     "esriSpatialRelIntersects");
   const tgLimit = await P.municipalCityRouteFromGeocode(
     "in-tg-routing", tgGeo, 17.3616, 78.4747, 30);
   eq("Hyderabad accuracy: 30 m is accepted away from the edge",
@@ -213,27 +223,28 @@ async () => {
     eq(`Hyderabad accuracy: ${name} fails closed`,
        route && route.unrouted_reason, "location_uncertain");
   }
-  const tgEdgePoint = edgeOf(regions.tg && regions.tg.geometry);
-  ok("Hyderabad edge fixture exists", tgEdgePoint, regions.tg);
-  const tgEdge = tgEdgePoint && await P.municipalCityRouteFromGeocode(
-    "in-tg-routing", tgGeo, tgEdgePoint[1], tgEdgePoint[0], 5);
-  eq("Hyderabad edge: an accuracy circle touching the boundary fails closed",
-     tgEdge && tgEdge.unrouted_reason, "location_uncertain");
+  const accuracyEnvelope = P.gpsAccuracyEnvelope(17.3616, 78.4747, 12);
+  ok("Hyderabad accuracy: a non-zero GPS envelope is queried",
+     accuracyEnvelope.xmin < 78.4747 && accuracyEnvelope.xmax > 78.4747
+       && accuracyEnvelope.ymin < 17.3616 && accuracyEnvelope.ymax > 17.3616,
+     accuracyEnvelope);
+  const tgPack = await P.loadStatePack("in-tg-routing");
+  const savedInside = await P.savedMunicipalLocationMatches(
+    {...tgInside, lat: 17.3616, lng: 78.4747, gps_accuracy: 12},
+    P.MUNICIPAL_CITY_CONFIGS["in-tg-routing"], tgPack);
+  eq("Hyderabad saved handoff: live official revalidation succeeds", savedInside, true);
+  const savedWrongEvidence = await P.savedMunicipalLocationMatches(
+    {...tgInside, lat: 17.3616, lng: 78.4747, gps_accuracy: 12,
+      routing_match_field: "boundary"},
+    P.MUNICIPAL_CITY_CONFIGS["in-tg-routing"], tgPack);
+  eq("Hyderabad saved handoff: stale boundary evidence is refused", savedWrongEvidence, false);
 
   const gjCity = {city: "Ahmedabad", state: "Gujarat", country_code: "in",
                   full: "Ahmedabad, Gujarat, India"};
-  const gjMunicipality = {municipality: "Ahmedabad", state: "Gujarat", country_code: "in",
-                          full: "Ahmedabad, Gujarat, India"};
   const gjInside = await P.municipalCityRouteFromGeocode(
     "in-gj-routing", gjCity, 23.0225, 72.5714, 12);
-  assertRoute("Ahmedabad exact city", gjInside, "in-gj-routing", regions.gj,
-              "gj-amc", "nominatim_structured_city",
-              "structured_place", "city: Ahmedabad");
-  const gjByMunicipality = await P.municipalCityRouteFromGeocode(
-    "in-gj-routing", gjMunicipality, 23.0225, 72.5714, 12);
-  assertRoute("Ahmedabad exact municipality", gjByMunicipality, "in-gj-routing", regions.gj,
-              "gj-amc", "nominatim_structured_city",
-              "structured_place", "municipality: Ahmedabad");
+  assertRoute("Ahmedabad AMC inside", gjInside, "in-gj-routing", regions.gj,
+              "gj-amc", "opencity_amc_wards_union", "boundary");
   eq("Ahmedabad: AMC CCRS portal", gjInside && gjInside.handoff_url,
      "https://www.amccrs.com/AMCPortal/View/ComplaintRegistration.aspx?m=Online");
   eq("Ahmedabad: official app package", gjInside && gjInside.handoff_package,
@@ -244,43 +255,18 @@ async () => {
 
   const gjNull = await P.municipalCityRouteFromGeocode(
     "in-gj-routing", null, 23.0225, 72.5714, 12);
-  eq("Ahmedabad structured match: null geocode is refused",
-     gjNull && gjNull.unrouted_reason, "outside_area");
+  eq("Ahmedabad boundary: null geocode still routes by coordinates",
+     gjNull && gjNull.authority_id, "gj-amc");
   const gjWrong = await P.municipalCityRouteFromGeocode(
     "in-gj-routing", {city: "Gandhinagar", state: "Gujarat", country_code: "in"},
     23.0225, 72.5714, 12);
-  eq("Ahmedabad structured match: wrong city is refused",
-     gjWrong && gjWrong.unrouted_reason, "outside_area");
-  for (const conflict of [
-    {city: "Ahmedabad", municipality: "Gandhinagar", state: "Gujarat", country_code: "in"},
-    {city: "Gandhinagar", municipality: "Ahmedabad", state: "Gujarat", country_code: "in"},
-  ]) {
-    const route = await P.municipalCityRouteFromGeocode(
-      "in-gj-routing", conflict, 23.0225, 72.5714, 12);
-    eq("Ahmedabad structured match: conflicting city and municipality fail closed",
-       route && route.unrouted_reason, "outside_area");
-  }
-  const gjLoose = await P.municipalCityRouteFromGeocode(
-    "in-gj-routing", {city: "Ahmedabad East", state: "Gujarat", country_code: "in"},
-    23.0225, 72.5714, 12);
-  eq("Ahmedabad structured match: substring is refused",
-     gjLoose && gjLoose.unrouted_reason, "outside_area");
-  for (const field of ["town", "city_district"]) {
-    const route = await P.municipalCityRouteFromGeocode(
-      "in-gj-routing",
-      {[field]: "Ahmedabad", state: "Gujarat", country_code: "in"},
-      23.0225, 72.5714, 12);
-    eq(`Ahmedabad structured match: ${field} is not an accepted authority field`,
-       route && route.unrouted_reason, "outside_area");
-  }
-  const gjFullOnly = await P.municipalCityRouteFromGeocode(
-    "in-gj-routing", {full: "Ahmedabad, Gujarat, India", state: "Gujarat", country_code: "in"},
-    23.0225, 72.5714, 12);
-  eq("Ahmedabad structured match: display text alone is refused",
-     gjFullOnly && gjFullOnly.unrouted_reason, "outside_area");
+  eq("Ahmedabad boundary: a wrong place label cannot override coordinates",
+     gjWrong && gjWrong.authority_id, "gj-amc");
+  ok("Ahmedabad fixture: AUDA-side point is outside the AMC polygon",
+     regions.gj && !P.pointInGeometry(72.5700, 23.1700, regions.gj.geometry), regions.gj);
   const gjOutside = await P.municipalCityRouteFromGeocode(
-    "in-gj-routing", gjCity, 22.3072, 73.1812, 12);
-  refused("Ahmedabad envelope: an exact city label at Vadodara coordinates is refused", gjOutside);
+    "in-gj-routing", gjCity, 23.1700, 72.5700, 12);
+  refused("Ahmedabad boundary: wider AUDA point is refused", gjOutside);
   const gjLimit = await P.municipalCityRouteFromGeocode(
     "in-gj-routing", gjCity, 23.0225, 72.5714, 30);
   eq("Ahmedabad accuracy: 30 m is accepted", gjLimit && gjLimit.authority_id, "gj-amc");
@@ -290,6 +276,12 @@ async () => {
     eq(`Ahmedabad accuracy: ${name} fails closed`,
        route && route.unrouted_reason, "location_uncertain");
   }
+  const gjEdgePoint = edgeOf(regions.gj && regions.gj.geometry);
+  ok("Ahmedabad edge fixture exists", gjEdgePoint, regions.gj);
+  const gjEdge = gjEdgePoint && await P.municipalCityRouteFromGeocode(
+    "in-gj-routing", gjCity, gjEdgePoint[1], gjEdgePoint[0], 5);
+  eq("Ahmedabad edge: an accuracy circle touching the boundary fails closed",
+     gjEdge && gjEdge.unrouted_reason, "location_uncertain");
 
   // The generic state routes must terminate before Karnataka's live GIS. Stub it so a
   // regression is counted immediately and cannot turn this deterministic test into a
@@ -306,17 +298,17 @@ async () => {
     return originalFetch(url, ...args);
   };
   const routedByOfficer = {
-    tn: await P.routeOfficer(tnGeo, 13.0827, 80.2707, 12),
-    tg: await P.routeOfficer(tgGeo, 17.3616, 78.4747, 12),
-    gj: await P.routeOfficer(gjCity, 23.0225, 72.5714, 12),
-    gjOutside: await P.routeOfficer(gjCity, 22.3072, 73.1812, 12),
+    tn: await P.routeOfficer(tnGeo, 13.0827, 80.2707, 12, null, null, "garbage"),
+    tg: await P.routeOfficer(tgGeo, 17.3616, 78.4747, 12, null, null, "garbage"),
+    gj: await P.routeOfficer(gjCity, 23.0225, 72.5714, 12, null, null, "garbage"),
+    gjOutside: await P.routeOfficer(gjCity, 23.1700, 72.5700, 12, null, null, "garbage"),
   };
   window.fetch = originalFetch;
   eq("routeOfficer: Chennai uses the generic pack", routedByOfficer.tn.authority_id, "tn-gcc");
   eq("routeOfficer: Hyderabad uses shared CURE intake",
      routedByOfficer.tg.authority_id, "tg-cure-shared");
   eq("routeOfficer: Ahmedabad uses the generic pack", routedByOfficer.gj.authority_id, "gj-amc");
-  eq("routeOfficer: Gujarat outside the Ahmedabad envelope stays outside",
+  eq("routeOfficer: wider AUDA outside the Ahmedabad boundary stays outside",
      routedByOfficer.gjOutside.unrouted_reason, "outside_area");
   eq("state isolation: municipal-city routing never calls Karnataka GIS", kgisCalls, 0);
 
@@ -337,8 +329,91 @@ ROUTE_FIXTURES = {
 }
 
 
-def open_page(browser, pack_id: str | None = None, responder=None):
+def tgrac_responder(calls: list[dict], *, unavailable: bool = False):
+    cantonment = {
+        "min_lng": 78.459155005,
+        "min_lat": 17.443033296,
+        "max_lng": 78.539634302,
+        "max_lat": 17.540382430,
+    }
+
+    def respond(route):
+        query = parse_qs(urlsplit(route.request.url).query)
+        try:
+            geometry = json.loads(query.get("geometry", ["null"])[0])
+        except (TypeError, ValueError):
+            geometry = None
+        call = {
+            "url": route.request.url,
+            "path": urlsplit(route.request.url).path,
+            "spatial_rel": query.get("spatialRel", [None])[0],
+            "geometry_type": query.get("geometryType", [None])[0],
+            "in_sr": query.get("inSR", [None])[0],
+            "return_count_only": query.get("returnCountOnly", [None])[0],
+            "geometry": geometry,
+        }
+        calls.append(call)
+        if unavailable:
+            route.fulfill(status=503, content_type="application/json", body='{"error":true}')
+            return
+        if not isinstance(geometry, dict):
+            route.fulfill(status=200, content_type="application/json", body='{"error":true}')
+            return
+        lng = (geometry.get("xmin", 0) + geometry.get("xmax", 0)) / 2
+        lat = (geometry.get("ymin", 0) + geometry.get("ymax", 0)) / 2
+        if call["path"].endswith("/Administrative_Layer/MapServer/1/query"):
+            intersects = not (
+                geometry.get("xmax", 0) < cantonment["min_lng"]
+                or geometry.get("xmin", 0) > cantonment["max_lng"]
+                or geometry.get("ymax", 0) < cantonment["min_lat"]
+                or geometry.get("ymin", 0) > cantonment["max_lat"]
+            )
+            count = 1 if intersects else 0
+        else:
+            # Deterministic service fixture: center and expanded Shamshabad are in CURE;
+            # the south-west relevance-envelope point is outside the official layer.
+            count = 0 if lat < 17.20 and lng < 78.25 else 1
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            headers={"Access-Control-Allow-Origin": "*"},
+            body=json.dumps({"count": count}, separators=(",", ":")),
+        )
+
+    return respond
+
+
+def open_page(
+    browser,
+    pack_id: str | None = None,
+    responder=None,
+    *,
+    native: bool = False,
+    official_responder=None,
+):
     context = browser.new_context(viewport={"width": 390, "height": 844})
+    if native:
+        context.add_init_script(
+            "window.Capacitor={isNativePlatform:()=>true,Plugins:{}};"
+        )
+        local_packs = {
+            resource["url"]: read_pack(pack_id)[1]
+            for pack_id, resource in load_manifest()["resources"].items()
+        }
+
+        def serve_local_pack(route):
+            body = local_packs.get(route.request.url)
+            if body is None:
+                route.fulfill(status=404, content_type="text/plain", body="not found")
+            else:
+                route.fulfill(status=200, content_type="application/json", body=body)
+
+        context.route(
+            "https://coding-parrot.github.io/pothole-reporter/packs/v1/**",
+            serve_local_pack,
+        )
+    if official_responder is not None:
+        context.route("https://tgrac.telangana.gov.in/**", official_responder)
     page = context.new_page()
     if pack_id is not None and responder is not None:
         page.route(route_pattern(pack_id), responder)
@@ -429,34 +504,12 @@ def semantic_tamper_variants(envelope: dict) -> list[tuple[str, dict]]:
     return variants
 
 
-def self_consistent_geometry_tamper(envelope: dict) -> dict:
+def self_consistent_official_query_tamper(envelope: dict) -> dict:
     changed = copy.deepcopy(envelope)
     region = changed["payload"]["regions"][0]
-    geometry = region["geometry"]
-    ring = (geometry["coordinates"][0][0]
-            if geometry["type"] == "MultiPolygon" else geometry["coordinates"][0])
-    ring[1][0] = round(ring[1][0] + 0.00001, 7)
-
-    def positions(value):
-        if (isinstance(value, list) and len(value) >= 2
-                and all(isinstance(item, (int, float)) for item in value[:2])):
-            yield value
-        elif isinstance(value, list):
-            for child in value:
-                yield from positions(child)
-
-    points = list(positions(geometry["coordinates"]))
-    region["bbox"] = {
-        "min_lng": min(point[0] for point in points),
-        "min_lat": min(point[1] for point in points),
-        "max_lng": max(point[0] for point in points),
-        "max_lat": max(point[1] for point in points),
-    }
-    geometry_bytes = json.dumps(
-        geometry, ensure_ascii=False, separators=(",", ":")
-    ).encode("utf-8")
-    region["geometry_sha256"] = hashlib.sha256(geometry_bytes).hexdigest()
-    region["exclusions"][0]["bbox"]["min_lng"] += 0.0001
+    region["query_url"] = region["query_url"].replace("/22/query", "/23/query")
+    region["source_url"] = region["source_url"].replace("/22", "/23")
+    region["source_object_id"] = region["source_object_id"].replace(":22", ":23")
     return changed
 
 
@@ -519,7 +572,12 @@ def main() -> None:
     result_count = 0
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(args=["--disable-web-security"])
-        context, page = open_page(browser)
+        official_calls: list[dict] = []
+        context, page = open_page(
+            browser,
+            native=True,
+            official_responder=tgrac_responder(official_calls),
+        )
         results = page.evaluate(SCENARIO)
         result_count = len(results)
         context.close()
@@ -527,6 +585,63 @@ def main() -> None:
             if not passed:
                 failures.append(name)
                 print(f"  FAIL {name}\n         got  {got}\n         want {want}")
+
+        cure_calls = [
+            call for call in official_calls
+            if call["path"].endswith("/TCUR_Telangana_Core_Urban_Region_V2/MapServer/22/query")
+        ]
+        cantonment_calls = [
+            call for call in official_calls
+            if call["path"].endswith("/Administrative_Layer/MapServer/1/query")
+        ]
+        if not cure_calls or any(
+            call["spatial_rel"] != "esriSpatialRelWithin"
+            or call["geometry_type"] != "esriGeometryEnvelope"
+            or call["in_sr"] != "4326"
+            or call["return_count_only"] != "true"
+            for call in cure_calls
+        ):
+            failures.append("native Hyderabad coverage does not use the pinned Within envelope query")
+        if not cantonment_calls or any(
+            call["spatial_rel"] != "esriSpatialRelIntersects"
+            or call["geometry_type"] != "esriGeometryEnvelope"
+            or call["in_sr"] != "4326"
+            or call["return_count_only"] != "true"
+            for call in cantonment_calls
+        ):
+            failures.append("native Hyderabad exclusion does not use the pinned Intersects envelope query")
+        if any(
+            not isinstance(call["geometry"], dict)
+            or call["geometry"].get("xmin") >= call["geometry"].get("xmax")
+            or call["geometry"].get("ymin") >= call["geometry"].get("ymax")
+            for call in official_calls
+        ):
+            failures.append("native Hyderabad query did not send a non-zero GPS-accuracy envelope")
+
+        # The same hosted client must not attempt the non-CORS government service in a
+        # browser. It fails closed without leaking a coordinate to TGRAC.
+        web_calls: list[dict] = []
+        context, page = open_page(
+            browser,
+            official_responder=tgrac_responder(web_calls),
+        )
+        web_reason = route_reason(page, "in-tg-routing")
+        if web_reason != "jurisdiction_unavailable":
+            failures.append(f"web Hyderabad route did not fail closed: {web_reason}")
+        if web_calls:
+            failures.append("web Hyderabad route sent coordinates to the native-only TGRAC service")
+        context.close()
+
+        failed_calls: list[dict] = []
+        context, page = open_page(
+            browser,
+            native=True,
+            official_responder=tgrac_responder(failed_calls, unavailable=True),
+        )
+        failed_reason = route_reason(page, "in-tg-routing")
+        if failed_reason != "jurisdiction_unavailable":
+            failures.append(f"unavailable TGRAC service did not fail closed: {failed_reason}")
+        context.close()
 
         # A syntactically malformed response and a valid-shaped byte-tampered response
         # must both be rejected by the same full-byte SHA-256 gate used in production.
@@ -568,11 +683,11 @@ def main() -> None:
                 failures.append(
                     f"municipal pack with changed {label} did not fail closed: {reason}"
                 )
-        changed_tg = self_consistent_geometry_tamper(envelopes["in-tg-routing"])
+        changed_tg = self_consistent_official_query_tamper(envelopes["in-tg-routing"])
         reason = semantic_tamper_reason(browser, "in-tg-routing", changed_tg)
         if reason != "jurisdiction_unavailable":
             failures.append(
-                "self-consistent replacement geometry/exclusion did not fail closed: "
+                "self-consistent replacement official query did not fail closed: "
                 f"{reason}"
             )
         reordered = reordered_semantic_pack(envelopes["in-tn-routing"])
@@ -588,7 +703,7 @@ def main() -> None:
         for failure in failures:
             print("  -", failure)
         sys.exit(1)
-    print(f"MUNICIPAL CITY ROUTING TEST PASS ({result_count + 12} checks)")
+    print(f"MUNICIPAL CITY ROUTING TEST PASS ({result_count + 17} checks)")
 
 
 if __name__ == "__main__":

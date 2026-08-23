@@ -22,7 +22,7 @@ async () => {
   ]);
 
   ok("privacy: background-drive disclosure forces fresh consent",
-     /v10-play-background-disclosure$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
+     /v12-civic-and-hyderabad-gis-disclosure$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
   for (const [lang, dictionary] of Object.entries(I18N)) {
     ok(`scope: ${lang} names Delhi NCT`, /Delhi NCT|ದೆಹಲಿ NCT|दिल्ली NCT|দিল্লি NCT/.test(
       dictionary.outside_coverage_help), dictionary.outside_coverage_help);

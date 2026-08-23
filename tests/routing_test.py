@@ -5,7 +5,7 @@ Runs against live OpenAI, Nominatim, KGIS, and hosted state packs: these are the
 the production dependencies actually give today. Needs a local server on 8765 serving
 android-app/www.
 """
-import os, sys, base64, pathlib
+import os, sys, base64, pathlib, json
 from dotenv import load_dotenv
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
@@ -25,10 +25,9 @@ CASES = [
     ("NH69 at Chikkaballapur", 13.4355,  77.7315,  "unrouted", "national_highway", None,               None),
     ("rural Magadi taluk",     13.0000,  77.2000,  "unrouted", "rural_road",       None,               None),
     ("Chennai GCC",            13.0827,  80.2707,  "draft",    None,               "official_handoff", "tn-gcc"),
-    ("Hyderabad core",         17.3616,  78.4747,  "draft",    None,               "official_handoff", "tg-cure-shared"),
-    # Ahmedabad deliberately depends on the live Nominatim response containing an exact
-    # structured city/municipality value, so this case protects that production dependency.
-    ("Ahmedabad structured",   23.0225,  72.5714,  "draft",    None,               "official_handoff", "gj-amc"),
+    ("Hyderabad CURE",         17.3616,  78.4747,  "draft",    None,               "official_handoff", "tg-cure-shared"),
+    # Ahmedabad routing is a local point-in-polygon check against the pinned 48-ward union.
+    ("Ahmedabad AMC",          23.0225,  72.5714,  "draft",    None,               "official_handoff", "gj-amc"),
     ("no GPS",                 None,     None,     "unrouted", "no_location",       None,               None),
 ]
 
@@ -54,7 +53,28 @@ POST = """async ([b64, lat, lng]) => {
 fails = []
 with sync_playwright() as p:
     b = p.chromium.launch(args=["--disable-web-security", "--allow-running-insecure-content"])
-    pg = b.new_context(viewport={"width": 390, "height": 844}).new_page()
+    context = b.new_context(viewport={"width": 390, "height": 844})
+    # Hyderabad's official TGRAC service is deliberately native-only. Simulate the
+    # Capacitor shell while keeping immutable state packs local to the release fixture.
+    context.add_init_script("window.Capacitor={isNativePlatform:()=>true,Plugins:{}};")
+    manifest = json.loads((ROOT / "static" / "pack-manifest.json").read_text())
+    local_packs = {
+        resource["url"]: (ROOT / "docs" / resource["path"]).read_bytes()
+        for resource in manifest["resources"].values()
+    }
+
+    def serve_state_pack(route):
+        body = local_packs.get(route.request.url)
+        if body is None:
+            route.continue_()
+        else:
+            route.fulfill(status=200, content_type="application/json", body=body)
+
+    context.route(
+        "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/**",
+        serve_state_pack,
+    )
+    pg = context.new_page()
     open_app(pg, KEY)
     src = base64.standard_b64encode(IMG.read_bytes()).decode()
     for name, lat, lng, want, reason, delivery, authority in CASES:

@@ -39,7 +39,7 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
                 fails.append(f"{name}: {language} settings note omits highway-tile granularity")
 
     # Scope: localized refusals must describe all supported geographies.
-    coverage = re.findall(r'outside_coverage_help: "([^"]+)"', s)
+    coverage = re.findall(r'^\s{4}outside_coverage_help: "([^"]+)"', s, re.MULTILINE)
     if len(coverage) == 4:
         if "ಬೆಂಗಳೂರಿಗೆ" in coverage[1] or "ಜಿಬಿಎ" in coverage[1]:
             fails.append(f"{name}: Kannada out-of-coverage text still says Bengaluru only")

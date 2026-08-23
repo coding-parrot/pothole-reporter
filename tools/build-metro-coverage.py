@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """Build reviewed Chennai, Hyderabad and Ahmedabad municipal-city source snapshots.
 
-Chennai and Hyderabad use ODbL OpenStreetMap polygons. Ahmedabad deliberately does
-not bundle AMC's unlicensed, stale GIS outline: it accepts only an exact structured
-Nominatim city/municipality match inside the OSM place node's relevance envelope.
+Chennai uses an ODbL OpenStreetMap polygon. Hyderabad stores only pinned metadata
+for live point queries against TGRAC's official 2,053 km² CURE and Secunderabad
+Cantonment layers; no unlicensed government polygon is copied into the app.
+Ahmedabad uses the ODbL OpenCity 48-ward snapshot published by Bharatlas. The
+Ahmedabad download currently stores positions as ``[latitude, longitude]`` despite
+being GeoJSON; the builder validates that reviewed source quirk, swaps the axes, and
+dissolves the ward edges before publishing one AMC coverage polygon.
 """
 
 from __future__ import annotations
@@ -12,6 +16,9 @@ import argparse
 import hashlib
 import json
 import math
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -19,8 +26,15 @@ from state_pack_tools import PROJECT_ROOT, _compact_json, _write_if_changed, bui
 
 
 RETRIEVED_AT = "2026-08-21"
+HYDERABAD_RETRIEVED_AT = "2026-08-23"
+AHMEDABAD_RETRIEVED_AT = "2026-08-23"
 NOMINATIM_URL = "https://nominatim.openstreetmap.org"
 SOURCE_ROOT = PROJECT_ROOT / "data" / "metro-coverage"
+AHMEDABAD_SOURCE_URL = (
+    "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/"
+    "admin/wards-ahmedabad/wards_ahmedabad.geojson"
+)
+AHMEDABAD_SOURCE_SHA256 = "c5015c0cd147118e34ddf60fccce4f4c93d72118b21ae5d5dc36d1723c17043a"
 
 
 def load_json(path: Path) -> Any:
@@ -37,20 +51,6 @@ def relation_feature(path: Path, relation_id: int, label: str) -> dict[str, Any]
     ):
         raise RuntimeError(f"{label} input is not OSM relation {relation_id}.")
     return feature
-
-
-def place_feature(path: Path, node_id: int, label: str) -> dict[str, Any]:
-    value = load_json(path)
-    features = value if isinstance(value, list) else []
-    matches = [
-        item for item in features
-        if isinstance(item, dict)
-        and item.get("osm_type") == "node"
-        and int(item.get("osm_id", 0)) == node_id
-    ]
-    if len(matches) != 1:
-        raise RuntimeError(f"{label} input does not contain OSM node {node_id}.")
-    return matches[0]
 
 
 def rounded_geometry(raw: Any, label: str) -> dict[str, Any]:
@@ -193,11 +193,112 @@ def geometry_digest(geometry: dict[str, Any]) -> str:
     return hashlib.sha256(compact.encode("utf-8")).hexdigest()
 
 
+def ahmedabad_ward_union(path: Path) -> dict[str, Any]:
+    """Validate, axis-correct, and dissolve the reviewed 48-ward source."""
+    source_digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if source_digest != AHMEDABAD_SOURCE_SHA256:
+        raise RuntimeError(
+            "Ahmedabad ward input differs from the reviewed source snapshot: "
+            f"{source_digest}"
+        )
+    value = load_json(path)
+    features = value.get("features") if isinstance(value, dict) else None
+    if not isinstance(value, dict) or value.get("type") != "FeatureCollection" \
+            or not isinstance(features, list):
+        raise RuntimeError("Ahmedabad ward input is not a GeoJSON FeatureCollection.")
+    if len(features) != 48:
+        raise RuntimeError(f"Ahmedabad ward input has {len(features)} features; expected 48.")
+
+    expected_wards = {str(number) for number in range(1, 49)}
+    found_wards: set[str] = set()
+    corrected_features: list[dict[str, Any]] = []
+
+    def swap_positions(raw: Any, label: str) -> Any:
+        if isinstance(raw, list) and raw and isinstance(raw[0], (int, float)):
+            if len(raw) < 2:
+                raise RuntimeError(f"{label} has an undersized position.")
+            latitude, longitude = float(raw[0]), float(raw[1])
+            # This exact source snapshot is known to publish reversed GeoJSON axes.
+            # Fail closed if that changes so a future standard-order file is not
+            # accidentally swapped a second time.
+            if not (22.8 <= latitude <= 23.3 and 72.3 <= longitude <= 72.9):
+                raise RuntimeError(
+                    f"{label} no longer has the reviewed latitude/longitude source order: {raw[:2]}"
+                )
+            return [round(longitude, 7), round(latitude, 7)]
+        if isinstance(raw, list):
+            return [swap_positions(child, label) for child in raw]
+        raise RuntimeError(f"{label} has an invalid coordinate structure.")
+
+    for index, feature in enumerate(features):
+        label = f"Ahmedabad ward feature {index}"
+        if not isinstance(feature, dict) or feature.get("type") != "Feature":
+            raise RuntimeError(f"{label} is not a GeoJSON Feature.")
+        properties = feature.get("properties")
+        geometry = feature.get("geometry")
+        if not isinstance(properties, dict) or not isinstance(geometry, dict):
+            raise RuntimeError(f"{label} is missing properties or geometry.")
+        ward_code = str(properties.get("sourcewardcode", "")).strip()
+        if ward_code in found_wards or ward_code not in expected_wards:
+            raise RuntimeError(f"{label} has an invalid or duplicate ward code: {ward_code!r}")
+        if properties.get("townname") not in {"Ahmadabad", "Ahmedabad"}:
+            raise RuntimeError(f"{label} is not identified as Ahmedabad.")
+        if properties.get("state") != "Gujarat":
+            raise RuntimeError(f"{label} is not identified as Gujarat.")
+        if geometry.get("type") not in {"Polygon", "MultiPolygon"}:
+            raise RuntimeError(f"{label} does not contain a polygon.")
+        found_wards.add(ward_code)
+        corrected_features.append({
+            "type": "Feature",
+            "properties": {"sourcewardcode": ward_code},
+            "geometry": {
+                "type": geometry["type"],
+                "coordinates": swap_positions(geometry.get("coordinates"), label),
+            },
+        })
+    if found_wards != expected_wards:
+        raise RuntimeError("Ahmedabad ward input does not contain the reviewed ward codes 1-48.")
+
+    ogr2ogr = shutil.which("ogr2ogr")
+    if not ogr2ogr:
+        raise RuntimeError("ogr2ogr is required to dissolve Ahmedabad's reviewed ward polygons.")
+    with tempfile.TemporaryDirectory(prefix="pothole-amc-") as directory:
+        corrected_path = Path(directory) / "ahmedabad_wards.geojson"
+        dissolved_path = Path(directory) / "ahmedabad_boundary.geojson"
+        corrected_path.write_bytes(_compact_json({
+            "type": "FeatureCollection",
+            "name": "ahmedabad_wards",
+            "features": corrected_features,
+        }))
+        command = [
+            ogr2ogr, "-f", "GeoJSON", str(dissolved_path), str(corrected_path),
+            "-dialect", "sqlite",
+            "-sql", "SELECT ST_Union(geometry) AS geometry FROM ahmedabad_wards",
+            "-lco", "COORDINATE_PRECISION=7",
+        ]
+        result = subprocess.run(command, check=False, capture_output=True, text=True)
+        if result.returncode:
+            detail = result.stderr.strip() or result.stdout.strip() or "unknown ogr2ogr error"
+            raise RuntimeError(f"Ahmedabad ward dissolve failed: {detail}")
+        dissolved = load_json(dissolved_path)
+
+    dissolved_features = dissolved.get("features") if isinstance(dissolved, dict) else None
+    if not isinstance(dissolved_features, list) or len(dissolved_features) != 1:
+        raise RuntimeError("Ahmedabad ward dissolve did not produce exactly one feature.")
+    geometry = rounded_geometry(dissolved_features[0].get("geometry"), "Ahmedabad")
+    assert_simple_geometry(geometry, "Ahmedabad")
+    return geometry
+
+
 def boundary_region(
     *, region_id: str, authority_id: str, name: str, scope: str, relation_id: int,
     routing_source: str, match_value: str, state_aliases: list[str], place_aliases: list[str],
     envelope: dict[str, float], geometry: dict[str, Any], official_scope_reference: str,
     routing_note: str, limitations: list[str], exclusions: list[dict[str, Any]],
+    source_name: str = "OpenStreetMap contributors", source_home_url: str | None = None,
+    source_url: str | None = None,
+    source_license: str = "Open Data Commons Open Database License (ODbL) 1.0",
+    attribution: str = "© OpenStreetMap contributors", source_object_id: str | None = None,
 ) -> dict[str, Any]:
     bounds = bbox(geometry)
     if any(
@@ -217,19 +318,19 @@ def boundary_region(
         "state_aliases": state_aliases,
         "place_aliases": place_aliases,
         "envelope": envelope,
-        "source_name": "OpenStreetMap contributors",
-        "source_home_url": f"https://www.openstreetmap.org/relation/{relation_id}",
-        "source_url": (
+        "source_name": source_name,
+        "source_home_url": source_home_url or f"https://www.openstreetmap.org/relation/{relation_id}",
+        "source_url": source_url or (
             f"{NOMINATIM_URL}/lookup?osm_ids=R{relation_id}&format=jsonv2"
             "&polygon_geojson=1&polygon_threshold=0.00001"
         ),
-        "source_license": "Open Data Commons Open Database License (ODbL) 1.0",
-        "attribution": "© OpenStreetMap contributors",
+        "source_license": source_license,
+        "attribution": attribution,
         "official_scope_reference": official_scope_reference,
         "routing_note": routing_note,
         "limitations": limitations,
         "exclusions": exclusions,
-        "source_object_id": f"osm:relation:{relation_id}",
+        "source_object_id": source_object_id or f"osm:relation:{relation_id}",
         "coordinate_precision": 7,
         "area_km2": round(geometry_area_km2(geometry), 3),
         "bbox": bounds,
@@ -238,16 +339,138 @@ def boundary_region(
     }
 
 
-def write_source(state_code: str, regions: list[dict[str, Any]]) -> None:
-    document = {"version": 1, "retrieved_at": RETRIEVED_AT, "regions": regions}
+def write_source(
+    state_code: str, regions: list[dict[str, Any]], *, retrieved_at: str = RETRIEVED_AT
+) -> None:
+    document = {"version": 1, "retrieved_at": retrieved_at, "regions": regions}
     _write_if_changed(SOURCE_ROOT / f"{state_code.lower()}.json", _compact_json(document))
+
+
+def official_hyderabad_region() -> dict[str, Any]:
+    """Return the reviewed service contract without copying either source polygon."""
+    return {
+        "id": "hyderabad-cure-2053",
+        "authority_id": "tg-cure-shared",
+        "name": "Hyderabad Core Urban Region official service coverage",
+        "scope": (
+            "Official 2,053 km² CURE point-query coverage; shared My Cure intake "
+            "without per-corporation attribution"
+        ),
+        "routing_mode": "official_point_query",
+        "routing_source": "tgrac_cure_2053_point_query",
+        "match_value": (
+            "TGRAC CURE layer 22; GPS-accuracy envelope within the official "
+            "2,053 km² coverage"
+        ),
+        "state_aliases": ["telangana", "తెలంగాణ"],
+        "place_aliases": ["hyderabad", "secunderabad", "హైదరాబాద్", "హైదరాబాదు"],
+        "envelope": {
+            "min_lng": 78.15, "min_lat": 17.10, "max_lng": 78.82, "max_lat": 17.72,
+        },
+        "source_name": "Telangana Remote Sensing Applications Centre (TGRAC)",
+        "source_home_url": (
+            "https://tgrac.telangana.gov.in/arcgis/rest/services/TCUR_Folder/"
+            "TCUR_Telangana_Core_Urban_Region_V2/MapServer"
+        ),
+        "source_url": (
+            "https://tgrac.telangana.gov.in/arcgis/rest/services/TCUR_Folder/"
+            "TCUR_Telangana_Core_Urban_Region_V2/MapServer/22"
+        ),
+        "source_license": (
+            "Official public query service; no boundary geometry is redistributed"
+        ),
+        "attribution": (
+            "Telangana Remote Sensing Applications Centre (TGRAC), Government of Telangana"
+        ),
+        "official_scope_reference": (
+            "https://tg-bn-website-assets.flowwlabs.tech/GOs-and-ACTs/"
+            "GO.Ms.No.55_11-02-2026.pdf"
+        ),
+        "routing_note": (
+            "The Android app asks the official TGRAC service whether the complete "
+            "GPS-accuracy envelope is within CURE layer 22. G.O.Ms.No.292 reorganised "
+            "the expanded area into 12 zones and 60 circles; G.O.Ms.No.55 later "
+            "constituted three corporations. The app deliberately uses the shared My "
+            "Cure intake instead of guessing one corporation."
+        ),
+        "limitations": [
+            "A live response from the official TGRAC service is required; browser/PWA use and service failures fail closed.",
+            "The shared My Cure handoff does not identify which of Greater Hyderabad, Cyberabad or Malkajgiri Municipal Corporation owns the issue.",
+            "The exact official Secunderabad Cantonment layer is queried and any intersecting accuracy envelope is refused.",
+            "NHAI, TG R&B, HMDA, airport, railway, defence, private and other roads may have a different maintainer.",
+        ],
+        "exclusions": [{
+            "id": "secunderabad-cantonment",
+            "name": "Secunderabad Cantonment official boundary",
+            "mode": "official_point_query",
+            "bbox": {
+                "min_lng": 78.459155005,
+                "min_lat": 17.443033296,
+                "max_lng": 78.539634302,
+                "max_lat": 17.540382430,
+            },
+            "source_name": "Telangana Remote Sensing Applications Centre (TGRAC)",
+            "source_url": (
+                "https://tgrac.telangana.gov.in/arcgis/rest/services/"
+                "Hydra_Folder/Administrative_Layer/MapServer/1"
+            ),
+            "routing_note": (
+                "The Android app refuses any GPS-accuracy envelope intersecting the "
+                "exact official layer; no Cantonment polygon is redistributed."
+            ),
+            "query_url": (
+                "https://tgrac.telangana.gov.in/arcgis/rest/services/"
+                "Hydra_Folder/Administrative_Layer/MapServer/1/query"
+            ),
+            "query_where": "1=1",
+            "query_geometry_type": "esriGeometryEnvelope",
+            "query_in_sr": 4326,
+            "query_spatial_rel": "esriSpatialRelIntersects",
+            "source_object_id": "tgrac:Hydra_Folder:Administrative_Layer:MapServer:1",
+        }],
+        "source_object_id": (
+            "tgrac:TCUR_Folder:TCUR_Telangana_Core_Urban_Region_V2:MapServer:22"
+        ),
+        "query_url": (
+            "https://tgrac.telangana.gov.in/arcgis/rest/services/TCUR_Folder/"
+            "TCUR_Telangana_Core_Urban_Region_V2/MapServer/22/query"
+        ),
+        "query_where": "1=1",
+        "query_geometry_type": "esriGeometryEnvelope",
+        "query_in_sr": 4326,
+        "query_spatial_rel": "esriSpatialRelWithin",
+        "official_area_km2": 2053,
+        "legal_references": [
+            {
+                "title": (
+                    "G.O.Ms.No.292, MA&UD (GHMC-1): reorganisation into 12 zones "
+                    "and 60 circles"
+                ),
+                "date": "2025-12-24",
+                "url": "https://goir.telangana.gov.in/",
+            },
+            {
+                "title": (
+                    "G.O.Ms.No.55, MA&UD (GHMC-1): constitution of three municipal "
+                    "corporations"
+                ),
+                "date": "2026-02-11",
+                "url": (
+                    "https://tg-bn-website-assets.flowwlabs.tech/GOs-and-ACTs/"
+                    "GO.Ms.No.55_11-02-2026.pdf"
+                ),
+            },
+        ],
+    }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--chennai", type=Path, required=True, help="Saved Nominatim relation response")
-    parser.add_argument("--hyderabad", type=Path, required=True, help="Saved Nominatim relation response")
-    parser.add_argument("--ahmedabad", type=Path, required=True, help="Saved Nominatim city search response")
+    parser.add_argument(
+        "--ahmedabad-wards", type=Path, required=True,
+        help="Saved Bharatlas/OpenCity 48-ward GeoJSON response",
+    )
     args = parser.parse_args()
 
     chennai = rounded_geometry(relation_feature(args.chennai, 1766358, "Chennai").get("geojson"), "Chennai")
@@ -279,88 +502,45 @@ def main() -> None:
         exclusions=[],
     )])
 
-    hyderabad = rounded_geometry(
-        relation_feature(args.hyderabad, 7868535, "Hyderabad").get("geojson"), "Hyderabad"
-    )
-    assert_simple_geometry(hyderabad, "Hyderabad")
-    assert_fixtures(
-        hyderabad,
-        "Hyderabad",
-        [(17.3616, 78.4747), (17.4095, 78.4800), (17.4486, 78.3908), (17.4018, 78.5602)],
-        [(17.6500, 78.5000), (17.2500, 78.4800)],
-    )
-    write_source("TG", [boundary_region(
-        region_id="hyderabad-cure-core",
-        authority_id="tg-cure-shared",
-        name="Hyderabad CURE core coverage",
-        scope="Partial Hyderabad core only; shared My Cure intake, without per-corporation attribution",
-        relation_id=7868535,
-        routing_source="osm_hyderabad_core_boundary",
-        match_value="OpenStreetMap relation 7868535",
-        state_aliases=["telangana", "తెలంగాణ"],
-        place_aliases=["hyderabad", "secunderabad", "హైదరాబాద్", "హైదరాబాదు"],
-        envelope={"min_lng": 78.15, "min_lat": 17.20, "max_lng": 78.70, "max_lat": 17.65},
-        geometry=hyderabad,
-        official_scope_reference="https://ipass.telangana.gov.in/Downloads.aspx",
-        routing_note="Coverage only. My Cure categorizes complaints across the 2026 GHMC, CMC and MMC structure; the app does not select one corporation.",
-        limitations=[
-            "No authoritative reusable 2026 three-corporation vector boundaries were publicly available.",
-            "Coverage is partial and must not be read as the current GHMC, CMC or MMC boundary.",
-            "The full published Secunderabad Cantonment layer extent is conservatively refused, so some neighbouring civic points are also excluded.",
-            "NHAI, TG R&B, HMDA, airport, private and other roads can have a different maintainer.",
-        ],
-        exclusions=[{
-            "id": "secunderabad-cantonment-extent",
-            "name": "Secunderabad Cantonment conservative exclusion",
-            "mode": "bbox",
-            "bbox": {
-                "min_lng": 78.459155005,
-                "min_lat": 17.443033296,
-                "max_lng": 78.539634302,
-                "max_lat": 17.540382430,
-            },
-            "source_name": "Telangana Remote Sensing Applications Centre (TGRAC)",
-            "source_url": "https://tgrac.telangana.gov.in/arcgis/rest/services/Hydra_Folder/Administrative_Layer/MapServer/1",
-            "routing_note": "The complete official layer extent is refused; no unlicensed Cantonment polygon is redistributed.",
-        }],
-    )])
+    write_source("TG", [official_hyderabad_region()], retrieved_at=HYDERABAD_RETRIEVED_AT)
 
-    ahmedabad = place_feature(args.ahmedabad, 245711197, "Ahmedabad")
-    raw_bounds = ahmedabad.get("boundingbox")
-    if not isinstance(raw_bounds, list) or len(raw_bounds) != 4:
-        raise RuntimeError("Ahmedabad Nominatim result has no four-value bounding box.")
-    south, north, west, east = [float(value) for value in raw_bounds]
-    if not (22.8 < south < 23.0 < north < 23.3 and 72.3 < west < 72.6 < east < 72.9):
-        raise RuntimeError(f"Ahmedabad relevance envelope changed unexpectedly: {raw_bounds}")
-    write_source("GJ", [{
-        "id": "ahmedabad-structured",
-        "authority_id": "gj-amc",
-        "name": "Ahmedabad structured city coverage",
-        "scope": "Exact Ahmedabad/Amdavad structured address matches inside a reviewed relevance envelope; not a municipal-boundary claim",
-        "routing_mode": "structured_geocode",
-        "routing_source": "nominatim_structured_city",
-        "match_value": "Nominatim structured city/municipality Ahmedabad",
-        "state_aliases": ["gujarat", "ગુજરાત"],
-        "place_aliases": ["ahmedabad", "amdavad", "અમદાવાદ", "अहमदाबाद"],
-        "envelope": {"min_lng": west, "min_lat": south, "max_lng": east, "max_lat": north},
-        "source_name": "OpenStreetMap contributors via Nominatim",
-        "source_home_url": "https://www.openstreetmap.org/node/245711197",
-        "source_url": (
-            f"{NOMINATIM_URL}/search?city=Ahmedabad&state=Gujarat&country=India"
-            "&format=jsonv2&polygon_geojson=1&addressdetails=1&limit=10"
+    ahmedabad = ahmedabad_ward_union(args.ahmedabad_wards)
+    assert_fixtures(
+        ahmedabad,
+        "Ahmedabad",
+        [(23.0225, 72.5714), (23.1050, 72.5750), (22.9400, 72.6800)],
+        [(23.2156, 72.6369), (22.9910, 72.3810), (22.7500, 72.6800)],
+    )
+    write_source("GJ", [boundary_region(
+        region_id="ahmedabad-amc",
+        authority_id="gj-amc",
+        name="Ahmedabad Municipal Corporation 48-ward coverage",
+        scope="Reviewed Ahmedabad 48-ward coverage footprint; not the wider AUDA area",
+        relation_id=0,
+        routing_source="opencity_amc_wards_union",
+        match_value="OpenCity AMC 48-ward union, snapshot 2026-05-26",
+        state_aliases=["gujarat", "ગુજરાત"],
+        place_aliases=["ahmedabad", "amdavad", "અમદાવાદ", "अहमदाबाद"],
+        envelope={"min_lng": 72.40, "min_lat": 22.85, "max_lng": 72.75, "max_lat": 23.20},
+        geometry=ahmedabad,
+        official_scope_reference="https://ahmedabadcity.gov.in/Home/AboutTheCorporation",
+        routing_note=(
+            "The 48 reviewed ward polygons are dissolved into one coverage boundary. "
+            "Containment supports AMC complaint intake and does not prove road ownership."
         ),
-        "source_license": "Open Data Commons Open Database License (ODbL) 1.0",
-        "attribution": "© OpenStreetMap contributors",
-        "official_scope_reference": "https://www.amccrs.com/AMCPortal/View/AMCDetail.aspx",
-        "routing_note": "No current reusable AMC polygon was found. Exact structured fields gate an editable CCRS handoff and never assert road ownership.",
-        "limitations": [
-            "This is not point-in-polygon municipal containment.",
-            "A missing or conflicting structured city/state field fails closed.",
-            "AMC's public GIS is stale, lacks a reuse licence and is not bundled.",
+        limitations=[
+            "The ward snapshot is an ODbL secondary-source copy, checked against AMC's current 48-ward inventory.",
+            "The 439.397 km² union is not proven to include every current outer AMC expansion; AMC materials publish larger total areas.",
+            "AUDA and neighbouring municipal areas outside AMC are not covered.",
+            "NHAI, state, railway, airport, private and other roads may have a different maintainer.",
         ],
-        "exclusions": [],
-        "source_object_id": "osm:node:245711197",
-    }])
+        exclusions=[],
+        source_name="OpenCity / Oorvani Foundation via Bharatlas",
+        source_home_url="https://bharatlas.com/view/wards_ahmedabad",
+        source_url=AHMEDABAD_SOURCE_URL,
+        attribution="© OpenCity / Oorvani Foundation contributors",
+        source_object_id="opencity:wards-ahmedabad:2026-05-26",
+    )], retrieved_at=AHMEDABAD_RETRIEVED_AT)
 
     for output in build_all():
         print(output.relative_to(PROJECT_ROOT))

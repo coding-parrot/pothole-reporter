@@ -28,22 +28,22 @@
     },
     "in-gj-routing": {
       "adapter": "municipal-city-v1",
-      "bytes": 2273,
-      "coverage_scope": "Ahmedabad structured city matches; not a municipal-boundary claim",
+      "bytes": 49039,
+      "coverage_scope": "Reviewed Ahmedabad 48-ward footprint; excludes wider AUDA",
       "kind": "routing",
       "licenses": [
-        "OpenStreetMap data: ODbL 1.0"
+        "OpenCity / Oorvani Foundation data via Bharatlas: ODbL 1.0"
       ],
       "pack_id": "in-gj-routing",
       "pack_version": 1,
-      "path": "packs/v1/states/gj/routing-727d1865794dfc1a8d9507b6dd0b1411da1d4ee0b04f464bed5be789e96e16a7.json",
+      "path": "packs/v1/states/gj/routing-96fad5f32c37d2e9144ec0905f71d6905dc4fc8816cb549d9d8438373b0714d7.json",
       "review_after": "2026-09-21",
       "schema_version": 1,
-      "sha256": "727d1865794dfc1a8d9507b6dd0b1411da1d4ee0b04f464bed5be789e96e16a7",
-      "source_retrieved_at": "2026-08-21",
+      "sha256": "96fad5f32c37d2e9144ec0905f71d6905dc4fc8816cb549d9d8438373b0714d7",
+      "source_retrieved_at": "2026-08-23",
       "state_code": "GJ",
       "statewide": false,
-      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/gj/routing-727d1865794dfc1a8d9507b6dd0b1411da1d4ee0b04f464bed5be789e96e16a7.json"
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/gj/routing-96fad5f32c37d2e9144ec0905f71d6905dc4fc8816cb549d9d8438373b0714d7.json"
     },
     "in-ka-routing": {
       "adapter": "karnataka-kgis-v1",
@@ -106,22 +106,22 @@
     },
     "in-tg-routing": {
       "adapter": "municipal-city-v1",
-      "bytes": 23084,
-      "coverage_scope": "Hyderabad core; shared CURE grievance intake; partial coverage",
+      "bytes": 4405,
+      "coverage_scope": "Official Hyderabad 2,053 km² CURE point-query coverage; shared grievance intake",
       "kind": "routing",
       "licenses": [
-        "OpenStreetMap data: ODbL 1.0"
+        "Official TGRAC public query service; no boundary geometry redistributed"
       ],
       "pack_id": "in-tg-routing",
       "pack_version": 1,
-      "path": "packs/v1/states/tg/routing-347d72b60bafb1ee170d1a9b45f5d53cddbf24361a7ed4e6d24d668c74dcbde0.json",
+      "path": "packs/v1/states/tg/routing-92c67b4f7e7ec11b99f8f48411582cae0d0fabdd972480d7f1b82eb3fa1d0cb9.json",
       "review_after": "2026-09-21",
       "schema_version": 1,
-      "sha256": "347d72b60bafb1ee170d1a9b45f5d53cddbf24361a7ed4e6d24d668c74dcbde0",
-      "source_retrieved_at": "2026-08-21",
+      "sha256": "92c67b4f7e7ec11b99f8f48411582cae0d0fabdd972480d7f1b82eb3fa1d0cb9",
+      "source_retrieved_at": "2026-08-23",
       "state_code": "TG",
       "statewide": false,
-      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tg/routing-347d72b60bafb1ee170d1a9b45f5d53cddbf24361a7ed4e6d24d668c74dcbde0.json"
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tg/routing-92c67b4f7e7ec11b99f8f48411582cae0d0fabdd972480d7f1b82eb3fa1d0cb9.json"
     },
     "in-tn-routing": {
       "adapter": "municipal-city-v1",

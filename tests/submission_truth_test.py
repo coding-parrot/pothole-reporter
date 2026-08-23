@@ -211,7 +211,7 @@ async ({pixel}) => {
       delivery_channel: "official_handoff", ward_code: null, officer_email: null,
       officer_name: "Wrong-region GCC route", authority_id: "tn-gcc",
       authority_name: "Greater Chennai Corporation", authority_registry_version: 0,
-      region: "ahmedabad-structured", routing_source: "osm_gcc_boundary",
+      region: "ahmedabad-amc", routing_source: "osm_gcc_boundary",
       ownership_unverified: true, handoff_name: "GCC Public Grievance",
       handoff_url: "https://example.invalid/wrong-region", requires_official_reference: true,
     },
@@ -223,9 +223,10 @@ async ({pixel}) => {
       delivery_channel: "official_handoff", ward_code: null, officer_email: null,
       officer_name: "AMC CCRS, Amdavad Municipal Corporation", authority_id: "gj-amc",
       authority_name: "Amdavad Municipal Corporation complaint intake",
-      authority_registry_version: 0, region: "ahmedabad-structured",
-      routing_source: "nominatim_structured_city", routing_match_field: "structured_place",
-      routing_match_value: "city: Ahmedabad", ownership_unverified: true,
+      authority_registry_version: 0, region: "ahmedabad-amc",
+      routing_source: "opencity_amc_wards_union", routing_match_field: "boundary",
+      routing_match_value: "OpenCity AMC 48-ward union, snapshot 2026-05-26",
+      ownership_unverified: true,
       handoff_name: "AMC CCRS", handoff_url: "https://example.invalid/coherent-rebind",
       requires_official_reference: true,
     },
@@ -775,6 +776,25 @@ async ({pixel}) => {
   const councilAfterCancel = await byId(71006);
   eq("suggested email route: cancelling confirmation leaves the report draft",
      councilAfterCancel.status, "draft");
+
+  // The browser/PWA path must open a real mailto composer instead of merely logging
+  // and claiming that an email handoff happened.
+  const originalAnchorClick = HTMLAnchorElement.prototype.click;
+  const mailtoLaunches = [];
+  HTMLAnchorElement.prototype.click = function () { mailtoLaunches.push(this.href); };
+  const councilPrepared = await StandaloneAPI.handle(
+    "/api/reports/71006/send", {method: "POST"});
+  HTMLAnchorElement.prototype.click = originalAnchorClick;
+  ok("suggested email route: browser opens an addressed mailto composer",
+     mailtoLaunches.length === 1
+       && mailtoLaunches[0].startsWith("mailto:coud.ambernath%40maharashtra.gov.in?")
+       && mailtoLaunches[0].includes("subject=Pothole+complaint")
+       && mailtoLaunches[0].includes("body=Please+inspect+and+repair+this+pothole."),
+     mailtoLaunches);
+  eq("suggested email route: composer open is queued, not submitted",
+     councilPrepared.status, "queued");
+  eq("suggested email route: composer open stores no submission time",
+     councilPrepared.submitted_at, null);
 
   // Email also requires an explicit citizen confirmation, but unlike BMC it has no
   // official grievance ID to record.

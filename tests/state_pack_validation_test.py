@@ -115,7 +115,22 @@ def main() -> int:
         ("in-tg-routing", "insecure exclusion source", lambda p, a: p["regions"][0][
             "exclusions"
         ][0].update({"source_url": "http://example.invalid/cantonment"})),
-        ("in-gj-routing", "structured route with geometry claim", lambda p, a: p["regions"][0].update(
+        ("in-tg-routing", "CURE query uses intersects", lambda p, a: p["regions"][0].update(
+            {"query_spatial_rel": "esriSpatialRelIntersects"}
+        )),
+        ("in-tg-routing", "insecure CURE query", lambda p, a: p["regions"][0].update(
+            {"query_url": "http://example.invalid/query"}
+        )),
+        ("in-tg-routing", "Cantonment query does not intersect", lambda p, a: p["regions"][0][
+            "exclusions"
+        ][0].update({"query_spatial_rel": "esriSpatialRelWithin"})),
+        ("in-tg-routing", "official query redistributes geometry", lambda p, a: p["regions"][0].update(
+            {"geometry": {"type": "Polygon", "coordinates": []}}
+        )),
+        ("in-tg-routing", "missing legal reference", lambda p, a: p["regions"][0].update(
+            {"legal_references": p["regions"][0]["legal_references"][:1]}
+        )),
+        ("in-gj-routing", "invalid dissolved geometry", lambda p, a: p["regions"][0].update(
             {"geometry": {"type": "Polygon", "coordinates": []}}
         )),
         ("in-gj-routing", "unreviewed source object", lambda p, a: p["regions"][0].update(
