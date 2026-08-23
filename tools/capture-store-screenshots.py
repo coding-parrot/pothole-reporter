@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Capture genuine, deterministic Play Store screenshots from the local client."""
+"""Capture deterministic Play Store screenshots from the local web client.
+
+The privacy-disclosure screenshot is captured from the native Android app so
+this script intentionally leaves ``04-privacy-disclosure.png`` untouched.
+"""
 
 from __future__ import annotations
 
@@ -40,7 +44,7 @@ def main() -> None:
                 """
                 localStorage.setItem('openai_key', 'store-preview-key');
                 localStorage.setItem('sender_name', 'Road volunteer');
-                localStorage.setItem('data_notice_version', '2026-08-21-v6-state-packs');
+                localStorage.setItem('data_notice_version', '2026-08-23-v10-play-background-disclosure');
                 localStorage.setItem('record_video', '0');
                 """
             )
@@ -107,9 +111,6 @@ def main() -> None:
             page.wait_for_timeout(100)
             page.screenshot(path=OUT / "01-home-and-history.png")
 
-            page.evaluate("localStorage.setItem('app_lang', 'bn')")
-            page.reload(wait_until="networkidle")
-            page.wait_for_function("document.documentElement.lang === 'bn'")
             page.locator("[data-id]").first.click()
             page.evaluate("window.scrollTo(0, 0)")
             page.screenshot(path=OUT / "02-detection-detail.png")
@@ -125,14 +126,17 @@ def main() -> None:
             page.locator(".leaflet-control-attribution").wait_for(state="visible")
             page.screenshot(path=OUT / "03-contribution-dashboard.png")
 
-            page.evaluate("show('dataConsent'); window.scrollTo(0, 0)")
-            page.screenshot(path=OUT / "04-privacy-disclosure.png")
             browser.close()
     finally:
         server.terminate()
         server.wait(timeout=5)
 
-    for path in sorted(OUT.glob("*.png")):
+    for name in (
+        "01-home-and-history.png",
+        "02-detection-detail.png",
+        "03-contribution-dashboard.png",
+    ):
+        path = OUT / name
         print(path.relative_to(ROOT))
 
 
