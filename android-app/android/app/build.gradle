@@ -49,10 +49,10 @@ if (requestedReleaseBuild && releaseStoreFile != null && !releaseStoreFile.isFil
 def releaseSigningReady = missingReleaseValues.isEmpty() && releaseStoreFile != null && releaseStoreFile.isFile()
 
 android {
-    namespace = "com.gauravsen.potholereporter"
+    namespace = "dev.aiengg.potholereporter"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.gauravsen.potholereporter"
+        applicationId "dev.aiengg.potholereporter"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 39

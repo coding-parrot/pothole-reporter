@@ -1,5 +1,5 @@
 {
-  "appId": "com.gauravsen.potholereporter",
+  "appId": "dev.aiengg.potholereporter",
   "appName": "Pothole Reporter",
   "webDir": "www",
   "server": {

@@ -120,7 +120,8 @@ with sync_playwright() as playwright:
         failures.append(f"capture: work started before disclosure acceptance: {disclosed}")
     disclosure = disclosed["disclosure"].lower()
     if not all(term in disclosure for term in (
-        "camera", "location", "openai", "government", "github pages", "state", "ip"
+        "camera", "location", "background", "not visible", "recording",
+        "openai", "government", "github pages", "state", "ip"
     )):
         failures.append("capture: visible disclosure omits a core data-use/government fact")
     if not disclosed["privacyHref"].startswith("https://"):

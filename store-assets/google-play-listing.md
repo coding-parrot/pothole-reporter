@@ -1,6 +1,6 @@
 # Google Play listing copy
 
-Prepared 22 August 2026. Paste only the text inside each code block into Play Console.
+Prepared 23 August 2026. Paste only the text inside each code block into Play Console.
 
 ## App name (16/30 characters)
 
@@ -53,10 +53,10 @@ Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
 Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.20.0 / version code 37)
+## Release notes (1.21.1 / version code 39)
 
 ```text
-Added nationwide mapped National Highway and National Expressway detection before municipal routing. Relevant 2° geometry tiles are checksum-verified and cached; unsafe matches fail closed. Matched reports open Rajmargyatra/1033 without guessing the maintaining agency.
+Drive Mode now keeps its live camera view and counters visible while the app is open, and continues under a persistent notification when you switch to Maps or take a call. Stop now finalises the session reliably. Optional silent recording remains off by default.
 ```
 
 ## Play Console fields

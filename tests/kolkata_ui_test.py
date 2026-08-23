@@ -45,8 +45,8 @@ async () => {
      /OpenAI/.test(document.getElementById("privacyBody").textContent)
        && /ক্যামেরা/.test(document.getElementById("privacyBody").textContent),
      document.getElementById("privacyBody").textContent);
-  ok("privacy: highway-pack release forces fresh consent",
-     /v7-highway-packs$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
+  ok("privacy: background-drive disclosure forces fresh consent",
+     /v10-play-background-disclosure$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
 
   const P = StandaloneAPI.__pure;
   const route = await P.kolkataRouteFromGeocode(null, 22.5726, 88.3639, 12);

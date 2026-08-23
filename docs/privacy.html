@@ -70,7 +70,7 @@
 <body>
 <main>
   <header>
-    <p class="meta">Pothole Reporter · Android package <code>com.gauravsen.potholereporter</code></p>
+    <p class="meta">Pothole Reporter · Android package <code>dev.aiengg.potholereporter</code></p>
     <h1>Privacy Policy</h1>
     <p class="meta">Effective and last updated: 23 August 2026</p>
     <nav aria-label="Related pages">
@@ -172,11 +172,11 @@
   <section>
     <h2>Permissions</h2>
     <ul>
-      <li><strong>Camera</strong> captures a manual road photo or Drive Mode frames. During Android Drive Mode it remains in use through a visible foreground-service notification while another app, such as Google Maps or the phone-call screen, is visible.</li>
-      <li><strong>Precise or approximate location</strong> locates and routes a report and records a drive track while Drive Mode is active.</li>
+      <li><strong>Camera</strong> captures a manual road photo or Drive Mode frames. While Android Drive Mode is active, the camera remains in use in the background—even when this app is not visible or in use and another app, such as Google Maps or the phone-call screen, is visible—under a persistent foreground-service notification.</li>
+      <li><strong>Precise or approximate location</strong> locates and routes a report and records a drive track. While Drive Mode is active, location remains in use in the background under the same persistent foreground-service notification, including when this app is not visible or in use.</li>
       <li><strong>Internet</strong> reaches the external services described above.</li>
     </ul>
-    <p>The app does not request Android background-location permission. Android Drive Mode uses camera and location while its visible foreground service is active, including while Google Maps or the phone-call screen is visible. It can be paused or stopped from the app or persistent notification. A video call or another higher-priority camera user can temporarily interrupt camera sampling; the app attempts to resume automatically when the camera is released. Mount the phone before moving and do not interact with it while driving.</p>
+    <p>The app does not request Android's separate background-location permission. Android Drive Mode nevertheless uses camera and location in the background while its visible foreground service is active, including when this app is not visible or in use and Google Maps or the phone-call screen is visible. It can be paused or stopped from the app or persistent notification. A video call or another higher-priority camera user can temporarily interrupt camera sampling; the app attempts to resume automatically when the camera is released. Mount the phone before moving and do not interact with it while driving.</p>
   </section>
 
   <section>

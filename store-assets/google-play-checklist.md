@@ -1,13 +1,13 @@
 # Google Play publication checklist
 
-Status reviewed 22 August 2026 for release 1.20.0 / version code 37. This is a release
+Status reviewed 23 August 2026 for release 1.21.1 / version code 39. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.20.0/code 37 after the highway-pack changes,
+- [ ] **Fresh signed release bundle:** build version 1.21.1/code 39 after the background Drive changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
   it in Play Console.
 - [x] **Hosted privacy page:** verified on the stable public host:
@@ -32,7 +32,7 @@ Do not submit to production until every applicable item above is complete.
 
 ## Release artifact and testing
 
-- [ ] Use the fixed package name `com.gauravsen.potholereporter` and a version code not
+- [ ] Use the fixed package name `dev.aiengg.potholereporter` and a version code not
   previously uploaded to Play.
 - [ ] Generate a signed **release AAB**, inspect it in Play's App Bundle Explorer, and save
   the upload key in a backed-up secret store outside the repository.
