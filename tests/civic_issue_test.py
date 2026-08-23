@@ -38,9 +38,10 @@ def authority_inventory() -> list[dict]:
     for state, state_config in configured.items():
         for authority in state_config.get("authorities", []):
             inventory.append({**authority, "source_state": state})
-    # PMC and the conservative MMR fallback are separately shaped entries in the source.
+    # PMC and the conservative MMR/statewide fallbacks are separately shaped entries.
     inventory.append({**configured["MH"]["pmc"], "source_state": "MH"})
     inventory.append({**configured["MH"]["fallback"], "source_state": "MH"})
+    inventory.append({**configured["MH"]["statewide"], "source_state": "MH"})
     for lgd, body in bodies.items():
         inventory.append(
             {
@@ -175,6 +176,14 @@ async ({authorities, pixel}) => {
        "com.nic.dl.delhijanmitra");
     eq(`Delhi ${issue}: PGMS fallback`, delhi && delhi.alternate_handoff_url,
        "https://pgms.delhi.gov.in/");
+
+    const statewide = routeFor("mh-statewide-unverified", issue);
+    eq(`Maharashtra ${issue}: statewide Aaple Sarkar route`,
+       statewide && statewide.handoff_url, "https://grievances.maharashtra.gov.in/en");
+    eq(`Maharashtra ${issue}: urban alternate is retained`,
+       statewide && statewide.alternate_handoff_url, "https://mahaulb.in/MahaULB/index");
+    eq(`Maharashtra ${issue}: technical-support number is not shown as a civic helpline`,
+       statewide && statewide.helpline, null);
   }
 
   const bengaluru = authorities.filter((authority) =>
@@ -213,6 +222,18 @@ async ({authorities, pixel}) => {
      delhiCivic && delhiCivic.handoff_url, "https://cmjansunwai.delhi.gov.in/");
   eq("routeOfficer: civic Delhi can never be tender matched",
      delhiCivic && delhiCivic.tender_eligible, false);
+
+  const maharashtraCivic = await P.routeOfficer(
+    {city: "Nagpur", state: "Maharashtra", country_code: "in",
+     full: "Nagpur, Maharashtra, India"},
+    21.1458, 79.0882, 8, 0, 0, "garbage");
+  eq("routeOfficer: civic Nagpur uses the statewide route",
+     maharashtraCivic && maharashtraCivic.authority_id, "mh-statewide-unverified");
+  eq("routeOfficer: civic Nagpur uses Aaple Sarkar",
+     maharashtraCivic && maharashtraCivic.handoff_url,
+     "https://grievances.maharashtra.gov.in/en");
+  eq("routeOfficer: civic Nagpur can never be tender matched",
+     maharashtraCivic && maharashtraCivic.tender_eligible, false);
 
   const uiSource = document.documentElement.innerHTML;
   ok("capture UI: native Photo flow requests the live camera explicitly",
@@ -401,12 +422,13 @@ def main() -> None:
     inventory = authority_inventory()
     # These counts pin the intended current scope and make an accidental source omission
     # visible instead of silently reducing the matrix.
-    if len(inventory) != 208:
-        raise AssertionError(f"expected 208 configured routes/bodies, found {len(inventory)}")
+    if len(inventory) != 209:
+        raise AssertionError(f"expected 209 configured routes/bodies, found {len(inventory)}")
     if sum(item["source_state"] == "KA" for item in inventory) != 182:
         raise AssertionError("expected all 182 configured Karnataka ULBs")
 
     _, delhi_pack_raw = read_pack("in-dl-routing")
+    _, maharashtra_pack_raw = read_pack("in-mh-routing")
     highway_requests: list[str] = []
     openai_requests: list[str] = []
     failures: list[str] = []
@@ -418,6 +440,12 @@ def main() -> None:
             route_pattern("in-dl-routing"),
             lambda route: route.fulfill(
                 status=200, content_type="application/json", body=delhi_pack_raw
+            ),
+        )
+        page.route(
+            route_pattern("in-mh-routing"),
+            lambda route: route.fulfill(
+                status=200, content_type="application/json", body=maharashtra_pack_raw
             ),
         )
 

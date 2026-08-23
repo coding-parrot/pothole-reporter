@@ -83,7 +83,7 @@
   // State-specific contacts and polygons live in immutable data packs. The APK keeps
   // only the parsers, strict validators and the package IDs Android permits it to query.
   // A downloaded pack can therefore add data, never executable behaviour.
-  const AUTHORITY_REGISTRY_VERSION = 6;
+  const AUTHORITY_REGISTRY_VERSION = 7;
   const LAUNCHABLE_PACKAGES = new Set([
     "com.bmc.potholequickfix", "com.sis.pwdsewaapp", "com.kmc.app",
     "com.newnmmc.app", "com.nyatitechnologies.pmcroadmitra",
@@ -138,6 +138,16 @@
       whatsapp_url: null,
       helpline: null,
     }),
+    "mh-statewide-unverified": Object.freeze({
+      authority_name: "Maharashtra authority (select in Aaple Sarkar)",
+      handoff_name: "Aaple Sarkar",
+      handoff_url: "https://grievances.maharashtra.gov.in/en",
+      handoff_package: null,
+      alternate_handoff_name: "MahaULB (urban areas)",
+      alternate_handoff_url: "https://mahaulb.in/MahaULB/index",
+      whatsapp_url: null,
+      helpline: null,
+    }),
     "dl-pwd-sewa": Object.freeze({
       authority_name: "Delhi civic grievance coordination",
       handoff_name: "Delhi CM JanSunwai",
@@ -188,6 +198,7 @@
   const MMR_AUTHORITIES = [];
   const PMC_AUTHORITY = {};
   const MMR_FALLBACK_AUTHORITY = {};
+  const MAHARASHTRA_STATE_AUTHORITY = {};
   const KMC_AUTHORITY = {};
   const DELHI_PWD_AUTHORITY = {};
   const NATIONAL_HIGHWAY_AUTHORITY = {};
@@ -842,15 +853,19 @@ Evidence rules:
     const byId = new Map(authorities.map((authority) => [authority.id, authority]));
     if (pack.state_code === "MH") {
       const mmr = authorities.filter((authority) => authority.id.startsWith("mh-")
-        && authority.id !== "mh-pmc" && authority.id !== "mh-mmr-unverified");
-      if (authorities.length !== 21 || mmr.length !== 19
-          || !byId.has("mh-pmc") || !byId.has("mh-mmr-unverified")) {
+        && authority.id !== "mh-pmc" && authority.id !== "mh-mmr-unverified"
+        && authority.id !== "mh-statewide-unverified");
+      if (authorities.length !== 22 || mmr.length !== 19
+          || !byId.has("mh-pmc") || !byId.has("mh-mmr-unverified")
+          || !byId.has("mh-statewide-unverified")) {
         throw new Error("Maharashtra routing pack has an incomplete authority registry.");
       }
       validateAuthorityRegistry(mmr);
       MMR_AUTHORITIES.splice(0, MMR_AUTHORITIES.length, ...mmr);
       replaceStableObject(PMC_AUTHORITY, byId.get("mh-pmc"));
       replaceStableObject(MMR_FALLBACK_AUTHORITY, byId.get("mh-mmr-unverified"));
+      replaceStableObject(MAHARASHTRA_STATE_AUTHORITY,
+        byId.get("mh-statewide-unverified"));
       MMR_ALIAS_INDEX.clear();
       for (const authority of MMR_AUTHORITIES) {
         for (const alias of authority.aliases) {
@@ -865,6 +880,7 @@ Evidence rules:
       }
       PACK_AUTHORITIES_BY_STATE.set("MH", [
         ...MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY,
+        MAHARASHTRA_STATE_AUTHORITY,
       ]);
     } else if (pack.state_code === "WB") {
       if (authorities.length !== 1 || !byId.has("wb-kmc")) {
@@ -1028,7 +1044,7 @@ Evidence rules:
   const PACK_SITE_ROOT = "https://coding-parrot.github.io/pothole-reporter/";
   const SUPPORTED_STATE_PACKS = Object.freeze({
     "in-dl-routing": { state_code: "DL", kind: "routing", adapter: "delhi-nct-v1" },
-    "in-mh-routing": { state_code: "MH", kind: "routing", adapter: "maharashtra-mmr-pmc-v1" },
+    "in-mh-routing": { state_code: "MH", kind: "routing", adapter: "maharashtra-statewide-v1" },
     "in-wb-routing": { state_code: "WB", kind: "routing", adapter: "kolkata-kmc-v1" },
     "in-ka-routing": { state_code: "KA", kind: "routing", adapter: "karnataka-kgis-v1" },
     "in-ka-tenders": { state_code: "KA", kind: "tenders", adapter: "karnataka-locally-indexed-v1" },
@@ -1385,14 +1401,24 @@ Evidence rules:
     } else if (resource.pack_id === "in-mh-routing") {
       const byId = new Map(pack.authorities.map((authority) => [authority.id, authority]));
       const mmrAuthorities = pack.authorities.filter((authority) => authority.id.startsWith("mh-")
-        && authority.id !== "mh-pmc" && authority.id !== "mh-mmr-unverified");
+        && authority.id !== "mh-pmc" && authority.id !== "mh-mmr-unverified"
+        && authority.id !== "mh-statewide-unverified");
       const fallbackIds = new Set(mmrAuthorities.map((authority) => authority.id)
         .filter((id) => !MMR_DIRECT_AUTHORITY_IDS.has(id)));
-      if (!payload || payload.version !== 1 || !payload.regions || !payload.regions.mmr
-          || !payload.regions.pmc || pack.authorities.length !== 21 || mmrAuthorities.length !== 19
+      const state = payload && payload.regions && payload.regions.maharashtra;
+      const stateDigest = state && hasCoverageGeometry(state.geometry)
+        ? await sha256Hex(JSON.stringify(state.geometry)) : null;
+      if (!payload || payload.version !== 2 || !payload.regions || !payload.regions.mmr
+          || !payload.regions.pmc || !state
+          || pack.authorities.length !== 22 || mmrAuthorities.length !== 19
           || !byId.has("mh-pmc") || !byId.has("mh-mmr-unverified")
+          || !byId.has("mh-statewide-unverified")
           || !hasCoverageGeometry(payload.regions.mmr.geometry)
           || !hasCoverageGeometry(payload.regions.pmc.geometry)
+          || state.authority_id !== "mh-statewide-unverified"
+          || Number(state.source_relation_id) !== 1950884
+          || state.geometry_sha256 !== MAHARASHTRA_STATE_GEOMETRY_SHA256
+          || stateDigest !== MAHARASHTRA_STATE_GEOMETRY_SHA256
           || !validMmrAuthorityBoundaries(payload.regions.mmr, fallbackIds)) {
         throw new Error("Maharashtra routing pack failed its boundary or authority checks.");
       }
@@ -1988,10 +2014,11 @@ Evidence rules:
       try {
         const pack = await loadStatePack("in-mh-routing");
         const data = pack && pack.payload;
-        if (data && data.version === 1 && data.regions
-            && data.regions.mmr && data.regions.pmc
+        if (data && data.version === 2 && data.regions
+            && data.regions.mmr && data.regions.pmc && data.regions.maharashtra
             && hasCoverageGeometry(data.regions.mmr.geometry)
             && hasCoverageGeometry(data.regions.pmc.geometry)
+            && hasCoverageGeometry(data.regions.maharashtra.geometry)
             && validMmrAuthorityBoundaries(data.regions.mmr)) {
           _maharashtraCoverage = data;
         }
@@ -2007,12 +2034,14 @@ Evidence rules:
     && String(geo.country_code || "").toLowerCase() === "in"
     && MUMBAI_STATES.has(normaliseAuthorityValue(geo.state));
 
-  // Wide enough to reject neighbouring points explicitly, but narrow enough that a
-  // Karnataka or Delhi report never downloads Maharashtra's much larger boundary pack.
-  // Only the verified MMR/PMC polygons can accept a report.
+  // Wide enough to include the complete state plus a small rejection margin, but narrow
+  // enough that unrelated reports do not download Maharashtra's routing pack. The pinned
+  // state polygon—not this rectangle or a geocoder label—decides statewide containment.
   const MAHARASHTRA_ROUTING_ENVELOPE = {
-    minLat: 18.20, maxLat: 20.05, minLng: 72.45, maxLng: 74.15,
+    minLat: 15.40, maxLat: 22.20, minLng: 72.40, maxLng: 81.10,
   };
+  const MAHARASHTRA_STATE_GEOMETRY_SHA256 =
+    "1f5555fede30d19d58ffafabb7d38c8cba0af7b27f7c7129d10480351a0304ce";
   const inMaharashtraRoutingEnvelope = (lat, lng) => Number.isFinite(lat) && Number.isFinite(lng)
     && lat >= MAHARASHTRA_ROUTING_ENVELOPE.minLat
     && lat <= MAHARASHTRA_ROUTING_ENVELOPE.maxLat
@@ -2485,14 +2514,16 @@ Evidence rules:
         && BENGALURU_AUTHORITY_NAMES.has(normaliseAuthorityValue(route.authority_name))) {
       override = BENGALURU_HANDOFF;
     }
-    // Every non-BMC MMR civic issue has a verified state-wide general grievance route.
-    // This avoids pretending that a pothole-only or bare municipal URL accepts garbage
-    // and manhole complaints while retaining the point's suggested local body as context.
+    // Every Maharashtra civic issue without a reviewed category-specific route has a
+    // neutral statewide grievance handoff. This avoids pretending that a pothole-only
+    // or bare municipal URL accepts garbage and manhole complaints while retaining any
+    // polygon-selected local body only as context.
     if (issue !== "road_damage" && !override
         && /^mh-/.test(String(route.authority_id || ""))) {
-      const stateRoute = CIVIC_HANDOFF_OVERRIDES["mh-mmr-unverified"];
+      const stateRoute = CIVIC_HANDOFF_OVERRIDES["mh-statewide-unverified"];
       override = route.authority_id === "mh-mmr-unverified"
-        ? stateRoute : { ...stateRoute, authority_name: base.authority_name };
+        ? CIVIC_HANDOFF_OVERRIDES["mh-mmr-unverified"]
+        : { ...stateRoute, authority_name: base.authority_name };
     }
     if (!override) {
       if (issue === "road_damage" || GENERAL_CIVIC_AUTHORITY_IDS.has(route.authority_id)) {
@@ -2525,65 +2556,75 @@ Evidence rules:
     if (!coverage) {
       return unroutedRoute("jurisdiction_unavailable");
     }
+    const inState = pointInGeometry(lng, lat, coverage.regions.maharashtra.geometry);
     const inPmc = pointInGeometry(lng, lat, coverage.regions.pmc.geometry);
     const inMmr = pointInGeometry(lng, lat, coverage.regions.mmr.geometry);
     const enforceGpsAccuracy = gpsAccuracy !== undefined;
     if (enforceGpsAccuracy
         && (!Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 30)) {
-      return (inPmc || inMmr
+      return (inState || inPmc || inMmr
         || isMaharashtraGeocode(geo)) ? unroutedRoute("location_uncertain") : null;
     }
     if (Number.isFinite(gpsAccuracy)) {
+      const stateEdgeDistance = geometryBoundaryDistanceMeters(
+        lng, lat, coverage.regions.maharashtra.geometry);
       const pmcEdgeDistance = geometryBoundaryDistanceMeters(
         lng, lat, coverage.regions.pmc.geometry);
       const mmrEdgeDistance = geometryBoundaryDistanceMeters(
         lng, lat, coverage.regions.mmr.geometry);
-      if (pmcEdgeDistance <= gpsAccuracy || mmrEdgeDistance <= gpsAccuracy) {
+      if (stateEdgeDistance <= gpsAccuracy
+          || pmcEdgeDistance <= gpsAccuracy || mmrEdgeDistance <= gpsAccuracy) {
         return unroutedRoute("location_uncertain");
       }
     }
+    if (!inState) return null;
     if (inPmc) {
       return authorityRoute(PMC_AUTHORITY, {
         routing_source: "pmc_official_gis", match_field: "boundary",
         match_value: "PMC_Boundary", region: "pune",
       });
     }
-    if (!inMmr) return null;
-
-    if (Number.isFinite(gpsAccuracy)) {
-      const boundaries = Object.values(coverage.regions.mmr.authority_boundaries || {});
-      if (boundaries.some((boundary) =>
-        geometryBoundaryDistanceMeters(lng, lat, boundary.geometry) <= gpsAccuracy)) {
-        return unroutedRoute("location_uncertain");
+    if (inMmr) {
+      if (Number.isFinite(gpsAccuracy)) {
+        const boundaries = Object.values(coverage.regions.mmr.authority_boundaries || {});
+        if (boundaries.some((boundary) =>
+          geometryBoundaryDistanceMeters(lng, lat, boundary.geometry) <= gpsAccuracy)) {
+          return unroutedRoute("location_uncertain");
+        }
       }
-    }
-    const contained = containingMmrAuthorities(coverage, lng, lat);
-    if (contained.length === 1) {
-      const match = contained[0];
-      const ward = match.authority.id === "mh-bmc"
-        ? bmcWardFromBoundary(match.boundary, lng, lat, gpsAccuracy) : null;
-      const relationIds = Array.isArray(match.boundary.source_relation_ids)
-        ? match.boundary.source_relation_ids.join(", ") : "";
-      return authorityRoute(match.authority, {
-        ward_code: ward, routing_source: "osm_ulb_boundary",
-        match_field: "boundary",
-        match_value: `${match.boundary.source_name || match.authority.name}${relationIds ? ` (OSM ${relationIds})` : ""}`,
+      const contained = containingMmrAuthorities(coverage, lng, lat);
+      if (contained.length === 1) {
+        const match = contained[0];
+        const ward = match.authority.id === "mh-bmc"
+          ? bmcWardFromBoundary(match.boundary, lng, lat, gpsAccuracy) : null;
+        const relationIds = Array.isArray(match.boundary.source_relation_ids)
+          ? match.boundary.source_relation_ids.join(", ") : "";
+        return authorityRoute(match.authority, {
+          ward_code: ward, routing_source: "osm_ulb_boundary",
+          match_field: "boundary",
+          match_value: `${match.boundary.source_name || match.authority.name}${relationIds ? ` (OSM ${relationIds})` : ""}`,
+          region: "mmr",
+        });
+      }
+      // Rural MMR, an overlap, and the eight councils without a mapped administrative
+      // polygon all go to a neutral state portal. A nearby/postal town name is only a
+      // clue; it never selects a recipient by itself.
+      const clues = matchedMmrAuthorities(geo);
+      return authorityRoute(MMR_FALLBACK_AUTHORITY, {
+        routing_source: "mmr_boundary_fallback",
+        match_field: contained.length > 1 ? "overlapping_boundaries"
+          : clues.length ? "unverified_place_clue" : "boundary",
+        match_value: contained.length > 1
+          ? contained.map((x) => x.authority.name).join(" / ")
+          : clues.length ? clues.map((x) => x.authority.name).join(" / ") : "MMR",
         region: "mmr",
       });
     }
-    // Rural MMR, an overlap, and the eight councils without a mapped administrative
-    // polygon all go to a neutral state portal. A nearby/postal town name is only a clue:
-    // Nominatim explicitly returns the nearest suitable object, not a civic containment
-    // decision, so it must never select the recipient by itself.
-    const clues = matchedMmrAuthorities(geo);
-    return authorityRoute(MMR_FALLBACK_AUTHORITY, {
-      routing_source: "mmr_boundary_fallback",
-      match_field: contained.length > 1 ? "overlapping_boundaries"
-        : clues.length ? "unverified_place_clue" : "boundary",
-      match_value: contained.length > 1
-        ? contained.map((x) => x.authority.name).join(" / ")
-        : clues.length ? clues.map((x) => x.authority.name).join(" / ") : "MMR",
-      region: "mmr",
+    return authorityRoute(MAHARASHTRA_STATE_AUTHORITY, {
+      routing_source: "osm_maharashtra_state_boundary",
+      match_field: "boundary",
+      match_value: "Maharashtra (OpenStreetMap relation 1950884)",
+      region: "maharashtra",
     });
   }
 
@@ -2743,7 +2784,7 @@ Evidence rules:
 
     const maharashtra = await maharashtraRouteFromGeocode(geo, lat, lng, gpsAccuracy);
     if (maharashtra) return routeForIssue(maharashtra, issueType);
-    // A Maharashtra geocode outside the two enabled polygons must not fall through to
+    // A Maharashtra geocode outside the pinned state polygon must not fall through to
     // Karnataka GIS and come back with a misleading state-service failure.
     if (isMaharashtraGeocode(geo)) return routeForIssue(unroutedRoute("outside_area"), issueType);
     // A geocoder-confirmed non-Karnataka state must never be sent to Karnataka GIS.
@@ -4310,6 +4351,9 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if (packId === "in-mh-routing" && authorityId === "mh-pmc") {
       return { region: "pune", routing_source: "pmc_official_gis" };
     }
+    if (packId === "in-mh-routing" && authorityId === "mh-statewide-unverified") {
+      return { region: "maharashtra", routing_source: "osm_maharashtra_state_boundary" };
+    }
     if (packId === "in-mh-routing" && authorityId.startsWith("mh-")) {
       return { region: "mmr", routing_source: authorityId === "mh-mmr-unverified"
         ? "mmr_boundary_fallback" : "osm_ulb_boundary" };
@@ -4367,6 +4411,10 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if (authorityId === "mh-pmc") {
       return savedBoundaryLocationMatches(rec,
         payload.regions.pmc && payload.regions.pmc.geometry);
+    }
+    if (authorityId === "mh-statewide-unverified") {
+      return savedBoundaryLocationMatches(rec,
+        payload.regions.maharashtra && payload.regions.maharashtra.geometry);
     }
     const mmr = payload.regions.mmr;
     if (!mmr || !savedBoundaryLocationMatches(rec, mmr.geometry,
@@ -4868,7 +4916,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           no_address_for_body: "The civic body is known, but the app has no verified complaint recipient for it.",
           unsupported_issue_type: "The suggested civic body has no verified complaint channel for this issue category.",
           jurisdiction_unavailable: "The required verified civic-routing data could not be downloaded or read. Check the connection and try again.",
-          outside_area: "This civic issue is outside the enabled city and urban-body coverage, so the app has no verified authority to open.",
+          outside_area: "This civic issue is outside the enabled state, city, and urban-body coverage, so the app has no verified authority to open.",
         };
         const roadErrors = {
           no_location: "This report has no location, so there is no way to tell which office is responsible. Retake it with location switched on.",
@@ -4878,7 +4926,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           rural_road: "This road is outside every town boundary, so it belongs to the state PWD or a panchayat rather than a city body. The app will not guess an office.",
           no_address_for_body: "This town's body is known, but no official email address for it has been published, so there is no verified recipient to address.",
           jurisdiction_unavailable: "The required verified routing data could not be downloaded or read. Check the connection and try again; the app will not guess an authority.",
-          outside_area: "This road damage is outside the enabled Karnataka urban-body, Mumbai Metropolitan Region, Pune, Kolkata Municipal Corporation, Delhi NCT, Greater Chennai Corporation, Android-verified 2,053 km² Hyderabad CURE, and Ahmedabad Municipal Corporation coverage, so there is no verified authority to address.",
+          outside_area: "This road damage is outside the enabled Maharashtra, Karnataka urban-body, Kolkata Municipal Corporation, Delhi NCT, Greater Chennai Corporation, Android-verified 2,053 km² Hyderabad CURE, and Ahmedabad Municipal Corporation coverage, so there is no verified authority to address.",
         };
         throw new Error((civic ? civicErrors : roadErrors)[rec.unrouted_reason]
           || "This report could not be routed to a responsible office, so there is nothing to send.");
@@ -4988,10 +5036,12 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    validateMunicipalCityPayload, MUNICIPAL_CITY_CONFIGS,
                    maharashtraRouteFromGeocode, inMaharashtraRoutingEnvelope,
                    isKarnatakaGeocode, routeOfficer, routeForIssue,
-                   MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY, KMC_AUTHORITY,
+                   MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY,
+                   MAHARASHTRA_STATE_AUTHORITY, KMC_AUTHORITY,
                    DELHI_PWD_AUTHORITY, OFFICIAL_AUTHORITIES,
                    NATIONAL_HIGHWAY_AUTHORITY,
                    DELHI_GEOMETRY_SHA256, KMC_GEOMETRY_SHA256,
+                   MAHARASHTRA_STATE_GEOMETRY_SHA256,
                    AUTHORITY_REGISTRY_VERSION, ISSUE_TYPES, CIVIC_HANDOFF_OVERRIDES,
                    BENGALURU_HANDOFF, BENGALURU_AUTHORITY_NAMES,
                    GENERAL_CIVIC_AUTHORITY_IDS };

@@ -148,6 +148,14 @@
       "name": "MMR road authority (verify in Aaple Sarkar)",
       "handoff_name": "Aaple Sarkar",
       "handoff_url": "https://grievances.maharashtra.gov.in/en"
+    },
+    "statewide": {
+      "id": "mh-statewide-unverified",
+      "name": "Maharashtra authority (select in Aaple Sarkar)",
+      "handoff_name": "Aaple Sarkar",
+      "handoff_url": "https://grievances.maharashtra.gov.in/en",
+      "alternate_handoff_name": "MahaULB (urban areas)",
+      "alternate_handoff_url": "https://mahaulb.in/MahaULB/index"
     }
   },
   "WB": {

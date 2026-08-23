@@ -42,6 +42,14 @@ CACHE_POLICY = {
 }
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+MAHARASHTRA_STATE_GEOMETRY_SHA256 = (
+    "1f5555fede30d19d58ffafabb7d38c8cba0af7b27f7c7129d10480351a0304ce"
+)
+MAHARASHTRA_STATE_REGION_KEYS = {
+    "name", "scope", "authority_id", "source", "source_lookup",
+    "source_relation_id", "retrieved_at", "licence", "coordinate_precision",
+    "bbox", "geometry_sha256", "routing_note", "limitations", "geometry",
+}
 
 
 @dataclass(frozen=True)
@@ -71,14 +79,14 @@ SPECS = {
         "in-mh-routing",
         "MH",
         "routing",
-        "maharashtra-mmr-pmc-v1",
-        "Mumbai Metropolitan Region and Pune Municipal Corporation",
-        False,
+        "maharashtra-statewide-v1",
+        "Full State of Maharashtra; exact MMR and Pune Municipal Corporation routes where verified",
+        True,
         (
             "OpenStreetMap data: ODbL 1.0",
             "Official Maharashtra GIS and public-authority sources: respective source terms",
         ),
-        "static/maharashtra-coverage.json",
+        "data/metro-coverage/mh.json",
     ),
     "in-wb-routing": ResourceSpec(
         "in-wb-routing",
@@ -520,7 +528,7 @@ def _authority_snapshot(state_code: str) -> list[dict[str, Any]]:
         raise PackError(f"state-authorities.json has no authority list for {state_code}")
     authorities = list(state["authorities"])
     if state_code == "MH":
-        for key in ("pmc", "fallback"):
+        for key in ("pmc", "fallback", "statewide"):
             if not isinstance(state.get(key), dict):
                 raise PackError(f"state-authorities.json has no MH {key} authority")
             authorities.append(state[key])
@@ -646,6 +654,85 @@ def _validate_municipal_geometry(geometry: Any, label: str) -> dict[str, float]:
     )
     _expect(valid, f"{label} has malformed polygon coordinates")
     return _municipal_geometry_bounds(geometry)
+
+
+def _validate_maharashtra_payload(
+    payload: Any,
+    *,
+    generated_at: str | None = None,
+    authorities: Any = None,
+) -> None:
+    _expect(
+        isinstance(payload, dict) and set(payload) == {"version", "retrieved_at", "regions"},
+        "in-mh-routing payload fields differ from the statewide contract",
+    )
+    _expect(type(payload.get("version")) is int and payload["version"] == 2,
+            "in-mh-routing payload version must be 2")
+    retrieved_at = payload.get("retrieved_at")
+    _expect(_is_date(retrieved_at), "in-mh-routing retrieved_at is invalid")
+    if generated_at is not None:
+        _expect(retrieved_at == generated_at,
+                "in-mh-routing retrieved_at differs from the pack date")
+    regions = payload.get("regions")
+    _expect(
+        isinstance(regions, dict) and set(regions) == {"maharashtra", "mmr", "pmc"},
+        "in-mh-routing must contain the statewide, MMR and PMC regions",
+    )
+    _expect(isinstance(regions["mmr"], dict) and isinstance(regions["pmc"], dict),
+            "in-mh-routing MMR or PMC region is invalid")
+    _validate_municipal_geometry(regions["mmr"].get("geometry"), "in-mh-routing.mmr")
+    _validate_municipal_geometry(regions["pmc"].get("geometry"), "in-mh-routing.pmc")
+
+    state = regions["maharashtra"]
+    _expect(isinstance(state, dict) and set(state) == MAHARASHTRA_STATE_REGION_KEYS,
+            "in-mh-routing Maharashtra region fields differ from the contract")
+    expected = {
+        "name": "Maharashtra",
+        "scope": "Full State of Maharashtra",
+        "authority_id": "mh-statewide-unverified",
+        "source": "https://www.openstreetmap.org/relation/1950884",
+        "source_relation_id": 1_950_884,
+        "licence": "OpenStreetMap contributors, ODbL 1.0",
+        "coordinate_precision": 7,
+        "geometry_sha256": MAHARASHTRA_STATE_GEOMETRY_SHA256,
+    }
+    for field, value in expected.items():
+        _expect(state.get(field) == value,
+                f"in-mh-routing Maharashtra {field} differs from its reviewed pin")
+    _expect(state.get("retrieved_at") == retrieved_at,
+            "in-mh-routing Maharashtra retrieval date differs from the payload")
+    _expect(
+        isinstance(state.get("source_lookup"), str)
+        and state["source_lookup"].startswith("https://nominatim.openstreetmap.org/lookup?")
+        and "osm_ids=R1950884" in state["source_lookup"],
+        "in-mh-routing Maharashtra lookup URL is invalid",
+    )
+    _expect(isinstance(state.get("routing_note"), str) and state["routing_note"],
+            "in-mh-routing Maharashtra routing note is missing")
+    limitations = state.get("limitations")
+    _expect(
+        isinstance(limitations, list) and 1 <= len(limitations) <= 10
+        and all(isinstance(item, str) and item and len(item) <= 500 for item in limitations),
+        "in-mh-routing Maharashtra limitations are invalid",
+    )
+    bounds = _validate_municipal_geometry(
+        state.get("geometry"), "in-mh-routing.maharashtra"
+    )
+    _validate_municipal_envelope(state.get("bbox"), "in-mh-routing.maharashtra.bbox")
+    _expect(bounds == state["bbox"],
+            "in-mh-routing Maharashtra geometry does not match its bounding box")
+    digest = hashlib.sha256(json.dumps(
+        state["geometry"], ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")).hexdigest()
+    _expect(digest == MAHARASHTRA_STATE_GEOMETRY_SHA256,
+            "in-mh-routing Maharashtra geometry digest does not match")
+    _expect(
+        isinstance(authorities, list)
+        and len(authorities) == 22
+        and sum(item.get("id") == "mh-statewide-unverified"
+                for item in authorities if isinstance(item, dict)) == 1,
+        "in-mh-routing statewide authority registry is incomplete",
+    )
 
 
 def _validate_municipal_authorities(spec: ResourceSpec, authorities: Any) -> None:
@@ -904,8 +991,11 @@ def _validate_raw_payload(
         if not isinstance(payload.get("bodies"), dict) or not payload["bodies"]:
             raise PackError("in-ka-routing payload has no bodies")
     elif spec.pack_id == "in-mh-routing":
-        if not isinstance(payload.get("regions"), dict) or not payload["regions"]:
-            raise PackError("in-mh-routing payload has no regions")
+        _validate_maharashtra_payload(
+            payload,
+            generated_at=generated_at,
+            authorities=authorities,
+        )
     elif spec.adapter == "municipal-city-v1":
         _validate_municipal_city_payload(
             spec,

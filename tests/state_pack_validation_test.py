@@ -24,6 +24,7 @@ from state_pack_tools import (  # noqa: E402
 
 Mutation = Callable[[dict[str, Any], list[dict[str, Any]]], None]
 MUNICIPAL_IDS = ("in-tn-routing", "in-tg-routing", "in-gj-routing")
+VALIDATED_IDS = (*MUNICIPAL_IDS, "in-mh-routing")
 
 
 def load_case(pack_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -51,7 +52,7 @@ def first_ring(region: dict[str, Any]) -> list[list[float]]:
 
 def main() -> int:
     failures: list[str] = []
-    for pack_id in MUNICIPAL_IDS:
+    for pack_id in VALIDATED_IDS:
         payload, authorities = load_case(pack_id)
         try:
             validate(pack_id, payload, authorities, payload["retrieved_at"])
@@ -136,6 +137,18 @@ def main() -> int:
         ("in-gj-routing", "unreviewed source object", lambda p, a: p["regions"][0].update(
             {"source_object_id": "osm:relation:1"}
         )),
+        ("in-mh-routing", "legacy non-statewide payload version", lambda p, a: p.update(
+            {"version": 1}
+        )),
+        ("in-mh-routing", "wrong state relation", lambda p, a: p["regions"][
+            "maharashtra"
+        ].update({"source_relation_id": 1})),
+        ("in-mh-routing", "state geometry digest mismatch", lambda p, a: p["regions"][
+            "maharashtra"
+        ].update({"geometry_sha256": "0" * 64})),
+        ("in-mh-routing", "missing statewide authority", lambda p, a: a.__setitem__(
+            slice(None), [item for item in a if item.get("id") != "mh-statewide-unverified"]
+        )),
     ]
 
     for pack_id, label, mutate in cases:
@@ -149,11 +162,11 @@ def main() -> int:
         failures.append(f"{pack_id} accepted malformed case: {label}")
 
     if failures:
-        print("Municipal state-pack validation failures:", file=sys.stderr)
+        print("State-pack validation failures:", file=sys.stderr)
         for failure in failures:
             print(f" - {failure}", file=sys.stderr)
         return 1
-    print(f"municipal state-pack validation OK ({len(cases)} malformed cases refused)")
+    print(f"state-pack validation OK ({len(cases)} malformed cases refused)")
     return 0
 
 

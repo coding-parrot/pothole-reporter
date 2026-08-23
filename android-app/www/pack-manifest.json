@@ -85,9 +85,9 @@
       "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ka/tenders-120c24449e9ae02c98368ca77e9a239c7f6757445dc608a092fcf96f09b800ff.json"
     },
     "in-mh-routing": {
-      "adapter": "maharashtra-mmr-pmc-v1",
-      "bytes": 579230,
-      "coverage_scope": "Mumbai Metropolitan Region and Pune Municipal Corporation",
+      "adapter": "maharashtra-statewide-v1",
+      "bytes": 1574600,
+      "coverage_scope": "Full State of Maharashtra; exact MMR and Pune Municipal Corporation routes where verified",
       "kind": "routing",
       "licenses": [
         "OpenStreetMap data: ODbL 1.0",
@@ -95,14 +95,14 @@
       ],
       "pack_id": "in-mh-routing",
       "pack_version": 1,
-      "path": "packs/v1/states/mh/routing-cd58ba14f184b408f2058a4e416a369bce1bd07813ed7c463182ec5f3225b545.json",
+      "path": "packs/v1/states/mh/routing-26223f8a2dca11615daf789645a98fc2a661acda700c77c06ad89c61fb180e54.json",
       "review_after": "2026-11-21",
       "schema_version": 1,
-      "sha256": "cd58ba14f184b408f2058a4e416a369bce1bd07813ed7c463182ec5f3225b545",
-      "source_retrieved_at": "2026-08-21",
+      "sha256": "26223f8a2dca11615daf789645a98fc2a661acda700c77c06ad89c61fb180e54",
+      "source_retrieved_at": "2026-08-23",
       "state_code": "MH",
-      "statewide": false,
-      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/mh/routing-cd58ba14f184b408f2058a4e416a369bce1bd07813ed7c463182ec5f3225b545.json"
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/mh/routing-26223f8a2dca11615daf789645a98fc2a661acda700c77c06ad89c61fb180e54.json"
     },
     "in-tg-routing": {
       "adapter": "municipal-city-v1",

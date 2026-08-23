@@ -41,7 +41,7 @@ EXPECTED_RESOURCES = {
         "KA", "tenders", "pothole-tender-pack", "karnataka-locally-indexed-v1"
     ),
     "in-mh-routing": (
-        "MH", "routing", "pothole-routing-pack", "maharashtra-mmr-pmc-v1"
+        "MH", "routing", "pothole-routing-pack", "maharashtra-statewide-v1"
     ),
     "in-tg-routing": ("TG", "routing", "pothole-routing-pack", "municipal-city-v1"),
     "in-tn-routing": ("TN", "routing", "pothole-routing-pack", "municipal-city-v1"),

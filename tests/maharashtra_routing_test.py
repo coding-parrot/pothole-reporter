@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""MMR and PMC routing must use versioned containment polygons and fail closed."""
+"""Maharashtra routing must preserve exact local routes and fail closed at state edges."""
 import sys
 
 from playwright.sync_api import sync_playwright
@@ -26,6 +26,15 @@ async () => {
 
   // Loading the verified routing pack installs the state authority registry.
   const coverage = await P.maharashtraCoverage();
+
+  eq("state: pinned relation ID", coverage.regions.maharashtra.source_relation_id, 1950884);
+  eq("state: pinned geometry digest", coverage.regions.maharashtra.geometry_sha256,
+     P.MAHARASHTRA_STATE_GEOMETRY_SHA256);
+  eq("state: statewide fallback authority is installed",
+     P.MAHARASHTRA_STATE_AUTHORITY.id, "mh-statewide-unverified");
+  ok("state: ODbL attribution is recorded",
+     /ODbL/.test(coverage.regions.maharashtra.licence || ""),
+     coverage.regions.maharashtra.licence);
 
   ok("registry: validates", P.validateAuthorityRegistry(), null);
   eq("registry: contains all 19 MMR urban bodies", P.MMR_AUTHORITIES.length, 19);
@@ -149,7 +158,8 @@ async () => {
   eq("extent: current Palghar taluka remains in MMR but routes neutral without a ULB polygon",
      palgharCoverage.authority_id, "mh-mmr-unverified");
   const dahanu = await route(geo("town", "Dahanu", "Palghar District"), 19.9900, 72.7380);
-  eq("extent: Dahanu outside notified MMR stays outside", dahanu, null);
+  eq("extent: Dahanu outside MMR uses the statewide handoff",
+     dahanu && dahanu.authority_id, "mh-statewide-unverified");
 
   const rural = await route({
     village: "Example Village", state_district: "Palghar District",
@@ -319,9 +329,61 @@ async () => {
   const wagholi = await route(geo("town", "Wagholi", "Pune District"), 18.5807, 73.9787);
   eq("PMC: full current boundary includes Wagholi", wagholi && wagholi.authority_id, "mh-pmc");
   const pcmc = await route(geo("city", "Pimpri-Chinchwad", "Pune District"), 18.6279, 73.8009);
-  eq("PMC: PCMC is not conflated with Pune Municipal Corporation", pcmc, null);
+  eq("PMC: PCMC is not conflated with Pune Municipal Corporation",
+     pcmc && pcmc.authority_id, "mh-statewide-unverified");
   const baramati = await route(geo("town", "Baramati", "Pune District"), 18.1510, 74.5770);
-  eq("PMC: Pune district alone does not create PMC coverage", baramati, null);
+  eq("PMC: Pune district alone does not create PMC-specific routing",
+     baramati && baramati.authority_id, "mh-statewide-unverified");
+
+  const statewideFixtures = [
+    ["Nagpur", 21.1458, 79.0882],
+    ["Nashik", 19.9975, 73.7898],
+    ["Kolhapur", 16.7050, 74.2433],
+    ["Solapur", 17.6599, 75.9064],
+    ["Chhatrapati Sambhajinagar", 19.8762, 75.3433],
+  ];
+  for (const [city, lat, lng] of statewideFixtures) {
+    const got = await route(geo("city", city, `${city} District`), lat, lng);
+    eq(`statewide: ${city} uses the neutral state route`,
+       got && got.authority_id, "mh-statewide-unverified");
+    eq(`statewide: ${city} uses Aaple Sarkar`, got && got.handoff_url,
+       "https://grievances.maharashtra.gov.in/en");
+    eq(`statewide: ${city} never claims an exact owner`,
+       got && got.ownership_unverified, true);
+  }
+  const noGeocode = await route(null, 21.1458, 79.0882);
+  eq("statewide: polygon containment works without a geocoder state label",
+     noGeocode && noGeocode.authority_id, "mh-statewide-unverified");
+  const statewidePrecise = await P.maharashtraRouteFromGeocode(
+    geo("city", "Nagpur", "Nagpur District"), 21.1458, 79.0882, 12);
+  eq("statewide: a precise fix remains routable",
+     statewidePrecise && statewidePrecise.authority_id, "mh-statewide-unverified");
+  const statewideCoarse = await P.maharashtraRouteFromGeocode(
+    geo("city", "Nagpur", "Nagpur District"), 21.1458, 79.0882, 31);
+  eq("statewide: an over-30 m fix fails closed",
+     statewideCoarse && statewideCoarse.unrouted_reason, "location_uncertain");
+
+  for (const [name, state, lat, lng] of [
+    ["Panaji", "Goa", 15.4909, 73.8278],
+    ["Belagavi", "Karnataka", 15.8497, 74.4977],
+    ["Hyderabad", "Telangana", 17.3850, 78.4867],
+  ]) {
+    const outside = await route({
+      city: name, state, country_code: "in", full: `${name}, ${state}, India`,
+    }, lat, lng);
+    eq(`state boundary: ${name} is not accepted`, outside, null);
+  }
+  const falseLabel = await route(geo("city", "Panaji", "North Goa District"),
+    15.4909, 73.8278);
+  eq("state boundary: a false Maharashtra geocoder label cannot override containment",
+     falseLabel, null);
+
+  const stateEdgePoint = firstBoundaryPoint(coverage.regions.maharashtra.geometry);
+  const stateEdge = await P.maharashtraRouteFromGeocode(
+    geo("village", "Maharashtra border", "Sindhudurg District"),
+    stateEdgePoint[1], stateEdgePoint[0], 5);
+  eq("state boundary: a GPS circle touching the state edge fails closed",
+     stateEdge && stateEdge.unrouted_reason, "location_uncertain");
 
   return checks;
 }

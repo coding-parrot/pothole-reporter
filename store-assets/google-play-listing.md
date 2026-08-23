@@ -8,58 +8,52 @@ Prepared 23 August 2026. Paste only the text inside each code block into Play Co
 Pothole Reporter
 ```
 
-## Short description (74/80 characters)
+## Short description (73/80 characters)
 
 ```text
-Report potholes, garbage and open manholes in supported Indian cities.
+Report potholes, garbage and open manholes across supported Indian areas.
 ```
 
 ## Full description
 
 ```text
-Pothole Reporter is an independent Android app for documenting potholes, garbage, and open or damaged manholes and preparing an editable civic complaint. Take one photo while safely stopped and choose the issue. For road damage, you can also securely mount the phone and use foreground Drive Mode while Maps or a call is on screen. AI assesses selected road images for pothole cavities, failed patches, breakup, ruts, and depressions. Garbage and manhole reports are explicitly confirmed by you and do not use AI. Reports stay on your device for review.
+Pothole Reporter is an independent Android app for documenting potholes, garbage, and open or damaged manholes. It saves an editable complaint draft on your phone and suggests a reviewed official route; nothing is filed automatically.
+
+Use Photo while safely stopped. For road damage, mount the phone before moving and use foreground Drive Mode while Maps or a call is on screen. AI assesses selected road images for pothole cavities, failed patches, breakup, ruts, and depressions. Garbage and manhole reports are confirmed by you and do not use AI.
 
 Coverage
-• Mapped operational National Highways and National Expressways across India. Matches use Rajmargyatra/1033 before municipal routing; the maintaining agency is not guessed.
-• Delhi NCT, not the wider NCR. PWD Sewa is offered as a cross-agency handoff; this does not claim PWD owns the road.
-• The current Mumbai Metropolitan Region. Valid local polygons can suggest a body; rural, overlapping, and unsupported MMR locations use Aaple Sarkar.
-• Pune Municipal Corporation limits. PCMC is excluded.
-• Kolkata Municipal Corporation limits. Howrah, Bidhannagar/Salt Lake, New Town, and neighbouring bodies are excluded.
-• Road-damage routing for supported Karnataka urban local bodies with a published recipient and eligible road classification. Garbage and manhole handoff is enabled only for the five Bengaluru city corporations through Sahaaya 2.0.
-• Greater Chennai Corporation limits, not the wider Chennai Metropolitan Area or neighbouring urban bodies.
-• The official 2,053 sq km Telangana Core Urban Region around Hyderabad, checked live against Telangana GIS. Secunderabad Cantonment is excluded. My Cure is offered without assigning the point to Greater Hyderabad, Cyberabad, or Malkajgiri Municipal Corporation after the 2026 reorganisation.
-• A reviewed 48-ward Ahmedabad footprint covering 439.397 sq km. Wider AUDA is excluded. The available licensed geometry does not prove that every recent outer AMC expansion is included.
+• Mapped operational National Highways and National Expressways across India, with Rajmargyatra/1033 offered before municipal routing.
+• The full State of Maharashtra. Exact MMR and PMC routes are retained; other Maharashtra points use Aaple Sarkar, with MahaULB offered for urban areas.
+• Delhi NCT, Kolkata Municipal Corporation, Greater Chennai Corporation, Hyderabad's verified CURE footprint, and a reviewed Ahmedabad 48-ward footprint.
+• Road-damage routing for supported Karnataka urban bodies. Garbage and manholes are enabled through Sahaaya 2.0 only in the five Bengaluru city corporations.
 
 Locations outside these routes are saved locally but are not addressed to an authority.
 
 Reporting
-• Photo offers Pothole, Garbage, and Manhole. Each saved report includes its category, photo, coordinates, capture time, editable complaint wording, and suggested official route.
-• Pothole reports use road-specific channels where available. Garbage and manhole handoffs are enabled for MMR, PMC, KMC, Delhi NCT, the five Bengaluru city corporations, GCC Chennai, Hyderabad CURE, and the reviewed Ahmedabad footprint. An unverified category or recipient fails closed instead of being guessed.
+• Photo supports Pothole, Garbage, and Manhole. Reports include the category, photo, coordinates, time, editable wording, and suggested official route.
+• Garbage and manhole handoffs are enabled throughout Maharashtra and in the supported city footprints above.
 • Nearby repeat observations are grouped into one draft.
-• A saved but unrouted report keeps its evidence. Temporary routing-data failures can be retried; a permanent boundary/category refusal cannot be changed by retrying the same coordinates.
-• The app can open a published app, portal, WhatsApp chat, dialler, share sheet, or editable email draft.
-• Nothing is submitted automatically. The app does not log in, bypass OTP, press Send, or read complaint status. Complete the complaint in the external service and record its reference ID when required.
+• The app can open a published app, portal, WhatsApp chat, dialler, share sheet, or email draft.
+• You must verify the issue, location, recipient, and wording, then complete submission in the external service.
 
 Important limits and data use
 • AI can miss damage or produce false positives. Review the photo, wording, location, and recipient.
-• A boundary or place match suggests a route; it does not prove road ownership.
-• Probable contract matching is available only for eligible Karnataka routes and is not proof of responsibility or warranty.
-• Pothole AI and Drive require camera and foreground location permission, internet, and your own billed OpenAI API key. Garbage and manhole reporting does not require an OpenAI key, but location routing and external handoffs still need connectivity.
-• Selected resized road-damage images and API requests go directly to OpenAI. User-confirmed garbage and manhole photos do not. Precise coordinates go to OpenStreetMap Nominatim; Karnataka points query Karnataka GIS, and Hyderabad coverage checks query Telangana GIS.
-• Regional routing/contact packs, 2° National Highway tiles, and the optional Karnataka tender pack download from this project's GitHub Pages when relevant. Complete downloads are SHA-256 verified and cached locally. A required routing-data failure stops authority routing; an optional tender-pack failure only omits contract context. Requests identify a state or approximate tile but contain no report, photo, or exact coordinates.
-• MMR, PMC, KMC, Delhi NCT, and GCC Chennai boundary checks run locally. Ahmedabad uses a reviewed local ward union. Hyderabad sends a small GPS-accuracy envelope to the official Telangana GIS jurisdiction service and fails closed if that service cannot verify coverage.
+• A boundary match suggests a route; it does not prove road ownership, responsibility, or warranty.
+• Pothole AI and Drive require camera and foreground location permission, internet, and your own billed OpenAI API key. Garbage and manhole reporting does not require an OpenAI key.
+• Selected resized road-damage images and API requests go directly to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; Karnataka and Hyderabad checks may query their official GIS services.
+• Routing and highway packs download from this project's GitHub Pages, are SHA-256 verified, and are cached locally. They contain no report, photo, or exact coordinates.
 • Choosing an external handoff transfers selected data or connection metadata under that provider's policy.
-• Drive recording is optional and off by default. Mount the phone before moving.
+• Drive recording is optional, visible through Android's foreground-service notification, and off by default.
 • The app is not affiliated with or endorsed by any government body.
 
 Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
 Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.22.0 / version code 40)
+## Release notes (1.23.0 / version code 41)
 
 ```text
-Photo can now prepare pothole, garbage, and open-manhole complaints across MMR, PMC, KMC, Delhi NCT, the five Bengaluru city corporations, GCC Chennai, Hyderabad CURE, and the reviewed Ahmedabad footprint. Temporary routing failures can be retried; permanent boundary/category refusals stay closed. Drive Mode remains road-damage-only and continues under its visible notification while Maps or a call is open.
+Coverage now spans the full State of Maharashtra. Existing MMR and PMC routes stay specific; all other Maharashtra locations use a neutral Aaple Sarkar handoff, with MahaULB offered for urban areas. The app verifies the state boundary locally, rejects neighbouring-state points, and never guesses a road owner or files automatically.
 ```
 
 ## Play Console fields

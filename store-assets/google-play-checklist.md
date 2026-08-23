@@ -1,13 +1,13 @@
 # Google Play publication checklist
 
-Status reviewed 23 August 2026 for release 1.22.0 / version code 40. This is a release
+Status reviewed 23 August 2026 for release 1.23.0 / version code 41. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.22.0/code 40 after the civic-reporting changes,
+- [ ] **Fresh signed release bundle:** build version 1.23.0/code 41 after the statewide Maharashtra changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
   it in Play Console.
 - [x] **Hosted privacy page:** verified on the stable public host:
@@ -48,8 +48,9 @@ Do not submit to production until every applicable item above is complete.
   highways route before cities to Rajmargyatra/1033, no maintaining agency is claimed, and
   unsafe or unavailable highway data fails closed.
 - [ ] Test representative locations in all 19 MMR urban local bodies, a rural MMR point,
-  Pune inside PMC, Pune outside PMC, and PCMC. Confirm rural/ambiguous MMR uses Aaple Sarkar,
-  PMC uses Road Mitra/PMC CARE, and PCMC stays unrouted.
+  Pune inside PMC, PCMC, Nagpur, Nashik, Kolhapur, Solapur, a rural Maharashtra point, and
+  neighbouring-state fixtures. Confirm rural/ambiguous MMR uses Aaple Sarkar, PMC uses Road
+  Mitra/PMC CARE, other Maharashtra points use the statewide handoff, and outside points fail closed.
 - [ ] Test central, north, south, and Joka locations inside KMC, plus Howrah,
   Bidhannagar/Salt Lake, and New Town outside it. Confirm only the checksum-verified KMC
   polygon selects KMC and a place name alone never does.
@@ -66,7 +67,7 @@ Do not submit to production until every applicable item above is complete.
   union, including South Bopal/Ghuma as known outer-expansion gap fixtures. Confirm the
   app does not claim current outer AMC or wider AUDA completeness and never falls back to
   an Ahmedabad place-name guess.
-- [ ] In MMR, PMC, KMC, Delhi, all five Bengaluru city corporations, Chennai, Hyderabad,
+- [ ] Across Maharashtra, and in KMC, Delhi, all five Bengaluru city corporations, Chennai, Hyderabad,
   and Ahmedabad, create Pothole, Garbage, and Manhole reports. Confirm road damage keeps
   its road-specific route, the other categories use only reviewed general-civic channels,
   and unverified categories fail closed. Simulate a routing-pack/network failure, keep the
@@ -109,7 +110,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.22.0 release. Include the issue picker, an independent civic handoff, and regional-language support
+  the 1.23.0 release. Include the issue picker, an independent civic handoff, and regional-language support
   without displaying private coordinates, an API key, a real grievance ID, or civic-body
   marks. Put other city-specific flows in reviewer instructions instead of implying that
   one screenshot proves every supported route.
@@ -117,7 +118,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
   automatic filing, guaranteed detection, verified responsibility, or benchmarked accuracy.
 - [ ] Enter the hosted privacy-policy URL, support website, and required support email.
 - [ ] Choose the app category and target countries intentionally. Current routing covers mapped
-  NH/NE carriageways across India plus the municipal areas listed in `google-play-listing.md`; keep the wider NCR, PCMC, wider
+  NH/NE carriageways across India plus the areas listed in `google-play-listing.md`; keep the wider NCR, wider
   Chennai metro, Cantonment, Ahmedabad outer-expansion, and Kolkata-neighbour
   limitations visible.
 - [ ] Keep the non-affiliation statement and the clearly labelled government-information
@@ -134,7 +135,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
   - selected road-damage photos and Drive/VOD image frames sent to OpenAI; user-confirmed
     Garbage and Manhole photos are not sent to OpenAI;
   - precise coordinates sent to Nominatim, to Karnataka GIS for Karnataka points, and with
-    the GPS-accuracy envelope to official Telangana GIS for Hyderabad routing; MMR, PMC,
+    the GPS-accuracy envelope to official Telangana GIS for Hyderabad routing; Maharashtra,
     KMC, Delhi NCT, GCC, and Ahmedabad boundary checks remain on-device;
   - for eligible Karnataka routes only, road address and procurement shortlist sent to
     OpenAI for probable contract matching; contract matching elsewhere is disabled;

@@ -53,13 +53,14 @@ want on stage.
   `docs/SOURCES.md` distinguishes the 42,283-row road-work source snapshot from the
   13,577 supported-body candidates in the optional downloadable pack. Its old 341-row
   spot-check applies to the full source snapshot, not to the reduced pack.
-- **"Does it work outside Karnataka?"** Yes: the app covers Delhi NCT, the current MMR,
-  Pune and Kolkata Municipal Corporation limits, Greater Chennai Corporation limits,
+- **"Does it work outside Karnataka?"** Yes: the app covers the full State of Maharashtra,
+  Delhi NCT, Kolkata Municipal Corporation limits, Greater Chennai Corporation limits,
   Android-verified official 2,053 km² Hyderabad CURE coverage, and a reviewed 48-ward
   Ahmedabad footprint.
-  It suggests a complaint route but does not claim road ownership. The wider NCR, PCMC,
+  Maharashtra-wide coverage uses exact MMR/PMC routes where available and a neutral
+  Aaple Sarkar handoff elsewhere; it does not claim road ownership. The wider NCR,
   Kolkata's neighbours, the wider Chennai metro, the published Secunderabad Cantonment
-  extent, and the wider AUDA area is excluded. Contract matching remains
+  extent, and the wider AUDA area are excluded. Contract matching remains
   Karnataka-only.
 - **"Why is the APK smaller?"** State routing/contact datasets are versioned downloads,
   and Karnataka tenders are a separate optional download. The app verifies each file

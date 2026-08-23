@@ -58,6 +58,20 @@ is `data/national-highways-source.json`.
 
 ## Maharashtra boundaries and complaint handoffs
 
+### Statewide fallback
+
+Every point inside [OpenStreetMap relation 1950884](https://www.openstreetmap.org/relation/1950884)
+is covered by a neutral [Aaple Sarkar](https://grievances.maharashtra.gov.in/en)
+handoff after the National Highway, MMR, and PMC checks. The ODbL MultiPolygon was
+retrieved on 23 August 2026 at seven-decimal precision; the runtime pins geometry SHA-256
+`1f5555fede30d19d58ffafabb7d38c8cba0af7b27f7c7129d10480351a0304ce`.
+The official grievance-management resolution says the service operates across all 36
+districts and supports evidence, tracking, and district-level routing. The app still does
+not identify whether a municipality, PWD, panchayat, MSRDC, NHAI, or another body owns the
+road. The citizen must select and verify the department in Aaple Sarkar; MahaULB is offered
+as an alternate for urban areas. A GPS circle touching the state or a more specific local
+boundary fails closed.
+
 ### Mumbai Metropolitan Region
 
 The coverage target follows MMRDA's [current official MMR extent](https://www.mmrda.maharashtra.gov.in/en/about-us/about-mmr)
@@ -102,8 +116,8 @@ Pune coverage uses the `PMC_Boundary` layer published by the
 [GeoServer WMS](https://iwmsgis.pmc.gov.in/geoserver/pmc/wms). A copy of the geometry is
 included in the verified Maharashtra routing pack for local point-in-polygon checks from the corresponding
 [WFS GeoJSON layer](https://iwmsgis.pmc.gov.in/geoserver/pmc/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=pmc:PMC_Boundary&outputFormat=application/json&srsName=EPSG:4326).
-It covers the current Pune Municipal Corporation boundary only; Pimpri-Chinchwad
-Municipal Corporation (PCMC) and places outside PMC are not included. Road damage is
+It selects the current Pune Municipal Corporation route only; Pimpri-Chinchwad Municipal
+Corporation (PCMC) and places outside PMC use the statewide Maharashtra fallback. Road damage is
 offered PMC Road Mitra. Garbage and manhole reports use
 [PMC CARE](https://www.pmccare.in/); PMC's official
 [CARE booklet](https://opendata.pmc.gov.in/opendata/PMCReports/PMC-CARE-Booklet.pdf)
@@ -137,7 +151,7 @@ chooses the action. BMC's website policy at
 does not frame BMC pages, copy BMC marks, or claim affiliation.
 
 Maharashtra contract matching is disabled. The project has no current, authoritative,
-road-linked award and defect-liability feed covering the MMR or PMC, so it does not guess
+road-linked award and defect-liability feed covering the state, so it does not guess
 a contractor, warranty, or road owner from general tender notices.
 
 ## Kolkata Municipal Corporation boundary and complaint handoffs
@@ -416,14 +430,18 @@ That wording is deliberate and should not be strengthened.
 
 ## Known limits
 
+- Maharashtra-wide evidence and official-handoff coverage uses a pinned ODbL state
+  boundary. Outside exact MMR and PMC routes, Aaple Sarkar is neutral: it does not prove
+  the responsible department, complaint category, road owner, or successful submission.
 - MMR coverage targets the official notified extent, but its downloaded OpenStreetMap outer
   outline is approximate, differs from MMRDA's published area by about 1%, and does not
   subtract the Scheduled Areas excluded by the 2019 notification. It must not be used as
   a legal boundary. Eleven available civic polygons can select a body; eight bodies,
   rural points, and ambiguities fall back to Aaple Sarkar. A suggestion does not establish
   road ownership.
-- PMC coverage uses a verified copy of PMC's official GIS boundary and deliberately excludes
-  PCMC. A later PMC boundary change requires a reviewed state-pack update.
+- PMC-specific routing uses a verified copy of PMC's official GIS boundary. PCMC remains
+  in statewide Maharashtra coverage but is not labelled or routed as PMC. A later PMC
+  boundary change requires a reviewed state-pack update.
 - KMC coverage uses a verified, validity-repaired copy of the official West Bengal UDMA
   municipal feature. It excludes Howrah, Bidhannagar/Salt Lake, and New Town. A later KMC
   boundary change requires a reviewed state-pack update.
@@ -442,7 +460,7 @@ That wording is deliberate and should not be strengthened.
 - There is no automatic filing, status sync, or cross-user report database for any route.
   Evidence remains local until the citizen deliberately opens an external handoff.
 - Maharashtra contract matching is disabled because no authoritative road-linked feed is
-  integrated for the MMR or PMC.
+  integrated statewide.
 - Kolkata contract matching is disabled for the same reason; a KMC boundary match does not
   establish who owns or maintains a road.
 - Delhi, Chennai, Hyderabad, and Ahmedabad contract matching is disabled; a coverage response
@@ -462,7 +480,7 @@ That wording is deliberate and should not be strengthened.
 - Contracts are a snapshot. Re-run `tools/pull-kppp.py` to refresh.
 - The public Nominatim endpoint is cached on an approximately 11 m grid and serialized
   below one request per second. National or municipal-scale deployment must switch the
-  endpoint to a policy-compliant managed or self-hosted service. MMR, PMC, KMC, Delhi,
+  endpoint to a policy-compliant managed or self-hosted service. Maharashtra, KMC, Delhi,
   Chennai, and Ahmedabad boundary routing remains local and does not depend on a geocoder
   response. Native Android Hyderabad routing sends the GPS-accuracy envelope to TGRAC's
   official CURE and Cantonment query services.

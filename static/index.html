@@ -69,7 +69,7 @@
   <div class="row" style="justify-content:space-between;align-items:flex-start">
     <div>
       <h1>Pothole Reporter</h1>
-      <div class="sub" id="subTitle">Shoot it. Verify it. Report it to the right officer.</div>
+      <div class="sub" id="subTitle">Shoot it. Verify it. Use the suggested official route.</div>
     </div>
     <button class="ghost" id="gearBtn" style="flex:none;padding:10px 14px" aria-label="Settings">&#9881;&#65039;</button>
   </div>
@@ -310,7 +310,7 @@ const I18N = {
     civic_no_address_help: "The civic body was identified, but the app holds no verified complaint address for it and will not guess one. The photo and location are saved.",
     civic_unsupported: "No verified {type} channel for {body}.",
     civic_unsupported_help: "The issue and evidence are saved, but this app has not verified that the suggested recipient accepts this category, so it will not open or address a complaint to a guess.",
-    civic_outside_coverage_help: "This civic issue is outside the enabled city and urban-body coverage. The photo and location are saved without a recipient.",
+    civic_outside_coverage_help: "This civic issue is outside the enabled state, city, and urban-body coverage. The photo and location are saved without a recipient.",
     retry_routing_btn: "Retry routing",
     retry_routing_unchanged: "Routing is still unavailable. The original photo and location remain saved; try again when the connection or routing data is available.",
     confirm_import_location: "This browser may have returned an existing photo. Attach your current GPS location only if the photo shows the place where you are now.",
@@ -364,7 +364,7 @@ const I18N = {
     model_said: "The app said: {verdict} · {assessment}",
     export_ready: "{n} labelled frames, {mb} MB. Choose where to send it.",
     outside_coverage: "This location is outside the area this app covers.",
-    outside_coverage_help: "This point is outside mapped National Highways and Expressways across India and the supported Karnataka urban bodies, Mumbai Metropolitan Region, Pune Municipal Corporation, Kolkata Municipal Corporation, Delhi NCT, Greater Chennai Corporation, Android-verified 2,053 km² Hyderabad CURE, and reviewed Ahmedabad 48-ward routes. The photo and location are saved without a recipient.",
+    outside_coverage_help: "This point is outside mapped National Highways and Expressways across India and the supported full State of Maharashtra, Karnataka urban bodies, Kolkata Municipal Corporation, Delhi NCT, Greater Chennai Corporation, Android-verified 2,053 km² Hyderabad CURE, and reviewed Ahmedabad 48-ward routes. The photo and location are saved without a recipient.",
     size_small: "small", size_medium: "medium", size_large: "large",
     damage_pothole_cavity: "pothole cavity", damage_failed_patch: "failed road repair",
     damage_surface_breakup: "broken road surface", damage_rut_or_depression: "road rut / depression",
@@ -491,7 +491,7 @@ const I18N = {
     civic_no_address_help: "ನಾಗರಿಕ ಸಂಸ್ಥೆಯನ್ನು ಗುರುತಿಸಲಾಗಿದೆ, ಆದರೆ ಅದರ ಪರಿಶೀಲಿತ ದೂರು ವಿಳಾಸ ಆ್ಯಪ್‌ನಲ್ಲಿ ಇಲ್ಲ ಮತ್ತು ಆ್ಯಪ್ ಊಹಿಸುವುದಿಲ್ಲ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳ ಉಳಿಸಲಾಗಿದೆ.",
     civic_unsupported: "{body} ಗೆ ಪರಿಶೀಲಿತ {type} ದೂರು ಮಾರ್ಗ ಇಲ್ಲ.",
     civic_unsupported_help: "ಸಮಸ್ಯೆ ಮತ್ತು ಸಾಕ್ಷಿ ಉಳಿಸಲಾಗಿದೆ, ಆದರೆ ಸೂಚಿಸಿದ ಸ್ವೀಕರಿಸುವವರು ಈ ವರ್ಗವನ್ನು ಸ್ವೀಕರಿಸುತ್ತಾರೆ ಎಂಬುದು ಪರಿಶೀಲಿತವಾಗಿಲ್ಲ; ಆ್ಯಪ್ ಊಹಿಸಿ ದೂರು ತೆರೆಯುವುದಿಲ್ಲ.",
-    civic_outside_coverage_help: "ಈ ನಾಗರಿಕ ಸಮಸ್ಯೆ ಸಕ್ರಿಯ ನಗರ ಮತ್ತು ನಗರ ಸ್ಥಳೀಯ ಸಂಸ್ಥೆಗಳ ವ್ಯಾಪ್ತಿಯ ಹೊರಗಿದೆ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳವನ್ನು ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
+    civic_outside_coverage_help: "ಈ ನಾಗರಿಕ ಸಮಸ್ಯೆ ಸಕ್ರಿಯ ರಾಜ್ಯ, ನಗರ ಮತ್ತು ನಗರ ಸ್ಥಳೀಯ ಸಂಸ್ಥೆಗಳ ವ್ಯಾಪ್ತಿಯ ಹೊರಗಿದೆ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳವನ್ನು ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
     retry_routing_btn: "ಮಾರ್ಗವನ್ನು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
     retry_routing_unchanged: "ಮಾರ್ಗ ಇನ್ನೂ ಲಭ್ಯವಿಲ್ಲ. ಮೂಲ ಚಿತ್ರ ಮತ್ತು ಸ್ಥಳ ಉಳಿದಿವೆ; ಸಂಪರ್ಕ ಅಥವಾ ಮಾರ್ಗ ಮಾಹಿತಿ ಲಭ್ಯವಾದಾಗ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     confirm_import_location: "ಈ ಬ್ರೌಸರ್ ಹಳೆಯ ಚಿತ್ರವನ್ನು ಆಯ್ಕೆ ಮಾಡಿರಬಹುದು. ಚಿತ್ರವು ನೀವು ಈಗಿರುವ ಸ್ಥಳವನ್ನೇ ತೋರಿಸಿದರೆ ಮಾತ್ರ ಪ್ರಸ್ತುತ GPS ಸ್ಥಳವನ್ನು ಜೋಡಿಸಿ.",
@@ -545,7 +545,7 @@ const I18N = {
     model_said: "ಆ್ಯಪ್ ಹೇಳಿದ್ದು: {verdict} · {assessment}",
     export_ready: "{n} ಗುರುತಿಸಿದ ಫ್ರೇಮ್‌ಗಳು, {mb} MB. ಎಲ್ಲಿಗೆ ಕಳುಹಿಸಬೇಕೆಂದು ಆಯ್ಕೆಮಾಡಿ.",
     outside_coverage: "ಈ ಸ್ಥಳ ಈ ಆ್ಯಪ್ ಒಳಗೊಂಡ ವ್ಯಾಪ್ತಿಯ ಹೊರಗಿದೆ.",
-    outside_coverage_help: "ಈ ಸ್ಥಳ ಭಾರತದೆಲ್ಲೆಡೆ ನಕ್ಷೆಗೊಂಡ ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಗಳು ಮತ್ತು ಎಕ್ಸ್‌ಪ್ರೆಸ್‌ವೇಗಳು ಹಾಗೂ ಬೆಂಬಲಿತ ಕರ್ನಾಟಕ, ಮುಂಬೈ ಮಹಾನಗರ ಪ್ರದೇಶ, ಪುಣೆ ಮಹಾನಗರ ಪಾಲಿಕೆ, ಕೋಲ್ಕತ್ತಾ ಮಹಾನಗರ ಪಾಲಿಕೆ, ದೆಹಲಿ NCT, ಚೆನ್ನೈ ಮಹಾನಗರ ಪಾಲಿಕೆ, ಹೈದರಾಬಾದ್ CURE core ಮತ್ತು ಅಹಮದಾಬಾದ್ ಮಾರ್ಗಗಳ ಹೊರಗಿದೆ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳವನ್ನು ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
+    outside_coverage_help: "ಈ ಸ್ಥಳ ಭಾರತದೆಲ್ಲೆಡೆ ನಕ್ಷೆಗೊಂಡ ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಗಳು ಮತ್ತು ಎಕ್ಸ್‌ಪ್ರೆಸ್‌ವೇಗಳು ಹಾಗೂ ಬೆಂಬಲಿತ ಸಂಪೂರ್ಣ ಮಹಾರಾಷ್ಟ್ರ, ಕರ್ನಾಟಕದ ನಗರ ಸ್ಥಳೀಯ ಸಂಸ್ಥೆಗಳು, ಕೋಲ್ಕತ್ತಾ ಮಹಾನಗರ ಪಾಲಿಕೆ, ದೆಹಲಿ NCT, ಚೆನ್ನೈ ಮಹಾನಗರ ಪಾಲಿಕೆ, ಹೈದರಾಬಾದ್ CURE core ಮತ್ತು ಅಹಮದಾಬಾದ್ ಮಾರ್ಗಗಳ ಹೊರಗಿದೆ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳವನ್ನು ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
     size_small: "ಸಣ್ಣ", size_medium: "ಮಧ್ಯಮ", size_large: "ದೊಡ್ಡ",
     damage_pothole_cavity: "ರಸ್ತೆ ಗುಂಡಿ", damage_failed_patch: "ವಿಫಲವಾದ ರಸ್ತೆ ದುರಸ್ತಿ",
     damage_surface_breakup: "ಹಾಳಾದ ರಸ್ತೆ ಮೇಲ್ಮೈ", damage_rut_or_depression: "ರಸ್ತೆ ಕುಸಿತ",
@@ -667,7 +667,7 @@ const I18N = {
     civic_no_address_help: "नागरी संस्था ओळखली आहे, पण तिचा पडताळलेला तक्रार पत्ता अॅपकडे नाही आणि अॅप अंदाज करणार नाही. फोटो आणि स्थान जतन झाले आहेत.",
     civic_unsupported: "{body} साठी पडताळलेला {type} तक्रार मार्ग नाही.",
     civic_unsupported_help: "समस्या आणि पुरावा जतन झाला आहे, पण सुचवलेला प्राप्तकर्ता हा प्रकार स्वीकारतो याची पडताळणी झालेली नाही; अॅप अंदाजाने तक्रार उघडणार नाही.",
-    civic_outside_coverage_help: "ही नागरी समस्या सुरू असलेल्या शहर आणि शहरी संस्थांच्या क्षेत्राबाहेर आहे. फोटो आणि स्थान प्राप्तकर्त्याशिवाय जतन झाले आहेत.",
+    civic_outside_coverage_help: "ही नागरी समस्या सुरू असलेल्या राज्य, शहर आणि शहरी संस्थांच्या क्षेत्राबाहेर आहे. फोटो आणि स्थान प्राप्तकर्त्याशिवाय जतन झाले आहेत.",
     retry_routing_btn: "मार्ग पुन्हा तपासा",
     retry_routing_unchanged: "मार्ग अजून उपलब्ध नाही. मूळ छायाचित्र आणि स्थान जतन आहेत; कनेक्शन किंवा मार्ग माहिती उपलब्ध झाल्यावर पुन्हा प्रयत्न करा.",
     confirm_import_location: "या ब्राउझरने जुने छायाचित्र निवडले असू शकते. छायाचित्र तुम्ही सध्या जिथे आहात तेच ठिकाण दाखवत असेल तरच सध्याचे GPS स्थान जोडा.",
@@ -715,7 +715,7 @@ const I18N = {
     model_said: "अॅपचा निष्कर्ष: {verdict} · {assessment}",
     export_ready: "{n} लेबल केलेल्या फ्रेम्स, {mb} MB. कुठे पाठवायचे ते निवडा.",
     outside_coverage: "हे स्थान अॅपच्या कार्यक्षेत्राबाहेर आहे.",
-    outside_coverage_help: "हे ठिकाण भारतभर नकाशावर असलेले राष्ट्रीय महामार्ग व द्रुतगती मार्ग आणि समर्थित कर्नाटक, मुंबई महानगर प्रदेश, पुणे महानगरपालिका, कोलकाता महानगरपालिका, दिल्ली NCT, चेन्नई महानगरपालिका, हैदराबाद CURE core आणि अहमदाबाद मार्गांबाहेर आहे. फोटो आणि स्थान प्राप्तकर्त्याशिवाय जतन केले आहे.",
+    outside_coverage_help: "हे ठिकाण भारतभर नकाशावर असलेले राष्ट्रीय महामार्ग व द्रुतगती मार्ग आणि समर्थित संपूर्ण महाराष्ट्र, कर्नाटकातील शहरी संस्था, कोलकाता महानगरपालिका, दिल्ली NCT, चेन्नई महानगरपालिका, हैदराबाद CURE core आणि अहमदाबाद मार्गांबाहेर आहे. फोटो आणि स्थान प्राप्तकर्त्याशिवाय जतन केले आहे.",
     size_small: "लहान", size_medium: "मध्यम", size_large: "मोठे",
     damage_pothole_cavity: "रस्त्यातील खड्डा", damage_failed_patch: "उखडलेली रस्ता दुरुस्ती",
     damage_surface_breakup: "उखडलेला रस्ता पृष्ठभाग", damage_rut_or_depression: "रस्त्यावरील चर / खोलगट भाग",
@@ -829,7 +829,7 @@ const I18N = {
     civic_no_address_help: "পৌর সংস্থাটি শনাক্ত হয়েছে, কিন্তু অ্যাপে তার যাচাই-করা অভিযোগের ঠিকানা নেই এবং অ্যাপ অনুমান করবে না। ছবি ও অবস্থান সংরক্ষিত আছে।",
     civic_unsupported: "{body}-এর জন্য যাচাই-করা {type} অভিযোগের পথ নেই।",
     civic_unsupported_help: "সমস্যা ও প্রমাণ সংরক্ষিত হয়েছে, কিন্তু প্রস্তাবিত প্রাপক এই বিভাগটি নেয় কি না যাচাই করা হয়নি; অ্যাপ অনুমান করে অভিযোগ খুলবে না।",
-    civic_outside_coverage_help: "এই নাগরিক সমস্যা চালু থাকা শহর ও নগর সংস্থার আওতার বাইরে। ছবি ও অবস্থান কোনও প্রাপক ছাড়াই সংরক্ষিত হয়েছে।",
+    civic_outside_coverage_help: "এই নাগরিক সমস্যা চালু থাকা রাজ্য, শহর ও নগর সংস্থার আওতার বাইরে। ছবি ও অবস্থান কোনও প্রাপক ছাড়াই সংরক্ষিত হয়েছে।",
     retry_routing_btn: "রাউটিং আবার চেষ্টা করুন",
     retry_routing_unchanged: "রাউটিং এখনও পাওয়া যাচ্ছে না। মূল ছবি ও অবস্থান সংরক্ষিত আছে; সংযোগ বা রাউটিং তথ্য পাওয়া গেলে আবার চেষ্টা করুন।",
     confirm_import_location: "এই ব্রাউজারটি পুরনো ছবি ফিরিয়ে দিতে পারে। ছবিটি আপনি এখন যেখানে আছেন সেই স্থানটি দেখালেই কেবল বর্তমান GPS অবস্থান যুক্ত করুন।",
@@ -882,7 +882,7 @@ const I18N = {
     model_said: "অ্যাপের সিদ্ধান্ত: {verdict} · {assessment}",
     export_ready: "{n}টি লেবেল দেওয়া ফ্রেম, {mb} MB। কোথায় পাঠাবেন বেছে নিন।",
     outside_coverage: "এই অবস্থানটি অ্যাপের আওতাভুক্ত এলাকার বাইরে।",
-    outside_coverage_help: "এই স্থানটি ভারতজুড়ে মানচিত্রভুক্ত জাতীয় সড়ক ও এক্সপ্রেসওয়ে এবং সমর্থিত কর্ণাটক, মুম্বই মহানগর অঞ্চল, পুনে পৌরসংস্থা, কলকাতা পৌরসংস্থা, দিল্লি NCT, চেন্নাই পৌরসংস্থা, হায়দরাবাদ CURE core এবং আহমেদাবাদ এলাকার বাইরে। ছবি ও অবস্থান কোনও প্রাপক ছাড়াই সংরক্ষিত হয়েছে।",
+    outside_coverage_help: "এই স্থানটি ভারতজুড়ে মানচিত্রভুক্ত জাতীয় সড়ক ও এক্সপ্রেসওয়ে এবং সমর্থিত সমগ্র মহারাষ্ট্র, কর্ণাটকের নগর সংস্থা, কলকাতা পৌরসংস্থা, দিল্লি NCT, চেন্নাই পৌরসংস্থা, হায়দরাবাদ CURE core এবং আহমেদাবাদ এলাকার বাইরে। ছবি ও অবস্থান কোনও প্রাপক ছাড়াই সংরক্ষিত হয়েছে।",
     size_small: "ছোট", size_medium: "মাঝারি", size_large: "বড়",
     damage_pothole_cavity: "রাস্তার গর্ত", damage_failed_patch: "ভেঙে যাওয়া রাস্তা মেরামত",
     damage_surface_breakup: "ভাঙা রাস্তার উপরিভাগ", damage_rut_or_depression: "চাকার খাঁজ / দেবে যাওয়া অংশ",

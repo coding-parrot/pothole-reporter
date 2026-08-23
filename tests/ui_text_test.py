@@ -45,15 +45,15 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
             fails.append(f"{name}: Kannada out-of-coverage text still says Bengaluru only")
         if any(term not in coverage[0] for term in (
             "National Highways", "across India",
-            "Mumbai Metropolitan Region", "Pune Municipal Corporation",
+            "full State of Maharashtra", "Karnataka urban bodies",
             "Kolkata Municipal Corporation", "Delhi NCT",
         )):
             fails.append(f"{name}: English out-of-coverage text omits a supported region")
-        if any(term not in coverage[1] for term in ("ಭಾರತದೆಲ್ಲೆಡೆ", "ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಗಳು", "ಕರ್ನಾಟಕ", "ಮುಂಬೈ", "ಪುಣೆ", "ಕೋಲ್ಕತ್ತಾ", "ದೆಹಲಿ NCT")):
+        if any(term not in coverage[1] for term in ("ಭಾರತದೆಲ್ಲೆಡೆ", "ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಗಳು", "ಸಂಪೂರ್ಣ ಮಹಾರಾಷ್ಟ್ರ", "ಕರ್ನಾಟಕ", "ಕೋಲ್ಕತ್ತಾ", "ದೆಹಲಿ NCT")):
             fails.append(f"{name}: Kannada out-of-coverage text omits a supported region")
-        if any(term not in coverage[2] for term in ("भारतभर", "राष्ट्रीय महामार्ग", "कर्नाटक", "मुंबई", "पुणे", "कोलकाता", "दिल्ली NCT")):
+        if any(term not in coverage[2] for term in ("भारतभर", "राष्ट्रीय महामार्ग", "संपूर्ण महाराष्ट्र", "कर्नाटक", "कोलकाता", "दिल्ली NCT")):
             fails.append(f"{name}: Marathi out-of-coverage text omits a supported region")
-        if any(term not in coverage[3] for term in ("ভারতজুড়ে", "জাতীয় সড়ক", "কর্ণাটক", "মুম্বই", "পুনে", "কলকাতা", "দিল্লি NCT")):
+        if any(term not in coverage[3] for term in ("ভারতজুড়ে", "জাতীয় সড়ক", "সমগ্র মহারাষ্ট্র", "কর্ণাটক", "কলকাতা", "দিল্লি NCT")):
             fails.append(f"{name}: Bengali out-of-coverage text omits a supported region")
     else:
         fails.append(f"{name}: expected 4 outside_coverage_help strings, found {len(coverage)}")
