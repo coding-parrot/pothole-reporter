@@ -79,8 +79,10 @@ EXISTING_ROUTES = {
     "ahmedabad": ("reviewed-specific", "in-gj-routing"),
     "pune": ("reviewed-specific", "in-mh-routing"),
     "nagpur": ("statewide-neutral", "in-mh-routing"),
+    "coimbatore": ("statewide-neutral", "in-tn-state-routing"),
     "ludhiana": ("statewide-neutral", "in-pb-routing"),
     "nashik": ("statewide-neutral", "in-mh-routing"),
+    "madurai": ("statewide-neutral", "in-tn-state-routing"),
     "asansol": ("statewide-neutral", "in-wb-routing"),
     "vasai-virar": ("reviewed-specific", "in-mh-routing"),
     "chhatrapati-sambhajinagar": ("statewide-neutral", "in-mh-routing"),
@@ -194,7 +196,7 @@ def main():
         check(city.get("pack_id") == expected_pack, f"{city_id}: wrong pack id", errors)
         if expected_tier == "major-city-neutral":
             major_city_ids.append(city_id)
-    check(len(major_city_ids) == 35, "exactly 35 cities must use the conservative top-50 route", errors)
+    check(len(major_city_ids) == 33, "exactly 33 cities must use the conservative top-50 route", errors)
 
     root = ET.parse(MAP_PATH).getroot()
     check(root.tag == SVG_NS + "svg", "coverage map root must be SVG", errors)
@@ -245,13 +247,15 @@ def main():
 
     all_svg_text = " ".join("".join(root.itertext()).split())
     check("Available route · 50" in all_svg_text, "coverage map legend must show 50 available", errors)
-    check("Structured city name · 35" in all_svg_text, "coverage map legend must show 35 city-name routes", errors)
+    check("Structured city name · 33" in all_svg_text, "coverage map legend must show 33 city-name routes", errors)
     check("Pending reviewed pack" not in all_svg_text, "coverage map still contains a pending legend", errors)
     for required_text in (
         "Maharashtra",
         "West Bengal",
         "Punjab",
+        "Tamil Nadu",
         "Chandigarh UT is outside Punjab coverage",
+        "Puducherry UT is outside Tamil Nadu coverage",
         "Mapped National Highways",
     ):
         check(required_text in all_svg_text, f"coverage map lost: {required_text}", errors)

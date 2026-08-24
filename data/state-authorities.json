@@ -315,6 +315,15 @@
         "alternate_handoff_url": "https://erp.chennaicorporation.gov.in/pgr/",
         "whatsapp_url": "https://wa.me/919445061913",
         "helpline": "1913"
+      },
+      {
+        "id": "tn-statewide-unverified",
+        "name": "Tamil Nadu authority (select in grievance portal)",
+        "aliases": ["tamil nadu", "tamilnadu", "தமிழ்நாடு"],
+        "handoff_name": "Mudhalvarin Mugavari",
+        "handoff_url": "https://cmhelpline.tnega.org/portal/en/home",
+        "handoff_package": "org.tnega.cmhelpline.citizen",
+        "helpline": "1100"
       }
     ]
   },

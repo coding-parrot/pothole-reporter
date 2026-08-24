@@ -544,8 +544,8 @@ def main() -> None:
 
     for output in build_all():
         print(output.relative_to(PROJECT_ROOT))
-    print("static/pack-manifest.json")
-    print("android-app/www/pack-manifest.json")
+    print("static/pack-manifest-v1.26.json")
+    print("android-app/www/pack-manifest-v1.26.json")
 
 
 if __name__ == "__main__":

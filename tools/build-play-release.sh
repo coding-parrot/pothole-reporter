@@ -14,7 +14,8 @@ AAB_PATH=$ANDROID_ROOT/app/build/outputs/bundle/release/app-release.aab
 BUNDLE_MANIFEST=$ANDROID_ROOT/app/build/intermediates/bundle_manifest/release/processApplicationManifestReleaseForBundle/AndroidManifest.xml
 WWW_ROOT=android-app/www
 PACKAGED_ASSETS_ROOT=$ANDROID_ROOT/app/src/main/assets/public
-PACK_MANIFEST=static/pack-manifest.json
+PACK_MANIFEST=static/pack-manifest-v1.26.json
+LEGACY_PACK_MANIFEST=static/pack-manifest.json
 HIGHWAY_MANIFEST=static/highway-manifest.json
 FORBIDDEN_STATE_ASSETS=(
   delhi-coverage.json
@@ -61,7 +62,8 @@ echo "1/7 validating hosted data packs, municipal schemas and web-source mirrors
 python3 tools/build-state-packs.py --check
 python3 tools/build-national-highways.py --check
 python3 tests/state_pack_validation_test.py
-same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest.json" "pack manifest mirror"
+same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.26.json" "v1.26 pack manifest mirror"
+same_file "$LEGACY_PACK_MANIFEST" "$WWW_ROOT/pack-manifest.json" "legacy pack manifest mirror"
 same_file "$HIGHWAY_MANIFEST" "$WWW_ROOT/highway-manifest.json" "highway manifest mirror"
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
   [ ! -e "static/$asset" ] || fail "state data must not be bundled in static/: $asset"
@@ -94,8 +96,8 @@ rm -f "$AAB_PATH"
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="dev.aiengg.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="43"' "$BUNDLE_MANIFEST" || fail "expected versionCode 43"
-grep -Fq 'android:versionName="1.25.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.25.0"
+grep -Fq 'android:versionCode="44"' "$BUNDLE_MANIFEST" || fail "expected versionCode 44"
+grep -Fq 'android:versionName="1.26.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.26.0"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"
@@ -103,6 +105,7 @@ grep -Fq 'com.nyatitechnologies.pmcroadmitra' "$BUNDLE_MANIFEST" || fail "PMC Ro
 grep -Fq 'com.kmc.app' "$BUNDLE_MANIFEST" || fail "official KMC app package query is missing"
 grep -Fq 'com.sis.pwdsewaapp' "$BUNDLE_MANIFEST" || fail "official PWD Sewa app package query is missing"
 grep -Fq 'com.ceedeev.grivenancev2' "$BUNDLE_MANIFEST" || fail "official Namma Chennai app package query is missing"
+grep -Fq 'org.tnega.cmhelpline.citizen' "$BUNDLE_MANIFEST" || fail "official Mudhalvarin Mugavari app package query is missing"
 grep -Fq 'cgg.gov.ghmc' "$BUNDLE_MANIFEST" || fail "official My Cure app package query is missing"
 grep -Fq 'com.amplvb.ccrs' "$BUNDLE_MANIFEST" || fail "official AMC CCRS app package query is missing"
 grep -Fq 'com.nhai.rajmargyatra' "$BUNDLE_MANIFEST" || fail "official Rajmargyatra app package query is missing"

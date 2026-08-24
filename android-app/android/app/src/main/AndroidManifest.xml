@@ -9,6 +9,7 @@
         <package android:name="com.newnmmc.app" />
         <package android:name="com.nyatitechnologies.pmcroadmitra" />
         <package android:name="com.ceedeev.grivenancev2" />
+        <package android:name="org.tnega.cmhelpline.citizen" />
         <package android:name="cgg.gov.ghmc" />
         <package android:name="com.amplvb.ccrs" />
         <package android:name="com.nhai.rajmargyatra" />

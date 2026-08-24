@@ -83,11 +83,12 @@
   // State-specific contacts and polygons live in immutable data packs. The APK keeps
   // only the parsers, strict validators and the package IDs Android permits it to query.
   // A downloaded pack can therefore add data, never executable behaviour.
-  const AUTHORITY_REGISTRY_VERSION = 10;
+  const AUTHORITY_REGISTRY_VERSION = 11;
   const LAUNCHABLE_PACKAGES = new Set([
     "com.bmc.potholequickfix", "com.sis.pwdsewaapp", "com.kmc.app",
     "com.newnmmc.app", "com.nyatitechnologies.pmcroadmitra",
-    "com.ceedeev.grivenancev2", "cgg.gov.ghmc", "com.amplvb.ccrs",
+    "com.ceedeev.grivenancev2", "org.tnega.cmhelpline.citizen",
+    "cgg.gov.ghmc", "com.amplvb.ccrs",
     "com.nhai.rajmargyatra", "com.nammabengaluruNew.org",
     "com.esri.ugms_bmc", "in.gov.pmc.pmccare", "com.nic.dl.delhijanmitra",
   ]);
@@ -177,8 +178,8 @@
   // route for garbage and manhole reports. Other municipal email/road routes fail
   // closed instead of assuming that a recipient accepts an unrelated category.
   const GENERAL_CIVIC_AUTHORITY_IDS = new Set([
-    "wb-kmc", "wb-statewide-unverified", "tn-gcc", "tg-cure-shared", "gj-amc",
-    "pb-statewide-unverified",
+    "wb-kmc", "wb-statewide-unverified", "tn-gcc", "tn-statewide-unverified",
+    "tg-cure-shared", "gj-amc", "pb-statewide-unverified",
     "in-gj-enagar", "in-rj-sampark", "in-up-jansunwai", "in-mp-cm-helpline",
     "in-tn-cm-helpline", "in-kl-ksmart", "in-br-lok-shikayat", "in-ap-puramithra",
     "in-hr-nagar-darshan", "in-jh-municipal-grievance", "in-jk-samadhan", "in-cg-nidaan",
@@ -206,11 +207,14 @@
   const KMC_AUTHORITY = {};
   const WEST_BENGAL_STATE_AUTHORITY = {};
   const PUNJAB_STATE_AUTHORITY = {};
+  const TAMIL_NADU_STATE_AUTHORITY = {};
   const DELHI_PWD_AUTHORITY = {};
   const NATIONAL_HIGHWAY_AUTHORITY = {};
   const OFFICIAL_AUTHORITIES = [];
   const OFFICIAL_AUTHORITY_INDEX = new Map();
   const MMR_ALIAS_INDEX = new Map();
+  // Keyed by pack ID, rather than state code: Tamil Nadu deliberately has both the
+  // exact Greater Chennai Corporation pack and a separate statewide fallback pack.
   const PACK_AUTHORITIES_BY_STATE = new Map();
   const PACK_ID_BY_AUTHORITY = new Map();
   const MMR_DIRECT_AUTHORITY_IDS = new Set([
@@ -842,7 +846,14 @@ Evidence rules:
     for (const authorities of PACK_AUTHORITIES_BY_STATE.values()) {
       for (const authority of authorities) {
         if (OFFICIAL_AUTHORITY_INDEX.has(authority.id)) {
-          throw new Error(`Official authority ${authority.id} appears in two state packs.`);
+          // A neutral statewide channel may be referenced by more than one independently
+          // pinned geographic pack. Only a byte-for-byte-equivalent authority object may
+          // share an ID; divergent URLs or labels still invalidate the registry.
+          const installed = OFFICIAL_AUTHORITY_INDEX.get(authority.id);
+          if (canonicalJson(installed) !== canonicalJson(authority)) {
+            throw new Error(`Official authority ${authority.id} differs across state packs.`);
+          }
+          continue;
         }
         OFFICIAL_AUTHORITIES.push(authority);
         OFFICIAL_AUTHORITY_INDEX.set(authority.id, authority);
@@ -884,7 +895,7 @@ Evidence rules:
           MMR_FALLBACK_AUTHORITY_IDS.add(authority.id);
         }
       }
-      PACK_AUTHORITIES_BY_STATE.set("MH", [
+      PACK_AUTHORITIES_BY_STATE.set(pack.pack_id, [
         ...MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY,
         MAHARASHTRA_STATE_AUTHORITY,
       ]);
@@ -896,35 +907,48 @@ Evidence rules:
       replaceStableObject(KMC_AUTHORITY, byId.get("wb-kmc"));
       replaceStableObject(WEST_BENGAL_STATE_AUTHORITY,
         byId.get("wb-statewide-unverified"));
-      PACK_AUTHORITIES_BY_STATE.set("WB", [KMC_AUTHORITY, WEST_BENGAL_STATE_AUTHORITY]);
+      PACK_AUTHORITIES_BY_STATE.set(pack.pack_id,
+        [KMC_AUTHORITY, WEST_BENGAL_STATE_AUTHORITY]);
     } else if (pack.state_code === "DL") {
       if (authorities.length !== 1 || !byId.has("dl-pwd-sewa")) {
         throw new Error("Delhi routing pack has an invalid authority registry.");
       }
       replaceStableObject(DELHI_PWD_AUTHORITY, byId.get("dl-pwd-sewa"));
-      PACK_AUTHORITIES_BY_STATE.set("DL", [DELHI_PWD_AUTHORITY]);
+      PACK_AUTHORITIES_BY_STATE.set(pack.pack_id, [DELHI_PWD_AUTHORITY]);
     } else if (pack.state_code === "PB") {
       if (authorities.length !== 1 || !byId.has("pb-statewide-unverified")) {
         throw new Error("Punjab routing pack has an invalid authority registry.");
       }
       replaceStableObject(PUNJAB_STATE_AUTHORITY, byId.get("pb-statewide-unverified"));
-      PACK_AUTHORITIES_BY_STATE.set("PB", [PUNJAB_STATE_AUTHORITY]);
+      PACK_AUTHORITIES_BY_STATE.set(pack.pack_id, [PUNJAB_STATE_AUTHORITY]);
+    } else if (pack.pack_id === "in-tn-state-routing") {
+      if (authorities.length !== 1 || !byId.has("tn-statewide-unverified")) {
+        throw new Error("Tamil Nadu statewide routing pack has an invalid authority registry.");
+      }
+      replaceStableObject(TAMIL_NADU_STATE_AUTHORITY, byId.get("tn-statewide-unverified"));
+      PACK_AUTHORITIES_BY_STATE.set(pack.pack_id, [TAMIL_NADU_STATE_AUTHORITY]);
     } else if (pack.state_code === "KA") {
       if (authorities.length) throw new Error("Karnataka contacts must use the LGD registry.");
-      PACK_AUTHORITIES_BY_STATE.set("KA", []);
+      PACK_AUTHORITIES_BY_STATE.set(pack.pack_id, []);
     } else if (pack.adapter === "municipal-city-v1"
         || pack.adapter === "major-city-structured-v1") {
       if (!authorities.length || authorities.length > 100) {
         throw new Error("Municipal-city routing pack has an invalid authority registry.");
       }
-      PACK_AUTHORITIES_BY_STATE.set(pack.state_code, authorities);
+      PACK_AUTHORITIES_BY_STATE.set(pack.pack_id, authorities);
     } else {
       throw new Error("Unsupported routing-pack state.");
     }
-    for (const [authorityId, packId] of PACK_ID_BY_AUTHORITY) {
-      if (packId === pack.pack_id) PACK_ID_BY_AUTHORITY.delete(authorityId);
+    for (const [authorityId, packIds] of PACK_ID_BY_AUTHORITY) {
+      packIds.delete(pack.pack_id);
+      if (!packIds.size) PACK_ID_BY_AUTHORITY.delete(authorityId);
     }
-    for (const authority of authorities) PACK_ID_BY_AUTHORITY.set(authority.id, pack.pack_id);
+    for (const authority of authorities) {
+      if (!PACK_ID_BY_AUTHORITY.has(authority.id)) {
+        PACK_ID_BY_AUTHORITY.set(authority.id, new Set());
+      }
+      PACK_ID_BY_AUTHORITY.get(authority.id).add(pack.pack_id);
+    }
     rebuildOfficialAuthorityIndex();
     return true;
   }
@@ -1067,6 +1091,7 @@ Evidence rules:
     "in-ka-routing": { state_code: "KA", kind: "routing", adapter: "karnataka-kgis-v1" },
     "in-ka-tenders": { state_code: "KA", kind: "tenders", adapter: "karnataka-locally-indexed-v1" },
     "in-tn-routing": { state_code: "TN", kind: "routing", adapter: "municipal-city-v1" },
+    "in-tn-state-routing": { state_code: "TN", kind: "routing", adapter: "statewide-general-v1" },
     "in-tg-routing": { state_code: "TG", kind: "routing", adapter: "municipal-city-v1" },
     "in-gj-routing": { state_code: "GJ", kind: "routing", adapter: "municipal-city-v1" },
   });
@@ -1143,7 +1168,7 @@ Evidence rules:
     if (_statePackManifestPromise) return _statePackManifestPromise;
     _statePackManifestPromise = (async () => {
       try {
-        const response = await fetch("pack-manifest.json", { cache: "no-store" });
+        const response = await fetch("pack-manifest-v1.26.json", { cache: "no-store" });
         if (!response.ok) return null;
         const text = await response.text();
         if (!text || text.length > 128 * 1024) return null;
@@ -1433,6 +1458,40 @@ Evidence rules:
         && !!item && item.length <= 500);
   }
 
+  async function validateTamilNaduPayload(pack) {
+    const payload = pack.payload;
+    const region = payload && payload.region;
+    const fields = [
+      "id", "authority_id", "name", "scope", "osm_relation_id", "source_name",
+      "source_home_url", "source_url", "source_license", "attribution", "routing_note",
+      "limitations", "coordinate_precision", "bbox", "geometry_sha256", "geometry",
+    ];
+    const digest = region && hasCoverageGeometry(region.geometry)
+      ? await sha256Hex(JSON.stringify(region.geometry)) : null;
+    const calculated = region && municipalGeometryBounds(region.geometry);
+    const near = (first, second) => Math.abs(first - second) <= 1e-7;
+    return exactObjectKeys(payload, ["version", "retrieved_at", "region"])
+      && payload.version === 1 && payload.retrieved_at === pack.generated_at
+      && exactObjectKeys(region, fields)
+      && region.id === "tamil-nadu-state"
+      && region.authority_id === "tn-statewide-unverified"
+      && region.name === "Tamil Nadu" && Number(region.osm_relation_id) === 96905
+      && Number.isInteger(region.coordinate_precision) && region.coordinate_precision === 7
+      && validMunicipalEnvelope(region.bbox) && calculated
+      && Object.keys(calculated).every((key) => near(calculated[key], region.bbox[key]))
+      && region.geometry_sha256 === TAMIL_NADU_STATE_GEOMETRY_SHA256
+      && digest === TAMIL_NADU_STATE_GEOMETRY_SHA256
+      && ["scope", "source_name", "source_license", "attribution", "routing_note"]
+        .every((field) => typeof region[field] === "string"
+          && !!region[field] && region[field].length <= 1000)
+      && ["source_home_url", "source_url"]
+        .every((field) => /^https:\/\/[^\s]+$/.test(String(region[field] || "")))
+      && Array.isArray(region.limitations) && region.limitations.length > 0
+      && region.limitations.length <= 10
+      && region.limitations.every((item) => typeof item === "string"
+        && !!item && item.length <= 500);
+  }
+
   function validateMajorCityPayload(pack) {
     const payload = pack.payload;
     const expectedAuthorityIds = new Set(Object.values(TOP50_AUTHORITY_BY_STATE));
@@ -1565,6 +1624,12 @@ Evidence rules:
           || pack.authorities[0].id !== "pb-statewide-unverified"
           || !await validatePunjabPayload(pack)) {
         throw new Error("Punjab routing pack failed its boundary, source or authority checks.");
+      }
+    } else if (resource.pack_id === "in-tn-state-routing") {
+      if (pack.authorities.length !== 1
+          || pack.authorities[0].id !== "tn-statewide-unverified"
+          || !await validateTamilNaduPayload(pack)) {
+        throw new Error("Tamil Nadu routing pack failed its boundary, source or authority checks.");
       }
     } else if (resource.pack_id === "in-top50-routing") {
       if (!validateMajorCityPayload(pack)) {
@@ -1802,6 +1867,8 @@ Evidence rules:
     municipalCityCoveragePromises.clear();
     _punjabCoverage = null;
     _punjabCoveragePromise = null;
+    _tamilNaduCoverage = null;
+    _tamilNaduCoveragePromise = null;
     _majorCityCoverage = null;
     _majorCityCoveragePromise = null;
     resetHighwayPackMemory();
@@ -2248,6 +2315,11 @@ Evidence rules:
   };
   const PUNJAB_STATE_GEOMETRY_SHA256 =
     "e113eb774f4f353d3c7a9c98830f4b665f9bd4d166ed3b84e90855bdf38f5782";
+  const TAMIL_NADU_ROUTING_ENVELOPE = {
+    min_lng: 76.2329467, min_lat: 8.0768938, max_lng: 80.3592971, max_lat: 13.5639111,
+  };
+  const TAMIL_NADU_STATE_GEOMETRY_SHA256 =
+    "b3034527326b1120366adaf4b7c3df4bd0b8c7aab4d82b28e3dde189b39c313e";
 
   // These coarse centres only decide whether the small, checksum-pinned national pack
   // should be loaded. The pack's own envelope plus an exact structured city/state match
@@ -2557,6 +2629,57 @@ Evidence rules:
       match_value: "Punjab (OpenStreetMap relation 1942686)",
       region: "punjab-state",
       pack_id: "in-pb-routing",
+    });
+  }
+
+  let _tamilNaduCoverage = null, _tamilNaduCoveragePromise = null;
+  async function tamilNaduCoverage() {
+    if (_tamilNaduCoverage) return _tamilNaduCoverage;
+    if (_tamilNaduCoveragePromise) return _tamilNaduCoveragePromise;
+    _tamilNaduCoveragePromise = (async () => {
+      try {
+        const pack = await loadStatePack("in-tn-state-routing");
+        const payload = pack && pack.payload;
+        const region = payload && payload.region;
+        if (payload && payload.version === 1 && region
+            && region.authority_id === TAMIL_NADU_STATE_AUTHORITY.id
+            && Number(region.osm_relation_id) === 96905
+            && region.geometry_sha256 === TAMIL_NADU_STATE_GEOMETRY_SHA256
+            && hasCoverageGeometry(region.geometry)) {
+          _tamilNaduCoverage = payload;
+        }
+      } catch (e) { /* fail closed and allow a later retry */ }
+      return _tamilNaduCoverage;
+    })();
+    const result = await _tamilNaduCoveragePromise;
+    _tamilNaduCoveragePromise = null;
+    return result;
+  }
+
+  async function tamilNaduRouteFromGeocode(_geo, lat, lng, gpsAccuracy) {
+    if (!pointInEnvelope(lat, lng, TAMIL_NADU_ROUTING_ENVELOPE)) return null;
+    const coverage = await tamilNaduCoverage();
+    if (!coverage) return unroutedRoute("jurisdiction_unavailable");
+    const geometry = coverage.region.geometry;
+    const inState = pointInGeometry(lng, lat, geometry);
+    const enforceGpsAccuracy = gpsAccuracy !== undefined;
+    if (enforceGpsAccuracy
+        && (!Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 30)) {
+      return inState ? unroutedRoute("location_uncertain") : null;
+    }
+    if (Number.isFinite(gpsAccuracy)
+        && geometryBoundaryDistanceMeters(lng, lat, geometry) <= gpsAccuracy) {
+      return unroutedRoute("location_uncertain");
+    }
+    // Puducherry's enclaves and neighbouring states sit inside the coarse download
+    // rectangle. Only the checksum-pinned Tamil Nadu polygon may select this handoff.
+    if (!inState) return null;
+    return authorityRoute(TAMIL_NADU_STATE_AUTHORITY, {
+      routing_source: "osm_tamil_nadu_state_boundary",
+      match_field: "boundary",
+      match_value: "Tamil Nadu (OpenStreetMap relation 96905)",
+      region: "tamil-nadu-state",
+      pack_id: "in-tn-state-routing",
     });
   }
 
@@ -3117,10 +3240,30 @@ Evidence rules:
       return routeForIssue(kolkata, issueType);
     }
 
+    // A missing pack inside a coarse prefilter is not proof that the point belongs to
+    // that jurisdiction. Remember the transient failure, but let independent exact
+    // routes continue. This is especially important near Tamil Nadu: its download
+    // envelope also contains Bengaluru and Kochi.
+    let deferredJurisdictionFailure = null;
     for (const packId of ["in-tn-routing", "in-tg-routing", "in-gj-routing"]) {
       const municipal = await municipalCityRouteFromGeocode(packId, geo, lat, lng, gpsAccuracy);
       if (municipal && municipal.unrouted_reason !== "outside_area") {
+        if (municipal.unrouted_reason === "jurisdiction_unavailable") {
+          if (!deferredJurisdictionFailure) deferredJurisdictionFailure = municipal;
+          continue;
+        }
         return routeForIssue(municipal, issueType);
+      }
+    }
+
+    // GCC's exact municipal polygon above keeps precedence inside Chennai. Everywhere
+    // else in the exact Tamil Nadu state polygon uses the neutral statewide channel.
+    const tamilNadu = await tamilNaduRouteFromGeocode(geo, lat, lng, gpsAccuracy);
+    if (tamilNadu) {
+      if (tamilNadu.unrouted_reason === "jurisdiction_unavailable") {
+        if (!deferredJurisdictionFailure) deferredJurisdictionFailure = tamilNadu;
+      } else {
+        return routeForIssue(tamilNadu, issueType);
       }
     }
 
@@ -3138,7 +3281,8 @@ Evidence rules:
     // the final vote inside Karnataka's coarse download envelope instead of a label
     // blocking a valid coordinate. Coordinates outside that envelope need no KGIS call.
     if (!inKarnatakaRoutingEnvelope(lat, lng)) {
-      return routeForIssue(unroutedRoute("outside_area"), issueType);
+      return routeForIssue(
+        deferredJurisdictionFailure || unroutedRoute("outside_area"), issueType);
     }
 
     // If the state cannot tell us what this road is, we do not name anyone. The highway
@@ -3159,7 +3303,10 @@ Evidence rules:
         issueType === "road_damage" ? "road_class_unknown" : "jurisdiction_unavailable"), issueType);
     }
 
-    if (where.kind === "outside_state") return routeForIssue(unroutedRoute("outside_area"), issueType);
+    if (where.kind === "outside_state") {
+      return routeForIssue(
+        deferredJurisdictionFailure || unroutedRoute("outside_area"), issueType);
+    }
     if (where.kind === "jurisdiction_unavailable") {
       return routeForIssue(unroutedRoute("jurisdiction_unavailable"), issueType);
     }
@@ -4686,15 +4833,72 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
 
   const isOfficialHandoff = (rec) => !!rec && OFFICIAL_HANDOFF_CHANNELS.has(rec.delivery_channel);
 
-  function routingPackForAuthority(authorityId) {
+  const LEGACY_TAMIL_NADU_TOP50_SHA256 =
+    "0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5";
+  const LEGACY_TAMIL_NADU_TOP50_REGIONS = Object.freeze({
+    coimbatore: Object.freeze({
+      aliases: Object.freeze(["Coimbatore", "Kovai", "கோயம்புத்தூர்"]),
+      envelope: Object.freeze({
+        min_lng: 76.8028425, min_lat: 10.8418115,
+        max_lng: 77.1228425, max_lat: 11.1618115,
+      }),
+    }),
+    madurai: Object.freeze({
+      aliases: Object.freeze(["Madurai", "மதுரை"]),
+      envelope: Object.freeze({
+        min_lng: 78.0155927, min_lat: 9.8245041,
+        max_lng: 78.2030091, max_lat: 9.9933722,
+      }),
+    }),
+  });
+
+  // v1.25 routed these two cities through the old national top-50 pack. Re-resolve that
+  // exact, checksum-pinned legacy shape against the current state polygon and return only
+  // freshly loaded Tamil Nadu contact data. No URL or authority label saved in IndexedDB
+  // participates in the migration.
+  async function migrateLegacyTamilNaduHandoff(rec) {
+    const region = rec && LEGACY_TAMIL_NADU_TOP50_REGIONS[rec.region];
+    const match = String(rec && rec.routing_match_value || "")
+      .match(/^(city|municipality): (.+)$/);
+    const aliases = region && new Set(region.aliases.map(normaliseAuthorityValue));
+    if (!region || !match || !aliases.has(normaliseAuthorityValue(match[2]))
+        || rec.authority_id !== "in-tn-cm-helpline"
+        || rec.routing_pack_id !== "in-top50-routing"
+        || rec.routing_pack_version !== 1
+        || rec.routing_pack_sha256 !== LEGACY_TAMIL_NADU_TOP50_SHA256
+        || rec.routing_pack_state_code !== "IN"
+        || rec.routing_source !== "nominatim_structured_city"
+        || rec.routing_match_field !== "structured_place"
+        || !Number.isFinite(rec.lat) || !Number.isFinite(rec.lng)
+        || !Number.isFinite(rec.gps_accuracy) || rec.gps_accuracy < 0
+        || rec.gps_accuracy > 30
+        || !accuracyCircleWithinEnvelope(
+          rec.lat, rec.lng, rec.gps_accuracy, region.envelope)) {
+      return null;
+    }
+    const current = await tamilNaduRouteFromGeocode(
+      null, rec.lat, rec.lng, rec.gps_accuracy);
+    if (!current || !current.routed
+        || current.authority_id !== "tn-statewide-unverified"
+        || current.routing_pack_id !== "in-tn-state-routing") return null;
+    return routeForIssue({ ...toDict(rec), ...current }, rec.issue_type);
+  }
+
+  function routingPackForAuthority(authorityId, preferredPackId = null) {
     const id = String(authorityId || "");
-    if (PACK_ID_BY_AUTHORITY.has(id)) return PACK_ID_BY_AUTHORITY.get(id);
+    if (PACK_ID_BY_AUTHORITY.has(id)) {
+      const installed = PACK_ID_BY_AUTHORITY.get(id);
+      if (preferredPackId && installed.has(preferredPackId)) return preferredPackId;
+      if (installed.size === 1) return [...installed][0];
+      return null;
+    }
     const match = id.match(/^([a-z]{2})-/);
     if (!match) return null;
     const stateCode = match[1].toUpperCase();
     const candidates = Object.entries(SUPPORTED_STATE_PACKS)
       .filter(([, spec]) => spec.kind === "routing" && spec.state_code === stateCode)
       .map(([packId]) => packId);
+    if (preferredPackId && candidates.includes(preferredPackId)) return preferredPackId;
     return candidates.length === 1 ? candidates[0] : null;
   }
 
@@ -4718,6 +4922,12 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       const region = pack && pack.payload && pack.payload.region;
       if (!region || region.id !== "punjab-state" || region.authority_id !== authorityId) return null;
       return { region: region.id, routing_source: "osm_punjab_state_boundary" };
+    }
+    if (packId === "in-tn-state-routing" && authorityId === "tn-statewide-unverified") {
+      const region = pack && pack.payload && pack.payload.region;
+      if (!region || region.id !== "tamil-nadu-state"
+          || region.authority_id !== authorityId) return null;
+      return { region: region.id, routing_source: "osm_tamil_nadu_state_boundary" };
     }
     if (packId === "in-dl-routing" && authorityId === "dl-pwd-sewa") {
       return { region: "delhi", routing_source: "osm_delhi_nct_boundary" };
@@ -4803,6 +5013,10 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       return authorityId === "pb-statewide-unverified"
         && savedBoundaryLocationMatches(rec, payload && payload.region && payload.region.geometry);
     }
+    if (packId === "in-tn-state-routing") {
+      return authorityId === "tn-statewide-unverified"
+        && savedBoundaryLocationMatches(rec, payload && payload.region && payload.region.geometry);
+    }
     if (packId === "in-top50-routing") {
       return savedMajorCityLocationMatches(rec, pack);
     }
@@ -4861,7 +5075,8 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if (present.length && present.length !== provenanceFields.length) return null;
     const municipal = MUNICIPAL_CITY_CONFIGS[packId];
     if (municipal && present.length !== provenanceFields.length) return null;
-    const newNeutralRoute = packId === "in-pb-routing" || packId === "in-top50-routing";
+    const newNeutralRoute = packId === "in-pb-routing"
+      || packId === "in-tn-state-routing" || packId === "in-top50-routing";
     if (newNeutralRoute && present.length !== provenanceFields.length) return null;
     // The statewide West Bengal route did not exist before this pack release, so there
     // is no legitimate provenance-free legacy record to upgrade.
@@ -4900,6 +5115,12 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
         && (rec.routing_source !== binding.routing_source
           || rec.routing_match_field !== "boundary"
           || rec.routing_match_value !== "Punjab (OpenStreetMap relation 1942686)")) {
+      return null;
+    }
+    if (packId === "in-tn-state-routing"
+        && (rec.routing_source !== binding.routing_source
+          || rec.routing_match_field !== "boundary"
+          || rec.routing_match_value !== "Tamil Nadu (OpenStreetMap relation 96905)")) {
       return null;
     }
     if (packId === "in-top50-routing"
@@ -5019,7 +5240,14 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if (/^ka-lgd-[0-9]+$/.test(String(authorityId || ""))) {
       return openBengaluruHandoff(rec);
     }
-    const packId = routingPackForAuthority(authorityId);
+    if (authorityId === "in-tn-cm-helpline") {
+      const migrated = await migrateLegacyTamilNaduHandoff(rec);
+      if (!migrated) {
+        throw new Error("This saved Tamil Nadu report could not be safely upgraded to the current state route.");
+      }
+      return migrated;
+    }
+    const packId = routingPackForAuthority(authorityId, rec.routing_pack_id || null);
     if (rec.routing_pack_id && rec.routing_pack_id !== packId) {
       throw new Error("This saved report's authority does not match its verified routing provenance.");
     }
@@ -5486,6 +5714,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    westBengalCoverage, kolkataCoverage, kolkataRouteFromGeocode,
                    isWestBengalGeocode, inWestBengalRoutingEnvelope,
                    punjabCoverage, punjabRouteFromGeocode,
+                   tamilNaduCoverage, tamilNaduRouteFromGeocode,
                    majorCityCoverage, majorCityRouteFromGeocode,
                    inMajorCityCandidateEnvelope,
                    municipalCityCoverage, municipalCityRouteFromGeocode,
@@ -5493,7 +5722,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    officialArcGisCount, officialPointRegionMatch,
                    savedMunicipalLocationMatches, savedMajorCityLocationMatches,
                    savedOfficialRouteBinding, currentOfficialRouteBinding,
-                   validatePunjabPayload, validateMajorCityPayload,
+                   validatePunjabPayload, validateTamilNaduPayload, validateMajorCityPayload,
                    validateMunicipalCityPayload, MUNICIPAL_CITY_CONFIGS,
                    maharashtraRouteFromGeocode, inMaharashtraRoutingEnvelope,
                    isKarnatakaGeocode, inKarnatakaRoutingEnvelope, routeOfficer, routeForIssue,
@@ -5501,15 +5730,18 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    MAHARASHTRA_STATE_AUTHORITY, KMC_AUTHORITY,
                    WEST_BENGAL_STATE_AUTHORITY,
                    PUNJAB_STATE_AUTHORITY,
+                   TAMIL_NADU_STATE_AUTHORITY,
                    DELHI_PWD_AUTHORITY, OFFICIAL_AUTHORITIES,
                    NATIONAL_HIGHWAY_AUTHORITY,
                    DELHI_GEOMETRY_SHA256, KMC_GEOMETRY_SHA256,
                    WEST_BENGAL_STATE_GEOMETRY_SHA256,
                    PUNJAB_STATE_GEOMETRY_SHA256,
+                   TAMIL_NADU_STATE_GEOMETRY_SHA256,
                    MAHARASHTRA_STATE_GEOMETRY_SHA256,
                    AUTHORITY_REGISTRY_VERSION, ISSUE_TYPES, CIVIC_HANDOFF_OVERRIDES,
                    BENGALURU_HANDOFF, BENGALURU_AUTHORITY_NAMES,
-                   GENERAL_CIVIC_AUTHORITY_IDS };
+                   GENERAL_CIVIC_AUTHORITY_IDS,
+                   migrateLegacyTamilNaduHandoff, LEGACY_TAMIL_NADU_TOP50_SHA256 };
 
   window.StandaloneAPI = { __pure, handle, prewarm };
 

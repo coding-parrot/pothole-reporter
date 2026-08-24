@@ -445,8 +445,8 @@ def main() -> None:
     inventory = authority_inventory()
     # These counts pin the intended current scope and make an accidental source omission
     # visible instead of silently reducing the matrix.
-    if len(inventory) != 223:
-        raise AssertionError(f"expected 223 configured routes/bodies, found {len(inventory)}")
+    if len(inventory) != 224:
+        raise AssertionError(f"expected 224 configured routes/bodies, found {len(inventory)}")
     if sum(item["source_state"] == "KA" for item in inventory) != 182:
         raise AssertionError("expected all 182 configured Karnataka ULBs")
 

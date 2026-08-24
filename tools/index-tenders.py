@@ -99,5 +99,5 @@ print(f"body has no address  {stats['no_address']}  (never citable, correctly un
 print(f"unresolved location  {stats['unresolved']}")
 print(f"published records    {len(published_rows)}")
 print(pack_output.relative_to(ROOT))
-print("static/pack-manifest.json")
-print("android-app/www/pack-manifest.json")
+print("static/pack-manifest-v1.26.json")
+print("android-app/www/pack-manifest-v1.26.json")

@@ -30,6 +30,7 @@ async ({pixel}) => {
   await StandaloneAPI.handle("/api/reports", {method: "DELETE"});
   const packManifest = await StandaloneAPI.__pure.getStatePackManifest();
   const tnResource = packManifest.resources["in-tn-routing"];
+  const tnStateResource = packManifest.resources["in-tn-state-routing"];
   const gjResource = packManifest.resources["in-gj-routing"];
   const dlResource = packManifest.resources["in-dl-routing"];
   const wbResource = packManifest.resources["in-wb-routing"];
@@ -37,6 +38,12 @@ async ({pixel}) => {
     routing_pack_id: "in-tn-routing",
     routing_pack_version: tnResource.pack_version,
     routing_pack_sha256: tnResource.sha256,
+    routing_pack_state_code: "TN",
+  };
+  const tnStateProvenance = {
+    routing_pack_id: "in-tn-state-routing",
+    routing_pack_version: tnStateResource.pack_version,
+    routing_pack_sha256: tnStateResource.sha256,
     routing_pack_state_code: "TN",
   };
   const gjProvenance = {
@@ -281,6 +288,41 @@ async ({pixel}) => {
       handoff_url: "https://example.invalid/stale-west-bengal",
       alternate_handoff_name: "Old alternate",
       alternate_handoff_url: "https://example.invalid/stale-west-bengal-alternate",
+      requires_official_reference: true,
+    },
+    {
+      ...base, ...tnStateProvenance, id: 71018, created_at: base.created_at + 17,
+      status: "draft", issue_type: "garbage",
+      address: "Erode, Tamil Nadu", lat: 11.3410, lng: 77.7172,
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "Old Tamil Nadu service",
+      authority_id: "tn-statewide-unverified",
+      authority_name: "Old Tamil Nadu authority", authority_registry_version: 0,
+      region: "tamil-nadu-state", routing_source: "osm_tamil_nadu_state_boundary",
+      routing_match_field: "boundary",
+      routing_match_value: "Tamil Nadu (OpenStreetMap relation 96905)",
+      ownership_unverified: true, handoff_name: "Old state grievance service",
+      handoff_url: "https://example.invalid/stale-tamil-nadu",
+      handoff_package: "example.invalid.stale",
+      alternate_handoff_name: "Old alternate",
+      alternate_handoff_url: "https://example.invalid/stale-tamil-nadu-alternate",
+      helpline: "0000", requires_official_reference: true,
+    },
+    {
+      ...base, id: 71019, created_at: base.created_at + 18, status: "draft",
+      issue_type: "open_manhole",
+      address: "Coimbatore, Tamil Nadu", lat: 11.0018115, lng: 76.9628425,
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "Legacy Tamil Nadu service", authority_id: "in-tn-cm-helpline",
+      authority_name: "Untrusted legacy authority", authority_registry_version: 10,
+      region: "coimbatore", routing_source: "nominatim_structured_city",
+      routing_match_field: "structured_place", routing_match_value: "city: Coimbatore",
+      routing_pack_id: "in-top50-routing", routing_pack_version: 1,
+      routing_pack_sha256: "0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5",
+      routing_pack_state_code: "IN", ownership_unverified: true,
+      handoff_name: "Untrusted legacy service",
+      handoff_url: "https://example.invalid/stale-top50-tamil-nadu",
+      handoff_package: "example.invalid.stale",
       requires_official_reference: true,
     },
   ];
@@ -543,6 +585,47 @@ async ({pixel}) => {
      ["in-wb-routing", "WB", wbResource.sha256]);
   eq("West Bengal handoff: preparing PGRS records no handoff time",
      westBengalPrepared.handoff_opened_at, undefined);
+
+  const tamilNaduPrepared = await StandaloneAPI.handle(
+    "/api/reports/71018/send", {method: "POST"});
+  eq("Tamil Nadu handoff: preparing Mudhalvarin Mugavari stays draft",
+     tamilNaduPrepared.status, "draft");
+  eq("Tamil Nadu handoff: current primary service is restored",
+     tamilNaduPrepared.handoff_name, "Mudhalvarin Mugavari");
+  eq("Tamil Nadu handoff: stale primary URL cannot survive revalidation",
+     tamilNaduPrepared.handoff_url, "https://cmhelpline.tnega.org/portal/en/home");
+  eq("Tamil Nadu handoff: current official Android package is restored",
+     tamilNaduPrepared.handoff_package, "org.tnega.cmhelpline.citizen");
+  eq("Tamil Nadu handoff: stale municipal alternate is removed",
+     tamilNaduPrepared.alternate_handoff_url, null);
+  eq("Tamil Nadu handoff: current helpline is restored",
+     tamilNaduPrepared.helpline, "1100");
+  eq("Tamil Nadu handoff: current pack provenance is retained",
+     [tamilNaduPrepared.routing_pack_id, tamilNaduPrepared.routing_pack_state_code,
+      tamilNaduPrepared.routing_pack_sha256],
+     ["in-tn-state-routing", "TN", tnStateResource.sha256]);
+  eq("Tamil Nadu handoff: preparation records no handoff time",
+     tamilNaduPrepared.handoff_opened_at, undefined);
+
+  const legacyTamilNadu = await StandaloneAPI.handle("/api/reports/71019/handoff");
+  eq("Tamil Nadu migration: old top-50 report becomes a statewide report",
+     [legacyTamilNadu.authority_id, legacyTamilNadu.region,
+      legacyTamilNadu.routing_pack_id, legacyTamilNadu.routing_pack_state_code],
+     ["tn-statewide-unverified", "tamil-nadu-state", "in-tn-state-routing", "TN"]);
+  eq("Tamil Nadu migration: stale legacy URL is never trusted",
+     legacyTamilNadu.handoff_url, "https://cmhelpline.tnega.org/portal/en/home");
+  eq("Tamil Nadu migration: stale legacy package is never trusted",
+     legacyTamilNadu.handoff_package, "org.tnega.cmhelpline.citizen");
+  eq("Tamil Nadu migration: current digest replaces the retired top-50 digest",
+     legacyTamilNadu.routing_pack_sha256, tnStateResource.sha256);
+  eq("Tamil Nadu migration: report remains a draft without a handoff claim",
+     [legacyTamilNadu.status, legacyTamilNadu.handoff_opened_at], ["draft", undefined]);
+  const legacyTamilNaduStored = await byId(71019);
+  eq("Tamil Nadu migration: fresh authority binding is persisted",
+     [legacyTamilNaduStored.authority_id, legacyTamilNaduStored.routing_pack_id,
+      legacyTamilNaduStored.handoff_url],
+     ["tn-statewide-unverified", "in-tn-state-routing",
+      "https://cmhelpline.tnega.org/portal/en/home"]);
 
   const delhiPrepared = await StandaloneAPI.handle(
     "/api/reports/71009/send", {method: "POST"});

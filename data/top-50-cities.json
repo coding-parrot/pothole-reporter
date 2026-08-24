@@ -211,8 +211,8 @@
       "state_code": "TN",
       "population": 2136916,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-tn-state-routing"
     },
     {
       "rank": 17,
@@ -391,8 +391,8 @@
       "state_code": "TN",
       "population": 1465625,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-tn-state-routing"
     },
     {
       "rank": 32,

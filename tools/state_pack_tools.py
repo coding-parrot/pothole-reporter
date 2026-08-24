@@ -17,9 +17,9 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = PROJECT_ROOT / "docs"
-STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest.json"
-ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest.json"
-PAGES_MANIFEST = DOCS_ROOT / "pack-manifest.json"
+STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.26.json"
+ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.26.json"
+PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.26.json"
 AUTHORITIES_SOURCE = PROJECT_ROOT / "data" / "state-authorities.json"
 PUBLIC_BASE_URL = "https://coding-parrot.github.io/pothole-reporter/"
 PACK_FORMAT = "pothole-pack-manifest"
@@ -51,6 +51,9 @@ WEST_BENGAL_STATE_GEOMETRY_SHA256 = (
 PUNJAB_STATE_GEOMETRY_SHA256 = (
     "e113eb774f4f353d3c7a9c98830f4b665f9bd4d166ed3b84e90855bdf38f5782"
 )
+TAMIL_NADU_STATE_GEOMETRY_SHA256 = (
+    "b3034527326b1120366adaf4b7c3df4bd0b8c7aab4d82b28e3dde189b39c313e"
+)
 KMC_GEOMETRY_SHA256 = (
     "fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5"
 )
@@ -66,6 +69,7 @@ PUNJAB_STATE_REGION_KEYS = {
     "attribution", "routing_note", "limitations", "coordinate_precision",
     "bbox", "geometry_sha256", "geometry",
 }
+TAMIL_NADU_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 KMC_REGION_KEYS = {
     "authority_id", "authority_name", "scope", "ulb_code", "mun_id",
     "retrieved_at",
@@ -136,6 +140,22 @@ SPECS = {
             "Official Punjab grievance sources: respective source terms",
         ),
         "data/metro-coverage/pb.json",
+    ),
+    "in-tn-state-routing": ResourceSpec(
+        "in-tn-state-routing",
+        "TN",
+        "routing",
+        "statewide-general-v1",
+        (
+            "Full State of Tamil Nadu; neutral Mudhalvarin Mugavari grievance "
+            "handoff; excludes Puducherry Union Territory"
+        ),
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Tamil Nadu grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/tn-state.json",
     ),
     "in-top50-routing": ResourceSpec(
         "in-top50-routing",
@@ -634,7 +654,8 @@ def _is_date(value: Any) -> bool:
     return True
 
 
-def _authority_snapshot(state_code: str) -> list[dict[str, Any]]:
+def _authority_snapshot(spec: ResourceSpec) -> list[dict[str, Any]]:
+    state_code = spec.state_code
     if state_code == "KA":
         return []
     source = _read_json(AUTHORITIES_SOURCE)
@@ -642,6 +663,20 @@ def _authority_snapshot(state_code: str) -> list[dict[str, Any]]:
     if not isinstance(state, dict) or not isinstance(state.get("authorities"), list):
         raise PackError(f"state-authorities.json has no authority list for {state_code}")
     authorities = list(state["authorities"])
+    if state_code == "TN":
+        required_id = (
+            "tn-statewide-unverified"
+            if spec.pack_id == "in-tn-state-routing"
+            else "tn-gcc"
+        )
+        authorities = [
+            authority for authority in authorities
+            if isinstance(authority, dict) and authority.get("id") == required_id
+        ]
+        if len(authorities) != 1:
+            raise PackError(
+                f"state-authorities.json has no unique TN authority for {spec.pack_id}"
+            )
     if state_code == "MH":
         for key in ("pmc", "fallback", "statewide"):
             if not isinstance(state.get(key), dict):
@@ -1050,6 +1085,101 @@ def _validate_punjab_payload(
     _expect(
         authorities == [expected_authority],
         "in-pb-routing statewide authority registry differs from its reviewed pin",
+    )
+
+
+def _validate_tamil_nadu_state_payload(
+    payload: Any,
+    *,
+    generated_at: str | None = None,
+    authorities: Any = None,
+) -> None:
+    _expect(
+        isinstance(payload, dict) and set(payload) == {"version", "retrieved_at", "region"},
+        "in-tn-state-routing payload fields differ from the statewide contract",
+    )
+    _expect(type(payload.get("version")) is int and payload["version"] == 1,
+            "in-tn-state-routing payload version must be 1")
+    retrieved_at = payload.get("retrieved_at")
+    _expect(_is_date(retrieved_at), "in-tn-state-routing retrieved_at is invalid")
+    if generated_at is not None:
+        _expect(retrieved_at == generated_at,
+                "in-tn-state-routing retrieved_at differs from the pack date")
+
+    region = payload.get("region")
+    _expect(
+        isinstance(region, dict) and set(region) == TAMIL_NADU_STATE_REGION_KEYS,
+        "in-tn-state-routing Tamil Nadu region fields differ from the contract",
+    )
+    expected = {
+        "id": "tamil-nadu-state",
+        "authority_id": "tn-statewide-unverified",
+        "name": "Tamil Nadu",
+        "scope": (
+            "Full State of Tamil Nadu; excludes Puducherry Union Territory enclaves"
+        ),
+        "osm_relation_id": 96_905,
+        "source_name": "OpenStreetMap contributors",
+        "source_home_url": "https://www.openstreetmap.org/relation/96905",
+        "source_license": "Open Data Commons Open Database License (ODbL) 1.0",
+        "attribution": "© OpenStreetMap contributors",
+        "coordinate_precision": 7,
+        "geometry_sha256": TAMIL_NADU_STATE_GEOMETRY_SHA256,
+    }
+    for field, value in expected.items():
+        _expect(
+            region.get(field) == value,
+            f"in-tn-state-routing Tamil Nadu {field} differs from its reviewed pin",
+        )
+    _expect(
+        isinstance(region.get("source_url"), str)
+        and region["source_url"].startswith("https://nominatim.openstreetmap.org/lookup?")
+        and "osm_ids=R96905" in region["source_url"],
+        "in-tn-state-routing Tamil Nadu lookup URL is invalid",
+    )
+    _expect(
+        isinstance(region.get("routing_note"), str)
+        and "Greater Chennai Corporation" in region["routing_note"]
+        and "does not identify" in region["routing_note"],
+        "in-tn-state-routing Tamil Nadu routing note is invalid",
+    )
+    limitations = region.get("limitations")
+    _expect(
+        isinstance(limitations, list) and 1 <= len(limitations) <= 10
+        and all(isinstance(item, str) and item and len(item) <= 500 for item in limitations)
+        and any("Puducherry" in item and "Karaikal" in item for item in limitations),
+        "in-tn-state-routing Tamil Nadu limitations are invalid",
+    )
+    bounds = _validate_municipal_geometry(
+        region.get("geometry"), "in-tn-state-routing.tamil_nadu"
+    )
+    _validate_municipal_envelope(
+        region.get("bbox"), "in-tn-state-routing.tamil_nadu.bbox"
+    )
+    _expect(
+        bounds == region["bbox"],
+        "in-tn-state-routing Tamil Nadu geometry does not match its bounding box",
+    )
+    geometry_digest = hashlib.sha256(json.dumps(
+        region["geometry"], ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")).hexdigest()
+    _expect(
+        geometry_digest == TAMIL_NADU_STATE_GEOMETRY_SHA256,
+        "in-tn-state-routing Tamil Nadu geometry digest does not match",
+    )
+
+    expected_authority = {
+        "id": "tn-statewide-unverified",
+        "name": "Tamil Nadu authority (select in grievance portal)",
+        "aliases": ["tamil nadu", "tamilnadu", "தமிழ்நாடு"],
+        "handoff_name": "Mudhalvarin Mugavari",
+        "handoff_url": "https://cmhelpline.tnega.org/portal/en/home",
+        "handoff_package": "org.tnega.cmhelpline.citizen",
+        "helpline": "1100",
+    }
+    _expect(
+        authorities == [expected_authority],
+        "in-tn-state-routing authority registry differs from its reviewed pin",
     )
 
 
@@ -1503,6 +1633,12 @@ def _validate_raw_payload(
             generated_at=generated_at,
             authorities=authorities,
         )
+    elif spec.pack_id == "in-tn-state-routing":
+        _validate_tamil_nadu_state_payload(
+            payload,
+            generated_at=generated_at,
+            authorities=authorities,
+        )
     elif spec.pack_id == "in-top50-routing":
         _validate_top50_payload(
             payload,
@@ -1521,7 +1657,7 @@ def _validate_raw_payload(
 
 
 def _pack_envelope(spec: ResourceSpec, payload: Any, generated_at: str) -> dict[str, Any]:
-    authorities = _authority_snapshot(spec.state_code) if spec.kind == "routing" else None
+    authorities = _authority_snapshot(spec) if spec.kind == "routing" else None
     _validate_raw_payload(
         spec,
         payload,
@@ -1770,7 +1906,7 @@ def _validate_resource(resource_id: str, resource: Any) -> None:
         _expect(envelope.get(key) == expected, f"{resource_id}: pack has unexpected {key}")
     if spec.kind == "routing":
         authorities = envelope.get("authorities")
-        _expect(authorities == _authority_snapshot(spec.state_code),
+        _expect(authorities == _authority_snapshot(spec),
                 f"{resource_id}: authority snapshot differs from data/state-authorities.json")
         _validate_raw_payload(
             spec,
@@ -1790,10 +1926,10 @@ def verify_all() -> None:
     """Fail unless the manifests and all referenced hosted packs match exactly."""
     manifest_bytes = STATIC_MANIFEST.read_bytes() if STATIC_MANIFEST.exists() else b""
     if not manifest_bytes:
-        raise PackError("missing bundled manifest: static/pack-manifest.json")
-    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest.json")
+        raise PackError("missing bundled manifest: static/pack-manifest-v1.26.json")
+    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.26.json")
     _expect(ANDROID_MANIFEST.read_bytes() == manifest_bytes, "static and Android pack manifests differ")
-    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest.json")
+    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.26.json")
     _expect(PAGES_MANIFEST.read_bytes() == manifest_bytes, "static and Pages pack manifests differ")
     manifest = _read_json(STATIC_MANIFEST)
     _expect(isinstance(manifest, dict) and set(manifest) == MANIFEST_KEYS,

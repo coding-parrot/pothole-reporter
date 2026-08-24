@@ -34,7 +34,7 @@ pkill -f "tests/serve_app.py --port 8765" >/dev/null 2>&1
 start_server || { echo "could not start the static server"; exit 1; }
 trap 'pkill -f "tests/serve_app.py --port 8765" >/dev/null 2>&1' EXIT
 
-LOCAL_TESTS="unit_test civic_issue_test state_pack_validation_test state_pack_test national_highway_pack_test national_highway_routing_test pages_assets_test coverage_map_test punjab_routing_test top50_routing_test municipal_city_routing_test home_actions_test mumbai_routing_test maharashtra_routing_test kolkata_routing_test delhi_routing_test submission_truth_test mumbai_ui_test kolkata_ui_test delhi_ui_test eval_contract_test persistent_dedupe_test footage_metadata_test drive_start_stop_test orphan_footage_test capture_cadence_test letter_test storage_commit_test stalled_body_test
+LOCAL_TESTS="unit_test civic_issue_test state_pack_validation_test state_pack_test national_highway_pack_test national_highway_routing_test pages_assets_test coverage_map_test punjab_routing_test tamil_nadu_routing_test top50_routing_test municipal_city_routing_test home_actions_test mumbai_routing_test maharashtra_routing_test kolkata_routing_test delhi_routing_test submission_truth_test mumbai_ui_test kolkata_ui_test delhi_ui_test eval_contract_test persistent_dedupe_test footage_metadata_test drive_start_stop_test orphan_footage_test capture_cadence_test letter_test storage_commit_test stalled_body_test
              stored_xss_test privacy_consent_test ui_text_test"
 LIVE_TESTS="tender_determinism_test routing_test nh_test gis_failure_test footage_test"
 TESTS="$LOCAL_TESTS"

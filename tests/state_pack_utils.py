@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 
 
 ROOT = Path(__file__).resolve().parent.parent
-MANIFEST_PATH = ROOT / "android-app" / "www" / "pack-manifest.json"
+MANIFEST_PATH = ROOT / "android-app" / "www" / "pack-manifest-v1.26.json"
 PACK_ROOT = ROOT / "docs" / "packs" / "v1"
 
 

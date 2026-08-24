@@ -29,6 +29,7 @@ VALIDATED_IDS = (
     "in-mh-routing",
     "in-wb-routing",
     "in-pb-routing",
+    "in-tn-state-routing",
     "in-top50-routing",
 )
 
@@ -36,7 +37,7 @@ VALIDATED_IDS = (
 def load_case(pack_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     spec = SPECS[pack_id]
     payload = json.loads((ROOT / spec.source_path).read_text(encoding="utf-8"))
-    return payload, copy.deepcopy(_authority_snapshot(spec.state_code))
+    return payload, copy.deepcopy(_authority_snapshot(spec))
 
 
 def validate(pack_id: str, payload: dict[str, Any], authorities: list[dict[str, Any]],
@@ -187,6 +188,22 @@ def main() -> int:
         ("in-pb-routing", "Chandigarh included in declared scope", lambda p, a: p[
             "region"
         ].update({"scope": "Full State of Punjab including Chandigarh"})),
+        ("in-tn-state-routing", "wrong state relation", lambda p, a: p["region"].update(
+            {"osm_relation_id": 1}
+        )),
+        ("in-tn-state-routing", "state geometry digest mismatch", lambda p, a: p[
+            "region"
+        ].update({"geometry_sha256": "0" * 64})),
+        ("in-tn-state-routing", "missing statewide authority", lambda p, a: a.clear()),
+        ("in-tn-state-routing", "unreviewed statewide grievance URL", lambda p, a: a[
+            0
+        ].update({"handoff_url": "https://example.invalid/unreviewed"})),
+        ("in-tn-state-routing", "Puducherry included in declared scope", lambda p, a: p[
+            "region"
+        ].update({"scope": "Full State of Tamil Nadu including Puducherry"})),
+        ("in-tn-state-routing", "wrong Tamil Nadu app package", lambda p, a: a[0].update(
+            {"handoff_package": "example.unreviewed.app"}
+        )),
         ("in-top50-routing", "missing city region", lambda p, a: p["regions"].pop()),
         ("in-top50-routing", "changed Census rank", lambda p, a: p["regions"][0].update(
             {"rank": 8}

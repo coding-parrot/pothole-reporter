@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""The 35 added top-50 centres require exact, precise, neutral city routing."""
+"""The 35 compatibility top-50 entries require exact, precise, neutral city routing."""
 
 from __future__ import annotations
 
@@ -113,7 +113,10 @@ async ({fixtures}) => {
      "major-city-structured-v1");
   eq("pack: country-level provenance is explicit", resource && resource.state_code, "IN");
   eq("pack: does not claim statewide coverage", resource && resource.statewide, false);
-  eq("coverage: exactly 35 added centres", regionById.size, 35);
+  eq("pack: v1.25 digest is preserved for saved-report compatibility",
+     resource && resource.sha256,
+     "0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5");
+  eq("coverage: exactly 35 compatibility entries", regionById.size, 35);
   ok("coverage: runtime validates the complete pack", P.validateMajorCityPayload(pack), pack);
   eq("coverage: all expected ranks are present",
      [...regionById.values()].map((item) => item.rank).sort((a, b) => a - b),
@@ -300,7 +303,7 @@ async ({fixtures}) => {
   eq("precedence: non-road civic report stays with Gujarat",
      civicAtHighway && civicAtHighway.authority_id, "in-gj-enagar");
 
-  ok("saved binding: valid current Surat record is accepted",
+  ok("saved binding: valid v1.25 Surat record remains accepted",
      savedSurat && await P.savedOfficialRouteBinding(
        savedSurat, "in-top50-routing", "in-gj-enagar", pack), savedSurat);
   const rejected = async (name, changes, authority = "in-gj-enagar") => {

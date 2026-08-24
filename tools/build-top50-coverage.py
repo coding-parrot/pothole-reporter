@@ -279,8 +279,13 @@ def validate_catalog() -> None:
         item.get("id") for item in cities
         if isinstance(item, dict) and item.get("pack_id") == "in-top50-routing"
     }
-    if routed_ids != expected_ids:
-        raise BuildError("top-50 pack inventory does not match the 35 reviewed centres")
+    compatibility_ids = {"coimbatore", "madurai"}
+    if routed_ids != expected_ids - compatibility_ids:
+        raise BuildError("active top-50 inventory does not match the 33 reviewed centres")
+    for city_id in compatibility_ids:
+        item = by_id.get(city_id)
+        if not isinstance(item, dict) or item.get("pack_id") != "in-tn-state-routing":
+            raise BuildError(f"{city_id} is not assigned to statewide Tamil Nadu routing")
     for spec in CITIES:
         item = by_id.get(spec["id"])
         actual = (item.get("rank"), item.get("current_name"), item.get("state_code"))
