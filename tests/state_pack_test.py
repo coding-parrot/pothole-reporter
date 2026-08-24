@@ -43,8 +43,14 @@ EXPECTED_RESOURCES = {
     "in-mh-routing": (
         "MH", "routing", "pothole-routing-pack", "maharashtra-statewide-v1"
     ),
+    "in-pb-routing": (
+        "PB", "routing", "pothole-routing-pack", "statewide-general-v1"
+    ),
     "in-tg-routing": ("TG", "routing", "pothole-routing-pack", "municipal-city-v1"),
     "in-tn-routing": ("TN", "routing", "pothole-routing-pack", "municipal-city-v1"),
+    "in-top50-routing": (
+        "IN", "routing", "pothole-routing-pack", "major-city-structured-v1"
+    ),
     "in-wb-routing": (
         "WB", "routing", "pothole-routing-pack", "west-bengal-statewide-v1"
     ),
@@ -337,6 +343,19 @@ def check_catalog(failures: list[str]) -> dict:
                 "Full State of West Bengal"
             ):
                 failures.append("in-wb-routing does not declare full West Bengal coverage")
+        if pack_id == "in-pb-routing":
+            if resource.get("statewide") is not True:
+                failures.append("in-pb-routing is not declared statewide")
+            if not str(resource.get("coverage_scope") or "").startswith(
+                "Full State of Punjab"
+            ):
+                failures.append("in-pb-routing does not declare full Punjab coverage")
+        if pack_id == "in-top50-routing":
+            if resource.get("statewide") is not False:
+                failures.append("in-top50-routing must not claim statewide coverage")
+            scope = str(resource.get("coverage_scope") or "")
+            if "35 additional Census 2011 top-50" not in scope:
+                failures.append("in-top50-routing coverage scope is unclear")
         sha = resource.get("sha256")
         if not isinstance(sha, str) or len(sha) != 64 or any(c not in "0123456789abcdef" for c in sha):
             failures.append(f"{pack_id} has an invalid SHA-256 pin")
@@ -415,6 +434,65 @@ def check_catalog(failures: list[str]) -> dict:
                         or state.get("source_relation_id") != 1_960_177
                     ):
                         failures.append("in-wb-routing statewide authority or relation pin changed")
+            if pack_id == "in-pb-routing":
+                pb_authority_ids = {
+                    item.get("id") for item in authorities or [] if isinstance(item, dict)
+                }
+                if pb_authority_ids != {"pb-statewide-unverified"}:
+                    failures.append(
+                        "in-pb-routing authority inventory is "
+                        f"{sorted(pb_authority_ids)!r}"
+                    )
+                payload = envelope.get("payload")
+                region = payload.get("region") if isinstance(payload, dict) else None
+                if not isinstance(payload, dict) or payload.get("version") != 1:
+                    failures.append("in-pb-routing payload is not statewide schema version 1")
+                elif not isinstance(region, dict):
+                    failures.append("in-pb-routing has no Punjab state region")
+                elif (
+                    region.get("authority_id") != "pb-statewide-unverified"
+                    or region.get("osm_relation_id") != 1_942_686
+                    or region.get("geometry_sha256")
+                    != "e113eb774f4f353d3c7a9c98830f4b665f9bd4d166ed3b84e90855bdf38f5782"
+                ):
+                    failures.append("in-pb-routing statewide authority or boundary pin changed")
+            if pack_id == "in-top50-routing":
+                expected_authorities = {
+                    "in-gj-enagar", "in-rj-sampark", "in-up-jansunwai",
+                    "in-mp-cm-helpline", "in-tn-cm-helpline", "in-kl-ksmart",
+                    "in-br-lok-shikayat", "in-ap-puramithra",
+                    "in-hr-nagar-darshan", "in-jh-municipal-grievance",
+                    "in-jk-samadhan", "in-cg-nidaan",
+                }
+                authority_ids = {
+                    item.get("id") for item in authorities or [] if isinstance(item, dict)
+                }
+                if authority_ids != expected_authorities:
+                    failures.append(
+                        "in-top50-routing authority inventory is "
+                        f"{sorted(authority_ids)!r}"
+                    )
+                payload = envelope.get("payload")
+                regions = payload.get("regions") if isinstance(payload, dict) else None
+                if not isinstance(payload, dict) or payload.get("version") != 1:
+                    failures.append("in-top50-routing payload is not schema version 1")
+                elif not isinstance(regions, list) or len(regions) != 35:
+                    failures.append("in-top50-routing does not contain exactly 35 regions")
+                else:
+                    identities = {
+                        (item.get("rank"), item.get("id"))
+                        for item in regions if isinstance(item, dict)
+                    }
+                    if len(identities) != 35:
+                        failures.append("in-top50-routing region rank/id inventory is not unique")
+                    if any(
+                        item.get("routing_mode") != "structured_geocode"
+                        or item.get("routing_source") != "nominatim_structured_city"
+                        or item.get("supported_issue_types")
+                            != ["road_damage", "garbage", "open_manhole"]
+                        for item in regions if isinstance(item, dict)
+                    ):
+                        failures.append("in-top50-routing structured route contract changed")
         else:
             tenders = envelope.get("tenders")
             if not isinstance(tenders, list) or not tenders:

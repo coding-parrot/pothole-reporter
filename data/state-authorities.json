@@ -183,6 +183,110 @@
       "alternate_handoff_url": "https://cmo.wb.gov.in/landing/raise-grievance"
     }
   },
+  "PB": {
+    "authorities": [
+      {
+        "id": "pb-statewide-unverified",
+        "name": "Punjab authority (select in Connect Punjab)",
+        "aliases": ["punjab", "ਪੰਜਾਬ"],
+        "handoff_name": "Connect Punjab PGRS",
+        "handoff_url": "https://connect.punjab.gov.in/",
+        "alternate_handoff_name": "Punjab mSeva (urban areas)",
+        "alternate_handoff_url": "https://mseva.lgpunjab.gov.in/",
+        "helpline": "1100"
+      }
+    ]
+  },
+  "IN": {
+    "authorities": [
+      {
+        "id": "in-gj-enagar",
+        "name": "Gujarat urban authority (select in eNagar)",
+        "aliases": ["gujarat", "ગુજરાત"],
+        "handoff_name": "Gujarat eNagar",
+        "handoff_url": "https://enagar.gujarat.gov.in/enagar/login.jsp"
+      },
+      {
+        "id": "in-rj-sampark",
+        "name": "Rajasthan authority (select in Sampark)",
+        "aliases": ["rajasthan", "राजस्थान"],
+        "handoff_name": "Rajasthan Sampark",
+        "handoff_url": "https://sampark.rajasthan.gov.in/"
+      },
+      {
+        "id": "in-up-jansunwai",
+        "name": "Uttar Pradesh authority (select in Jansunwai)",
+        "aliases": ["uttar pradesh", "उत्तर प्रदेश"],
+        "handoff_name": "UP Jansunwai",
+        "handoff_url": "https://www.jansunwai.up.nic.in/"
+      },
+      {
+        "id": "in-mp-cm-helpline",
+        "name": "Madhya Pradesh authority (select in CM Helpline)",
+        "aliases": ["madhya pradesh", "मध्य प्रदेश"],
+        "handoff_name": "MP CM Helpline",
+        "handoff_url": "https://www.cmhelpline.mp.gov.in/"
+      },
+      {
+        "id": "in-tn-cm-helpline",
+        "name": "Tamil Nadu authority (select in CM Helpline)",
+        "aliases": ["tamil nadu", "tamilnadu", "தமிழ்நாடு"],
+        "handoff_name": "Tamil Nadu CM Helpline",
+        "handoff_url": "https://cmhelpline.tnega.org/portal/en/home"
+      },
+      {
+        "id": "in-kl-ksmart",
+        "name": "Kerala urban authority (select in K-SMART)",
+        "aliases": ["kerala", "കേരളം"],
+        "handoff_name": "K-SMART",
+        "handoff_url": "https://ksmart.lsgkerala.gov.in/ui/web-portal",
+        "alternate_handoff_name": "Kerala CMO Grievance",
+        "alternate_handoff_url": "https://cmo.kerala.gov.in/"
+      },
+      {
+        "id": "in-br-lok-shikayat",
+        "name": "Bihar authority (select in Lok Shikayat)",
+        "aliases": ["bihar", "बिहार"],
+        "handoff_name": "Bihar Lok Shikayat",
+        "handoff_url": "https://lokshikayat.bihar.gov.in/"
+      },
+      {
+        "id": "in-ap-puramithra",
+        "name": "Andhra Pradesh urban authority (select in Puramithra)",
+        "aliases": ["andhra pradesh", "ఆంధ్ర ప్రదేశ్"],
+        "handoff_name": "AP CDMA / Puramithra",
+        "handoff_url": "https://cdma.ap.gov.in/services/grievances/"
+      },
+      {
+        "id": "in-hr-nagar-darshan",
+        "name": "Haryana urban authority (select in Nagar Darshan)",
+        "aliases": ["haryana", "हरियाणा"],
+        "handoff_name": "Haryana Nagar Darshan",
+        "handoff_url": "https://nagardarshan.ulbharyana.gov.in/Default/CitizenEntry"
+      },
+      {
+        "id": "in-jh-municipal-grievance",
+        "name": "Jharkhand urban authority (select in municipal grievance)",
+        "aliases": ["jharkhand", "झारखंड", "झारखण्ड"],
+        "handoff_name": "Jharkhand Municipal Grievance",
+        "handoff_url": "https://municipalservices.jharkhand.gov.in/public/grievance_new/login"
+      },
+      {
+        "id": "in-jk-samadhan",
+        "name": "Jammu and Kashmir authority (select in Samadhan)",
+        "aliases": ["jammu and kashmir", "jammu & kashmir", "جموں و کشمیر", "जम्मू और कश्मीर"],
+        "handoff_name": "JK Samadhan",
+        "handoff_url": "https://samadhan.jk.gov.in/"
+      },
+      {
+        "id": "in-cg-nidaan",
+        "name": "Chhattisgarh urban authority (select in NIDAAN)",
+        "aliases": ["chhattisgarh", "छत्तीसगढ़", "छत्तीसगढ़"],
+        "handoff_name": "CG NIDAAN",
+        "handoff_url": "https://crm.nidaan.cg.gov.in/"
+      }
+    ]
+  },
   "DL": {
     "authorities": [
       {

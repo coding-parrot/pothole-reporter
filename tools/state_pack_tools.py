@@ -48,6 +48,9 @@ MAHARASHTRA_STATE_GEOMETRY_SHA256 = (
 WEST_BENGAL_STATE_GEOMETRY_SHA256 = (
     "aa4ab13c3064be2e168889f6eb02e87c59e01bc709d36b66bece534dfea23015"
 )
+PUNJAB_STATE_GEOMETRY_SHA256 = (
+    "e113eb774f4f353d3c7a9c98830f4b665f9bd4d166ed3b84e90855bdf38f5782"
+)
 KMC_GEOMETRY_SHA256 = (
     "fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5"
 )
@@ -57,6 +60,12 @@ MAHARASHTRA_STATE_REGION_KEYS = {
     "bbox", "geometry_sha256", "routing_note", "limitations", "geometry",
 }
 WEST_BENGAL_STATE_REGION_KEYS = set(MAHARASHTRA_STATE_REGION_KEYS)
+PUNJAB_STATE_REGION_KEYS = {
+    "id", "authority_id", "name", "scope", "osm_relation_id",
+    "source_name", "source_home_url", "source_url", "source_license",
+    "attribution", "routing_note", "limitations", "coordinate_precision",
+    "bbox", "geometry_sha256", "geometry",
+}
 KMC_REGION_KEYS = {
     "authority_id", "authority_name", "scope", "ulb_code", "mun_id",
     "retrieved_at",
@@ -114,6 +123,32 @@ SPECS = {
             "Official West Bengal UDMA and KMC sources: respective source terms",
         ),
         "data/metro-coverage/wb.json",
+    ),
+    "in-pb-routing": ResourceSpec(
+        "in-pb-routing",
+        "PB",
+        "routing",
+        "statewide-general-v1",
+        "Full State of Punjab; neutral Connect Punjab grievance handoff",
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Punjab grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/pb.json",
+    ),
+    "in-top50-routing": ResourceSpec(
+        "in-top50-routing",
+        "IN",
+        "routing",
+        "major-city-structured-v1",
+        "35 additional Census 2011 top-50 population centres; conservative structured city/state matching",
+        False,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official state and urban grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/top50.json",
     ),
     "in-ka-routing": ResourceSpec(
         "in-ka-routing",
@@ -199,6 +234,69 @@ MUNICIPAL_POINT_EXCLUSION_KEYS = MUNICIPAL_EXCLUSION_KEYS | {
 MUNICIPAL_LEGAL_REFERENCE_KEYS = {"title", "date", "url"}
 MUNICIPAL_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{2,100}$")
 HTTPS_RE = re.compile(r"^https://\S+$")
+TOP50_PAYLOAD_KEYS = {"version", "retrieved_at", "regions"}
+TOP50_REGION_KEYS = {
+    "rank", "id", "authority_id", "name", "state_code", "scope",
+    "routing_mode", "routing_source", "match_value", "state_aliases",
+    "place_aliases", "envelope", "source_name", "source_home_url",
+    "source_url", "source_license", "attribution", "official_scope_reference",
+    "routing_note", "limitations", "exclusions", "source_object_id",
+    "supported_issue_types",
+}
+TOP50_SUPPORTED_ISSUES = ["road_damage", "garbage", "open_manhole"]
+TOP50_REGION_PINS = [
+    (9, "surat", "GJ", "in-gj-enagar", "osm:node:10029899747"),
+    (10, "jaipur", "RJ", "in-rj-sampark", "osm:node:315734346"),
+    (11, "kanpur", "UP", "in-up-jansunwai", "osm:node:1180652177"),
+    (12, "lucknow", "UP", "in-up-jansunwai", "osm:node:245753718"),
+    (14, "ghaziabad", "UP", "in-up-jansunwai", "osm:node:2521085873"),
+    (15, "indore", "MP", "in-mp-cm-helpline", "osm:node:245709027"),
+    (16, "coimbatore", "TN", "in-tn-cm-helpline", "osm:node:245589078"),
+    (17, "kochi", "KL", "in-kl-ksmart", "osm:node:3862624198"),
+    (18, "patna", "BR", "in-br-lok-shikayat", "osm:way:383774533"),
+    (19, "kozhikode", "KL", "in-kl-ksmart", "osm:node:1348192542"),
+    (20, "bhopal", "MP", "in-mp-cm-helpline", "osm:node:245712627"),
+    (21, "thrissur", "KL", "in-kl-ksmart", "osm:node:4430328343"),
+    (22, "vadodara", "GJ", "in-gj-enagar", "osm:node:2022807192"),
+    (23, "agra", "UP", "in-up-jansunwai", "osm:node:567267943"),
+    (24, "visakhapatnam", "AP", "in-ap-puramithra", "osm:node:245641840"),
+    (25, "malappuram", "KL", "in-kl-ksmart", "osm:way:84635269"),
+    (26, "thiruvananthapuram", "KL", "in-kl-ksmart", "osm:node:245581432"),
+    (27, "kannur", "KL", "in-kl-ksmart", "osm:node:290180981"),
+    (30, "vijayawada", "AP", "in-ap-puramithra", "osm:node:1880441437"),
+    (31, "madurai", "TN", "in-tn-cm-helpline", "osm:relation:11268397"),
+    (32, "varanasi", "UP", "in-up-jansunwai", "osm:node:287687798"),
+    (33, "meerut", "UP", "in-up-jansunwai", "osm:node:571773704"),
+    (34, "faridabad", "HR", "in-hr-nagar-darshan", "osm:node:3582568815"),
+    (35, "rajkot", "GJ", "in-gj-enagar", "osm:node:1393852189"),
+    (36, "jamshedpur", "JH", "in-jh-municipal-grievance", "osm:node:566174729"),
+    (37, "jabalpur", "MP", "in-mp-cm-helpline", "osm:relation:3832427"),
+    (38, "srinagar", "JK", "in-jk-samadhan", "osm:node:273658993"),
+    (41, "prayagraj", "UP", "in-up-jansunwai", "osm:node:245733956"),
+    (42, "dhanbad", "JH", "in-jh-municipal-grievance", "osm:node:2516759396"),
+    (45, "jodhpur", "RJ", "in-rj-sampark", "osm:way:31725312"),
+    (46, "ranchi", "JH", "in-jh-municipal-grievance", "osm:node:2510123017"),
+    (47, "raipur", "CG", "in-cg-nidaan", "osm:node:5308437250"),
+    (48, "kollam", "KL", "in-kl-ksmart", "osm:node:245582090"),
+    (49, "gwalior", "MP", "in-mp-cm-helpline", "osm:node:568412253"),
+    (50, "durg-bhilai", "CG", "in-cg-nidaan", "osm:node:3105817661"),
+]
+TOP50_AUTHORITY_URL_PINS = {
+    "in-gj-enagar": "https://enagar.gujarat.gov.in/enagar/login.jsp",
+    "in-rj-sampark": "https://sampark.rajasthan.gov.in/",
+    "in-up-jansunwai": "https://www.jansunwai.up.nic.in/",
+    "in-mp-cm-helpline": "https://www.cmhelpline.mp.gov.in/",
+    "in-tn-cm-helpline": "https://cmhelpline.tnega.org/portal/en/home",
+    "in-kl-ksmart": "https://ksmart.lsgkerala.gov.in/ui/web-portal",
+    "in-br-lok-shikayat": "https://lokshikayat.bihar.gov.in/",
+    "in-ap-puramithra": "https://cdma.ap.gov.in/services/grievances/",
+    "in-hr-nagar-darshan": "https://nagardarshan.ulbharyana.gov.in/Default/CitizenEntry",
+    "in-jh-municipal-grievance": (
+        "https://municipalservices.jharkhand.gov.in/public/grievance_new/login"
+    ),
+    "in-jk-samadhan": "https://samadhan.jk.gov.in/",
+    "in-cg-nidaan": "https://crm.nidaan.cg.gov.in/",
+}
 
 # These are reviewed release facts, not defaults. A source refresh, boundary change,
 # expanded city claim, or complaint-channel change must update the corresponding pin
@@ -876,6 +974,262 @@ def _validate_west_bengal_payload(
     )
 
 
+def _validate_punjab_payload(
+    payload: Any,
+    *,
+    generated_at: str | None = None,
+    authorities: Any = None,
+) -> None:
+    _expect(
+        isinstance(payload, dict) and set(payload) == {"version", "retrieved_at", "region"},
+        "in-pb-routing payload fields differ from the statewide contract",
+    )
+    _expect(type(payload.get("version")) is int and payload["version"] == 1,
+            "in-pb-routing payload version must be 1")
+    retrieved_at = payload.get("retrieved_at")
+    _expect(_is_date(retrieved_at), "in-pb-routing retrieved_at is invalid")
+    if generated_at is not None:
+        _expect(retrieved_at == generated_at,
+                "in-pb-routing retrieved_at differs from the pack date")
+
+    region = payload.get("region")
+    _expect(isinstance(region, dict) and set(region) == PUNJAB_STATE_REGION_KEYS,
+            "in-pb-routing Punjab region fields differ from the contract")
+    expected = {
+        "id": "punjab-state",
+        "authority_id": "pb-statewide-unverified",
+        "name": "Punjab",
+        "scope": "Full State of Punjab; excludes Chandigarh Union Territory",
+        "osm_relation_id": 1_942_686,
+        "source_name": "OpenStreetMap contributors",
+        "source_home_url": "https://www.openstreetmap.org/relation/1942686",
+        "source_license": "Open Data Commons Open Database License (ODbL) 1.0",
+        "attribution": "© OpenStreetMap contributors",
+        "coordinate_precision": 7,
+        "geometry_sha256": PUNJAB_STATE_GEOMETRY_SHA256,
+    }
+    for field, value in expected.items():
+        _expect(region.get(field) == value,
+                f"in-pb-routing Punjab {field} differs from its reviewed pin")
+    _expect(
+        isinstance(region.get("source_url"), str)
+        and region["source_url"].startswith("https://nominatim.openstreetmap.org/lookup?")
+        and "osm_ids=R1942686" in region["source_url"],
+        "in-pb-routing Punjab lookup URL is invalid",
+    )
+    _expect(isinstance(region.get("routing_note"), str) and region["routing_note"],
+            "in-pb-routing Punjab routing note is missing")
+    limitations = region.get("limitations")
+    _expect(
+        isinstance(limitations, list) and 1 <= len(limitations) <= 10
+        and all(isinstance(item, str) and item and len(item) <= 500 for item in limitations),
+        "in-pb-routing Punjab limitations are invalid",
+    )
+    bounds = _validate_municipal_geometry(
+        region.get("geometry"), "in-pb-routing.punjab"
+    )
+    _validate_municipal_envelope(region.get("bbox"), "in-pb-routing.punjab.bbox")
+    _expect(bounds == region["bbox"],
+            "in-pb-routing Punjab geometry does not match its bounding box")
+    geometry_digest = hashlib.sha256(json.dumps(
+        region["geometry"], ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")).hexdigest()
+    _expect(geometry_digest == PUNJAB_STATE_GEOMETRY_SHA256,
+            "in-pb-routing Punjab geometry digest does not match")
+
+    expected_authority = {
+        "id": "pb-statewide-unverified",
+        "name": "Punjab authority (select in Connect Punjab)",
+        "aliases": ["punjab", "ਪੰਜਾਬ"],
+        "handoff_name": "Connect Punjab PGRS",
+        "handoff_url": "https://connect.punjab.gov.in/",
+        "alternate_handoff_name": "Punjab mSeva (urban areas)",
+        "alternate_handoff_url": "https://mseva.lgpunjab.gov.in/",
+        "helpline": "1100",
+    }
+    _expect(
+        authorities == [expected_authority],
+        "in-pb-routing statewide authority registry differs from its reviewed pin",
+    )
+
+
+def _top50_alias_key(value: str) -> str:
+    return " ".join(value.casefold().replace("-", " ").split())
+
+
+def _validate_top50_payload(
+    payload: Any,
+    *,
+    generated_at: str | None = None,
+    authorities: Any = None,
+) -> None:
+    _expect(
+        isinstance(payload, dict) and set(payload) == TOP50_PAYLOAD_KEYS,
+        "in-top50-routing payload fields differ from the structured-city contract",
+    )
+    _expect(type(payload.get("version")) is int and payload["version"] == 1,
+            "in-top50-routing payload version must be 1")
+    retrieved_at = payload.get("retrieved_at")
+    _expect(_is_date(retrieved_at), "in-top50-routing retrieved_at is invalid")
+    if generated_at is not None:
+        _expect(retrieved_at == generated_at,
+                "in-top50-routing retrieved_at differs from the pack date")
+
+    regions = payload.get("regions")
+    _expect(isinstance(regions, list) and len(regions) == len(TOP50_REGION_PINS),
+            "in-top50-routing must contain exactly 35 reviewed regions")
+    actual_identity: list[tuple[Any, Any, Any, Any, Any]] = []
+    authority_state_aliases: dict[str, list[str]] = {}
+    aliases_by_state: dict[str, dict[str, str]] = {}
+    for index, region in enumerate(regions):
+        label = f"in-top50-routing.regions[{index}]"
+        _expect(isinstance(region, dict) and set(region) == TOP50_REGION_KEYS,
+                f"{label} fields differ from the structured-city contract")
+        identity = (
+            region.get("rank"), region.get("id"), region.get("state_code"),
+            region.get("authority_id"), region.get("source_object_id"),
+        )
+        actual_identity.append(identity)
+        expected = TOP50_REGION_PINS[index]
+        _expect(identity == expected,
+                f"{label} identity differs from reviewed pin {expected!r}")
+
+        _expect(type(region.get("rank")) is int and 1 <= region["rank"] <= 50,
+                f"{label}.rank is invalid")
+        _expect(
+            isinstance(region.get("id"), str)
+            and MUNICIPAL_ID_RE.fullmatch(region["id"]) is not None,
+            f"{label}.id is invalid",
+        )
+        _expect(
+            isinstance(region.get("name"), str) and region["name"]
+            and len(region["name"]) <= 100,
+            f"{label}.name is invalid",
+        )
+        _expect(region.get("routing_mode") == "structured_geocode",
+                f"{label}.routing_mode must be structured_geocode")
+        _expect(region.get("routing_source") == "nominatim_structured_city",
+                f"{label}.routing_source differs from its reviewed pin")
+        _expect(region.get("supported_issue_types") == TOP50_SUPPORTED_ISSUES,
+                f"{label}.supported_issue_types differs from the reviewed set")
+        _expect(region.get("exclusions") == [], f"{label}.exclusions must be empty")
+
+        for field in (
+            "scope", "match_value", "source_name", "source_license", "attribution",
+            "routing_note",
+        ):
+            value = region.get(field)
+            _expect(isinstance(value, str) and value and len(value) <= 1000,
+                    f"{label}.{field} is invalid")
+        _expect(
+            region.get("source_name") == "Nominatim search over OpenStreetMap data"
+            and region.get("source_license")
+                == "Open Data Commons Open Database License (ODbL) 1.0"
+            and region.get("attribution") == "© OpenStreetMap contributors",
+            f"{label} source attribution differs from its reviewed pin",
+        )
+        for field in ("source_home_url", "source_url", "official_scope_reference"):
+            value = region.get(field)
+            _expect(isinstance(value, str) and HTTPS_RE.fullmatch(value) is not None,
+                    f"{label}.{field} must be HTTPS")
+
+        source_parts = str(region["source_object_id"]).split(":")
+        _expect(
+            len(source_parts) == 3 and source_parts[0] == "osm"
+            and source_parts[1] in {"node", "way", "relation"}
+            and source_parts[2].isdigit(),
+            f"{label}.source_object_id is invalid",
+        )
+        object_type, object_id = source_parts[1], source_parts[2]
+        _expect(
+            region["source_home_url"]
+                == f"https://www.openstreetmap.org/{object_type}/{object_id}"
+            and region["match_value"] == f"OpenStreetMap {object_type} {object_id}",
+            f"{label} OpenStreetMap source identity is inconsistent",
+        )
+        _expect(
+            region["source_url"].startswith("https://nominatim.openstreetmap.org/search?")
+            and "format=jsonv2" in region["source_url"]
+            and "addressdetails=1" in region["source_url"]
+            and "countrycodes=in" in region["source_url"],
+            f"{label}.source_url is not the reviewed Nominatim search contract",
+        )
+
+        _validate_municipal_aliases(region.get("state_aliases"), f"{label}.state_aliases")
+        _validate_municipal_aliases(region.get("place_aliases"), f"{label}.place_aliases")
+        authority_id = region["authority_id"]
+        previous_state_aliases = authority_state_aliases.setdefault(
+            authority_id, region["state_aliases"]
+        )
+        _expect(previous_state_aliases == region["state_aliases"],
+                f"{label}.state_aliases disagree within one reviewed authority")
+        state_aliases = aliases_by_state.setdefault(region["state_code"], {})
+        for alias in region["place_aliases"]:
+            key = _top50_alias_key(alias)
+            _expect(key and "urban agglomeration" not in key,
+                    f"{label}.place_aliases contains an unsafe alias")
+            previous = state_aliases.get(key)
+            _expect(previous in {None, region["id"]},
+                    f"{label}.place_aliases collides with region {previous}")
+            state_aliases[key] = region["id"]
+
+        _validate_municipal_envelope(region.get("envelope"), f"{label}.envelope")
+        envelope = region["envelope"]
+        _expect(
+            envelope["max_lng"] - envelope["min_lng"] <= 0.33
+            and envelope["max_lat"] - envelope["min_lat"] <= 0.33,
+            f"{label}.envelope is not conservative",
+        )
+        limitations = region.get("limitations")
+        _expect(
+            isinstance(limitations, list) and 1 <= len(limitations) <= 10
+            and all(isinstance(item, str) and item and len(item) <= 500
+                    for item in limitations),
+            f"{label}.limitations are invalid",
+        )
+
+    _expect(actual_identity == TOP50_REGION_PINS,
+            "in-top50-routing region inventory or order differs from reviewed pins")
+
+    _expect(isinstance(authorities, list) and len(authorities) == 12,
+            "in-top50-routing must contain exactly 12 reviewed authorities")
+    by_id = {
+        item.get("id"): item for item in authorities or [] if isinstance(item, dict)
+    }
+    _expect(set(by_id) == set(TOP50_AUTHORITY_URL_PINS),
+            "in-top50-routing authority ids differ from reviewed pins")
+    for authority_id, expected_url in TOP50_AUTHORITY_URL_PINS.items():
+        authority = by_id[authority_id]
+        expected_keys = {"id", "name", "aliases", "handoff_name", "handoff_url"}
+        if authority_id == "in-kl-ksmart":
+            expected_keys.update({"alternate_handoff_name", "alternate_handoff_url"})
+        _expect(set(authority) == expected_keys,
+                f"in-top50-routing authority {authority_id} fields differ from contract")
+        _expect(
+            isinstance(authority.get("name"), str) and authority["name"]
+            and isinstance(authority.get("handoff_name"), str)
+            and authority["handoff_name"],
+            f"in-top50-routing authority {authority_id} labels are invalid",
+        )
+        _expect(authority.get("handoff_url") == expected_url,
+                f"in-top50-routing authority {authority_id} URL differs from its pin")
+        _validate_municipal_aliases(
+            authority.get("aliases"), f"in-top50-routing.authorities.{authority_id}.aliases"
+        )
+        _expect(authority.get("aliases") == authority_state_aliases.get(authority_id),
+                f"in-top50-routing authority {authority_id} aliases differ from its regions")
+        if authority_id == "in-kl-ksmart":
+            _expect(
+                authority.get("alternate_handoff_name") == "Kerala CMO Grievance"
+                and authority.get("alternate_handoff_url") == "https://cmo.kerala.gov.in/",
+                "in-top50-routing Kerala alternate differs from its reviewed pin",
+            )
+        for region in regions:
+            if region["authority_id"] == authority_id:
+                _expect(region["official_scope_reference"] == expected_url,
+                        f"in-top50-routing {region['id']} official reference differs")
+
+
 def _validate_municipal_authorities(spec: ResourceSpec, authorities: Any) -> None:
     expected = MUNICIPAL_AUTHORITY_PINS.get(spec.pack_id)
     _expect(expected is not None, f"{spec.pack_id} has no reviewed authority pin")
@@ -1139,6 +1493,18 @@ def _validate_raw_payload(
         )
     elif spec.pack_id == "in-wb-routing":
         _validate_west_bengal_payload(
+            payload,
+            generated_at=generated_at,
+            authorities=authorities,
+        )
+    elif spec.pack_id == "in-pb-routing":
+        _validate_punjab_payload(
+            payload,
+            generated_at=generated_at,
+            authorities=authorities,
+        )
+    elif spec.pack_id == "in-top50-routing":
+        _validate_top50_payload(
             payload,
             generated_at=generated_at,
             authorities=authorities,

@@ -104,6 +104,26 @@
       "statewide": true,
       "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/mh/routing-26223f8a2dca11615daf789645a98fc2a661acda700c77c06ad89c61fb180e54.json"
     },
+    "in-pb-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 178035,
+      "coverage_scope": "Full State of Punjab; neutral Connect Punjab grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Punjab grievance sources: respective source terms"
+      ],
+      "pack_id": "in-pb-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/pb/routing-49127336c8ccdc08fe4e197fc84cf7634473c162eb61d8af98711779867ee613.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "49127336c8ccdc08fe4e197fc84cf7634473c162eb61d8af98711779867ee613",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "PB",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/pb/routing-49127336c8ccdc08fe4e197fc84cf7634473c162eb61d8af98711779867ee613.json"
+    },
     "in-tg-routing": {
       "adapter": "municipal-city-v1",
       "bytes": 4405,
@@ -141,6 +161,26 @@
       "state_code": "TN",
       "statewide": false,
       "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tn/routing-d1d32b82476c98be6a344e5d4ec788f0acbe63a8b4479453e78c3392eff7bb56.json"
+    },
+    "in-top50-routing": {
+      "adapter": "major-city-structured-v1",
+      "bytes": 64706,
+      "coverage_scope": "35 additional Census 2011 top-50 population centres; conservative structured city/state matching",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official state and urban grievance sources: respective source terms"
+      ],
+      "pack_id": "in-top50-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/in/routing-0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "IN",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/in/routing-0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5.json"
     },
     "in-wb-routing": {
       "adapter": "west-bengal-statewide-v1",

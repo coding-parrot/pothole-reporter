@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="320" height="568" viewBox="0 0 320 568" role="img" aria-labelledby="title description">
-  <title id="title">Pothole Reporter coverage overview</title>
-  <desc id="description">Complaint handoff coverage across all of Maharashtra and West Bengal, Delhi, Ahmedabad, Bengaluru, Hyderabad and Chennai, plus mapped National Highways across India for potholes.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="700" viewBox="0 0 320 700" role="img" aria-labelledby="title description">
+  <title id="title">Pothole Reporter top-50 coverage overview</title>
+  <desc id="description">Schematic map of 50 available routes for the population centres ranked in Census of India 2011 table A-04 (I). Thirty-five markers use conservative structured city-name routes; these markers identify population centres and do not represent complete urban-agglomeration boundaries. Maharashtra, West Bengal, and Punjab have statewide neutral grievance handoffs, with Chandigarh excluded from Punjab. Mapped National Highways and Expressways use a separate pothole route across India.</desc>
   <defs>
     <linearGradient id="state-card" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#3a2416"/>
@@ -12,20 +12,20 @@
     </linearGradient>
     <style>
       text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
-      .eyebrow { fill: #ff9b54; font-size: 10px; font-weight: 700; letter-spacing: 1.4px; }
-      .heading { fill: #f2f2f4; font-size: 24px; font-weight: 750; }
-      .section { fill: #9a9ba1; font-size: 9px; font-weight: 700; letter-spacing: 1.25px; }
-      .place { fill: #f2f2f4; font-size: 13px; font-weight: 700; }
-      .scope { fill: #aeb0b6; font-size: 9px; font-weight: 500; }
+      .eyebrow { fill: #ff9b54; font-size: 10px; font-weight: 700; letter-spacing: 1.35px; }
+      .heading { fill: #f2f2f4; font-size: 23px; font-weight: 750; }
+      .section { fill: #9a9ba1; font-size: 9px; font-weight: 700; letter-spacing: 1.15px; }
+      .map-outline { fill: #181a1e; stroke: #555860; stroke-width: 1.3; stroke-linejoin: round; }
+      .map-inner { fill: none; stroke: #2b2e34; stroke-width: 0.8; stroke-dasharray: 3 4; }
+      .marker circle { vector-effect: non-scaling-stroke; }
+      .marker.available circle { fill: #ff7a1a; stroke: #ffd0ae; stroke-width: 0.8; }
+      .legend { fill: #b7b9bf; font-size: 9.2px; font-weight: 600; }
+      .small { fill: #aeb0b6; font-size: 9px; font-weight: 500; }
     </style>
   </defs>
 
-  <rect width="320" height="568" rx="24" fill="#111214"/>
-  <rect x="1" y="1" width="318" height="566" rx="23" fill="none" stroke="#2a2b30" stroke-width="2"/>
-
-  <!-- Subtle road lines keep the card geographic without representing boundaries. -->
-  <path d="M-18 142 C55 119 97 151 159 125 S263 75 345 103" fill="none" stroke="#24252a" stroke-width="2"/>
-  <path d="M-9 171 C67 154 101 181 174 157 S271 111 337 139" fill="none" stroke="#202126" stroke-width="1"/>
+  <rect width="320" height="700" rx="24" fill="#111214"/>
+  <rect x="1" y="1" width="318" height="698" rx="23" fill="none" stroke="#2a2b30" stroke-width="2"/>
 
   <g transform="translate(22 23)">
     <path d="M12 0C5.4 0 0 5.2 0 11.7 0 20.2 12 31 12 31s12-10.8 12-19.3C24 5.2 18.6 0 12 0Z" fill="#ff7a1a"/>
@@ -34,66 +34,105 @@
   <text x="56" y="32" class="eyebrow">POTHOLE REPORTER</text>
   <text x="56" y="57" class="heading">Where it works</text>
 
-  <rect x="20" y="83" width="280" height="112" rx="16" fill="url(#state-card)" stroke="#ff7a1a"/>
-  <rect x="36" y="99" width="76" height="20" rx="10" fill="#ff7a1a"/>
-  <text x="74" y="113" text-anchor="middle" fill="#1a1206" font-size="9" font-weight="800" letter-spacing="0.8">STATEWIDE</text>
-  <text x="36" y="146" fill="#ffffff" font-size="18" font-weight="750">Maharashtra + West Bengal</text>
-  <text x="36" y="166" fill="#ffc79e" font-size="11" font-weight="600">Civic complaint handoffs statewide</text>
-  <text x="36" y="182" fill="#d8b499" font-size="10">Exact MMR, PMC and KMC routes retained</text>
-  <circle cx="246" cy="111" r="15" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.45"/>
-  <text x="246" y="115" text-anchor="middle" fill="#ff9b54" font-size="10" font-weight="800">MH</text>
-  <circle cx="277" cy="111" r="15" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.45"/>
-  <text x="277" y="115" text-anchor="middle" fill="#ff9b54" font-size="10" font-weight="800">WB</text>
-
-  <text x="20" y="220" class="section">CITY-SCOPE HANDOFFS</text>
-
-  <g>
-    <rect x="20" y="234" width="134" height="45" rx="11" fill="#1c1d21" stroke="#2a2b30"/>
-    <circle cx="35" cy="249" r="4" fill="#ff7a1a"/>
-    <text x="45" y="253" class="place">Delhi NCT</text>
-    <text x="35" y="269" class="scope">Full NCT</text>
-
-    <rect x="166" y="234" width="134" height="45" rx="11" fill="#1c1d21" stroke="#2a2b30"/>
-    <circle cx="181" cy="249" r="4" fill="#ff7a1a"/>
-    <text x="191" y="253" class="place">Kolkata</text>
-    <text x="181" y="269" class="scope">Exact KMC channel</text>
-
-    <rect x="20" y="288" width="134" height="45" rx="11" fill="#1c1d21" stroke="#2a2b30"/>
-    <circle cx="35" cy="303" r="4" fill="#ff7a1a"/>
-    <text x="45" y="307" class="place">Ahmedabad</text>
-    <text x="35" y="323" class="scope">Reviewed footprint</text>
-
-    <rect x="166" y="288" width="134" height="45" rx="11" fill="#1c1d21" stroke="#2a2b30"/>
-    <circle cx="181" cy="303" r="4" fill="#ff7a1a"/>
-    <text x="191" y="307" class="place">Hyderabad</text>
-    <text x="181" y="323" class="scope">CURE area</text>
-
-    <rect x="20" y="342" width="134" height="45" rx="11" fill="#1c1d21" stroke="#2a2b30"/>
-    <circle cx="35" cy="357" r="4" fill="#ff7a1a"/>
-    <text x="45" y="361" class="place">Chennai</text>
-    <text x="35" y="377" class="scope">GCC limits</text>
-
-    <rect x="166" y="342" width="134" height="45" rx="11" fill="#1c1d21" stroke="#2a2b30"/>
-    <circle cx="181" cy="357" r="4" fill="#ff7a1a"/>
-    <text x="191" y="361" class="place">Bengaluru</text>
-    <text x="181" y="377" class="scope">Five city corporations</text>
+  <g transform="translate(242 21)">
+    <rect width="58" height="42" rx="12" fill="#2b1d14" stroke="#ff7a1a"/>
+    <text x="29" y="24" text-anchor="middle" fill="#ffffff" font-size="20" font-weight="800">50</text>
+    <text x="29" y="35" text-anchor="middle" fill="#ffb37d" font-size="7" font-weight="800" letter-spacing="0.8">CENTRES</text>
   </g>
 
-  <rect x="20" y="399" width="280" height="35" rx="10" fill="#1c1d21" stroke="#2a2b30"/>
-  <path d="M34 417h11m-5.5-5.5v11" stroke="#ff9b54" stroke-width="2" stroke-linecap="round"/>
-  <text x="55" y="414" fill="#f2f2f4" font-size="11" font-weight="700">Karnataka urban bodies</text>
-  <text x="55" y="426" fill="#aeb0b6" font-size="9">Road-damage routing</text>
+  <text x="20" y="88" class="section">CENSUS 2011 A-04 (I) · POPULATION RANKING</text>
+  <text x="20" y="104" class="small">35 use city-name matching; markers are not complete UA boundaries.</text>
 
-  <rect x="20" y="446" width="280" height="67" rx="14" fill="url(#road-card)" stroke="#315e3e"/>
-  <g transform="translate(35 461)">
+  <!-- This outline and the marker positions are intentionally schematic. -->
+  <g aria-label="Schematic map of India" transform="translate(0 40)">
+    <path class="map-outline" d="M103 74 116 83 127 99 135 117 151 128 171 133 190 124 207 130 218 144 226 160 218 177 226 192 216 207 229 211 244 199 263 196 279 204 265 214 246 216 229 224 216 241 202 255 190 270 176 283 165 302 157 326 147 352 139 379 128 414 119 399 112 375 103 351 92 330 82 308 70 288 61 269 55 247 50 225 55 204 65 185 71 165 74 143 82 125 88 104 94 86Z"/>
+    <path class="map-inner" d="M73 166C109 174 141 164 181 142M57 225C99 220 138 231 190 215M67 287C105 275 142 285 180 278M101 350C120 337 139 331 157 326"/>
+
+    <g class="marker available" data-city-rank="1" data-city-id="mumbai" transform="translate(86 276)"><title>1. Mumbai — Maharashtra — available reviewed-specific route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="2" data-city-id="delhi" transform="translate(114 170)"><title>2. Delhi — Delhi NCT — available reviewed-specific route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="3" data-city-id="kolkata" transform="translate(191 237)"><title>3. Kolkata — West Bengal — available reviewed-specific route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="4" data-city-id="chennai" transform="translate(136 343)"><title>4. Chennai — Tamil Nadu — available reviewed-specific route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="5" data-city-id="bengaluru" transform="translate(118 344)"><title>5. Bengaluru — Karnataka — available reviewed-specific route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="6" data-city-id="hyderabad" transform="translate(124 295)"><title>6. Hyderabad — Telangana — available reviewed-specific route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="7" data-city-id="ahmedabad" transform="translate(84 232)"><title>7. Ahmedabad — Gujarat — available reviewed-specific route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="8" data-city-id="pune" transform="translate(94 282)"><title>8. Pune — Maharashtra — available reviewed-specific route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="9" data-city-id="surat" transform="translate(86 253)"><title>9. Surat — Gujarat — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="10" data-city-id="jaipur" transform="translate(104 188)"><title>10. Jaipur — Rajasthan — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="11" data-city-id="kanpur" transform="translate(136 194)"><title>11. Kanpur — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="12" data-city-id="lucknow" transform="translate(143 188)"><title>12. Lucknow — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="13" data-city-id="nagpur" transform="translate(128 253)"><title>13. Nagpur — Maharashtra — available statewide-neutral route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="14" data-city-id="ghaziabad" transform="translate(121 168)"><title>14. Ghaziabad — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="15" data-city-id="indore" transform="translate(106 235)"><title>15. Indore — Madhya Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="16" data-city-id="coimbatore" transform="translate(114 366)"><title>16. Coimbatore — Tamil Nadu — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="17" data-city-id="kochi" transform="translate(109 382)"><title>17. Kochi — Kerala — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="18" data-city-id="patna" transform="translate(166 202)"><title>18. Patna — Bihar — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="19" data-city-id="kozhikode" transform="translate(105 360)"><title>19. Kozhikode — Kerala — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="20" data-city-id="bhopal" transform="translate(117 228)"><title>20. Bhopal — Madhya Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="21" data-city-id="thrissur" transform="translate(108 373)"><title>21. Thrissur — Kerala — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="22" data-city-id="vadodara" transform="translate(90 240)"><title>22. Vadodara — Gujarat — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="23" data-city-id="agra" transform="translate(124 183)"><title>23. Agra — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="24" data-city-id="visakhapatnam" transform="translate(155 291)"><title>24. Visakhapatnam — Andhra Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="25" data-city-id="malappuram" transform="translate(102 367)"><title>25. Malappuram — Kerala — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="26" data-city-id="thiruvananthapuram" transform="translate(114 400)"><title>26. Thiruvananthapuram — Kerala — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="27" data-city-id="kannur" transform="translate(101 351)"><title>27. Kannur — Kerala — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="28" data-city-id="ludhiana" transform="translate(108 143)"><title>28. Ludhiana — Punjab — available statewide-neutral route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="29" data-city-id="nashik" transform="translate(94 266)"><title>29. Nashik — Maharashtra — available statewide-neutral route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="30" data-city-id="vijayawada" transform="translate(139 305)"><title>30. Vijayawada — Andhra Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="31" data-city-id="madurai" transform="translate(122 378)"><title>31. Madurai — Tamil Nadu — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="32" data-city-id="varanasi" transform="translate(153 207)"><title>32. Varanasi — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="33" data-city-id="meerut" transform="translate(119 160)"><title>33. Meerut — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="34" data-city-id="faridabad" transform="translate(117 177)"><title>34. Faridabad — Haryana — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="35" data-city-id="rajkot" transform="translate(71 240)"><title>35. Rajkot — Gujarat — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="36" data-city-id="jamshedpur" transform="translate(174 236)"><title>36. Jamshedpur — Jharkhand — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="37" data-city-id="jabalpur" transform="translate(135 230)"><title>37. Jabalpur — Madhya Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="38" data-city-id="srinagar" transform="translate(99 107)"><title>38. Srinagar — Jammu and Kashmir — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="39" data-city-id="asansol" transform="translate(181 224)"><title>39. Asansol — West Bengal — available statewide-neutral route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="40" data-city-id="vasai-virar" transform="translate(81 270)"><title>40. Vasai-Virar — Maharashtra — available reviewed-specific route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="41" data-city-id="prayagraj" transform="translate(145 202)"><title>41. Prayagraj, Census name Allahabad — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="42" data-city-id="dhanbad" transform="translate(175 220)"><title>42. Dhanbad — Jharkhand — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="43" data-city-id="chhatrapati-sambhajinagar" transform="translate(104 267)"><title>43. Chhatrapati Sambhajinagar, Census name Aurangabad — Maharashtra — available statewide-neutral route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="44" data-city-id="amritsar" transform="translate(100 134)"><title>44. Amritsar — Punjab — available statewide-neutral route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="45" data-city-id="jodhpur" transform="translate(87 197)"><title>45. Jodhpur — Rajasthan — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="46" data-city-id="ranchi" transform="translate(166 229)"><title>46. Ranchi — Jharkhand — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="47" data-city-id="raipur" transform="translate(146 253)"><title>47. Raipur — Chhattisgarh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="48" data-city-id="kollam" transform="translate(108 391)"><title>48. Kollam — Kerala — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="49" data-city-id="gwalior" transform="translate(123 196)"><title>49. Gwalior — Madhya Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="50" data-city-id="durg-bhilai" transform="translate(139 258)"><title>50. Durg-Bhilai — Chhattisgarh — available conservative structured city-name route</title><circle r="3.4"/></g>
+  </g>
+
+  <g transform="translate(20 480)">
+    <circle cx="5" cy="5" r="3.6" fill="#ff7a1a" stroke="#ffd0ae" stroke-width="0.8"/>
+    <text x="14" y="8" class="legend">Available route · 50</text>
+    <rect x="117" y="0" width="10" height="10" rx="3" fill="#2b1d14" stroke="#ff9b54"/>
+    <text x="122" y="7.5" text-anchor="middle" fill="#ffb37d" font-size="6.5" font-weight="800">Aa</text>
+    <text x="132" y="8" class="legend">Structured city name · 35</text>
+  </g>
+
+  <rect x="20" y="504" width="280" height="76" rx="14" fill="url(#state-card)" stroke="#ff7a1a"/>
+  <text x="36" y="523" fill="#ffb37d" font-size="8.5" font-weight="800" letter-spacing="1">STATEWIDE NEUTRAL HANDOFFS</text>
+  <text x="36" y="545" fill="#ffffff" font-size="13" font-weight="750">Maharashtra · West Bengal</text>
+  <text x="36" y="562" fill="#ffffff" font-size="13" font-weight="750">Punjab</text>
+  <text x="81" y="562" fill="#d8b499" font-size="9">· select and verify the department</text>
+  <text x="36" y="574" fill="#d8b499" font-size="8.5">Chandigarh UT is outside Punjab coverage</text>
+  <g transform="translate(253 519)">
+    <circle cx="0" cy="0" r="11" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.55"/>
+    <text x="0" y="3" text-anchor="middle" fill="#ffb37d" font-size="7.5" font-weight="800">MH</text>
+    <circle cx="25" cy="0" r="11" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.55"/>
+    <text x="25" y="3" text-anchor="middle" fill="#ffb37d" font-size="7.5" font-weight="800">WB</text>
+    <circle cx="12.5" cy="26" r="11" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.55"/>
+    <text x="12.5" y="29" text-anchor="middle" fill="#ffb37d" font-size="7.5" font-weight="800">PB</text>
+  </g>
+
+  <rect x="20" y="592" width="280" height="62" rx="14" fill="url(#road-card)" stroke="#315e3e"/>
+  <g transform="translate(35 607)">
     <path d="M0 26 7 0h14l7 26Z" fill="#25392b" stroke="#3ecf6f"/>
     <path d="M14 3v6m0 5v7" stroke="#b4f3c8" stroke-width="2" stroke-linecap="round"/>
   </g>
-  <text x="76" y="469" fill="#7ce89f" font-size="9" font-weight="800" letter-spacing="0.9">ACROSS INDIA</text>
-  <text x="76" y="488" fill="#f2f2f4" font-size="14" font-weight="750">Mapped National Highways</text>
-  <text x="76" y="503" fill="#a9c7b2" font-size="9.5">Pothole reports on NH / NE carriageways</text>
+  <text x="76" y="615" fill="#7ce89f" font-size="9" font-weight="800" letter-spacing="0.9">ACROSS INDIA</text>
+  <text x="76" y="634" fill="#f2f2f4" font-size="14" font-weight="750">Mapped National Highways</text>
+  <text x="76" y="648" fill="#a9c7b2" font-size="9">Separate pothole route on NH / NE carriageways</text>
 
-  <line x1="20" y1="529" x2="300" y2="529" stroke="#2a2b30"/>
-  <text x="160" y="545" text-anchor="middle" fill="#85868c" font-size="8.5">Schematic summary · boundaries and channels vary</text>
-  <text x="160" y="557" text-anchor="middle" fill="#85868c" font-size="8.5">Review every complaint before sending</text>
+  <line x1="20" y1="667" x2="300" y2="667" stroke="#2a2b30"/>
+  <text x="160" y="682" text-anchor="middle" fill="#85868c" font-size="8.3">Schematic centres · operational boundaries and channels vary</text>
+  <text x="160" y="693" text-anchor="middle" fill="#85868c" font-size="8.3">Review every handoff · nothing is filed automatically</text>
 </svg>

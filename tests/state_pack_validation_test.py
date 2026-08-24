@@ -24,7 +24,13 @@ from state_pack_tools import (  # noqa: E402
 
 Mutation = Callable[[dict[str, Any], list[dict[str, Any]]], None]
 MUNICIPAL_IDS = ("in-tn-routing", "in-tg-routing", "in-gj-routing")
-VALIDATED_IDS = (*MUNICIPAL_IDS, "in-mh-routing", "in-wb-routing")
+VALIDATED_IDS = (
+    *MUNICIPAL_IDS,
+    "in-mh-routing",
+    "in-wb-routing",
+    "in-pb-routing",
+    "in-top50-routing",
+)
 
 
 def load_case(pack_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -168,6 +174,45 @@ def main() -> int:
         ("in-wb-routing", "unreviewed statewide grievance URL", lambda p, a: next(
             item for item in a if item.get("id") == "wb-statewide-unverified"
         ).update({"handoff_url": "https://example.invalid/unreviewed"})),
+        ("in-pb-routing", "wrong state relation", lambda p, a: p["region"].update(
+            {"osm_relation_id": 1}
+        )),
+        ("in-pb-routing", "state geometry digest mismatch", lambda p, a: p["region"].update(
+            {"geometry_sha256": "0" * 64}
+        )),
+        ("in-pb-routing", "missing statewide authority", lambda p, a: a.clear()),
+        ("in-pb-routing", "unreviewed statewide grievance URL", lambda p, a: a[0].update(
+            {"handoff_url": "https://example.invalid/unreviewed"}
+        )),
+        ("in-pb-routing", "Chandigarh included in declared scope", lambda p, a: p[
+            "region"
+        ].update({"scope": "Full State of Punjab including Chandigarh"})),
+        ("in-top50-routing", "missing city region", lambda p, a: p["regions"].pop()),
+        ("in-top50-routing", "changed Census rank", lambda p, a: p["regions"][0].update(
+            {"rank": 8}
+        )),
+        ("in-top50-routing", "changed source object", lambda p, a: p["regions"][0].update(
+            {"source_object_id": "osm:node:1"}
+        )),
+        ("in-top50-routing", "broad routing envelope", lambda p, a: p["regions"][0][
+            "envelope"
+        ].update({"max_lng": 73.5})),
+        ("in-top50-routing", "weak town matching mode", lambda p, a: p["regions"][0].update(
+            {"routing_mode": "town_name"}
+        )),
+        ("in-top50-routing", "missing civic category", lambda p, a: p["regions"][0].update(
+            {"supported_issue_types": ["road_damage"]}
+        )),
+        ("in-top50-routing", "unreviewed official reference", lambda p, a: p["regions"][0].update(
+            {"official_scope_reference": "https://example.invalid/portal"}
+        )),
+        ("in-top50-routing", "same-state city alias collision", lambda p, a: p["regions"][0][
+            "place_aliases"
+        ].append("Rajkot")),
+        ("in-top50-routing", "missing authority", lambda p, a: a.pop()),
+        ("in-top50-routing", "unreviewed grievance URL", lambda p, a: a[0].update(
+            {"handoff_url": "https://example.invalid/unreviewed"}
+        )),
     ]
 
     for pack_id, label, mutate in cases:

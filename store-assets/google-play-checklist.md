@@ -1,13 +1,13 @@
 # Google Play publication checklist
 
-Status reviewed 24 August 2026 for release 1.24.0 / version code 42. This is a release
+Status reviewed 24 August 2026 for release 1.25.0 / version code 43. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.24.0/code 42 after the statewide West Bengal changes,
+- [ ] **Fresh signed release bundle:** build version 1.25.0/code 43 after the Punjab and top-50 coverage changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
   it in Play Console.
 - [x] **Hosted privacy page:** verified on the stable public host:
@@ -56,9 +56,18 @@ Do not submit to production until every applicable item above is complete.
   neighbouring-state point, and a state-edge accuracy case. Confirm only the checksum-verified
   KMC polygon selects KMC, every other confidently contained West Bengal point uses PGRS,
   and a place name alone never selects either route.
+- [ ] Test Punjab fixtures in Amritsar, Ludhiana, rural districts, the state edge,
+  Chandigarh, Panchkula, and Ambala. Confirm only the checksum-verified Punjab polygon
+  offers Connect Punjab, Chandigarh stays outside, and a place name alone never routes.
+- [ ] Test all 35 additional top-50 city centres for Pothole, Garbage, and Manhole, plus
+  one outside-envelope, wrong-state, stale-city, missing-geocode, and boundary-touching
+  fixture per state group. Confirm the coordinate envelope and exact structured
+  city/municipality plus state fields are all required, National Highways remain first,
+  and no route claims complete Urban Agglomeration coverage or a verified owner.
 - [ ] Test central, north, south, east, and west Delhi NCT locations, plus Noida,
   Gurugram, Ghaziabad, Faridabad, and a boundary-edge accuracy case. Confirm only the
-  pinned NCT polygon routes, and neighbouring NCR points stay unrouted.
+  pinned NCT polygon selects the Delhi recipient; Noida and Gurugram stay unrouted, while
+  Ghaziabad and Faridabad can route only through their independent top-50 match.
 - [ ] Test Chennai fixtures in every GCC zone, St Thomas Mount and neighbouring bodies.
   Confirm the verified GCC polygon routes only GCC points and preserves its interior hole.
 - [ ] Test representative points across the official 2,053 km² Hyderabad CURE, points just
@@ -69,8 +78,9 @@ Do not submit to production until every applicable item above is complete.
   union, including South Bopal/Ghuma as known outer-expansion gap fixtures. Confirm the
   app does not claim current outer AMC or wider AUDA completeness and never falls back to
   an Ahmedabad place-name guess.
-- [ ] Across Maharashtra and West Bengal, and in Delhi, all five Bengaluru city corporations, Chennai, Hyderabad,
-  and Ahmedabad, create Pothole, Garbage, and Manhole reports. Confirm road damage keeps
+- [ ] Across Maharashtra, West Bengal, Punjab, the accepted top-50 routes, Delhi, all five
+  Bengaluru city corporations, Chennai, Hyderabad, and Ahmedabad, create Pothole, Garbage,
+  and Manhole reports. Confirm road damage keeps
   its road-specific route, the other categories use only reviewed general-civic channels,
   and unverified categories fail closed. Simulate a routing-pack/network failure, keep the
   full civic photo and original timestamp, then confirm Retry routing uses the saved point.
@@ -116,7 +126,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.24.0 release. Include the issue picker, an independent civic handoff, and regional-language support
+  the 1.25.0 release. Include the issue picker, an independent civic handoff, and regional-language support
   without displaying private coordinates, an API key, a real grievance ID, or civic-body
   marks. Put other city-specific flows in reviewer instructions instead of implying that
   one screenshot proves every supported route.
@@ -124,7 +134,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
   automatic filing, guaranteed detection, verified responsibility, or benchmarked accuracy.
 - [ ] Enter the hosted privacy-policy URL, support website, and required support email.
 - [ ] Choose the app category and target countries intentionally. Current routing covers mapped
-  NH/NE carriageways across India plus the areas listed in `google-play-listing.md`; keep the wider NCR, wider
+  NH/NE carriageways across India plus the areas listed in `google-play-listing.md`; keep the Delhi-NCT versus separate NCR-city distinction, wider
   Chennai metro, Cantonment, and Ahmedabad outer-expansion limitations visible; explain that
   non-KMC West Bengal routes require the user to select the responsible district or department.
 - [ ] Keep the non-affiliation statement and the clearly labelled government-information
@@ -140,9 +150,10 @@ Official references: [target API schedule](https://support.google.com/googleplay
   Audit at least:
   - selected road-damage photos and Drive/VOD image frames sent to OpenAI; user-confirmed
     Garbage and Manhole photos are not sent to OpenAI;
-  - precise coordinates sent to Nominatim, to Karnataka GIS for Karnataka points, and with
+  - precise coordinates sent to Nominatim (including structured city/state fields used by
+    the 35 additional city routes), to Karnataka GIS for Karnataka points, and with
     the GPS-accuracy envelope to official Telangana GIS for Hyderabad routing; Maharashtra,
-    West Bengal, Delhi NCT, GCC, and Ahmedabad boundary checks remain on-device;
+    West Bengal, Punjab, Delhi NCT, GCC, and Ahmedabad boundary checks remain on-device;
   - for eligible Karnataka routes only, road address and procurement shortlist sent to
     OpenAI for probable contract matching; contract matching elsewhere is disabled;
   - API credential and standard network metadata received by external services;

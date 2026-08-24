@@ -83,7 +83,7 @@
   // State-specific contacts and polygons live in immutable data packs. The APK keeps
   // only the parsers, strict validators and the package IDs Android permits it to query.
   // A downloaded pack can therefore add data, never executable behaviour.
-  const AUTHORITY_REGISTRY_VERSION = 8;
+  const AUTHORITY_REGISTRY_VERSION = 10;
   const LAUNCHABLE_PACKAGES = new Set([
     "com.bmc.potholequickfix", "com.sis.pwdsewaapp", "com.kmc.app",
     "com.newnmmc.app", "com.nyatitechnologies.pmcroadmitra",
@@ -178,6 +178,10 @@
   // closed instead of assuming that a recipient accepts an unrelated category.
   const GENERAL_CIVIC_AUTHORITY_IDS = new Set([
     "wb-kmc", "wb-statewide-unverified", "tn-gcc", "tg-cure-shared", "gj-amc",
+    "pb-statewide-unverified",
+    "in-gj-enagar", "in-rj-sampark", "in-up-jansunwai", "in-mp-cm-helpline",
+    "in-tn-cm-helpline", "in-kl-ksmart", "in-br-lok-shikayat", "in-ap-puramithra",
+    "in-hr-nagar-darshan", "in-jh-municipal-grievance", "in-jk-samadhan", "in-cg-nidaan",
   ]);
   const MUMBAI_STATES = new Set(["maharashtra", "महाराष्ट्र"]);
   const WEST_BENGAL_STATES = new Set(["west bengal", "পশ্চিমবঙ্গ"]);
@@ -201,6 +205,7 @@
   const MAHARASHTRA_STATE_AUTHORITY = {};
   const KMC_AUTHORITY = {};
   const WEST_BENGAL_STATE_AUTHORITY = {};
+  const PUNJAB_STATE_AUTHORITY = {};
   const DELHI_PWD_AUTHORITY = {};
   const NATIONAL_HIGHWAY_AUTHORITY = {};
   const OFFICIAL_AUTHORITIES = [];
@@ -898,10 +903,17 @@ Evidence rules:
       }
       replaceStableObject(DELHI_PWD_AUTHORITY, byId.get("dl-pwd-sewa"));
       PACK_AUTHORITIES_BY_STATE.set("DL", [DELHI_PWD_AUTHORITY]);
+    } else if (pack.state_code === "PB") {
+      if (authorities.length !== 1 || !byId.has("pb-statewide-unverified")) {
+        throw new Error("Punjab routing pack has an invalid authority registry.");
+      }
+      replaceStableObject(PUNJAB_STATE_AUTHORITY, byId.get("pb-statewide-unverified"));
+      PACK_AUTHORITIES_BY_STATE.set("PB", [PUNJAB_STATE_AUTHORITY]);
     } else if (pack.state_code === "KA") {
       if (authorities.length) throw new Error("Karnataka contacts must use the LGD registry.");
       PACK_AUTHORITIES_BY_STATE.set("KA", []);
-    } else if (pack.adapter === "municipal-city-v1") {
+    } else if (pack.adapter === "municipal-city-v1"
+        || pack.adapter === "major-city-structured-v1") {
       if (!authorities.length || authorities.length > 100) {
         throw new Error("Municipal-city routing pack has an invalid authority registry.");
       }
@@ -1050,6 +1062,8 @@ Evidence rules:
     "in-dl-routing": { state_code: "DL", kind: "routing", adapter: "delhi-nct-v1" },
     "in-mh-routing": { state_code: "MH", kind: "routing", adapter: "maharashtra-statewide-v1" },
     "in-wb-routing": { state_code: "WB", kind: "routing", adapter: "west-bengal-statewide-v1" },
+    "in-pb-routing": { state_code: "PB", kind: "routing", adapter: "statewide-general-v1" },
+    "in-top50-routing": { state_code: "IN", kind: "routing", adapter: "major-city-structured-v1" },
     "in-ka-routing": { state_code: "KA", kind: "routing", adapter: "karnataka-kgis-v1" },
     "in-ka-tenders": { state_code: "KA", kind: "tenders", adapter: "karnataka-locally-indexed-v1" },
     "in-tn-routing": { state_code: "TN", kind: "routing", adapter: "municipal-city-v1" },
@@ -1374,6 +1388,113 @@ Evidence rules:
     return usedAuthorityIds.size === authorityIds.size;
   }
 
+  const TOP50_MAJOR_CITY_RANKS = new Set([
+    9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+    27, 30, 31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 45, 46, 47, 48, 49, 50,
+  ]);
+  const TOP50_AUTHORITY_BY_STATE = Object.freeze({
+    GJ: "in-gj-enagar", RJ: "in-rj-sampark", UP: "in-up-jansunwai",
+    MP: "in-mp-cm-helpline", TN: "in-tn-cm-helpline", KL: "in-kl-ksmart",
+    BR: "in-br-lok-shikayat", AP: "in-ap-puramithra", HR: "in-hr-nagar-darshan",
+    JH: "in-jh-municipal-grievance", JK: "in-jk-samadhan", CG: "in-cg-nidaan",
+  });
+
+  async function validatePunjabPayload(pack) {
+    const payload = pack.payload;
+    const region = payload && payload.region;
+    const fields = [
+      "id", "authority_id", "name", "scope", "osm_relation_id", "source_name",
+      "source_home_url", "source_url", "source_license", "attribution", "routing_note",
+      "limitations", "coordinate_precision", "bbox", "geometry_sha256", "geometry",
+    ];
+    const digest = region && hasCoverageGeometry(region.geometry)
+      ? await sha256Hex(JSON.stringify(region.geometry)) : null;
+    const calculated = region && municipalGeometryBounds(region.geometry);
+    const near = (first, second) => Math.abs(first - second) <= 1e-7;
+    return exactObjectKeys(payload, ["version", "retrieved_at", "region"])
+      && payload.version === 1 && payload.retrieved_at === pack.generated_at
+      && exactObjectKeys(region, fields)
+      && region.id === "punjab-state"
+      && region.authority_id === "pb-statewide-unverified"
+      && region.name === "Punjab" && Number(region.osm_relation_id) === 1942686
+      && Number.isInteger(region.coordinate_precision) && region.coordinate_precision === 7
+      && validMunicipalEnvelope(region.bbox) && calculated
+      && Object.keys(calculated).every((key) => near(calculated[key], region.bbox[key]))
+      && region.geometry_sha256 === PUNJAB_STATE_GEOMETRY_SHA256
+      && digest === PUNJAB_STATE_GEOMETRY_SHA256
+      && ["scope", "source_name", "source_license", "attribution", "routing_note"]
+        .every((field) => typeof region[field] === "string"
+          && !!region[field] && region[field].length <= 1000)
+      && ["source_home_url", "source_url"]
+        .every((field) => /^https:\/\/[^\s]+$/.test(String(region[field] || "")))
+      && Array.isArray(region.limitations) && region.limitations.length > 0
+      && region.limitations.length <= 10
+      && region.limitations.every((item) => typeof item === "string"
+        && !!item && item.length <= 500);
+  }
+
+  function validateMajorCityPayload(pack) {
+    const payload = pack.payload;
+    const expectedAuthorityIds = new Set(Object.values(TOP50_AUTHORITY_BY_STATE));
+    const authorityIds = new Set(pack.authorities.map((authority) => authority.id));
+    if (!exactObjectKeys(payload, ["version", "retrieved_at", "regions"])
+        || payload.version !== 1 || payload.retrieved_at !== pack.generated_at
+        || !Array.isArray(payload.regions) || payload.regions.length !== 35
+        || !sameSet([...authorityIds], expectedAuthorityIds)) return false;
+    const regionFields = [
+      "rank", "id", "authority_id", "name", "state_code", "scope", "routing_mode",
+      "routing_source", "match_value", "state_aliases", "place_aliases", "envelope",
+      "source_name", "source_home_url", "source_url", "source_license", "attribution",
+      "official_scope_reference", "routing_note", "limitations", "exclusions",
+      "source_object_id", "supported_issue_types",
+    ];
+    const seenRanks = new Set(), seenIds = new Set(), usedAuthorities = new Set();
+    for (const region of payload.regions) {
+      const expectedAuthority = region && TOP50_AUTHORITY_BY_STATE[region.state_code];
+      const sourceMatch = region && typeof region.match_value === "string"
+        ? region.match_value.match(/^OpenStreetMap (node|way|relation) ([1-9][0-9]*)$/) : null;
+      const strings = [
+        "id", "authority_id", "name", "state_code", "scope", "routing_source",
+        "match_value", "source_name", "source_home_url", "source_url", "source_license",
+        "attribution", "official_scope_reference", "routing_note", "source_object_id",
+      ];
+      if (!exactObjectKeys(region, regionFields)
+          || !Number.isInteger(region.rank) || !TOP50_MAJOR_CITY_RANKS.has(region.rank)
+          || seenRanks.has(region.rank)
+          || !/^[a-z0-9][a-z0-9-]{2,100}$/.test(String(region.id || ""))
+          || seenIds.has(region.id)
+          || !expectedAuthority || region.authority_id !== expectedAuthority
+          || !authorityIds.has(region.authority_id)
+          || region.routing_mode !== "structured_geocode"
+          || region.routing_source !== "nominatim_structured_city"
+          || strings.some((field) => typeof region[field] !== "string"
+            || !region[field] || region[field].length > 1000)
+          || !sourceMatch
+          || region.source_object_id !== `osm:${sourceMatch[1]}:${sourceMatch[2]}`
+          || !/^https:\/\/[^\s]+$/.test(region.source_home_url)
+          || !/^https:\/\/[^\s]+$/.test(region.source_url)
+          || !/^https:\/\/[^\s]+$/.test(region.official_scope_reference)
+          || !validMunicipalAliasList(region.state_aliases)
+          || !validMunicipalAliasList(region.place_aliases)
+          || !validMunicipalEnvelope(region.envelope)
+          || !Array.isArray(region.limitations) || !region.limitations.length
+          || region.limitations.length > 10
+          || region.limitations.some((item) => typeof item !== "string"
+            || !item || item.length > 500)
+          || !Array.isArray(region.exclusions) || region.exclusions.length !== 0
+          || !Array.isArray(region.supported_issue_types)
+          || new Set(region.supported_issue_types).size !== ISSUE_TYPES.length
+          || !sameSet(region.supported_issue_types, new Set(ISSUE_TYPES))) {
+        return false;
+      }
+      seenRanks.add(region.rank);
+      seenIds.add(region.id);
+      usedAuthorities.add(region.authority_id);
+    }
+    return sameSet([...seenRanks], TOP50_MAJOR_CITY_RANKS)
+      && sameSet([...usedAuthorities], expectedAuthorityIds);
+  }
+
   async function validateRoutingPack(resource, pack) {
     validatePackEnvelope(resource, pack, "routing");
     if (!Array.isArray(pack.authorities) || pack.authorities.length > 1000) {
@@ -1439,6 +1560,16 @@ Evidence rules:
         throw new Error("Maharashtra routing pack failed its boundary or authority checks.");
       }
       validateAuthorityRegistry(mmrAuthorities);
+    } else if (resource.pack_id === "in-pb-routing") {
+      if (pack.authorities.length !== 1
+          || pack.authorities[0].id !== "pb-statewide-unverified"
+          || !await validatePunjabPayload(pack)) {
+        throw new Error("Punjab routing pack failed its boundary, source or authority checks.");
+      }
+    } else if (resource.pack_id === "in-top50-routing") {
+      if (!validateMajorCityPayload(pack)) {
+        throw new Error("Major-city routing pack failed its source, region or authority checks.");
+      }
     } else if (resource.pack_id === "in-ka-routing") {
       if (pack.authorities.length || !validateKarnatakaBodies(payload)) {
         throw new Error("Karnataka routing pack failed its LGD contact checks.");
@@ -1669,6 +1800,10 @@ Evidence rules:
     _statePackPromises.clear();
     municipalCityCoverageCache.clear();
     municipalCityCoveragePromises.clear();
+    _punjabCoverage = null;
+    _punjabCoveragePromise = null;
+    _majorCityCoverage = null;
+    _majorCityCoveragePromise = null;
     resetHighwayPackMemory();
   }
 
@@ -2070,6 +2205,14 @@ Evidence rules:
     && !!String(geo.state || "").trim()
     && !!String(geo.country_code || "").trim()
     && (String(geo.country_code).toLowerCase() !== "in" || !isKarnatakaGeocode(geo));
+  const KARNATAKA_ROUTING_ENVELOPE = {
+    minLat: 11.40, maxLat: 18.60, minLng: 73.90, maxLng: 78.80,
+  };
+  const inKarnatakaRoutingEnvelope = (lat, lng) => Number.isFinite(lat) && Number.isFinite(lng)
+    && lat >= KARNATAKA_ROUTING_ENVELOPE.minLat
+    && lat <= KARNATAKA_ROUTING_ENVELOPE.maxLat
+    && lng >= KARNATAKA_ROUTING_ENVELOPE.minLng
+    && lng <= KARNATAKA_ROUTING_ENVELOPE.maxLng;
 
   // The relevance envelope is intentionally wider than Delhi NCT. A point in nearby
   // Noida, Gurugram, Ghaziabad or Faridabad must get an explicit outside-area result,
@@ -2099,6 +2242,34 @@ Evidence rules:
     && lat <= WEST_BENGAL_ROUTING_ENVELOPE.maxLat
     && lng >= WEST_BENGAL_ROUTING_ENVELOPE.minLng
     && lng <= WEST_BENGAL_ROUTING_ENVELOPE.maxLng;
+
+  const PUNJAB_ROUTING_ENVELOPE = {
+    min_lng: 73.8798336, min_lat: 29.5429378, max_lng: 76.9390583, max_lat: 32.5111793,
+  };
+  const PUNJAB_STATE_GEOMETRY_SHA256 =
+    "e113eb774f4f353d3c7a9c98830f4b665f9bd4d166ed3b84e90855bdf38f5782";
+
+  // These coarse centres only decide whether the small, checksum-pinned national pack
+  // should be loaded. The pack's own envelope plus an exact structured city/state match
+  // decides the route. A 0.30-degree radius deliberately permits harmless overlaps;
+  // neither proximity nor a nearest-city guess can ever select an authority.
+  const MAJOR_CITY_CANDIDATE_CENTRES = Object.freeze([
+    [21.209489, 72.831706], [26.915458, 75.818982], [26.460914, 80.321759],
+    [26.8381, 80.9346], [28.671153, 77.412036], [22.720362, 75.8682],
+    [11.001812, 76.962842], [9.967903, 76.244438], [25.595002, 85.138016],
+    [11.245056, 75.775472], [23.258486, 77.401989], [10.52701, 76.214621],
+    [22.297314, 73.194257], [27.175255, 78.009816], [17.693553, 83.29213],
+    [11.06136, 76.068589], [8.488227, 76.947551], [11.876384, 75.373797],
+    [16.511531, 80.616047], [9.908938, 78.109301], [25.335649, 83.007629],
+    [28.99633, 77.706192], [28.403148, 77.310556], [22.305326, 70.802838],
+    [22.801519, 86.202958], [23.163565, 79.929642], [34.074744, 74.820444],
+    [25.43813, 81.8338], [23.795281, 86.430964], [26.279825, 73.018724],
+    [23.37005, 85.325039], [21.238091, 81.633699], [8.887053, 76.59067],
+    [26.203725, 78.157363], [21.212068, 81.373285],
+  ]);
+  const inMajorCityCandidateEnvelope = (lat, lng) => Number.isFinite(lat)
+    && Number.isFinite(lng) && MAJOR_CITY_CANDIDATE_CENTRES.some((centre) =>
+      Math.abs(lat - centre[0]) <= 0.30 && Math.abs(lng - centre[1]) <= 0.30);
 
   async function sha256Hex(value) {
     if (!window.TextEncoder) return null;
@@ -2139,16 +2310,21 @@ Evidence rules:
     if (!coverage) return unroutedRoute("jurisdiction_unavailable");
 
     const geometry = coverage.region.geometry;
+    const inNct = pointInGeometry(lng, lat, geometry);
     const enforceGpsAccuracy = gpsAccuracy !== undefined;
     if (enforceGpsAccuracy
         && (!Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 30)) {
-      return unroutedRoute("location_uncertain");
+      return inNct ? unroutedRoute("location_uncertain") : null;
     }
     if (Number.isFinite(gpsAccuracy)
         && geometryBoundaryDistanceMeters(lng, lat, geometry) <= gpsAccuracy) {
       return unroutedRoute("location_uncertain");
     }
-    if (!pointInGeometry(lng, lat, geometry)) return unroutedRoute("outside_area");
+    // The broad NCR rectangle is only a download prefilter. Ghaziabad and Faridabad
+    // overlap it, so a coordinate outside the exact NCT polygon must be allowed to try
+    // their own reviewed route. The helper preserves its legacy outside-area result;
+    // routeOfficer treats that result as "no vote" and continues to the next adapter.
+    if (!inNct) return unroutedRoute("outside_area");
 
     return authorityRoute(DELHI_PWD_AUTHORITY, {
       routing_source: "osm_delhi_nct_boundary",
@@ -2220,6 +2396,8 @@ Evidence rules:
         return unroutedRoute("location_uncertain");
       }
     }
+    // This rectangle also reaches neighbouring Jharkhand and Odisha. Only the exact
+    // state geometry gets a vote. routeOfficer continues after this legacy helper result.
     if (!inState) return unroutedRoute("outside_area");
 
     if (inKmc) {
@@ -2331,6 +2509,105 @@ Evidence rules:
     return { field: supplied[0].field, value: supplied[0].raw };
   }
 
+  let _punjabCoverage = null, _punjabCoveragePromise = null;
+  async function punjabCoverage() {
+    if (_punjabCoverage) return _punjabCoverage;
+    if (_punjabCoveragePromise) return _punjabCoveragePromise;
+    _punjabCoveragePromise = (async () => {
+      try {
+        const pack = await loadStatePack("in-pb-routing");
+        const payload = pack && pack.payload;
+        const region = payload && payload.region;
+        if (payload && payload.version === 1 && region
+            && region.authority_id === PUNJAB_STATE_AUTHORITY.id
+            && Number(region.osm_relation_id) === 1942686
+            && region.geometry_sha256 === PUNJAB_STATE_GEOMETRY_SHA256
+            && hasCoverageGeometry(region.geometry)) {
+          _punjabCoverage = payload;
+        }
+      } catch (e) { /* fail closed and allow a later retry */ }
+      return _punjabCoverage;
+    })();
+    const result = await _punjabCoveragePromise;
+    _punjabCoveragePromise = null;
+    return result;
+  }
+
+  async function punjabRouteFromGeocode(_geo, lat, lng, gpsAccuracy) {
+    if (!pointInEnvelope(lat, lng, PUNJAB_ROUTING_ENVELOPE)) return null;
+    const coverage = await punjabCoverage();
+    if (!coverage) return unroutedRoute("jurisdiction_unavailable");
+    const geometry = coverage.region.geometry;
+    const inState = pointInGeometry(lng, lat, geometry);
+    const enforceGpsAccuracy = gpsAccuracy !== undefined;
+    if (enforceGpsAccuracy
+        && (!Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 30)) {
+      return inState ? unroutedRoute("location_uncertain") : null;
+    }
+    if (Number.isFinite(gpsAccuracy)
+        && geometryBoundaryDistanceMeters(lng, lat, geometry) <= gpsAccuracy) {
+      return unroutedRoute("location_uncertain");
+    }
+    // Chandigarh and neighbouring states sit inside the coarse prefilter. The pinned
+    // Punjab polygon is authoritative, so these coordinates continue to later routes.
+    if (!inState) return null;
+    return authorityRoute(PUNJAB_STATE_AUTHORITY, {
+      routing_source: "osm_punjab_state_boundary",
+      match_field: "boundary",
+      match_value: "Punjab (OpenStreetMap relation 1942686)",
+      region: "punjab-state",
+      pack_id: "in-pb-routing",
+    });
+  }
+
+  let _majorCityCoverage = null, _majorCityCoveragePromise = null;
+  async function majorCityCoverage() {
+    if (_majorCityCoverage) return _majorCityCoverage;
+    if (_majorCityCoveragePromise) return _majorCityCoveragePromise;
+    _majorCityCoveragePromise = (async () => {
+      try {
+        const pack = await loadStatePack("in-top50-routing");
+        const payload = pack && pack.payload;
+        if (payload && payload.version === 1 && Array.isArray(payload.regions)
+            && payload.regions.length === 35) _majorCityCoverage = payload;
+      } catch (e) { /* fail closed and allow a later retry */ }
+      return _majorCityCoverage;
+    })();
+    const result = await _majorCityCoveragePromise;
+    _majorCityCoveragePromise = null;
+    return result;
+  }
+
+  async function majorCityRouteFromGeocode(geo, lat, lng, gpsAccuracy) {
+    if (!inMajorCityCandidateEnvelope(lat, lng)) return null;
+    const coverage = await majorCityCoverage();
+    if (!coverage) return unroutedRoute("jurisdiction_unavailable");
+    const candidates = coverage.regions.filter((region) =>
+      pointInEnvelope(lat, lng, region.envelope));
+    if (!candidates.length) return null;
+    const matches = candidates.map((region) => ({ region, match: structuredPlaceMatch(geo, region) }))
+      .filter((item) => !!item.match);
+    // A stale or missing geocoder response cannot select a portal. Let exact polygon
+    // routes and the final statewide check continue rather than letting a search box
+    // masquerade as a municipal boundary.
+    if (!matches.length) return null;
+    if (!Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 30
+        || matches.length > 1
+        || !accuracyCircleWithinEnvelope(lat, lng, gpsAccuracy, matches[0].region.envelope)) {
+      return unroutedRoute("location_uncertain");
+    }
+    const selected = matches[0];
+    const authority = OFFICIAL_AUTHORITY_INDEX.get(selected.region.authority_id);
+    if (!authority) return unroutedRoute("jurisdiction_unavailable");
+    return authorityRoute(authority, {
+      routing_source: selected.region.routing_source,
+      match_field: "structured_place",
+      match_value: `${selected.match.field}: ${selected.match.value}`,
+      region: selected.region.id,
+      pack_id: "in-top50-routing",
+    });
+  }
+
   function gpsAccuracyEnvelope(lat, lng, accuracy) {
     // ArcGIS treats a zero-area envelope as empty. One metre is a conservative numeric
     // floor when Android reports zero, while real fixes keep their full stated accuracy.
@@ -2345,6 +2622,15 @@ Evidence rules:
       ymax: lat + latitudeRadius,
       spatialReference: { wkid: 4326 },
     };
+  }
+
+  function accuracyCircleWithinEnvelope(lat, lng, accuracy, envelope) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)
+        || !Number.isFinite(accuracy) || accuracy < 0 || accuracy > 30
+        || !validMunicipalEnvelope(envelope)) return false;
+    const circle = gpsAccuracyEnvelope(lat, lng, accuracy);
+    return circle.xmin >= envelope.min_lng && circle.xmax <= envelope.max_lng
+      && circle.ymin >= envelope.min_lat && circle.ymax <= envelope.max_lat;
   }
 
   async function officialArcGisCount(query, geometry) {
@@ -2402,8 +2688,9 @@ Evidence rules:
   async function municipalCityRouteFromGeocode(packId, geo, lat, lng, gpsAccuracy) {
     const config = MUNICIPAL_CITY_CONFIGS[packId];
     if (!config || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    const relevant = pointInEnvelope(lat, lng, config.envelope)
-      || indianStateMatches(geo, config.state_aliases);
+    // A geocoder label is never allowed to make a distant city pack relevant. This is
+    // especially important when Android returns a stale address for a fresh GPS fix.
+    const relevant = pointInEnvelope(lat, lng, config.envelope);
     if (!relevant) return null;
     const coverage = await municipalCityCoverage(packId);
     if (!coverage) return unroutedRoute("jurisdiction_unavailable");
@@ -2600,7 +2887,7 @@ Evidence rules:
 
   async function maharashtraRouteFromGeocode(geo, lat, lng, gpsAccuracy) {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    const relevant = inMaharashtraRoutingEnvelope(lat, lng) || isMaharashtraGeocode(geo);
+    const relevant = inMaharashtraRoutingEnvelope(lat, lng);
     if (!relevant) return null;
     const coverage = await maharashtraCoverage();
     if (!coverage) {
@@ -2612,8 +2899,7 @@ Evidence rules:
     const enforceGpsAccuracy = gpsAccuracy !== undefined;
     if (enforceGpsAccuracy
         && (!Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 30)) {
-      return (inState || inPmc || inMmr
-        || isMaharashtraGeocode(geo)) ? unroutedRoute("location_uncertain") : null;
+      return (inState || inPmc || inMmr) ? unroutedRoute("location_uncertain") : null;
     }
     if (Number.isFinite(gpsAccuracy)) {
       const stateEdgeDistance = geometryBoundaryDistanceMeters(
@@ -2822,25 +3108,38 @@ Evidence rules:
       ? await nationalHighwayRoute(lat, lng, gpsAccuracy, heading, speed) : null;
     if (highway) return routeForIssue(highway, issueType);
     const delhi = await delhiRouteFromGeocode(geo, lat, lng, gpsAccuracy);
-    if (delhi) return routeForIssue(delhi, issueType);
+    if (delhi && delhi.unrouted_reason !== "outside_area") {
+      return routeForIssue(delhi, issueType);
+    }
 
     const kolkata = await kolkataRouteFromGeocode(geo, lat, lng, gpsAccuracy);
-    if (kolkata) return routeForIssue(kolkata, issueType);
+    if (kolkata && kolkata.unrouted_reason !== "outside_area") {
+      return routeForIssue(kolkata, issueType);
+    }
 
     for (const packId of ["in-tn-routing", "in-tg-routing", "in-gj-routing"]) {
       const municipal = await municipalCityRouteFromGeocode(packId, geo, lat, lng, gpsAccuracy);
-      if (municipal) return routeForIssue(municipal, issueType);
+      if (municipal && municipal.unrouted_reason !== "outside_area") {
+        return routeForIssue(municipal, issueType);
+      }
     }
 
     const maharashtra = await maharashtraRouteFromGeocode(geo, lat, lng, gpsAccuracy);
     if (maharashtra) return routeForIssue(maharashtra, issueType);
-    // A Maharashtra geocode outside the pinned state polygon must not fall through to
-    // Karnataka GIS and come back with a misleading state-service failure.
-    if (isMaharashtraGeocode(geo)) return routeForIssue(unroutedRoute("outside_area"), issueType);
-    // A geocoder-confirmed non-Karnataka state must never be sent to Karnataka GIS.
-    // When geocoding failed entirely we still ask KGIS, because its polygon is the
-    // authoritative way to distinguish Karnataka from an unsupported location.
-    if (isKnownNonKarnatakaGeocode(geo)) return routeForIssue(unroutedRoute("outside_area"), issueType);
+
+    const punjab = await punjabRouteFromGeocode(geo, lat, lng, gpsAccuracy);
+    if (punjab) return routeForIssue(punjab, issueType);
+
+    const majorCity = await majorCityRouteFromGeocode(geo, lat, lng, gpsAccuracy);
+    if (majorCity) return routeForIssue(majorCity, issueType);
+
+    // Geocoder labels are evidence for the structured-city adapter only. They may be
+    // stale after a drive or wrong beside a border, so the exact KGIS point query gets
+    // the final vote inside Karnataka's coarse download envelope instead of a label
+    // blocking a valid coordinate. Coordinates outside that envelope need no KGIS call.
+    if (!inKarnatakaRoutingEnvelope(lat, lng)) {
+      return routeForIssue(unroutedRoute("outside_area"), issueType);
+    }
 
     // If the state cannot tell us what this road is, we do not name anyone. The highway
     // check lives inside kgisJurisdiction, so any path that routes without it can address
@@ -4399,7 +4698,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     return candidates.length === 1 ? candidates[0] : null;
   }
 
-  function currentOfficialRouteBinding(packId, authorityId, pack) {
+  function currentOfficialRouteBinding(packId, authorityId, pack, regionId = null) {
     const municipal = MUNICIPAL_CITY_CONFIGS[packId];
     if (municipal) {
       const region = pack && pack.payload && Array.isArray(pack.payload.regions)
@@ -4407,6 +4706,18 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       if (!region || authorityId !== municipal.authority_id
           || region.authority_id !== authorityId) return null;
       return { region: municipal.region_id, routing_source: municipal.routing_source };
+    }
+    if (packId === "in-top50-routing") {
+      const region = pack && pack.payload && Array.isArray(pack.payload.regions)
+        ? pack.payload.regions.find((item) => item && item.id === regionId) : null;
+      if (!region || region.authority_id !== authorityId
+          || region.routing_source !== "nominatim_structured_city") return null;
+      return { region: region.id, routing_source: region.routing_source };
+    }
+    if (packId === "in-pb-routing" && authorityId === "pb-statewide-unverified") {
+      const region = pack && pack.payload && pack.payload.region;
+      if (!region || region.id !== "punjab-state" || region.authority_id !== authorityId) return null;
+      return { region: region.id, routing_source: "osm_punjab_state_boundary" };
     }
     if (packId === "in-dl-routing" && authorityId === "dl-pwd-sewa") {
       return { region: "delhi", routing_source: "osm_delhi_nct_boundary" };
@@ -4468,8 +4779,33 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       && geometryBoundaryDistanceMeters(lng, lat, geometry) > accuracy;
   }
 
+  function savedMajorCityLocationMatches(rec, pack) {
+    const region = pack && pack.payload && Array.isArray(pack.payload.regions)
+      ? pack.payload.regions.find((item) => item && item.id === rec.region) : null;
+    if (!region || region.authority_id !== rec.authority_id
+        || rec.routing_source !== region.routing_source
+        || rec.routing_match_field !== "structured_place"
+        || !Number.isFinite(rec.lat) || !Number.isFinite(rec.lng)
+        || !Number.isFinite(rec.gps_accuracy) || rec.gps_accuracy < 0
+        || rec.gps_accuracy > 30
+        || !accuracyCircleWithinEnvelope(
+          rec.lat, rec.lng, rec.gps_accuracy, region.envelope)) {
+      return false;
+    }
+    const match = String(rec.routing_match_value || "").match(/^(city|municipality): (.+)$/);
+    const aliases = new Set(region.place_aliases.map(normaliseAuthorityValue));
+    return !!match && aliases.has(normaliseAuthorityValue(match[2]));
+  }
+
   function savedNonMunicipalLocationMatches(rec, packId, authorityId, pack) {
     const payload = pack && pack.payload;
+    if (packId === "in-pb-routing") {
+      return authorityId === "pb-statewide-unverified"
+        && savedBoundaryLocationMatches(rec, payload && payload.region && payload.region.geometry);
+    }
+    if (packId === "in-top50-routing") {
+      return savedMajorCityLocationMatches(rec, pack);
+    }
     if (packId === "in-dl-routing") {
       return savedBoundaryLocationMatches(rec, payload && payload.region && payload.region.geometry);
     }
@@ -4512,7 +4848,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   }
 
   async function savedOfficialRouteBinding(rec, packId, authorityId, pack) {
-    const binding = currentOfficialRouteBinding(packId, authorityId, pack);
+    const binding = currentOfficialRouteBinding(packId, authorityId, pack, rec.region);
     if (!binding) return null;
     const provenanceFields = [
       "routing_pack_id", "routing_pack_version", "routing_pack_sha256",
@@ -4525,6 +4861,8 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if (present.length && present.length !== provenanceFields.length) return null;
     const municipal = MUNICIPAL_CITY_CONFIGS[packId];
     if (municipal && present.length !== provenanceFields.length) return null;
+    const newNeutralRoute = packId === "in-pb-routing" || packId === "in-top50-routing";
+    if (newNeutralRoute && present.length !== provenanceFields.length) return null;
     // The statewide West Bengal route did not exist before this pack release, so there
     // is no legitimate provenance-free legacy record to upgrade.
     if (authorityId === "wb-statewide-unverified"
@@ -4539,11 +4877,14 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           || !/^[0-9a-f]{64}$/.test(String(rec.routing_pack_sha256 || ""))) {
         return null;
       }
+      if (newNeutralRoute && (rec.routing_pack_version !== resource.pack_version
+          || rec.routing_pack_sha256 !== resource.sha256)) return null;
       const digestOwner = Object.values(_statePackManifest.resources)
         .find((item) => item.sha256 === rec.routing_pack_sha256);
       if (digestOwner && digestOwner.pack_id !== packId) return null;
     }
     if (rec.region && rec.region !== binding.region) return null;
+    if (newNeutralRoute && rec.region !== binding.region) return null;
     if (packId === "in-wb-routing" && rec.routing_source
         && rec.routing_source !== binding.routing_source) return null;
     if (packId === "in-wb-routing" && rec.routing_match_field
@@ -4555,6 +4896,15 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           || rec.routing_match_value !== "West Bengal (OpenStreetMap relation 1960177)")) {
       return null;
     }
+    if (packId === "in-pb-routing"
+        && (rec.routing_source !== binding.routing_source
+          || rec.routing_match_field !== "boundary"
+          || rec.routing_match_value !== "Punjab (OpenStreetMap relation 1942686)")) {
+      return null;
+    }
+    if (packId === "in-top50-routing"
+        && (rec.routing_source !== binding.routing_source
+          || rec.routing_match_field !== "structured_place")) return null;
     if (municipal && rec.routing_source && rec.routing_source !== binding.routing_source) return null;
     if (municipal && !await savedMunicipalLocationMatches(rec, municipal, pack)) return null;
     if (!municipal && !savedNonMunicipalLocationMatches(rec, packId, authorityId, pack)) return null;
@@ -4568,6 +4918,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     "requires_official_reference", "routing_pack_id", "routing_pack_version",
     "routing_pack_sha256", "routing_pack_state_code", "routing_match_field",
     "routing_match_value", "highway_ref",
+    "ownership_unverified", "tender_eligible",
   ];
 
   function applyVerifiedHandoff(rec, verified) {
@@ -4698,6 +5049,8 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       whatsapp_url: current.whatsapp_url || null,
       helpline: current.helpline || null,
       requires_official_reference: true,
+      ownership_unverified: true,
+      tender_eligible: false,
       ...statePackProvenance(packId),
     }, rec.issue_type);
     if (!verified.handoff_url || !String(verified.handoff_url).startsWith("https://")) {
@@ -5132,19 +5485,27 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    delhiCoverage, delhiRouteFromGeocode, inDelhiEnvelope,
                    westBengalCoverage, kolkataCoverage, kolkataRouteFromGeocode,
                    isWestBengalGeocode, inWestBengalRoutingEnvelope,
+                   punjabCoverage, punjabRouteFromGeocode,
+                   majorCityCoverage, majorCityRouteFromGeocode,
+                   inMajorCityCandidateEnvelope,
                    municipalCityCoverage, municipalCityRouteFromGeocode,
-                   gpsAccuracyEnvelope, officialArcGisCount, officialPointRegionMatch,
-                   savedMunicipalLocationMatches,
+                   gpsAccuracyEnvelope, accuracyCircleWithinEnvelope,
+                   officialArcGisCount, officialPointRegionMatch,
+                   savedMunicipalLocationMatches, savedMajorCityLocationMatches,
+                   savedOfficialRouteBinding, currentOfficialRouteBinding,
+                   validatePunjabPayload, validateMajorCityPayload,
                    validateMunicipalCityPayload, MUNICIPAL_CITY_CONFIGS,
                    maharashtraRouteFromGeocode, inMaharashtraRoutingEnvelope,
-                   isKarnatakaGeocode, routeOfficer, routeForIssue,
+                   isKarnatakaGeocode, inKarnatakaRoutingEnvelope, routeOfficer, routeForIssue,
                    MMR_AUTHORITIES, PMC_AUTHORITY, MMR_FALLBACK_AUTHORITY,
                    MAHARASHTRA_STATE_AUTHORITY, KMC_AUTHORITY,
                    WEST_BENGAL_STATE_AUTHORITY,
+                   PUNJAB_STATE_AUTHORITY,
                    DELHI_PWD_AUTHORITY, OFFICIAL_AUTHORITIES,
                    NATIONAL_HIGHWAY_AUTHORITY,
                    DELHI_GEOMETRY_SHA256, KMC_GEOMETRY_SHA256,
                    WEST_BENGAL_STATE_GEOMETRY_SHA256,
+                   PUNJAB_STATE_GEOMETRY_SHA256,
                    MAHARASHTRA_STATE_GEOMETRY_SHA256,
                    AUTHORITY_REGISTRY_VERSION, ISSUE_TYPES, CIVIC_HANDOFF_OVERRIDES,
                    BENGALURU_HANDOFF, BENGALURU_AUTHORITY_NAMES,

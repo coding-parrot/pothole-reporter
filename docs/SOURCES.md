@@ -10,10 +10,10 @@ photo, routing, and any probable contract match before sending a complaint.
 
 Large routing, contact, and procurement datasets are not embedded in the APK. The app
 ships a small manifest that pins each supported resource's version, HTTPS URL, byte
-length, and SHA-256 checksum. Routing/contact data is published as a separate pack for
-Delhi, Gujarat, Karnataka, Maharashtra, Tamil Nadu, Telangana, and West Bengal. Karnataka
-procurement data is a separate optional tender pack and is requested only for an eligible
-Karnataka contract match.
+length, and SHA-256 checksum. Nine routing/contact packs cover Delhi, Gujarat, Karnataka,
+Maharashtra, Punjab, Tamil Nadu, Telangana, West Bengal, and the additional top-50 city
+routes. Karnataka procurement data is a separate optional tender pack and is requested
+only for an eligible Karnataka contract match.
 The Gujarat pack contains a dissolved copy of the reviewed 48-ward AMC boundary.
 
 The app also ships a National Highway manifest that pins 101 immutable 2° geometry tiles.
@@ -206,11 +206,76 @@ Contract matching is disabled throughout West Bengal. The app has no authoritati
 road-linked statewide or KMC award, maintenance, or defect-liability feed and does not
 infer that KMC or another body owns a road from boundary containment.
 
+## Punjab statewide complaint handoff
+
+Every point confidently inside
+[OpenStreetMap relation 1942686](https://www.openstreetmap.org/relation/1942686) is eligible
+for a neutral [Connect Punjab](https://connect.punjab.gov.in/) handoff after the National
+Highway check. The ODbL polygon was retrieved on 24 August 2026 at seven-decimal precision;
+the runtime pins geometry SHA-256
+`e113eb774f4f353d3c7a9c98830f4b665f9bd4d166ed3b84e90855bdf38f5782`.
+[Punjab mSeva](https://mseva.lgpunjab.gov.in/) is offered as an urban-area alternate and
+Connect Punjab publishes helpline **1100**. Chandigarh Union Territory is outside the
+Punjab boundary. A GPS accuracy circle touching the state edge fails closed.
+
+State containment does not identify a municipality, PWD, panchayat, NHAI, contractor,
+road owner, or guaranteed complaint category. The user must select and verify the
+responsible department or local body, complete the complaint externally, and retain the
+official reference. Contract matching is disabled.
+
+## Census top-50 city routes
+
+The selection list is the 50 largest serial-numbered Urban Agglomeration/City entries by
+`Persons` in the Office of the Registrar General & Census Commissioner's official
+[Census 2011 A-04(I) table](https://censusindia.gov.in/nada/index.php/catalog/42876) and
+[workbook](https://censusindia.gov.in/nada/index.php/catalog/42876/download/46544/CLASS_I.xlsx).
+Census 2011 is selection metadata, not current jurisdiction geometry. Historical/current
+aliases such as Bruhat Bangalore/Bengaluru, Ahmadabad/Ahmedabad,
+Allahabad/Prayagraj, and Aurangabad/Chhatrapati Sambhajinagar are retained separately.
+
+Fifteen entries already use a reviewed city, NCT, Karnataka-body, or statewide
+Maharashtra/West Bengal/Punjab route. The other 35 use a checksum-verified national
+routing pack. A new route is offered only when all of these agree:
+
+- GPS accuracy is 30 m or better and the point lies strictly inside the route's
+  conservative relevance envelope;
+- Nominatim returns an exact configured alias in a structured `city` or `municipality`
+  field and a matching state alias; and
+- the verified pack supplies the reviewed neutral official grievance handoff for that state.
+
+The 35 centres are Surat, Jaipur, Kanpur, Lucknow, Ghaziabad, Indore, Coimbatore, Kochi,
+Patna, Kozhikode, Bhopal, Thrissur, Vadodara, Agra, Visakhapatnam, Malappuram,
+Thiruvananthapuram, Kannur, Vijayawada, Madurai, Varanasi, Meerut, Faridabad, Rajkot,
+Jamshedpur, Jabalpur, Srinagar, Prayagraj, Dhanbad, Jodhpur, Ranchi, Raipur, Kollam,
+Gwalior, and Durg-Bhilai. National Highway routing still runs first.
+
+Reviewed neutral handoffs are [Gujarat eNagar](https://enagar.gujarat.gov.in/enagar/login.jsp),
+[Rajasthan Sampark](https://sampark.rajasthan.gov.in/),
+[UP Jansunwai](https://www.jansunwai.up.nic.in/),
+[MP CM Helpline](https://www.cmhelpline.mp.gov.in/),
+[Tamil Nadu CM Helpline](https://cmhelpline.tnega.org/portal/en/home),
+[Kerala K-SMART](https://ksmart.lsgkerala.gov.in/ui/web-portal),
+[Bihar Lok Shikayat](https://lokshikayat.bihar.gov.in/),
+[Andhra Pradesh CDMA/Puramithra](https://cdma.ap.gov.in/services/grievances/),
+[Haryana Nagar Darshan](https://nagardarshan.ulbharyana.gov.in/Default/CitizenEntry),
+[Jharkhand Municipal Grievance](https://municipalservices.jharkhand.gov.in/public/grievance_new/login),
+[JK Samadhan](https://samadhan.jk.gov.in/), and
+[Chhattisgarh NIDAAN](https://crm.nidaan.cg.gov.in/).
+
+These relevance envelopes and map markers are not municipal polygons and do not claim
+the complete Census Urban Agglomeration. A stale state label, place text outside the
+envelope, missing geocode, boundary-touching accuracy circle, pack failure, or ambiguous
+match fails closed. Accepted routes remain neutral: the user must select and verify the
+district, department, local body, issue category, and road owner in the external service.
+No route proves ownership, guarantees category acceptance, files automatically, or enables
+contract matching.
+
 ## Delhi NCT boundary and complaint handoffs
 
-Delhi coverage is the full National Capital Territory, not the wider National Capital
-Region. Noida, Gurugram, Ghaziabad, Faridabad, and other NCR cities outside Delhi NCT are
-excluded. The Delhi routing pack contains the polygon for
+Delhi-specific coverage is the full National Capital Territory, not the wider National
+Capital Region. Noida, Gurugram, Ghaziabad, Faridabad, and other NCR cities outside Delhi
+NCT cannot inherit the Delhi recipient. Ghaziabad and Faridabad can qualify separately
+through their conservative top-50 neutral routes. The Delhi routing pack contains the polygon for
 [OpenStreetMap relation 1942586](https://www.openstreetmap.org/relation/1942586), retrieved
 through Nominatim on 21 August 2026 under the ODbL. Its measured area is 1,483.885 km²,
 consistent with Delhi's published 1,483 km² extent. The runtime pins SHA-256
@@ -422,11 +487,13 @@ unless a category-appropriate official channel is separately reviewed.
 ## Street address
 
 **Source: OpenStreetMap, via Nominatim.** It turns coordinates into a street name and
-pincode for the complaint. In Maharashtra, West Bengal, Delhi, Chennai, and Hyderabad, address
+pincode for the complaint. In Maharashtra, West Bengal, Punjab, Delhi, Chennai, and Hyderabad, address
 fields are display-only routing clues; only a verified cached polygon selects coverage.
 Ahmedabad now follows the same rule: its verified cached AMC ward union selects coverage,
 and the geocoder result is display-only. Free-form geocoder text is never used to expand
-any polygon route. The coordinates themselves
+any polygon route. The 35 additional top-50 routes are the explicit exception: they require
+exact configured `city` or `municipality` and state fields inside a conservative coordinate
+envelope and never use free-form display text. The coordinates themselves
 come from the phone's GPS and are printed in the complaint alongside a map link, so the
 location can be checked independently.
 
@@ -471,9 +538,18 @@ That wording is deliberate and should not be strengthened.
   Bengal UDMA municipal feature. Howrah, Bidhannagar/Salt Lake, and New Town use the
   statewide fallback rather than KMC. A later KMC boundary change requires a reviewed
   state-pack update.
-- Delhi coverage is the full NCT outline only and excludes the wider NCR. Every accepted
-  point uses a cross-agency grievance handoff because the outline cannot establish whether
-  PWD, MCD, NDMC, Cantonment, DDA, NHAI, or another agency maintains the road.
+- Punjab-wide coverage uses a pinned ODbL state boundary and excludes Chandigarh Union
+  Territory. Connect Punjab is a neutral handoff; it does not identify the responsible
+  department, local body, road owner, category, or successful submission.
+- The 35 additional top-50 routes use conservative Nominatim search envelopes plus exact
+  structured city/municipality and state aliases. They are not municipal polygons or
+  complete Census Urban Agglomeration boundaries; a missing, stale, ambiguous, or
+  boundary-touching match fails closed.
+- Delhi-specific coverage is the full NCT outline only. Other NCR points never inherit the
+  Delhi recipient; Ghaziabad and Faridabad may independently match their top-50 neutral
+  routes. Every accepted Delhi point uses a cross-agency grievance handoff because the
+  outline cannot establish whether PWD, MCD, NDMC, Cantonment, DDA, NHAI, or another
+  agency maintains the road.
 - Chennai coverage is GCC only. Its ODbL polygon was checked against, but is not copied
   from, GCC's official 2025 layer; later boundary changes require a reviewed pack update.
 - Hyderabad coverage uses the official 2,053 km² CURE point-query service on Android and
@@ -506,7 +582,8 @@ That wording is deliberate and should not be strengthened.
 - Contracts are a snapshot. Re-run `tools/pull-kppp.py` to refresh.
 - The public Nominatim endpoint is cached on an approximately 11 m grid and serialized
   below one request per second. National or municipal-scale deployment must switch the
-  endpoint to a policy-compliant managed or self-hosted service. Maharashtra, West Bengal, Delhi,
-  Chennai, and Ahmedabad boundary routing remains local and does not depend on a geocoder
+  endpoint to a policy-compliant managed or self-hosted service. The 35 additional city
+  routes depend on exact Nominatim structured fields. Maharashtra, West Bengal, Punjab,
+  Delhi, Chennai, and Ahmedabad boundary routing remains local and does not depend on a geocoder
   response. Native Android Hyderabad routing sends the GPS-accuracy envelope to TGRAC's
   official CURE and Cantonment query services.
