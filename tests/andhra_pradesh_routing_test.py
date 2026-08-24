@@ -56,7 +56,7 @@ async ({inside, outside, legacySha}) => {
   const region = coverage && coverage.region;
   const pack = await P.loadStatePack("in-ap-routing");
 
-  ok("pack: v1.28 manifest entry exists", resource, manifest);
+  ok("pack: v1.29 manifest entry exists", resource, manifest);
   eq("pack: adapter is statewide and data-only", resource && resource.adapter,
      "statewide-general-v1");
   eq("pack: state code is Andhra Pradesh", resource && resource.state_code, "AP");

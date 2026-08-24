@@ -48,6 +48,45 @@ interface EventSightingDao {
 }
 
 @Dao
+interface RepairTargetDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTargets(targets: List<RepairTargetEntity>)
+
+    @Query("SELECT * FROM repair_targets WHERE reportId = :reportId")
+    suspend fun getTarget(reportId: Long): RepairTargetEntity?
+
+    @Query("SELECT * FROM repair_targets WHERE lat BETWEEN :minLat AND :maxLat")
+    suspend fun getTargetsInLatitudeBand(minLat: Double, maxLat: Double): List<RepairTargetEntity>
+
+    @Update
+    suspend fun updateTarget(target: RepairTargetEntity)
+
+    @Query("DELETE FROM repair_targets")
+    suspend fun clearAll()
+}
+
+@Dao
+interface RepairObservationDao {
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertObservation(observation: RepairObservationEntity): Long
+
+    @Query("SELECT * FROM repair_observations WHERE syncedToWeb = 0 ORDER BY id ASC")
+    suspend fun getUnsyncedObservations(): List<RepairObservationEntity>
+
+    @Query("SELECT * FROM repair_observations WHERE id IN (:ids)")
+    suspend fun getObservations(ids: List<Long>): List<RepairObservationEntity>
+
+    @Query("UPDATE repair_observations SET syncedToWeb = 1 WHERE id IN (:ids)")
+    suspend fun markObservationsSynced(ids: List<Long>)
+
+    @Query("DELETE FROM repair_observations WHERE id IN (:ids)")
+    suspend fun deleteObservations(ids: List<Long>)
+
+    @Query("DELETE FROM repair_observations")
+    suspend fun clearAll()
+}
+
+@Dao
 interface SessionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: SessionEntity)

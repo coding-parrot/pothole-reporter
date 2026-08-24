@@ -1,13 +1,13 @@
 # Google Play publication checklist
 
-Status reviewed 24 August 2026 for release 1.28.0 / version code 46. This is a release
+Status reviewed 24 August 2026 for release 1.29.0 / version code 47. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.28.0/code 46 after the Telangana statewide coverage changes,
+- [ ] **Fresh signed release bundle:** build version 1.29.0/code 47 after the repair-status and tender-scope changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
   it in Play Console.
 - [x] **Hosted privacy page:** verified on the stable public host:
@@ -142,13 +142,21 @@ Do not submit to production until every applicable item above is complete.
 - [ ] Verify that opening an app or portal changes only to “official handoff opened,” while
   Share, WhatsApp, Email, and Call never mark the report submitted. Confirm that Mark
   submitted rejects a missing/invalid grievance/reference ID when one is required.
+- [ ] Create an open pothole, revisit it on a different live drive, and verify that a
+  generic clean-road result does not close it. Confirm only clear same-footprint completed
+  repair becomes Fixed; probable repair stays in review; weak GPS, opposite heading,
+  ambiguity, missing old evidence, VOD, and Debug all fail closed. Confirm Fixed never
+  overwrites or implies an official grievance status, and new damage creates a recurrence.
 - [ ] Verify every regional report states that the route is only a suggestion and does not
   claim road ownership. Outside eligible Karnataka coverage, confirm no contract or warranty
   match appears; eligible Karnataka matches must remain explicitly probable and reviewable.
+- [ ] Confirm `BBMP/2023-24/OW/WORK_INDENT2505` and other drain-, footpath-, UGD-,
+  pipeline-, lighting-, building-, bridge-, and culvert-only rows never enter a shortlist,
+  while explicit mixed road-and-drain work remains eligible.
 - [ ] Confirm the release contains no API key, test frame, private location, debug-only
   setting, or legacy regional dataset; verify bundled web assets and all 13 resources in the
-  v1.28 state-pack manifest against the reviewed byte count and SHA-256. Confirm the old
-  unversioned, v1.26, and v1.27 manifests remain byte-for-byte immutable.
+  v1.29 state-pack manifest against the reviewed byte count and SHA-256. Confirm the old
+  unversioned, v1.26, v1.27, and v1.28 manifests remain byte-for-byte immutable.
 - [ ] Review the Pre-launch report and address crashes, ANRs, accessibility failures, and
   policy warnings before widening the track.
 
@@ -161,7 +169,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.28.0 release. Include the issue picker, an independent civic handoff, and regional-language support
+  the 1.29.0 release. Include the issue picker, an independent civic handoff, and regional-language support
   without displaying private coordinates, an API key, a real grievance ID, or civic-body
   marks. Put other city-specific flows in reviewer instructions instead of implying that
   one screenshot proves every supported route.

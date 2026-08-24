@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pull awarded works statewide from KPPP and keep the road-related ones.
+"""Pull awarded works statewide from KPPP and keep explicit carriageway-work scopes.
 
 The search endpoint needs no login. It does not return the winning bidder, which only
 the per-tender full view carries, so statewide rows name the tender and the department
@@ -7,7 +7,9 @@ and leave the contractor blank; the complaint template already says "no winning 
 recorded" in that case rather than inventing one. Bengaluru winners already held in
 data/tenders.csv are merged back in by tender number.
 """
-import json, re, sys, time, urllib.request
+import json, sys, time, urllib.request
+
+from tender_scope import is_road_surface_contract
 
 API = ("https://kppp.karnataka.gov.in/supplier-registration-service/v1/api"
        "/portal-service/works/search-eproc-tenders")
@@ -17,8 +19,6 @@ HEADERS = {
     "Post": "CONTRACTOR-EPROC-CONTRACTOR",          # the portal's own non-standard header
     "User-Agent": "Mozilla/5.0 (pothole-reporter dataset build)",
 }
-ROAD = re.compile(r"road|pothole|asphalt|black\s*top|\bbt\b|resurfac|re-surfac|tar(?:ring)?|"
-                  r"drain|footpath|culvert|pavement|kerb|curb|patch", re.I)
 SIZE = 1000
 
 def page(n):
@@ -44,9 +44,12 @@ while True:
     for r in rows:
         tn = (r.get("tenderNumber") or "").strip()
         title = (r.get("description") or r.get("title") or "").strip()
-        if not tn or tn in seen or not ROAD.search(title): continue
+        # Keep the complete published description up to the pack schema's limit.  The old
+        # 150-character truncation could remove the words which reveal the actual scope.
+        title = title[:500]
+        if not tn or tn in seen or not is_road_surface_contract(title, tn): continue
         seen.add(tn)
-        kept.append({"tn": tn, "t": title[:150],
+        kept.append({"tn": tn, "t": title,
                      "loc": (r.get("locationName") or r.get("deptName") or "").strip()[:60],
                      "c": "", "d": (r.get("publishedDate") or "")[:10]})
     n += 1

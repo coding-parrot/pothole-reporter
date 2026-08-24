@@ -14,13 +14,15 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from tender_scope import is_road_surface_contract
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = PROJECT_ROOT / "docs"
-STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.28.json"
-ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.28.json"
-PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.28.json"
-PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.27.json"
+STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.29.json"
+ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.29.json"
+PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.29.json"
+PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.28.json"
 AUTHORITIES_SOURCE = PROJECT_ROOT / "data" / "state-authorities.json"
 PUBLIC_BASE_URL = "https://coding-parrot.github.io/pothole-reporter/"
 PACK_FORMAT = "pothole-pack-manifest"
@@ -225,7 +227,7 @@ SPECS = {
         "in-ka-tenders",
         "KA",
         "tenders",
-        "karnataka-locally-indexed-v1",
+        "karnataka-carriageway-indexed-v2",
         "Karnataka municipal procurement records",
         True,
         ("Official Karnataka procurement records: respective source terms",),
@@ -1853,6 +1855,11 @@ def _validate_raw_payload(
                 or not isinstance(row["b"], str) or re.fullmatch(r"(?:BLR|\d{3,12})", row["b"]) is None
             ):
                 raise PackError(f"{spec.pack_id} tender {index} is invalid")
+            if not is_road_surface_contract(row["t"], row["tn"]):
+                raise PackError(
+                    f"{spec.pack_id} tender {index} ({row['tn']}) has no verified "
+                    "carriageway-work scope"
+                )
             identity = (row["tn"], row["b"])
             if identity in seen:
                 raise PackError(f"{spec.pack_id} contains duplicate tender/body record {identity!r}")
@@ -2074,7 +2081,11 @@ def build_all() -> list[Path]:
             else None
         )
         if spec.kind == "tenders":
-            payload = [row for row in payload if isinstance(row, dict) and row.get("b")]
+            payload = [
+                row for row in payload
+                if isinstance(row, dict) and row.get("b")
+                and is_road_surface_contract(row.get("t"), row.get("tn"))
+            ]
         manifest, output = publish_resource(
             resource_id,
             payload,
@@ -2191,10 +2202,10 @@ def verify_all() -> None:
     """Fail unless the manifests and all referenced hosted packs match exactly."""
     manifest_bytes = STATIC_MANIFEST.read_bytes() if STATIC_MANIFEST.exists() else b""
     if not manifest_bytes:
-        raise PackError("missing bundled manifest: static/pack-manifest-v1.28.json")
-    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.28.json")
+        raise PackError("missing bundled manifest: static/pack-manifest-v1.29.json")
+    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.29.json")
     _expect(ANDROID_MANIFEST.read_bytes() == manifest_bytes, "static and Android pack manifests differ")
-    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.28.json")
+    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.29.json")
     _expect(PAGES_MANIFEST.read_bytes() == manifest_bytes, "static and Pages pack manifests differ")
     manifest = _read_json(STATIC_MANIFEST)
     _expect(isinstance(manifest, dict) and set(manifest) == MANIFEST_KEYS,

@@ -70,6 +70,7 @@ class DriveForegroundService : LifecycleService() {
     private var locationProvider: NativeDriveLocationProvider? = null
     private var inferenceEngine: NativeInferenceEngine? = null
     private var dedupeEngine: NativeDeduplicationEngine? = null
+    private var repairEngine: NativeRepairStatusEngine? = null
     private lateinit var database: PotholeDatabase
 
     private var sessionId = ""
@@ -96,6 +97,7 @@ class DriveForegroundService : LifecycleService() {
     @Volatile private var notificationStopRequested = false
     @Volatile private var lastNotificationCheckMs = 0L
     @Volatile private var discardDataOnStop = false
+    @Volatile private var debugMode = false
     private val duplicateIds = ConcurrentHashMap.newKeySet<Long>()
     private var lastCapFix: GpsFix? = null
     private var lastCapTimeMs = 0L
@@ -144,6 +146,7 @@ class DriveForegroundService : LifecycleService() {
         activeService = this
         database = PotholeDatabase.getDatabase(this)
         dedupeEngine = NativeDeduplicationEngine(database)
+        repairEngine = NativeRepairStatusEngine(database)
         NotificationHelper.createNotificationChannel(this)
     }
 
@@ -212,6 +215,7 @@ class DriveForegroundService : LifecycleService() {
         captureSeq = 0; checkedCount = 0; foundCount = 0; alreadyCount = 0
         queuedCount = 0; droppedCount = 0; duplicateIds.clear()
         recordingEnabled = recordVideo; isRecording = false; videoSupported = true
+        debugMode = debug
         segmentCount = 0; recordedBytes = 0L; pauseTransitioning = false
         discardDataOnStop = false
         completedStopSummary = null
@@ -341,10 +345,26 @@ class DriveForegroundService : LifecycleService() {
             for (item in channel) {
                 queuedCount = (queuedCount - 1).coerceAtLeast(0)
                 try {
+                    // Looking up a candidate is local and fail-closed. If Room has a
+                    // transient problem, ordinary damage detection must still proceed.
+                    val repairCandidate = if (debugMode) null else try {
+                        repairEngine?.findCandidate(
+                            item.fix.lat,
+                            item.fix.lng,
+                            item.fix.accuracy,
+                            item.fix.speedMps,
+                            item.fix.heading,
+                            item.capturedAtMs / 1000,
+                            sessionId
+                        )
+                    } catch (_: Exception) {
+                        null
+                    }
                     val outcome = inferenceEngine?.analyzeBurst(
                         item.burstFrames, item.primaryIndex, item.fix.lat, item.fix.lng,
                         sessionId, item.captureSeq, item.capturedAtMs, item.sourceOffsetMs,
-                        item.fix.accuracy, item.fix.speedMps, item.fix.heading
+                        item.fix.accuracy, item.fix.speedMps, item.fix.heading,
+                        requireCompleteVerdict = repairCandidate != null
                     )
                     checkedCount++
                     val report = outcome?.reportEntity
@@ -358,6 +378,42 @@ class DriveForegroundService : LifecycleService() {
                             mainHandler.post {
                                 onReportListener?.invoke(reportId, report.damageType ?: "pothole_cavity", report.address)
                             }
+                        }
+                    } else if (repairCandidate != null && outcome?.assessment?.let { assessment ->
+                            // This is a complete verdict because candidate presence disabled
+                            // early stream cancellation above. Even so, it is merely the gate
+                            // for a separate before/after comparison, never repair proof.
+                            !assessment.reportable &&
+                                assessment.damageType == "none" &&
+                                assessment.assessment == "absent" &&
+                                assessment.imageQuality == "usable" &&
+                                !assessment.hasBrokenEdgeOrRim &&
+                                !assessment.hasDepthOrSurfaceLoss &&
+                                assessment.decision == "reject"
+                        } == true) {
+                        val verification = inferenceEngine?.verifyRepair(
+                            repairCandidate,
+                            item.burstFrames,
+                            item.primaryIndex,
+                            sessionId,
+                            item.captureSeq
+                        )
+                        if (verification != null) {
+                            val sourceEventKey =
+                                "repair:$sessionId:${item.captureSeq}:${repairCandidate.reportId}"
+                            val queued = repairEngine?.queueObservation(
+                                repairCandidate,
+                                verification,
+                                sourceEventKey,
+                                item.capturedAtMs / 1000,
+                                sessionId,
+                                item.fix.lat,
+                                item.fix.lng,
+                                item.fix.accuracy,
+                                item.fix.speedMps,
+                                item.fix.heading
+                            ) == true
+                            if (!queued) runCatching { File(verification.currentPhotoPath).delete() }
                         }
                     }
                     publish(if (isStopping) "Finishing queued detections" else "Scanning live")

@@ -28,6 +28,7 @@
   const PROGRESS = {
     en: { compress: "Preparing photo...", capture: "Preparing road views...",
           detect: "AI checking for reportable road damage...", finalize: "Checking location and complaint route...",
+          repair: "Comparing this revisit with the saved pothole...",
           write: "Writing the complaint...", email: "Opening your email app..." },
     kn: { compress: "ಫೋಟೋ ಸಂಕುಚಿಸಲಾಗುತ್ತಿದೆ...", capture: "ಫ್ರೇಮ್ ಸೆರೆಹಿಡಿಯಲಾಗುತ್ತಿದೆ...",
           detect: "AI ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಪರಿಶೀಲಿಸುತ್ತಿದೆ...", finalize: "ಸ್ಥಳ ಮತ್ತು ದೂರು ಮಾರ್ಗ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...",
@@ -46,6 +47,8 @@
   const ALLOWED_DETAILS = new Set(["high", "original"]);
   const PROMPT_VERSION = "road-damage-v3";
   const SCHEMA_VERSION = 3;
+  const REPAIR_PROMPT_VERSION = "road-repair-v1";
+  const REPAIR_SCHEMA_VERSION = 1;
   const MAX_DETECTION_IMAGES = 4;
   // Detection still examines every burst. Only after a burst is accepted do we group it
   // with a road-damage event already saved at the same place. This preserves capture
@@ -57,6 +60,16 @@
   const DEDUPE_POOR_GPS_S = 2;
   const DEDUPE_HISTORY_S = 30 * 24 * 60 * 60;
   const ACCEPTED_REPORT_STATUSES = new Set(["draft", "queued", "sent", "unrouted"]);
+  const REPAIR_MAX_ACCURACY_M = 12;
+  const REPAIR_RADIUS_M = 5;
+  const REPAIR_MISSING_HEADING_RADIUS_M = 3;
+  const REPAIR_MAX_HEADING_DIFFERENCE_DEG = 35;
+  const REPAIR_EVIDENCE_MIN_BYTES = 256;
+  const REPAIR_EVIDENCE_MAX_BYTES = 8 * 1024 * 1024;
+  const REPAIR_EVIDENCE_MIN_DIMENSION = 32;
+  const REPAIR_EVIDENCE_MAX_DIMENSION = 8192;
+  const REPAIR_EVIDENCE_MAX_PIXELS = 40 * 1024 * 1024;
+  const REPAIR_EVIDENCE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
   const normaliseManualCaptureSource = (value) => value === "manual_camera"
     ? "manual_camera" : value === "manual_import" ? "manual_import" : "manual";
@@ -315,6 +328,31 @@ Evidence rules:
       description: { type: "string" },
     },
   };
+  const REPAIR_PROMPT = `Compare a saved pothole photograph with new road views from a later live drive.
+
+Image 1 is the older saved road-damage evidence. Image 2 is the current full-frame context. The remaining images are current lower-road crops.
+
+This is a strict before/after verification, not ordinary pothole detection:
+- Set same_location_visible true only when stable road geometry and surrounding features show that the old damaged footprint itself is visible in the current views. Nearby clean asphalt, a different lane, or a similar-looking road is not the same footprint.
+- Set completed_repair_visible true only when that exact old footprint is now covered by completed, intact asphalt, concrete, or a sealed level patch on the drivable surface.
+- The absence of a visible cavity is never repair evidence by itself. Blur, distance, glare, traffic, water, occlusion, a changed viewpoint, or failure to locate the old footprint must produce current_condition uncertain or not_visible.
+- Use still_damaged if the old defect or a failed repair remains visible.
+- Use repaired only when the same footprint and the completed intact repair are both clear. Do not infer repairs from time, GPS, or a generally smooth road.
+- description must state the stable same-place cues and the visible repair material, or state why verification is inconclusive.`;
+  const REPAIR_SCHEMA = {
+    type: "object", additionalProperties: false,
+    required: ["same_location_visible", "completed_repair_visible", "current_condition",
+      "assessment", "image_quality", "description"],
+    properties: {
+      same_location_visible: { type: "boolean" },
+      completed_repair_visible: { type: "boolean" },
+      current_condition: { type: "string",
+        enum: ["repaired", "still_damaged", "not_visible", "uncertain"] },
+      assessment: { type: "string", enum: ["clear", "probable", "uncertain"] },
+      image_quality: { type: "string", enum: ["usable", "degraded", "unusable"] },
+      description: { type: "string" },
+    },
+  };
   const TENDER_SCHEMA = {
     type: "object", additionalProperties: false,
     required: ["match_index", "confidence", "reason"],
@@ -442,6 +480,24 @@ Evidence rules:
     // broken edge or actual material/depth loss.
     if (!a.has_broken_edge_or_rim && !a.has_depth_or_surface_loss) return "review";
     return "accept";
+  }
+
+  const clearAbsenceForRepair = (a) => !!a
+    && a.reportable === false
+    && a.assessment === "absent"
+    && a.damage_type === "none"
+    && a.image_quality === "usable"
+    && !a.has_broken_edge_or_rim
+    && !a.has_depth_or_surface_loss;
+
+  function repairConditionFor(observation) {
+    if (!observation || observation.current_condition !== "repaired"
+        || observation.same_location_visible !== true
+        || observation.completed_repair_visible !== true
+        || observation.image_quality !== "usable") return null;
+    if (observation.assessment === "clear") return "fixed";
+    if (observation.assessment === "probable") return "repair_review";
+    return null;
   }
 
   function partialAssessment(text) {
@@ -578,7 +634,8 @@ Evidence rules:
   const progress = (m) => { try { window.dispatchEvent(new CustomEvent("pipeline-progress", { detail: m })); } catch (e) {} };
   const emitVerdict = (v) => { try { window.dispatchEvent(new CustomEvent("pipeline-verdict", { detail: v })); } catch (e) {} };
 
-  function buildDetectionRequest(imageInputs, prompt, model = S.model, detail = S.detail) {
+  function buildDetectionRequest(imageInputs, prompt, model = S.model, detail = S.detail,
+                                 formatName = "road_damage_assessment", schema = ASSESS_SCHEMA) {
     const selectedModel = normaliseModel(model);
     const selectedDetail = normaliseDetail(detail, selectedModel);
     const images = (Array.isArray(imageInputs) ? imageInputs : [imageInputs])
@@ -596,14 +653,14 @@ Evidence rules:
     return {
       model: selectedModel,
       input: [{ role: "user", content }],
-      text: fmt("road_damage_assessment", ASSESS_SCHEMA),
+      text: fmt(formatName, schema),
     };
   }
 
   let streamBroken = false;
   async function analyzeImage(imageInputs, prompt, name, schema, model, onEarly, stopWhenRejected, detail) {
-    const body = (schema === ASSESS_SCHEMA)
-      ? buildDetectionRequest(imageInputs, prompt, model, detail)
+    const body = (schema === ASSESS_SCHEMA || schema === REPAIR_SCHEMA)
+      ? buildDetectionRequest(imageInputs, prompt, model, detail, name, schema)
       : {
           model,
           input: [{ role: "user", content: [
@@ -1106,7 +1163,7 @@ Evidence rules:
     "in-pb-routing": { state_code: "PB", kind: "routing", adapter: "statewide-general-v1" },
     "in-top50-routing": { state_code: "IN", kind: "routing", adapter: "major-city-structured-v1" },
     "in-ka-routing": { state_code: "KA", kind: "routing", adapter: "karnataka-kgis-v1" },
-    "in-ka-tenders": { state_code: "KA", kind: "tenders", adapter: "karnataka-locally-indexed-v1" },
+    "in-ka-tenders": { state_code: "KA", kind: "tenders", adapter: "karnataka-carriageway-indexed-v2" },
     "in-tn-routing": { state_code: "TN", kind: "routing", adapter: "municipal-city-v1" },
     "in-tn-state-routing": { state_code: "TN", kind: "routing", adapter: "statewide-general-v1" },
     "in-ap-routing": { state_code: "AP", kind: "routing", adapter: "statewide-general-v1" },
@@ -1187,7 +1244,7 @@ Evidence rules:
     if (_statePackManifestPromise) return _statePackManifestPromise;
     _statePackManifestPromise = (async () => {
       try {
-        const response = await fetch("pack-manifest-v1.28.json", { cache: "no-store" });
+        const response = await fetch("pack-manifest-v1.29.json", { cache: "no-store" });
         if (!response.ok) return null;
         const text = await response.text();
         if (!text || text.length > 128 * 1024) return null;
@@ -3599,7 +3656,10 @@ Evidence rules:
   }
 
   const finiteCoord = (v) => typeof v === "number" && Number.isFinite(v);
-  const acceptedReport = (r) => !!r && (r.decision === "accept" || ACCEPTED_REPORT_STATUSES.has(r.status));
+  const conditionStatus = (r) => r && (r.condition_status === "fixed"
+    || r.condition_status === "repair_review") ? r.condition_status : "open";
+  const acceptedReport = (r) => !!r && conditionStatus(r) !== "fixed"
+    && (r.decision === "accept" || ACCEPTED_REPORT_STATUSES.has(r.status));
   const storedDamageType = (r) => r && (r.damage_type || (r.is_pothole ? "pothole_cavity" : null));
   const localDamageFamily = new Set(["pothole_cavity", "failed_patch"]);
   const compatibleDamage = (a, b) => {
@@ -3705,6 +3765,51 @@ Evidence rules:
 
   const sameRoadEvent = (candidate, prior) => !!roadEventMatch(candidate, prior);
 
+  function repairTargetMatch(observation, prior) {
+    if (!observation || observation.capture_source !== "drive_live" || observation.debug_capture
+        || !prior || normaliseIssueType(prior.issue_type) !== "road_damage"
+        || !acceptedReport(prior) || prior.debug_capture || prior.dedupe_eligible === false
+        || !prior.photo || !finiteCoord(observation.lat) || !finiteCoord(observation.lng)
+        || !finiteCoord(prior.lat) || !finiteCoord(prior.lng)
+        || !Number.isFinite(observation.gps_accuracy) || observation.gps_accuracy < 0
+        || observation.gps_accuracy > REPAIR_MAX_ACCURACY_M
+        || !Number.isFinite(prior.gps_accuracy) || prior.gps_accuracy < 0
+        || prior.gps_accuracy > REPAIR_MAX_ACCURACY_M) return null;
+    // A repair is a later physical observation, never a reinterpretation of the
+    // original frame. Missing clocks and equal/older timestamps therefore fail closed.
+    const observedAt = observation.observed_at;
+    const damageObservedAt = eventTime(prior);
+    if (!Number.isFinite(observedAt) || !Number.isFinite(damageObservedAt)
+        || observedAt <= damageObservedAt) return null;
+    const driveId = observation.drive_id == null ? null : String(observation.drive_id);
+    if (!driveId) return null;
+    const priorDrives = new Set(Array.isArray(prior.sighting_drive_ids)
+      ? prior.sighting_drive_ids.map(String) : []);
+    if ((prior.drive_id != null && String(prior.drive_id) === driveId) || priorDrives.has(driveId)) {
+      return null;
+    }
+    const distance = distMeters(observation.lat, observation.lng, prior.lat, prior.lng);
+    let radius = REPAIR_RADIUS_M;
+    const headingsKnown = Number.isFinite(observation.heading) && Number.isFinite(prior.heading);
+    if (headingsKnown) {
+      if (headingDifference(observation.heading, prior.heading)
+          > REPAIR_MAX_HEADING_DIFFERENCE_DEG) return null;
+    } else {
+      radius = REPAIR_MISSING_HEADING_RADIUS_M;
+    }
+    return distance <= radius ? { distance } : null;
+  }
+
+  function findRepairCandidateFromReports(observation, reports) {
+    const matches = [];
+    for (const prior of reports || []) {
+      const match = repairTargetMatch(observation, prior);
+      if (match) matches.push({ prior, distance: match.distance });
+      if (matches.length > 1) return null;
+    }
+    return matches.length === 1 ? matches[0].prior : null;
+  }
+
   function findDuplicateReport(candidate, reports) {
     for (let i = reports.length - 1; i >= 0; i--) {
       if (sameRoadEvent(candidate, reports[i])) return reports[i];
@@ -3714,6 +3819,108 @@ Evidence rules:
 
   // ---------- tenders ----------
   let _tenders = null;
+  // A road name in a tender can be only the address of a drain, footpath, light or
+  // building. This fail-closed classifier mirrors tools/tender_scope.py so even an old
+  // cached pack can never offer those rows to the model or complaint writer.
+  const ROAD_WORK_ACTIONS = new Set(["asphalt", "asphalting", "construct", "construction",
+    "develop", "development", "improve", "improvement", "improvements", "maintain",
+    "maintenance", "patching", "recarpet", "recarpeting", "reconstruct", "reconstruction",
+    "rehabilitate", "rehabilitation", "renew", "renewal", "repair", "repairs", "resurface",
+    "resurfacing", "restore", "restoration", "strengthen", "strengthening", "tarring",
+    "upgrade", "upgradation", "widen", "widening", "formation"]);
+  const ROAD_NOUNS = new Set(["road", "roads", "carriageway", "carriageways"]);
+  const NON_CARRIAGEWAY_ASSETS = new Set(["arch", "arches", "barricade", "barricades",
+    "bhavan", "bhavana", "borewell", "bridge", "bridges", "building", "buildings", "burial",
+    "bus", "cable", "cables", "cattle", "cd", "camera", "cameras", "cctv", "center",
+    "centre", "chamber", "chambers", "cistern", "college", "collage", "complex", "compound",
+    "culvert", "culverts", "deck", "dog", "dogsheltar", "drain", "drainage", "drains",
+    "electrical", "fence", "fencing", "footpath", "footpaths", "garden", "floor", "floors",
+    "gantry", "gateway", "gateways", "graveyard", "hall", "hospital", "house", "houses",
+    "kerb", "kerbs", "curb", "curbs", "lake", "light", "lighting", "lights", "machinehole",
+    "machineholes", "manhole", "manholes", "mast", "masts", "median", "mh", "mhc",
+    "network", "nursery", "park", "pedestrian", "pipeline", "pipelines", "pipe", "pipes",
+    "playground", "pole", "poles", "pound", "pumphouse", "pump", "quarters", "roof", "roofs",
+    "room", "rooms", "school", "sewer", "sewerage", "shed", "shelter", "shishuvihara",
+    "sidewalk", "sidewalks", "sign", "signage", "signboard", "signboards", "slab", "sorting",
+    "stand", "temple", "toilet", "toilets", "transformer", "transformers", "tree", "trees",
+    "ugd", "unit", "urinal", "urinals", "valve", "valves", "vending", "walkway", "walkways",
+    "wall", "walls", "water"]);
+  const NON_SURFACE_ROAD_MODIFIERS = new Set(["divider", "dividers", "furniture", "light",
+    "lighting", "lights", "marking", "markings", "median", "medians", "shoulder", "shoulders",
+    "sign", "signage", "signboard", "signboards"]);
+  const ROAD_PREFIX_MODIFIERS = new Set(["asphalt", "asphalted", "asphaltic", "bituminous",
+    "bt", "cc", "cement", "concrete", "flexible", "internal", "link", "main", "metalled",
+    "paver", "rigid"]);
+  const LOCATION_PREPOSITIONS = new Set(["across", "along", "at", "behind", "beside", "in",
+    "inside", "near", "on", "opposite", "within"]);
+  const explicitRoadDamageRe = /\b(?:pot\s*holes?|potholes?)\b|\b(?:road|carriageway)\s+(?:patch(?:ing|work)?|surface\s+repair)\b|\b(?:patch(?:ing|work)?|surface\s+repair)\s+(?:of\s+)?(?:the\s+)?(?:road|carriageway)\b/;
+  const surfaceTreatmentRe = /\b(?:asphalting|re\s+asphalting|black\s+topping|tarring|resurfac(?:e|ed|ing)|re\s+carpet(?:ed|ing)|recarpet(?:ed|ing)|recarpetting|dense\s+bituminous\s+macadam|bituminous\s+concrete|wet\s+mix\s+macadam|(?:premix|pre\s*mix)\s+carpet|seal\s+coat)\b/;
+  const nonCarriagewayTreatmentTargetRe = /\b(?:asphalting|re\s+asphalting|black\s+topping|tarring|resurfacing|re\s+carpeting|recarpeting|recarpetting)\b(?:\s+work)?\s+(?:(?:of|to|on|at|in|for)\s+)?(?:the\s+)?(?:bridge|culvert|drain|floor|footpath|park|playground|roof|sidewalk|walkway|wall)s?\b/;
+  const materialPavementRe = /\b(?:asphalt(?:ic)?|bituminous|cement\s+concrete|concrete|flexible|rigid)\s+pavement\b/;
+
+  const tenderTokens = (value) => (String(value || "").toLowerCase().match(/[a-z0-9]+/g) || []);
+  const hasAny = (tokens, values) => tokens.some((token) => values.has(token));
+  const mixedRoadScope = (tokens, roadIndex) => {
+    let i = roadIndex - 1;
+    while (i >= 0 && ROAD_PREFIX_MODIFIERS.has(tokens[i])) i--;
+    return i >= 1 && tokens[i] === "and" && NON_CARRIAGEWAY_ASSETS.has(tokens[i - 1]);
+  };
+  const coordinatedRoadNoun = (tokens, roadIndex) => {
+    let i = roadIndex - 1;
+    while (i >= 0 && ROAD_PREFIX_MODIFIERS.has(tokens[i])) i--;
+    return i >= 0 && ["and", "plus", "with"].includes(tokens[i]);
+  };
+  const roadIsNonSurfaceModifier = (tokens, roadIndex) => {
+    const following = tokens.slice(roadIndex + 1, roadIndex + 4);
+    if (!following.length) return false;
+    if (NON_SURFACE_ROAD_MODIFIERS.has(following[0])) return true;
+    for (const token of following) {
+      if (["and", "at", "from", "in", "near", "of", "on", "to", "via"].includes(token)) break;
+      if (NON_CARRIAGEWAY_ASSETS.has(token)) return true;
+    }
+    return following.length >= 2 && following[0] === "side"
+      && ["drain", "drains", "light", "lights", "shoulder", "shoulders"].includes(following[1]);
+  };
+
+  function tenderCoversCarriageway(title, tenderNumber) {
+    void tenderNumber; // category fragments such as /RD/ are not scope evidence.
+    const text = tenderTokens(title).join(" ");
+    if (!text) return false;
+    if (explicitRoadDamageRe.test(text)) return true;
+    if (surfaceTreatmentRe.test(text) && !nonCarriagewayTreatmentTargetRe.test(text)) return true;
+    const tokens = text.split(" ");
+    const hasNonRoadAsset = hasAny(tokens, NON_CARRIAGEWAY_ASSETS);
+    if (materialPavementRe.test(text) && !hasNonRoadAsset) return true;
+    for (let roadIndex = 0; roadIndex < tokens.length; roadIndex++) {
+      if (!ROAD_NOUNS.has(tokens[roadIndex]) || roadIsNonSurfaceModifier(tokens, roadIndex)) continue;
+      const after = tokens.slice(roadIndex + 1, roadIndex + 4);
+      if (after.length && (ROAD_WORK_ACTIONS.has(after[0]) || ["work", "works"].includes(after[0]))) {
+        const priorAssets = hasAny(tokens.slice(0, roadIndex), NON_CARRIAGEWAY_ASSETS);
+        if (!priorAssets || coordinatedRoadNoun(tokens, roadIndex)) return true;
+      }
+      const start = Math.max(0, roadIndex - 12);
+      let actionIndex = null;
+      for (let i = roadIndex - 1; i >= start; i--) {
+        if (ROAD_WORK_ACTIONS.has(tokens[i])) { actionIndex = i; break; }
+      }
+      if (actionIndex !== null) {
+        const gap = tokens.slice(actionIndex + 1, roadIndex);
+        const competing = hasAny(gap, NON_CARRIAGEWAY_ASSETS);
+        const directScope = gap.length <= 3;
+        const actionObjectBefore = hasAny(tokens.slice(Math.max(0, actionIndex - 6), actionIndex),
+          NON_CARRIAGEWAY_ASSETS);
+        const coordinatedAction = actionIndex > 0
+          && ["and", "plus", "with"].includes(tokens[actionIndex - 1]);
+        const isLocation = hasAny(gap, LOCATION_PREPOSITIONS);
+        if (mixedRoadScope(tokens, roadIndex) || (!competing && !isLocation
+            && (!actionObjectBefore || coordinatedAction) && (directScope || !hasNonRoadAsset))) return true;
+      }
+    }
+    const route = tokens.some((token, index) => /^(?:nh|sh|mdr|odr)\d+$/.test(token)
+      || (["nh", "sh", "mdr", "odr"].includes(token) && /^\d+$/.test(tokens[index + 1] || "")));
+    return route && hasAny(tokens, ROAD_WORK_ACTIONS) && !hasNonRoadAsset;
+  }
+
   // The optional pack contains only rows with a verified civic-body ID: the other 28,706
   // procurement rows could never enter the matcher. Failure omits contract context but
   // never blocks a valid road-damage report.
@@ -3722,7 +3929,10 @@ Evidence rules:
     try {
       const pack = await loadStatePack("in-ka-tenders");
       const loaded = pack && pack.tenders;
-      if (Array.isArray(loaded) && loaded.length) { _tenders = loaded; return _tenders; }
+      if (Array.isArray(loaded) && loaded.length) {
+        _tenders = loaded.filter((row) => tenderCoversCarriageway(row.t, row.tn));
+        return _tenders;
+      }
     } catch (e) { /* fall through and retry on the next call */ }
     return [];
   }
@@ -3793,7 +4003,7 @@ Evidence rules:
       }
     }
     if (!tokens.size) return [];
-    const pool = await tendersFor(lgd);
+    const pool = (await tendersFor(lgd)).filter((row) => tenderCoversCarriageway(row.t, row.tn));
     if (!pool.length) return [];
 
     // Scored on the work description alone. The location field is the body's own name,
@@ -3874,7 +4084,10 @@ localities within a town, so the locality or ward context must agree, not just t
 road name. A ward-wide maintenance or pothole-filling contract for the pothole's own
 locality or ward is a valid match. A ward-wide maintenance or pothole-filling contract for the pothole's
 own layout or ward is a valid match. If no candidate clearly covers this location,
-match_index must be null. confidence is your 0 to 1 confidence in the match.`;
+match_index must be null. Never select a contract whose actual work is only a drain,
+footpath, sewer, pipeline, light, building, bridge, culvert or other roadside asset;
+the road name can merely describe that asset's location. Mixed scope is valid only when
+work on the carriageway itself is explicit. confidence is your 0 to 1 confidence in the match.`;
     let m;
     try {
       // Minimal effort suits a verdict on one photo. Picking one contract out of 25
@@ -3888,6 +4101,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     } catch (e) { return null; }
     if (!m || m.match_index === null || m.match_index < 0 || m.match_index >= candidates.length || m.confidence < 0.6) return null;
     const t = candidates[m.match_index];
+    if (!tenderCoversCarriageway(t.t, t.tn)) return null;
     const { warranty, warranty_code } = warrantyFor(t.d);
     // Records without a winner are common in this dataset. Naming nobody is correct;
     // a placeholder sentence read as a person's name in the Kannada draft.
@@ -4284,6 +4498,39 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   const allFootage = () => op("readonly", (s) => s.getAll(), "footage");
   const putDrive = (d) => op("readwrite", (s) => s.put(d), "drives");
 
+  // Complaint actions race with Drive Mode: a repair can be committed while a portal
+  // refresh, editor, or email composer is awaiting other work. Always re-read and patch
+  // the latest row in one transaction so those complaint-only mutations cannot restore
+  // a stale physical condition or erase its repair evidence.
+  function mutateReportAtomically(id, mutate) {
+    const reportId = Number(id);
+    if (!Number.isFinite(reportId) || reportId <= 0) {
+      return Promise.reject(new Error("Report not found."));
+    }
+    return idb().then((d) => new Promise((resolve, reject) => {
+      const tx = d.transaction("reports", "readwrite");
+      const store = tx.objectStore("reports");
+      let result = null, failure = null;
+      const abortWith = (error) => {
+        failure = error instanceof Error ? error : new Error(String(error || "Could not update this report."));
+        try { tx.abort(); } catch (_) {}
+      };
+      const read = store.get(reportId);
+      read.onsuccess = () => {
+        const current = read.result;
+        if (!current) { abortWith(new Error("Report not found.")); return; }
+        try { mutate(current); } catch (error) { abortWith(error); return; }
+        const write = store.put(current);
+        write.onsuccess = () => { result = toDict(current); };
+        write.onerror = () => { failure = write.error; };
+      };
+      read.onerror = () => { failure = read.error; };
+      tx.oncomplete = () => resolve(result);
+      tx.onabort = () => reject(failure || storageError(tx.error));
+      tx.onerror = () => {};
+    }));
+  }
+
   // Accepted Drive jobs finish concurrently. A separate getAll() followed by add()
   // lets two nearby jobs both observe "none" and both write. Keep the final check and
   // insert in one read-write transaction; IndexedDB serialises these transactions on the
@@ -4338,6 +4585,16 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
               sighting_drive_ids: sightingDriveIds,
               seen_count: exactReplay ? (prior.seen_count || 1) : (prior.seen_count || 1) + 1,
               last_seen_at: Math.max(eventTime(prior) || 0, eventTime(rec) || 0),
+              // A fresh accepted detection is direct evidence that the defect remains.
+              // It can clear an AI-suggested repair review, but a previously fixed
+              // canonical is excluded by acceptedReport and therefore becomes a new
+              // recurrence rather than silently rewriting history.
+              condition_status: conditionStatus(prior) === "repair_review" ? "open"
+                : conditionStatus(prior),
+              condition_updated_at: conditionStatus(prior) === "repair_review"
+                ? (eventTime(rec) || Date.now() / 1000) : (prior.condition_updated_at || null),
+              condition_source: conditionStatus(prior) === "repair_review"
+                ? "damage_seen_on_revisit" : (prior.condition_source || null),
             };
             const write = cursor.update(updated);
             write.onsuccess = () => { result = { id: null, duplicate: updated, match: match.kind }; };
@@ -4385,6 +4642,88 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if (!u || typeof u !== "string") return u || null;
     try { return await (await fetch(u)).blob(); } catch (e) { return u; }
   };
+  const blobToDataUrl = async (v) => {
+    if (!v) return null;
+    if (typeof v === "string") return v;
+    return await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result));
+      fr.onerror = () => reject(fr.error || new Error("Could not read saved repair evidence."));
+      fr.readAsDataURL(v);
+    });
+  };
+
+  const repairProvenanceIsExact = (observation) => {
+    if (!observation || typeof observation !== "object") return false;
+    const model = observation.detection_model;
+    const detail = observation.image_detail;
+    return typeof model === "string" && model.length > 0 && ALLOWED_MODELS.has(model)
+      && typeof detail === "string" && detail.length > 0 && ALLOWED_DETAILS.has(detail)
+      && normaliseDetail(detail, model) === detail
+      && typeof observation.description === "string"
+      && observation.description.trim().length > 0
+      && observation.prompt_version === REPAIR_PROMPT_VERSION
+      && Number.isInteger(observation.schema_version)
+      && observation.schema_version === REPAIR_SCHEMA_VERSION;
+  };
+
+  // Repair evidence changes a saved physical fact, so it has a stricter contract than
+  // legacy report photos: it must be a real, decodable, bounded image Blob. Never retain
+  // an arbitrary string merely because fetch() could not decode it.
+  async function decodeRepairEvidence(value) {
+    let blob = null;
+    if (typeof Blob !== "undefined" && value instanceof Blob) {
+      blob = value;
+    } else if (typeof value === "string"
+        && /^data:image\/(?:jpeg|png|webp);base64,/i.test(value)) {
+      try {
+        const response = await fetch(value);
+        if (!response.ok) return null;
+        blob = await response.blob();
+      } catch (_) { return null; }
+    }
+    const type = String(blob && blob.type || "").toLowerCase();
+    if (!blob || blob.size < REPAIR_EVIDENCE_MIN_BYTES || blob.size > REPAIR_EVIDENCE_MAX_BYTES
+        || !REPAIR_EVIDENCE_TYPES.has(type)) return null;
+    let header;
+    try { header = new Uint8Array(await blob.slice(0, 12).arrayBuffer()); }
+    catch (_) { return null; }
+    const jpeg = header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
+    const png = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4e
+      && header[3] === 0x47 && header[4] === 0x0d && header[5] === 0x0a
+      && header[6] === 0x1a && header[7] === 0x0a;
+    const webp = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46
+      && header[3] === 0x46 && header[8] === 0x57 && header[9] === 0x45
+      && header[10] === 0x42 && header[11] === 0x50;
+    if ((type === "image/jpeg" && !jpeg) || (type === "image/png" && !png)
+        || (type === "image/webp" && !webp)) return null;
+    let width = 0, height = 0;
+    if (typeof createImageBitmap === "function") {
+      let bitmap = null;
+      try {
+        bitmap = await createImageBitmap(blob);
+        width = bitmap.width; height = bitmap.height;
+      } catch (_) { return null; }
+      finally { if (bitmap && bitmap.close) bitmap.close(); }
+    } else {
+      const url = URL.createObjectURL(blob);
+      try {
+        const dimensions = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve([img.naturalWidth, img.naturalHeight]);
+          img.onerror = () => reject(new Error("Repair evidence is not a decodable image."));
+          img.src = url;
+        });
+        width = dimensions[0]; height = dimensions[1];
+      } catch (_) { return null; }
+      finally { URL.revokeObjectURL(url); }
+    }
+    if (!Number.isInteger(width) || !Number.isInteger(height)
+        || width < REPAIR_EVIDENCE_MIN_DIMENSION || height < REPAIR_EVIDENCE_MIN_DIMENSION
+        || width > REPAIR_EVIDENCE_MAX_DIMENSION || height > REPAIR_EVIDENCE_MAX_DIMENSION
+        || width * height > REPAIR_EVIDENCE_MAX_PIXELS) return null;
+    return blob;
+  }
   const photoToBase64 = async (v) => {
     if (!v) return null;
     if (typeof v === "string") return v.split(",")[1];
@@ -4396,9 +4735,169 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     });
   };
 
-  const toDict = (r) => ({ ...r, photo_url: r.photo });
+  const toDict = (r) => ({ ...r, photo_url: r.photo, repair_photo_url: r.repair_photo || null });
   // The list never renders the evidence copy, so it never receives it.
   const listDict = (r) => { const d = toDict(r); delete d.photo_full; return d; };
+
+  async function findRepairCandidate(observation) {
+    if (!observation || !finiteCoord(observation.lat) || !finiteCoord(observation.lng)) return null;
+    const latitudeBand = REPAIR_RADIUS_M / 110900;
+    const nearby = await op("readonly", (store) => store.index("by_lat").getAll(
+      IDBKeyRange.bound(observation.lat - latitudeBand, observation.lat + latitudeBand)));
+    return findRepairCandidateFromReports(observation, nearby);
+  }
+
+  // Commit the before/after result and its evidence in one transaction. A native retry
+  // after the WebView closes is harmless because source_event_key is idempotent.
+  async function applyRepairObservation(targetId, observation) {
+    const id = Number(targetId);
+    const sourceEventKey = String(observation && observation.source_event_key || "").slice(0, 180);
+    const nextCondition = repairConditionFor(observation);
+    if (!Number.isFinite(id) || id <= 0 || !sourceEventKey || !nextCondition) {
+      return { ignored: true, reason: "repair_not_proven" };
+    }
+    if (!repairProvenanceIsExact(observation)) {
+      return { ignored: true, reason: "repair_provenance_invalid" };
+    }
+    const repairPhoto = await decodeRepairEvidence(observation.current_photo_data_url);
+    if (!repairPhoto) return { ignored: true, reason: "repair_evidence_invalid" };
+    const candidate = {
+      ...observation,
+      capture_source: "drive_live",
+      debug_capture: false,
+      drive_id: observation.drive_id == null ? null : String(observation.drive_id),
+    };
+    if (!finiteCoord(candidate.lat) || !finiteCoord(candidate.lng)) {
+      return { ignored: true, reason: "target_ambiguous_or_mismatched" };
+    }
+    // The uniqueness scan and update deliberately share one read-write transaction.
+    // IndexedDB serialises competing writers on this store, so no nearby report can be
+    // inserted or changed between the ambiguity decision and the physical-status write.
+    return idb().then((d) => new Promise((resolve, reject) => {
+      const tx = d.transaction("reports", "readwrite");
+      const store = tx.objectStore("reports");
+      let result = null, failure = null;
+      const matches = [];
+      const replays = [];
+      const latitudeBand = REPAIR_RADIUS_M / 110900;
+      const scan = store.index("by_lat").openCursor(IDBKeyRange.bound(
+        candidate.lat - latitudeBand, candidate.lat + latitudeBand));
+      scan.onsuccess = () => {
+        const cursor = scan.result;
+        if (cursor) {
+          const priorKeys = Array.isArray(cursor.value.repair_source_event_keys)
+            ? cursor.value.repair_source_event_keys : [];
+          if (priorKeys.includes(sourceEventKey)) replays.push(cursor.value);
+          if (repairTargetMatch(candidate, cursor.value)) matches.push(cursor.value);
+          cursor.continue();
+          return;
+        }
+        if (replays.length) {
+          if (replays.length === 1 && Number(replays[0].id) === id) {
+            result = { id, duplicate: true, condition_status: conditionStatus(replays[0]) };
+          } else {
+            result = { ignored: true, reason: "target_ambiguous_or_mismatched" };
+          }
+          return;
+        }
+        if (matches.length !== 1 || Number(matches[0].id) !== id) {
+          result = { ignored: true, reason: "target_ambiguous_or_mismatched" };
+          return;
+        }
+        const prior = matches[0];
+        const keys = Array.isArray(prior.repair_source_event_keys)
+          ? prior.repair_source_event_keys.slice() : [];
+        if (keys.includes(sourceEventKey)) {
+          result = { id, duplicate: true, condition_status: conditionStatus(prior) };
+          return;
+        }
+        keys.push(sourceEventKey);
+        const observedAt = observation.observed_at;
+        const updated = {
+          ...prior,
+          condition_status: nextCondition,
+          condition_updated_at: observedAt,
+          condition_source: "ai_revisit_comparison",
+          repair_observed_at: observedAt,
+          repair_drive_id: candidate.drive_id,
+          repair_source_event_keys: keys.slice(-64),
+          repair_photo: repairPhoto,
+          repair_lat: observation.lat,
+          repair_lng: observation.lng,
+          repair_gps_accuracy: observation.gps_accuracy,
+          repair_speed_mps: Number.isFinite(observation.speed_mps) ? observation.speed_mps : null,
+          repair_heading: Number.isFinite(observation.heading) ? observation.heading : null,
+          repair_current_condition: observation.current_condition,
+          repair_assessment: observation.assessment,
+          repair_image_quality: observation.image_quality,
+          repair_same_location_visible: observation.same_location_visible,
+          repair_completed_visible: observation.completed_repair_visible,
+          repair_description: String(observation.description || "").trim().slice(0, 1000),
+          repair_detection_model: observation.detection_model,
+          repair_image_detail: observation.image_detail,
+          repair_prompt_version: observation.prompt_version,
+          repair_schema_version: observation.schema_version,
+        };
+        const write = store.put(updated);
+        write.onsuccess = () => {
+          result = { id, duplicate: false, condition_status: nextCondition, report: toDict(updated) };
+        };
+        write.onerror = () => { failure = write.error; };
+      };
+      scan.onerror = () => { failure = scan.error; };
+      tx.oncomplete = () => resolve(result || { ignored: true, reason: "target_ambiguous_or_mismatched" });
+      const died = () => reject(storageError(failure || tx.error));
+      tx.onabort = died;
+      tx.onerror = () => {};
+    }));
+  }
+
+  async function getRepairTargets() {
+    const targets = (await allReports()).filter((report) => {
+      if (!acceptedReport(report) || conditionStatus(report) === "fixed"
+          || report.debug_capture || report.dedupe_eligible === false || !report.photo
+          || report.capture_source === "manual_import"
+          || !finiteCoord(report.lat) || !finiteCoord(report.lng)
+          || !Number.isFinite(eventTime(report))
+          || !Number.isFinite(report.gps_accuracy) || report.gps_accuracy < 0
+          || report.gps_accuracy > REPAIR_MAX_ACCURACY_M) return false;
+      return normaliseIssueType(report.issue_type) === "road_damage";
+    });
+    // Keep the native bridge payload bounded. Two thousand recent active defects is far
+    // beyond a normal on-device history and matches the plugin's explicit safety cap.
+    return Promise.all(targets.slice(-2000).map(async (report) => ({
+      id: report.id,
+      lat: report.lat,
+      lng: report.lng,
+      gps_accuracy: report.gps_accuracy,
+      heading: Number.isFinite(report.heading) ? report.heading : null,
+      capture_source: report.capture_source || null,
+      photo_data_url: await blobToDataUrl(report.photo),
+      last_damage_observed_at: eventTime(report),
+      damage_type: storedDamageType(report),
+      condition_status: conditionStatus(report),
+    })));
+  }
+
+  async function verifyRepairCandidate(prior, contextDataUrl, roadViews, primaryIndex,
+                                       model, detail) {
+    const oldEvidence = await blobToDataUrl(prior && prior.photo);
+    if (!oldEvidence || !contextDataUrl || !Array.isArray(roadViews) || !roadViews.length) {
+      return null;
+    }
+    const current = [roadViews[primaryIndex]];
+    for (let i = 0; i < roadViews.length && current.length < 2; i++) {
+      if (i !== primaryIndex) current.push(roadViews[i]);
+    }
+    const images = [{ url: oldEvidence }, { url: contextDataUrl },
+      ...current.filter(Boolean).map((url) => ({ url }))];
+    const language = LANG() === "kn"
+      ? "\n- Write description in formal Kannada."
+      : LANG() === "mr" ? "\n- Write description in formal Marathi."
+        : LANG() === "bn" ? "\n- Write description in formal Bengali." : "";
+    return analyzeImage(images, REPAIR_PROMPT + language, "road_repair_verification",
+      REPAIR_SCHEMA, model, null, false, detail);
+  }
 
   // ---------- image ----------
 
@@ -4511,6 +5010,23 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     const dedupe = !S.debug;
     let frameQuality = null;
     try { frameQuality = JSON.parse(fd.get("frame_quality") || "null"); } catch (e) {}
+    const normalizedHeading = Number.isFinite(headingRaw)
+      ? ((headingRaw % 360) + 360) % 360 : null;
+    const repairObservationBase = {
+      capture_source: captureSource,
+      debug_capture: !dedupe,
+      drive_id: driveId,
+      lat, lng,
+      gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
+      speed_mps: Number.isFinite(speedRaw) ? speedRaw : null,
+      heading: normalizedHeading,
+      source_event_key: sourceEventKey,
+      observed_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : Date.now() / 1000,
+    };
+    // Start the local lookup while pixels are resized. Only a precise, later live drive
+    // can be a repair revisit; footage replay and Debug must never change real status.
+    const repairCandidateP = driveMode && captureSource === "drive_live" && dedupe
+      ? findRepairCandidate(repairObservationBase).catch(() => null) : null;
 
     progress(driveMode ? pmsg("capture") : pmsg("compress"));
     // Measured on a real device: a 2000px frame is ~1.1 MB of base64 and every request
@@ -4523,11 +5039,11 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     // sharpest frame plus three road-band crops in chronological order. Context keeps
     // lane/edge geometry; the crops give a distant defect enough pixels to judge. A
     // manual photo remains one full-resolution view because the user already aimed it.
-    let imageInputs, dataUrl;
+    let imageInputs, dataUrl, roadViews = null, contextDataUrl = null;
     if (driveMode) {
-      const roadViews = await Promise.all(photos.map((p) => toDataUrl(p, 1024, 0.85, true, ROAD_BAND)));
-      const context = await toDataUrl(photo, 768, 0.82, false, 1);
-      imageInputs = [{ url: context }, ...roadViews.map((url) => ({ url }))];
+      roadViews = await Promise.all(photos.map((p) => toDataUrl(p, 1024, 0.85, true, ROAD_BAND)));
+      contextDataUrl = await toDataUrl(photo, 768, 0.82, false, 1);
+      imageInputs = [{ url: contextDataUrl }, ...roadViews.map((url) => ({ url }))];
       dataUrl = roadViews[primaryIndex];
     } else {
       dataUrl = await toDataUrl(photo, 2000, 0.85, true, 1);
@@ -4565,18 +5081,47 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
           ? "\n- Write the description field in clear formal Bengali (পরিষ্কার, প্রমিত বাংলায় লিখুন)."
         : "");
     const detectionModel = S.model, detectionDetail = S.detail;
+    const repairCandidate = repairCandidateP ? await repairCandidateP : null;
     // Single shot has one verdict on screen, so show it the moment it streams in.
     // Drive Mode analyses run concurrently and report through the HUD instead.
     // Drive Mode has no verdict on screen to update, so it passed no callback and took
     // the unstreamed path, waiting for a description it discards on every rejected frame.
     // It streams now purely to stop as soon as the frame is known to be rejected.
-    const a = await analyzeImage(imageInputs, detectPrompt, "assessment", ASSESS_SCHEMA, detectionModel,
-      driveMode ? null : emitVerdict, driveMode && !S.debug, detectionDetail);
+    const a = await analyzeImage(imageInputs, detectPrompt, "road_damage_assessment", ASSESS_SCHEMA, detectionModel,
+      driveMode ? null : emitVerdict, driveMode && !S.debug && !repairCandidate, detectionDetail);
     const decision = decisionFor(a);
     const accepted = decision === "accept";
     const detector = { model: detectionModel, detail: detectionDetail, prompt_version: PROMPT_VERSION,
                        schema_version: SCHEMA_VERSION, evidence_count: imageInputs.length };
     if (driveMode && !accepted) {
+      // Ordinary non-detection is only the gate. Fixed requires a separate model call
+      // that sees the saved before photo and the current usable revisit together.
+      if (repairCandidate && clearAbsenceForRepair(a)) {
+        progress(pmsg("repair"));
+        const comparison = await verifyRepairCandidate(repairCandidate, contextDataUrl,
+          roadViews, primaryIndex, detectionModel, detectionDetail).catch(() => null);
+        const provenCondition = repairConditionFor(comparison);
+        if (provenCondition) {
+          if (commitTurn) await commitTurn.wait;
+          const repairResult = await applyRepairObservation(repairCandidate.id, {
+            ...repairObservationBase,
+            ...comparison,
+            // Keep the full scene, not only the lower-road working crop, so a later
+            // reviewer can audit that the before/after frames show the same footprint.
+            current_photo_data_url: contextDataUrl,
+            detection_model: detectionModel,
+            image_detail: detectionDetail,
+            prompt_version: REPAIR_PROMPT_VERSION,
+            schema_version: REPAIR_SCHEMA_VERSION,
+          });
+          const applied = !repairResult.ignored ? repairResult.condition_status : null;
+          return { analyzed: true, accepted: false, stored: false, found: false,
+                   duplicate: false, duplicate_of: null, decision, review: false,
+                   repaired: applied === "fixed", repair_review: applied === "repair_review",
+                   repair_target_id: repairCandidate.id, repair_result: repairResult,
+                   ...a, observation: { ...a }, repair_observation: comparison, detector };
+        }
+      }
       return { analyzed: true, accepted: false, stored: false, found: false,
                duplicate: false, duplicate_of: null, decision, review: decision === "review",
                ...a, observation: { ...a }, detector };
@@ -4634,6 +5179,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       decision,
       description: a.description, email_subject: subject, email_body: body,
       status: accepted ? (covered ? "draft" : "unrouted") : (decision === "review" ? "review" : "rejected"),
+      condition_status: "open", condition_updated_at: null, condition_source: null,
       detection_model: detectionModel, image_detail: detectionDetail, prompt_version: PROMPT_VERSION,
       schema_version: SCHEMA_VERSION, evidence_count: imageInputs.length,
       // Distinguishes "we know where this is and do not cover it" from "we never got a
@@ -4684,7 +5230,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       source_offset_s: Number.isFinite(sourceOffsetRaw) ? sourceOffsetRaw / 1000 : null,
       gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
       speed_mps: Number.isFinite(speedRaw) ? speedRaw : null,
-      heading: Number.isFinite(headingRaw) ? ((headingRaw % 360) + 360) % 360 : null,
+      heading: normalizedHeading,
       frame_quality: Array.isArray(frameQuality) ? frameQuality : null,
       primary_frame_index: primaryIndex,
       debug_capture: !dedupe,
@@ -4695,7 +5241,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
         captured_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : null,
         gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
         speed_mps: Number.isFinite(speedRaw) ? speedRaw : null,
-        heading: Number.isFinite(headingRaw) ? ((headingRaw % 360) + 360) % 360 : null,
+        heading: normalizedHeading,
         source_event_key: sourceEventKey,
       })] : [],
       sighting_drive_ids: accepted && driveId != null ? [String(driveId)] : [],
@@ -4968,6 +5514,7 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       size: assessment.size, decision: native.decision || "accept",
       description: assessment.description, email_subject: subject, email_body: body,
       status: covered ? "draft" : "unrouted",
+      condition_status: "open", condition_updated_at: null, condition_source: null,
       detection_model: native.detection_model || S.model,
       image_detail: native.image_detail || S.detail,
       prompt_version: native.prompt_version || PROMPT_VERSION,
@@ -5038,10 +5585,21 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   async function openInGmail(rec) {
     // Always the routed officer. The app never sends; the user does, in their email app.
     // No fallback recipient: an unrouted report must not borrow Bengaluru's address.
-    if (!rec.officer_email) {
+    // Preparing a native attachment is asynchronous. Re-read only after that work, then
+    // launch without another await so a Drive repair gets the last possible veto.
+    const attachment = NATIVE ? await photoToBase64(rec.photo_full || rec.photo) : null;
+    const current = await getReport(rec.id);
+    if (!current) throw new Error("Report not found.");
+    if (conditionStatus(current) === "fixed") {
+      throw new Error("This pothole was verified fixed on a later drive, so its old complaint cannot be sent.");
+    }
+    if (current.status !== "draft" && current.status !== "queued") {
+      throw new Error("This report is not a sendable draft.");
+    }
+    if (!current.officer_email) {
       throw new Error("No responsible authority is known for this location, so there is nobody to address.");
     }
-    const to = rec.officer_email;
+    const to = current.officer_email;
     progress(pmsg("email"));
     if (NATIVE) {
       // Vanilla-JS WebView: the injected runtime exposes plugins via Capacitor.Plugins
@@ -5051,19 +5609,19 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
         : Capacitor.Plugins.EmailComposer;
       await EmailComposer.open({
         to: [to],
-        subject: rec.email_subject || "",
-        body: rec.email_body || "",
+        subject: current.email_subject || "",
+        body: current.email_body || "",
         // Full capture where we kept one; the working copy is only a fallback.
-        attachments: [{ type: "base64", name: `${issueFileStem(rec.issue_type)}.jpg`,
-                        path: await photoToBase64(rec.photo_full || rec.photo) }],
+        attachments: [{ type: "base64", name: `${issueFileStem(current.issue_type)}.jpg`,
+                        path: attachment }],
       });
     } else {
       // A browser cannot attach the saved photo to a draft, but it can still open a
       // real addressed composer. Keep this a deliberate external handoff: the user
       // reviews and presses Send, and can add the photo or use Share evidence.
       const query = new URLSearchParams({
-        subject: rec.email_subject || "",
-        body: rec.email_body || "",
+        subject: current.email_subject || "",
+        body: current.email_body || "",
       });
       const link = document.createElement("a");
       link.href = `mailto:${encodeURIComponent(to)}?${query.toString()}`;
@@ -5073,10 +5631,16 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       link.click();
       link.remove();
     }
-    rec.status = "queued";
-    rec.handoff_opened_at = Date.now() / 1000;
-    await putReport(rec);
-    return toDict(rec);
+    return mutateReportAtomically(current.id, (latest) => {
+      if (conditionStatus(latest) === "fixed") {
+        throw new Error("This pothole was verified fixed on a later drive, so its old complaint cannot be queued.");
+      }
+      if (latest.status !== "draft" && latest.status !== "queued") {
+        throw new Error("This report is not a sendable draft.");
+      }
+      latest.status = "queued";
+      latest.handoff_opened_at = Date.now() / 1000;
+    });
   }
 
   const isOfficialHandoff = (rec) => !!rec && OFFICIAL_HANDOFF_CHANNELS.has(rec.delivery_channel);
@@ -5558,6 +6122,9 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   }
 
   async function openOfficialHandoff(rec) {
+    if (conditionStatus(rec) === "fixed") {
+      throw new Error("This pothole was verified fixed on a later drive, so its old handoff cannot be opened.");
+    }
     if (!isOfficialHandoff(rec)) throw new Error("This report has no official app or portal handoff.");
     // v1.14 BMC records did not persist pack metadata. Keep them usable, but never trust
     // the URL saved in the report: reload the current app-pinned pack and find the same
@@ -5625,13 +6192,22 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
   }
 
   async function refreshAndPersistOfficialHandoff(rec) {
+    if (conditionStatus(rec) === "fixed") {
+      throw new Error("This pothole was verified fixed on a later drive, so its old handoff cannot be refreshed.");
+    }
     const verified = await openOfficialHandoff(rec);
-    applyVerifiedHandoff(rec, verified);
-    await putReport(rec);
-    return toDict(rec);
+    return mutateReportAtomically(rec.id, (current) => {
+      if (conditionStatus(current) === "fixed") {
+        throw new Error("This pothole was verified fixed on a later drive, so its old handoff cannot be refreshed.");
+      }
+      applyVerifiedHandoff(current, verified);
+    });
   }
 
   async function evidenceForReport(rec) {
+    if (conditionStatus(rec) === "fixed") {
+      throw new Error("This pothole was verified fixed on a later drive, so its old complaint evidence is archival only.");
+    }
     if (!rec || !ACCEPTED_REPORT_STATUSES.has(rec.status)) {
       throw new Error("Only an accepted report has shareable evidence.");
     }
@@ -5795,6 +6371,40 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       // reader of it is the email attachment, which loads the record by id anyway.
       return (await allReports()).sort((a, b) => b.id - a.id).map(listDict);
     }
+    if (path === "/api/repair-targets" && method === "GET") {
+      return { targets: await getRepairTargets() };
+    }
+    if (path === "/api/native-repair" && method === "POST") {
+      const raw = JSON.parse(opts.body || "{}");
+      const finiteNumber = (value) => value !== null && value !== "" && Number.isFinite(Number(value))
+        ? Number(value) : null;
+      const observation = {
+        source_event_key: raw.source_event_key,
+        observed_at: finiteNumber(raw.observed_at),
+        drive_id: raw.drive_id == null ? null : String(raw.drive_id),
+        capture_source: "drive_live",
+        debug_capture: false,
+        lat: finiteNumber(raw.lat),
+        lng: finiteNumber(raw.lng),
+        gps_accuracy: finiteNumber(raw.gps_accuracy),
+        speed_mps: finiteNumber(raw.speed_mps),
+        heading: finiteNumber(raw.heading),
+        current_photo_data_url: raw.current_photo_data_url,
+        current_condition: raw.current_condition,
+        assessment: raw.assessment,
+        image_quality: raw.image_quality,
+        same_location_visible: raw.same_location_visible === true,
+        completed_repair_visible: raw.completed_repair_visible === true,
+        description: raw.description,
+        detection_model: raw.detection_model,
+        image_detail: raw.image_detail,
+        prompt_version: raw.prompt_version,
+        // Provenance is an internal native result contract, not user input to coerce.
+        // applyRepairObservation validates these exact values and never fills them in.
+        schema_version: raw.schema_version,
+      };
+      return applyRepairObservation(raw.target_report_id, observation);
+    }
     if (path === "/api/reports" && method === "DELETE") {
       await op("readwrite", (s) => s.clear());
       await op("readwrite", (s) => s.clear(), "drives");
@@ -5904,16 +6514,36 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       return retryCivicRouting(rec);
     }
     if ((m = path.match(/^\/api\/reports\/(\d+)\/label$/)) && method === "POST") {
-      const rec = await getReport(m[1]);
-      if (!rec) throw new Error("Report not found.");
       const want = JSON.parse(opts.body).label;
       if (!["pothole_cavity", "failed_patch", "surface_breakup", "rut_or_depression",
             "other_road_damage", "not_reportable", "pothole", "not_pothole", null].includes(want)) {
         throw new Error("Bad label.");
       }
-      rec.human_label = want;
-      await putReport(rec);
-      return toDict(rec);
+      return mutateReportAtomically(m[1], (rec) => { rec.human_label = want; });
+    }
+    if ((m = path.match(/^\/api\/reports\/(\d+)\/condition$/)) && method === "POST") {
+      const requested = String(JSON.parse(opts.body || "{}").condition_status || "");
+      return mutateReportAtomically(m[1], (rec) => {
+        if (requested === "fixed") {
+          if (conditionStatus(rec) !== "repair_review"
+              || rec.repair_current_condition !== "repaired"
+              || rec.repair_same_location_visible !== true
+              || rec.repair_completed_visible !== true
+              || rec.repair_image_quality !== "usable" || !rec.repair_photo) {
+            throw new Error("This revisit does not contain enough before-and-after evidence to mark the pothole fixed.");
+          }
+          rec.condition_status = "fixed";
+          rec.condition_updated_at = Date.now() / 1000;
+          rec.condition_source = "user_confirmed_revisit";
+        } else if (requested === "open") {
+          if (conditionStatus(rec) === "open") return;
+          rec.condition_status = "open";
+          rec.condition_updated_at = Date.now() / 1000;
+          rec.condition_source = "user_reopened";
+        } else {
+          throw new Error("Condition must be fixed or open.");
+        }
+      });
     }
     if (path === "/api/report" && method === "POST") return createReport(opts.body, false);
     if (path === "/api/civic-report" && method === "POST") return createCivicReport(opts.body);
@@ -5924,6 +6554,9 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
     if ((m = path.match(/^\/api\/reports\/(\d+)\/send$/)) && method === "POST") {
       const rec = await getReport(m[1]);
       if (!rec) throw new Error("Report not found.");
+      if (conditionStatus(rec) === "fixed") {
+        throw new Error("This pothole was verified fixed on a later drive, so its old complaint cannot be sent.");
+      }
       if (rec.status === "unrouted") {
         // Say which of the four reasons it was. "Outside the area" is wrong and
         // confusing when the real problem is that the phone never got a GPS fix.
@@ -5953,55 +6586,81 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
       // "queued" stays reopenable: canceling the external composer/app must not strand
       // the report or falsely mark it submitted.
       if (rec.status !== "draft" && rec.status !== "queued") throw new Error("This report is not a sendable draft.");
-      return isOfficialHandoff(rec) ? openOfficialHandoff(rec) : openInGmail(rec);
+      if (!isOfficialHandoff(rec)) return openInGmail(rec);
+      const verified = await openOfficialHandoff(rec);
+      // Route verification can fetch packs and boundaries. Re-read after it, immediately
+      // before the UI receives a URL it can launch.
+      const current = await getReport(rec.id);
+      if (!current || conditionStatus(current) === "fixed") {
+        throw new Error("This pothole was verified fixed on a later drive, so its old complaint cannot be sent.");
+      }
+      if (current.status !== "draft" && current.status !== "queued") {
+        throw new Error("This report is not a sendable draft.");
+      }
+      return verified;
     }
     if ((m = path.match(/^\/api\/reports\/(\d+)\/submitted$/)) && method === "POST") {
-      const rec = await getReport(m[1]);
-      if (!rec) throw new Error("Report not found.");
-      if (rec.status !== "draft" && rec.status !== "queued" && rec.status !== "sent") {
-        throw new Error("This report cannot be marked submitted.");
-      }
       const body = JSON.parse(opts.body || "{}");
       const reference = String(body.official_grievance_id || "").trim().slice(0, 100);
-      const referenceRequired = isOfficialHandoff(rec)
-        && rec.requires_official_reference !== false;
-      if (referenceRequired && reference.length < 4) {
-        if (rec.delivery_channel === "bmc_quickfix") {
-          throw new Error("Enter the official BMC grievance ID before marking this submitted.");
+      return mutateReportAtomically(m[1], (rec) => {
+        if (conditionStatus(rec) === "fixed") {
+          throw new Error("This pothole was verified fixed on a later drive, so it cannot be marked as a new submission.");
         }
-        const authority = rec.authority_name || "the authority";
-        throw new Error(`Enter the official grievance/reference ID from ${authority} before marking this submitted.`);
-      }
-      rec.official_grievance_id = reference || null;
-      rec.status = "sent";
-      rec.submitted_at = Date.now() / 1000;
-      rec.sent_at = rec.submitted_at;
-      await putReport(rec);
-      return toDict(rec);
+        if (rec.status !== "draft" && rec.status !== "queued" && rec.status !== "sent") {
+          throw new Error("This report cannot be marked submitted.");
+        }
+        const referenceRequired = isOfficialHandoff(rec)
+          && rec.requires_official_reference !== false;
+        if (referenceRequired && reference.length < 4) {
+          if (rec.delivery_channel === "bmc_quickfix") {
+            throw new Error("Enter the official BMC grievance ID before marking this submitted.");
+          }
+          const authority = rec.authority_name || "the authority";
+          throw new Error(`Enter the official grievance/reference ID from ${authority} before marking this submitted.`);
+        }
+        rec.official_grievance_id = reference || null;
+        rec.status = "sent";
+        rec.submitted_at = Date.now() / 1000;
+        rec.sent_at = rec.submitted_at;
+      });
     }
     if ((m = path.match(/^\/api\/reports\/(\d+)\/handoff-opened$/)) && method === "POST") {
       const rec = await getReport(m[1]);
       if (!rec) throw new Error("Report not found.");
+      if (conditionStatus(rec) === "fixed") {
+        throw new Error("This pothole was verified fixed on a later drive, so its old handoff cannot be opened.");
+      }
       if (!isOfficialHandoff(rec)) throw new Error("This report has no official app or portal handoff.");
       if (rec.status !== "draft" && rec.status !== "queued") {
         throw new Error("This report cannot record an official handoff.");
       }
-      applyVerifiedHandoff(rec, await openOfficialHandoff(rec));
-      rec.status = "queued";
-      rec.handoff_opened_at = Date.now() / 1000;
-      await putReport(rec);
-      return toDict(rec);
+      const verified = await openOfficialHandoff(rec);
+      return mutateReportAtomically(rec.id, (current) => {
+        if (conditionStatus(current) === "fixed") {
+          throw new Error("This pothole was verified fixed on a later drive, so its old handoff cannot be opened.");
+        }
+        if (!isOfficialHandoff(current)) {
+          throw new Error("This report has no official app or portal handoff.");
+        }
+        if (current.status !== "draft" && current.status !== "queued") {
+          throw new Error("This report cannot record an official handoff.");
+        }
+        applyVerifiedHandoff(current, verified);
+        current.status = "queued";
+        current.handoff_opened_at = Date.now() / 1000;
+      });
     }
     if ((m = path.match(/^\/api\/reports\/(\d+)$/))) {
       const rec = await getReport(m[1]);
       if (!rec) throw new Error("Report not found.");
       if (method === "PATCH") {
-        if (rec.status !== "draft" && rec.status !== "queued") throw new Error("Only drafts can be edited.");
         const upd = JSON.parse(opts.body);
-        rec.email_subject = upd.email_subject;
-        rec.email_body = upd.email_body;
-        await putReport(rec);
-        return toDict(rec);
+        return mutateReportAtomically(rec.id, (current) => {
+          if (conditionStatus(current) === "fixed") throw new Error("Fixed reports cannot be edited for sending.");
+          if (current.status !== "draft" && current.status !== "queued") throw new Error("Only drafts can be edited.");
+          current.email_subject = upd.email_subject;
+          current.email_body = upd.email_body;
+        });
       }
       if (method === "DELETE") {
         if (rec.status === "sent") throw new Error("Sent reports cannot be discarded.");
@@ -6030,10 +6689,13 @@ match_index must be null. confidence is your 0 to 1 confidence in the match.`;
                    damageTypeOf, assessmentOf, normaliseModel, normaliseDetail,
                    normaliseIssueType, civicIssueName, issueFileStem,
                    buildDetectionRequest, ASSESS_SCHEMA, DETECT_PROMPT, PROMPT_VERSION,
+                   REPAIR_SCHEMA, REPAIR_PROMPT, REPAIR_PROMPT_VERSION,
+                   REPAIR_SCHEMA_VERSION, clearAbsenceForRepair, repairConditionFor,
                    SCHEMA_VERSION, MAX_DETECTION_IMAGES, ROAD_BAND, averageLuminance,
-                   distMeters, roadEventMatch, sameRoadEvent, findDuplicateReport,
-                   draftEmail, dataUrlToBlob, photoToBase64, toDict, listDict,
-                   warrantyFor, shortlistFor, matchTenderFor: matchTender,
+                   distMeters, roadEventMatch, sameRoadEvent, repairTargetMatch,
+                   findRepairCandidateFromReports, findDuplicateReport,
+                   draftEmail, dataUrlToBlob, blobToDataUrl, photoToBase64, toDict, listDict,
+                   warrantyFor, tenderCoversCarriageway, shortlistFor, matchTenderFor: matchTender,
                    mumbaiWardFromName, mumbaiFromGeocode, evidenceForReport,
                    normaliseAuthorityValue, validateAuthorityRegistry,
                    validateOfficialHandoffRegistry,

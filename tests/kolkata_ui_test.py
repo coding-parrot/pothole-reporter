@@ -27,7 +27,7 @@ async () => {
   const enKeys = Object.keys(I18N.en).sort();
   const bnKeys = Object.keys(I18N.bn || {}).sort();
   eq("i18n: Bengali has exactly the English key set", bnKeys, enKeys);
-  eq("i18n: Bengali key count is pinned", bnKeys.length, 222);
+  eq("i18n: Bengali key count is pinned", bnKeys.length, 233);
   for (const key of enKeys) {
     eq(`i18n placeholder parity: ${key}`,
        placeholders(I18N.bn[key]), placeholders(I18N.en[key]));

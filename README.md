@@ -5,7 +5,7 @@ detects visible road damage; **Photo** lets the user choose the issue and prepar
 for an official complaint channel. Reports remain on the phone, and nothing is filed
 automatically. There is no project-operated backend or account system.
 
-Current release: [v1.28.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.28.0)
+Current release: [v1.29.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.29.0)
 
 <p>
   <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
@@ -41,6 +41,9 @@ WhatsApp, dialler, share sheet, or email client. Nothing is submitted automatica
   other two are explicit user reports and are not sent to OpenAI.
 - OpenAI vision assesses visible potholes, failed patches, breakup, ruts, and depressions.
 - Nearby repeat observations are grouped into one report; Debug mode retains each one.
+- On a later live drive, **Fixed** requires a separate before/after AI check that clearly
+  sees the same footprint covered by completed, intact repair material. Probable,
+  obstructed, mismatched, or merely clean-looking views remain open for review.
 - The app preserves the photo, coordinates, time, category, complaint draft, and official
   reference ID locally. A genuinely temporary routing-data failure can be retried later;
   permanent boundary/category refusals require a new report or added coverage.
@@ -65,7 +68,9 @@ needed, it downloads a versioned state pack or the relevant 2° National Highway
 this project's GitHub Pages site. Highway matching runs before municipal routing. The
 101 highway tiles total about 18 MB, but only the relevant tile is downloaded and cached;
 they do not enlarge the APK. The optional Karnataka tender pack is downloaded only for
-eligible contract matching.
+eligible contract matching. It contains only titles with explicit carriageway work;
+drain-, footpath-, sewer-, and other roadside-only contracts are excluded even when a
+road name appears as their location.
 
 Every downloaded pack is checked byte-for-byte against a checksum pinned in the app before
 it is used, then cached locally. Missing, malformed, or altered required routing, contact,
@@ -106,7 +111,8 @@ state or an approximate 2° highway tile. See the
   The 31 structured-city routes require Nominatim's city/municipality and state fields;
   a broad envelope or stale place label alone cannot select a route.
 - Contract matching is optional and available only for eligible Karnataka routes. A match
-  is not proof that a contractor or warranty applies.
+  is not proof that a contractor or warranty applies. Only explicit carriageway-work
+  scope can enter the matcher; mixed work must state the road work separately.
 - National Highway coverage follows mapped NH/NE geometry, not the legal road register.
   Parallel roads, junctions, weak GPS, missing tiles, and altered data fail closed.
 - The project is not affiliated with or endorsed by a government body or data provider.

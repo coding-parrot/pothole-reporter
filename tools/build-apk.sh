@@ -17,7 +17,7 @@ FORBIDDEN_STATE_ASSETS=(
 )
 
 echo "1/5 mirroring static/ into www/"
-for f in standalone.js index.html pack-manifest.json pack-manifest-v1.26.json pack-manifest-v1.27.json pack-manifest-v1.28.json highway-manifest.json; do cp "static/$f" "android-app/www/$f"; done
+for f in standalone.js index.html pack-manifest.json pack-manifest-v1.26.json pack-manifest-v1.27.json pack-manifest-v1.28.json pack-manifest-v1.29.json highway-manifest.json; do cp "static/$f" "android-app/www/$f"; done
 
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
   [ ! -e "static/$asset" ] || { echo "FAIL: state data must not be bundled in static/: $asset"; exit 1; }
@@ -51,6 +51,7 @@ same pack-manifest.json
 same pack-manifest-v1.26.json
 same pack-manifest-v1.27.json
 same pack-manifest-v1.28.json
+same pack-manifest-v1.29.json
 same highway-manifest.json
 
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do

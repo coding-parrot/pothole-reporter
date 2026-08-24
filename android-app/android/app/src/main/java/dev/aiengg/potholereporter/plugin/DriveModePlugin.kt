@@ -6,11 +6,13 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.util.Base64
+import androidx.room.withTransaction
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import dev.aiengg.potholereporter.MainActivity
 import dev.aiengg.potholereporter.db.FootageSegmentEntity
 import dev.aiengg.potholereporter.db.PotholeDatabase
+import dev.aiengg.potholereporter.db.RepairTargetEntity
 import dev.aiengg.potholereporter.db.SessionEntity
 import dev.aiengg.potholereporter.drive.DriveEndSummary
 import dev.aiengg.potholereporter.drive.DriveForegroundService
@@ -32,6 +34,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.util.UUID
 
@@ -145,6 +148,8 @@ class DriveModePlugin : Plugin() {
         const val START_READY_TIMEOUT_MS = 12_000L
         const val START_CANCEL_TIMEOUT_MS = 25_000L
         const val START_POLL_MS = 50L
+        const val MAX_REPAIR_TARGETS = 2_000
+        const val MAX_REPAIR_TARGET_IMAGE_BYTES = 4 * 1024 * 1024
     }
 
     override fun load() {
@@ -597,6 +602,205 @@ class DriveModePlugin : Plugin() {
         }
     }
 
+    /**
+     * Atomically replaces the WebView-to-native repair cache before Drive starts. A
+     * generation directory means a malformed or interrupted payload cannot leave Room
+     * pointing at a half-written set of historical evidence images.
+     */
+    @PluginMethod
+    fun replaceRepairTargets(call: PluginCall) {
+        val targetsArray = call.getArray("targets")
+        if (targetsArray == null) {
+            call.reject("Repair targets are required")
+            return
+        }
+        if (targetsArray.length() > MAX_REPAIR_TARGETS) {
+            call.reject("Too many repair targets")
+            return
+        }
+        val driveStatus = DriveForegroundService.status()
+        if (driveStatus.isRunning || driveStatus.isStopping) {
+            call.reject("Repair targets can only be replaced before Drive Mode starts")
+            return
+        }
+
+        pluginScope.launch {
+            val root = File(context.filesDir, "repair_targets")
+            val generation = File(root, "generation-${UUID.randomUUID()}")
+            try {
+                if (!generation.mkdirs()) throw IllegalStateException("could not create repair target storage")
+                val parsed = mutableListOf<RepairTargetEntity>()
+                val seenIds = HashSet<Long>()
+                for (index in 0 until targetsArray.length()) {
+                    val obj = targetsArray.getJSONObject(index)
+                    val id = obj.optLong("id", -1L)
+                    if (id <= 0 || !seenIds.add(id)) {
+                        throw IllegalArgumentException("repair target id is invalid or duplicated")
+                    }
+                    val lat = obj.optDouble("lat", Double.NaN)
+                    val lng = obj.optDouble("lng", Double.NaN)
+                    if (!lat.isFinite() || !lng.isFinite() || kotlin.math.abs(lat) > 90 ||
+                        kotlin.math.abs(lng) > 180) {
+                        throw IllegalArgumentException("repair target location is invalid")
+                    }
+                    val gpsAccuracy = nullableFiniteFloat(obj, "gps_accuracy")?.also {
+                        if (it < 0f) throw IllegalArgumentException("repair target GPS accuracy is invalid")
+                    }
+                    val heading = nullableFiniteFloat(obj, "heading")?.let {
+                        (it % 360f + 360f) % 360f
+                    }
+                    val captureSource = obj.optString("capture_source", "").take(40)
+                    val damageType = obj.optString("damage_type", "")
+                    if (damageType !in setOf("pothole_cavity", "failed_patch", "surface_breakup",
+                            "rut_or_depression", "other_road_damage")) {
+                        throw IllegalArgumentException("repair target damage type is invalid")
+                    }
+                    val condition = obj.optString("condition_status", "open")
+                    if (condition !in setOf("open", "repair_review", "fixed")) {
+                        throw IllegalArgumentException("repair target condition is invalid")
+                    }
+                    val lastDamageObservedRaw = obj.optDouble(
+                        "last_damage_observed_at", Double.NaN
+                    )
+                    if (!lastDamageObservedRaw.isFinite() || lastDamageObservedRaw <= 0.0 ||
+                        lastDamageObservedRaw > Long.MAX_VALUE.toDouble()) {
+                        throw IllegalArgumentException(
+                            "repair target last damage observation is invalid"
+                        )
+                    }
+                    val lastDamageObservedAt = kotlin.math.floor(lastDamageObservedRaw).toLong()
+                    val decoded = decodeImageDataUrl(obj.optString("photo_data_url", ""))
+                    val extension = when (decoded.first) {
+                        "image/png" -> "png"
+                        "image/webp" -> "webp"
+                        "image/gif" -> "gif"
+                        else -> "jpg"
+                    }
+                    val evidence = File(generation, "target-$id.$extension")
+                    evidence.outputStream().use { it.write(decoded.second) }
+                    parsed.add(RepairTargetEntity(
+                        reportId = id,
+                        lat = lat,
+                        lng = lng,
+                        gpsAccuracy = gpsAccuracy,
+                        heading = heading,
+                        captureSource = captureSource,
+                        photoPath = evidence.absolutePath,
+                        photoMime = decoded.first,
+                        damageType = damageType,
+                        conditionStatus = condition,
+                        lastDamageObservedAt = lastDamageObservedAt
+                    ))
+                }
+
+                val db = PotholeDatabase.getDatabase(context)
+                var effectiveTargets = parsed.toList()
+                db.withTransaction {
+                    // An unacknowledged native observation is newer than the WebView
+                    // snapshot by definition. Preserve it if replacement runs before
+                    // IndexedDB has durably applied and acknowledged the outbox row.
+                    val pendingByTarget = db.repairObservationDao()
+                        .getUnsyncedObservations()
+                        .associateBy { it.targetReportId }
+                    effectiveTargets = parsed.map { target ->
+                        val pending = pendingByTarget[target.reportId]
+                        if (pending != null && pending.observedAt > target.lastDamageObservedAt &&
+                            pending.currentCondition in setOf("fixed", "repair_review")) {
+                            target.copy(
+                                conditionStatus = pending.currentCondition,
+                                lastObservedDriveId = pending.driveId,
+                                lastObservedAt = pending.observedAt
+                            )
+                        } else target
+                    }
+                    db.repairTargetDao().clearAll()
+                    if (effectiveTargets.isNotEmpty()) {
+                        db.repairTargetDao().insertTargets(effectiveTargets)
+                    }
+                }
+                root.listFiles()?.filter { it != generation }?.forEach { it.deleteRecursively() }
+                call.resolve(JSObject().apply { put("replaced", effectiveTargets.size) })
+            } catch (error: Exception) {
+                generation.deleteRecursively()
+                call.reject("Failed to replace repair targets: ${error.message}")
+            }
+        }
+    }
+
+    @PluginMethod
+    fun syncRepairObservations(call: PluginCall) {
+        pluginScope.launch {
+            try {
+                val observations = PotholeDatabase.getDatabase(context)
+                    .repairObservationDao().getUnsyncedObservations()
+                val array = JSArray()
+                observations.forEach { observation ->
+                    array.put(JSObject().apply {
+                        put("id", observation.id)
+                        put("target_report_id", observation.targetReportId)
+                        put("source_event_key", observation.sourceEventKey)
+                        put("observed_at", observation.observedAt)
+                        put("drive_id", observation.driveId)
+                        put("lat", observation.lat)
+                        put("lng", observation.lng)
+                        put("gps_accuracy", observation.gpsAccuracy)
+                        put("speed_mps", observation.speedMps)
+                        put("heading", observation.heading)
+                        put("current_photo_data_url", fileAsDataUrl(observation.currentPhotoPath))
+                        // Room records the resulting local status (fixed/review). The
+                        // WebView independently derives that status from the raw semantic
+                        // claim and assessment, so never ask it to trust a native label.
+                        put("current_condition", if (observation.currentCondition in
+                            setOf("fixed", "repair_review")) "repaired"
+                            else observation.currentCondition)
+                        put("assessment", observation.assessment)
+                        put("image_quality", observation.imageQuality)
+                        put("same_location_visible", observation.sameLocationVisible)
+                        put("completed_repair_visible", observation.completedRepairVisible)
+                        put("description", observation.description)
+                        put("detection_model", observation.detectionModel)
+                        put("image_detail", observation.imageDetail)
+                        put("prompt_version", observation.promptVersion)
+                        put("schema_version", observation.schemaVersion)
+                    })
+                }
+                call.resolve(JSObject().apply {
+                    put("observations", array)
+                    put("count", array.length())
+                })
+            } catch (error: Exception) {
+                call.reject("Failed to sync repair observations: ${error.message}")
+            }
+        }
+    }
+
+    @PluginMethod
+    fun acknowledgeRepairObservations(call: PluginCall) {
+        val idsArray = call.getArray("ids") ?: JSArray()
+        val ids = mutableListOf<Long>()
+        for (index in 0 until idsArray.length()) {
+            val value = idsArray.optLong(index, -1L)
+            if (value > 0) ids.add(value)
+        }
+        pluginScope.launch {
+            try {
+                if (ids.isNotEmpty()) {
+                    val distinctIds = ids.distinct()
+                    val dao = PotholeDatabase.getDatabase(context).repairObservationDao()
+                    val acknowledged = dao.getObservations(distinctIds)
+                    // IndexedDB has its own Blob now. Remove the durable outbox rows,
+                    // then best-effort remove their native copies so revisits do not
+                    // accumulate hidden JPEGs forever.
+                    dao.deleteObservations(distinctIds)
+                    acknowledged.forEach { runCatching { File(it.currentPhotoPath).delete() } }
+                }
+                call.resolve(JSObject().apply { put("acknowledged", ids.distinct().size) })
+            } catch (error: Exception) {
+                call.reject("Failed to acknowledge repair observations: ${error.message}")
+            }
+        }
+    }
+
     @PluginMethod
     fun openMaps(call: PluginCall) {
         val navigation = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q="))
@@ -616,14 +820,21 @@ class DriveModePlugin : Plugin() {
                 val db = PotholeDatabase.getDatabase(context)
                 val reportsRoot = File(context.filesDir, "reports")
                 val footageRoot = File(context.filesDir, "footage")
+                val repairTargetsRoot = File(context.filesDir, "repair_targets")
                 if (reportsRoot.exists() && (!reportsRoot.deleteRecursively() || reportsRoot.exists())) {
                     throw IllegalStateException("some report photos could not be deleted")
                 }
                 if (footageRoot.exists() && (!footageRoot.deleteRecursively() || footageRoot.exists())) {
                     throw IllegalStateException("some recorded footage could not be deleted")
                 }
+                if (repairTargetsRoot.exists() &&
+                    (!repairTargetsRoot.deleteRecursively() || repairTargetsRoot.exists())) {
+                    throw IllegalStateException("some repair target photos could not be deleted")
+                }
                 db.footageDao().clearAll()
                 db.eventSightingDao().clearAll()
+                db.repairObservationDao().clearAll()
+                db.repairTargetDao().clearAll()
                 db.reportDao().clearAll()
                 db.sessionDao().clearAll()
                 call.resolve()
@@ -905,6 +1116,44 @@ class DriveModePlugin : Plugin() {
         val file = File(path)
         if (!file.isFile || file.length() > 8L * 1024 * 1024) return null
         return "data:image/jpeg;base64," + Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
+    }
+
+    private fun nullableFiniteFloat(obj: JSONObject, key: String): Float? {
+        if (!obj.has(key) || obj.isNull(key)) return null
+        val value = obj.optDouble(key, Double.NaN)
+        if (!value.isFinite() || value > Float.MAX_VALUE || value < -Float.MAX_VALUE) {
+            throw IllegalArgumentException("repair target $key is invalid")
+        }
+        return value.toFloat()
+    }
+
+    private fun decodeImageDataUrl(value: String): Pair<String, ByteArray> {
+        if (value.length > MAX_REPAIR_TARGET_IMAGE_BYTES * 2) {
+            throw IllegalArgumentException("repair target photo is too large")
+        }
+        val comma = value.indexOf(',')
+        if (comma <= 5) throw IllegalArgumentException("repair target photo is invalid")
+        val header = value.substring(5, comma).lowercase()
+        val parts = header.split(';')
+        if (parts.size != 2 || parts[1] != "base64") {
+            throw IllegalArgumentException("repair target photo is invalid")
+        }
+        val mime = when (parts[0]) {
+            "image/jpeg", "image/jpg" -> "image/jpeg"
+            "image/png" -> "image/png"
+            "image/webp" -> "image/webp"
+            "image/gif" -> "image/gif"
+            else -> throw IllegalArgumentException("repair target photo type is unsupported")
+        }
+        val bytes = try {
+            Base64.decode(value.substring(comma + 1), Base64.DEFAULT)
+        } catch (_: IllegalArgumentException) {
+            throw IllegalArgumentException("repair target photo is invalid")
+        }
+        if (bytes.isEmpty() || bytes.size > MAX_REPAIR_TARGET_IMAGE_BYTES) {
+            throw IllegalArgumentException("repair target photo is empty or too large")
+        }
+        return mime to bytes
     }
 
     override fun handleOnDestroy() {

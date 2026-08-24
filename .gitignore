@@ -7,6 +7,7 @@ photos/
 .venv/
 node_modules/
 android-app/android/.gradle/
+android-app/android/.kotlin/
 android-app/android/build/
 android-app/android/app/build/
 android-app/android/local.properties

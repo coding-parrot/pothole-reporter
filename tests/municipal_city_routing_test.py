@@ -450,7 +450,7 @@ def semantic_tamper_reason(browser, pack_id: str, envelope: dict) -> str | None:
 
     context = browser.new_context(viewport={"width": 390, "height": 844})
     context.route(
-        "**/pack-manifest-v1.28.json",
+        "**/pack-manifest-v1.29.json",
         lambda route: route.fulfill(
             status=200, content_type="application/json", body=manifest_body
         ),

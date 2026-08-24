@@ -10,7 +10,7 @@ photo, routing, and any probable contract match before sending a complaint.
 
 Large routing, contact, and procurement datasets are not embedded in the APK. The app
 ships a small manifest that pins each supported resource's version, HTTPS URL, byte
-length, and SHA-256 checksum. The v1.28 state-pack manifest contains 13 resources: twelve
+length, and SHA-256 checksum. The v1.29 state-pack manifest contains 13 resources: twelve
 routing/contact packs covering Andhra Pradesh, Delhi, Gujarat, Karnataka, Maharashtra,
 Punjab, Tamil Nadu, Telangana, West Bengal, and the additional top-50 city routes, plus one
 optional Karnataka tender pack. Tamil Nadu and Telangana each use separate statewide and
@@ -18,9 +18,10 @@ exact-city packs. Procurement data is
 requested only for an eligible Karnataka contract match.
 The old unversioned ten-resource manifest remains unchanged for cached v1.25 clients, and
 the versioned v1.26 eleven-resource manifest remains unchanged for cached v1.26 clients.
-The versioned v1.27 twelve-resource manifest also remains unchanged for cached v1.27
-clients. v1.28 reads `pack-manifest-v1.28.json`, preventing a mixed-cache release from
-disabling otherwise valid routing.
+The versioned v1.27 twelve-resource and v1.28 thirteen-resource manifests also remain
+unchanged for their cached clients. v1.29 reads `pack-manifest-v1.29.json`, preventing a
+mixed-cache release from disabling otherwise valid routing. Its Karnataka tender resource
+uses the carriageway-scope-filtered v2 adapter.
 The Gujarat pack contains a dissolved copy of the reviewed 48-ward AMC boundary.
 
 The app also ships a National Highway manifest that pins 101 immutable 2° geometry tiles.
@@ -511,16 +512,19 @@ curl -s -X POST "https://kppp.karnataka.gov.in/supplier-registration-service/v1/
 ```
 
 That header reports the total the portal holds: **98,009 awarded works** at the time of
-writing. `tools/pull-kppp.py` walks those pages and keeps **42,283 road-related rows** by
-matching the work title. That is the full source snapshot, not the file downloaded by the
-app. The optional tender pack contains the **13,577** rows that are indexed to a supported
-municipal body and can actually enter its matcher.
+writing. The checked-in source snapshot contains **42,283** title-matched candidates from
+the earlier broad pull. The current fail-closed scope classifier retains **21,092** titles
+that explicitly include carriageway work. Of the **13,577** rows indexed to a supported
+municipal body, only **5,351** pass that same classifier and enter the downloadable pack.
+Drain, footpath, UGD/sewer, pipeline, lighting, building, bridge, culvert, and similar
+roadside-only work is excluded when a road name merely describes its location. Mixed work
+is retained only when work on the road surface is explicit.
 
 **Verification done on 19 Aug 2026:** of the 1,000 rows on the portal's first page,
 **341 appear in the full 42,283-row source snapshot, byte-identical on title, publication
-date and location**. This check predates the supported-body reduction and is not a claim
-that all 341 appear in the current 13,577-row downloadable pack. The rest of that page is
-non-road work the title filter deliberately drops.
+date and location**. This check predates the supported-body and carriageway-scope
+reductions and is not a claim that all 341 appear in the current 5,351-row downloadable
+pack.
 
 Fields taken: `tenderNumber`, `description` (the work title), `locationName`,
 `publishedDate`. Nothing is edited beyond truncating long titles.
@@ -532,8 +536,10 @@ Fields taken: `tenderNumber`, `description` (the work title), `locationName`,
 
 The portal's *search* results do not include the winning bidder; only the per-tender full
 view does. Contractor names therefore come from that pre-existing Bengaluru snapshot.
-The full 42,283-row source contains **1,124** named bidders; the current downloadable pack
-retains **1,121** of them. Its other **12,456** rows have no bidder name. Outside Bengaluru
+The full 42,283-row source has a bidder recorded on **1,124** rows, covering **993**
+distinct names; the filtered
+downloadable pack has a bidder recorded on **526** rows, covering **492** distinct names.
+Its other **4,825** rows have no bidder name. Outside Bengaluru
 the complaint names the tender and states plainly that no winning bidder is recorded. It
 never guesses a company name.
 
@@ -609,7 +615,7 @@ disagree by looking.
 
 A probable contract match is also a judgment, not a procurement record. For an eligible
 Karnataka route only, the app first builds a deterministic local shortlist from address
-words and contracts indexed to the same local body, then asks an AI model whether one
+words and carriageway-scope contracts indexed to the same local body, then asks an AI model whether one
 candidate clearly covers that road or locality. A confidence threshold can reject weak
 matches, but it cannot turn an accepted match into proof. Contract matching is disabled
 for every route outside eligible Karnataka coverage.
@@ -686,16 +692,15 @@ That wording is deliberate and should not be strengthened.
   is neither ownership nor a contract match.
 - 137 of Karnataka's 319 local bodies have no address in the file, because their district
   pages publish none. Those reports refuse to route.
-- The full 42,283-row source has 41,159 records without a winning bidder. The downloadable
-  13,577-row pack has 12,456 without one and 1,121 with one.
-- Of the 42,283 source rows, 18,972 are municipal (DMA or legacy BBMP) records. The pack
-  retains the 13,577 indexed to a supported body that can enter the app's contract
-  shortlist. The remaining 5,395 municipal rows are unresolved or belong to bodies without
-  a published address; the 23,311 non-municipal rows belong to agencies such as PWD,
-  panchayats, and irrigation departments and are not candidates for a municipal complaint.
-- The road-work filter matches on title keywords, so the candidate pool is inclusive by
-  design; the confidence gate on the match is what keeps weak candidates out of a
-  complaint.
+- The full 42,283-row source has 41,159 records without a winning bidder. The filtered
+  5,351-row pack has 4,825 without one and 526 with one.
+- Of the 18,972 DMA or legacy-BBMP source rows, 7,473 explicitly include carriageway work;
+  5,351 are indexed to a supported body and enter the pack, while 2,122 are unresolved or
+  belong to bodies without a published address. The 23,311 non-municipal source rows are
+  not candidates for a municipal complaint.
+- Scope classification is deliberately fail-closed and title-based. It may omit a genuine
+  road contract whose title is vague, but a roadside-only contract cannot be rescued by an
+  AI location match or by a road-looking tender-number category.
 - Contracts are a snapshot. Re-run `tools/pull-kppp.py` to refresh.
 - The public Nominatim endpoint is cached on an approximately 11 m grid and serialized
   below one request per second. National or municipal-scale deployment must switch the

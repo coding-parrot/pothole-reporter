@@ -1,0 +1,267 @@
+{
+  "cache": {
+    "max_bytes": 67108864,
+    "routing_max_unused_days": 90,
+    "tender_max_unused_days": 30
+  },
+  "catalog_version": 1,
+  "format": "pothole-pack-manifest",
+  "resources": {
+    "in-ap-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 632172,
+      "coverage_scope": "Full State of Andhra Pradesh; neutral PGRS grievance handoff; excludes Yanam, Puducherry Union Territory",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Andhra Pradesh grievance sources: respective source terms"
+      ],
+      "pack_id": "in-ap-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/ap/routing-7532126b708aa1b2aa5d7c6be6480f433aedac6e8b28de7e14f539cf05131a77.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "7532126b708aa1b2aa5d7c6be6480f433aedac6e8b28de7e14f539cf05131a77",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "AP",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ap/routing-7532126b708aa1b2aa5d7c6be6480f433aedac6e8b28de7e14f539cf05131a77.json"
+    },
+    "in-dl-routing": {
+      "adapter": "delhi-nct-v1",
+      "bytes": 19890,
+      "coverage_scope": "Delhi NCT",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0"
+      ],
+      "pack_id": "in-dl-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/dl/routing-848ef7a8b01c84096bd97d0ca3ec1b59500e9798e95c8ec83efd41e759875507.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "848ef7a8b01c84096bd97d0ca3ec1b59500e9798e95c8ec83efd41e759875507",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "DL",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/dl/routing-848ef7a8b01c84096bd97d0ca3ec1b59500e9798e95c8ec83efd41e759875507.json"
+    },
+    "in-gj-routing": {
+      "adapter": "municipal-city-v1",
+      "bytes": 49039,
+      "coverage_scope": "Reviewed Ahmedabad 48-ward footprint; excludes wider AUDA",
+      "kind": "routing",
+      "licenses": [
+        "OpenCity / Oorvani Foundation data via Bharatlas: ODbL 1.0"
+      ],
+      "pack_id": "in-gj-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/gj/routing-96fad5f32c37d2e9144ec0905f71d6905dc4fc8816cb549d9d8438373b0714d7.json",
+      "review_after": "2026-09-21",
+      "schema_version": 1,
+      "sha256": "96fad5f32c37d2e9144ec0905f71d6905dc4fc8816cb549d9d8438373b0714d7",
+      "source_retrieved_at": "2026-08-23",
+      "state_code": "GJ",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/gj/routing-96fad5f32c37d2e9144ec0905f71d6905dc4fc8816cb549d9d8438373b0714d7.json"
+    },
+    "in-ka-routing": {
+      "adapter": "karnataka-kgis-v1",
+      "bytes": 36011,
+      "coverage_scope": "Karnataka urban local bodies",
+      "kind": "routing",
+      "licenses": [
+        "Official Karnataka public-body records: respective source terms"
+      ],
+      "pack_id": "in-ka-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/ka/routing-75d521f1356291aff0ea8c75b6e2ac9c7c6fe10e3f410dd348d130ad56705dec.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "75d521f1356291aff0ea8c75b6e2ac9c7c6fe10e3f410dd348d130ad56705dec",
+      "source_retrieved_at": "2026-08-19",
+      "state_code": "KA",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ka/routing-75d521f1356291aff0ea8c75b6e2ac9c7c6fe10e3f410dd348d130ad56705dec.json"
+    },
+    "in-ka-tenders": {
+      "adapter": "karnataka-carriageway-indexed-v2",
+      "bytes": 1265193,
+      "coverage_scope": "Karnataka municipal procurement records",
+      "kind": "tenders",
+      "licenses": [
+        "Official Karnataka procurement records: respective source terms"
+      ],
+      "pack_id": "in-ka-tenders",
+      "pack_version": 1,
+      "path": "packs/v1/states/ka/tenders-0768b7abcb48cf3e28d576f4fd6a986a8b27909637dffdd49b310a16e016f97c.json",
+      "records": 5351,
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "0768b7abcb48cf3e28d576f4fd6a986a8b27909637dffdd49b310a16e016f97c",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "KA",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ka/tenders-0768b7abcb48cf3e28d576f4fd6a986a8b27909637dffdd49b310a16e016f97c.json"
+    },
+    "in-mh-routing": {
+      "adapter": "maharashtra-statewide-v1",
+      "bytes": 1574600,
+      "coverage_scope": "Full State of Maharashtra; exact MMR and Pune Municipal Corporation routes where verified",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Maharashtra GIS and public-authority sources: respective source terms"
+      ],
+      "pack_id": "in-mh-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/mh/routing-26223f8a2dca11615daf789645a98fc2a661acda700c77c06ad89c61fb180e54.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "26223f8a2dca11615daf789645a98fc2a661acda700c77c06ad89c61fb180e54",
+      "source_retrieved_at": "2026-08-23",
+      "state_code": "MH",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/mh/routing-26223f8a2dca11615daf789645a98fc2a661acda700c77c06ad89c61fb180e54.json"
+    },
+    "in-pb-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 178035,
+      "coverage_scope": "Full State of Punjab; neutral Connect Punjab grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Punjab grievance sources: respective source terms"
+      ],
+      "pack_id": "in-pb-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/pb/routing-49127336c8ccdc08fe4e197fc84cf7634473c162eb61d8af98711779867ee613.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "49127336c8ccdc08fe4e197fc84cf7634473c162eb61d8af98711779867ee613",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "PB",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/pb/routing-49127336c8ccdc08fe4e197fc84cf7634473c162eb61d8af98711779867ee613.json"
+    },
+    "in-tg-routing": {
+      "adapter": "municipal-city-v1",
+      "bytes": 4405,
+      "coverage_scope": "Official Hyderabad 2,053 km² CURE point-query coverage; shared grievance intake",
+      "kind": "routing",
+      "licenses": [
+        "Official TGRAC public query service; no boundary geometry redistributed"
+      ],
+      "pack_id": "in-tg-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/tg/routing-92c67b4f7e7ec11b99f8f48411582cae0d0fabdd972480d7f1b82eb3fa1d0cb9.json",
+      "review_after": "2026-09-21",
+      "schema_version": 1,
+      "sha256": "92c67b4f7e7ec11b99f8f48411582cae0d0fabdd972480d7f1b82eb3fa1d0cb9",
+      "source_retrieved_at": "2026-08-23",
+      "state_code": "TG",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tg/routing-92c67b4f7e7ec11b99f8f48411582cae0d0fabdd972480d7f1b82eb3fa1d0cb9.json"
+    },
+    "in-tg-state-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 333514,
+      "coverage_scope": "Full State of Telangana; neutral Prajavani grievance handoff; exact Hyderabad CURE route remains more specific",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Telangana grievance sources: respective source terms"
+      ],
+      "pack_id": "in-tg-state-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/tg/routing-6ecabec0bbf110e023aa1f65c46e42c50efed2c63e9a67edb4aeb15a86832d67.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "6ecabec0bbf110e023aa1f65c46e42c50efed2c63e9a67edb4aeb15a86832d67",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "TG",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tg/routing-6ecabec0bbf110e023aa1f65c46e42c50efed2c63e9a67edb4aeb15a86832d67.json"
+    },
+    "in-tn-routing": {
+      "adapter": "municipal-city-v1",
+      "bytes": 15737,
+      "coverage_scope": "Greater Chennai Corporation limits",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0"
+      ],
+      "pack_id": "in-tn-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/tn/routing-d1d32b82476c98be6a344e5d4ec788f0acbe63a8b4479453e78c3392eff7bb56.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "d1d32b82476c98be6a344e5d4ec788f0acbe63a8b4479453e78c3392eff7bb56",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "TN",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tn/routing-d1d32b82476c98be6a344e5d4ec788f0acbe63a8b4479453e78c3392eff7bb56.json"
+    },
+    "in-tn-state-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 494448,
+      "coverage_scope": "Full State of Tamil Nadu; neutral Mudhalvarin Mugavari grievance handoff; excludes Puducherry Union Territory",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Tamil Nadu grievance sources: respective source terms"
+      ],
+      "pack_id": "in-tn-state-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/tn/routing-5933d7ff31dcc2c6bd34849c7f4349c71b713bdf9f06f5a4f00733058fe8dcd9.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "5933d7ff31dcc2c6bd34849c7f4349c71b713bdf9f06f5a4f00733058fe8dcd9",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "TN",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tn/routing-5933d7ff31dcc2c6bd34849c7f4349c71b713bdf9f06f5a4f00733058fe8dcd9.json"
+    },
+    "in-top50-routing": {
+      "adapter": "major-city-structured-v1",
+      "bytes": 64706,
+      "coverage_scope": "35 additional Census 2011 top-50 population centres; conservative structured city/state matching",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official state and urban grievance sources: respective source terms"
+      ],
+      "pack_id": "in-top50-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/in/routing-0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "IN",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/in/routing-0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5.json"
+    },
+    "in-wb-routing": {
+      "adapter": "west-bengal-statewide-v1",
+      "bytes": 2069831,
+      "coverage_scope": "Full State of West Bengal; exact Kolkata Municipal Corporation route where verified",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official West Bengal UDMA and KMC sources: respective source terms"
+      ],
+      "pack_id": "in-wb-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/wb/routing-32d83cef19eb490cedfec38323ae17ad225c9a1f1ae267e385e9635eab5ccb83.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "32d83cef19eb490cedfec38323ae17ad225c9a1f1ae267e385e9635eab5ccb83",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "WB",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/wb/routing-32d83cef19eb490cedfec38323ae17ad225c9a1f1ae267e385e9635eab5ccb83.json"
+    }
+  },
+  "schema_version": 1
+}

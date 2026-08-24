@@ -69,7 +69,7 @@ async ({inside, outside}) => {
   const pack = await P.loadStatePack("in-tg-state-routing");
   const legacyCities = await P.majorCityCoverage();
 
-  eq("pack: v1.28 keeps thirteen independently pinned resources",
+  eq("pack: v1.29 keeps thirteen independently pinned resources",
      Object.keys(manifest && manifest.resources || {}).length, 13);
   ok("pack: statewide manifest entry exists", resource, manifest);
   eq("pack: statewide adapter is data-only", resource && resource.adapter,

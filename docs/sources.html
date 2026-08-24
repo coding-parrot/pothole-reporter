@@ -84,7 +84,7 @@
 
   <section>
     <h2>Versioned data packs</h2>
-    <p>Large routing, contact, highway, and procurement datasets are not embedded in the APK. The v1.28 state-pack manifest pins 13 resources—twelve routing/contact packs and one optional Karnataka tender pack—and the highway manifest pins 101 National Highway tiles by version, HTTPS URL, byte length, and SHA-256 checksum. The old unversioned ten-resource manifest remains unchanged for cached v1.25 clients, and the versioned v1.26 eleven-resource and v1.27 twelve-resource manifests remain unchanged for their cached clients; v1.28 reads <code>pack-manifest-v1.28.json</code> so a mixed cache cannot disable valid routing. The routing packs cover Andhra Pradesh, Delhi, Gujarat, Karnataka, Maharashtra, Punjab, Tamil Nadu, Telangana, West Bengal, and the additional top-50 city routes; Tamil Nadu and Telangana each use separate statewide and exact-city packs. The Gujarat pack contains a dissolved copy of the reviewed 48-ward AMC boundary.</p>
+    <p>Large routing, contact, highway, and procurement datasets are not embedded in the APK. The v1.29 state-pack manifest pins 13 resources—twelve routing/contact packs and one optional Karnataka tender pack—and the highway manifest pins 101 National Highway tiles by version, HTTPS URL, byte length, and SHA-256 checksum. The old unversioned, v1.26, v1.27, and v1.28 manifests remain unchanged for their cached clients; v1.29 reads <code>pack-manifest-v1.29.json</code> so a mixed cache cannot disable valid routing. Its Karnataka tender resource uses the carriageway-scope-filtered v2 adapter. The routing packs cover Andhra Pradesh, Delhi, Gujarat, Karnataka, Maharashtra, Punjab, Tamil Nadu, Telangana, West Bengal, and the additional top-50 city routes; Tamil Nadu and Telangana each use separate statewide and exact-city packs. The Gujarat pack contains a dissolved copy of the reviewed 48-ward AMC boundary.</p>
     <p>The app downloads a pack from this project's GitHub Pages site, verifies the complete response before parsing it, and caches only verified bytes locally. Missing, malformed, truncated, or checksum-mismatched required routing/contact data makes the affected route fail closed. Polygon routes never fall back to a geocoder place name. Failure of the optional Karnataka tender pack does not block a report—it continues without contract context. A verified cached pack can be read after its first successful download. On a subsequent pack use, caches past their unused limits are pruned automatically; <strong>Delete all app data</strong> clears the entire cache immediately.</p>
     <p>The request contains no report, road photo, or exact coordinates. GitHub Pages can receive the device's IP address, standard connection metadata, and the requested URL; the URL reveals a state or an approximate 2° highway tile. Keeping reference data separate prevents nationwide geometry from inflating the core APK.</p>
   </section>
@@ -244,17 +244,17 @@
           </tr>
           <tr>
             <td>Tender number, work title, publication date, and location</td>
-            <td>The full source snapshot contains 42,283 road-related awarded works from the <a href="https://kppp.karnataka.gov.in/">Karnataka Public Procurement Portal (KPPP)</a>. For eligible Karnataka routes only, the optional downloadable pack contains the 13,577 rows indexed to a supported municipal body.</td>
-            <td>The title-keyword filter is intentionally broad. A tender row is not proof that its work covers the photographed point. Routes outside eligible Karnataka coverage never use contract matching.</td>
+            <td>The checked-in source snapshot contains 42,283 title-matched candidates from the <a href="https://kppp.karnataka.gov.in/">Karnataka Public Procurement Portal (KPPP)</a>. The current fail-closed classifier retains 21,092 explicit carriageway-work titles; for eligible Karnataka routes, the downloadable pack contains the 5,351 that are also indexed to a supported municipal body.</td>
+            <td>Drain, footpath, UGD/sewer, pipeline, lighting, building, bridge, culvert, and other roadside-only work is excluded when a road name is merely its location. Mixed scope is allowed only when work on the carriageway itself is explicit. A retained row is still not proof that it covers the photographed point.</td>
           </tr>
           <tr>
             <td>Winning bidder on some Bengaluru records</td>
-            <td>The full source snapshot has 1,124 contractor names derived from <a href="https://bengaluru-road-contracts.pages.dev">bengaluru-road-contracts.pages.dev</a>, whose stated source is KPPP. The current downloadable pack retains 1,121.</td>
+            <td>The full source snapshot has a bidder on 1,124 rows, covering 993 distinct contractor names, derived from <a href="https://bengaluru-road-contracts.pages.dev">bengaluru-road-contracts.pages.dev</a>, whose stated source is KPPP. The filtered pack has a bidder on 526 rows, covering 492 distinct names.</td>
             <td>This is an intermediary snapshot rather than a fresh per-tender lookup. Most tender-pack rows have no bidder name, and the app must not invent one.</td>
           </tr>
           <tr>
             <td>Probable contract match</td>
-            <td>For an eligible Karnataka route, a deterministic local ranking selects up to 25 contracts indexed to the same supported body; an OpenAI model may then select one above the app's confidence threshold.</td>
+            <td>For an eligible Karnataka route, a deterministic local ranking selects up to 25 carriageway-scope contracts indexed to the same supported body; an OpenAI model may then select one above the app's confidence threshold.</td>
             <td>The match is generated and probabilistic. No route outside eligible Karnataka coverage enters this flow.</td>
           </tr>
           <tr>
@@ -292,8 +292,8 @@
       <li>Contract matching is disabled for every route outside eligible Karnataka coverage.</li>
       <li>The app covers supported Karnataka urban local bodies with a published recipient address; it does not claim statewide routing for every road.</li>
       <li>Of 319 urban local bodies in the roster used to build the Karnataka routing/contact pack, 182 have a supported directory entry and 137 do not.</li>
-      <li>Of 42,283 road-related source rows, 18,972 are DMA or legacy BBMP records. The downloadable pack retains the 13,577 indexed to a supported body that can enter a contract shortlist.</li>
-      <li>The full source has 41,159 records without a winning bidder. The 13,577-row downloadable pack has 12,456 without one and 1,121 with one.</li>
+      <li>Of 42,283 title-matched source candidates, 18,972 are DMA or legacy BBMP records. Of those, 7,473 explicitly include carriageway work and the downloadable pack retains the 5,351 indexed to a supported body.</li>
+      <li>The full source has 41,159 records without a winning bidder. The filtered 5,351-row pack has 4,825 without one and 526 with one.</li>
       <li>Mapped National Highways and National Expressways across India are checked before municipal routes and offered a neutral Rajmargyatra/1033 handoff. Unmapped stretches and unsafe matches are not guessed.</li>
       <li>For Karnataka, rural roads, unknown road classes, and unsupported bodies are not routed to a municipal recipient. Other locations outside the nationwide mapped highway layer, the full Maharashtra/West Bengal/Punjab/Tamil Nadu/Andhra Pradesh/Telangana boundaries, and the supported reviewed/top-50 routes are not routed.</li>
       <li>All counts describe the repository snapshot above, not the current contents of an external portal.</li>

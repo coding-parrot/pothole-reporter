@@ -155,6 +155,52 @@ CASES = r"""
   eq("decision: no structural cue is review",
      P.decisionFor({...good, has_broken_edge_or_rim:false, has_depth_or_surface_loss:false}), "review");
 
+  // ---- strict physical repair status ----
+  const repairPrior = {...event, id:41, photo:"data:image/jpeg;base64,eA==",
+    drive_id:"old-drive", sighting_drive_ids:["old-drive"], condition_status:"open"};
+  const revisit = {...event, capture_source:"drive_live", drive_id:"new-drive",
+    source_event_key:"live:new-drive:1", lat:repairPrior.lat, lng:repairPrior.lng,
+    gps_accuracy:4, speed_mps:8, heading:90, debug_capture:false,
+    observed_at:1800001010};
+  ok("repair: precise new-drive same-carriageway target matches",
+     !!P.repairTargetMatch(revisit, repairPrior));
+  eq("repair: missing revisit timestamp fails closed",
+     P.repairTargetMatch({...revisit, observed_at:undefined}, repairPrior), null);
+  eq("repair: equal timestamp is not later evidence",
+     P.repairTargetMatch({...revisit, observed_at:repairPrior.last_seen_at}, repairPrior), null);
+  eq("repair: earlier timestamp is not repair evidence",
+     P.repairTargetMatch({...revisit, observed_at:repairPrior.last_seen_at - 1}, repairPrior), null);
+  eq("repair: same drive can never close its own detection",
+     P.repairTargetMatch({...revisit, drive_id:"old-drive"}, repairPrior), null);
+  eq("repair: poor GPS cannot prove the same footprint",
+     P.repairTargetMatch({...revisit, gps_accuracy:12.1}, repairPrior), null);
+  eq("repair: opposite carriageway cannot close a report",
+     P.repairTargetMatch({...revisit, heading:270}, repairPrior), null);
+  eq("repair: ambiguity fails closed",
+     P.findRepairCandidateFromReports(revisit, [repairPrior, {...repairPrior, id:42}]), null);
+  eq("repair: generic absence alone is not a fixed decision",
+     P.repairConditionFor({current_condition:"uncertain", assessment:"clear", image_quality:"usable",
+       same_location_visible:true, completed_repair_visible:true}), null);
+  eq("repair: probable completed repair is review only",
+     P.repairConditionFor({current_condition:"repaired", assessment:"probable", image_quality:"usable",
+       same_location_visible:true, completed_repair_visible:true}), "repair_review");
+  eq("repair: fixed requires every visual gate",
+     P.repairConditionFor({current_condition:"repaired", assessment:"clear", image_quality:"usable",
+       same_location_visible:true, completed_repair_visible:true}), "fixed");
+  eq("repair: fixed history does not suppress a recurrence",
+     P.roadEventMatch(revisit, {...repairPrior, condition_status:"fixed"}), null);
+
+  // ---- tender scope: a road name is not proof that the road is the work ----
+  ok("tender scope: cited drain/footpath tender is excluded",
+     !P.tenderCoversCarriageway("Construction of drain and footpath at Binny Cresent cross road, link road Benson town and surrounding area in Ward No 127 Jayamahal",
+       "BBMP/2023-24/OW/WORK_INDENT2505"));
+  ok("tender scope: road and drain mixed work is eligible",
+     P.tenderCoversCarriageway("Improvements to roads and drains in Byrasandra surroundings in Ward no 112"));
+  ok("tender scope: drain and CC road reverse mixed work is eligible",
+     P.tenderCoversCarriageway("Construction of cc drain and cc road at ward no 4"));
+  ok("tender scope: road used as a pipeline location is excluded",
+     !P.tenderCoversCarriageway("Providing and laying water supply HDPE pipeline at burial ground road"));
+
   // ---- multimodal request builder and capability-safe settings ----
   const req = P.buildDetectionRequest(["a","b",null,"c","d","e"], "PROMPT", "gpt-5.6", "original");
   const content = req.input[0].content;

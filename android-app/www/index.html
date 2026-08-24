@@ -42,6 +42,8 @@
   .chip.review { background:#3a2b12; color:#ffd28a; }
   .chip.queued { background:#122f33; color:#7cd8e8; }
   .chip.unrouted { background:#2b2b33; color:#b9b9c6; }
+  .chip.fixed { background:#12331d; color:#7ce8a2; }
+  .chip.repair-review { background:#302642; color:#d4b8ff; }
   .meta { color:var(--mut); font-size:12px; margin-top:2px; }
   label { display:block; font-size:12px; color:var(--mut); margin:10px 0 4px; }
   input[type=text], input[type=password], select, textarea { width:100%; background:#131417; color:#f2f2f4; border:1px solid var(--line); border-radius:10px; padding:10px; font:inherit; font-size:14px; }
@@ -278,8 +280,8 @@ const I18N = {
     settings_note: "Road-damage photos and video-derived frames are sent to OpenAI for detection and can contain number plates or faces. User-confirmed garbage and manhole photos are not sent to OpenAI. Exact location is sent to OpenStreetMap/Nominatim; Karnataka points use Karnataka GIS and Hyderabad points use Telangana GIS. A verified state pack or 2° National Highway tile is downloaded from GitHub Pages and cached here; that request reveals the state or approximate tile and ordinary connection metadata, not exact coordinates. Your API key is sent only to OpenAI. The app never submits automatically.",
     independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
     privacy_title: "Before camera and location access",
-    privacy_body: "If you continue, the app will ask for camera and precise foreground location. Road-damage photos—or sampled frames from Drive Mode—are sent with your API key to OpenAI for detection. User-confirmed garbage and manhole photos are not sent to OpenAI. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports query Karnataka GIS and Hyderabad reports query Telangana GIS. The required state routing pack is downloaded from GitHub Pages. Processing can occur outside India.",
-    privacy_local: "Drive Mode uses no audio. While Drive Mode is active, Android uses the camera and location in the background—even when this app is not visible or in use and Google Maps or a phone call is on screen. A visible persistent foreground-service notification always shows this use; pause or stop it from the app or notification. Optional silent local video recording is off by default, always labelled on screen and in the notification, and stored in app-private 60-second clips. Reports, photos, footage, location tracks, settings, verified state packs and highway tiles remain on this device until deleted; unused data is evicted automatically.",
+    privacy_body: "If you continue, the app will ask for camera and precise foreground location. Road-damage photos—or sampled frames from Drive Mode—are sent with your API key to OpenAI for detection. On a precise later live-drive revisit, the saved earlier damage photo and current views may be sent together for repair verification. User-confirmed garbage and manhole photos are not sent to OpenAI. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports query Karnataka GIS and Hyderabad reports query Telangana GIS. The required state routing pack is downloaded from GitHub Pages. Processing can occur outside India.",
+    privacy_local: "Drive Mode uses no audio. While Drive Mode is active, Android uses the camera and location in the background—even when this app is not visible or in use and Google Maps or a phone call is on screen. A visible persistent foreground-service notification always shows this use; pause or stop it from the app or notification. Optional silent local video recording is off by default, always labelled on screen and in the notification, and stored in app-private 60-second clips. Reports, photos, repair evidence, physical road condition, footage, location tracks, settings, verified state packs and highway tiles remain on this device until deleted; unused data is evicted automatically. Physical road condition is tracked separately from official complaint status.",
     privacy_government: "This independent app is not a government service and never submits automatically. GitHub Pages receives your IP address, time, user agent and the requested state-pack or 2° highway-tile path, which reveals a state or approximate tile but not exact coordinates, photos or report content. Location may be sent to a government GIS for jurisdiction checks as disclosed above. Complaint text and photos reach a complaint service only when you deliberately open or complete a handoff. Review the destination and content.",
     privacy_link: "Privacy policy", sources_link: "Data sources and limits",
     privacy_accept: "Continue", privacy_decline: "Not now",
@@ -288,6 +290,15 @@ const I18N = {
     back: "Back", save: "Save", discard: "Discard", del: "Delete", email_btn: "Email", stop: "&#9632; Stop", working: "Working...",
     chip_draft: "Draft", chip_sent: "Marked submitted", chip_queued: "Opened in email", chip_queued_bmc: "BMC handoff opened", chip_rejected: "Not reportable", chip_review: "Needs review",
     chip_unrouted: "Not routed",
+    chip_fixed: "Fixed", chip_repair_review: "Repair needs review",
+    fixed_action_blocked: "This pothole is verified fixed, so the old complaint cannot be filed again.",
+    verdict_fixed: "Verified fixed on a later drive",
+    verdict_repair_review: "Possible repair found — compare both photos",
+    repair_evidence_label: "Later revisit",
+    repair_review_help: "The app found a possible completed repair at the same spot, but did not mark it fixed automatically. Confirm only if the old pothole footprint is clearly covered by intact repair material.",
+    fixed_local_note: "Physical condition only: this does not claim that an official grievance was closed. Any prior submission status remains unchanged.",
+    confirm_fixed_btn: "Confirm fixed", reopen_btn: "Mark open",
+    stat_fixed: "verified fixed",
     no_location: "The location could not be determined.",
     location_uncertain: "GPS is not accurate enough to choose an authority.",
     location_uncertain_help: "Road damage was confirmed, but the current GPS accuracy could cross a civic boundary. Retake it with a fresh, more accurate fix; this report was saved without a recipient.",
@@ -459,8 +470,8 @@ const I18N = {
     settings_note: "ರಸ್ತೆ ಹಾನಿಯ ಫೋಟೋಗಳು ಮತ್ತು ವಿಡಿಯೋ ಫ್ರೇಮ್‌ಗಳನ್ನು ಮಾತ್ರ ಪತ್ತೆಗಾಗಿ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಅವುಗಳಲ್ಲಿ ವಾಹನ ಸಂಖ್ಯೆ ಅಥವಾ ಮುಖಗಳು ಇರಬಹುದು. ಬಳಕೆದಾರರು ದೃಢಪಡಿಸಿದ ಕಸ ಮತ್ತು ಮ್ಯಾನ್‌ಹೋಲ್ ಫೋಟೋಗಳನ್ನು OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ಸ್ಥಳಗಳಿಗೆ Karnataka GIS ಮತ್ತು ಹೈದರಾಬಾದ್ ಸ್ಥಳಗಳಿಗೆ Telangana GIS ಬಳಸಲಾಗುತ್ತದೆ. ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್ ಅಥವಾ 2° ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿ ಟೈಲ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗಿ ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ; ಆ ವಿನಂತಿ ರಾಜ್ಯ ಅಥವಾ ಅಂದಾಜು ಟೈಲ್ ಮತ್ತು ಸಾಮಾನ್ಯ ಸಂಪರ್ಕ ಮಾಹಿತಿಯನ್ನು ತೋರಿಸುತ್ತದೆ, ನಿಖರ ಸ್ಥಳವನ್ನಲ್ಲ. API ಕೀ OpenAI ಗೆ ಮಾತ್ರ ಹೋಗುತ್ತದೆ. ಆ್ಯಪ್ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ.",
     independent_note: "ಇದು ಸ್ವತಂತ್ರ, ಅನಧಿಕೃತ ಆ್ಯಪ್. ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯೊಂದಿಗೆ ಸಂಬಂಧ ಅಥವಾ ಅನುಮೋದನೆ ಇಲ್ಲ. ಕಚೇರಿ ಸೂಚನೆ ಅತ್ಯುತ್ತಮ ಪ್ರಯತ್ನ ಮಾತ್ರ; ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
     privacy_title: "ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳ ಅನುಮತಿಯ ಮೊದಲು",
-    privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಮುಂಭಾಗದ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ರಸ್ತೆ ಹಾನಿಯ ಫೋಟೋಗಳು ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು ಮಾತ್ರ API ಕೀಯೊಂದಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಬಳಕೆದಾರರು ದೃಢಪಡಿಸಿದ ಕಸ ಮತ್ತು ಮ್ಯಾನ್‌ಹೋಲ್ ಫೋಟೋಗಳನ್ನು ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ವರದಿಗಳು Karnataka GIS ಮತ್ತು ಹೈದರಾಬಾದ್ ವರದಿಗಳು Telangana GIS ಬಳಸುತ್ತವೆ. ಅಗತ್ಯ ರಾಜ್ಯ ರೂಟಿಂಗ್ ಪ್ಯಾಕ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
-    privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ. ಡ್ರೈವ್ ಮೋಡ್ ಸಕ್ರಿಯವಾಗಿರುವಾಗ, ಈ ಆ್ಯಪ್ ಕಾಣಿಸದಿದ್ದರೂ ಅಥವಾ ನೀವು ಅದನ್ನು ಬಳಸದೇ Google Maps ಅಥವಾ ಕರೆ ಪರದೆಯಲ್ಲಿ ಇದ್ದರೂ Android ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳವನ್ನು ಹಿನ್ನಲೆಯಲ್ಲಿ ಬಳಸುತ್ತದೆ. ಕಾಣುವ ನಿರಂತರ foreground-service ಅಧಿಸೂಚನೆ ಈ ಬಳಕೆಯನ್ನು ಯಾವಾಗಲೂ ತೋರಿಸುತ್ತದೆ; ಆ್ಯಪ್ ಅಥವಾ ಅಧಿಸೂಚನೆಯಿಂದ ವಿರಾಮಗೊಳಿಸಿ ಅಥವಾ ನಿಲ್ಲಿಸಿ. ಐಚ್ಛಿಕ ಮೌನ ಸ್ಥಳೀಯ ವಿಡಿಯೋ ರೆಕಾರ್ಡಿಂಗ್ ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್ ಆಗಿರುತ್ತದೆ, ಪರದೆ ಮತ್ತು ಅಧಿಸೂಚನೆಯಲ್ಲಿ ಯಾವಾಗಲೂ ಗುರುತಿಸಲಾಗುತ್ತದೆ ಮತ್ತು ಆ್ಯಪ್‌ನ ಖಾಸಗಿ 60-ಸೆಕೆಂಡ್ ಕ್ಲಿಪ್‌ಗಳಲ್ಲಿ ಉಳಿಯುತ್ತದೆ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ವಿಡಿಯೋ, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್, ಸೆಟ್ಟಿಂಗ್ಸ್, ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್‌ಗಳು ಮತ್ತು ಹೆದ್ದಾರಿ ಟೈಲ್‌ಗಳು ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲಿರುತ್ತವೆ; ಬಳಸದ ಡೇಟಾ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ತೆರವುಗೊಳ್ಳುತ್ತದೆ.",
+    privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಮುಂಭಾಗದ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ರಸ್ತೆ ಹಾನಿಯ ಫೋಟೋಗಳು ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು ಮಾತ್ರ API ಕೀಯೊಂದಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ನಂತರದ ನಿಖರ ಲೈವ್-ಡ್ರೈವ್ ಮರುಭೇಟಿಯಲ್ಲಿ, ಉಳಿಸಿದ ಹಿಂದಿನ ಹಾನಿಯ ಫೋಟೋ ಮತ್ತು ಪ್ರಸ್ತುತ ದೃಶ್ಯಗಳನ್ನು ದುರಸ್ತಿ ಪರಿಶೀಲನೆಗಾಗಿ ಒಟ್ಟಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಬಹುದು. ಬಳಕೆದಾರರು ದೃಢಪಡಿಸಿದ ಕಸ ಮತ್ತು ಮ್ಯಾನ್‌ಹೋಲ್ ಫೋಟೋಗಳನ್ನು ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ವರದಿಗಳು Karnataka GIS ಮತ್ತು ಹೈದರಾಬಾದ್ ವರದಿಗಳು Telangana GIS ಬಳಸುತ್ತವೆ. ಅಗತ್ಯ ರಾಜ್ಯ ರೂಟಿಂಗ್ ಪ್ಯಾಕ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
+    privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ. ಡ್ರೈವ್ ಮೋಡ್ ಸಕ್ರಿಯವಾಗಿರುವಾಗ, ಈ ಆ್ಯಪ್ ಕಾಣಿಸದಿದ್ದರೂ ಅಥವಾ ನೀವು ಅದನ್ನು ಬಳಸದೇ Google Maps ಅಥವಾ ಕರೆ ಪರದೆಯಲ್ಲಿ ಇದ್ದರೂ Android ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳವನ್ನು ಹಿನ್ನಲೆಯಲ್ಲಿ ಬಳಸುತ್ತದೆ. ಕಾಣುವ ನಿರಂತರ foreground-service ಅಧಿಸೂಚನೆ ಈ ಬಳಕೆಯನ್ನು ಯಾವಾಗಲೂ ತೋರಿಸುತ್ತದೆ; ಆ್ಯಪ್ ಅಥವಾ ಅಧಿಸೂಚನೆಯಿಂದ ವಿರಾಮಗೊಳಿಸಿ ಅಥವಾ ನಿಲ್ಲಿಸಿ. ಐಚ್ಛಿಕ ಮೌನ ಸ್ಥಳೀಯ ವಿಡಿಯೋ ರೆಕಾರ್ಡಿಂಗ್ ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್ ಆಗಿರುತ್ತದೆ, ಪರದೆ ಮತ್ತು ಅಧಿಸೂಚನೆಯಲ್ಲಿ ಯಾವಾಗಲೂ ಗುರುತಿಸಲಾಗುತ್ತದೆ ಮತ್ತು ಆ್ಯಪ್‌ನ ಖಾಸಗಿ 60-ಸೆಕೆಂಡ್ ಕ್ಲಿಪ್‌ಗಳಲ್ಲಿ ಉಳಿಯುತ್ತದೆ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ದುರಸ್ತಿ ಸಾಕ್ಷ್ಯ, ಭೌತಿಕ ರಸ್ತೆ ಸ್ಥಿತಿ, ವಿಡಿಯೋ, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್, ಸೆಟ್ಟಿಂಗ್ಸ್, ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್‌ಗಳು ಮತ್ತು ಹೆದ್ದಾರಿ ಟೈಲ್‌ಗಳು ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲಿರುತ್ತವೆ; ಬಳಸದ ಡೇಟಾ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ತೆರವುಗೊಳ್ಳುತ್ತದೆ. ಭೌತಿಕ ರಸ್ತೆ ಸ್ಥಿತಿಯನ್ನು ಅಧಿಕೃತ ದೂರು ಸ್ಥಿತಿಯಿಂದ ಪ್ರತ್ಯೇಕವಾಗಿ ದಾಖಲಿಸಲಾಗುತ್ತದೆ.",
     privacy_government: "ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸರ್ಕಾರಿ ಸೇವೆಯಲ್ಲ ಮತ್ತು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. GitHub Pages ನಿಮ್ಮ IP, ಸಮಯ, user agent ಮತ್ತು ಕೇಳಿದ ರಾಜ್ಯ-ಪ್ಯಾಕ್ ಅಥವಾ 2° ಹೆದ್ದಾರಿ-ಟೈಲ್ ಮಾರ್ಗವನ್ನು ಪಡೆಯುತ್ತದೆ; ಇದರಿಂದ ರಾಜ್ಯ ಅಥವಾ ಅಂದಾಜು ಟೈಲ್ ತಿಳಿಯಬಹುದು, ನಿಖರ ಸ್ಥಳ, ಫೋಟೋ ಅಥವಾ ವರದಿ ವಿಷಯವಲ್ಲ. ಮೇಲಿನ ವಿವರದಂತೆ ಅಧಿಕಾರ ವ್ಯಾಪ್ತಿ ಪರಿಶೀಲಿಸಲು ಸ್ಥಳವನ್ನು ಸರ್ಕಾರಿ GIS ಗೆ ಕಳುಹಿಸಬಹುದು. ನೀವು ಉದ್ದೇಶಪೂರ್ವಕವಾಗಿ ಹಸ್ತಾಂತರವನ್ನು ತೆರೆಯುವ ಅಥವಾ ಪೂರ್ಣಗೊಳಿಸುವಾಗ ಮಾತ್ರ ದೂರಿನ ಪಠ್ಯ ಮತ್ತು ಫೋಟೋ ಅಧಿಕೃತ ದೂರು ಸೇವೆಗೆ ಹೋಗುತ್ತದೆ.",
     privacy_link: "ಗೌಪ್ಯತಾ ನೀತಿ", sources_link: "ಡೇಟಾ ಮೂಲಗಳು ಮತ್ತು ಮಿತಿಗಳು",
     privacy_accept: "ಮುಂದುವರಿಸಿ", privacy_decline: "ಈಗ ಬೇಡ",
@@ -469,6 +480,15 @@ const I18N = {
     back: "ಹಿಂದೆ", save: "ಉಳಿಸಿ", discard: "ತ್ಯಜಿಸಿ", del: "ಅಳಿಸಿ", email_btn: "ಇಮೇಲ್", stop: "&#9632; ನಿಲ್ಲಿಸಿ", working: "ನಡೆಯುತ್ತಿದೆ...",
     chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_queued_bmc: "BMC ಹಸ್ತಾಂತರ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ವರದಿ ಯೋಗ್ಯವಲ್ಲ", chip_review: "ಪರಿಶೀಲನೆ ಬೇಕು",
     chip_unrouted: "ಮಾರ್ಗ ನಿಗದಿಯಾಗಿಲ್ಲ",
+    chip_fixed: "ದುರಸ್ತಿಯಾಗಿದೆ", chip_repair_review: "ದುರಸ್ತಿ ಪರಿಶೀಲನೆ ಬೇಕು",
+    verdict_fixed: "ನಂತರದ ಡ್ರೈವ್‌ನಲ್ಲಿ ದುರಸ್ತಿಯಾಗಿದೆ ಎಂದು ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
+    verdict_repair_review: "ಸಂಭಾವ್ಯ ದುರಸ್ತಿ ಕಂಡುಬಂದಿದೆ — ಎರಡೂ ಫೋಟೋಗಳನ್ನು ಹೋಲಿಸಿ",
+    repair_evidence_label: "ನಂತರದ ಮರುಭೇಟಿ",
+    repair_review_help: "ಅದೇ ಸ್ಥಳದಲ್ಲಿ ಸಾಧ್ಯವಾದ ಪೂರ್ಣ ದುರಸ್ತಿಯನ್ನು ಆ್ಯಪ್ ಕಂಡಿದೆ, ಆದರೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದುರಸ್ತಿಯಾಗಿದೆ ಎಂದು ಗುರುತಿಸಿಲ್ಲ. ಹಳೆಯ ಗುಂಡಿಯ ಸ್ಥಳವನ್ನು ಅಕ್ಷತ ದುರಸ್ತಿ ವಸ್ತು ಸ್ಪಷ್ಟವಾಗಿ ಮುಚ್ಚಿದ್ದರೆ ಮಾತ್ರ ದೃಢಪಡಿಸಿ.",
+    fixed_local_note: "ಇದು ಭೌತಿಕ ಸ್ಥಿತಿ ಮಾತ್ರ: ಅಧಿಕೃತ ದೂರನ್ನು ಮುಚ್ಚಲಾಗಿದೆ ಎಂಬ ಅರ್ಥವಲ್ಲ. ಹಿಂದಿನ ಸಲ್ಲಿಕೆ ಸ್ಥಿತಿ ಬದಲಾಗುವುದಿಲ್ಲ.",
+    fixed_action_blocked: "ಈ ಗುಂಡಿ ದುರಸ್ತಿಯಾಗಿದೆ ಎಂದು ಪರಿಶೀಲಿಸಲಾಗಿದೆ, ಆದ್ದರಿಂದ ಹಳೆಯ ದೂರನ್ನು ಮತ್ತೆ ಸಲ್ಲಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+    confirm_fixed_btn: "ದುರಸ್ತಿಯಾಗಿದೆ ಎಂದು ದೃಢಪಡಿಸಿ", reopen_btn: "ತೆರೆದಿದೆ ಎಂದು ಗುರುತಿಸಿ",
+    stat_fixed: "ಪರಿಶೀಲಿತ ದುರಸ್ತಿ",
     no_location: "ಸ್ಥಳ ಪತ್ತೆಯಾಗಲಿಲ್ಲ.",
     location_uncertain: "ಅಧಿಕಾರಿಯನ್ನು ಆಯ್ಕೆ ಮಾಡಲು GPS ಸಾಕಷ್ಟು ನಿಖರವಾಗಿಲ್ಲ.",
     location_uncertain_help: "ರಸ್ತೆ ಹಾನಿ ದೃಢಪಟ್ಟಿದೆ, ಆದರೆ GPS ನಿಖರತೆಯ ವಲಯವು ನಾಗರಿಕ ಗಡಿಯನ್ನು ದಾಟಬಹುದು. ಹೆಚ್ಚು ನಿಖರವಾದ ಹೊಸ ಸ್ಥಳದೊಂದಿಗೆ ಮತ್ತೆ ಸೆರೆಹಿಡಿಯಿರಿ; ಈ ವರದಿ ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
@@ -633,8 +653,8 @@ const I18N = {
     settings_note: "फक्त रस्त्याच्या नुकसानीचे फोटो आणि व्हिडिओतील फ्रेम्स तपासणीसाठी OpenAI कडे पाठवल्या जातात; त्यात वाहन क्रमांक किंवा चेहरे असू शकतात. वापरकर्त्याने निवडलेले कचरा आणि मॅनहोलचे फोटो OpenAI कडे पाठवले जात नाहीत. अचूक स्थान OpenStreetMap/Nominatim कडे पाठवले जाते; कर्नाटकासाठी Karnataka GIS आणि हैदराबादसाठी Telangana GIS वापरले जाते. पडताळलेला राज्य pack किंवा 2° राष्ट्रीय महामार्ग tile GitHub Pages वरून डाउनलोड होऊन या साधनावर जतन होतो; त्या विनंतीत राज्य किंवा अंदाजे tile व सामान्य कनेक्शन माहिती दिसते, अचूक स्थान नाही. API की फक्त OpenAI कडे जाते. अॅप तक्रार आपोआप सादर करत नाही.",
     independent_note: "हे स्वतंत्र, अनधिकृत अॅप आहे. कोणत्याही सरकारी संस्थेशी संलग्न नाही किंवा तिची मान्यता नाही. सुचवलेले कार्यालय पाठवण्यापूर्वी तपासा.",
     privacy_title: "कॅमेरा आणि स्थान वापरण्यापूर्वी",
-    privacy_body: "पुढे गेल्यास अॅप कॅमेरा आणि वापराच्या वेळी अचूक स्थान वापरण्याची परवानगी मागेल. फक्त रस्त्याच्या नुकसानीचे फोटो किंवा ड्राइव्ह मोडमधील निवडक फ्रेम्स API कीसह OpenAI कडे पाठवल्या जातात; वापरकर्त्याने निवडलेले कचरा आणि मॅनहोलचे फोटो पाठवले जात नाहीत. अचूक स्थान OpenStreetMap/Nominatim कडे जाते; कर्नाटकासाठी Karnataka GIS आणि हैदराबादसाठी Telangana GIS वापरले जाते. आवश्यक राज्य routing pack GitHub Pages वरून डाउनलोड होतो. प्रक्रिया भारताबाहेर होऊ शकते.",
-    privacy_local: "ड्राइव्ह मोडमध्ये ऑडिओ वापरला जात नाही. ड्राइव्ह मोड सक्रिय असताना, हे अॅप दिसत नसताना किंवा तुम्ही ते वापरत नसतानाही—Google Maps किंवा कॉल स्क्रीन समोर असली तरी—Android कॅमेरा आणि स्थान पार्श्वभूमीत वापरते. दिसणारी कायमची foreground-service सूचना हा वापर नेहमी दाखवते; अॅप किंवा सूचनेतून विराम द्या किंवा थांबवा. ऐच्छिक मूक स्थानिक व्हिडिओ रेकॉर्डिंग डीफॉल्टने बंद असते, स्क्रीन आणि सूचनेत नेहमी स्पष्ट दाखवले जाते आणि अॅपच्या खाजगी 60-सेकंदांच्या क्लिपमध्ये साठवले जाते. अहवाल, फोटो, व्हिडिओ, स्थान मार्ग, सेटिंग्ज, पडताळलेले राज्य packs आणि महामार्ग tiles हटवेपर्यंत साधनावर राहतात; न वापरलेला डेटा आपोआप काढला जातो.",
+    privacy_body: "पुढे गेल्यास अॅप कॅमेरा आणि वापराच्या वेळी अचूक स्थान वापरण्याची परवानगी मागेल. फक्त रस्त्याच्या नुकसानीचे फोटो किंवा ड्राइव्ह मोडमधील निवडक फ्रेम्स API कीसह OpenAI कडे पाठवल्या जातात. नंतरच्या अचूक लाइव्ह-ड्राइव्ह पुनर्भेटीत, जतन केलेला जुना नुकसान फोटो आणि सध्याची दृश्ये दुरुस्ती पडताळणीसाठी OpenAI कडे एकत्र पाठवली जाऊ शकतात. वापरकर्त्याने निवडलेले कचरा आणि मॅनहोलचे फोटो पाठवले जात नाहीत. अचूक स्थान OpenStreetMap/Nominatim कडे जाते; कर्नाटकासाठी Karnataka GIS आणि हैदराबादसाठी Telangana GIS वापरले जाते. आवश्यक राज्य routing pack GitHub Pages वरून डाउनलोड होतो. प्रक्रिया भारताबाहेर होऊ शकते.",
+    privacy_local: "ड्राइव्ह मोडमध्ये ऑडिओ वापरला जात नाही. ड्राइव्ह मोड सक्रिय असताना, हे अॅप दिसत नसताना किंवा तुम्ही ते वापरत नसतानाही—Google Maps किंवा कॉल स्क्रीन समोर असली तरी—Android कॅमेरा आणि स्थान पार्श्वभूमीत वापरते. दिसणारी कायमची foreground-service सूचना हा वापर नेहमी दाखवते; अॅप किंवा सूचनेतून विराम द्या किंवा थांबवा. ऐच्छिक मूक स्थानिक व्हिडिओ रेकॉर्डिंग डीफॉल्टने बंद असते, स्क्रीन आणि सूचनेत नेहमी स्पष्ट दाखवले जाते आणि अॅपच्या खाजगी 60-सेकंदांच्या क्लिपमध्ये साठवले जाते. अहवाल, फोटो, दुरुस्ती पुरावा, प्रत्यक्ष रस्त्याची स्थिती, व्हिडिओ, स्थान मार्ग, सेटिंग्ज, पडताळलेले राज्य packs आणि महामार्ग tiles हटवेपर्यंत साधनावर राहतात; न वापरलेला डेटा आपोआप काढला जातो. प्रत्यक्ष रस्त्याची स्थिती अधिकृत तक्रार स्थितीपासून स्वतंत्रपणे नोंदवली जाते.",
     privacy_government: "हे स्वतंत्र अॅप सरकारी सेवा नाही आणि तक्रार आपोआप सादर करत नाही. GitHub Pages ला तुमचा IP, वेळ, user agent आणि मागितलेला राज्य-pack किंवा 2° महामार्ग-tile मार्ग मिळतो; त्यामुळे राज्य किंवा अंदाजे tile समजू शकते, अचूक स्थान, फोटो किंवा अहवालाचा मजकूर नाही. वर सांगितल्याप्रमाणे कार्यक्षेत्र तपासण्यासाठी स्थान सरकारी GIS कडे जाऊ शकते. तुम्ही जाणीवपूर्वक handoff उघडता किंवा पूर्ण करता तेव्हाच तक्रारीचा मजकूर आणि फोटो अधिकृत तक्रार सेवेकडे जातात.",
     privacy_link: "गोपनीयता धोरण", sources_link: "डेटा स्रोत आणि मर्यादा",
     privacy_accept: "पुढे जा", privacy_decline: "आत्ता नको",
@@ -645,6 +665,15 @@ const I18N = {
     chip_draft: "मसुदा", chip_sent: "सादर केल्याची नोंद", chip_queued: "ईमेलमध्ये उघडले",
     chip_queued_bmc: "BMC माध्यम उघडले", chip_rejected: "नोंदवण्यायोग्य नाही",
     chip_review: "पुनर्तपासणी आवश्यक", chip_unrouted: "मार्ग निश्चित नाही",
+    chip_fixed: "दुरुस्त", chip_repair_review: "दुरुस्तीची तपासणी आवश्यक",
+    verdict_fixed: "नंतरच्या ड्राइव्हमध्ये दुरुस्ती झाल्याची पडताळणी",
+    verdict_repair_review: "संभाव्य दुरुस्ती आढळली — दोन्ही फोटो तुलना करा",
+    repair_evidence_label: "नंतरची पुनर्भेट",
+    repair_review_help: "अॅपला त्याच ठिकाणी पूर्ण दुरुस्ती झाल्याची शक्यता आढळली, पण ती आपोआप दुरुस्त म्हणून चिन्हांकित केलेली नाही. जुन्या खड्ड्याचा भाग अखंड दुरुस्ती सामग्रीने स्पष्टपणे झाकलेला असेल तरच पुष्टी करा.",
+    fixed_local_note: "ही फक्त प्रत्यक्ष स्थिती आहे; अधिकृत तक्रार बंद झाल्याचा दावा नाही. आधीची सबमिशन स्थिती बदलत नाही.",
+    fixed_action_blocked: "हा खड्डा दुरुस्त झाल्याची पडताळणी झाली आहे, त्यामुळे जुनी तक्रार पुन्हा दाखल करता येणार नाही.",
+    confirm_fixed_btn: "दुरुस्तीची पुष्टी करा", reopen_btn: "पुन्हा उघडे म्हणून चिन्हांकित करा",
+    stat_fixed: "पडताळलेली दुरुस्ती",
     no_location: "स्थान निश्चित करता आले नाही.",
     location_uncertain: "संस्था निवडण्यासाठी GPS स्थान पुरेसे अचूक नाही.",
     location_uncertain_help: "रस्त्याचे नुकसान निश्चित झाले, पण GPS अचूकतेचे वर्तुळ नागरी सीमा ओलांडू शकते. अधिक अचूक नवीन स्थानासह पुन्हा फोटो घ्या; हा अहवाल प्राप्तकर्त्याशिवाय जतन केला आहे.",
@@ -797,8 +826,8 @@ const I18N = {
     settings_note: "শুধু রাস্তার ক্ষতির ছবি ও ভিডিওর ফ্রেম শনাক্তকরণের জন্য OpenAI-তে পাঠানো হয়; তাতে নম্বরপ্লেট বা মুখ থাকতে পারে। ব্যবহারকারী-নিশ্চিত আবর্জনা ও ম্যানহোলের ছবি OpenAI-তে পাঠানো হয় না। সঠিক অবস্থান OpenStreetMap/Nominatim-এ পাঠানো হয়; কর্ণাটকের জন্য Karnataka GIS এবং হায়দরাবাদের জন্য Telangana GIS ব্যবহার করা হয়। যাচাই-করা রাজ্য pack বা 2° জাতীয় সড়ক tile GitHub Pages থেকে ডাউনলোড হয়ে ডিভাইসে থাকে; অনুরোধটি রাজ্য বা আনুমানিক tile ও সাধারণ সংযোগের তথ্য প্রকাশ করে, সঠিক অবস্থান নয়। API key কেবল OpenAI-তে যায়। অ্যাপ নিজে থেকে অভিযোগ জমা দেয় না।",
     independent_note: "এটি একটি স্বাধীন, বেসরকারি অ্যাপ। কোনও সরকারি সংস্থার সঙ্গে এর সম্পর্ক নেই এবং কোনও সরকারি সংস্থা এটি অনুমোদন করেনি। প্রাপক নির্বাচন সর্বোত্তম প্রচেষ্টার ভিত্তিতে; পাঠানোর আগে যাচাই করুন।",
     privacy_title: "ক্যামেরা ও অবস্থান ব্যবহারের আগে",
-    privacy_body: "এগিয়ে গেলে অ্যাপটি ক্যামেরা ও সামনে খোলা থাকাকালীন সঠিক অবস্থানের অনুমতি চাইবে। শুধু রাস্তার ক্ষতির ছবি বা ড্রাইভ মোডের নির্বাচিত ফ্রেম API key-সহ OpenAI-তে পাঠানো হয়; ব্যবহারকারী-নিশ্চিত আবর্জনা ও ম্যানহোলের ছবি পাঠানো হয় না। সঠিক স্থানাঙ্ক OpenStreetMap/Nominatim-এ যায়; কর্ণাটকের জন্য Karnataka GIS এবং হায়দরাবাদের জন্য Telangana GIS ব্যবহার করা হয়। প্রয়োজনীয় রাজ্য routing pack GitHub Pages থেকে ডাউনলোড হয়। তথ্য ভারতের বাইরেও প্রক্রিয়াকৃত হতে পারে।",
-    privacy_local: "ড্রাইভ মোডে অডিও ব্যবহার হয় না। ড্রাইভ মোড সক্রিয় থাকলে, এই অ্যাপটি দৃশ্যমান না থাকলেও বা আপনি ব্যবহার না করলেও—Google Maps বা কল স্ক্রিন সামনে থাকলেও—Android ক্যামেরা ও অবস্থান ব্যাকগ্রাউন্ডে ব্যবহার করে। দৃশ্যমান স্থায়ী foreground-service বিজ্ঞপ্তি এই ব্যবহার সব সময় দেখায়; অ্যাপ বা বিজ্ঞপ্তি থেকে বিরতি দিন বা বন্ধ করুন। ঐচ্ছিক নীরব স্থানীয় ভিডিও রেকর্ডিং ডিফল্টভাবে বন্ধ থাকে, স্ক্রিন ও বিজ্ঞপ্তিতে সব সময় স্পষ্টভাবে দেখানো হয় এবং অ্যাপের ব্যক্তিগত 60-সেকেন্ড ক্লিপে রাখা হয়। রিপোর্ট, ছবি, ভিডিও, অবস্থানের ট্র্যাক, সেটিংস, যাচাই-করা রাজ্য pack ও জাতীয় সড়ক tile মুছে না ফেলা পর্যন্ত থাকে; অব্যবহৃত ডেটা স্বয়ংক্রিয়ভাবে সরানো হয়।",
+    privacy_body: "এগিয়ে গেলে অ্যাপটি ক্যামেরা ও সামনে খোলা থাকাকালীন সঠিক অবস্থানের অনুমতি চাইবে। শুধু রাস্তার ক্ষতির ছবি বা ড্রাইভ মোডের নির্বাচিত ফ্রেম API key-সহ OpenAI-তে পাঠানো হয়। পরবর্তী নির্ভুল লাইভ-ড্রাইভ পুনরায় যাওয়ার সময়, সংরক্ষিত আগের ক্ষতির ছবি এবং বর্তমান দৃশ্য মেরামত যাচাইয়ের জন্য একসঙ্গে OpenAI-তে পাঠানো হতে পারে। ব্যবহারকারী-নিশ্চিত আবর্জনা ও ম্যানহোলের ছবি পাঠানো হয় না। সঠিক স্থানাঙ্ক OpenStreetMap/Nominatim-এ যায়; কর্ণাটকের জন্য Karnataka GIS এবং হায়দরাবাদের জন্য Telangana GIS ব্যবহার করা হয়। প্রয়োজনীয় রাজ্য routing pack GitHub Pages থেকে ডাউনলোড হয়। তথ্য ভারতের বাইরেও প্রক্রিয়াকৃত হতে পারে।",
+    privacy_local: "ড্রাইভ মোডে অডিও ব্যবহার হয় না। ড্রাইভ মোড সক্রিয় থাকলে, এই অ্যাপটি দৃশ্যমান না থাকলেও বা আপনি ব্যবহার না করলেও—Google Maps বা কল স্ক্রিন সামনে থাকলেও—Android ক্যামেরা ও অবস্থান ব্যাকগ্রাউন্ডে ব্যবহার করে। দৃশ্যমান স্থায়ী foreground-service বিজ্ঞপ্তি এই ব্যবহার সব সময় দেখায়; অ্যাপ বা বিজ্ঞপ্তি থেকে বিরতি দিন বা বন্ধ করুন। ঐচ্ছিক নীরব স্থানীয় ভিডিও রেকর্ডিং ডিফল্টভাবে বন্ধ থাকে, স্ক্রিন ও বিজ্ঞপ্তিতে সব সময় স্পষ্টভাবে দেখানো হয় এবং অ্যাপের ব্যক্তিগত 60-সেকেন্ড ক্লিপে রাখা হয়। রিপোর্ট, ছবি, মেরামতের প্রমাণ, রাস্তার বাস্তব অবস্থা, ভিডিও, অবস্থানের ট্র্যাক, সেটিংস, যাচাই-করা রাজ্য pack ও জাতীয় সড়ক tile মুছে না ফেলা পর্যন্ত থাকে; অব্যবহৃত ডেটা স্বয়ংক্রিয়ভাবে সরানো হয়। রাস্তার বাস্তব অবস্থা সরকারি অভিযোগের অবস্থা থেকে আলাদাভাবে রাখা হয়।",
     privacy_government: "এই স্বাধীন অ্যাপটি সরকারি পরিষেবা নয় এবং নিজে থেকে অভিযোগ জমা দেয় না। GitHub Pages আপনার IP, সময়, user agent ও চাওয়া রাজ্য-pack বা 2° জাতীয় সড়ক-tile পথ পায়; এতে রাজ্য বা আনুমানিক tile বোঝা যায়, সঠিক স্থানাঙ্ক, ছবি বা রিপোর্টের বিষয় নয়। উপরে জানানো নিয়মে এলাকা যাচাই করতে অবস্থান সরকারি GIS-এ পাঠানো হতে পারে। আপনি ইচ্ছাকৃতভাবে handoff খুললে বা সম্পূর্ণ করলেই অভিযোগের লেখা ও ছবি সরকারি অভিযোগ পরিষেবায় যায়।",
     privacy_link: "গোপনীয়তা নীতি", sources_link: "তথ্যের উৎস ও সীমাবদ্ধতা",
     privacy_accept: "এগিয়ে যান", privacy_decline: "এখন নয়",
@@ -807,6 +836,15 @@ const I18N = {
     back: "ফিরে যান", save: "সংরক্ষণ করুন", discard: "বাদ দিন", del: "মুছুন", email_btn: "ইমেল", stop: "&#9632; থামান", working: "কাজ চলছে...",
     chip_draft: "খসড়া", chip_sent: "জমা হয়েছে বলে চিহ্নিত", chip_queued: "ইমেলে খোলা হয়েছে", chip_queued_bmc: "BMC পরিষেবা খোলা হয়েছে", chip_rejected: "অভিযোগযোগ্য নয়", chip_review: "যাচাই প্রয়োজন",
     chip_unrouted: "প্রাপক নির্ধারিত নয়",
+    chip_fixed: "মেরামত হয়েছে", chip_repair_review: "মেরামত যাচাই দরকার",
+    verdict_fixed: "পরবর্তী ড্রাইভে মেরামত হয়েছে বলে যাচাই করা হয়েছে",
+    verdict_repair_review: "সম্ভাব্য মেরামত পাওয়া গেছে — দুটি ছবি তুলনা করুন",
+    repair_evidence_label: "পরবর্তী পুনরায় দেখা",
+    repair_review_help: "অ্যাপ একই স্থানে সম্ভাব্য সম্পূর্ণ মেরামত পেয়েছে, কিন্তু নিজে থেকে মেরামত হয়েছে বলে চিহ্নিত করেনি। পুরোনো গর্তের জায়গাটি অক্ষত মেরামতের উপাদানে স্পষ্টভাবে ঢাকা থাকলেই নিশ্চিত করুন।",
+    fixed_local_note: "এটি শুধু রাস্তার বাস্তব অবস্থা; সরকারি অভিযোগ বন্ধ হয়েছে—এমন দাবি নয়। আগের জমা দেওয়ার অবস্থা অপরিবর্তিত থাকে।",
+    fixed_action_blocked: "এই গর্তটি মেরামত হয়েছে বলে যাচাই করা হয়েছে, তাই পুরোনো অভিযোগটি আবার দায়ের করা যাবে না।",
+    confirm_fixed_btn: "মেরামত নিশ্চিত করুন", reopen_btn: "আবার খোলা হিসেবে চিহ্নিত করুন",
+    stat_fixed: "যাচাইকৃত মেরামত",
     no_location: "অবস্থান নির্ধারণ করা যায়নি।",
     location_uncertain: "কর্তৃপক্ষ বাছতে GPS যথেষ্ট নির্ভুল নয়।",
     location_uncertain_help: "রাস্তার ক্ষতি নিশ্চিত হয়েছে, কিন্তু বর্তমান GPS নির্ভুলতার পরিসর একটি পৌরসীমা অতিক্রম করতে পারে। নতুন ও আরও নির্ভুল অবস্থান নিয়ে আবার ছবি তুলুন; রিপোর্টটি প্রাপক ছাড়াই সংরক্ষিত হয়েছে।",
@@ -1028,6 +1066,16 @@ function chip(status, report) {
   return `<span class="chip ${css}">${escapeHtml(labels[status] || status)}</span>`;
 }
 
+const physicalCondition = (report) => report && report.condition_status === "fixed"
+  ? "fixed" : report && report.condition_status === "repair_review" ? "repair_review" : "open";
+function conditionChip(report) {
+  const condition = physicalCondition(report);
+  if (!isRoadReport(report) || condition === "open") return "";
+  const css = condition === "fixed" ? "fixed" : "repair-review";
+  const label = condition === "fixed" ? t("chip_fixed") : t("chip_repair_review");
+  return `<span class="chip ${css}">${escapeHtml(label)}</span>`;
+}
+
 function applyLang() {
   $("subTitle").textContent = t("sub");
   $("captureBtn").innerHTML = t("report_btn");
@@ -1122,6 +1170,17 @@ function photoSrc(r) {
 }
 
 const thumbUrls = new Map();
+const repairUrls = new Map();
+function repairPhotoSrc(r) {
+  if (!r || !r.repair_photo_url) return "";
+  if (repairUrls.has(r.id)) return repairUrls.get(r.id);
+  if (r.repair_photo_url instanceof Blob) {
+    const url = URL.createObjectURL(r.repair_photo_url);
+    repairUrls.set(r.id, url);
+    return url;
+  }
+  return r.repair_photo_url;
+}
 async function ensureThumbs(items) {
   await Promise.all(items.map(async (r) => {
     if (thumbUrls.has(r.id) || !r.photo_url) return;
@@ -1146,7 +1205,7 @@ const groupsRef = [];
 async function openReportDetail(r, items) {
   if (!r) return;
   let current = r;
-  if (isOfficialHandoffReport(r)) {
+  if (physicalCondition(r) !== "fixed" && isOfficialHandoffReport(r)) {
     try { current = await api(`/api/reports/${r.id}/handoff`); }
     catch (_) { /* keep evidence accessible; every launch path revalidates again */ }
   }
@@ -1208,7 +1267,7 @@ async function loadReports() {
     <div class="card row" data-id="${escapeAttr(r.id)}" style="cursor:pointer">
       <img class="thumb" src="${safePhotoSrc(photoSrc(r))}" alt="" loading="lazy" decoding="async">
       <div style="min-width:0">
-        <div>${chip(r.status, r)} ${isRoadReport(r)
+        <div>${chip(r.status, r)} ${conditionChip(r)} ${isRoadReport(r)
           ? (damageType(r) !== "none" ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${escapeHtml(tDamage(r))}</span>` : "")
           : `<span class="chip" style="background:#26272c;color:#cfcfd4">${escapeHtml(tIssue(r))}</span>`} ${r.size ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${escapeHtml(tSize(r.size))}</span>` : ""}</div>
         <div class="meta">${escapeHtml(fmtDate(r.created_at))}${r.address ? " · " + escapeHtml(String(r.address).split(",").slice(0, 2).join(", ")) : ""}</div>
@@ -1499,9 +1558,46 @@ function unroutedHelp(r) {
 
 function detectionVerdict(r) {
   if (!isRoadReport(r)) return t("verdict_civic_prepared", { type: tIssue(r) });
+  if (physicalCondition(r) === "fixed") return t("verdict_fixed");
+  if (physicalCondition(r) === "repair_review") return t("verdict_repair_review");
   if (r.status === "review") return t("verdict_review", { type: tDamage(r) });
   if (r.status === "rejected") return t("verdict_rejected");
   return t("verdict_detected", { type: tDamage(r), assessment: tAssessment(r) });
+}
+
+function repairEvidenceHtml(r) {
+  const condition = physicalCondition(r);
+  if (condition === "open" || !r.repair_photo_url) return "";
+  const fixed = condition === "fixed";
+  return `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+      <label>${escapeHtml(t("repair_evidence_label"))}</label>
+      <img class="big-photo" src="${safePhotoSrc(repairPhotoSrc(r))}" alt="" style="max-height:220px;cursor:default">
+      <div class="verdict" style="color:${fixed ? "var(--ok)" : "#d4b8ff"}">${escapeHtml(
+        fixed ? t("verdict_fixed") : t("verdict_repair_review"))}</div>
+      ${r.repair_description ? `<div class="meta">${escapeHtml(r.repair_description)}</div>` : ""}
+      <div class="meta" style="margin-top:6px">${escapeHtml(fixed
+        ? t("fixed_local_note") : t("repair_review_help"))}</div>
+      <div class="btn-row">
+        ${fixed ? "" : `<button class="send" id="confirmFixedBtn">${escapeHtml(t("confirm_fixed_btn"))}</button>`}
+        <button class="ghost" id="reopenConditionBtn">${escapeHtml(t("reopen_btn"))}</button>
+      </div>
+    </div>`;
+}
+
+function wireConditionActions(r) {
+  const change = async (condition) => {
+    try {
+      const updated = await api(`/api/reports/${r.id}/condition`, {
+        method: "POST", body: JSON.stringify({ condition_status: condition }),
+      });
+      await loadReports();
+      openDetail(updated, loadReports.latest || [updated]);
+    } catch (e) { alert(e.message); }
+  };
+  const confirmFixed = $("confirmFixedBtn");
+  if (confirmFixed) confirmFixed.onclick = () => change("fixed");
+  const reopen = $("reopenConditionBtn");
+  if (reopen) reopen.onclick = () => change("open");
 }
 
 function canRetryCivicRouting(r) {
@@ -1524,10 +1620,12 @@ function openDetail(r, list) {
         <div class="verdict" style="color:var(--accent)">
           ${escapeHtml(detectionVerdict(r))}
         </div>
+        <div>${chip(r.status, r)} ${conditionChip(r)}</div>
         ${r.address ? `<div class="meta">&#128205; ${escapeHtml(r.address)}</div>` : ""}
         <div class="meta" style="color:var(--bad)">&#9888; ${escapeHtml(unroutedTitle(r))}</div>
         <div class="meta">${escapeHtml(unroutedHelp(r))}</div>
-        ${canRetryCivicRouting(r)
+        ${repairEvidenceHtml(r)}
+        ${physicalCondition(r) !== "fixed" && canRetryCivicRouting(r)
           ? `<button class="send" id="retryRoutingBtn" style="width:100%;margin-top:12px">${t("retry_routing_btn")}</button>` : ""}
         <div class="btn-row">
           <button class="ghost" id="backBtn">${t("back")}</button>
@@ -1540,8 +1638,10 @@ function openDetail(r, list) {
         ${photoBlock(r)}
         ${captureProvenanceHtml(r)}
         <div class="verdict" style="color:${r.status === "review" ? "var(--accent)" : "var(--bad)"}">${escapeHtml(detectionVerdict(r))}</div>
+        <div>${chip(r.status, r)} ${conditionChip(r)}</div>
         <div class="meta">${escapeHtml(r.description || "")}</div>
         <div class="meta">${escapeHtml(tDamage(r))} · ${escapeHtml(tAssessment(r))}${r.image_quality ? ` · ${escapeHtml(r.image_quality)}` : ""}</div>
+        ${repairEvidenceHtml(r)}
         <div class="btn-row">
           <button class="ghost" id="backBtn">${t("back")}</button>
           <button class="ghost danger" id="discardBtn">${t("del")}</button>
@@ -1552,6 +1652,8 @@ function openDetail(r, list) {
     // never becomes a user-marked submission until the citizen says so and records the
     // official reference returned by an app/portal when that channel provides one.
     const sent = r.status === "sent";
+    const fixed = physicalCondition(r) === "fixed";
+    const locked = sent || fixed;
     const handoff = isOfficialHandoffReport(r);
     const legacyBmc = r.delivery_channel === "bmc_quickfix";
     const service = officialServiceName(r);
@@ -1565,7 +1667,7 @@ function openDetail(r, list) {
     const subjectLabel = handoff ? t("complaint_title_label") : t("email_subject_label");
     const bodyLabel = handoff ? t("complaint_body_label") : t("email_body_label");
     const showAuthorityWarning = handoff || !!r.ownership_unverified;
-    const officialTools = showAuthorityWarning ? `
+    const officialTools = showAuthorityWarning && !fixed ? `
         <div class="meta" style="margin-top:10px;color:#ffd9a8">${escapeHtml(handoff
           ? t(isRoadReport(r) ? "official_disclaimer" : "official_civic_disclaimer", { authority, service })
           : t(isRoadReport(r) ? "authority_disclaimer" : "authority_civic_disclaimer", { authority }))}</div>
@@ -1579,7 +1681,7 @@ function openDetail(r, list) {
           ${helpline ? `<button class="ghost" id="officialCallBtn">${escapeHtml(t("official_call_btn", { number: helpline }))}</button>` : ""}
           ${handoff && r.alternate_handoff_url ? `<button class="ghost" id="alternateHandoffBtn">${escapeHtml(t("alternate_handoff_btn", { name: r.alternate_handoff_name || "official fallback" }))}</button>` : ""}
         </div>` : ""}` : "";
-    const confirmation = sent
+    const confirmation = fixed ? "" : sent
       ? (r.official_grievance_id
           ? `<div class="meta" style="color:var(--ok);margin-top:10px">${escapeHtml(t("submitted_reference", { id: r.official_grievance_id }))}</div>`
           : "")
@@ -1594,27 +1696,29 @@ function openDetail(r, list) {
       <div class="card">
         ${photoBlock(r)}
         ${captureProvenanceHtml(r)}
-        <div class="verdict" style="color:${sent ? "var(--ok)" : "var(--accent)"}">
+        <div class="verdict" style="color:${sent || fixed ? "var(--ok)" : "var(--accent)"}">
           ${escapeHtml(verdictText)}
         </div>
+        <div>${chip(r.status, r)} ${conditionChip(r)}</div>
         ${r.address ? `<div class="meta">&#128205; ${escapeHtml(r.address)}</div>` : ""}
         ${r.officer_name ? `<div class="meta">&#128231; ${escapeHtml(t("routes_to"))} ${escapeHtml(displayRouteName(r))}</div>` : ""}
         ${r.tender_note ? `<div class="meta">&#128209; ${escapeHtml(r.tender_note)}</div>` : ""}
+        ${repairEvidenceHtml(r)}
         ${officialTools}
         <label>${subjectLabel}</label>
-        <input type="text" id="subj" value="" ${sent ? "disabled" : ""}>
+        <input type="text" id="subj" value="" ${locked ? "disabled" : ""}>
         <label>${bodyLabel}</label>
-        <textarea id="body" ${sent ? "disabled" : ""}></textarea>
+        <textarea id="body" ${locked ? "disabled" : ""}></textarea>
         <div class="btn-row">
           <button class="ghost" id="backBtn">${t("back")}</button>
-          ${sent ? "" : `<button class="ghost danger" id="discardBtn">${t("discard")}</button>
+          ${locked ? "" : `<button class="ghost danger" id="discardBtn">${t("discard")}</button>
           <button class="send" id="sendBtn">${escapeHtml(sendLabel(r))}</button>`}
         </div>
         ${confirmation}
       </div>`;
     $("subj").value = r.email_subject || "";
     $("body").value = r.email_body || "";
-    if (!sent) $("sendBtn").onclick = () => sendReport(r);
+    if (!locked) $("sendBtn").onclick = () => sendReport(r);
     const share = $("shareEvidenceBtn");
     if (share) share.onclick = () => shareEvidence(r);
     const whatsapp = $("officialWhatsAppBtn");
@@ -1626,6 +1730,7 @@ function openDetail(r, list) {
     const mark = $("markSubmittedBtn");
     if (mark) mark.onclick = () => markSubmitted(r);
   }
+  wireConditionActions(r);
   wireDetailChrome(r);
   const retryRouting = $("retryRoutingBtn");
   if (retryRouting) retryRouting.onclick = async () => {
@@ -1656,6 +1761,7 @@ async function sendReport(r) {
   // Nothing auto-sends. Verified handoff routes open an official app/portal; Karnataka
   // email routes open an addressed composer. "queued" means only that
   // the external handoff opened, never that the complaint was submitted.
+  if (physicalCondition(r) === "fixed") { alert(t("fixed_action_blocked")); return; }
   const handoff = isOfficialHandoffReport(r);
   const to = r.officer_email || t("the_officer");
   const confirmation = handoff
@@ -1692,6 +1798,7 @@ async function sendReport(r) {
 }
 
 async function markSubmitted(r) {
+  if (physicalCondition(r) === "fixed") { alert(t("fixed_action_blocked")); return; }
   if (!confirm(t("confirm_mark_submitted"))) return;
   const input = $("grievanceId");
   const reference = input ? input.value.trim() : "";
@@ -1734,6 +1841,7 @@ async function openExternalUrl(url, packageName = null) {
 }
 
 async function openOfficialWhatsApp(r) {
+  if (physicalCondition(r) === "fixed") { alert(t("fixed_action_blocked")); return; }
   let verified;
   try { verified = await api(`/api/reports/${r.id}/handoff`); }
   catch (e) { alert(e.message); return; }
@@ -1751,6 +1859,7 @@ async function openOfficialWhatsApp(r) {
 }
 
 async function openOfficialCall(r) {
+  if (physicalCondition(r) === "fixed") { alert(t("fixed_action_blocked")); return; }
   let verified;
   try { verified = await api(`/api/reports/${r.id}/handoff`); }
   catch (e) { alert(e.message); return; }
@@ -1760,6 +1869,7 @@ async function openOfficialCall(r) {
 }
 
 async function openAlternateHandoff(r) {
+  if (physicalCondition(r) === "fixed") { alert(t("fixed_action_blocked")); return; }
   let verified;
   try { verified = await api(`/api/reports/${r.id}/handoff`); }
   catch (e) { alert(e.message); return; }
@@ -1782,6 +1892,7 @@ async function openAlternateHandoff(r) {
 }
 
 async function shareEvidence(r) {
+  if (physicalCondition(r) === "fixed") { alert(t("fixed_action_blocked")); return; }
   const btn = $("shareEvidenceBtn");
   btn.disabled = true; btn.textContent = t("working");
   try {
@@ -1925,8 +2036,10 @@ function updateNativeDriveHud(status) {
   if (!status) return;
   const found = Number(status.found) || 0;
   const already = Number(status.already) || 0;
+  const repaired = Number(status.repaired) || 0;
   $("nativeDriveCount").textContent = eventCountText(found)
-    + (already ? ` · ${alreadyCountText(already)}` : "");
+    + (already ? ` · ${alreadyCountText(already)}` : "")
+    + (repaired ? ` · ${repaired} fixed` : "");
   const queued = Number(status.queued) || 0;
   const dropped = Number(status.dropped) || 0;
   const segments = Number(status.segmentCount) || 0;
@@ -1984,6 +2097,7 @@ async function syncNativeData() {
     } catch (e) { /* leave it unsynced; next resume retries safely */ }
   }
   if (acknowledged.length) await plugin.acknowledgeReports({ ids: acknowledged }).catch(() => {});
+  const repairs = await syncNativeRepairData(plugin);
   const sessions = await plugin.getDrives().catch(() => ({ drives: [] }));
   let driveCount = 0;
   for (const session of (sessions.drives || []).filter((x) =>
@@ -1993,7 +2107,29 @@ async function syncNativeData() {
       driveCount++;
     } catch (e) {}
   }
-  return { reports: acknowledged.length, drives: driveCount };
+  return { reports: acknowledged.length, repairs: repairs.observations, drives: driveCount };
+}
+
+async function syncNativeRepairData(plugin = nativeDrivePlugin()) {
+  if (!plugin) return { observations: 0, targets: 0 };
+  const pending = typeof plugin.syncRepairObservations === "function"
+    ? await plugin.syncRepairObservations().catch(() => ({ observations: [] }))
+    : { observations: [] };
+  const acknowledged = [];
+  for (const observation of (pending.observations || [])) {
+    try {
+      await api("/api/native-repair", { method: "POST", body: JSON.stringify(observation) });
+      acknowledged.push(Number(observation.id));
+    } catch (_) { /* leave it in Room so the next foreground sync retries */ }
+  }
+  if (acknowledged.length && typeof plugin.acknowledgeRepairObservations === "function") {
+    await plugin.acknowledgeRepairObservations({ ids: acknowledged }).catch(() => {});
+  }
+  const payload = await api("/api/repair-targets").catch(() => ({ targets: [] }));
+  if (typeof plugin.replaceRepairTargets === "function") {
+    await plugin.replaceRepairTargets({ targets: payload.targets || [] }).catch(() => {});
+  }
+  return { observations: acknowledged.length, targets: (payload.targets || []).length };
 }
 
 async function finishNativeDrive(summary) {
@@ -2122,6 +2258,9 @@ async function startDrive() {
   if (drive || driveFinalizing || nativeFinishPromise) { driveStarting = false; return; }
   StandaloneAPI.prewarm();
   if (nativePlugin) {
+    // Refresh the native before-photo set immediately before capture starts. This is
+    // local sync only; a failure leaves repair status unchanged and never blocks Drive.
+    await syncNativeRepairData(nativePlugin).catch(() => {});
     await ensureNativeDriveListeners();
     const ctx = { native: true, sessionId: null };
     drive = ctx;
@@ -2166,7 +2305,7 @@ async function startDrive() {
   video.srcObject = stream;
   const ctx = {
     stream, pos: null, lastCapPos: null,
-    tally: { checked: 0, found: 0, already: 0, captured: 0, dropped: 0 },
+    tally: { checked: 0, found: 0, already: 0, repaired: 0, captured: 0, dropped: 0 },
     duplicateIds: new Set(),
     queue: [], pending: new Set(), inFlight: 0, errors: 0, wakeLock: null,
     sessionId: String(Date.now()), startedAt: Date.now(), captureSeq: 0, stillBusy: false,
@@ -2229,7 +2368,8 @@ async function startDrive() {
 function updateHud(status, ctx = drive) {
   if (!ctx || drive !== ctx) return;
   $("driveCount").textContent = eventCountText(ctx.tally.found)
-    + (ctx.tally.already ? ` · ${alreadyCountText(ctx.tally.already)}` : "");
+    + (ctx.tally.already ? ` · ${alreadyCountText(ctx.tally.already)}` : "")
+    + (ctx.tally.repaired ? ` · ${ctx.tally.repaired} fixed` : "");
   $("driveStatus").textContent = status ||
     t("scanning", { mode: "live", checked: ctx.tally.checked,
       analyzing: (ctx.inFlight || ctx.queue.length) ? t("analyzing_suffix", { n: ctx.inFlight + ctx.queue.length }) : "" })
@@ -2360,6 +2500,7 @@ function drainDriveQueue(ctx) {
         ctx.tally.checked++;
         ctx.errors = 0;
         if (res && res.found) ctx.tally.found++;
+        else if (res && res.repaired) ctx.tally.repaired++;
         else if (res && res.duplicate && res.duplicate_of != null) {
           ctx.duplicateIds.add(String(res.duplicate_of));
           ctx.tally.already = ctx.duplicateIds.size;
@@ -3348,6 +3489,7 @@ async function openDash() {
   await mergeNativeDriveHistory(drives, footage);
   const FOUND = ["draft", "queued", "sent", "unrouted"];
   const holes = reports.filter((r) => FOUND.includes(r.status));
+  const fixedCount = holes.filter((r) => physicalCondition(r) === "fixed").length;
   const roadReports = reports.filter(isRoadReport);
   // Opening an email app or BMC channel proves only that a handoff was opened. Count a
   // submission after the citizen explicitly confirms it (and Mumbai has a grievance ID).
@@ -3367,6 +3509,7 @@ async function openDash() {
       <div class="meta">${label}</div></div>`;
   $("dashStats").innerHTML =
     tile(holes.length, t("stat_found")) + tile(sent, t("stat_reported")) +
+    tile(fixedCount, t("stat_fixed")) +
     tile(frames, t("stat_frames")) + tile(drives.length, t("stat_drives")) +
     tile(km.toFixed(1), t("stat_km")) + tile(mb.toFixed(0), t("stat_footage"));
 
@@ -3415,8 +3558,9 @@ function drawMap(pins) {
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }).addTo(mapObj);
     const group = L.featureGroup(pins.map((r) => {
-      const m = L.circleMarker([r.lat, r.lng], { radius: 7, color: "#ff7a1a", weight: 2,
-        fillColor: "#ff7a1a", fillOpacity: .75 });
+      const color = physicalCondition(r) === "fixed" ? "#3ecf6f" : "#ff7a1a";
+      const m = L.circleMarker([r.lat, r.lng], { radius: 7, color, weight: 2,
+        fillColor: color, fillOpacity: .75 });
       m.on("click", () => openReportDetail(r, pins));
       return m;
     })).addTo(mapObj);
@@ -3437,8 +3581,9 @@ function scatter(host, pins) {
   const y = (lat) => H - 12 - ((lat - minLat) / Math.max(1e-9, maxLat - minLat)) * (H - 24);
   host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%">
       <rect width="${W}" height="${H}" fill="#0c0d0f"></rect>
-      ${pins.map((p) => `<circle cx="${x(p.lng).toFixed(1)}" cy="${y(p.lat).toFixed(1)}" r="5"
-         fill="#ff7a1a" fill-opacity="0.8" stroke="#ff7a1a"></circle>`).join("")}
+      ${pins.map((p) => { const color = physicalCondition(p) === "fixed" ? "#3ecf6f" : "#ff7a1a";
+        return `<circle cx="${x(p.lng).toFixed(1)}" cy="${y(p.lat).toFixed(1)}" r="5"
+         fill="${color}" fill-opacity="0.8" stroke="${color}"></circle>`; }).join("")}
     </svg>`;
   $("mapNote").innerHTML = t("map_pins", { n: pins.length }) + " · " + t("map_offline");
 }

@@ -39,12 +39,14 @@ Reporting
 • Photo supports Pothole, Garbage, and Manhole. Reports include the category, photo, coordinates, time, editable wording, and suggested official route.
 • Garbage and manhole handoffs are enabled throughout Maharashtra, West Bengal, Punjab, Tamil Nadu, Andhra Pradesh, and Telangana and in all accepted top-50 city routes.
 • Nearby repeat observations are grouped into one draft.
+• On a precise later live drive, the app can compare the saved damage photo with current views. It marks Fixed automatically only when the same footprint and completed intact repair are both clear; probable or inconclusive results remain open for review.
 • The app can open a published app, portal, WhatsApp chat, dialler, share sheet, or email draft.
 • You must verify the issue, location, recipient, and wording, then complete submission in the external service.
 
 Important limits and data use
 • AI can miss damage or produce false positives. Review the photo, wording, location, and recipient.
 • A boundary match suggests a route; it does not prove road ownership, responsibility, or warranty.
+• Karnataka contract suggestions exclude titles whose actual work is only a drain, footpath, sewer, pipeline, light, building, bridge, culvert, or other roadside asset. A retained match is still only probable.
 • Pothole AI and Drive require camera and foreground location permission, internet, and your own billed OpenAI API key. Garbage and manhole reporting does not require an OpenAI key.
 • Selected resized road-damage images and API requests go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; structured city/state data gate 31 city routes. Karnataka and exact Hyderabad CURE checks may query official GIS. Downloaded Maharashtra, West Bengal, Punjab, Tamil Nadu, Andhra Pradesh, and Telangana boundaries are checked on-device.
 • Routing and highway packs download from this project's GitHub Pages, are SHA-256 verified, and are cached locally. They contain no report, photo, or exact coordinates.
@@ -56,10 +58,10 @@ Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
 Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.28.0 / version code 46)
+## Release notes (1.29.0 / version code 47)
 
 ```text
-Coverage now includes the full State of Telangana for potholes, garbage, and open or damaged manholes. Prajavani is the neutral statewide handoff, Citizen Buddy is offered for municipal areas outside Hyderabad, and verified Hyderabad CURE keeps My Cure. Secunderabad Cantonment is excluded from My Cure but can use neutral Prajavani. Users must verify the responsible body and complete every complaint externally; there is no automatic filing or public complaint-write API integration.
+Drive can now verify a repaired pothole on a later pass using a strict saved-before/current-after comparison. Only a clear same-place view of completed intact repair becomes Fixed; probable or obscured views do not. Karnataka tender suggestions now exclude drain-, footpath-, sewer-, pipeline-, lighting-, building-, bridge-, culvert-, and other roadside-only contracts, even when their title mentions a road location. Physical Fixed status remains separate from official complaint status.
 ```
 
 ## Play Console fields

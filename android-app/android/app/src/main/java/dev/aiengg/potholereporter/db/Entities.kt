@@ -95,6 +95,75 @@ data class EventSightingEntity(
     val sourceEventKey: String?
 )
 
+/**
+ * A lightweight mirror of a WebView report that the foreground Drive service may use
+ * while the WebView (and usually Google Maps) is backgrounded. The original image is
+ * deliberately retained: proximity to a clean-looking frame is not evidence that the
+ * previously reported defect was repaired.
+ */
+@Entity(
+    tableName = "repair_targets",
+    indices = [
+        Index(value = ["lat"]),
+        Index(value = ["conditionStatus"])
+    ]
+)
+data class RepairTargetEntity(
+    @PrimaryKey
+    val reportId: Long,
+    val lat: Double,
+    val lng: Double,
+    val gpsAccuracy: Float?,
+    val heading: Float?,
+    val captureSource: String,
+    val photoPath: String,
+    val photoMime: String = "image/jpeg",
+    val damageType: String,
+    val conditionStatus: String = "open",
+    val lastDamageObservedAt: Long,
+    val lastObservedDriveId: String? = null,
+    val lastObservedAt: Long? = null
+)
+
+/**
+ * Durable outbox entry for one native before/after comparison. It is acknowledged only
+ * after IndexedDB commits the corresponding condition update, so an Activity/process
+ * restart cannot lose a verified repair or apply it twice.
+ */
+@Entity(
+    tableName = "repair_observations",
+    indices = [
+        Index(value = ["targetReportId"]),
+        Index(value = ["sourceEventKey"], unique = true),
+        Index(value = ["syncedToWeb"])
+    ]
+)
+data class RepairObservationEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val targetReportId: Long,
+    val sourceEventKey: String,
+    val observedAt: Long,
+    val driveId: String,
+    val lat: Double,
+    val lng: Double,
+    val gpsAccuracy: Float?,
+    val speedMps: Float?,
+    val heading: Float?,
+    val currentPhotoPath: String,
+    val currentCondition: String,
+    val assessment: String,
+    val imageQuality: String,
+    val sameLocationVisible: Boolean,
+    val completedRepairVisible: Boolean,
+    val description: String,
+    val detectionModel: String,
+    val imageDetail: String,
+    val promptVersion: String,
+    val schemaVersion: Int,
+    val syncedToWeb: Boolean = false
+)
+
 @Entity(tableName = "sessions")
 data class SessionEntity(
     @PrimaryKey
