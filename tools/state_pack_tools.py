@@ -17,10 +17,10 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = PROJECT_ROOT / "docs"
-STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.27.json"
-ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.27.json"
-PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.27.json"
-PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.26.json"
+STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.28.json"
+ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.28.json"
+PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.28.json"
+PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.27.json"
 AUTHORITIES_SOURCE = PROJECT_ROOT / "data" / "state-authorities.json"
 PUBLIC_BASE_URL = "https://coding-parrot.github.io/pothole-reporter/"
 PACK_FORMAT = "pothole-pack-manifest"
@@ -58,6 +58,9 @@ TAMIL_NADU_STATE_GEOMETRY_SHA256 = (
 ANDHRA_PRADESH_STATE_GEOMETRY_SHA256 = (
     "4e36d9c16fda044dceab7a5b08955cb19046bb1bddd052b7671a8311e90cd71c"
 )
+TELANGANA_STATE_GEOMETRY_SHA256 = (
+    "77183815e4b698ec1e823f4a94a6f213d1d827ea35de8fec8c0ab3b6a9d15175"
+)
 KMC_GEOMETRY_SHA256 = (
     "fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5"
 )
@@ -75,6 +78,7 @@ PUNJAB_STATE_REGION_KEYS = {
 }
 TAMIL_NADU_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 ANDHRA_PRADESH_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
+TELANGANA_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 KMC_REGION_KEYS = {
     "authority_id", "authority_name", "scope", "ulb_code", "mun_id",
     "retrieved_at",
@@ -177,6 +181,22 @@ SPECS = {
             "Official Andhra Pradesh grievance sources: respective source terms",
         ),
         "data/metro-coverage/ap-state.json",
+    ),
+    "in-tg-state-routing": ResourceSpec(
+        "in-tg-state-routing",
+        "TG",
+        "routing",
+        "statewide-general-v1",
+        (
+            "Full State of Telangana; neutral Prajavani grievance handoff; "
+            "exact Hyderabad CURE route remains more specific"
+        ),
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Telangana grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/tg-state.json",
     ),
     "in-top50-routing": ResourceSpec(
         "in-top50-routing",
@@ -697,6 +717,20 @@ def _authority_snapshot(spec: ResourceSpec) -> list[dict[str, Any]]:
         if len(authorities) != 1:
             raise PackError(
                 f"state-authorities.json has no unique TN authority for {spec.pack_id}"
+            )
+    if state_code == "TG":
+        required_id = (
+            "tg-statewide-unverified"
+            if spec.pack_id == "in-tg-state-routing"
+            else "tg-cure-shared"
+        )
+        authorities = [
+            authority for authority in authorities
+            if isinstance(authority, dict) and authority.get("id") == required_id
+        ]
+        if len(authorities) != 1:
+            raise PackError(
+                f"state-authorities.json has no unique TG authority for {spec.pack_id}"
             )
     if state_code == "MH":
         for key in ("pmc", "fallback", "statewide"):
@@ -1300,6 +1334,103 @@ def _validate_andhra_pradesh_payload(
     )
 
 
+def _validate_telangana_state_payload(
+    payload: Any,
+    *,
+    generated_at: str | None = None,
+    authorities: Any = None,
+) -> None:
+    _expect(
+        isinstance(payload, dict) and set(payload) == {"version", "retrieved_at", "region"},
+        "in-tg-state-routing payload fields differ from the statewide contract",
+    )
+    _expect(type(payload.get("version")) is int and payload["version"] == 1,
+            "in-tg-state-routing payload version must be 1")
+    retrieved_at = payload.get("retrieved_at")
+    _expect(_is_date(retrieved_at), "in-tg-state-routing retrieved_at is invalid")
+    if generated_at is not None:
+        _expect(retrieved_at == generated_at,
+                "in-tg-state-routing retrieved_at differs from the pack date")
+
+    region = payload.get("region")
+    _expect(
+        isinstance(region, dict) and set(region) == TELANGANA_STATE_REGION_KEYS,
+        "in-tg-state-routing Telangana region fields differ from the contract",
+    )
+    expected = {
+        "id": "telangana-state",
+        "authority_id": "tg-statewide-unverified",
+        "name": "Telangana",
+        "scope": "Full State of Telangana",
+        "osm_relation_id": 3_250_963,
+        "source_name": "OpenStreetMap contributors",
+        "source_home_url": "https://www.openstreetmap.org/relation/3250963",
+        "source_license": "Open Data Commons Open Database License (ODbL) 1.0",
+        "attribution": "© OpenStreetMap contributors",
+        "coordinate_precision": 7,
+        "geometry_sha256": TELANGANA_STATE_GEOMETRY_SHA256,
+    }
+    for field, value in expected.items():
+        _expect(
+            region.get(field) == value,
+            f"in-tg-state-routing Telangana {field} differs from its reviewed pin",
+        )
+    _expect(
+        isinstance(region.get("source_url"), str)
+        and region["source_url"].startswith("https://nominatim.openstreetmap.org/lookup?")
+        and "osm_ids=R3250963" in region["source_url"],
+        "in-tg-state-routing Telangana lookup URL is invalid",
+    )
+    _expect(
+        isinstance(region.get("routing_note"), str)
+        and "Telangana Prajavani" in region["routing_note"]
+        and "Hyderabad CURE" in region["routing_note"]
+        and "does not identify" in region["routing_note"],
+        "in-tg-state-routing Telangana routing note is invalid",
+    )
+    limitations = region.get("limitations")
+    _expect(
+        isinstance(limitations, list) and 1 <= len(limitations) <= 10
+        and all(isinstance(item, str) and item and len(item) <= 500 for item in limitations)
+        and any("user must select" in item for item in limitations)
+        and any("does not submit" in item for item in limitations),
+        "in-tg-state-routing Telangana limitations are invalid",
+    )
+    bounds = _validate_municipal_geometry(
+        region.get("geometry"), "in-tg-state-routing.telangana"
+    )
+    _validate_municipal_envelope(
+        region.get("bbox"), "in-tg-state-routing.telangana.bbox"
+    )
+    _expect(
+        bounds == region["bbox"],
+        "in-tg-state-routing Telangana geometry does not match its bounding box",
+    )
+    geometry_digest = hashlib.sha256(json.dumps(
+        region["geometry"], ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")).hexdigest()
+    _expect(
+        geometry_digest == TELANGANA_STATE_GEOMETRY_SHA256,
+        "in-tg-state-routing Telangana geometry digest does not match",
+    )
+
+    expected_authority = {
+        "id": "tg-statewide-unverified",
+        "name": "Telangana authority (select in Prajavani)",
+        "aliases": ["telangana", "telengana", "తెలంగాణ"],
+        "handoff_name": "Telangana Prajavani",
+        "handoff_url": "https://prajavani.cgg.gov.in/",
+        "alternate_handoff_name": "Citizen Buddy (municipal areas outside Hyderabad)",
+        "alternate_handoff_url": (
+            "https://play.google.com/store/apps/details?id=vmax.com.citizenbuddy"
+        ),
+    }
+    _expect(
+        authorities == [expected_authority],
+        "in-tg-state-routing authority registry differs from its reviewed pin",
+    )
+
+
 def _top50_alias_key(value: str) -> str:
     return " ".join(value.casefold().replace("-", " ").split())
 
@@ -1762,6 +1893,12 @@ def _validate_raw_payload(
             generated_at=generated_at,
             authorities=authorities,
         )
+    elif spec.pack_id == "in-tg-state-routing":
+        _validate_telangana_state_payload(
+            payload,
+            generated_at=generated_at,
+            authorities=authorities,
+        )
     elif spec.pack_id == "in-top50-routing":
         _validate_top50_payload(
             payload,
@@ -2054,10 +2191,10 @@ def verify_all() -> None:
     """Fail unless the manifests and all referenced hosted packs match exactly."""
     manifest_bytes = STATIC_MANIFEST.read_bytes() if STATIC_MANIFEST.exists() else b""
     if not manifest_bytes:
-        raise PackError("missing bundled manifest: static/pack-manifest-v1.27.json")
-    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.27.json")
+        raise PackError("missing bundled manifest: static/pack-manifest-v1.28.json")
+    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.28.json")
     _expect(ANDROID_MANIFEST.read_bytes() == manifest_bytes, "static and Android pack manifests differ")
-    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.27.json")
+    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.28.json")
     _expect(PAGES_MANIFEST.read_bytes() == manifest_bytes, "static and Pages pack manifests differ")
     manifest = _read_json(STATIC_MANIFEST)
     _expect(isinstance(manifest, dict) and set(manifest) == MANIFEST_KEYS,

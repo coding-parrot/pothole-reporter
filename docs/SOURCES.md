@@ -10,15 +10,17 @@ photo, routing, and any probable contract match before sending a complaint.
 
 Large routing, contact, and procurement datasets are not embedded in the APK. The app
 ships a small manifest that pins each supported resource's version, HTTPS URL, byte
-length, and SHA-256 checksum. The v1.27 state-pack manifest contains 12 resources: eleven
+length, and SHA-256 checksum. The v1.28 state-pack manifest contains 13 resources: twelve
 routing/contact packs covering Andhra Pradesh, Delhi, Gujarat, Karnataka, Maharashtra,
 Punjab, Tamil Nadu, Telangana, West Bengal, and the additional top-50 city routes, plus one
-optional Karnataka tender pack. Tamil Nadu uses separate statewide and exact GCC packs. Procurement data is
+optional Karnataka tender pack. Tamil Nadu and Telangana each use separate statewide and
+exact-city packs. Procurement data is
 requested only for an eligible Karnataka contract match.
 The old unversioned ten-resource manifest remains unchanged for cached v1.25 clients, and
 the versioned v1.26 eleven-resource manifest remains unchanged for cached v1.26 clients.
-v1.27 reads `pack-manifest-v1.27.json`, preventing a mixed-cache release from disabling
-otherwise valid routing.
+The versioned v1.27 twelve-resource manifest also remains unchanged for cached v1.27
+clients. v1.28 reads `pack-manifest-v1.28.json`, preventing a mixed-cache release from
+disabling otherwise valid routing.
 The Gujarat pack contains a dissolved copy of the reviewed 48-ward AMC boundary.
 
 The app also ships a National Highway manifest that pins 101 immutable 2° geometry tiles.
@@ -276,6 +278,43 @@ redistribution licence for the boundary, while the Survey of India map restricts
 reproduction without permission. The project therefore redistributes the independently
 licensed OpenStreetMap geometry under the ODbL, not either official geometry.
 
+## Telangana statewide complaint handoff
+
+Every point whose complete GPS-accuracy circle is confidently inside
+[OpenStreetMap relation 3250963](https://www.openstreetmap.org/relation/3250963) is eligible
+for a neutral [Telangana Prajavani](https://prajavani.cgg.gov.in/) handoff after the National
+Highway and exact Hyderabad CURE checks. The ODbL state polygon was retrieved on 24 August
+2026 at seven-decimal precision; the runtime pins geometry SHA-256
+`77183815e4b698ec1e823f4a94a6f213d1d827ea35de8fec8c0ab3b6a9d15175`.
+A GPS accuracy circle touching the state edge fails closed rather than inheriting a route
+from a place name.
+
+The Government of Telangana's [Prajavani portal](https://prajavani.cgg.gov.in/) is the
+neutral statewide handoff for road damage, garbage, and open or damaged manholes. The
+[Centre for Good Governance project record](https://www.cgg.gov.in/it_project/prajavani-praja-bhavan-effective-grievance-redressal-system-2/)
+describes state-level rollout, direct citizen submission, and routing to district or
+department officers by category and location. The portal does not provide a stable public
+prefill or third-party complaint-write API, so the user must select and verify the district,
+department, local body, category, and road owner, complete the complaint externally, and
+retain the official acknowledgement. Pothole Reporter does not log in, bypass OTP, submit,
+or read complaint status. The discontinued `cpgrams.ts.nic.in` portal is not used.
+
+[Citizen Buddy Telangana](https://play.google.com/store/apps/details?id=vmax.com.citizenbuddy)
+is offered only as an urban alternate for municipalities and corporations outside Hyderabad;
+it is not presented as a rural or statewide channel. Inside Hyderabad, a successful official
+CURE and Cantonment check keeps the more specific
+[My Cure](https://play.google.com/store/apps/details?id=cgg.gov.ghmc) route. A CURE-service
+failure or an accuracy envelope intersecting Secunderabad Cantonment prevents My Cure but
+can still fall back to neutral Prajavani when the checksum-pinned state polygon contains the
+complete accuracy circle. That fallback does not claim that a Telangana department owns a
+Cantonment road.
+
+The ODbL outline was cross-checked against TGRAC's official
+[`State Boundary` layer 29](https://tgrac.telangana.gov.in/arcgis/rest/services/AdministrativeInfoSystem_Folder/Administrative_Information_System/MapServer/29).
+TGRAC publishes no explicit redistribution licence for that layer, so it is validation
+evidence only; the project redistributes the independently licensed OpenStreetMap geometry.
+Contract matching is disabled throughout Telangana.
+
 ## Census top-50 city routes
 
 The selection list is the 50 largest serial-numbered Urban Agglomeration/City entries by
@@ -287,7 +326,7 @@ aliases such as Bruhat Bangalore/Bengaluru, Ahmadabad/Ahmedabad,
 Allahabad/Prayagraj, and Aurangabad/Chhatrapati Sambhajinagar are retained separately.
 
 Nineteen entries already use a reviewed city, NCT, Karnataka-body, or statewide
-Maharashtra/West Bengal/Punjab/Tamil Nadu/Andhra Pradesh route. The other 31 use a checksum-verified national
+Maharashtra/West Bengal/Punjab/Tamil Nadu/Andhra Pradesh/Telangana route. The other 31 use a checksum-verified national
 routing pack. A new route is offered only when all of these agree:
 
 For saved-report compatibility, that immutable pack still physically contains four entries
@@ -395,9 +434,10 @@ The app also offers GCC's published WhatsApp number **+91 94450 61913** and help
 
 ## Hyderabad CURE official point query and shared complaint handoff
 
-The Telangana routing pack contains query metadata but no boundary polygon. In the native
+The exact Hyderabad routing pack contains query metadata but no CURE polygon; the separate
+statewide Telangana pack contains the ODbL state polygon described above. In the native
 Android app, an accepted GPS fix (at most 30 m reported accuracy) is converted to its complete
-accuracy envelope. The app asks TGRAC's official
+accuracy envelope. Before the statewide fallback, the app asks TGRAC's official
 [`Proposed Core Urban Area -2053 Sq.Km` layer 22](https://tgrac.telangana.gov.in/arcgis/rest/services/TCUR_Folder/TCUR_Telangana_Core_Urban_Region_V2/MapServer/22)
 whether that entire envelope is within the Core Urban Region. The route is accepted only when
 the service returns one containing feature. This covers the official 2,053 km² CURE service
@@ -405,10 +445,12 @@ scope without redistributing government geometry.
 
 The same request checks TGRAC's exact official
 [`Cantonment Boundary` layer 1](https://tgrac.telangana.gov.in/arcgis/rest/services/Hydra_Folder/Administrative_Layer/MapServer/1).
-Any accuracy envelope intersecting Secunderabad Cantonment is refused. If either official
-query is unavailable, malformed, or inconclusive, routing fails closed. Browser/PWA use also
-fails closed and does not send a Hyderabad coordinate to TGRAC; live Hyderabad routing is an
-Android feature and depends on the government query service being available.
+Any accuracy envelope intersecting Secunderabad Cantonment is refused for My Cure. If either
+official query is unavailable, malformed, or inconclusive, the app does not claim CURE
+containment or choose My Cure. Browser/PWA use likewise does not send a Hyderabad coordinate
+to TGRAC. In each case, the independently verified local state polygon can still offer the
+neutral Telangana Prajavani fallback; this does not identify a municipal or Cantonment road
+owner.
 
 [G.O.Ms.No.292 dated 24 December 2025](https://goir.telangana.gov.in/) reorganised the
 expanded area into 12 zones and 60 circles. Telangana's
@@ -419,7 +461,8 @@ point, so the app makes no such attribution. It offers the shared
 [My Cure](https://play.google.com/store/apps/details?id=cgg.gov.ghmc) civic-grievance handoff,
 whose current listing expressly includes pothole grievances, plus its
 [web flow](https://igs.ghmc.gov.in/operator/send_otp_mobile). Opening either service is not
-submission; contract matching is disabled.
+submission; the OTP-bound web flow is not a public complaint-write API, and contract matching
+is disabled.
 
 ## Ahmedabad AMC boundary and complaint handoff
 
@@ -547,11 +590,11 @@ unless a category-appropriate official channel is separately reviewed.
 
 **Source: OpenStreetMap, via Nominatim.** It turns coordinates into a street name and
 pincode for the complaint. In Maharashtra, West Bengal, Punjab, Tamil Nadu, Andhra Pradesh,
-Delhi, and Hyderabad, address
-fields are display-only routing clues; only a verified cached polygon selects coverage.
-Ahmedabad now follows the same rule: its verified cached AMC ward union selects coverage,
-and the geocoder result is display-only. Free-form geocoder text is never used to expand
-any polygon route. The 31 additional top-50 routes are the explicit exception: they require
+Telangana, Delhi, and Ahmedabad, address fields are display-only routing clues; only a
+verified cached polygon selects statewide or local polygon coverage. Exact Hyderabad CURE
+coverage instead requires the live official TGRAC response described above. Free-form
+geocoder text is never used to expand any polygon route. The 31 additional top-50 routes
+are the explicit exception: they require
 exact configured `city` or `municipality` and state fields inside a conservative coordinate
 envelope and never use free-form display text. The coordinates themselves
 come from the phone's GPS and are printed in the complaint alongside a map link, so the
@@ -609,6 +652,10 @@ That wording is deliberate and should not be strengthened.
   Yanam, Puducherry Union Territory. PGRS and the urban Puramithra alternate are neutral
   handoffs; neither identifies the department, local body, road owner, category, contractor,
   or submission.
+- Telangana-wide coverage uses a pinned ODbL state boundary checked against TGRAC's
+  official state layer. Prajavani is neutral, and Citizen Buddy is only an urban alternate
+  outside Hyderabad; neither identifies a department, local body, road owner, category,
+  contractor, or submission.
 - The 31 additional top-50 routes use conservative Nominatim search envelopes plus exact
   structured city/municipality and state aliases. They are not municipal polygons or
   complete Census Urban Agglomeration boundaries; a missing, stale, ambiguous, or
@@ -621,10 +668,11 @@ That wording is deliberate and should not be strengthened.
 - The Chennai-specific route is GCC only. Its ODbL polygon was checked against, but is not
   copied from, GCC's official 2025 layer; later boundary changes require a reviewed pack
   update. Other confidently contained Tamil Nadu points use the statewide neutral route.
-- Hyderabad coverage uses the official 2,053 km² CURE point-query service on Android and
-  fails closed on the web or when that service is unavailable. The complete GPS-accuracy
-  envelope must be within CURE and must not intersect the exact official Secunderabad
-  Cantonment layer. Shared My Cure does not assign one of the three 2026 corporations.
+- Hyderabad's specific My Cure route uses the official 2,053 km² CURE point-query service
+  on Android. The complete GPS-accuracy envelope must be within CURE and must not intersect
+  the exact official Secunderabad Cantonment layer. The web, an unavailable service, or a
+  Cantonment intersection cannot select My Cure, but a verified in-state point can use the
+  neutral Prajavani fallback. Neither route assigns one of the three 2026 corporations.
 - Ahmedabad coverage uses the pinned 439.397 km² ODbL union of 48 AMC wards. AMC materials
   publish larger post-merger areas, so complete current outer-expansion coverage is not
   proven. The wider AUDA area is excluded.
@@ -634,7 +682,7 @@ That wording is deliberate and should not be strengthened.
   integrated statewide.
 - West Bengal contract matching is disabled for the same reason; neither state nor KMC
   containment establishes who owns or maintains a road.
-- Delhi, Tamil Nadu (including Chennai), Andhra Pradesh, Hyderabad, and Ahmedabad contract matching is disabled; a coverage response
+- Delhi, Tamil Nadu (including Chennai), Andhra Pradesh, Telangana (including Hyderabad), and Ahmedabad contract matching is disabled; a coverage response
   is neither ownership nor a contract match.
 - 137 of Karnataka's 319 local bodies have no address in the file, because their district
   pages publish none. Those reports refuse to route.
@@ -653,6 +701,6 @@ That wording is deliberate and should not be strengthened.
   below one request per second. National or municipal-scale deployment must switch the
   endpoint to a policy-compliant managed or self-hosted service. The 31 additional city
   routes depend on exact Nominatim structured fields. Maharashtra, West Bengal, Punjab,
-  Tamil Nadu, Andhra Pradesh, Delhi, and Ahmedabad boundary routing remains local and does not depend on a geocoder
+  Tamil Nadu, Andhra Pradesh, Telangana, Delhi, and Ahmedabad boundary routing remains local and does not depend on a geocoder
   response. Native Android Hyderabad routing sends the GPS-accuracy envelope to TGRAC's
   official CURE and Cantonment query services.

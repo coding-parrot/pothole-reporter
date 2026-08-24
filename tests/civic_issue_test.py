@@ -195,6 +195,15 @@ async ({authorities, pixel}) => {
        "https://cmo.wb.gov.in/landing/raise-grievance");
     eq(`West Bengal ${issue}: no unsupported helpline is invented`,
        westBengal && westBengal.helpline, null);
+
+    const telangana = routeFor("tg-statewide-unverified", issue);
+    eq(`Telangana ${issue}: statewide Prajavani route`,
+       telangana && telangana.handoff_url, "https://prajavani.cgg.gov.in/");
+    eq(`Telangana ${issue}: municipal alternate is retained`,
+       telangana && telangana.alternate_handoff_url,
+       "https://play.google.com/store/apps/details?id=vmax.com.citizenbuddy");
+    eq(`Telangana ${issue}: no unsupported helpline is invented`,
+       telangana && telangana.helpline, null);
   }
 
   const bengaluru = authorities.filter((authority) =>
@@ -445,8 +454,8 @@ def main() -> None:
     inventory = authority_inventory()
     # These counts pin the intended current scope and make an accidental source omission
     # visible instead of silently reducing the matrix.
-    if len(inventory) != 225:
-        raise AssertionError(f"expected 225 configured routes/bodies, found {len(inventory)}")
+    if len(inventory) != 226:
+        raise AssertionError(f"expected 226 configured routes/bodies, found {len(inventory)}")
     if sum(item["source_state"] == "KA" for item in inventory) != 182:
         raise AssertionError("expected all 182 configured Karnataka ULBs")
 

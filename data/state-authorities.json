@@ -352,6 +352,15 @@
         "handoff_package": "cgg.gov.ghmc",
         "alternate_handoff_name": "My Cure complaint status",
         "alternate_handoff_url": "https://igs.ghmc.gov.in/Operator/search"
+      },
+      {
+        "id": "tg-statewide-unverified",
+        "name": "Telangana authority (select in Prajavani)",
+        "aliases": ["telangana", "telengana", "తెలంగాణ"],
+        "handoff_name": "Telangana Prajavani",
+        "handoff_url": "https://prajavani.cgg.gov.in/",
+        "alternate_handoff_name": "Citizen Buddy (municipal areas outside Hyderabad)",
+        "alternate_handoff_url": "https://play.google.com/store/apps/details?id=vmax.com.citizenbuddy"
       }
     ]
   },

@@ -5,7 +5,7 @@ detects visible road damage; **Photo** lets the user choose the issue and prepar
 for an official complaint channel. Reports remain on the phone, and nothing is filed
 automatically. There is no project-operated backend or account system.
 
-Current release: [v1.27.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.27.0)
+Current release: [v1.28.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.28.0)
 
 <p>
   <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
@@ -27,7 +27,7 @@ Current release: [v1.27.0](https://github.com/coding-parrot/pothole-reporter/rel
 | Karnataka | Road-damage routing for supported urban bodies. Garbage and manholes are enabled only in the five Bengaluru city corporations through Sahaaya 2.0. |
 | Tamil Nadu | Full state coverage. The exact Greater Chennai Corporation route stays preferred; every other confidently contained Tamil Nadu point uses the neutral Mudhalvarin Mugavari grievance service. Puducherry and Karaikal are excluded. |
 | Andhra Pradesh | Full state coverage through the statewide PGRS service, with CDMA/Puramithra offered for urban areas. Yanam is excluded. The app does not guess the local body or road owner. |
-| Telangana | Android checks Hyderabad's official 2,053 km² CURE boundary live and opens My Cure. Secunderabad Cantonment is excluded; the app does not guess among the three 2026 corporations. |
+| Telangana | Full state coverage through neutral Telangana Prajavani, with Citizen Buddy offered for municipal areas outside Hyderabad. Verified Hyderabad CURE points keep the specific My Cure route; Secunderabad Cantonment is excluded from My Cure but can use neutral Prajavani. The app does not guess the local body or road owner. |
 | Gujarat | AMC CCRS for a reviewed 48-ward Ahmedabad footprint (439.397 km²). Wider AUDA is excluded, and complete recent outer-expansion coverage is not claimed. |
 
 Boundaries suggest a complaint route; they do not prove who owns or maintains a road.
@@ -44,7 +44,7 @@ WhatsApp, dialler, share sheet, or email client. Nothing is submitted automatica
 - The app preserves the photo, coordinates, time, category, complaint draft, and official
   reference ID locally. A genuinely temporary routing-data failure can be retried later;
   permanent boundary/category refusals require a new report or added coverage.
-- Garbage and manhole handoffs are enabled throughout Maharashtra, West Bengal, Punjab, Tamil Nadu, and Andhra Pradesh,
+- Garbage and manhole handoffs are enabled throughout Maharashtra, West Bengal, Punjab, Tamil Nadu, Andhra Pradesh, and Telangana,
   plus all accepted top-50 city routes. Road damage keeps its road-specific channel where one exists.
 - English, Kannada, Marathi, and Bengali are supported.
 
@@ -101,8 +101,8 @@ state or an approximate 2° highway tile. See the
   the camera. Device-specific battery managers can still stop long-running services.
 - Selected road-damage images and the user's API key go directly to OpenAI. Garbage and
   manhole photos do not. Exact coordinates go to OpenStreetMap Nominatim; Karnataka
-  locations query Karnataka GIS, and Hyderabad coverage queries Telangana GIS. Maharashtra,
-  West Bengal, Punjab, Tamil Nadu, and Andhra Pradesh containment is checked locally against downloaded ODbL state boundaries.
+  locations query Karnataka GIS, and exact Hyderabad CURE checks query Telangana GIS. Maharashtra,
+  West Bengal, Punjab, Tamil Nadu, Andhra Pradesh, and Telangana containment is checked locally against downloaded ODbL state boundaries.
   The 31 structured-city routes require Nominatim's city/municipality and state fields;
   a broad envelope or stale place label alone cannot select a route.
 - Contract matching is optional and available only for eligible Karnataka routes. A match

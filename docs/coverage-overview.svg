@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="720" viewBox="0 0 320 720" role="img" aria-labelledby="title description">
   <title id="title">Pothole Reporter top-50 coverage overview</title>
-  <desc id="description">Schematic map of 50 available routes for the population centres ranked in Census of India 2011 table A-04 (I). Thirty-one markers use conservative structured city-name routes; these markers identify population centres and do not represent complete urban-agglomeration boundaries. Maharashtra, West Bengal, Punjab, Tamil Nadu, and Andhra Pradesh have statewide neutral grievance handoffs. Chandigarh is excluded from Punjab; Puducherry and Karaikal are excluded from Tamil Nadu; Yanam is excluded from Andhra Pradesh. Mapped National Highways and Expressways use a separate pothole route across India.</desc>
+  <desc id="description">Schematic map of 50 available routes for the population centres ranked in Census of India 2011 table A-04 (I). Thirty-one markers use conservative structured city-name routes; these markers identify population centres and do not represent complete urban-agglomeration boundaries. Maharashtra, West Bengal, Punjab, Tamil Nadu, Andhra Pradesh, and Telangana have statewide neutral grievance handoffs. Chandigarh is excluded from Punjab; Puducherry and Karaikal are excluded from Tamil Nadu; Yanam is excluded from Andhra Pradesh. Mapped National Highways and Expressways use a separate pothole route across India.</desc>
   <defs>
     <linearGradient id="state-card" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#3a2416"/>
@@ -110,11 +110,12 @@
 
   <rect x="20" y="504" width="280" height="96" rx="14" fill="url(#state-card)" stroke="#ff7a1a"/>
   <text x="36" y="523" fill="#ffb37d" font-size="8.5" font-weight="800" letter-spacing="1">STATEWIDE NEUTRAL HANDOFFS</text>
-  <text x="36" y="545" fill="#ffffff" font-size="13" font-weight="750">Maharashtra · West Bengal · Punjab</text>
-  <text x="36" y="559" fill="#ffffff" font-size="13" font-weight="750">Tamil Nadu · Andhra Pradesh</text>
-  <text x="36" y="573" fill="#d8b499" font-size="8">Chandigarh UT is outside Punjab coverage</text>
-  <text x="36" y="581" fill="#d8b499" font-size="8">Puducherry UT is outside Tamil Nadu coverage</text>
-  <text x="36" y="589" fill="#d8b499" font-size="8">Yanam is outside Andhra Pradesh coverage</text>
+  <text x="36" y="541" fill="#ffffff" font-size="12" font-weight="750">Maharashtra · West Bengal</text>
+  <text x="36" y="553" fill="#ffffff" font-size="12" font-weight="750">Punjab · Tamil Nadu</text>
+  <text x="36" y="565" fill="#ffffff" font-size="12" font-weight="750">Andhra Pradesh · Telangana</text>
+  <text x="36" y="577" fill="#d8b499" font-size="8">Chandigarh UT is outside Punjab coverage</text>
+  <text x="36" y="585" fill="#d8b499" font-size="8">Puducherry UT is outside Tamil Nadu coverage</text>
+  <text x="36" y="593" fill="#d8b499" font-size="8">Yanam is outside Andhra Pradesh coverage</text>
   <g transform="translate(253 519)">
     <circle cx="0" cy="0" r="11" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.55"/>
     <text x="0" y="3" text-anchor="middle" fill="#ffb37d" font-size="7.5" font-weight="800">MH</text>
@@ -124,8 +125,10 @@
     <text x="0" y="29" text-anchor="middle" fill="#ffb37d" font-size="7.5" font-weight="800">PB</text>
     <circle cx="25" cy="26" r="11" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.55"/>
     <text x="25" y="29" text-anchor="middle" fill="#ffb37d" font-size="7.5" font-weight="800">TN</text>
-    <circle cx="12.5" cy="52" r="11" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.55"/>
-    <text x="12.5" y="55" text-anchor="middle" fill="#ffb37d" font-size="7.5" font-weight="800">AP</text>
+    <circle cx="0" cy="52" r="11" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.55"/>
+    <text x="0" y="55" text-anchor="middle" fill="#ffb37d" font-size="7.5" font-weight="800">AP</text>
+    <circle cx="25" cy="52" r="11" fill="#ff7a1a" fill-opacity="0.12" stroke="#ff9b54" stroke-opacity="0.55"/>
+    <text x="25" y="55" text-anchor="middle" fill="#ffb37d" font-size="7.5" font-weight="800">TG</text>
   </g>
 
   <rect x="20" y="612" width="280" height="62" rx="14" fill="url(#road-card)" stroke="#315e3e"/>

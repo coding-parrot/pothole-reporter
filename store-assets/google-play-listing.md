@@ -28,15 +28,16 @@ Coverage
 • The full State of Punjab through Connect Punjab, with mSeva offered for urban areas. Chandigarh is outside the Punjab boundary.
 • Tamil Nadu statewide: the exact Greater Chennai Corporation route stays preferred; other confidently contained points use neutral Mudhalvarin Mugavari. Puducherry and Karaikal are excluded.
 • The full State of Andhra Pradesh through PGRS, with Puramithra offered for urban areas and helpline 1902. Yanam is excluded.
+• The full State of Telangana through neutral Prajavani, with Citizen Buddy offered for municipal areas outside Hyderabad. Verified Hyderabad CURE keeps My Cure; Secunderabad Cantonment is excluded from My Cure but can use neutral Prajavani.
 • All 50 largest Census 2011 population centres. Existing reviewed/statewide routes stay preferred; 31 routes require a conservative coordinate envelope and exact structured city/state data. Markers are not complete Urban Agglomeration boundaries.
-• Delhi NCT, Hyderabad's verified CURE footprint, and a reviewed Ahmedabad 48-ward footprint.
+• Delhi NCT and a reviewed Ahmedabad 48-ward footprint.
 • Road-damage routing for supported Karnataka urban bodies. Garbage and manholes are enabled through Sahaaya 2.0 only in the five Bengaluru city corporations.
 
 Locations outside these routes are saved locally but are not addressed to an authority.
 
 Reporting
 • Photo supports Pothole, Garbage, and Manhole. Reports include the category, photo, coordinates, time, editable wording, and suggested official route.
-• Garbage and manhole handoffs are enabled throughout Maharashtra, West Bengal, Punjab, Tamil Nadu, and Andhra Pradesh and in all accepted top-50 city routes.
+• Garbage and manhole handoffs are enabled throughout Maharashtra, West Bengal, Punjab, Tamil Nadu, Andhra Pradesh, and Telangana and in all accepted top-50 city routes.
 • Nearby repeat observations are grouped into one draft.
 • The app can open a published app, portal, WhatsApp chat, dialler, share sheet, or email draft.
 • You must verify the issue, location, recipient, and wording, then complete submission in the external service.
@@ -45,7 +46,7 @@ Important limits and data use
 • AI can miss damage or produce false positives. Review the photo, wording, location, and recipient.
 • A boundary match suggests a route; it does not prove road ownership, responsibility, or warranty.
 • Pothole AI and Drive require camera and foreground location permission, internet, and your own billed OpenAI API key. Garbage and manhole reporting does not require an OpenAI key.
-• Selected resized road-damage images and API requests go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; structured city/state data gate 31 city routes. Karnataka and Hyderabad may query official GIS. Downloaded Maharashtra, West Bengal, Punjab, Tamil Nadu, and Andhra Pradesh boundaries are checked on-device.
+• Selected resized road-damage images and API requests go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; structured city/state data gate 31 city routes. Karnataka and exact Hyderabad CURE checks may query official GIS. Downloaded Maharashtra, West Bengal, Punjab, Tamil Nadu, Andhra Pradesh, and Telangana boundaries are checked on-device.
 • Routing and highway packs download from this project's GitHub Pages, are SHA-256 verified, and are cached locally. They contain no report, photo, or exact coordinates.
 • Choosing an external handoff transfers selected data or connection metadata under that provider's policy.
 • Drive recording is optional, visible through Android's foreground-service notification, and off by default.
@@ -55,10 +56,10 @@ Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
 Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.27.0 / version code 45)
+## Release notes (1.28.0 / version code 46)
 
 ```text
-Coverage now includes the full State of Andhra Pradesh for potholes, garbage, and open or damaged manholes. PGRS is the primary handoff, with Puramithra for urban areas and helpline 1902. Yanam remains excluded; users must select the responsible body and complete every complaint externally.
+Coverage now includes the full State of Telangana for potholes, garbage, and open or damaged manholes. Prajavani is the neutral statewide handoff, Citizen Buddy is offered for municipal areas outside Hyderabad, and verified Hyderabad CURE keeps My Cure. Secunderabad Cantonment is excluded from My Cure but can use neutral Prajavani. Users must verify the responsible body and complete every complaint externally; there is no automatic filing or public complaint-write API integration.
 ```
 
 ## Play Console fields

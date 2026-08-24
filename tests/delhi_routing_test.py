@@ -30,7 +30,7 @@ async () => {
   // envelope checks. This is the same lazy path production routing takes.
   const coverage = await P.delhiCoverage();
 
-  eq("registry: version includes statewide Andhra Pradesh routing", P.AUTHORITY_REGISTRY_VERSION, 12);
+  eq("registry: version includes statewide Telangana routing", P.AUTHORITY_REGISTRY_VERSION, 13);
   eq("registry: Delhi route has a stable ID", P.DELHI_PWD_AUTHORITY.id, "dl-pwd-sewa");
   eq("registry: primary route is PWD Sewa", P.DELHI_PWD_AUTHORITY.handoff_name, "PWD Sewa");
   ok("registry: primary complaint route is official HTTPS",

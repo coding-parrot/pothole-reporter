@@ -28,7 +28,7 @@ async () => {
   // The authority registry is populated only by a checksum-verified state pack.
   const coverage = await P.kolkataCoverage();
 
-  eq("registry: version includes statewide Andhra Pradesh routing", P.AUTHORITY_REGISTRY_VERSION, 12);
+  eq("registry: version includes statewide Telangana routing", P.AUTHORITY_REGISTRY_VERSION, 13);
   eq("registry: KMC uses a stable ID", P.KMC_AUTHORITY.id, "wb-kmc");
   eq("registry: statewide fallback uses a stable ID",
      P.WEST_BENGAL_STATE_AUTHORITY.id, "wb-statewide-unverified");

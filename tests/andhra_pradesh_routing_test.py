@@ -56,7 +56,7 @@ async ({inside, outside, legacySha}) => {
   const region = coverage && coverage.region;
   const pack = await P.loadStatePack("in-ap-routing");
 
-  ok("pack: v1.27 manifest entry exists", resource, manifest);
+  ok("pack: v1.28 manifest entry exists", resource, manifest);
   eq("pack: adapter is statewide and data-only", resource && resource.adapter,
      "statewide-general-v1");
   eq("pack: state code is Andhra Pradesh", resource && resource.state_code, "AP");
@@ -83,7 +83,7 @@ async ({inside, outside, legacySha}) => {
        && (region && region.limitations || []).some((item) => /user must select/i.test(item)),
      region && region.limitations);
 
-  eq("registry: Andhra Pradesh release is versioned", P.AUTHORITY_REGISTRY_VERSION, 12);
+  eq("registry: Telangana release is versioned", P.AUTHORITY_REGISTRY_VERSION, 13);
   eq("registry: stable statewide authority is installed",
      P.ANDHRA_PRADESH_STATE_AUTHORITY.id, "ap-statewide-unverified");
   eq("registry: primary official PGRS handoff",
