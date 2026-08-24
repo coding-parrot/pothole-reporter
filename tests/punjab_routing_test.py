@@ -72,8 +72,8 @@ async ({inside, outside}) => {
        && (region && region.limitations || []).some((item) => /user must select/i.test(item)),
      region && region.limitations);
 
-  eq("registry: release contains statewide Tamil Nadu routing",
-     P.AUTHORITY_REGISTRY_VERSION, 11);
+  eq("registry: release contains statewide Andhra Pradesh routing",
+     P.AUTHORITY_REGISTRY_VERSION, 12);
   eq("registry: stable Punjab authority is installed",
      P.PUNJAB_STATE_AUTHORITY.id, "pb-statewide-unverified");
   eq("registry: primary official handoff", P.PUNJAB_STATE_AUTHORITY.handoff_url,

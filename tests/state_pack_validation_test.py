@@ -30,6 +30,7 @@ VALIDATED_IDS = (
     "in-wb-routing",
     "in-pb-routing",
     "in-tn-state-routing",
+    "in-ap-routing",
     "in-top50-routing",
 )
 
@@ -204,6 +205,19 @@ def main() -> int:
         ("in-tn-state-routing", "wrong Tamil Nadu app package", lambda p, a: a[0].update(
             {"handoff_package": "example.unreviewed.app"}
         )),
+        ("in-ap-routing", "wrong state relation", lambda p, a: p["region"].update(
+            {"osm_relation_id": 1}
+        )),
+        ("in-ap-routing", "state geometry digest mismatch", lambda p, a: p[
+            "region"
+        ].update({"geometry_sha256": "0" * 64})),
+        ("in-ap-routing", "missing statewide authority", lambda p, a: a.clear()),
+        ("in-ap-routing", "unreviewed statewide grievance URL", lambda p, a: a[
+            0
+        ].update({"handoff_url": "https://example.invalid/unreviewed"})),
+        ("in-ap-routing", "Yanam included in declared scope", lambda p, a: p[
+            "region"
+        ].update({"scope": "Full State of Andhra Pradesh including Yanam"})),
         ("in-top50-routing", "missing city region", lambda p, a: p["regions"].pop()),
         ("in-top50-routing", "changed Census rank", lambda p, a: p["regions"][0].update(
             {"rank": 8}

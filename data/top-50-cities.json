@@ -307,8 +307,8 @@
       "state_code": "AP",
       "population": 1728128,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-ap-routing"
     },
     {
       "rank": 25,
@@ -379,8 +379,8 @@
       "state_code": "AP",
       "population": 1476931,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-ap-routing"
     },
     {
       "rank": 31,

@@ -14,7 +14,8 @@ AAB_PATH=$ANDROID_ROOT/app/build/outputs/bundle/release/app-release.aab
 BUNDLE_MANIFEST=$ANDROID_ROOT/app/build/intermediates/bundle_manifest/release/processApplicationManifestReleaseForBundle/AndroidManifest.xml
 WWW_ROOT=android-app/www
 PACKAGED_ASSETS_ROOT=$ANDROID_ROOT/app/src/main/assets/public
-PACK_MANIFEST=static/pack-manifest-v1.26.json
+PACK_MANIFEST=static/pack-manifest-v1.27.json
+PREVIOUS_PACK_MANIFEST=static/pack-manifest-v1.26.json
 LEGACY_PACK_MANIFEST=static/pack-manifest.json
 HIGHWAY_MANIFEST=static/highway-manifest.json
 FORBIDDEN_STATE_ASSETS=(
@@ -62,7 +63,8 @@ echo "1/7 validating hosted data packs, municipal schemas and web-source mirrors
 python3 tools/build-state-packs.py --check
 python3 tools/build-national-highways.py --check
 python3 tests/state_pack_validation_test.py
-same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.26.json" "v1.26 pack manifest mirror"
+same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.27.json" "v1.27 pack manifest mirror"
+same_file "$PREVIOUS_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.26.json" "v1.26 pack manifest mirror"
 same_file "$LEGACY_PACK_MANIFEST" "$WWW_ROOT/pack-manifest.json" "legacy pack manifest mirror"
 same_file "$HIGHWAY_MANIFEST" "$WWW_ROOT/highway-manifest.json" "highway manifest mirror"
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
@@ -96,8 +98,8 @@ rm -f "$AAB_PATH"
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="dev.aiengg.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="44"' "$BUNDLE_MANIFEST" || fail "expected versionCode 44"
-grep -Fq 'android:versionName="1.26.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.26.0"
+grep -Fq 'android:versionCode="45"' "$BUNDLE_MANIFEST" || fail "expected versionCode 45"
+grep -Fq 'android:versionName="1.27.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.27.0"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"

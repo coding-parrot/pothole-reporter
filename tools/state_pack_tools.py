@@ -17,9 +17,10 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = PROJECT_ROOT / "docs"
-STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.26.json"
-ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.26.json"
-PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.26.json"
+STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.27.json"
+ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.27.json"
+PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.27.json"
+PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.26.json"
 AUTHORITIES_SOURCE = PROJECT_ROOT / "data" / "state-authorities.json"
 PUBLIC_BASE_URL = "https://coding-parrot.github.io/pothole-reporter/"
 PACK_FORMAT = "pothole-pack-manifest"
@@ -54,6 +55,9 @@ PUNJAB_STATE_GEOMETRY_SHA256 = (
 TAMIL_NADU_STATE_GEOMETRY_SHA256 = (
     "b3034527326b1120366adaf4b7c3df4bd0b8c7aab4d82b28e3dde189b39c313e"
 )
+ANDHRA_PRADESH_STATE_GEOMETRY_SHA256 = (
+    "4e36d9c16fda044dceab7a5b08955cb19046bb1bddd052b7671a8311e90cd71c"
+)
 KMC_GEOMETRY_SHA256 = (
     "fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5"
 )
@@ -70,6 +74,7 @@ PUNJAB_STATE_REGION_KEYS = {
     "bbox", "geometry_sha256", "geometry",
 }
 TAMIL_NADU_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
+ANDHRA_PRADESH_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 KMC_REGION_KEYS = {
     "authority_id", "authority_name", "scope", "ulb_code", "mun_id",
     "retrieved_at",
@@ -156,6 +161,22 @@ SPECS = {
             "Official Tamil Nadu grievance sources: respective source terms",
         ),
         "data/metro-coverage/tn-state.json",
+    ),
+    "in-ap-routing": ResourceSpec(
+        "in-ap-routing",
+        "AP",
+        "routing",
+        "statewide-general-v1",
+        (
+            "Full State of Andhra Pradesh; neutral PGRS grievance handoff; "
+            "excludes Yanam, Puducherry Union Territory"
+        ),
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Andhra Pradesh grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/ap-state.json",
     ),
     "in-top50-routing": ResourceSpec(
         "in-top50-routing",
@@ -1183,6 +1204,102 @@ def _validate_tamil_nadu_state_payload(
     )
 
 
+def _validate_andhra_pradesh_payload(
+    payload: Any,
+    *,
+    generated_at: str | None = None,
+    authorities: Any = None,
+) -> None:
+    _expect(
+        isinstance(payload, dict) and set(payload) == {"version", "retrieved_at", "region"},
+        "in-ap-routing payload fields differ from the statewide contract",
+    )
+    _expect(type(payload.get("version")) is int and payload["version"] == 1,
+            "in-ap-routing payload version must be 1")
+    retrieved_at = payload.get("retrieved_at")
+    _expect(_is_date(retrieved_at), "in-ap-routing retrieved_at is invalid")
+    if generated_at is not None:
+        _expect(retrieved_at == generated_at,
+                "in-ap-routing retrieved_at differs from the pack date")
+
+    region = payload.get("region")
+    _expect(
+        isinstance(region, dict) and set(region) == ANDHRA_PRADESH_STATE_REGION_KEYS,
+        "in-ap-routing Andhra Pradesh region fields differ from the contract",
+    )
+    expected = {
+        "id": "andhra-pradesh-state",
+        "authority_id": "ap-statewide-unverified",
+        "name": "Andhra Pradesh",
+        "scope": (
+            "Full State of Andhra Pradesh; excludes Yanam, Puducherry Union Territory"
+        ),
+        "osm_relation_id": 2_022_095,
+        "source_name": "OpenStreetMap contributors",
+        "source_home_url": "https://www.openstreetmap.org/relation/2022095",
+        "source_license": "Open Data Commons Open Database License (ODbL) 1.0",
+        "attribution": "© OpenStreetMap contributors",
+        "coordinate_precision": 7,
+        "geometry_sha256": ANDHRA_PRADESH_STATE_GEOMETRY_SHA256,
+    }
+    for field, value in expected.items():
+        _expect(
+            region.get(field) == value,
+            f"in-ap-routing Andhra Pradesh {field} differs from its reviewed pin",
+        )
+    _expect(
+        isinstance(region.get("source_url"), str)
+        and region["source_url"].startswith("https://nominatim.openstreetmap.org/lookup?")
+        and "osm_ids=R2022095" in region["source_url"],
+        "in-ap-routing Andhra Pradesh lookup URL is invalid",
+    )
+    _expect(
+        isinstance(region.get("routing_note"), str)
+        and "Andhra Pradesh PGRS" in region["routing_note"]
+        and "does not identify" in region["routing_note"],
+        "in-ap-routing Andhra Pradesh routing note is invalid",
+    )
+    limitations = region.get("limitations")
+    _expect(
+        isinstance(limitations, list) and 1 <= len(limitations) <= 10
+        and all(isinstance(item, str) and item and len(item) <= 500 for item in limitations)
+        and any("Yanam" in item and "Puducherry" in item for item in limitations),
+        "in-ap-routing Andhra Pradesh limitations are invalid",
+    )
+    bounds = _validate_municipal_geometry(
+        region.get("geometry"), "in-ap-routing.andhra_pradesh"
+    )
+    _validate_municipal_envelope(
+        region.get("bbox"), "in-ap-routing.andhra_pradesh.bbox"
+    )
+    _expect(
+        bounds == region["bbox"],
+        "in-ap-routing Andhra Pradesh geometry does not match its bounding box",
+    )
+    geometry_digest = hashlib.sha256(json.dumps(
+        region["geometry"], ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")).hexdigest()
+    _expect(
+        geometry_digest == ANDHRA_PRADESH_STATE_GEOMETRY_SHA256,
+        "in-ap-routing Andhra Pradesh geometry digest does not match",
+    )
+
+    expected_authority = {
+        "id": "ap-statewide-unverified",
+        "name": "Andhra Pradesh authority (select in PGRS)",
+        "aliases": ["andhra pradesh", "ఆంధ్ర ప్రదేశ్"],
+        "handoff_name": "Andhra Pradesh PGRS",
+        "handoff_url": "https://pgrs.ap.gov.in/",
+        "alternate_handoff_name": "AP CDMA / Puramithra (urban areas)",
+        "alternate_handoff_url": "https://cdma.ap.gov.in/auth/login/",
+        "helpline": "1902",
+    }
+    _expect(
+        authorities == [expected_authority],
+        "in-ap-routing authority registry differs from its reviewed pin",
+    )
+
+
 def _top50_alias_key(value: str) -> str:
     return " ".join(value.casefold().replace("-", " ").split())
 
@@ -1639,6 +1756,12 @@ def _validate_raw_payload(
             generated_at=generated_at,
             authorities=authorities,
         )
+    elif spec.pack_id == "in-ap-routing":
+        _validate_andhra_pradesh_payload(
+            payload,
+            generated_at=generated_at,
+            authorities=authorities,
+        )
     elif spec.pack_id == "in-top50-routing":
         _validate_top50_payload(
             payload,
@@ -1792,7 +1915,12 @@ def _active_payload(previous_manifest: Any, resource_id: str) -> Any:
 
 def build_all() -> list[Path]:
     """Build every pack from the reviewed canonical source snapshots."""
-    previous_manifest = _read_json(STATIC_MANIFEST) if STATIC_MANIFEST.exists() else None
+    previous_manifest_path = (
+        STATIC_MANIFEST if STATIC_MANIFEST.exists() else PREVIOUS_STATIC_MANIFEST
+    )
+    previous_manifest = (
+        _read_json(previous_manifest_path) if previous_manifest_path.exists() else None
+    )
     manifest = _base_manifest()
     outputs: list[Path] = []
     for resource_id in sorted(SPECS):
@@ -1926,10 +2054,10 @@ def verify_all() -> None:
     """Fail unless the manifests and all referenced hosted packs match exactly."""
     manifest_bytes = STATIC_MANIFEST.read_bytes() if STATIC_MANIFEST.exists() else b""
     if not manifest_bytes:
-        raise PackError("missing bundled manifest: static/pack-manifest-v1.26.json")
-    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.26.json")
+        raise PackError("missing bundled manifest: static/pack-manifest-v1.27.json")
+    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.27.json")
     _expect(ANDROID_MANIFEST.read_bytes() == manifest_bytes, "static and Android pack manifests differ")
-    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.26.json")
+    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.27.json")
     _expect(PAGES_MANIFEST.read_bytes() == manifest_bytes, "static and Pages pack manifests differ")
     manifest = _read_json(STATIC_MANIFEST)
     _expect(isinstance(manifest, dict) and set(manifest) == MANIFEST_KEYS,

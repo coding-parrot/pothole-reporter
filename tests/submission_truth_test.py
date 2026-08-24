@@ -34,6 +34,7 @@ async ({pixel}) => {
   const gjResource = packManifest.resources["in-gj-routing"];
   const dlResource = packManifest.resources["in-dl-routing"];
   const wbResource = packManifest.resources["in-wb-routing"];
+  const apResource = packManifest.resources["in-ap-routing"];
   const tnProvenance = {
     routing_pack_id: "in-tn-routing",
     routing_pack_version: tnResource.pack_version,
@@ -63,6 +64,12 @@ async ({pixel}) => {
     routing_pack_version: wbResource.pack_version,
     routing_pack_sha256: wbResource.sha256,
     routing_pack_state_code: "WB",
+  };
+  const apProvenance = {
+    routing_pack_id: "in-ap-routing",
+    routing_pack_version: apResource.pack_version,
+    routing_pack_sha256: apResource.sha256,
+    routing_pack_state_code: "AP",
   };
   const base = {
     created_at: 1787260200,
@@ -324,6 +331,42 @@ async ({pixel}) => {
       handoff_url: "https://example.invalid/stale-top50-tamil-nadu",
       handoff_package: "example.invalid.stale",
       requires_official_reference: true,
+    },
+    {
+      ...base, ...apProvenance, id: 71020, created_at: base.created_at + 19,
+      status: "draft", issue_type: "garbage",
+      address: "Guntur, Andhra Pradesh", lat: 16.3067, lng: 80.4365,
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "Old Andhra Pradesh service",
+      authority_id: "ap-statewide-unverified",
+      authority_name: "Old Andhra Pradesh authority", authority_registry_version: 0,
+      region: "andhra-pradesh-state",
+      routing_source: "osm_andhra_pradesh_state_boundary",
+      routing_match_field: "boundary",
+      routing_match_value: "Andhra Pradesh (OpenStreetMap relation 2022095)",
+      ownership_unverified: true, handoff_name: "Old state grievance service",
+      handoff_url: "https://example.invalid/stale-andhra-pradesh",
+      alternate_handoff_name: "Old alternate",
+      alternate_handoff_url: "https://example.invalid/stale-andhra-pradesh-alternate",
+      helpline: "0000", requires_official_reference: true,
+    },
+    {
+      ...base, id: 71021, created_at: base.created_at + 20, status: "draft",
+      issue_type: "open_manhole",
+      address: "Visakhapatnam, Andhra Pradesh", lat: 17.6935526, lng: 83.2921297,
+      delivery_channel: "official_handoff", ward_code: null, officer_email: null,
+      officer_name: "Legacy Andhra Pradesh service", authority_id: "in-ap-puramithra",
+      authority_name: "Untrusted legacy authority", authority_registry_version: 10,
+      region: "visakhapatnam", routing_source: "nominatim_structured_city",
+      routing_match_field: "structured_place", routing_match_value: "city: Visakhapatnam",
+      routing_pack_id: "in-top50-routing", routing_pack_version: 1,
+      routing_pack_sha256: "0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5",
+      routing_pack_state_code: "IN", ownership_unverified: true,
+      handoff_name: "Untrusted legacy service",
+      handoff_url: "https://example.invalid/stale-top50-andhra-pradesh",
+      alternate_handoff_name: "Untrusted legacy alternate",
+      alternate_handoff_url: "https://example.invalid/stale-top50-andhra-pradesh-alternate",
+      helpline: "0000", requires_official_reference: true,
     },
   ];
 
@@ -881,6 +924,138 @@ async ({pixel}) => {
      delhiSubmitted.official_grievance_id, "DL-PWD-2026-001234");
   ok("Delhi confirmation: submitted_at is recorded",
      Number.isFinite(delhiSubmitted.submitted_at), delhiSubmitted.submitted_at);
+
+  const andhraPradeshPrepared = await StandaloneAPI.handle(
+    "/api/reports/71020/send", {method: "POST"});
+  eq("Andhra Pradesh handoff: preparing PGRS stays draft",
+     andhraPradeshPrepared.status, "draft");
+  eq("Andhra Pradesh handoff: stale primary URL is replaced",
+     andhraPradeshPrepared.handoff_url, "https://pgrs.ap.gov.in/");
+  eq("Andhra Pradesh handoff: current urban alternate is restored",
+     andhraPradeshPrepared.alternate_handoff_url, "https://cdma.ap.gov.in/auth/login/");
+  eq("Andhra Pradesh handoff: current helpline is restored",
+     andhraPradeshPrepared.helpline, "1902");
+  eq("Andhra Pradesh handoff: current pack provenance is retained",
+     [andhraPradeshPrepared.routing_pack_id,
+      andhraPradeshPrepared.routing_pack_state_code,
+      andhraPradeshPrepared.routing_pack_sha256],
+     ["in-ap-routing", "AP", apResource.sha256]);
+  eq("Andhra Pradesh handoff: preparing PGRS records no handoff time",
+     andhraPradeshPrepared.handoff_opened_at, undefined);
+  eq("Andhra Pradesh handoff: preparing PGRS records no submission",
+     [andhraPradeshPrepared.official_grievance_id,
+      andhraPradeshPrepared.submitted_at, andhraPradeshPrepared.sent_at],
+     [null, null, null]);
+  const andhraPradeshBeforeOpen = await byId(71020);
+  eq("Andhra Pradesh handoff: preparation does not mutate persisted status",
+     andhraPradeshBeforeOpen.status, "draft");
+  eq("Andhra Pradesh handoff: preparation does not persist a stale URL refresh",
+     andhraPradeshBeforeOpen.handoff_url,
+     "https://example.invalid/stale-andhra-pradesh");
+
+  const andhraPradeshOpened = await StandaloneAPI.handle(
+    "/api/reports/71020/handoff-opened", {method: "POST"});
+  eq("Andhra Pradesh handoff: a confirmed portal open is only queued",
+     andhraPradeshOpened.status, "queued");
+  ok("Andhra Pradesh handoff: confirmed open records a handoff timestamp",
+     Number.isFinite(andhraPradeshOpened.handoff_opened_at),
+     andhraPradeshOpened.handoff_opened_at);
+  eq("Andhra Pradesh handoff: queued record keeps the verified PGRS URL",
+     andhraPradeshOpened.handoff_url, "https://pgrs.ap.gov.in/");
+  eq("Andhra Pradesh handoff: portal open invents no submission",
+     [andhraPradeshOpened.official_grievance_id,
+      andhraPradeshOpened.submitted_at, andhraPradeshOpened.sent_at],
+     [null, null, null]);
+  for (const [label, reference] of [["blank", ""], ["short", "123"]]) {
+    const error = await errorFrom(StandaloneAPI.handle(
+      "/api/reports/71020/submitted",
+      {method: "POST", body: JSON.stringify({official_grievance_id: reference})},
+    ));
+    ok(`Andhra Pradesh confirmation: ${label} official reference is rejected`,
+       /official grievance\/reference ID from Andhra Pradesh authority \(select in PGRS\)/i
+         .test(error || ""), error);
+  }
+  const andhraPradeshStillQueued = await byId(71020);
+  eq("Andhra Pradesh confirmation: rejected confirmation stays queued",
+     andhraPradeshStillQueued.status, "queued");
+  eq("Andhra Pradesh confirmation: rejected confirmation stores no submission time",
+     andhraPradeshStillQueued.submitted_at, null);
+  const andhraPradeshSubmitted = await StandaloneAPI.handle(
+    "/api/reports/71020/submitted", {
+      method: "POST",
+      body: JSON.stringify({official_grievance_id: "  AP-PGRS-2026-001234  "}),
+    });
+  eq("Andhra Pradesh confirmation: reference-confirmed report becomes sent",
+     andhraPradeshSubmitted.status, "sent");
+  eq("Andhra Pradesh confirmation: official reference is trimmed and retained",
+     andhraPradeshSubmitted.official_grievance_id, "AP-PGRS-2026-001234");
+  ok("Andhra Pradesh confirmation: submitted_at is recorded",
+     Number.isFinite(andhraPradeshSubmitted.submitted_at),
+     andhraPradeshSubmitted.submitted_at);
+
+  const legacyAndhraPradeshPrepared = await StandaloneAPI.handle(
+    "/api/reports/71021/send", {method: "POST"});
+  eq("Andhra Pradesh migration: old top-50 report becomes a statewide report",
+     [legacyAndhraPradeshPrepared.authority_id, legacyAndhraPradeshPrepared.region,
+      legacyAndhraPradeshPrepared.routing_pack_id,
+      legacyAndhraPradeshPrepared.routing_pack_state_code],
+     ["ap-statewide-unverified", "andhra-pradesh-state", "in-ap-routing", "AP"]);
+  eq("Andhra Pradesh migration: stale primary URL is never trusted",
+     legacyAndhraPradeshPrepared.handoff_url, "https://pgrs.ap.gov.in/");
+  eq("Andhra Pradesh migration: stale alternate URL is never trusted",
+     legacyAndhraPradeshPrepared.alternate_handoff_url,
+     "https://cdma.ap.gov.in/auth/login/");
+  eq("Andhra Pradesh migration: current digest replaces the retired top-50 digest",
+     legacyAndhraPradeshPrepared.routing_pack_sha256, apResource.sha256);
+  eq("Andhra Pradesh migration: preparing the handoff remains a draft",
+     [legacyAndhraPradeshPrepared.status,
+      legacyAndhraPradeshPrepared.handoff_opened_at,
+      legacyAndhraPradeshPrepared.submitted_at],
+     ["draft", undefined, null]);
+  const legacyAndhraPradeshBeforeOpen = await byId(71021);
+  eq("Andhra Pradesh migration: preparation does not mutate the saved legacy binding",
+     [legacyAndhraPradeshBeforeOpen.status,
+      legacyAndhraPradeshBeforeOpen.authority_id,
+      legacyAndhraPradeshBeforeOpen.handoff_url],
+     ["draft", "in-ap-puramithra",
+      "https://example.invalid/stale-top50-andhra-pradesh"]);
+
+  const legacyAndhraPradeshOpened = await StandaloneAPI.handle(
+    "/api/reports/71021/handoff-opened", {method: "POST"});
+  eq("Andhra Pradesh migration: confirmed portal open is only queued",
+     legacyAndhraPradeshOpened.status, "queued");
+  eq("Andhra Pradesh migration: confirmed open persists the fresh state binding",
+     [legacyAndhraPradeshOpened.authority_id,
+      legacyAndhraPradeshOpened.routing_pack_id,
+      legacyAndhraPradeshOpened.handoff_url],
+     ["ap-statewide-unverified", "in-ap-routing", "https://pgrs.ap.gov.in/"]);
+  ok("Andhra Pradesh migration: confirmed open records a handoff timestamp",
+     Number.isFinite(legacyAndhraPradeshOpened.handoff_opened_at),
+     legacyAndhraPradeshOpened.handoff_opened_at);
+  eq("Andhra Pradesh migration: portal open invents no submission",
+     [legacyAndhraPradeshOpened.official_grievance_id,
+      legacyAndhraPradeshOpened.submitted_at,
+      legacyAndhraPradeshOpened.sent_at],
+     [null, null, null]);
+  const legacyAndhraPradeshBlankError = await errorFrom(StandaloneAPI.handle(
+    "/api/reports/71021/submitted",
+    {method: "POST", body: JSON.stringify({official_grievance_id: ""})},
+  ));
+  ok("Andhra Pradesh migration: official reference remains required",
+     /official grievance\/reference ID from Andhra Pradesh authority \(select in PGRS\)/i
+       .test(legacyAndhraPradeshBlankError || ""), legacyAndhraPradeshBlankError);
+  const legacyAndhraPradeshStillQueued = await byId(71021);
+  eq("Andhra Pradesh migration: rejected confirmation stays queued",
+     legacyAndhraPradeshStillQueued.status, "queued");
+  const legacyAndhraPradeshSubmitted = await StandaloneAPI.handle(
+    "/api/reports/71021/submitted", {
+      method: "POST",
+      body: JSON.stringify({official_grievance_id: "  AP-PGRS-2026-009876  "}),
+    });
+  eq("Andhra Pradesh migration: manual reference confirmation marks sent",
+     legacyAndhraPradeshSubmitted.status, "sent");
+  eq("Andhra Pradesh migration: manual reference is trimmed and retained",
+     legacyAndhraPradeshSubmitted.official_grievance_id, "AP-PGRS-2026-009876");
 
   // A municipality email inferred from the point is still only a civic-authority
   // suggestion. The warning and the final confirmation must say ownership is unknown.

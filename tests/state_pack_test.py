@@ -34,6 +34,9 @@ from state_pack_utils import (
 APP = "http://localhost:8765/"
 PRODUCTION_SITE_ROOT = "https://coding-parrot.github.io/pothole-reporter/"
 EXPECTED_RESOURCES = {
+    "in-ap-routing": (
+        "AP", "routing", "pothole-routing-pack", "statewide-general-v1"
+    ),
     "in-dl-routing": ("DL", "routing", "pothole-routing-pack", "delhi-nct-v1"),
     "in-gj-routing": ("GJ", "routing", "pothole-routing-pack", "municipal-city-v1"),
     "in-ka-routing": ("KA", "routing", "pothole-routing-pack", "karnataka-kgis-v1"),
@@ -278,19 +281,18 @@ def check_municipal_city_pack(pack_id: str, envelope: dict, failures: list[str])
 
 
 def check_catalog(failures: list[str]) -> dict:
-    static_manifest = ROOT / "static" / "pack-manifest-v1.26.json"
-    pages_manifest = ROOT / "docs" / "pack-manifest-v1.26.json"
+    static_manifest = ROOT / "static" / "pack-manifest-v1.27.json"
+    pages_manifest = ROOT / "docs" / "pack-manifest-v1.27.json"
     if not MANIFEST_PATH.is_file() or not static_manifest.is_file() or not pages_manifest.is_file():
-        failures.append("pack-manifest-v1.26.json is missing from static, Android, or GitHub Pages assets")
+        failures.append("pack-manifest-v1.27.json is missing from static, Android, or GitHub Pages assets")
         return {}
     if MANIFEST_PATH.read_bytes() != static_manifest.read_bytes():
         failures.append("static and Android pack manifests differ")
     if pages_manifest.read_bytes() != static_manifest.read_bytes():
         failures.append("static and GitHub Pages pack manifests differ")
 
-    # v1.25 JavaScript can remain cached by GitHub Pages for ten minutes. Its validator
-    # expects exactly ten resources, so the unversioned manifest must remain byte-for-byte
-    # compatible while v1.26 uses its own catalog URL.
+    # Older JavaScript hard-validates exact resource sets. Both earlier catalogs must
+    # remain byte-for-byte immutable while v1.27 uses its own catalog URL.
     legacy_paths = [
         ROOT / "static" / "pack-manifest.json",
         ROOT / "android-app" / "www" / "pack-manifest.json",
@@ -312,6 +314,28 @@ def check_catalog(failures: list[str]) -> dict:
                 failures.append("legacy v1.25 manifest no longer exposes exactly its ten resources")
         except (TypeError, ValueError):
             failures.append("legacy v1.25 pack manifest is not valid JSON")
+
+    previous_paths = [
+        ROOT / "static" / "pack-manifest-v1.26.json",
+        ROOT / "android-app" / "www" / "pack-manifest-v1.26.json",
+        ROOT / "docs" / "pack-manifest-v1.26.json",
+    ]
+    previous_digest = "c178c5f52ab579c21bb26e4d61738bf844bcaacca84c88152629ae938809b96b"
+    if any(not path.is_file() for path in previous_paths):
+        failures.append("v1.26 pack manifest mirror is missing")
+    else:
+        previous_bytes = previous_paths[0].read_bytes()
+        if any(path.read_bytes() != previous_bytes for path in previous_paths[1:]):
+            failures.append("v1.26 pack manifest mirrors differ")
+        if hashlib.sha256(previous_bytes).hexdigest() != previous_digest:
+            failures.append("v1.26 pack manifest changed")
+        try:
+            previous = json.loads(previous_bytes)
+            previous_resources = previous.get("resources", {})
+            if len(previous_resources) != 11 or "in-ap-routing" in previous_resources:
+                failures.append("v1.26 manifest no longer exposes exactly its 11 resources")
+        except (TypeError, ValueError):
+            failures.append("v1.26 pack manifest is not valid JSON")
 
     try:
         manifest = load_manifest()
@@ -385,6 +409,13 @@ def check_catalog(failures: list[str]) -> dict:
                 "Full State of Tamil Nadu"
             ):
                 failures.append("in-tn-state-routing does not declare full Tamil Nadu coverage")
+        if pack_id == "in-ap-routing":
+            if resource.get("statewide") is not True:
+                failures.append("in-ap-routing is not declared statewide")
+            if not str(resource.get("coverage_scope") or "").startswith(
+                "Full State of Andhra Pradesh"
+            ):
+                failures.append("in-ap-routing does not declare full Andhra Pradesh coverage")
         if pack_id == "in-top50-routing":
             if resource.get("statewide") is not False:
                 failures.append("in-top50-routing must not claim statewide coverage")
@@ -517,6 +548,28 @@ def check_catalog(failures: list[str]) -> dict:
                     failures.append(
                         "in-tn-state-routing statewide authority or boundary pin changed"
                     )
+            if pack_id == "in-ap-routing":
+                ap_authority_ids = {
+                    item.get("id") for item in authorities or [] if isinstance(item, dict)
+                }
+                if ap_authority_ids != {"ap-statewide-unverified"}:
+                    failures.append(
+                        "in-ap-routing authority inventory is "
+                        f"{sorted(ap_authority_ids)!r}"
+                    )
+                payload = envelope.get("payload")
+                region = payload.get("region") if isinstance(payload, dict) else None
+                if not isinstance(payload, dict) or payload.get("version") != 1:
+                    failures.append("in-ap-routing payload is not statewide schema version 1")
+                elif not isinstance(region, dict):
+                    failures.append("in-ap-routing has no Andhra Pradesh state region")
+                elif (
+                    region.get("authority_id") != "ap-statewide-unverified"
+                    or region.get("osm_relation_id") != 2_022_095
+                    or region.get("geometry_sha256")
+                    != "4e36d9c16fda044dceab7a5b08955cb19046bb1bddd052b7671a8311e90cd71c"
+                ):
+                    failures.append("in-ap-routing statewide authority or boundary pin changed")
             if pack_id == "in-top50-routing":
                 expected_authorities = {
                     "in-gj-enagar", "in-rj-sampark", "in-up-jansunwai",
@@ -784,7 +837,7 @@ def check_bad_manifest(browser, failures: list[str]) -> None:
             route.abort()
 
         context.route(
-            "**/pack-manifest-v1.26.json",
+            "**/pack-manifest-v1.27.json",
             manifest_response(status, body),
         )
         context.route("**/packs/v1/**", count_pack)
@@ -858,7 +911,7 @@ def check_lru_limit(browser, manifest: dict, failures: list[str]) -> None:
 
     context = browser.new_context(viewport={"width": 390, "height": 844})
     context.route(
-        "**/pack-manifest-v1.26.json",
+        "**/pack-manifest-v1.27.json",
         lambda route: route.fulfill(
             status=200, content_type="application/json",
             body=json.dumps(custom, separators=(",", ":")),

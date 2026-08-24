@@ -197,6 +197,20 @@
       }
     ]
   },
+  "AP": {
+    "authorities": [
+      {
+        "id": "ap-statewide-unverified",
+        "name": "Andhra Pradesh authority (select in PGRS)",
+        "aliases": ["andhra pradesh", "ఆంధ్ర ప్రదేశ్"],
+        "handoff_name": "Andhra Pradesh PGRS",
+        "handoff_url": "https://pgrs.ap.gov.in/",
+        "alternate_handoff_name": "AP CDMA / Puramithra (urban areas)",
+        "alternate_handoff_url": "https://cdma.ap.gov.in/auth/login/",
+        "helpline": "1902"
+      }
+    ]
+  },
   "IN": {
     "authorities": [
       {
