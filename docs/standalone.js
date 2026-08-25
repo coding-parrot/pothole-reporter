@@ -45,8 +45,8 @@
   const DEFAULT_MODEL = "gpt-5-mini";
   const ALLOWED_MODELS = new Set([DEFAULT_MODEL, "gpt-5.6"]);
   const ALLOWED_DETAILS = new Set(["high", "original"]);
-  const PROMPT_VERSION = "road-damage-v3";
-  const SCHEMA_VERSION = 3;
+  const PROMPT_VERSION = "road-damage-v4";
+  const SCHEMA_VERSION = 4;
   const REPAIR_PROMPT_VERSION = "road-repair-v1";
   const REPAIR_SCHEMA_VERSION = 1;
   const MAX_DETECTION_IMAGES = 4;
@@ -313,7 +313,10 @@ Decide whether they show reportable damage on the paved surface used by moving t
 Choose one primary type consistently. Use failed_patch when the failed material or repair boundary is visibly a previous repair. Otherwise, a distinct localized open cavity takes precedence as pothole_cavity. Use surface_breakup only for broad disintegration without one dominant cavity or identifiable failed repair, and rut_or_depression for a smooth/continuous level change rather than missing broken material.
 
 Evidence rules:
-- A shadow, stain, water, glare, dust, loose roadside debris, lane marking, intact patch, manhole, drain, road edge, shoulder erosion, or speed breaker is not reportable damage by itself.
+- First decide whether the candidate is an intentional raised speed breaker, road hump, or rumble strip. These usually form a continuous transverse ridge across most or all of the lane and may have white rectangles or stripes, reflectors, and parallel leading and trailing edges. Across chronological views, a raised breaker expands uniformly as the vehicle approaches.
+- Set looks_like_speed_breaker true whenever the candidate itself is, or could reasonably be, a speed breaker. If raised-versus-concave geometry is ambiguous, fail closed and set it true. Its painted border, dark leading or trailing shadow, reflector, camera pitch, or vehicle jolt is not a broken rim or depth cue. In that case set reportable false and damage_type none.
+- Set looks_like_speed_breaker false only when the candidate is clearly not an intentional raised feature. A separate localized cavity or missing road material on or beside a breaker may still be classified as damage, but the cavity must be visually unambiguous and distinct from the raised ridge.
+- A shadow, stain, water, glare, dust, loose roadside debris, lane marking, intact patch, manhole, drain, road edge, or shoulder erosion is not reportable damage by itself.
 - The defect must be on the drivable paved surface, not merely beside it.
 - Look for a defined broken edge/rim, missing material, displaced aggregate, or a depth/level-change cue. Use agreement and parallax across views when several are supplied.
 - image_quality is unusable when blur, darkness, glare, obstruction, or distance prevents a defensible judgment.
@@ -326,10 +329,11 @@ Evidence rules:
   // description, so the UI can update without using a made-up confidence percentage.
   const ASSESS_SCHEMA = {
     type: "object", additionalProperties: false,
-    required: ["reportable", "assessment", "image_quality", "damage_type",
+    required: ["looks_like_speed_breaker", "reportable", "assessment", "image_quality", "damage_type",
       "on_drivable_surface", "has_broken_edge_or_rim", "has_depth_or_surface_loss",
       "temporal_consistency", "size", "description"],
     properties: {
+      looks_like_speed_breaker: { type: "boolean" },
       reportable: { type: "boolean" },
       assessment: { type: "string", enum: ["clear", "probable", "uncertain", "absent"] },
       image_quality: { type: "string", enum: ["usable", "degraded", "unusable"] },
@@ -479,13 +483,17 @@ This is a strict before/after verification, not ordinary pothole detection:
   // a partial `"pothole_cav` must never become a decision. The same semantic helper is
   // used for the streamed and final paths so the UI cannot announce a result that the
   // pipeline later reverses.
+  const SPEED_BREAKER_RE = /"looks_like_speed_breaker"\s*:\s*(true|false)/;
   const REPORTABLE_RE = /"reportable"\s*:\s*(true|false)/;
   const ASSESSMENT_RE = /"assessment"\s*:\s*"(clear|probable|uncertain|absent)"/;
   const QUALITY_RE = /"image_quality"\s*:\s*"(usable|degraded|unusable)"/;
   const DAMAGE_RE = /"damage_type"\s*:\s*"(pothole_cavity|failed_patch|surface_breakup|rut_or_depression|other_road_damage|none)"/;
 
   function decisionFor(a) {
-    if (!a || a.reportable !== true || a.damage_type === "none" || !a.on_drivable_surface) return "reject";
+    // This is a hard safety gate, not merely prompt advice. Missing legacy fields and
+    // ambiguous/positive speed-breaker classifications fail closed.
+    if (!a || a.looks_like_speed_breaker !== false) return "reject";
+    if (a.reportable !== true || a.damage_type === "none" || !a.on_drivable_surface) return "reject";
     if (a.assessment === "absent") return "reject";
     if (a.image_quality === "unusable" || a.assessment === "uncertain" ||
         a.temporal_consistency === "inconsistent") return "review";
@@ -498,6 +506,7 @@ This is a strict before/after verification, not ordinary pothole detection:
   }
 
   const clearAbsenceForRepair = (a) => !!a
+    && a.looks_like_speed_breaker === false
     && a.reportable === false
     && a.assessment === "absent"
     && a.damage_type === "none"
@@ -516,9 +525,18 @@ This is a strict before/after verification, not ordinary pothole detection:
   }
 
   function partialAssessment(text) {
+    const breaker = SPEED_BREAKER_RE.exec(text);
+    if (!breaker) return null;
+    if (breaker[1] === "true") return {
+      looks_like_speed_breaker: true,
+      reportable: false, assessment: "absent", image_quality: "usable", damage_type: "none",
+      on_drivable_surface: false, has_broken_edge_or_rim: false,
+      has_depth_or_surface_loss: false, temporal_consistency: "not_applicable",
+    };
     const r = REPORTABLE_RE.exec(text);
     if (!r) return null;
     if (r[1] === "false") return {
+      looks_like_speed_breaker: false,
       reportable: false, assessment: "absent", image_quality: "usable", damage_type: "none",
       on_drivable_surface: false, has_broken_edge_or_rim: false,
       has_depth_or_surface_loss: false, temporal_consistency: "not_applicable",
@@ -526,6 +544,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     const a = ASSESSMENT_RE.exec(text), q = QUALITY_RE.exec(text), d = DAMAGE_RE.exec(text);
     if (!a || !q || !d) return null;
     return {
+      looks_like_speed_breaker: false,
       reportable: true, assessment: a[1], image_quality: q[1], damage_type: d[1],
       // The later evidence fields are deliberately left unknown. peekVerdict only
       // announces a positive once the complete semantic decision can be evaluated.
@@ -556,6 +575,8 @@ This is a strict before/after verification, not ordinary pothole detection:
   // Debug/evaluation calls do not enable cancellation because they need the exact full
   // verdict, including the reason for a miss.
   const peekReject = (partial) => {
+    const breaker = SPEED_BREAKER_RE.exec(partial);
+    if (breaker && breaker[1] === "true") return true;
     const r = REPORTABLE_RE.exec(partial);
     if (!r) return false;
     if (r[1] === "false") return true;
@@ -623,12 +644,16 @@ This is a strict before/after verification, not ordinary pothole detection:
   // Reconstructed from the closed fields that arrived before Drive Mode cancelled the
   // remaining description. It deliberately has the complete new schema shape.
   function rejectedVerdict(text) {
+    const breaker = SPEED_BREAKER_RE.exec(text);
     const r = REPORTABLE_RE.exec(text), a = ASSESSMENT_RE.exec(text), q = QUALITY_RE.exec(text), d = DAMAGE_RE.exec(text);
     const road = /"on_drivable_surface"\s*:\s*(true|false)/.exec(text);
     const edge = /"has_broken_edge_or_rim"\s*:\s*(true|false)/.exec(text);
     const depth = /"has_depth_or_surface_loss"\s*:\s*(true|false)/.exec(text);
     const temporal = /"temporal_consistency"\s*:\s*"(consistent|single_view|inconsistent|not_applicable)"/.exec(text);
     return {
+      // Schema order guarantees this arrives before every other decision field. The
+      // conservative fallback protects against a malformed or truncated response.
+      looks_like_speed_breaker: breaker ? breaker[1] === "true" : true,
       reportable: !!r && r[1] === "true",
       assessment: a ? a[1] : "absent",
       image_quality: q ? q[1] : "usable",
@@ -6070,6 +6095,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       report_origin: "ai_detection",
       is_reportable: a.reportable ? 1 : 0,
       is_pothole: a.damage_type === "pothole_cavity" ? 1 : 0,
+      looks_like_speed_breaker: a.looks_like_speed_breaker === true,
       damage_type: a.damage_type, assessment: a.assessment, image_quality: a.image_quality,
       on_drivable_surface: !!a.on_drivable_surface,
       has_broken_edge_or_rim: !!a.has_broken_edge_or_rim,
@@ -6384,6 +6410,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       : null;
     const tender = normaliseTenderMatch(tenderCandidate, covered ? route : null);
     const assessment = {
+      // A native report exists only after the v4 hard gate accepted it.
+      looks_like_speed_breaker: false,
       reportable: native.is_reportable === true || Number(native.is_reportable) === 1,
       assessment: native.assessment || "clear",
       image_quality: native.image_quality || "usable",
@@ -6411,6 +6439,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       report_origin: "ai_detection",
       is_reportable: assessment.reportable ? 1 : 0,
       is_pothole: assessment.damage_type === "pothole_cavity" ? 1 : 0,
+      looks_like_speed_breaker: false,
       damage_type: assessment.damage_type, assessment: assessment.assessment,
       image_quality: assessment.image_quality,
       on_drivable_surface: assessment.on_drivable_surface,

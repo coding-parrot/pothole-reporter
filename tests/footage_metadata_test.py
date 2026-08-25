@@ -98,6 +98,7 @@ with sync_playwright() as p:
           }
           frames.push(row);
           const observation = {
+            looks_like_speed_breaker: false,
             reportable: false, assessment: "absent", image_quality: "usable",
             damage_type: "none", on_drivable_surface: true,
             has_broken_edge_or_rim: false, has_depth_or_surface_loss: false,

@@ -107,14 +107,18 @@ CASES = r"""
      P.roadEventMatch({...laterDrive, size:"large"}, {...priorDrive, size:"small"}), null);
 
   // ---- streamed road-damage decision contract ----
-  const accepted = '{"reportable":true,"assessment":"clear","image_quality":"usable","damage_type":"pothole_cavity","on_drivable_surface":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"large","description":"x"}';
-  const rejected = '{"reportable":false,"assessment":"absent","image_quality":"usable","damage_type":"none","on_drivable_surface":false,"has_broken_edge_or_rim":false,"has_depth_or_surface_loss":false,"temporal_consistency":"not_applicable","size":null,"description":"none"}';
-  const uncertain = '{"reportable":true,"assessment":"uncertain","image_quality":"degraded","damage_type":"failed_patch","on_drivable_surface":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"x"}';
+  const accepted = '{"looks_like_speed_breaker":false,"reportable":true,"assessment":"clear","image_quality":"usable","damage_type":"pothole_cavity","on_drivable_surface":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"large","description":"x"}';
+  const rejected = '{"looks_like_speed_breaker":false,"reportable":false,"assessment":"absent","image_quality":"usable","damage_type":"none","on_drivable_surface":false,"has_broken_edge_or_rim":false,"has_depth_or_surface_loss":false,"temporal_consistency":"not_applicable","size":null,"description":"none"}';
+  const speedBreaker = '{"looks_like_speed_breaker":true,"reportable":true,"assessment":"clear","image_quality":"usable","damage_type":"pothole_cavity","on_drivable_surface":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"painted transverse raised ridge"}';
+  const uncertain = '{"looks_like_speed_breaker":false,"reportable":true,"assessment":"uncertain","image_quality":"degraded","damage_type":"failed_patch","on_drivable_surface":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"x"}';
   eq("peek: nothing yet", P.peekVerdict('{"report'), null);
   eq("peek: partial damage type cannot decide",
-     P.peekVerdict('{"reportable":true,"assessment":"clear","image_quality":"usable","damage_type":"pothole_cav'), null);
-  eq("peek: false is final without invented confidence",
-     P.peekVerdict('{"reportable": false'), {accepted:false, review:false, damage_type:"none", assessment:"absent"});
+     P.peekVerdict('{"looks_like_speed_breaker":false,"reportable":true,"assessment":"clear","image_quality":"usable","damage_type":"pothole_cav'), null);
+  eq("peek: speed breaker is immediately rejected despite contradictory pothole fields",
+     P.peekVerdict(speedBreaker),
+     {accepted:false, review:false, damage_type:"none", assessment:"absent"});
+  eq("peek: reportable false without required breaker is not a verdict",
+     P.peekVerdict('{"reportable": false'), null);
   const earlyAccepted = P.peekVerdict(accepted.slice(0, accepted.indexOf(',"size"')));
   eq("peek: accepted uses semantic policy", earlyAccepted,
      {accepted:true, review:false, damage_type:"pothole_cavity", assessment:"clear"});
@@ -123,7 +127,14 @@ CASES = r"""
      {accepted:false, review:true, damage_type:"failed_patch", assessment:"uncertain"});
 
   ok("reject: not yet decidable", P.peekReject('{"reportable"') === false);
-  ok("reject: false is immediately final", P.peekReject('{"reportable": false') === true);
+  ok("reject: speed-breaker true is immediately final",
+     P.peekReject('{"looks_like_speed_breaker":true') === true);
+  ok("reject: speed-breaker false alone is not final",
+     P.peekReject('{"looks_like_speed_breaker":false') === false);
+  ok("reject: valid reportable false is immediately final",
+     P.peekReject('{"looks_like_speed_breaker":false,"reportable": false') === true);
+  ok("reject: malformed missing breaker still fails closed",
+     P.peekReject('{"reportable": false') === true);
   ok("reject: true alone is not final", P.peekReject('{"reportable": true') === false);
   ok("reject: uncertain becomes final only after evidence fields", P.peekReject(uncertain) === true);
 
@@ -135,12 +146,13 @@ CASES = r"""
   const rv = P.rejectedVerdict(rejected.slice(0, rejected.indexOf(',"size"')));
   ok("rejectedVerdict: not reportable", rv.reportable === false, rv);
   ok("rejectedVerdict: shape is complete",
-     ["assessment","image_quality","damage_type","on_drivable_surface",
+     ["looks_like_speed_breaker","assessment","image_quality","damage_type","on_drivable_surface",
       "has_broken_edge_or_rim","has_depth_or_surface_loss","temporal_consistency",
       "size","description"].every((k) => k in rv), Object.keys(rv));
 
   // ---- final semantic gate ----
-  const good = { reportable:true, assessment:"clear", image_quality:"usable",
+  const good = { looks_like_speed_breaker:false,
+    reportable:true, assessment:"clear", image_quality:"usable",
     damage_type:"pothole_cavity", on_drivable_surface:true,
     has_broken_edge_or_rim:true, has_depth_or_surface_loss:false,
     temporal_consistency:"consistent" };
@@ -148,6 +160,12 @@ CASES = r"""
     eq(`decision: accepts clear ${type}`, P.decisionFor({...good, damage_type:type}), "accept");
   }
   eq("decision: probable strong evidence accepts", P.decisionFor({...good, assessment:"probable"}), "accept");
+  eq("decision: speed breaker hard-vetoes an otherwise accepted pothole",
+     P.decisionFor({...good, looks_like_speed_breaker:true}), "reject");
+  const missingBreaker = {...good}; delete missingBreaker.looks_like_speed_breaker;
+  eq("decision: missing speed-breaker field fails closed", P.decisionFor(missingBreaker), "reject");
+  eq("decision: mistyped speed-breaker field fails closed",
+     P.decisionFor({...good, looks_like_speed_breaker:"false"}), "reject");
   eq("decision: uncertainty is review", P.decisionFor({...good, assessment:"uncertain"}), "review");
   eq("decision: unusable is review", P.decisionFor({...good, image_quality:"unusable"}), "review");
   eq("decision: contradictory none rejects", P.decisionFor({...good, damage_type:"none"}), "reject");

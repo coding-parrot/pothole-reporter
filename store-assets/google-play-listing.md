@@ -47,10 +47,10 @@ Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
 Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.34.0 / version code 52)
+## Release notes (1.34.1 / version code 53)
 
 ```text
-Adds full-state Goa, Madhya Pradesh, Bihar, and Odisha routing through neutral official grievance handoffs. National Highways still run first, and every complaint remains user-reviewed and user-submitted.
+Reduces speed-breaker false positives in Drive by requiring an explicit speed-breaker check and rejecting raised road features before a pothole is counted.
 ```
 
 ## Play Console fields

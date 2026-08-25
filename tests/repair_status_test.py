@@ -9,6 +9,7 @@ from playwright.sync_api import sync_playwright
 APP = "http://localhost:8765/"
 
 ACCEPTED = {
+    "looks_like_speed_breaker": False,
     "reportable": True, "assessment": "clear", "image_quality": "usable",
     "damage_type": "pothole_cavity", "on_drivable_surface": True,
     "has_broken_edge_or_rim": True, "has_depth_or_surface_loss": True,
@@ -16,11 +17,21 @@ ACCEPTED = {
     "description": "A broken cavity is visible on the travelled surface.",
 }
 ABSENT = {
+    "looks_like_speed_breaker": False,
     "reportable": False, "assessment": "absent", "image_quality": "usable",
     "damage_type": "none", "on_drivable_surface": False,
     "has_broken_edge_or_rim": False, "has_depth_or_surface_loss": False,
     "temporal_consistency": "not_applicable", "size": None,
     "description": "No reportable damage is visible in the current burst.",
+}
+SPEED_BREAKER = {
+    **ACCEPTED,
+    "looks_like_speed_breaker": True,
+    # Deliberately contradictory model fields reproduce the tester failure: the hard
+    # veto must win even if another part of the model response calls it a pothole.
+    "reportable": True,
+    "damage_type": "pothole_cavity",
+    "description": "A painted transverse raised ridge spans the lane.",
 }
 REPAIRED = {
     "same_location_visible": True, "completed_repair_visible": True,
@@ -212,15 +223,20 @@ with sync_playwright() as p:
       // Generic absence plus an inconclusive comparison must leave another report open.
       const second = await repairSubmit("drive-4", "live:drive-4:1", 12.913000, f.accepted, null);
       const uncertain = await repairSubmit("drive-5", "live:drive-5:1", 12.913000, f.absent, f.uncertain);
+      const beforeBreaker = (await StandaloneAPI.handle("/api/reports", { method: "GET" })).length;
+      const breaker = await repairSubmit(
+        "drive-breaker", "live:drive-breaker:1", 12.915000, f.speedBreaker, null
+      );
       const finalReports = await StandaloneAPI.handle("/api/reports", { method: "GET" });
       const secondStored = finalReports.find((r) => r.id === (second.report && second.report.id));
       return { first, complaintStatus, repairTargets, missingTimestamp, earlierTimestamp,
         malformedEvidence, tinyEvidence, missingProvenance, revisit, replay,
         after: after[0], repairDimensions, fixedGates,
-        recurrence, withRecurrence, uncertain, secondStored, calls: window.__modelCalls };
+        recurrence, withRecurrence, uncertain, secondStored, breaker, beforeBreaker,
+        afterBreaker: finalReports.length, calls: window.__modelCalls };
     }""", {
         "helpers": HELPERS, "accepted": ACCEPTED, "absent": ABSENT,
-        "repaired": REPAIRED, "uncertain": UNCERTAIN,
+        "repaired": REPAIRED, "uncertain": UNCERTAIN, "speedBreaker": SPEED_BREAKER,
     })
     browser.close()
 
@@ -254,6 +270,9 @@ if not result["recurrence"].get("found") or len(result["withRecurrence"]) != 2:
     failures.append("new damage after repair was suppressed as an old duplicate")
 if result["uncertain"].get("repaired") or result["secondStored"].get("condition_status") != "open":
     failures.append("inconclusive revisit incorrectly marked a pothole fixed")
+if result["breaker"].get("found") or result["breaker"].get("stored") \
+        or result["afterBreaker"] != result["beforeBreaker"]:
+    failures.append(f"speed breaker was persisted as damage: {result['breaker']}")
 if result["calls"].count("road_repair_verification") != 2:
     failures.append(f"expected two separate before/after checks, got {result['calls']}")
 if remote_leaks:

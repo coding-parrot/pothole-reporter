@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 data class AssessmentResult(
+    val looksLikeSpeedBreaker: Boolean,
     val reportable: Boolean,
     val assessment: String,
     val imageQuality: String,
@@ -58,6 +59,7 @@ internal object NativeCompleteVerdictParser {
             val sizeValue = json.get("size")
             fromFields(
                 mapOf(
+                    "looks_like_speed_breaker" to json.get("looks_like_speed_breaker"),
                     "reportable" to json.get("reportable"),
                     "assessment" to json.get("assessment"),
                     "image_quality" to json.get("image_quality"),
@@ -77,11 +79,12 @@ internal object NativeCompleteVerdictParser {
 
     internal fun fromFields(fields: Map<String, Any?>): AssessmentResult? {
         val required = setOf(
-            "reportable", "assessment", "image_quality", "damage_type",
+            "looks_like_speed_breaker", "reportable", "assessment", "image_quality", "damage_type",
             "on_drivable_surface", "has_broken_edge_or_rim", "has_depth_or_surface_loss",
             "temporal_consistency", "size", "description"
         )
         if (!fields.keys.containsAll(required)) return null
+        val looksLikeSpeedBreaker = fields["looks_like_speed_breaker"] as? Boolean ?: return null
         val reportable = fields["reportable"] as? Boolean ?: return null
         val onRoad = fields["on_drivable_surface"] as? Boolean ?: return null
         val brokenEdge = fields["has_broken_edge_or_rim"] as? Boolean ?: return null
@@ -98,6 +101,7 @@ internal object NativeCompleteVerdictParser {
         val size = sizeValue as? String
 
         return AssessmentResult(
+            looksLikeSpeedBreaker = looksLikeSpeedBreaker,
             reportable = reportable,
             assessment = assessment,
             imageQuality = imageQuality,
@@ -109,13 +113,14 @@ internal object NativeCompleteVerdictParser {
             size = size,
             description = description,
             decision = decisionFor(
-                reportable, assessment, imageQuality, damageType, onRoad, brokenEdge, depth,
-                temporal
+                looksLikeSpeedBreaker, reportable, assessment, imageQuality, damageType,
+                onRoad, brokenEdge, depth, temporal
             )
         )
     }
 
     internal fun decisionFor(
+        looksLikeSpeedBreaker: Boolean,
         reportable: Boolean,
         assessment: String,
         imageQuality: String,
@@ -125,6 +130,7 @@ internal object NativeCompleteVerdictParser {
         hasDepthOrSurfaceLoss: Boolean,
         temporalConsistency: String
     ): String {
+        if (looksLikeSpeedBreaker) return "reject"
         if (!reportable || damageType == "none" || !onDrivableSurface) return "reject"
         if (assessment == "absent") return "reject"
         if (imageQuality == "unusable" || assessment == "uncertain" ||
@@ -192,11 +198,12 @@ class NativeInferenceEngine(
     companion object {
         private const val OAI_URL = "https://api.openai.com/v1/responses"
         private const val NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
-        private const val PROMPT_VERSION = "road-damage-v3"
-        private const val SCHEMA_VERSION = 3
+        private const val PROMPT_VERSION = "road-damage-v4"
+        private const val SCHEMA_VERSION = 4
         const val REPAIR_PROMPT_VERSION = "road-repair-v1"
         const val REPAIR_SCHEMA_VERSION = 1
 
+        private val SPEED_BREAKER_RE = Pattern.compile("\"looks_like_speed_breaker\"\\s*:\\s*(true|false)")
         private val REPORTABLE_RE = Pattern.compile("\"reportable\"\\s*:\\s*(true|false)")
         private val ASSESSMENT_RE = Pattern.compile("\"assessment\"\\s*:\\s*\"(clear|probable|uncertain|absent)\"")
         private val QUALITY_RE = Pattern.compile("\"image_quality\"\\s*:\\s*\"(usable|degraded|unusable)\"")
@@ -207,9 +214,11 @@ class NativeInferenceEngine(
         private val TEMPORAL_RE = Pattern.compile("\"temporal_consistency\"\\s*:\\s*\"(consistent|single_view|inconsistent|not_applicable)\"")
 
         private const val DETECT_PROMPT =
-            "You are a structural road-maintenance surveyor inspecting road surfaces in India. " +
-            "Evaluate whether the travelled roadway in the provided dashcam images has reportable road damage (pothole cavity, failed patch, surface breakup, or rut). " +
-            "Ignore manhole covers, shadows, paint, expansion joints, water puddles with sound asphalt underneath, and minor surface discoloration. " +
+            "You are inspecting chronologically ordered road views for a civic complaint app. Classify reportable damage on the paved surface used by moving traffic: pothole_cavity is a localized open cavity with a broken rim, missing material, or visible depth; failed_patch is a previous repair that has broken, sunk, opened, or shed aggregate; surface_breakup is material disintegration across an area; rut_or_depression is a materially sunken wheel path or genuine level change; other_road_damage is another serious travelled-surface defect; none means no reportable damage. " +
+            "First decide whether the candidate is an intentional raised speed breaker, road hump, or rumble strip. These usually form a continuous transverse ridge across most or all of the lane and may have white rectangles or stripes, reflectors, and parallel leading and trailing edges. Across chronological views, a raised breaker expands uniformly as the vehicle approaches. " +
+            "Set looks_like_speed_breaker true whenever the candidate itself is, or could reasonably be, a speed breaker. If raised-versus-concave geometry is ambiguous, fail closed and set it true. Its painted border, dark leading or trailing shadow, reflector, camera pitch, or vehicle jolt is not a broken rim or depth cue. In that case set reportable false and damage_type none. " +
+            "Set looks_like_speed_breaker false only when the candidate is clearly not an intentional raised feature. A separate localized cavity or missing road material on or beside a breaker may still be damage, but it must be visually unambiguous and distinct from the raised ridge. " +
+            "A shadow, stain, water, glare, dust, loose roadside debris, lane marking, intact patch, manhole, drain, road edge, shoulder erosion, or expansion joint is not reportable damage by itself. The defect must be on the drivable paved surface. Use agreement and parallax across views, and never convert an uncertain confounder into a positive result. " +
             "Return structured assessment according to the schema."
 
         private const val REPAIR_PROMPT =
@@ -572,8 +581,9 @@ class NativeInferenceEngine(
             {
               "type": "object",
               "additionalProperties": false,
-              "required": ["reportable", "assessment", "image_quality", "damage_type", "on_drivable_surface", "has_broken_edge_or_rim", "has_depth_or_surface_loss", "temporal_consistency", "size", "description"],
+              "required": ["looks_like_speed_breaker", "reportable", "assessment", "image_quality", "damage_type", "on_drivable_surface", "has_broken_edge_or_rim", "has_depth_or_surface_loss", "temporal_consistency", "size", "description"],
               "properties": {
+                "looks_like_speed_breaker": { "type": "boolean" },
                 "reportable": { "type": "boolean" },
                 "assessment": { "type": "string", "enum": ["clear", "probable", "uncertain", "absent"] },
                 "image_quality": { "type": "string", "enum": ["usable", "degraded", "unusable"] },
@@ -693,6 +703,10 @@ class NativeInferenceEngine(
     }
 
     private fun peekReject(text: String): Boolean {
+        val breakerMatcher = SPEED_BREAKER_RE.matcher(text)
+        if (!breakerMatcher.find()) return false
+        if (breakerMatcher.group(1) == "true") return true
+
         val repMatcher = REPORTABLE_RE.matcher(text)
         if (!repMatcher.find()) return false
         if (repMatcher.group(1) == "false") return true
@@ -720,11 +734,15 @@ class NativeInferenceEngine(
         val hasDepth = depthMatcher.group(1) == "true"
         val temporal = tempMatcher.group(1) ?: "inconsistent"
 
-        val dec = evaluateDecision(reportable, assessment, imageQuality, damageType, onRoad, hasEdge, hasDepth, temporal)
+        val dec = evaluateDecision(
+            false, reportable, assessment, imageQuality, damageType, onRoad, hasEdge,
+            hasDepth, temporal
+        )
         return dec != "accept"
     }
 
     private fun evaluateDecision(
+        looksLikeSpeedBreaker: Boolean,
         reportable: Boolean,
         assessment: String,
         imageQuality: String,
@@ -734,6 +752,7 @@ class NativeInferenceEngine(
         hasDepthOrSurfaceLoss: Boolean,
         temporalConsistency: String
     ): String = NativeCompleteVerdictParser.decisionFor(
+        looksLikeSpeedBreaker,
         reportable,
         assessment,
         imageQuality,
@@ -745,6 +764,7 @@ class NativeInferenceEngine(
     )
 
     private fun rejectedVerdict(text: String): AssessmentResult {
+        val breakerMatcher = SPEED_BREAKER_RE.matcher(text)
         val repMatcher = REPORTABLE_RE.matcher(text)
         val assessMatcher = ASSESSMENT_RE.matcher(text)
         val qualMatcher = QUALITY_RE.matcher(text)
@@ -754,6 +774,9 @@ class NativeInferenceEngine(
         val depthMatcher = DEPTH_RE.matcher(text)
         val tempMatcher = TEMPORAL_RE.matcher(text)
 
+        // The speed-breaker field is first in the strict schema. A missing value here
+        // means a malformed/truncated stream, so fail closed.
+        val looksLikeSpeedBreaker = !breakerMatcher.find() || breakerMatcher.group(1) == "true"
         val reportable = repMatcher.find() && repMatcher.group(1) == "true"
         val assessment = if (assessMatcher.find()) assessMatcher.group(1)!! else "absent"
         val imageQuality = if (qualMatcher.find()) qualMatcher.group(1)!! else "usable"
@@ -763,8 +786,12 @@ class NativeInferenceEngine(
         val hasDepth = depthMatcher.find() && depthMatcher.group(1) == "true"
         val temporal = if (tempMatcher.find()) tempMatcher.group(1)!! else "not_applicable"
 
-        val dec = evaluateDecision(reportable, assessment, imageQuality, damageType, onRoad, hasEdge, hasDepth, temporal)
+        val dec = evaluateDecision(
+            looksLikeSpeedBreaker, reportable, assessment, imageQuality, damageType,
+            onRoad, hasEdge, hasDepth, temporal
+        )
         return AssessmentResult(
+            looksLikeSpeedBreaker = looksLikeSpeedBreaker,
             reportable = reportable,
             assessment = assessment,
             imageQuality = imageQuality,
@@ -781,6 +808,7 @@ class NativeInferenceEngine(
 
     private fun parseCompleteVerdict(text: String): AssessmentResult {
         return NativeCompleteVerdictParser.parse(text) ?: AssessmentResult(
+            looksLikeSpeedBreaker = true,
             reportable = false,
             assessment = "uncertain",
             imageQuality = "unusable",

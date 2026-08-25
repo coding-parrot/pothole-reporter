@@ -16,6 +16,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 APP = "http://localhost:8765/"
 
 ACCEPTED = {
+    "looks_like_speed_breaker": False,
     "reportable": True,
     "assessment": "clear",
     "image_quality": "usable",

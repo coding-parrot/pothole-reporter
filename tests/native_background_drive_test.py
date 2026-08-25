@@ -265,7 +265,7 @@ with sync_playwright() as playwright:
         has_broken_edge_or_rim: true, has_depth_or_surface_loss: true,
         temporal_consistency: "consistent", size: "medium", decision: "accept",
         description: "Test native Drive detection", detection_model: "gpt-5-mini",
-        image_detail: "high", prompt_version: "road-damage-v3", schema_version: 3,
+        image_detail: "high", prompt_version: "road-damage-v4", schema_version: 4,
         evidence_count: 4, drive_id: "native-import", capture_source: "drive_live",
         source_event_key: "live:native-import:1", captured_at: Date.now() / 1000,
         source_offset_s: 4, gps_accuracy: 5, speed_mps: 8, heading: 0,

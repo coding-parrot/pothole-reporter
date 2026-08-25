@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline guard that the evaluator still represents the pure client's v3 contract."""
+"""Offline guard that the evaluator still represents the pure client's v4 contract."""
 import importlib.util, pathlib, sys, tempfile
 from PIL import Image
 
@@ -17,10 +17,16 @@ def check(name, condition):
         fails.append(name)
 
 
-check("schema version", 'const SCHEMA_VERSION = 3;' in client and road_eval.SCHEMA_VERSION == 3)
+check("schema version", 'const SCHEMA_VERSION = 4;' in client and road_eval.SCHEMA_VERSION == 4)
 check("prompt version", f'const PROMPT_VERSION = "{road_eval.PROMPT_VERSION}";' in client)
 check("road-band transform", 'const ROAD_BAND = 0.6;' in client and road_eval.ROAD_BAND == .60)
 check("schema has no model-confidence gate", "confidence" not in road_eval.SCHEMA["properties"])
+check("speed-breaker veto is required",
+      "looks_like_speed_breaker" in road_eval.SCHEMA["required"])
+check("speed-breaker veto is boolean",
+      road_eval.SCHEMA["properties"].get("looks_like_speed_breaker") == {"type": "boolean"})
+check("prompt explicitly distinguishes speed breakers",
+      "speed breaker" in road_eval.prompts()["baseline"].lower())
 for field in road_eval.SCHEMA["required"]:
     check(f"required field {field}", f'"{field}"' in client)
 for damage in road_eval.SCHEMA["properties"]["damage_type"]["enum"]:
@@ -38,11 +44,19 @@ check("mini rejects unsupported original detail",
       road_eval.build_request(["one"], "P", "gpt-5-mini", "original")
       ["input"][0]["content"][0]["detail"] == "high")
 
-good = {"reportable": True, "assessment": "clear", "image_quality": "usable",
+good = {"looks_like_speed_breaker": False,
+        "reportable": True, "assessment": "clear", "image_quality": "usable",
         "damage_type": "failed_patch", "on_drivable_surface": True,
         "has_broken_edge_or_rim": False, "has_depth_or_surface_loss": True,
         "temporal_consistency": "consistent"}
 check("failed repair accepted without cavity rim", road_eval.decision(good) == "accept")
+check("speed breaker hard-vetoes contradictory damage",
+      road_eval.decision({**good, "looks_like_speed_breaker": True}) == "reject")
+check("missing speed-breaker verdict fails closed",
+      road_eval.decision({key: value for key, value in good.items()
+                          if key != "looks_like_speed_breaker"}) == "reject")
+check("mistyped speed-breaker verdict fails closed",
+      road_eval.decision({**good, "looks_like_speed_breaker": "false"}) == "reject")
 check("uncertain held for review", road_eval.decision({**good, "assessment": "uncertain"}) == "review")
 check("off-road rejected", road_eval.decision({**good, "on_drivable_surface": False}) == "reject")
 check("legacy positive label", road_eval.binary_label("pothole") is True)

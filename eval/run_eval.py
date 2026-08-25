@@ -17,15 +17,16 @@ DEFAULT_MODEL = "gpt-5-mini"
 ALLOWED_MODELS = {DEFAULT_MODEL, "gpt-5.6"}
 ALLOWED_DETAILS = {"high", "original"}
 ROAD_BAND = 0.60
-PROMPT_VERSION = "road-damage-v3"
-SCHEMA_VERSION = 3
+PROMPT_VERSION = "road-damage-v4"
+SCHEMA_VERSION = 4
 
 SCHEMA = {
     "type": "object", "additionalProperties": False,
-    "required": ["reportable", "assessment", "image_quality", "damage_type",
+    "required": ["looks_like_speed_breaker", "reportable", "assessment", "image_quality", "damage_type",
                  "on_drivable_surface", "has_broken_edge_or_rim",
                  "has_depth_or_surface_loss", "temporal_consistency", "size", "description"],
     "properties": {
+        "looks_like_speed_breaker": {"type": "boolean"},
         "reportable": {"type": "boolean"},
         "assessment": {"type": "string", "enum": ["clear", "probable", "uncertain", "absent"]},
         "image_quality": {"type": "string", "enum": ["usable", "degraded", "unusable"]},
@@ -177,7 +178,9 @@ def build_request(views, prompt, model, detail):
 
 
 def decision(result):
-    if not result or result.get("reportable") is not True or result.get("damage_type") == "none":
+    if not result or result.get("looks_like_speed_breaker") is not False:
+        return "reject"
+    if result.get("reportable") is not True or result.get("damage_type") == "none":
         return "reject"
     if result.get("on_drivable_surface") is not True or result.get("assessment") == "absent":
         return "reject"
