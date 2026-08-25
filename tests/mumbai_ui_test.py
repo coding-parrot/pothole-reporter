@@ -54,17 +54,30 @@ SCENARIO = r"""
     handoff_name: "BMC Pothole QuickFix", handoff_url: "https://example.invalid/quickfix",
     helpline: "1916", ownership_unverified: true, requires_official_reference: true,
   };
+  const complaintFooter = "Pothole Reporter हे स्वतंत्र अॅप आहे. सुचवलेली संस्था, विभाग, "
+    + "रस्त्याची मालकी आणि कोणतेही निविदा तपशील कृपया पडताळा.";
   const [subject, body] = StandaloneAPI.__pure.draftEmail({
     damage_type: "pothole_cavity", size: "medium", assessment: "clear",
   }, 19.1197, 72.8468, "जुहू लेन, मुंबई", "BMC Pothole QuickFix", null, route);
   ok("draft: Marathi complaint title is Devanagari", devanagari.test(subject), subject);
   ok("draft: Marathi complaint body is Devanagari", devanagari.test(body), body);
-  ok("draft: BMC and its official service are named",
-     body.includes("BMC") && body.includes("Pothole QuickFix"), body);
-  ok("draft: complaint says this app does not submit",
-     body.includes("दाखल करत नाही"), body);
-  ok("draft: complaint does not claim that the suggested body owns the road",
-     body.includes("मालकी सिद्ध होत नाही"), body);
+  ok("draft: complaint addresses BMC rather than its handoff app",
+     body.startsWith("प्रति Brihanmumbai Municipal Corporation,")
+       && !body.startsWith("प्रति BMC Pothole QuickFix"), body);
+  const complaintBlocks = body.trim().split(/\n{2,}/).map((part) => part.trim());
+  const complaintWithoutFooter = complaintBlocks.slice(0, -1).join("\n\n");
+  ok("draft: complaint has one final independent-app verification footer",
+     body.split(complaintFooter).length - 1 === 1
+       && complaintBlocks.at(-1) === complaintFooter, body);
+  ok("draft: complaint removes the old no-submission sentence",
+     !body.includes("दाखल करत नाही")
+       && !/official (?:grievance )?submission/i.test(body), body);
+  ok("draft: footer tells the reader to verify road ownership",
+     complaintFooter.includes("रस्त्याची मालकी") && complaintFooter.includes("पडताळा"),
+     complaintFooter);
+  ok("draft: unmatched Mumbai route has no tender, contractor or warranty details",
+     !/संभाव्य निविदा जुळणी|निविदा क्रमांक|कामाचे नाव|कंत्राटदार|हमी स्थिती|दोष दायित्व|देखभाल कालावधी/.test(
+       complaintWithoutFooter), body);
   ok("draft: suggested ward is visibly qualified", body.includes("K/W"), body);
 
   const report = {

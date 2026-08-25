@@ -69,6 +69,12 @@ async ({authorities, pixel}) => {
     try { await promise; return null; }
     catch (error) { return String(error && error.message || error); }
   };
+  const outboundFooterMarker = "Pothole Reporter is an independent app.";
+  const forbiddenOutboundCopy = [
+    "no official grievance submission is confirmed",
+    "email delivery is not confirmed",
+  ];
+  const finalParagraphOf = (text) => String(text || "").trim().split(/\n{2,}/).at(-1) || "";
   const configuredRoute = (authority) => {
     const handoff = !authority.officer_email;
     return {
@@ -322,6 +328,7 @@ async ({authorities, pixel}) => {
       status: report.status,
       unrouted_reason: report.unrouted_reason,
       tender_number: report.tender_number,
+      tender_title: report.tender_title,
       contractor: report.contractor,
       dedupe_eligible: report.dedupe_eligible,
       is_blob: report.photo_url instanceof Blob,
@@ -335,7 +342,8 @@ async ({authorities, pixel}) => {
       capture_source: "manual_import", capture_time_source: "file_last_modified",
       report_origin: "user_reported", decision: "manual", detection_model: null,
       image_detail: null, status: "unrouted", unrouted_reason: "no_location",
-      tender_number: null, contractor: null, dedupe_eligible: false, is_blob: true,
+      tender_number: null, tender_title: null, contractor: null,
+      dedupe_eligible: false, is_blob: true,
       full_is_blob: true, full_size: blob.size,
     },
     {
@@ -343,7 +351,8 @@ async ({authorities, pixel}) => {
       capture_source: "manual_camera", capture_time_source: "camera_return_time",
       report_origin: "user_reported", decision: "manual", detection_model: null,
       image_detail: null, status: "unrouted", unrouted_reason: "no_location",
-      tender_number: null, contractor: null, dedupe_eligible: false, is_blob: true,
+      tender_number: null, tender_title: null, contractor: null,
+      dedupe_eligible: false, is_blob: true,
       full_is_blob: true, full_size: blob.size,
     },
   ]);
@@ -399,6 +408,18 @@ async ({authorities, pixel}) => {
     retry_count: 1, unrouted_reason: null, original_evidence_size: blob.size,
     imported_provenance_in_draft: true,
   });
+  const retriedCivicEvidence = await StandaloneAPI.handle(
+    `/api/reports/${retried.id}/evidence`, {method: "GET"});
+  const retriedCivicEvidenceLower = retriedCivicEvidence.text.toLowerCase();
+  const retriedCivicFooter = finalParagraphOf(retriedCivicEvidence.text);
+  ok("outbound civic evidence: obsolete negative submission boilerplate is absent",
+     forbiddenOutboundCopy.every((copy) => !retriedCivicEvidenceLower.includes(copy)),
+     retriedCivicEvidence.text);
+  ok("outbound civic evidence: independent-app verification footer is final",
+     retriedCivicFooter.startsWith(outboundFooterMarker)
+       && /\bverify\b/i.test(retriedCivicFooter), retriedCivicFooter);
+  eq("outbound civic evidence: footer appears exactly once",
+     retriedCivicEvidence.text.split(outboundFooterMarker).length - 1, 1);
   const permanentRetryDb = await new Promise((resolve, reject) => {
     const request = indexedDB.open("potholes");
     request.onsuccess = () => resolve(request.result);

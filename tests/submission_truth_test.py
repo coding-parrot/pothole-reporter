@@ -26,6 +26,12 @@ async ({pixel}) => {
   };
   const byId = async (id) => (await StandaloneAPI.handle("/api/reports"))
     .find((report) => report.id === id);
+  const outboundFooterMarker = "Pothole Reporter is an independent app.";
+  const forbiddenOutboundCopy = [
+    "no official grievance submission is confirmed",
+    "email delivery is not confirmed",
+  ];
+  const finalParagraphOf = (text) => String(text || "").trim().split(/\n{2,}/).at(-1) || "";
 
   await StandaloneAPI.handle("/api/reports", {method: "DELETE"});
   const packManifest = await StandaloneAPI.__pure.getStatePackManifest();
@@ -92,6 +98,32 @@ async ({pixel}) => {
     submitted_at: null,
     sent_at: null,
   };
+  const [generatedRoadSubject, generatedRoadBody] = StandaloneAPI.__pure.draftEmail(
+    {damage_type: "pothole_cavity", assessment: "clear", size: "medium", is_pothole: true},
+    18.5308, 73.8475, "Shivajinagar, Pune", "PMC Road Mitra, Pune Municipal Corporation",
+    null,
+    {
+      authority_id: "mh-pmc", authority_name: "Pune Municipal Corporation",
+      delivery_channel: "official_handoff", handoff_name: "PMC Road Mitra",
+      ownership_unverified: true, ward_code: null,
+    },
+  );
+  const generatedRoadEvidence = await StandaloneAPI.__pure.evidenceForReport({
+    ...base, id: "generated-road-outbound", issue_type: "road_damage", status: "draft",
+    capture_source: "manual_camera", email_subject: generatedRoadSubject,
+    email_body: generatedRoadBody, authority_id: "mh-pmc",
+    authority_name: "Pune Municipal Corporation",
+  });
+  const generatedRoadEvidenceLower = generatedRoadEvidence.text.toLowerCase();
+  const generatedRoadFooter = finalParagraphOf(generatedRoadEvidence.text);
+  ok("outbound road evidence: obsolete negative submission boilerplate is absent",
+     forbiddenOutboundCopy.every((copy) => !generatedRoadEvidenceLower.includes(copy)),
+     generatedRoadEvidence.text);
+  ok("outbound road evidence: independent-app verification footer is final",
+     generatedRoadFooter.startsWith(outboundFooterMarker)
+       && /\bverify\b/i.test(generatedRoadFooter), generatedRoadFooter);
+  eq("outbound road evidence: footer appears exactly once",
+     generatedRoadEvidence.text.split(outboundFooterMarker).length - 1, 1);
   const records = [
     {
       ...base, id: 71001, status: "draft",
@@ -124,6 +156,7 @@ async ({pixel}) => {
     {
       ...base, id: 71005, created_at: base.created_at + 4, status: "draft",
       address: "Shivajinagar, Pune", lat: 18.5308, lng: 73.8475,
+      email_subject: generatedRoadSubject, email_body: generatedRoadBody,
       delivery_channel: "official_handoff", ward_code: null,
       officer_name: "PMC Road Mitra, Pune Municipal Corporation",
       authority_id: "mh-pmc", authority_name: "Pune Municipal Corporation",
@@ -856,7 +889,8 @@ async ({pixel}) => {
 
   const pmcSentEvidence = await StandaloneAPI.handle("/api/reports/71005/evidence");
   ok("generic evidence: submitted text includes the official reference",
-     /PMC-2026-009876/.test(pmcSentEvidence.text), pmcSentEvidence.text);
+     /User-entered grievance\/reference ID: PMC-2026-009876/.test(pmcSentEvidence.text),
+     pmcSentEvidence.text);
   ok("generic evidence: submitted PMC text never calls it a BMC reference",
      !/\bBMC\b/.test(pmcSentEvidence.text), pmcSentEvidence.text);
 

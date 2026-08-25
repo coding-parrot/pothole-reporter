@@ -32,6 +32,8 @@ async () => {
   }
 
   const P = StandaloneAPI.__pure;
+  const complaintFooter = "Pothole Reporter is an independent app. Please verify any "
+    + "suggested authority, ward, road ownership, and tender details.";
   const route = await P.delhiRouteFromGeocode(null, 28.6129, 77.2295, 12);
   eq("route: UI fixture uses PWD Sewa", route && route.handoff_name, "PWD Sewa");
   eq("route: UI fixture uses Delhi PGMS fallback",
@@ -41,11 +43,18 @@ async () => {
   }, 28.6129, 77.2295, "India Gate, New Delhi", route.officer_name, null, route);
   ok("draft: complaint retains coordinates and map link",
      /28\.612900, 77\.229500/.test(body) && /maps\.google\.com/.test(body), body);
-  ok("draft: complaint does not assert road ownership or automatic filing",
-     /does not prove who owns this road/.test(body)
-       && /does not submit a grievance/.test(body) && /PWD Sewa/.test(body), body);
-  ok("draft: Delhi route never adds a tender or contractor identity claim",
-     !/probable contract match|Tender:|Winning bidder|Contractor:/.test(body), body);
+  const complaintBlocks = body.trim().split(/\n{2,}/).map((part) => part.trim());
+  const complaintWithoutFooter = complaintBlocks.slice(0, -1).join("\n\n");
+  ok("draft: complaint has one final independent-app verification footer",
+     body.split(complaintFooter).length - 1 === 1
+       && complaintBlocks.at(-1) === complaintFooter, body);
+  ok("draft: complaint names the route without old no-submission wording",
+     body.includes(route.authority_name)
+       && !/does not submit (?:a|the) grievance|official (?:grievance )?submission/i.test(body),
+     body);
+  ok("draft: Delhi route never adds tender, contractor or warranty details",
+     !/probable tender match|tender number:|work name:|contractor:|warranty status:|winning bidder|defect liability|maintenance period/i.test(
+       complaintWithoutFooter), body);
 
   const now = Date.now() / 1000;
   const report = {

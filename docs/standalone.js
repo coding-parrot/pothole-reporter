@@ -2155,6 +2155,8 @@ This is a strict before/after verification, not ordinary pothole detection:
     _newStateCoveragePromises.clear();
     _majorCityCoverage = null;
     _majorCityCoveragePromise = null;
+    _tenders = null;
+    _byBody = null;
     resetHighwayPackMemory();
   }
 
@@ -4424,11 +4426,10 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     // Records without a winner are common in this dataset. Naming nobody is correct;
     // a placeholder sentence read as a person's name in the Kannada draft.
     const contractor = t.c || null;
+    const title = String(t.t || "").replace(/\s+/g, " ").trim();
     return {
-      tender_number: t.tn, contractor, title: t.t, published: t.d, warranty, warranty_code,
-      note: contractor
-        ? `Probable contract: ${t.tn}, ${contractor}, published ${t.d}`
-        : `Probable contract: ${t.tn}, contractor not listed, published ${t.d}`,
+      tender_number: t.tn, contractor, title, published: t.d, warranty, warranty_code,
+      note: `Probable tender: ${t.tn} — ${title}`,
       ...statePackProvenance("in-ka-tenders", "tender"),
     };
   }
@@ -4445,8 +4446,306 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     return "absent";
   }
 
+  function complaintFooter(lang, roadDamage = true) {
+    const road = {
+      kn: "Pothole Reporter ಒಂದು ಸ್ವತಂತ್ರ ಆ್ಯಪ್. ಸೂಚಿಸಲಾದ ಸಂಸ್ಥೆ, ವಾರ್ಡ್, ರಸ್ತೆ ಮಾಲೀಕತ್ವ ಮತ್ತು ಯಾವುದೇ ಟೆಂಡರ್ ವಿವರಗಳನ್ನು ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ.",
+      mr: "Pothole Reporter हे स्वतंत्र अॅप आहे. सुचवलेली संस्था, विभाग, रस्त्याची मालकी आणि कोणतेही निविदा तपशील कृपया पडताळा.",
+      bn: "Pothole Reporter একটি স্বাধীন অ্যাপ। প্রস্তাবিত কর্তৃপক্ষ, ওয়ার্ড, রাস্তার মালিকানা এবং টেন্ডারের তথ্য অনুগ্রহ করে যাচাই করুন।",
+      en: "Pothole Reporter is an independent app. Please verify any suggested authority, ward, road ownership, and tender details.",
+    };
+    const civic = {
+      kn: "Pothole Reporter ಒಂದು ಸ್ವತಂತ್ರ ಆ್ಯಪ್. ಸೂಚಿಸಲಾದ ಸಂಸ್ಥೆ, ನಾಗರಿಕ ವ್ಯಾಪ್ತಿ ಮತ್ತು ದೂರು ವರ್ಗವನ್ನು ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ.",
+      mr: "Pothole Reporter हे स्वतंत्र अॅप आहे. सुचवलेली संस्था, नागरी कार्यक्षेत्र आणि तक्रारीचा प्रकार कृपया पडताळा.",
+      bn: "Pothole Reporter একটি স্বাধীন অ্যাপ। প্রস্তাবিত কর্তৃপক্ষ, নাগরিক এলাকার দায়িত্ব এবং অভিযোগের ধরন অনুগ্রহ করে যাচাই করুন।",
+      en: "Pothole Reporter is an independent app. Please verify any suggested authority, civic jurisdiction, and complaint category.",
+    };
+    const copy = roadDamage ? road : civic;
+    return copy[lang] || copy.en;
+  }
+
+  function conciseRouteLabel(value) {
+    return String(value || "").replace(/\s*\((?:verify|select)[^)]*\)/ig, "").trim();
+  }
+
+  const COMPLAINT_TEMPLATE_VERSION = 2;
+
+  function storedComplaintLanguage(body) {
+    const text = String(body || "");
+    const first = text.trimStart();
+    if (first.startsWith("ಮಾನ್ಯ ")) return "kn";
+    if (first.startsWith("प्रति ")) return "mr";
+    if (first.startsWith("মাননীয় ")) return "bn";
+    if (first.startsWith("Dear ")) return "en";
+    const labelledLine = (labels) => labels.some((label) =>
+      new RegExp(`(?:^|\\n)${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(text));
+    if (labelledLine(["ಸ್ಥಳ:", "ನಿರ್ದೇಶಾಂಕಗಳು:", "ಹಾನಿಯ ಪ್ರಕಾರ:"])) return "kn";
+    if (labelledLine(["ठिकाण:", "निर्देशांक:", "नुकसानीचा प्रकार:"])) return "mr";
+    if (labelledLine(["স্থান:", "স্থানাঙ্ক:", "ক্ষতির ধরন:"])) return "bn";
+    return "en";
+  }
+
+  function complaintBodyWithFooter(body, issueType) {
+    const text = String(body || "").trim();
+    if (!text) return text;
+    const roadDamage = normaliseIssueType(issueType) === "road_damage";
+    const lang = storedComplaintLanguage(text);
+    const footers = ["kn", "mr", "bn", "en"].map((code) => complaintFooter(code, roadDamage));
+    const paragraphs = text.split(/\n{2,}/).map((p) => p.trim())
+      .filter((paragraph) => paragraph && !footers.includes(paragraph));
+    paragraphs.push(complaintFooter(lang, roadDamage));
+    return paragraphs.join("\n\n");
+  }
+
+  // v1.31 and earlier put routing caveats into every complaint paragraph. IndexedDB
+  // survives an app update, so cleaning only the generator would leave existing drafts
+  // unchanged. Migrate only unsent app-template text, paragraph by exact paragraph: this
+  // preserves anything the user added or rewrote and never rewrites a sent complaint.
+  function migrateLegacyComplaintRecord(rec) {
+    if (!rec || !["draft", "queued"].includes(rec.status)
+        || Number(rec.complaint_template_version) >= COMPLAINT_TEMPLATE_VERSION
+        || !String(rec.email_body || "").trim()) return rec;
+
+    const lang = storedComplaintLanguage(rec.email_body);
+    const roadDamage = normaliseIssueType(rec.issue_type) === "road_damage";
+    let paragraphs = String(rec.email_body).split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+    let recognised = false;
+    const replaceExact = (before, after) => {
+      if (!before) return;
+      const index = paragraphs.indexOf(before);
+      if (index < 0) return;
+      recognised = true;
+      paragraphs[index] = after || "";
+    };
+
+    if (roadDamage) {
+      const oldRequest = {
+        kn: "ಫೋಟೋ ಲಗತ್ತಿಸಲಾಗಿದೆ. ಈ ರಸ್ತೆ ಹಾನಿ ದ್ವಿಚಕ್ರ ವಾಹನ ಸವಾರರಿಗೆ ಮತ್ತು ಇತರ ರಸ್ತೆ ಬಳಕೆದಾರರಿಗೆ ಅಪಾಯಕಾರಿ. ಇದನ್ನು ಶೀಘ್ರ ಪರಿಶೀಲಿಸಿ ದುರಸ್ತಿ ಮಾಡಬೇಕೆಂದು, ಮತ್ತು ಈ ರಸ್ತೆ ಭಾಗ ನಿರ್ವಹಣಾ ವಾರಂಟಿ ಅಡಿಯಲ್ಲಿದ್ದರೆ ಜವಾಬ್ದಾರ ಗುತ್ತಿಗೆದಾರರಿಗೆ ವರ್ಗಾಯಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.",
+        mr: "फोटो जोडला आहे. या नुकसानीमुळे दुचाकीस्वार आणि इतर रस्ता वापरणाऱ्यांना धोका होऊ शकतो. कृपया तपासणी करून लवकरात लवकर दुरुस्ती करावी आणि लागू असल्यास जबाबदार कंत्राटदाराकडे पाठवावे.",
+        bn: "ছবি সংযুক্ত করা হল। রাস্তার এই ক্ষতি বিশেষ করে দু’চাকার যানচালক ও অন্যান্য পথ ব্যবহারকারীর জন্য বিপজ্জনক। অনুগ্রহ করে দ্রুত স্থানটি পরিদর্শন করে মেরামতের ব্যবস্থা করুন।",
+        en: "PFA image. This road damage poses a danger to two wheeler riders and other road users. I request your office to inspect and repair it at the earliest, and to route it to the contractor responsible if this road section is still under a maintenance warranty.",
+      };
+      const newRequest = {
+        kn: "ಫೋಟೋ ಲಗತ್ತಿಸಲಾಗಿದೆ. ಈ ರಸ್ತೆ ಹಾನಿ ದ್ವಿಚಕ್ರ ವಾಹನ ಸವಾರರಿಗೆ ಮತ್ತು ಇತರ ರಸ್ತೆ ಬಳಕೆದಾರರಿಗೆ ಅಪಾಯಕಾರಿ. ಇದನ್ನು ಶೀಘ್ರ ಪರಿಶೀಲಿಸಿ ದುರಸ್ತಿ ಮಾಡಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.",
+        mr: "फोटो जोडला आहे. या नुकसानीमुळे दुचाकीस्वार आणि इतर रस्ता वापरणाऱ्यांना धोका होऊ शकतो. कृपया तपासणी करून लवकरात लवकर दुरुस्ती करावी.",
+        bn: oldRequest.bn,
+        en: "PFA image. This road damage poses a danger to two-wheeler riders and other road users. I request your office to inspect and repair it at the earliest.",
+      };
+      replaceExact(oldRequest[lang], newRequest[lang]);
+
+      const ward = rec.ward_code;
+      if (ward) {
+        const wardAuthority = rec.authority_id === "wb-kmc" ? "KMC" : "BMC";
+        const oldWard = {
+          kn: `ಸೂಚಿಸಿದ ಬಿಎಂಸಿ ಆಡಳಿತ ವಾರ್ಡ್: ${ward}. ಇದು OpenStreetMap ಆಡಳಿತ ಗಡಿಯಿಂದ ಪಡೆದ ಸೂಚನೆ ಮಾತ್ರ; ಅಧಿಕೃತ BMC ಆ್ಯಪ್‌ನಲ್ಲಿ ಪರಿಶೀಲಿಸಿ.`,
+          mr: `सुचवलेला BMC प्रशासकीय विभाग: ${ward}. हा OpenStreetMap प्रशासकीय सीमेवर आधारित अंदाज आहे; अधिकृत BMC अॅपमध्ये पडताळा करा.`,
+          bn: `প্রস্তাবিত ${wardAuthority} প্রশাসনিক ওয়ার্ড: ${ward}। এটি OpenStreetMap-এর প্রশাসনিক সীমানা থেকে অনুমান করা; সরকারি পরিষেবায় যাচাই করুন।`,
+          en: `Suggested BMC administrative ward: ${ward}. This is inferred from an OpenStreetMap administrative boundary; verify it in the official BMC app.`,
+        };
+        const newWard = {
+          kn: `ಸೂಚಿಸಿದ BMC ಆಡಳಿತ ವಾರ್ಡ್: ${ward}.`,
+          mr: `सुचवलेला BMC प्रशासकीय विभाग: ${ward}.`,
+          bn: `প্রস্তাবিত ${wardAuthority} প্রশাসনিক ওয়ার্ড: ${ward}।`,
+          en: `Suggested BMC administrative ward: ${ward}.`,
+        };
+        replaceExact(oldWard[lang], newWard[lang]);
+      }
+
+      if (rec.authority_id === "in-national-highway") {
+        const highway = rec.highway_ref || "National Highway";
+        const oldHighway = {
+          kn: `ನಕ್ಷೆಯ ಪ್ರಕಾರ ರಸ್ತೆ ಉಲ್ಲೇಖ: ${highway}. ನಿರ್ವಹಣಾ ಸಂಸ್ಥೆಯನ್ನು ಈ ಆ್ಯಪ್ ದೃಢಪಡಿಸಿಲ್ಲ. ಸಾಕ್ಷ್ಯವನ್ನು ಪರಿಶೀಲಿಸಿ ರಾಜಮಾರ್ಗಯಾತ್ರಾ ಅಥವಾ 1033 ಮೂಲಕ ನೀವೇ ದೂರು ದಾಖಲಿಸಿ; ಅಗತ್ಯವಿದ್ದರೆ ಸರಿಯಾದ NHAI, NHIDCL, BRO ಅಥವಾ ರಾಜ್ಯ PWD ಘಟಕಕ್ಕೆ ವರ್ಗಾಯಿಸಲು ಕೇಳಿ.`,
+          mr: `नकाशावरील रस्ता संदर्भ: ${highway}. देखभाल करणारी संस्था या अॅपने पडताळलेली नाही. पुरावा तपासून राजमार्गयात्रा किंवा 1033 द्वारे स्वतः तक्रार नोंदवा आणि आवश्यक असल्यास योग्य NHAI, NHIDCL, BRO किंवा राज्य PWD विभागाकडे पाठवण्याची विनंती करा.`,
+          bn: `মানচিত্রে রাস্তার পরিচয়: ${highway}। রক্ষণাবেক্ষণকারী সংস্থা এই অ্যাপ যাচাই করেনি। প্রমাণ দেখে রাজমার্গযাত্রা বা ১০৩৩-এর মাধ্যমে নিজে অভিযোগ নথিভুক্ত করুন এবং প্রয়োজনে সঠিক NHAI, NHIDCL, BRO বা রাজ্য PWD দপ্তরে পাঠাতে বলুন।`,
+          en: `Mapped road reference: ${highway}. This app has not verified the maintaining agency. Review the evidence and submit it yourself through Rajmargyatra or 1033; ask for transfer to the correct NHAI, NHIDCL, BRO or State PWD unit when necessary.`,
+        };
+        const newHighway = {
+          kn: `ನಕ್ಷೆಯ ಪ್ರಕಾರ ರಸ್ತೆ ಉಲ್ಲೇಖ: ${highway}. ಸೂಚಿಸಿದ ದೂರು ಮಾರ್ಗ: ರಾಜಮಾರ್ಗಯಾತ್ರಾ ಅಥವಾ 1033.`,
+          mr: `नकाशावरील रस्ता संदर्भ: ${highway}. सुचवलेला तक्रार मार्ग: राजमार्गयात्रा किंवा 1033.`,
+          bn: `মানচিত্রে রাস্তার পরিচয়: ${highway}। প্রস্তাবিত অভিযোগের মাধ্যম: রাজমার্গযাত্রা বা ১০৩৩।`,
+          en: `Mapped road reference: ${highway}. Suggested complaint channel: Rajmargyatra or 1033.`,
+        };
+        replaceExact(oldHighway[lang], newHighway[lang]);
+      } else if (rec.authority_id === "wb-statewide-unverified") {
+        const oldWestBengal = {
+          kn: "ಸ್ಥಳವು ಪಿನ್ ಮಾಡಿದ OpenStreetMap ಪಶ್ಚಿಮ ಬಂಗಾಳ ಗಡಿಯೊಳಗೆ ನಕ್ಷೆಗೊಂಡಿದೆ; ಆದರೆ ಜವಾಬ್ದಾರ ಜಿಲ್ಲೆ, ಇಲಾಖೆ ಅಥವಾ ರಸ್ತೆ ಮಾಲೀಕರನ್ನು ಗುರುತಿಸಲಾಗಿಲ್ಲ. ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ; ಸಾಕ್ಷ್ಯವನ್ನು ಪರಿಶೀಲಿಸಿ West Bengal PGRS ನಲ್ಲಿ ಸರಿಯಾದ ಜಿಲ್ಲೆ ಅಥವಾ ಇಲಾಖೆಯನ್ನು ನೀವೇ ಆಯ್ದು ದೃಢಪಡಿಸಿ.",
+          mr: "हे ठिकाण पिन केलेल्या OpenStreetMap पश्चिम बंगाल सीमेत नकाशित आहे; परंतु जबाबदार जिल्हा, विभाग किंवा रस्त्याचा मालक ओळखलेला नाही. हे स्वतंत्र अॅप तक्रार दाखल करत नाही; पुरावा तपासा आणि West Bengal PGRS मध्ये योग्य जिल्हा किंवा विभाग स्वतः निवडून पडताळा.",
+          bn: "স্থানটি পিন-করা OpenStreetMap পশ্চিমবঙ্গ সীমানার ভিতরে মানচিত্রভুক্ত, কিন্তু দায়িত্বপ্রাপ্ত জেলা, দপ্তর বা রাস্তার মালিক চিহ্নিত করা হয়নি। এই স্বাধীন অ্যাপটি অভিযোগ জমা দেয় না; প্রমাণ যাচাই করে West Bengal PGRS-এ দায়িত্বপ্রাপ্ত জেলা বা দপ্তর নিজে নির্বাচন ও যাচাই করুন এবং অভিযোগ নম্বরটি সংরক্ষণ করুন।",
+          en: "The location is mapped inside the pinned OpenStreetMap West Bengal boundary, but the responsible district, department and road owner have not been identified. This independent app does not submit the grievance; review the evidence, then select and verify the responsible district or department in West Bengal PGRS.",
+        };
+        const newWestBengal = {
+          kn: "ಸೂಚಿಸಿದ ದೂರು ಮಾರ್ಗ: West Bengal PGRS; ಜವಾಬ್ದಾರ ಜಿಲ್ಲೆ ಅಥವಾ ಇಲಾಖೆಯನ್ನು ಗುರುತಿಸಲಾಗಿಲ್ಲ.",
+          mr: "सुचवलेला तक्रार मार्ग: West Bengal PGRS; जबाबदार जिल्हा किंवा विभाग ओळखलेला नाही.",
+          bn: "প্রস্তাবিত অভিযোগের মাধ্যম: West Bengal PGRS; দায়িত্বপ্রাপ্ত জেলা বা দপ্তর চিহ্নিত করা হয়নি।",
+          en: "Suggested complaint channel: West Bengal PGRS; the responsible district or department has not been identified.",
+        };
+        replaceExact(oldWestBengal[lang], newWestBengal[lang]);
+      } else if (rec.ownership_unverified) {
+        const rawAuthority = rec.authority_name || ({ kn: "ಅಧಿಕಾರಿಯನ್ನು ಪರಿಶೀಲಿಸಿ", mr: "संस्था पडताळा",
+          bn: "কর্তৃপক্ষ যাচাই করুন", en: "verify the authority" })[lang];
+        const authority = conciseRouteLabel(rec.authority_name);
+        const oldAuthorityName = lang === "bn" && rec.authority_id === "wb-kmc"
+          ? "কলকাতা পৌরসংস্থা (KMC)" : rawAuthority;
+        const authorityName = lang === "bn" && rec.authority_id === "wb-kmc"
+          ? "কলকাতা পৌরসংস্থা (KMC)" : (authority || rawAuthority);
+        const official = OFFICIAL_HANDOFF_CHANNELS.has(rec.delivery_channel);
+        const oldAuthority = official
+          ? {
+              kn: `ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${rawAuthority}. ಇದು ರಸ್ತೆ ಮಾಲೀಕತ್ವದ ದೃಢೀಕರಣವಲ್ಲ. ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ; ಸಾಕ್ಷ್ಯವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ${rec.handoff_name || "ಅಧಿಕೃತ ಸೇವೆ"} ಮೂಲಕ ನೀವೇ ಸಲ್ಲಿಸಿ.`,
+              mr: `सुचवलेली नागरी संस्था: ${rawAuthority}. यावरून त्या रस्त्याची मालकी सिद्ध होत नाही. हे स्वतंत्र अॅप तक्रार दाखल करत नाही; पुरावा तपासा आणि ${rec.handoff_name || "अधिकृत सेवेत"} स्वतः नोंदवा.`,
+              bn: `অবস্থানের ভিত্তিতে প্রস্তাবিত পৌর কর্তৃপক্ষ: ${oldAuthorityName}। এতে রাস্তার মালিকানা প্রমাণিত হয় না। এই স্বাধীন অ্যাপটি অভিযোগ জমা দেয় না; প্রমাণ যাচাই করে ${rec.handoff_name || "সরকারি পরিষেবা"}-এ নিজে অভিযোগ নথিভুক্ত করুন এবং অভিযোগ নম্বরটি সংরক্ষণ করুন।`,
+              en: `Suggested civic authority: ${rawAuthority}. This does not prove who owns this road. This independent app does not submit a grievance; review the evidence and finish it yourself in ${rec.handoff_name || "the official service"}.`,
+            }[lang]
+          : {
+              kn: `ಸ್ಥಳದ ಆಧಾರದ ಮೇಲೆ ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${rawAuthority}. ಇದು ರಸ್ತೆ ಮಾಲೀಕತ್ವದ ದೃಢೀಕರಣವಲ್ಲ; ಬೇರೆ ಸಂಸ್ಥೆ ಜವಾಬ್ದಾರಿಯಾಗಿದ್ದರೆ ದಯವಿಟ್ಟು ಈ ದೂರನ್ನು ಆ ಸಂಸ್ಥೆಗೆ ವರ್ಗಾಯಿಸಿ.`,
+              mr: `स्थानावरून सुचवलेली नागरी संस्था: ${rawAuthority}. यावरून रस्त्याची मालकी सिद्ध होत नाही; दुसरी संस्था जबाबदार असल्यास कृपया तक्रार तिच्याकडे पाठवा.`,
+              bn: `অবস্থানের ভিত্তিতে প্রস্তাবিত পৌর কর্তৃপক্ষ: ${oldAuthorityName}। এতে রাস্তার মালিকানা প্রমাণিত হয় না; অন্য কোনও সংস্থা দায়িত্বে থাকলে অভিযোগটি তাদের কাছে পাঠিয়ে দেওয়ার অনুরোধ রইল।`,
+              en: `Suggested civic authority from the location: ${rawAuthority}. This does not prove road ownership; please forward this complaint if another agency owns the road.`,
+            }[lang];
+        const addressedAuthority = official
+          || normaliseAuthorityValue(rec.officer_name) === normaliseAuthorityValue(authorityName);
+        const newAuthority = addressedAuthority ? "" : ({
+          kn: `ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${authorityName || "ತಿಳಿದಿಲ್ಲ"}.`,
+          mr: `सुचवलेली नागरी संस्था: ${authorityName || "माहित नाही"}.`,
+          bn: `প্রস্তাবিত পৌর কর্তৃপক্ষ: ${authorityName || "অজানা"}।`,
+          en: `Suggested civic authority: ${authorityName || "unknown"}.`,
+        })[lang];
+        replaceExact(oldAuthority, newAuthority);
+      }
+
+      const oldTenderRequest = {
+        kn: "ದೋಷ ಹೊಣೆಗಾರಿಕೆ ಅಥವಾ ನಿರ್ವಹಣಾ ಅವಧಿ ಜಾರಿಯಲ್ಲಿದ್ದರೆ, ಸಂಸ್ಥೆಗೆ ಹೆಚ್ಚುವರಿ ವೆಚ್ಚವಿಲ್ಲದೆ ಗುತ್ತಿಗೆದಾರರಿಂದಲೇ ದುರಸ್ತಿ ಮಾಡಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ. ಇದು ಸಂಭಾವ್ಯ ದಾಖಲೆ ಹೊಂದಾಣಿಕೆ; ದಯವಿಟ್ಟು ಟೆಂಡರ್ ದಾಖಲೆಗಳೊಂದಿಗೆ ಪರಿಶೀಲಿಸಿ.",
+        mr: "दोष दायित्व किंवा देखभाल कालावधी लागू असल्यास महानगरपालिकेला अतिरिक्त खर्च न लावता कंत्राटदाराकडून दुरुस्ती करून घ्यावी. ही संभाव्य नोंद-जुळणी आहे; कृपया मूळ निविदा कागदपत्रांशी पडताळा करा.",
+        bn: "ত্রুটি-দায় বা রক্ষণাবেক্ষণের মেয়াদ চালু থাকলে পৌরসংস্থার অতিরিক্ত ব্যয় ছাড়াই ঠিকাদারের মাধ্যমে মেরামত করানোর অনুরোধ করছি। এটি কেবল সম্ভাব্য নথি-মিল; মূল টেন্ডার নথির সঙ্গে যাচাই করুন।",
+        en: "If the defect liability or maintenance period is in force, I request that the repair be carried out by the contractor at no additional cost to the corporation. This is a probable record match; kindly verify against the tender documents.",
+      };
+      const newTenderRequest = {
+        kn: "ದೋಷ ಹೊಣೆಗಾರಿಕೆ ಅಥವಾ ನಿರ್ವಹಣಾ ಅವಧಿ ಜಾರಿಯಲ್ಲಿದ್ದರೆ, ಸಂಸ್ಥೆಗೆ ಹೆಚ್ಚುವರಿ ವೆಚ್ಚವಿಲ್ಲದೆ ಗುತ್ತಿಗೆದಾರರಿಂದಲೇ ದುರಸ್ತಿ ಮಾಡಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.",
+        mr: "दोष दायित्व किंवा देखभाल कालावधी लागू असल्यास महानगरपालिकेला अतिरिक्त खर्च न लावता कंत्राटदाराकडून दुरुस्ती करून घ्यावी.",
+        bn: "ত্রুটি-দায় বা রক্ষণাবেক্ষণের মেয়াদ চালু থাকলে পৌরসংস্থার অতিরিক্ত ব্যয় ছাড়াই ঠিকাদারের মাধ্যমে মেরামত করানোর অনুরোধ করছি।",
+        en: "If the defect liability or maintenance period is in force, I request that the contractor carry out the repair at no additional cost to the corporation.",
+      };
+      replaceExact(oldTenderRequest[lang], newTenderRequest[lang]);
+    } else {
+      const civicRequest = paragraphs.find((paragraph) => ({
+        kn: ["ಲಗತ್ತಿಸಿದ ಚಿತ್ರದಲ್ಲಿ ತೆರೆದ ಅಥವಾ ಹಾನಿಗೊಂಡ ಮ್ಯಾನ್‌ಹೋಲ್ ಇದೆ.", "ಲಗತ್ತಿಸಿದ ಚಿತ್ರದಲ್ಲಿ ಈ ಸ್ಥಳದಲ್ಲಿ ಸಂಗ್ರಹವಾದ ಅಥವಾ ತೆರವುಗೊಳಿಸದ ಕಸ ಇದೆ."],
+        mr: ["जोडलेल्या फोटोमध्ये उघडे किंवा खराब मॅनहोल दिसत आहे.", "जोडलेल्या फोटोमध्ये या ठिकाणी साचलेला किंवा न उचललेला कचरा दिसत आहे."],
+        bn: ["সংযুক্ত ছবিতে একটি খোলা বা ক্ষতিগ্রস্ত ম্যানহোল দেখা যাচ্ছে।", "সংযুক্ত ছবিতে এই স্থানে জমে থাকা বা না-তোলা আবর্জনা দেখা যাচ্ছে।"],
+        en: ["The attached photo shows an open or damaged manhole.", "The attached photo shows accumulated or uncollected garbage at this location."],
+      })[lang].some((start) => paragraph.startsWith(start)));
+      if (civicRequest) recognised = true;
+
+      const importedOld = {
+        kn: "ಈ ಚಿತ್ರವನ್ನು ಬಳಕೆದಾರರು ಆಯ್ಕೆಮಾಡಿ/ಆಮದು ಮಾಡಿದ್ದಾರೆ; ಅದು ಯಾವಾಗ ತೆಗೆದದ್ದು ಎಂಬುದನ್ನು ಆ್ಯಪ್ ಪರಿಶೀಲಿಸಿಲ್ಲ.",
+        mr: "हे छायाचित्र वापरकर्त्याने निवडले/आयात केले आहे; ते केव्हा घेतले याची अॅपने पडताळणी केलेली नाही.",
+        bn: "ছবিটি ব্যবহারকারী বেছে নিয়েছেন/আমদানি করেছেন; এটি কখন তোলা হয়েছিল অ্যাপ তা যাচাই করেনি।",
+        en: "This photo was selected/imported by the user; the app has not verified when it was taken.",
+      };
+      const importedNew = {
+        kn: "ಈ ಚಿತ್ರವನ್ನು ಬಳಕೆದಾರರು ಆಯ್ಕೆಮಾಡಿ/ಆಮದು ಮಾಡಿದ್ದಾರೆ; ಮೂಲ ಸೆರೆಹಿಡಿದ ಸಮಯ ತಿಳಿದಿಲ್ಲ.",
+        mr: "हे छायाचित्र वापरकर्त्याने निवडले/आयात केले आहे; मूळ छायाचित्रणाची वेळ माहित नाही.",
+        bn: "ছবিটি ব্যবহারকারী বেছে নিয়েছেন/আমদানি করেছেন; মূল ছবিটি তোলার সময় অজানা।",
+        en: "This photo was selected/imported by the user; its original capture time is unknown.",
+      };
+      const importedIndex = paragraphs.findIndex((paragraph) => paragraph.startsWith(importedOld[lang]));
+      if (importedIndex >= 0) {
+        recognised = true;
+        paragraphs[importedIndex] = importedNew[lang]
+          + paragraphs[importedIndex].slice(importedOld[lang].length);
+      }
+
+      const authority = conciseRouteLabel(rec.authority_name);
+      if (rec.authority_id === "wb-statewide-unverified") {
+        const oldWestBengal = {
+          kn: "ಸ್ಥಳವು ಪಶ್ಚಿಮ ಬಂಗಾಳದೊಳಗಿದೆ; ಜವಾಬ್ದಾರ ಸಂಸ್ಥೆಯನ್ನು ಗುರುತಿಸಲಾಗಿಲ್ಲ. West Bengal PGRS ನಲ್ಲಿ ಸರಿಯಾದ ಜಿಲ್ಲೆ ಅಥವಾ ಇಲಾಖೆಯನ್ನು ಆಯ್ದು ದೃಢಪಡಿಸಿ.",
+          mr: "ठिकाण पश्चिम बंगालमध्ये आहे; जबाबदार संस्था ओळखलेली नाही. West Bengal PGRS मध्ये योग्य जिल्हा किंवा विभाग निवडून पडताळा.",
+          bn: "স্থানটি পিন-করা OpenStreetMap পশ্চিমবঙ্গ সীমানার মধ্যে; দায়িত্বপ্রাপ্ত সংস্থা চিহ্নিত করা হয়নি। West Bengal PGRS-এ দায়িত্বপ্রাপ্ত জেলা বা দপ্তর নির্বাচন ও যাচাই করুন।",
+          en: "The location is inside the pinned OpenStreetMap West Bengal boundary; the responsible authority has not been identified. Select and verify the responsible district or department in West Bengal PGRS.",
+        };
+        const newWestBengal = {
+          kn: "ಸೂಚಿಸಿದ ದೂರು ಮಾರ್ಗ: West Bengal PGRS; ಜವಾಬ್ದಾರ ಜಿಲ್ಲೆ ಅಥವಾ ಇಲಾಖೆಯನ್ನು ಗುರುತಿಸಲಾಗಿಲ್ಲ.",
+          mr: "सुचवलेला तक्रार मार्ग: West Bengal PGRS; जबाबदार जिल्हा किंवा विभाग ओळखलेला नाही.",
+          bn: "প্রস্তাবিত অভিযোগের মাধ্যম: West Bengal PGRS; দায়িত্বপ্রাপ্ত জেলা বা দপ্তর চিহ্নিত করা হয়নি।",
+          en: "Suggested complaint channel: West Bengal PGRS; the responsible district or department has not been identified.",
+        };
+        replaceExact(oldWestBengal[lang], newWestBengal[lang]);
+      } else if (authority) {
+        const oldAuthority = {
+          kn: `ಸ್ಥಳದ ಆಧಾರದ ಮೇಲೆ ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${rec.authority_name}. ಅಧಿಕೃತ ಸೇವೆಯಲ್ಲಿ ಪರಿಶೀಲಿಸಿ.`,
+          mr: `ठिकाणावरून सुचवलेली नागरी संस्था: ${rec.authority_name}. अधिकृत सेवेत पडताळा करा.`,
+          bn: `অবস্থানের ভিত্তিতে প্রস্তাবিত পৌর কর্তৃপক্ষ: ${rec.authority_name}। সরকারি পরিষেবায় যাচাই করুন।`,
+          en: `Suggested civic authority from the location: ${rec.authority_name}. Please verify it in the official service.`,
+        }[lang];
+        const addressedAuthority = OFFICIAL_HANDOFF_CHANNELS.has(rec.delivery_channel)
+          || normaliseAuthorityValue(rec.officer_name) === normaliseAuthorityValue(authority);
+        const newAuthority = addressedAuthority ? "" : ({
+          kn: `ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${authority}.`, mr: `सुचवलेली नागरी संस्था: ${authority}.`,
+          bn: `প্রস্তাবিত পৌর কর্তৃপক্ষ: ${authority}।`, en: `Suggested civic authority: ${authority}.`,
+        })[lang];
+        replaceExact(oldAuthority, newAuthority);
+      }
+    }
+
+    if (!recognised) return rec;
+
+    // Older evidence exports appended a second disclaimer block after the signature.
+    // It is generated metadata, not reporter prose; the current evidence exporter adds
+    // one compact Evidence line when sharing, so retaining this block would duplicate it.
+    const oldEvidenceTruth = [
+      "Prepared by an independent app; no official grievance submission is confirmed.",
+      "Prepared by an independent app; email delivery is not confirmed.",
+      "Locally marked submitted by the user; this app has not independently verified delivery.",
+    ];
+    const oldEvidenceLine = /^(?:Captured|Report created|Selected photo file date) \(IST\):|^Photo provenance:|^GPS accuracy:|^Suggested civic authority:|^Suggested BMC ward:|^Mapped road reference:|^Local event ID:/;
+    paragraphs = paragraphs.map((paragraph) => {
+      if (!oldEvidenceTruth.some((line) => paragraph.includes(line))) return paragraph;
+      return paragraph.split("\n").filter((line) =>
+        !oldEvidenceLine.test(line)
+        && !oldEvidenceTruth.some((truth) => line.includes(truth))).join("\n").trim();
+    }).filter(Boolean);
+
+    const official = OFFICIAL_HANDOFF_CHANNELS.has(rec.delivery_channel);
+    const oldOfficer = rec.officer_name || ({ kn: "ಅಧಿಕಾರಿಗಳೇ", mr: "संबंधित अधिकारी",
+      bn: "সংশ্লিষ্ট আধিকারিক", en: "Sir or Madam" })[lang];
+    const authority = conciseRouteLabel(rec.authority_name);
+    const letterAuthority = lang === "bn" && rec.authority_id === "wb-kmc"
+      ? "কলকাতা পৌরসংস্থা (KMC)" : authority;
+    const newOfficer = official ? letterAuthority : conciseRouteLabel(rec.officer_name);
+    const oldGreeting = ({ kn: `ಮಾನ್ಯ ${oldOfficer} ಅವರಿಗೆ,`, mr: `प्रति ${oldOfficer},`,
+      bn: `মাননীয় ${oldOfficer},`, en: `Dear ${oldOfficer},` })[lang];
+    const newGreeting = ({ kn: `ಮಾನ್ಯ ${newOfficer || "ಅಧಿಕಾರಿಗಳೇ"} ಅವರಿಗೆ,`,
+      mr: `प्रति ${newOfficer || "संबंधित अधिकारी"},`,
+      bn: `মাননীয় ${newOfficer || "সংশ্লিষ্ট আধিকারিক"},`,
+      en: `Dear ${newOfficer || "Sir or Madam"},` })[lang];
+    replaceExact(oldGreeting, newGreeting);
+
+    return { ...rec, email_body: complaintBodyWithFooter(paragraphs.join("\n\n"), rec.issue_type),
+             complaint_template_version: COMPLAINT_TEMPLATE_VERSION };
+  }
+
+  function normaliseTenderMatch(tender, route = null) {
+    if (!tender || !String(tender.tender_number || "").trim()
+        || !String(tender.title || "").trim()) return null;
+    if (!route || route.tender_eligible !== true
+        || tender.tender_pack_id !== "in-ka-tenders"
+        || tender.tender_pack_state_code !== "KA"
+        || !Number.isInteger(tender.tender_pack_version)
+        || !/^[0-9a-f]{64}$/.test(String(tender.tender_pack_sha256 || ""))
+        || !tenderCoversCarriageway(tender.title, tender.tender_number)) return null;
+    return {
+      ...tender,
+      tender_number: String(tender.tender_number).trim(),
+      title: String(tender.title).replace(/\s+/g, " ").trim(),
+    };
+  }
+
   function draftEmail(a, lat, lng, address, officerName, tender, route = null) {
     const lang = LANG(), kn = lang === "kn", mr = lang === "mr", bn = lang === "bn";
+    const authority = conciseRouteLabel(route && route.authority_name);
+    const letterAuthority = bn && route && route.authority_id === "wb-kmc"
+      ? "কলকাতা পৌরসংস্থা (KMC)" : authority;
+    const officer = conciseRouteLabel(route && OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
+      ? letterAuthority : officerName);
+    const tenderMatch = normaliseTenderMatch(tender, route);
     const sender = S.name === "A concerned citizen"
       ? (kn ? "ಕಾಳಜಿಯುಳ್ಳ ನಾಗರಿಕ" : mr ? "एक जागरूक नागरिक" : bn ? "একজন সচেতন নাগরিক" : S.name)
       : S.name;
@@ -4520,30 +4819,30 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     // Sahaaya: an officer reading this does not need to be told about a parallel filing.
     const paras = kn
       ? [
-          `ಮಾನ್ಯ ${officerName || "ಅಧಿಕಾರಿಗಳೇ"} ಅವರಿಗೆ,`,
+          `ಮಾನ್ಯ ${officer || "ಅಧಿಕಾರಿಗಳೇ"} ಅವರಿಗೆ,`,
           `ದುರಸ್ತಿ ಅಗತ್ಯವಿರುವ ${typeName} ಬಗ್ಗೆ ದೂರು ಸಲ್ಲಿಸುತ್ತಿದ್ದೇನೆ.`,
           `${locLines}\nಹಾನಿಯ ಪ್ರಕಾರ: ${typeName}${a.size ? `\nಅಂದಾಜು ಗಾತ್ರ: ${size}` : ""}`,
-          "ಫೋಟೋ ಲಗತ್ತಿಸಲಾಗಿದೆ. ಈ ರಸ್ತೆ ಹಾನಿ ದ್ವಿಚಕ್ರ ವಾಹನ ಸವಾರರಿಗೆ ಮತ್ತು ಇತರ ರಸ್ತೆ ಬಳಕೆದಾರರಿಗೆ ಅಪಾಯಕಾರಿ. ಇದನ್ನು ಶೀಘ್ರ ಪರಿಶೀಲಿಸಿ ದುರಸ್ತಿ ಮಾಡಬೇಕೆಂದು, ಮತ್ತು ಈ ರಸ್ತೆ ಭಾಗ ನಿರ್ವಹಣಾ ವಾರಂಟಿ ಅಡಿಯಲ್ಲಿದ್ದರೆ ಜವಾಬ್ದಾರ ಗುತ್ತಿಗೆದಾರರಿಗೆ ವರ್ಗಾಯಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.",
+          "ಫೋಟೋ ಲಗತ್ತಿಸಲಾಗಿದೆ. ಈ ರಸ್ತೆ ಹಾನಿ ದ್ವಿಚಕ್ರ ವಾಹನ ಸವಾರರಿಗೆ ಮತ್ತು ಇತರ ರಸ್ತೆ ಬಳಕೆದಾರರಿಗೆ ಅಪಾಯಕಾರಿ. ಇದನ್ನು ಶೀಘ್ರ ಪರಿಶೀಲಿಸಿ ದುರಸ್ತಿ ಮಾಡಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.",
         ]
       : mr
         ? [
-            `प्रति ${officerName || "संबंधित अधिकारी"},`,
+            `प्रति ${officer || "संबंधित अधिकारी"},`,
             `दुरुस्ती आवश्यक असलेला ${typeName} नोंदवत आहे.`,
             `${locLines}\nनुकसानीचा प्रकार: ${typeName}${a.size ? `\nअंदाजे आकार: ${size}` : ""}`,
-            "फोटो जोडला आहे. या नुकसानीमुळे दुचाकीस्वार आणि इतर रस्ता वापरणाऱ्यांना धोका होऊ शकतो. कृपया तपासणी करून लवकरात लवकर दुरुस्ती करावी आणि लागू असल्यास जबाबदार कंत्राटदाराकडे पाठवावे.",
+            "फोटो जोडला आहे. या नुकसानीमुळे दुचाकीस्वार आणि इतर रस्ता वापरणाऱ्यांना धोका होऊ शकतो. कृपया तपासणी करून लवकरात लवकर दुरुस्ती करावी.",
           ]
       : bn
         ? [
-            `মাননীয় ${officerName || "সংশ্লিষ্ট আধিকারিক"},`,
+            `মাননীয় ${officer || "সংশ্লিষ্ট আধিকারিক"},`,
             `${typeName} মেরামতের জন্য এই অভিযোগ জানাচ্ছি।`,
             `${locLines}\nক্ষতির ধরন: ${typeName}${a.size ? `\nআনুমানিক আকার: ${size}` : ""}`,
             "ছবি সংযুক্ত করা হল। রাস্তার এই ক্ষতি বিশেষ করে দু’চাকার যানচালক ও অন্যান্য পথ ব্যবহারকারীর জন্য বিপজ্জনক। অনুগ্রহ করে দ্রুত স্থানটি পরিদর্শন করে মেরামতের ব্যবস্থা করুন।",
           ]
       : [
-          `Dear ${officerName || "Sir or Madam"},`,
+          `Dear ${officer || "Sir or Madam"},`,
           `I would like to report a ${typeName} that needs repair.`,
           `${locLines}\nDamage type: ${typeName}${a.size ? `\nApproximate size: ${size}` : ""}`,
-          "PFA image. This road damage poses a danger to two wheeler riders and other road users. I request your office to inspect and repair it at the earliest, and to route it to the contractor responsible if this road section is still under a maintenance warranty.",
+          "PFA image. This road damage poses a danger to two-wheeler riders and other road users. I request your office to inspect and repair it at the earliest.",
         ];
 
     if (route && route.ownership_unverified) {
@@ -4551,84 +4850,90 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       if (route.authority_id === "in-national-highway") {
         const highway = route.highway_ref || "National Highway";
         if (kn) {
-          paras.push(`ನಕ್ಷೆಯ ಪ್ರಕಾರ ರಸ್ತೆ ಉಲ್ಲೇಖ: ${highway}. ನಿರ್ವಹಣಾ ಸಂಸ್ಥೆಯನ್ನು ಈ ಆ್ಯಪ್ ದೃಢಪಡಿಸಿಲ್ಲ. ಸಾಕ್ಷ್ಯವನ್ನು ಪರಿಶೀಲಿಸಿ ರಾಜಮಾರ್ಗಯಾತ್ರಾ ಅಥವಾ 1033 ಮೂಲಕ ನೀವೇ ದೂರು ದಾಖಲಿಸಿ; ಅಗತ್ಯವಿದ್ದರೆ ಸರಿಯಾದ NHAI, NHIDCL, BRO ಅಥವಾ ರಾಜ್ಯ PWD ಘಟಕಕ್ಕೆ ವರ್ಗಾಯಿಸಲು ಕೇಳಿ.`);
+          paras.push(`ನಕ್ಷೆಯ ಪ್ರಕಾರ ರಸ್ತೆ ಉಲ್ಲೇಖ: ${highway}. ಸೂಚಿಸಿದ ದೂರು ಮಾರ್ಗ: ರಾಜಮಾರ್ಗಯಾತ್ರಾ ಅಥವಾ 1033.`);
         } else if (mr) {
-          paras.push(`नकाशावरील रस्ता संदर्भ: ${highway}. देखभाल करणारी संस्था या अॅपने पडताळलेली नाही. पुरावा तपासून राजमार्गयात्रा किंवा 1033 द्वारे स्वतः तक्रार नोंदवा आणि आवश्यक असल्यास योग्य NHAI, NHIDCL, BRO किंवा राज्य PWD विभागाकडे पाठवण्याची विनंती करा.`);
+          paras.push(`नकाशावरील रस्ता संदर्भ: ${highway}. सुचवलेला तक्रार मार्ग: राजमार्गयात्रा किंवा 1033.`);
         } else if (bn) {
-          paras.push(`মানচিত্রে রাস্তার পরিচয়: ${highway}। রক্ষণাবেক্ষণকারী সংস্থা এই অ্যাপ যাচাই করেনি। প্রমাণ দেখে রাজমার্গযাত্রা বা ১০৩৩-এর মাধ্যমে নিজে অভিযোগ নথিভুক্ত করুন এবং প্রয়োজনে সঠিক NHAI, NHIDCL, BRO বা রাজ্য PWD দপ্তরে পাঠাতে বলুন।`);
+          paras.push(`মানচিত্রে রাস্তার পরিচয়: ${highway}। প্রস্তাবিত অভিযোগের মাধ্যম: রাজমার্গযাত্রা বা ১০৩৩।`);
         } else {
-          paras.push(`Mapped road reference: ${highway}. This app has not verified the maintaining agency. Review the evidence and submit it yourself through Rajmargyatra or 1033; ask for transfer to the correct NHAI, NHIDCL, BRO or State PWD unit when necessary.`);
+          paras.push(`Mapped road reference: ${highway}. Suggested complaint channel: Rajmargyatra or 1033.`);
         }
       } else if (route.authority_id === "wb-statewide-unverified") {
         if (bn) {
-          paras.push("স্থানটি পিন-করা OpenStreetMap পশ্চিমবঙ্গ সীমানার ভিতরে মানচিত্রভুক্ত, কিন্তু দায়িত্বপ্রাপ্ত জেলা, দপ্তর বা রাস্তার মালিক চিহ্নিত করা হয়নি। এই স্বাধীন অ্যাপটি অভিযোগ জমা দেয় না; প্রমাণ যাচাই করে West Bengal PGRS-এ দায়িত্বপ্রাপ্ত জেলা বা দপ্তর নিজে নির্বাচন ও যাচাই করুন এবং অভিযোগ নম্বরটি সংরক্ষণ করুন।");
+          paras.push("প্রস্তাবিত অভিযোগের মাধ্যম: West Bengal PGRS; দায়িত্বপ্রাপ্ত জেলা বা দপ্তর চিহ্নিত করা হয়নি।");
         } else if (kn) {
-          paras.push("ಸ್ಥಳವು ಪಿನ್ ಮಾಡಿದ OpenStreetMap ಪಶ್ಚಿಮ ಬಂಗಾಳ ಗಡಿಯೊಳಗೆ ನಕ್ಷೆಗೊಂಡಿದೆ; ಆದರೆ ಜವಾಬ್ದಾರ ಜಿಲ್ಲೆ, ಇಲಾಖೆ ಅಥವಾ ರಸ್ತೆ ಮಾಲೀಕರನ್ನು ಗುರುತಿಸಲಾಗಿಲ್ಲ. ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ; ಸಾಕ್ಷ್ಯವನ್ನು ಪರಿಶೀಲಿಸಿ West Bengal PGRS ನಲ್ಲಿ ಸರಿಯಾದ ಜಿಲ್ಲೆ ಅಥವಾ ಇಲಾಖೆಯನ್ನು ನೀವೇ ಆಯ್ದು ದೃಢಪಡಿಸಿ.");
+          paras.push("ಸೂಚಿಸಿದ ದೂರು ಮಾರ್ಗ: West Bengal PGRS; ಜವಾಬ್ದಾರ ಜಿಲ್ಲೆ ಅಥವಾ ಇಲಾಖೆಯನ್ನು ಗುರುತಿಸಲಾಗಿಲ್ಲ.");
         } else if (mr) {
-          paras.push("हे ठिकाण पिन केलेल्या OpenStreetMap पश्चिम बंगाल सीमेत नकाशित आहे; परंतु जबाबदार जिल्हा, विभाग किंवा रस्त्याचा मालक ओळखलेला नाही. हे स्वतंत्र अॅप तक्रार दाखल करत नाही; पुरावा तपासा आणि West Bengal PGRS मध्ये योग्य जिल्हा किंवा विभाग स्वतः निवडून पडताळा.");
+          paras.push("सुचवलेला तक्रार मार्ग: West Bengal PGRS; जबाबदार जिल्हा किंवा विभाग ओळखलेला नाही.");
         } else {
-          paras.push("The location is mapped inside the pinned OpenStreetMap West Bengal boundary, but the responsible district, department and road owner have not been identified. This independent app does not submit the grievance; review the evidence, then select and verify the responsible district or department in West Bengal PGRS.");
+          paras.push("Suggested complaint channel: West Bengal PGRS; the responsible district or department has not been identified.");
         }
       } else if (kn) {
-        if (ward) paras.push(`ಸೂಚಿಸಿದ ಬಿಎಂಸಿ ಆಡಳಿತ ವಾರ್ಡ್: ${ward}. ಇದು OpenStreetMap ಆಡಳಿತ ಗಡಿಯಿಂದ ಪಡೆದ ಸೂಚನೆ ಮಾತ್ರ; ಅಧಿಕೃತ BMC ಆ್ಯಪ್‌ನಲ್ಲಿ ಪರಿಶೀಲಿಸಿ.`);
-        paras.push(OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
-          ? `ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${route.authority_name || "ಅಧಿಕಾರಿಯನ್ನು ಪರಿಶೀಲಿಸಿ"}. ಇದು ರಸ್ತೆ ಮಾಲೀಕತ್ವದ ದೃಢೀಕರಣವಲ್ಲ. ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ; ಸಾಕ್ಷ್ಯವನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ${route.handoff_name || "ಅಧಿಕೃತ ಸೇವೆ"} ಮೂಲಕ ನೀವೇ ಸಲ್ಲಿಸಿ.`
-          : `ಸ್ಥಳದ ಆಧಾರದ ಮೇಲೆ ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${route.authority_name || "ಅಧಿಕಾರಿಯನ್ನು ಪರಿಶೀಲಿಸಿ"}. ಇದು ರಸ್ತೆ ಮಾಲೀಕತ್ವದ ದೃಢೀಕರಣವಲ್ಲ; ಬೇರೆ ಸಂಸ್ಥೆ ಜವಾಬ್ದಾರಿಯಾಗಿದ್ದರೆ ದಯವಿಟ್ಟು ಈ ದೂರನ್ನು ಆ ಸಂಸ್ಥೆಗೆ ವರ್ಗಾಯಿಸಿ.`);
+        if (ward) paras.push(`ಸೂಚಿಸಿದ BMC ಆಡಳಿತ ವಾರ್ಡ್: ${ward}.`);
+        if (!officer || normaliseAuthorityValue(officer) !== normaliseAuthorityValue(authority)) {
+          paras.push(`ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${authority || "ತಿಳಿದಿಲ್ಲ"}.`);
+        }
       } else if (mr) {
-        if (ward) paras.push(`सुचवलेला BMC प्रशासकीय विभाग: ${ward}. हा OpenStreetMap प्रशासकीय सीमेवर आधारित अंदाज आहे; अधिकृत BMC अॅपमध्ये पडताळा करा.`);
-        paras.push(OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
-          ? `सुचवलेली नागरी संस्था: ${route.authority_name || "संस्था पडताळा"}. यावरून त्या रस्त्याची मालकी सिद्ध होत नाही. हे स्वतंत्र अॅप तक्रार दाखल करत नाही; पुरावा तपासा आणि ${route.handoff_name || "अधिकृत सेवेत"} स्वतः नोंदवा.`
-          : `स्थानावरून सुचवलेली नागरी संस्था: ${route.authority_name || "संस्था पडताळा"}. यावरून रस्त्याची मालकी सिद्ध होत नाही; दुसरी संस्था जबाबदार असल्यास कृपया तक्रार तिच्याकडे पाठवा.`);
+        if (ward) paras.push(`सुचवलेला BMC प्रशासकीय विभाग: ${ward}.`);
+        if (!officer || normaliseAuthorityValue(officer) !== normaliseAuthorityValue(authority)) {
+          paras.push(`सुचवलेली नागरी संस्था: ${authority || "माहित नाही"}.`);
+        }
       } else if (bn) {
         const authorityName = route.authority_id === "wb-kmc"
           ? "কলকাতা পৌরসংস্থা (KMC)"
-          : (route.authority_name || "কর্তৃপক্ষ যাচাই করুন");
+          : (authority || "অজানা");
         if (ward) {
           const wardAuthority = route.authority_id === "wb-kmc" ? "KMC" : "BMC";
-          paras.push(`প্রস্তাবিত ${wardAuthority} প্রশাসনিক ওয়ার্ড: ${ward}। এটি OpenStreetMap-এর প্রশাসনিক সীমানা থেকে অনুমান করা; সরকারি পরিষেবায় যাচাই করুন।`);
+          paras.push(`প্রস্তাবিত ${wardAuthority} প্রশাসনিক ওয়ার্ড: ${ward}।`);
         }
-        paras.push(OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
-          ? `অবস্থানের ভিত্তিতে প্রস্তাবিত পৌর কর্তৃপক্ষ: ${authorityName}। এতে রাস্তার মালিকানা প্রমাণিত হয় না। এই স্বাধীন অ্যাপটি অভিযোগ জমা দেয় না; প্রমাণ যাচাই করে ${route.handoff_name || "সরকারি পরিষেবা"}-এ নিজে অভিযোগ নথিভুক্ত করুন এবং অভিযোগ নম্বরটি সংরক্ষণ করুন।`
-          : `অবস্থানের ভিত্তিতে প্রস্তাবিত পৌর কর্তৃপক্ষ: ${authorityName}। এতে রাস্তার মালিকানা প্রমাণিত হয় না; অন্য কোনও সংস্থা দায়িত্বে থাকলে অভিযোগটি তাদের কাছে পাঠিয়ে দেওয়ার অনুরোধ রইল।`);
+        if (!officer || normaliseAuthorityValue(officer) !== normaliseAuthorityValue(authorityName)) {
+          paras.push(`প্রস্তাবিত পৌর কর্তৃপক্ষ: ${authorityName}।`);
+        }
       } else {
-        if (ward) paras.push(`Suggested BMC administrative ward: ${ward}. This is inferred from an OpenStreetMap administrative boundary; verify it in the official BMC app.`);
-        paras.push(OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
-          ? `Suggested civic authority: ${route.authority_name || "verify the authority"}. This does not prove who owns this road. This independent app does not submit a grievance; review the evidence and finish it yourself in ${route.handoff_name || "the official service"}.`
-          : `Suggested civic authority from the location: ${route.authority_name || "verify the authority"}. This does not prove road ownership; please forward this complaint if another agency owns the road.`);
+        if (ward) paras.push(`Suggested BMC administrative ward: ${ward}.`);
+        if (!officer || normaliseAuthorityValue(officer) !== normaliseAuthorityValue(authority)) {
+          paras.push(`Suggested civic authority: ${authority || "unknown"}.`);
+        }
       }
     }
 
-    if (tender) {
+    if (tenderMatch) {
       const warrantyKn = ({ dlp: "ದೋಷ ಹೊಣೆಗಾರಿಕೆ ಅವಧಿಯಲ್ಲಿ ಇನ್ನೂ ಇರುವ ಸಾಧ್ಯತೆ ಇದೆ",
                             maint: "ನಿರ್ವಹಣಾ ಅವಧಿಯಲ್ಲಿ ಇನ್ನೂ ಇರುವ ಸಾಧ್ಯತೆ ಇದೆ",
-                            record: "ಈ ಭಾಗದ ದಾಖಲೆಯಲ್ಲಿದೆ" })[tender.warranty_code || "record"];
-      const title = tender.title.slice(0, 140).trim();
+                            record: "ಈ ದಾಖಲೆಯಲ್ಲಿ ವಾರಂಟಿ ಅವಧಿ ಲಭ್ಯವಿಲ್ಲ" })[tenderMatch.warranty_code || "record"];
+      const title = tenderMatch.title;
       // Two paragraphs, not one: the first states what the records say, the second makes
       // the request. Published, never "awarded": the bundled field is the publication
       // date, and this letter names a real company to a government officer.
       if (kn) {
-        paras.push(`ಸಾರ್ವಜನಿಕ ಖರೀದಿ ದಾಖಲೆಗಳ ಪ್ರಕಾರ ಈ ರಸ್ತೆ ಭಾಗ ಟೆಂಡರ್ ${tender.tender_number} ("${title}") ಅಡಿಯಲ್ಲಿ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಇದು ${tender.published} ರಂದು ಪ್ರಕಟವಾಗಿದೆ${tender.contractor ? `, ಗೆದ್ದ ಬಿಡ್‌ದಾರರಾಗಿ ${tender.contractor} ಎಂದು ದಾಖಲಾಗಿದೆ` : ", ಗೆದ್ದ ಬಿಡ್‌ದಾರರ ಹೆಸರು ದಾಖಲೆಯಲ್ಲಿ ಇಲ್ಲ"}, ಮತ್ತು ${warrantyKn}.`);
-        paras.push("ದೋಷ ಹೊಣೆಗಾರಿಕೆ ಅಥವಾ ನಿರ್ವಹಣಾ ಅವಧಿ ಜಾರಿಯಲ್ಲಿದ್ದರೆ, ಸಂಸ್ಥೆಗೆ ಹೆಚ್ಚುವರಿ ವೆಚ್ಚವಿಲ್ಲದೆ ಗುತ್ತಿಗೆದಾರರಿಂದಲೇ ದುರಸ್ತಿ ಮಾಡಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ. ಇದು ಸಂಭಾವ್ಯ ದಾಖಲೆ ಹೊಂದಾಣಿಕೆ; ದಯವಿಟ್ಟು ಟೆಂಡರ್ ದಾಖಲೆಗಳೊಂದಿಗೆ ಪರಿಶೀಲಿಸಿ.");
+        paras.push(`ಸಂಭಾವ್ಯ ಟೆಂಡರ್ ಹೊಂದಾಣಿಕೆ:\nಟೆಂಡರ್ ಸಂಖ್ಯೆ: ${tenderMatch.tender_number}\nಕೆಲಸದ ಹೆಸರು: ${title}\nಗುತ್ತಿಗೆದಾರ: ${tenderMatch.contractor || "ದಾಖಲಿಸಿಲ್ಲ"}\nಪ್ರಕಟಣೆ ದಿನಾಂಕ: ${tenderMatch.published || "ದಾಖಲಿಸಿಲ್ಲ"}\nವಾರಂಟಿ ಸ್ಥಿತಿ: ${warrantyKn}.`);
+        paras.push("ದೋಷ ಹೊಣೆಗಾರಿಕೆ ಅಥವಾ ನಿರ್ವಹಣಾ ಅವಧಿ ಜಾರಿಯಲ್ಲಿದ್ದರೆ, ಸಂಸ್ಥೆಗೆ ಹೆಚ್ಚುವರಿ ವೆಚ್ಚವಿಲ್ಲದೆ ಗುತ್ತಿಗೆದಾರರಿಂದಲೇ ದುರಸ್ತಿ ಮಾಡಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.");
       } else if (mr) {
         const warrantyMr = ({ dlp: "दोष दायित्व कालावधीत असण्याची शक्यता आहे",
                               maint: "देखभाल कालावधीत असण्याची शक्यता आहे",
-                              record: "या रस्त्याच्या भागासाठी नोंदवलेले आहे" })[tender.warranty_code || "record"];
-        paras.push(`सार्वजनिक खरेदी नोंदीनुसार हा रस्त्याचा भाग निविदा ${tender.tender_number} ("${title}") अंतर्गत येण्याची शक्यता आहे. ती ${tender.published} रोजी प्रकाशित झाली${tender.contractor ? ` आणि ${tender.contractor} यांची विजयी बोलीदार म्हणून नोंद आहे` : ", मात्र विजयी बोलीदाराची नोंद उपलब्ध नाही"}; ${warrantyMr}.`);
-        paras.push("दोष दायित्व किंवा देखभाल कालावधी लागू असल्यास महानगरपालिकेला अतिरिक्त खर्च न लावता कंत्राटदाराकडून दुरुस्ती करून घ्यावी. ही संभाव्य नोंद-जुळणी आहे; कृपया मूळ निविदा कागदपत्रांशी पडताळा करा.");
+                              record: "या नोंदीत हमी कालावधी उपलब्ध नाही" })[tenderMatch.warranty_code || "record"];
+        paras.push(`संभाव्य निविदा जुळणी:\nनिविदा क्रमांक: ${tenderMatch.tender_number}\nकामाचे नाव: ${title}\nकंत्राटदार: ${tenderMatch.contractor || "नोंद उपलब्ध नाही"}\nप्रकाशन दिनांक: ${tenderMatch.published || "नोंद उपलब्ध नाही"}\nहमी स्थिती: ${warrantyMr}.`);
+        paras.push("दोष दायित्व किंवा देखभाल कालावधी लागू असल्यास महानगरपालिकेला अतिरिक्त खर्च न लावता कंत्राटदाराकडून दुरुस्ती करून घ्यावी.");
       } else if (bn) {
         const warrantyBn = ({ dlp: "এখনও ত্রুটি-দায়ের মেয়াদের মধ্যে থাকতে পারে",
                               maint: "এখনও রক্ষণাবেক্ষণের মেয়াদের মধ্যে থাকতে পারে",
-                              record: "এই রাস্তার অংশের জন্য নথিভুক্ত" })[tender.warranty_code || "record"];
-        paras.push(`সরকারি ক্রয়-সংক্রান্ত নথি অনুযায়ী রাস্তার এই অংশটি টেন্ডার ${tender.tender_number} ("${title}")-এর আওতায় পড়তে পারে। টেন্ডারটি ${tender.published}-এ প্রকাশিত হয়েছিল${tender.contractor ? ` এবং ${tender.contractor}-কে সফল দরদাতা হিসেবে নথিভুক্ত করা হয়েছে` : ", তবে সফল দরদাতার নাম নথিতে নেই"}; ${warrantyBn}।`);
-        paras.push("ত্রুটি-দায় বা রক্ষণাবেক্ষণের মেয়াদ চালু থাকলে পৌরসংস্থার অতিরিক্ত ব্যয় ছাড়াই ঠিকাদারের মাধ্যমে মেরামত করানোর অনুরোধ করছি। এটি কেবল সম্ভাব্য নথি-মিল; মূল টেন্ডার নথির সঙ্গে যাচাই করুন।");
+                              record: "এই নথিতে ওয়ারেন্টির মেয়াদ নেই" })[tenderMatch.warranty_code || "record"];
+        paras.push(`সম্ভাব্য টেন্ডার মিল:\nটেন্ডার নম্বর: ${tenderMatch.tender_number}\nকাজের নাম: ${title}\nঠিকাদার: ${tenderMatch.contractor || "নথিভুক্ত নেই"}\nপ্রকাশের তারিখ: ${tenderMatch.published || "নথিভুক্ত নেই"}\nওয়ারেন্টির অবস্থা: ${warrantyBn}।`);
+        paras.push("ত্রুটি-দায় বা রক্ষণাবেক্ষণের মেয়াদ চালু থাকলে পৌরসংস্থার অতিরিক্ত ব্যয় ছাড়াই ঠিকাদারের মাধ্যমে মেরামত করানোর অনুরোধ করছি।");
       } else {
-        paras.push(`Public procurement records indicate this road stretch probably falls under tender ${tender.tender_number} ("${title}"), published on ${tender.published}${tender.contractor ? `, with ${tender.contractor} recorded as the winning bidder` : ", with no winning bidder recorded"}, and it may still be ${tender.warranty}.`);
-        paras.push("If the defect liability or maintenance period is in force, I request that the repair be carried out by the contractor at no additional cost to the corporation. This is a probable record match; kindly verify against the tender documents.");
+        const warrantyEstimate = tenderMatch.warranty_code === "dlp"
+          ? "may be within the defect liability period (estimated from publication date)"
+          : tenderMatch.warranty_code === "maint"
+            ? "may be within the maintenance period (estimated from publication date)"
+            : "not available in the bundled record";
+        paras.push(`Probable tender match:\nTender number: ${tenderMatch.tender_number}\nWork name: ${title}\nContractor: ${tenderMatch.contractor || "Not listed"}\nPublished: ${tenderMatch.published || "Not listed"}\nWarranty estimate: ${warrantyEstimate}.`);
+        paras.push("If the defect liability or maintenance period is in force, I request that the contractor carry out the repair at no additional cost to the corporation.");
       }
     }
 
     paras.push(kn ? "ನಿಮ್ಮ ಸೇವೆಗೆ ಧನ್ಯವಾದಗಳು." : mr ? "धन्यवाद." : bn ? "ধন্যবাদ।" : "Thank you for your service.");
     paras.push(kn ? `ವಂದನೆಗಳು,\n${sender}` : mr ? `आपला/आपली,\n${sender}` : bn ? `বিনীত,\n${sender}` : `Regards,\n${sender}`);
+    paras.push(complaintFooter(lang));
     return [subject, paras.join("\n\n")];
   }
 
@@ -4655,6 +4960,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const issue = normaliseIssueType(issueType);
     if (issue === "road_damage") throw new Error("Road damage must use the verified detector draft.");
     const lang = LANG();
+    const authority = conciseRouteLabel(route && route.authority_name);
+    const officer = conciseRouteLabel(route && OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
+      ? authority : officerName);
     const sender = S.name === "A concerned citizen"
       ? ({ kn: "ಕಾಳಜಿಯುಳ್ಳ ನಾಗರಿಕ", mr: "एक जागरूक नागरिक", bn: "একজন সচেতন নাগরিক" }[lang]
           || S.name) : S.name;
@@ -4690,38 +4998,39 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
           mr: "जोडलेल्या फोटोमध्ये या ठिकाणी साचलेला किंवा न उचललेला कचरा दिसत आहे. कृपया जागेची पाहणी करून कचरा उचला, परिसर स्वच्छ करा आणि लागू असल्यास वारंवार कचरा टाकण्याचे कारण दूर करा.",
           bn: "সংযুক্ত ছবিতে এই স্থানে জমে থাকা বা না-তোলা আবর্জনা দেখা যাচ্ছে। অনুগ্রহ করে স্থানটি পরিদর্শন করে বর্জ্য সরান, এলাকা পরিষ্কার করুন এবং প্রযোজ্য হলে বারবার আবর্জনা ফেলার কারণটি সমাধান করুন।",
         };
-    const greeting = ({ kn: `ಮಾನ್ಯ ${officerName || "ಅಧಿಕಾರಿಗಳೇ"} ಅವರಿಗೆ,`,
-      mr: `प्रति ${officerName || "संबंधित अधिकारी"},`,
-      bn: `মাননীয় ${officerName || "সংশ্লিষ্ট আধিকারিক"},` }[lang]
-      || `Dear ${officerName || "Sir or Madam"},`);
+    const greeting = ({ kn: `ಮಾನ್ಯ ${officer || "ಅಧಿಕಾರಿಗಳೇ"} ಅವರಿಗೆ,`,
+      mr: `प्रति ${officer || "संबंधित अधिकारी"},`,
+      bn: `মাননীয় ${officer || "সংশ্লিষ্ট আধিকারিক"},` }[lang]
+      || `Dear ${officer || "Sir or Madam"},`);
     const close = ({ kn: `ಧನ್ಯವಾದಗಳು.\n\nವಂದನೆಗಳು,\n${sender}`,
       mr: `धन्यवाद.\n\nआपला/आपली,\n${sender}`,
       bn: `ধন্যবাদ।\n\nবিনীত,\n${sender}` }[lang]
       || `Thank you.\n\nRegards,\n${sender}`);
     const statewideWestBengal = route && route.authority_id === "wb-statewide-unverified";
-    const authorityNote = route && route.authority_name
+    const authorityNote = route && authority
       ? (statewideWestBengal
-        ? (lang === "kn" ? "ಸ್ಥಳವು ಪಶ್ಚಿಮ ಬಂಗಾಳದೊಳಗಿದೆ; ಜವಾಬ್ದಾರ ಸಂಸ್ಥೆಯನ್ನು ಗುರುತಿಸಲಾಗಿಲ್ಲ. West Bengal PGRS ನಲ್ಲಿ ಸರಿಯಾದ ಜಿಲ್ಲೆ ಅಥವಾ ಇಲಾಖೆಯನ್ನು ಆಯ್ದು ದೃಢಪಡಿಸಿ."
-          : lang === "mr" ? "ठिकाण पश्चिम बंगालमध्ये आहे; जबाबदार संस्था ओळखलेली नाही. West Bengal PGRS मध्ये योग्य जिल्हा किंवा विभाग निवडून पडताळा."
-          : lang === "bn" ? "স্থানটি পিন-করা OpenStreetMap পশ্চিমবঙ্গ সীমানার মধ্যে; দায়িত্বপ্রাপ্ত সংস্থা চিহ্নিত করা হয়নি। West Bengal PGRS-এ দায়িত্বপ্রাপ্ত জেলা বা দপ্তর নির্বাচন ও যাচাই করুন।"
-          : "The location is inside the pinned OpenStreetMap West Bengal boundary; the responsible authority has not been identified. Select and verify the responsible district or department in West Bengal PGRS.")
-        : lang === "kn" ? `ಸ್ಥಳದ ಆಧಾರದ ಮೇಲೆ ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${route.authority_name}. ಅಧಿಕೃತ ಸೇವೆಯಲ್ಲಿ ಪರಿಶೀಲಿಸಿ.`
-        : lang === "mr" ? `ठिकाणावरून सुचवलेली नागरी संस्था: ${route.authority_name}. अधिकृत सेवेत पडताळा करा.`
-        : lang === "bn" ? `অবস্থানের ভিত্তিতে প্রস্তাবিত পৌর কর্তৃপক্ষ: ${route.authority_name}। সরকারি পরিষেবায় যাচাই করুন।`
-        : `Suggested civic authority from the location: ${route.authority_name}. Please verify it in the official service.`)
+        ? (lang === "kn" ? "ಸೂಚಿಸಿದ ದೂರು ಮಾರ್ಗ: West Bengal PGRS; ಜವಾಬ್ದಾರ ಜಿಲ್ಲೆ ಅಥವಾ ಇಲಾಖೆಯನ್ನು ಗುರುತಿಸಲಾಗಿಲ್ಲ."
+          : lang === "mr" ? "सुचवलेला तक्रार मार्ग: West Bengal PGRS; जबाबदार जिल्हा किंवा विभाग ओळखलेला नाही."
+          : lang === "bn" ? "প্রস্তাবিত অভিযোগের মাধ্যম: West Bengal PGRS; দায়িত্বপ্রাপ্ত জেলা বা দপ্তর চিহ্নিত করা হয়নি।"
+          : "Suggested complaint channel: West Bengal PGRS; the responsible district or department has not been identified.")
+        : normaliseAuthorityValue(officer) === normaliseAuthorityValue(authority) ? null
+        : lang === "kn" ? `ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${authority}.`
+        : lang === "mr" ? `सुचवलेली नागरी संस्था: ${authority}.`
+        : lang === "bn" ? `প্রস্তাবিত পৌর কর্তৃপক্ষ: ${authority}।`
+        : `Suggested civic authority: ${authority}.`)
       : null;
     const imported = captureSource === "manual_import";
     const provenanceNote = imported
       ? (lang === "kn"
-          ? `ಈ ಚಿತ್ರವನ್ನು ಬಳಕೆದಾರರು ಆಯ್ಕೆಮಾಡಿ/ಆಮದು ಮಾಡಿದ್ದಾರೆ; ಅದು ಯಾವಾಗ ತೆಗೆದದ್ದು ಎಂಬುದನ್ನು ಆ್ಯಪ್ ಪರಿಶೀಲಿಸಿಲ್ಲ.${locationSource === "current_confirmed_for_import" ? " ಬಳಕೆದಾರರ ದೃಢೀಕರಣದ ನಂತರ ಪ್ರಸ್ತುತ ಸ್ಥಳವನ್ನು ಚಿತ್ರಕ್ಕೆ ಜೋಡಿಸಲಾಗಿದೆ." : " ಚಿತ್ರಕ್ಕೆ ಪ್ರಸ್ತುತ ಸ್ಥಳವನ್ನು ಜೋಡಿಸಲಾಗಿಲ್ಲ."}`
+          ? `ಈ ಚಿತ್ರವನ್ನು ಬಳಕೆದಾರರು ಆಯ್ಕೆಮಾಡಿ/ಆಮದು ಮಾಡಿದ್ದಾರೆ; ಮೂಲ ಸೆರೆಹಿಡಿದ ಸಮಯ ತಿಳಿದಿಲ್ಲ.${locationSource === "current_confirmed_for_import" ? " ಬಳಕೆದಾರರ ದೃಢೀಕರಣದ ನಂತರ ಪ್ರಸ್ತುತ ಸ್ಥಳವನ್ನು ಚಿತ್ರಕ್ಕೆ ಜೋಡಿಸಲಾಗಿದೆ." : " ಚಿತ್ರಕ್ಕೆ ಪ್ರಸ್ತುತ ಸ್ಥಳವನ್ನು ಜೋಡಿಸಲಾಗಿಲ್ಲ."}`
         : lang === "mr"
-          ? `हे छायाचित्र वापरकर्त्याने निवडले/आयात केले आहे; ते केव्हा घेतले याची अॅपने पडताळणी केलेली नाही.${locationSource === "current_confirmed_for_import" ? " वापरकर्त्याच्या पुष्टीनंतर सध्याचे स्थान छायाचित्राशी जोडले आहे." : " छायाचित्राशी सध्याचे स्थान जोडलेले नाही."}`
+          ? `हे छायाचित्र वापरकर्त्याने निवडले/आयात केले आहे; मूळ छायाचित्रणाची वेळ माहित नाही.${locationSource === "current_confirmed_for_import" ? " वापरकर्त्याच्या पुष्टीनंतर सध्याचे स्थान छायाचित्राशी जोडले आहे." : " छायाचित्राशी सध्याचे स्थान जोडलेले नाही."}`
         : lang === "bn"
-          ? `ছবিটি ব্যবহারকারী বেছে নিয়েছেন/আমদানি করেছেন; এটি কখন তোলা হয়েছিল অ্যাপ তা যাচাই করেনি।${locationSource === "current_confirmed_for_import" ? " ব্যবহারকারীর নিশ্চিতকরণের পরে বর্তমান অবস্থানটি ছবির সঙ্গে যুক্ত হয়েছে।" : " ছবির সঙ্গে বর্তমান অবস্থান যুক্ত করা হয়নি।"}`
-        : `This photo was selected/imported by the user; the app has not verified when it was taken.${locationSource === "current_confirmed_for_import" ? " The current location was linked only after the user's confirmation." : " No current location was linked to the photo."}`)
+          ? `ছবিটি ব্যবহারকারী বেছে নিয়েছেন/আমদানি করেছেন; মূল ছবিটি তোলার সময় অজানা।${locationSource === "current_confirmed_for_import" ? " ব্যবহারকারীর নিশ্চিতকরণের পরে বর্তমান অবস্থানটি ছবির সঙ্গে যুক্ত হয়েছে।" : " ছবির সঙ্গে বর্তমান অবস্থান যুক্ত করা হয়নি।"}`
+        : `This photo was selected/imported by the user; its original capture time is unknown.${locationSource === "current_confirmed_for_import" ? " The current location was linked only after the user's confirmation." : " No current location was linked to the photo."}`)
       : null;
     return [subject, [greeting, location, request[lang] || request.en, provenanceNote,
-      authorityNote, close]
+      authorityNote, close, complaintFooter(lang, false)]
       .filter(Boolean).join("\n\n")];
   }
 
@@ -4816,6 +5125,25 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
   const allFootage = () => op("readonly", (s) => s.getAll(), "footage");
   const putDrive = (d) => op("readwrite", (s) => s.put(d), "drives");
 
+  async function migrateLegacyComplaintDrafts(records) {
+    const result = [];
+    for (const rec of records) {
+      const migrated = migrateLegacyComplaintRecord(rec);
+      if (migrated !== rec) {
+        // Re-read inside the same transaction that writes. A revisit, status change or
+        // sighting can land while the list is loading; persisting the stale getAll() row
+        // would erase that newer state and its evidence.
+        try {
+          const current = await mutateReportAtomically(rec.id, () => {});
+          result.push(current || migrated);
+          continue;
+        } catch (_) { /* clean returned copy now; retry persistence on the next read */ }
+      }
+      result.push(migrated);
+    }
+    return result;
+  }
+
   // Complaint actions race with Drive Mode: a repair can be committed while a portal
   // refresh, editor, or email composer is awaiting other work. Always re-read and patch
   // the latest row in one transaction so those complaint-only mutations cannot restore
@@ -4837,6 +5165,11 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       read.onsuccess = () => {
         const current = read.result;
         if (!current) { abortWith(new Error("Report not found.")); return; }
+        const migrated = migrateLegacyComplaintRecord(current);
+        if (migrated !== current) {
+          current.email_body = migrated.email_body;
+          current.complaint_template_version = migrated.complaint_template_version;
+        }
         try { mutate(current); } catch (error) { abortWith(error); return; }
         const write = store.put(current);
         write.onsuccess = () => { result = toDict(current); };
@@ -5053,7 +5386,11 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     });
   };
 
-  const toDict = (r) => ({ ...r, photo_url: r.photo, repair_photo_url: r.repair_photo || null });
+  const toDict = (r) => {
+    const outward = migrateLegacyComplaintRecord(r);
+    return { ...outward, photo_url: outward.photo,
+             repair_photo_url: outward.repair_photo || null };
+  };
   // The list never renders the evidence copy, so it never receives it.
   const listDict = (r) => { const d = toDict(r); delete d.photo_full; return d; };
 
@@ -5465,11 +5802,12 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     // frames are rejected), so an accepted drive pothole matches its contract here, once
     // it is known to be worth a complaint. The GIS answer is already memoised, so this
     // costs no extra network call.
-    const tender = accepted && covered && route.tender_eligible === true
+    const tenderCandidate = accepted && covered && route.tender_eligible === true
       ? await (tenderP || jurisdictionOf(lat, lng)
           .then((w) => (w && w.kind === "town" && w.lgd ? matchTender(address, w.lgd) : null))
           .catch(() => null))
       : null;
+    const tender = normaliseTenderMatch(tenderCandidate, covered ? route : null);
     if (accepted) progress(pmsg("write"));
     // No authority means no complaint. The photo, verdict and location are still kept,
     // so nothing is lost if coverage later extends to this place.
@@ -5496,6 +5834,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       size: a.size,
       decision,
       description: a.description, email_subject: subject, email_body: body,
+      complaint_template_version: body ? COMPLAINT_TEMPLATE_VERSION : null,
       status: accepted ? (covered ? "draft" : "unrouted") : (decision === "review" ? "review" : "rejected"),
       condition_status: "open", condition_updated_at: null, condition_source: null,
       detection_model: detectionModel, image_detail: detectionDetail, prompt_version: PROMPT_VERSION,
@@ -5532,6 +5871,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       official_grievance_id: null,
       submitted_at: null,
       tender_number: tender ? tender.tender_number : null,
+      tender_title: tender ? tender.title : null,
       contractor: tender ? tender.contractor : null,
       tender_note: tender ? tender.note : null,
       tender_pack_id: tender ? (tender.tender_pack_id || null) : null,
@@ -5644,6 +5984,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       description: civicIssueName(issueType, LANG()),
       email_subject: subject,
       email_body: body,
+      complaint_template_version: body ? COMPLAINT_TEMPLATE_VERSION : null,
       status: covered ? "draft" : "unrouted",
       detection_model: null,
       image_detail: null,
@@ -5680,6 +6021,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       official_grievance_id: null,
       submitted_at: null,
       tender_number: null,
+      tender_title: null,
       contractor: null,
       tender_note: null,
       tender_pack_id: null,
@@ -5758,6 +6100,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     }
     rec.email_subject = subject;
     rec.email_body = body;
+    rec.complaint_template_version = COMPLAINT_TEMPLATE_VERSION;
     rec.status = "draft";
     rec.unrouted_reason = null;
     rec.unrouted_body = null;
@@ -5790,11 +6133,12 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       Number.isFinite(speed) ? speed : null
     );
     const covered = !!route.routed;
-    const tender = covered && route.tender_eligible === true
+    const tenderCandidate = covered && route.tender_eligible === true
       ? await jurisdictionOf(lat, lng)
           .then((w) => w && w.kind === "town" && w.lgd ? matchTender(address, w.lgd) : null)
           .catch(() => null)
       : null;
+    const tender = normaliseTenderMatch(tenderCandidate, covered ? route : null);
     const assessment = {
       reportable: native.is_reportable === true || Number(native.is_reportable) === 1,
       assessment: native.assessment || "clear",
@@ -5831,6 +6175,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       temporal_consistency: assessment.temporal_consistency,
       size: assessment.size, decision: native.decision || "accept",
       description: assessment.description, email_subject: subject, email_body: body,
+      complaint_template_version: body ? COMPLAINT_TEMPLATE_VERSION : null,
       status: covered ? "draft" : "unrouted",
       condition_status: "open", condition_updated_at: null, condition_source: null,
       detection_model: native.detection_model || S.model,
@@ -5867,6 +6212,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       requires_official_reference: covered ? !!route.requires_official_reference : false,
       official_grievance_id: null, submitted_at: null,
       tender_number: tender ? tender.tender_number : null,
+      tender_title: tender ? tender.title : null,
       contractor: tender ? tender.contractor : null,
       tender_note: tender ? tender.note : null,
       tender_pack_id: tender ? (tender.tender_pack_id || null) : null,
@@ -5906,8 +6252,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     // Preparing a native attachment is asynchronous. Re-read only after that work, then
     // launch without another await so a Drive repair gets the last possible veto.
     const attachment = NATIVE ? await photoToBase64(rec.photo_full || rec.photo) : null;
-    const current = await getReport(rec.id);
-    if (!current) throw new Error("Report not found.");
+    const stored = await getReport(rec.id);
+    if (!stored) throw new Error("Report not found.");
+    const current = migrateLegacyComplaintRecord(stored);
     if (conditionStatus(current) === "fixed") {
       throw new Error("This pothole was verified fixed on a later drive, so its old complaint cannot be sent.");
     }
@@ -6595,6 +6942,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     if (!rec || !ACCEPTED_REPORT_STATUSES.has(rec.status)) {
       throw new Error("Only an accepted report has shareable evidence.");
     }
+    rec = migrateLegacyComplaintRecord(rec);
     const source = await dataUrlToBlob(rec.photo_full || rec.photo);
     const wideUrl = await toDataUrl(source, 1280, 0.86, false, 1);
     const cropUrl = rec.capture_source && !isManualCaptureSource(rec.capture_source)
@@ -6608,33 +6956,30 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const when = Number.isNaN(captured.getTime()) ? "" : captured.toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium",
     });
-    const handoff = isOfficialHandoff(rec);
-    const submissionTruth = rec.status === "sent"
-      ? (rec.official_grievance_id
-          ? `Locally marked submitted; official grievance/reference ID: ${rec.official_grievance_id}`
-          : "Locally marked submitted by the user; this app has not independently verified delivery.")
-      : (handoff
-          ? "Prepared by an independent app; no official grievance submission is confirmed."
-          : "Prepared by an independent app; email delivery is not confirmed.");
     const issueStem = issueFileStem(rec.issue_type);
-    const meta = [
-      rec.email_subject || `${civicIssueName(rec.issue_type)} report`,
-      rec.email_body || "",
+    const evidenceBits = [
       when ? `${rec.capture_source === "manual_import" ? "Selected photo file date"
         : Number.isFinite(rec.captured_at) ? "Captured" : "Report created"} (IST): ${when}` : "",
       rec.capture_source === "manual_import"
-        ? "Photo provenance: selected/imported by the user; original capture time is not independently verified."
+        ? "Photo provenance: selected/imported by the user; original capture time unknown"
         : rec.capture_source === "manual_camera"
-          ? "Photo provenance: taken through the app camera." : "",
+          ? "Photo provenance: app camera" : "",
       Number.isFinite(rec.gps_accuracy) ? `GPS accuracy: ±${Math.round(rec.gps_accuracy)} m` : "",
-      rec.authority_id === "in-national-highway"
-        ? `Mapped road reference: ${rec.highway_ref || "National Highway"}; verify the maintaining agency in the official service.`
-        : rec.authority_name
-          ? `Suggested civic authority: ${rec.authority_name} (${normaliseIssueType(rec.issue_type) === "road_damage"
-              ? "verify road ownership" : "verify civic jurisdiction and complaint category"})` : "",
-      rec.ward_code ? `Suggested BMC ward: ${rec.ward_code} (verify in the official app)` : "",
-      `Local event ID: ${safeId}`,
-      submissionTruth,
+      rec.official_grievance_id
+        ? `User-entered grievance/reference ID: ${rec.official_grievance_id}` : "",
+    ].filter(Boolean);
+    const evidenceLine = evidenceBits.length ? `Evidence: ${evidenceBits.join("; ")}.` : "";
+    const bodyBlocks = String(rec.email_body || "").split(/\n{2,}/);
+    const hasFooter = bodyBlocks.length > 1
+      && /Pothole Reporter/.test(bodyBlocks[bodyBlocks.length - 1]);
+    const finalParagraph = hasFooter ? bodyBlocks.pop() : null;
+    const evidenceIndex = Math.max(0, bodyBlocks.length - 2);
+    if (evidenceLine) bodyBlocks.splice(evidenceIndex, 0, evidenceLine);
+    if (finalParagraph) bodyBlocks.push(finalParagraph);
+    const bodyWithEvidence = bodyBlocks.filter(Boolean).join("\n\n");
+    const meta = [
+      rec.email_subject || `${civicIssueName(rec.issue_type)} report`,
+      bodyWithEvidence,
     ].filter(Boolean).join("\n\n");
     return { name: `${issueStem}-${safeId}.jpg`, base64,
              crop_name: cropBase64 ? `${issueStem}-${safeId}-road-crop.jpg` : null,
@@ -6753,7 +7098,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       // thumbnail, so shipping it here cost about a megabyte per report on every return
       // to the home screen, and the cost grew with every pothole ever reported. The only
       // reader of it is the email attachment, which loads the record by id anyway.
-      return (await allReports()).sort((a, b) => b.id - a.id).map(listDict);
+      const reports = (await allReports()).sort((a, b) => b.id - a.id);
+      return (await migrateLegacyComplaintDrafts(reports)).map(listDict);
     }
     if (path === "/api/repair-targets" && method === "GET") {
       return { targets: await getRepairTargets() };
@@ -7043,7 +7389,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
           if (conditionStatus(current) === "fixed") throw new Error("Fixed reports cannot be edited for sending.");
           if (current.status !== "draft" && current.status !== "queued") throw new Error("Only drafts can be edited.");
           current.email_subject = upd.email_subject;
-          current.email_body = upd.email_body;
+          current.email_body = complaintBodyWithFooter(upd.email_body, current.issue_type);
+          current.complaint_template_version = COMPLAINT_TEMPLATE_VERSION;
         });
       }
       if (method === "DELETE") {
@@ -7078,7 +7425,10 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    SCHEMA_VERSION, MAX_DETECTION_IMAGES, ROAD_BAND, averageLuminance,
                    distMeters, roadEventMatch, sameRoadEvent, repairTargetMatch,
                    findRepairCandidateFromReports, findDuplicateReport,
-                   draftEmail, dataUrlToBlob, blobToDataUrl, photoToBase64, toDict, listDict,
+                   draftEmail, normaliseTenderMatch, migrateLegacyComplaintRecord,
+                   complaintBodyWithFooter,
+                   COMPLAINT_TEMPLATE_VERSION, dataUrlToBlob, blobToDataUrl,
+                   photoToBase64, toDict, listDict,
                    warrantyFor, tenderCoversCarriageway, shortlistFor, matchTenderFor: matchTender,
                    mumbaiWardFromName, mumbaiFromGeocode, evidenceForReport,
                    normaliseAuthorityValue, validateAuthorityRegistry,

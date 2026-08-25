@@ -5,7 +5,7 @@ detects visible road damage; **Photo** lets the user choose the issue and prepar
 for an official complaint channel. Reports remain on the phone, and nothing is filed
 automatically. There is no project-operated backend or account system.
 
-Current release: [v1.31.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.31.0)
+Current release: [v1.32.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.32.0)
 
 <p>
   <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>

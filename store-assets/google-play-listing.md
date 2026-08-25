@@ -46,10 +46,10 @@ Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
 Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.31.0 / version code 49)
+## Release notes (1.32.0 / version code 50)
 
 ```text
-Adds full-state Uttar Pradesh and Chhattisgarh complaint routing. Uttar Pradesh uses Jansunwai–Samadhan; Chhattisgarh uses the CM Helpline with NIDAAN 1100 as an urban civic alternate. National Highways and exact Delhi routing remain first, state boundaries fail closed, and nothing is submitted automatically.
+Makes new and existing unsent complaint drafts shorter and clearer: authority and ward appear once, verification appears once at the end, and duplicate submission disclaimers are removed from shared evidence. Eligible Karnataka tender matches now show the tender number and work name with a clearly labelled warranty estimate.
 ```
 
 ## Play Console fields

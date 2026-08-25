@@ -49,18 +49,29 @@ async () => {
      /v12-civic-and-hyderabad-gis-disclosure$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
 
   const P = StandaloneAPI.__pure;
+  const complaintFooter = "Pothole Reporter একটি স্বাধীন অ্যাপ। প্রস্তাবিত কর্তৃপক্ষ, ওয়ার্ড, "
+    + "রাস্তার মালিকানা এবং টেন্ডারের তথ্য অনুগ্রহ করে যাচাই করুন।";
   const route = await P.kolkataRouteFromGeocode(null, 22.5726, 88.3639, 12);
   const [subject, body] = P.draftEmail({
     damage_type: "pothole_cavity", assessment: "clear", size: "medium",
   }, 22.5726, 88.3639, "Esplanade, Kolkata", route.officer_name, null, route);
   ok("draft: Bengali subject identifies a pothole complaint",
      /রাস্তার গর্ত.*অভিযোগ/.test(subject), subject);
+  const complaintBlocks = body.trim().split(/\n{2,}/).map((part) => part.trim());
+  const complaintWithoutFooter = complaintBlocks.slice(0, -1).join("\n\n");
   ok("draft: Bengali body uses KMC's formal civic terminology",
-     /কলকাতা পৌরসংস্থা/.test(body) && /রাস্তার মালিকানা প্রমাণিত হয় না/.test(body), body);
+     /কলকাতা পৌরসংস্থা/.test(body), body);
   ok("draft: Bengali body retains exact coordinates and map link",
      /22\.572600, 88\.363900/.test(body) && /maps\.google\.com/.test(body), body);
+  ok("draft: complaint has one final independent-app verification footer",
+     body.split(complaintFooter).length - 1 === 1
+       && complaintBlocks.at(-1) === complaintFooter, body);
+  ok("draft: complaint removes the old no-submission sentence",
+     !body.includes("অভিযোগ জমা দেয় না")
+       && !/official (?:grievance )?submission/i.test(body), body);
   ok("draft: KMC route never includes contract/warranty claims",
-     !/টেন্ডার|ঠিকাদার|রক্ষণাবেক্ষণের মেয়াদ/.test(body), body);
+     !/সম্ভাব্য টেন্ডার মিল|টেন্ডার নম্বর|কাজের নাম|ঠিকাদার|ওয়ারেন্টির অবস্থা|ত্রুটি-দায়|রক্ষণাবেক্ষণের মেয়াদ/.test(
+       complaintWithoutFooter), body);
 
   const report = {
     id: 72001, created_at: Date.now() / 1000, captured_at: Date.now() / 1000,

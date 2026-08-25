@@ -1,15 +1,15 @@
 # Google Play publication checklist
 
-Status reviewed 25 August 2026 for release 1.31.0 / version code 49. This is a release
+Status reviewed 25 August 2026 for release 1.32.0 / version code 50. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.31.0/code 49 after the Uttar Pradesh and Chhattisgarh statewide-routing changes,
-  confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
-  it in Play Console.
+- [x] **Fresh signed release bundle:** built version 1.32.0/code 50 after the complaint-draft cleanup;
+  confirmed it is non-debuggable and signed with the upload key kept outside Git. Upload
+  and inspect it in Play Console.
 - [x] **Hosted privacy page:** verified on the stable public host:
   `https://coding-parrot.github.io/pothole-reporter/privacy.html` in a signed-out
   browser. It must not redirect to a login, return an error, or serve a PDF.
@@ -213,7 +213,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.31.0 release. Include the issue picker, an independent civic handoff, and regional-language support
+  the 1.32.0 release. Include the issue picker, an independent civic handoff, and regional-language support
   without displaying private coordinates, an API key, a real grievance ID, or civic-body
   marks. Put other city-specific flows in reviewer instructions instead of implying that
   one screenshot proves every supported route.
