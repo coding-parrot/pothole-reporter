@@ -56,8 +56,8 @@ async ({inside, outside}) => {
   const pack = await P.loadStatePack("in-rj-routing");
   const legacyCities = await P.majorCityCoverage();
 
-  eq("pack: v1.33 has eighteen independently pinned resources",
-     Object.keys(manifest && manifest.resources || {}).length, 18);
+  eq("pack: v1.34 has twenty-two independently pinned resources",
+     Object.keys(manifest && manifest.resources || {}).length, 22);
   eq("pack: adapter is data-only", resource && resource.adapter, "statewide-general-v1");
   eq("pack: state code", resource && resource.state_code, "RJ");
   eq("pack: statewide", resource && resource.statewide, true);
@@ -77,7 +77,7 @@ async ({inside, outside}) => {
        && (region && region.limitations || []).some((item) => /does not submit/i.test(item)),
      region && region.limitations);
 
-  eq("registry: expansion is versioned", P.AUTHORITY_REGISTRY_VERSION, 16);
+  eq("registry: expansion is versioned", P.AUTHORITY_REGISTRY_VERSION, 17);
   eq("registry: state authority", P.RAJASTHAN_STATE_AUTHORITY.id,
      "rj-statewide-unverified");
   eq("registry: direct Sampark handoff", P.RAJASTHAN_STATE_AUTHORITY.handoff_url,
@@ -259,7 +259,7 @@ def main() -> None:
                     failures.append(f"{label} Rajasthan pack allowed {key} fallback: {route!r}")
             gwalior = values["gwalior"]
             if [gwalior.get("authority_id"), gwalior.get("routing_pack_id")] \
-                    != ["in-mp-cm-helpline", "in-top50-routing"]:
+                    != ["mp-statewide-unverified", "in-mp-routing"]:
                 failures.append(f"{label} Rajasthan pack blocked Gwalior: {gwalior!r}")
             context.close()
 

@@ -492,10 +492,13 @@ def main() -> None:
     inventory = authority_inventory()
     # These counts pin the intended current scope and make an accidental source omission
     # visible instead of silently reducing the matrix.
-    if len(inventory) != 230:
-        raise AssertionError(f"expected 230 configured routes/bodies, found {len(inventory)}")
+    if len(inventory) != 235:
+        raise AssertionError(f"expected 235 configured routes/bodies, found {len(inventory)}")
     if sum(item["source_state"] == "KA" for item in inventory) != 183:
         raise AssertionError("expected the Karnataka statewide route and all 182 configured ULBs")
+    for state in ("GA", "MP", "BR", "OD"):
+        if sum(item["source_state"] == state for item in inventory) != 1:
+            raise AssertionError(f"expected one statewide {state} authority")
 
     _, delhi_pack_raw = read_pack("in-dl-routing")
     _, maharashtra_pack_raw = read_pack("in-mh-routing")

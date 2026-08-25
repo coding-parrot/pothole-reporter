@@ -37,6 +37,10 @@ VALIDATED_IDS = (
     "in-up-routing",
     "in-cg-routing",
     "in-rj-routing",
+    "in-ga-routing",
+    "in-mp-routing",
+    "in-br-routing",
+    "in-od-routing",
     "in-top50-routing",
 )
 
@@ -335,6 +339,25 @@ def main() -> int:
             {"handoff_url": "https://example.invalid/unreviewed"}
         )),
     ]
+
+    for pack_id in (
+        "in-ga-routing", "in-mp-routing", "in-br-routing", "in-od-routing"
+    ):
+        cases.extend((
+            (pack_id, "wrong state relation", lambda p, a: p["region"].update(
+                {"osm_relation_id": 1}
+            )),
+            (pack_id, "state geometry digest mismatch", lambda p, a: p[
+                "region"
+            ].update({"geometry_sha256": "0" * 64})),
+            (pack_id, "missing statewide authority", lambda p, a: a.clear()),
+            (pack_id, "unreviewed statewide grievance URL", lambda p, a: a[
+                0
+            ].update({"handoff_url": "https://example.invalid/unreviewed"})),
+            (pack_id, "changed reviewed scope", lambda p, a: p["region"].update(
+                {"scope": "Capital city only"}
+            )),
+        ))
 
     for pack_id, label, mutate in cases:
         payload, authorities = load_case(pack_id)

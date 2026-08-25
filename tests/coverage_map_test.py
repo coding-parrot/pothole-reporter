@@ -80,6 +80,7 @@ EXISTING_ROUTES = {
     "pune": ("reviewed-specific", "in-mh-routing"),
     "jaipur": ("statewide-neutral", "in-rj-routing"),
     "nagpur": ("statewide-neutral", "in-mh-routing"),
+    "indore": ("statewide-neutral", "in-mp-routing"),
     "kanpur": ("statewide-neutral", "in-up-routing"),
     "lucknow": ("statewide-neutral", "in-up-routing"),
     "ghaziabad": ("statewide-neutral", "in-up-routing"),
@@ -89,6 +90,7 @@ EXISTING_ROUTES = {
     "prayagraj": ("statewide-neutral", "in-up-routing"),
     "coimbatore": ("statewide-neutral", "in-tn-state-routing"),
     "kochi": ("statewide-neutral", "in-kl-routing"),
+    "patna": ("statewide-neutral", "in-br-routing"),
     "kozhikode": ("statewide-neutral", "in-kl-routing"),
     "thrissur": ("statewide-neutral", "in-kl-routing"),
     "malappuram": ("statewide-neutral", "in-kl-routing"),
@@ -99,14 +101,17 @@ EXISTING_ROUTES = {
     "visakhapatnam": ("statewide-neutral", "in-ap-routing"),
     "vijayawada": ("statewide-neutral", "in-ap-routing"),
     "madurai": ("statewide-neutral", "in-tn-state-routing"),
+    "bhopal": ("statewide-neutral", "in-mp-routing"),
     "asansol": ("statewide-neutral", "in-wb-routing"),
     "vasai-virar": ("reviewed-specific", "in-mh-routing"),
     "chhatrapati-sambhajinagar": ("statewide-neutral", "in-mh-routing"),
     "amritsar": ("statewide-neutral", "in-pb-routing"),
+    "jabalpur": ("statewide-neutral", "in-mp-routing"),
     "jodhpur": ("statewide-neutral", "in-rj-routing"),
     "raipur": ("statewide-neutral", "in-cg-routing"),
     "durg-bhilai": ("statewide-neutral", "in-cg-routing"),
     "kollam": ("statewide-neutral", "in-kl-routing"),
+    "gwalior": ("statewide-neutral", "in-mp-routing"),
 }
 
 
@@ -216,7 +221,7 @@ def main():
         check(city.get("pack_id") == expected_pack, f"{city_id}: wrong pack id", errors)
         if expected_tier == "major-city-neutral":
             major_city_ids.append(city_id)
-    check(len(major_city_ids) == 13, "exactly 13 cities must use the conservative top-50 route", errors)
+    check(len(major_city_ids) == 8, "exactly 8 cities must use the conservative top-50 route", errors)
 
     root = ET.parse(MAP_PATH).getroot()
     check(root.tag == SVG_NS + "svg", "coverage map root must be SVG", errors)
@@ -267,8 +272,8 @@ def main():
 
     all_svg_text = " ".join("".join(root.itertext()).split())
     check("Available route · 50" in all_svg_text, "coverage map legend must show 50 available", errors)
-    check("Structured city name · 13" in all_svg_text, "coverage map legend must show 13 city-name routes", errors)
-    check("13 use city-name matching" in all_svg_text, "coverage map summary must show 13 city-name routes", errors)
+    check("Structured city name · 8" in all_svg_text, "coverage map legend must show 8 city-name routes", errors)
+    check("8 use city-name matching" in all_svg_text, "coverage map summary must show 8 city-name routes", errors)
     check("Pending reviewed pack" not in all_svg_text, "coverage map still contains a pending legend", errors)
     for required_text in (
         "Maharashtra",
@@ -279,6 +284,10 @@ def main():
         "Uttar Pradesh",
         "Chhattisgarh",
         "Rajasthan",
+        "Goa",
+        "Madhya Pradesh",
+        "Bihar",
+        "Odisha",
         "Tamil Nadu",
         "Andhra Pradesh",
         "Telangana",

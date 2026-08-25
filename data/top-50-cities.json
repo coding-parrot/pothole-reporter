@@ -199,8 +199,8 @@
       "state_code": "MP",
       "population": 2170295,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-mp-routing"
     },
     {
       "rank": 16,
@@ -235,8 +235,8 @@
       "state_code": "BR",
       "population": 2049156,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-br-routing"
     },
     {
       "rank": 19,
@@ -259,8 +259,8 @@
       "state_code": "MP",
       "population": 1886100,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-mp-routing"
     },
     {
       "rank": 21,
@@ -463,8 +463,8 @@
       "state_code": "MP",
       "population": 1268848,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-mp-routing"
     },
     {
       "rank": 38,
@@ -607,8 +607,8 @@
       "state_code": "MP",
       "population": 1102884,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-mp-routing"
     },
     {
       "rank": 50,

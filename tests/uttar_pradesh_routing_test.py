@@ -54,8 +54,8 @@ async ({inside, outside}) => {
   const pack = await P.loadStatePack("in-up-routing");
   const legacyCities = await P.majorCityCoverage();
 
-  eq("pack: v1.33 has eighteen independently pinned resources",
-     Object.keys(manifest && manifest.resources || {}).length, 18);
+  eq("pack: v1.34 has twenty-two independently pinned resources",
+     Object.keys(manifest && manifest.resources || {}).length, 22);
   ok("pack: statewide manifest entry exists", resource, manifest);
   eq("pack: adapter is data-only", resource && resource.adapter,
      "statewide-general-v1");
@@ -86,7 +86,7 @@ async ({inside, outside}) => {
        && (region && region.limitations || []).some((item) => /does not submit/i.test(item)),
      region && region.limitations);
 
-  eq("registry: statewide expansion is versioned", P.AUTHORITY_REGISTRY_VERSION, 16);
+  eq("registry: statewide expansion is versioned", P.AUTHORITY_REGISTRY_VERSION, 17);
   eq("registry: stable statewide authority is installed",
      P.UTTAR_PRADESH_STATE_AUTHORITY.id, "up-statewide-unverified");
   eq("registry: primary Jansunwai handoff",
@@ -204,9 +204,9 @@ async ({inside, outside}) => {
   const gwalior = await P.routeOfficer(
     {city:"Gwalior", state:"Madhya Pradesh", country_code:"in"},
     26.2037247, 78.1573628, 12, null, null, "garbage");
-  eq("cross-state: Gwalior falls through the overlapping UP envelope",
+  eq("cross-state: Gwalior uses exact Madhya Pradesh statewide containment",
      gwalior && [gwalior.authority_id, gwalior.routing_pack_id, gwalior.region],
-     ["in-mp-cm-helpline", "in-top50-routing", "gwalior"]);
+     ["mp-statewide-unverified", "in-mp-routing", "madhya-pradesh-state"]);
 
   ok("saved binding: valid current Uttar Pradesh record is accepted",
      saved && await P.savedOfficialRouteBinding(
@@ -342,9 +342,9 @@ def main() -> None:
                     )
             unrelated = failed["unrelated"]
             if [unrelated.get("authority_id"), unrelated.get("routing_pack_id")] \
-                    != ["in-mp-cm-helpline", "in-top50-routing"]:
+                    != ["mp-statewide-unverified", "in-mp-routing"]:
                 failures.append(
-                    f"{label} UP pack blocked unrelated Gwalior fallback: {unrelated!r}"
+                    f"{label} UP pack blocked unrelated Madhya Pradesh route: {unrelated!r}"
                 )
             extra_checks += len(failed)
             context.close()

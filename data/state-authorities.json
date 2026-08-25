@@ -279,6 +279,59 @@
       }
     ]
   },
+  "GA": {
+    "authorities": [
+      {
+        "id": "ga-statewide-unverified",
+        "name": "Goa authority (select in CM Helpline)",
+        "aliases": ["goa", "गोवा", "गोंय"],
+        "handoff_name": "CM Helpline Goa",
+        "handoff_url": "https://cmhelpline.dpg.goa.gov.in/",
+        "handoff_package": "in.gov.dpg.cmhelpline",
+        "helpline": "1905"
+      }
+    ]
+  },
+  "MP": {
+    "authorities": [
+      {
+        "id": "mp-statewide-unverified",
+        "name": "Madhya Pradesh authority (select in CM Helpline)",
+        "aliases": ["madhya pradesh", "मध्य प्रदेश"],
+        "handoff_name": "Madhya Pradesh CM Helpline",
+        "handoff_url": "https://www.cmhelpline.mp.gov.in/Public/VerifyOTPBeforeOnlineComplaint.aspx",
+        "handoff_package": "com.magnum.helpline",
+        "helpline": "181"
+      }
+    ]
+  },
+  "BR": {
+    "authorities": [
+      {
+        "id": "br-statewide-unverified",
+        "name": "Bihar authority (select in Lok Shikayat)",
+        "aliases": ["bihar", "बिहार"],
+        "handoff_name": "Bihar Lok Shikayat",
+        "handoff_url": "https://lokshikayat.bihar.gov.in/Default.aspx",
+        "handoff_package": "com.bpsms.jansamadhan",
+        "helpline": "18003456284"
+      }
+    ]
+  },
+  "OD": {
+    "authorities": [
+      {
+        "id": "od-statewide-unverified",
+        "name": "Odisha authority (select in Jana Sunani)",
+        "aliases": ["odisha", "orissa", "ଓଡ଼ିଶା", "ଓଡିଶା"],
+        "handoff_name": "Odisha Jana Sunani",
+        "handoff_url": "https://janasunani.odisha.gov.in/grievance-details",
+        "handoff_package": "com.sociomatic.janasunani",
+        "whatsapp_url": "https://wa.me/916370951930",
+        "helpline": "155335"
+      }
+    ]
+  },
   "IN": {
     "authorities": [
       {

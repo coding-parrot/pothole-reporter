@@ -14,11 +14,12 @@ AAB_PATH=$ANDROID_ROOT/app/build/outputs/bundle/release/app-release.aab
 BUNDLE_MANIFEST=$ANDROID_ROOT/app/build/intermediates/bundle_manifest/release/processApplicationManifestReleaseForBundle/AndroidManifest.xml
 WWW_ROOT=android-app/www
 PACKAGED_ASSETS_ROOT=$ANDROID_ROOT/app/src/main/assets/public
-PACK_MANIFEST=static/pack-manifest-v1.33.json
-PREVIOUS_PACK_MANIFEST=static/pack-manifest-v1.31.json
-OLDER_PACK_MANIFEST=static/pack-manifest-v1.30.json
-EARLIER_PACK_MANIFEST=static/pack-manifest-v1.29.json
-OLDEST_PACK_MANIFEST=static/pack-manifest-v1.28.json
+PACK_MANIFEST=static/pack-manifest-v1.34.json
+PREVIOUS_PACK_MANIFEST=static/pack-manifest-v1.33.json
+V131_PACK_MANIFEST=static/pack-manifest-v1.31.json
+V130_PACK_MANIFEST=static/pack-manifest-v1.30.json
+V129_PACK_MANIFEST=static/pack-manifest-v1.29.json
+V128_PACK_MANIFEST=static/pack-manifest-v1.28.json
 V127_PACK_MANIFEST=static/pack-manifest-v1.27.json
 INITIAL_PACK_MANIFEST=static/pack-manifest-v1.26.json
 LEGACY_PACK_MANIFEST=static/pack-manifest.json
@@ -69,11 +70,12 @@ echo "1/7 validating hosted data packs, municipal schemas and web-source mirrors
 python3 tools/build-state-packs.py --check
 python3 tools/build-national-highways.py --check
 python3 tests/state_pack_validation_test.py
-same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.33.json" "v1.33 pack manifest mirror"
-same_file "$PREVIOUS_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.31.json" "v1.31 pack manifest mirror"
-same_file "$OLDER_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.30.json" "v1.30 pack manifest mirror"
-same_file "$EARLIER_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.29.json" "v1.29 pack manifest mirror"
-same_file "$OLDEST_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.28.json" "v1.28 pack manifest mirror"
+same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.34.json" "v1.34 pack manifest mirror"
+same_file "$PREVIOUS_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.33.json" "v1.33 pack manifest mirror"
+same_file "$V131_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.31.json" "v1.31 pack manifest mirror"
+same_file "$V130_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.30.json" "v1.30 pack manifest mirror"
+same_file "$V129_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.29.json" "v1.29 pack manifest mirror"
+same_file "$V128_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.28.json" "v1.28 pack manifest mirror"
 same_file "$V127_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.27.json" "v1.27 pack manifest mirror"
 same_file "$INITIAL_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.26.json" "v1.26 pack manifest mirror"
 same_file "$LEGACY_PACK_MANIFEST" "$WWW_ROOT/pack-manifest.json" "legacy pack manifest mirror"
@@ -109,8 +111,8 @@ rm -f "$AAB_PATH"
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="dev.aiengg.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="51"' "$BUNDLE_MANIFEST" || fail "expected versionCode 51"
-grep -Fq 'android:versionName="1.33.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.33.0"
+grep -Fq 'android:versionCode="52"' "$BUNDLE_MANIFEST" || fail "expected versionCode 52"
+grep -Fq 'android:versionName="1.34.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.34.0"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"
@@ -128,6 +130,10 @@ grep -Fq 'in.gov.pmc.pmccare' "$BUNDLE_MANIFEST" || fail "official PMC CARE app 
 grep -Fq 'com.nic.dl.delhijanmitra' "$BUNDLE_MANIFEST" || fail "official Delhi JanSunwai app package query is missing"
 grep -Fq 'in.nic.up.jansunwai.upjansunwai' "$BUNDLE_MANIFEST" || fail "official UP Jansunwai app package query is missing"
 grep -Fq 'com.rajsampark.versiontwo' "$BUNDLE_MANIFEST" || fail "official Rajasthan Sampark 2.0 package query is missing"
+grep -Fq 'in.gov.dpg.cmhelpline' "$BUNDLE_MANIFEST" || fail "official CM Helpline Goa app package query is missing"
+grep -Fq 'com.magnum.helpline' "$BUNDLE_MANIFEST" || fail "official MP CM Helpline app package query is missing"
+grep -Fq 'com.bpsms.jansamadhan' "$BUNDLE_MANIFEST" || fail "official Bihar Jan Samadhan app package query is missing"
+grep -Fq 'com.sociomatic.janasunani' "$BUNDLE_MANIFEST" || fail "official Odisha Jana Sunani app package query is missing"
 grep -Fq 'com.google.android.apps.maps' "$BUNDLE_MANIFEST" || fail "Google Maps package query is missing"
 grep -Fq 'dev.aiengg.potholereporter.drive.DriveForegroundService' "$BUNDLE_MANIFEST" || fail "native Drive foreground service is missing"
 grep -Fq 'android:foregroundServiceType="camera|location"' "$BUNDLE_MANIFEST" || fail "Drive foreground service types are wrong"

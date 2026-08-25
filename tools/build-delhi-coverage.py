@@ -217,8 +217,8 @@ def main() -> None:
         source_retrieved_at=RETRIEVED_AT,
     )
     print(output.relative_to(PROJECT_ROOT))
-    print("static/pack-manifest-v1.33.json")
-    print("android-app/www/pack-manifest-v1.33.json")
+    print("static/pack-manifest-v1.34.json")
+    print("android-app/www/pack-manifest-v1.34.json")
     print(f"area_km2={area_km2}")
     print(f"geometry_sha256={geometry_sha256}")
 

@@ -301,8 +301,8 @@ async ({fixtures}) => {
        ["kl-statewide-unverified", "in-kl-routing", "kerala-state"]);
   }
 
-  // Uttar Pradesh, Chhattisgarh and Rajasthan likewise keep the immutable city pack only for
-  // saved-report compatibility. New reports use their exact state polygons.
+  // Statewide releases keep the immutable city pack only for saved-report compatibility.
+  // New reports use their exact state polygons, including Madhya Pradesh and Bihar.
   for (const [stateCode, stateName, authority, packId, stateRegion] of [
     ["UP", "Uttar Pradesh", "up-statewide-unverified", "in-up-routing",
       "uttar-pradesh-state"],
@@ -310,6 +310,10 @@ async ({fixtures}) => {
       "chhattisgarh-state"],
     ["RJ", "Rajasthan", "rj-statewide-unverified", "in-rj-routing",
       "rajasthan-state"],
+    ["MP", "Madhya Pradesh", "mp-statewide-unverified", "in-mp-routing",
+      "madhya-pradesh-state"],
+    ["BR", "Bihar", "br-statewide-unverified", "in-br-routing",
+      "bihar-state"],
   ]) {
     for (const fixture of fixtures.filter((item) => item.state_code === stateCode)) {
       const route = await P.routeOfficer(

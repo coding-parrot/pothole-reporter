@@ -19,10 +19,10 @@ from tender_scope import is_road_surface_contract
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = PROJECT_ROOT / "docs"
-STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.33.json"
-ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.33.json"
-PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.33.json"
-PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.31.json"
+STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.34.json"
+ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.34.json"
+PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.34.json"
+PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.33.json"
 AUTHORITIES_SOURCE = PROJECT_ROOT / "data" / "state-authorities.json"
 PUBLIC_BASE_URL = "https://coding-parrot.github.io/pothole-reporter/"
 PACK_FORMAT = "pothole-pack-manifest"
@@ -78,6 +78,18 @@ CHHATTISGARH_STATE_GEOMETRY_SHA256 = (
 RAJASTHAN_STATE_GEOMETRY_SHA256 = (
     "dcde670675d0fc50e292c6b306b1f80d9d68a1323250c29d6eddc97992491a36"
 )
+GOA_STATE_GEOMETRY_SHA256 = (
+    "f4c47a79a3671d333d47f66a597d66b6295a78b1cd7cd3cba7bc2db472190e4f"
+)
+MADHYA_PRADESH_STATE_GEOMETRY_SHA256 = (
+    "24f0c93ed8bd40c4c6b4e1f650c3b9870b1e65ccd5d7b00ea0193a8a5aedc357"
+)
+BIHAR_STATE_GEOMETRY_SHA256 = (
+    "3d846e20cfee28a656d6dd808c4dad37a4f1c95852f9f292b0acefde708f4b24"
+)
+ODISHA_STATE_GEOMETRY_SHA256 = (
+    "af0fe4941b6cdd2abe5dc5717db8875bec6b68a2d6671002d2afc9c7d37d5179"
+)
 KMC_GEOMETRY_SHA256 = (
     "fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5"
 )
@@ -101,6 +113,10 @@ KERALA_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 UTTAR_PRADESH_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 CHHATTISGARH_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 RAJASTHAN_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
+GOA_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
+MADHYA_PRADESH_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
+BIHAR_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
+ODISHA_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 KMC_REGION_KEYS = {
     "authority_id", "authority_name", "scope", "ulb_code", "mun_id",
     "retrieved_at",
@@ -296,6 +312,58 @@ SPECS = {
             "Official Rajasthan grievance sources: respective source terms",
         ),
         "data/metro-coverage/rj-state.json",
+    ),
+    "in-ga-routing": ResourceSpec(
+        "in-ga-routing",
+        "GA",
+        "routing",
+        "statewide-general-v1",
+        "Full State of Goa; neutral CM Helpline grievance handoff",
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Goa grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/ga-state.json",
+    ),
+    "in-mp-routing": ResourceSpec(
+        "in-mp-routing",
+        "MP",
+        "routing",
+        "statewide-general-v1",
+        "Full State of Madhya Pradesh; neutral CM Helpline grievance handoff",
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Madhya Pradesh grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/mp-state.json",
+    ),
+    "in-br-routing": ResourceSpec(
+        "in-br-routing",
+        "BR",
+        "routing",
+        "statewide-general-v1",
+        "Full State of Bihar; neutral Lok Shikayat grievance handoff",
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Bihar grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/br-state.json",
+    ),
+    "in-od-routing": ResourceSpec(
+        "in-od-routing",
+        "OD",
+        "routing",
+        "statewide-general-v1",
+        "Full State of Odisha; neutral Jana Sunani grievance handoff",
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Odisha grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/od-state.json",
     ),
     "in-top50-routing": ResourceSpec(
         "in-top50-routing",
@@ -1631,6 +1699,79 @@ def _validate_new_statewide_payload(
                 "helpline": "181",
             },
         },
+        "in-ga-routing": {
+            "label": "Goa",
+            "region_id": "goa-state",
+            "authority_id": "ga-statewide-unverified",
+            "scope": "Full State of Goa",
+            "relation_id": 11_251_493,
+            "geometry_sha256": GOA_STATE_GEOMETRY_SHA256,
+            "routing_terms": ("CM Helpline Goa", "National Highways", "does not identify"),
+            "authority": {
+                "id": "ga-statewide-unverified",
+                "name": "Goa authority (select in CM Helpline)",
+                "aliases": ["goa", "गोवा", "गोंय"],
+                "handoff_name": "CM Helpline Goa",
+                "handoff_url": "https://cmhelpline.dpg.goa.gov.in/",
+                "handoff_package": "in.gov.dpg.cmhelpline",
+                "helpline": "1905",
+            },
+        },
+        "in-mp-routing": {
+            "label": "Madhya Pradesh",
+            "region_id": "madhya-pradesh-state",
+            "authority_id": "mp-statewide-unverified",
+            "scope": "Full State of Madhya Pradesh",
+            "relation_id": 1_950_071,
+            "geometry_sha256": MADHYA_PRADESH_STATE_GEOMETRY_SHA256,
+            "routing_terms": ("Madhya Pradesh CM Helpline", "National Highways", "does not identify"),
+            "authority": {
+                "id": "mp-statewide-unverified",
+                "name": "Madhya Pradesh authority (select in CM Helpline)",
+                "aliases": ["madhya pradesh", "मध्य प्रदेश"],
+                "handoff_name": "Madhya Pradesh CM Helpline",
+                "handoff_url": "https://www.cmhelpline.mp.gov.in/Public/VerifyOTPBeforeOnlineComplaint.aspx",
+                "handoff_package": "com.magnum.helpline",
+                "helpline": "181",
+            },
+        },
+        "in-br-routing": {
+            "label": "Bihar",
+            "region_id": "bihar-state",
+            "authority_id": "br-statewide-unverified",
+            "scope": "Full State of Bihar",
+            "relation_id": 1_958_982,
+            "geometry_sha256": BIHAR_STATE_GEOMETRY_SHA256,
+            "routing_terms": ("Bihar Lok Shikayat", "National Highways", "does not identify"),
+            "authority": {
+                "id": "br-statewide-unverified",
+                "name": "Bihar authority (select in Lok Shikayat)",
+                "aliases": ["bihar", "बिहार"],
+                "handoff_name": "Bihar Lok Shikayat",
+                "handoff_url": "https://lokshikayat.bihar.gov.in/Default.aspx",
+                "handoff_package": "com.bpsms.jansamadhan",
+                "helpline": "18003456284",
+            },
+        },
+        "in-od-routing": {
+            "label": "Odisha",
+            "region_id": "odisha-state",
+            "authority_id": "od-statewide-unverified",
+            "scope": "Full State of Odisha",
+            "relation_id": 1_984_022,
+            "geometry_sha256": ODISHA_STATE_GEOMETRY_SHA256,
+            "routing_terms": ("Odisha Jana Sunani", "National Highways", "does not identify"),
+            "authority": {
+                "id": "od-statewide-unverified",
+                "name": "Odisha authority (select in Jana Sunani)",
+                "aliases": ["odisha", "orissa", "ଓଡ଼ିଶା", "ଓଡିଶା"],
+                "handoff_name": "Odisha Jana Sunani",
+                "handoff_url": "https://janasunani.odisha.gov.in/grievance-details",
+                "handoff_package": "com.sociomatic.janasunani",
+                "whatsapp_url": "https://wa.me/916370951930",
+                "helpline": "155335",
+            },
+        },
     }
     pin = pins.get(pack_id)
     _expect(pin is not None, f"unsupported statewide payload validator: {pack_id}")
@@ -2176,7 +2317,8 @@ def _validate_raw_payload(
         )
     elif spec.pack_id in {
         "in-ka-state-routing", "in-kl-routing", "in-up-routing", "in-cg-routing",
-        "in-rj-routing",
+        "in-rj-routing", "in-ga-routing", "in-mp-routing", "in-br-routing",
+        "in-od-routing",
     }:
         _validate_new_statewide_payload(
             spec.pack_id,
@@ -2480,10 +2622,10 @@ def verify_all() -> None:
     """Fail unless the manifests and all referenced hosted packs match exactly."""
     manifest_bytes = STATIC_MANIFEST.read_bytes() if STATIC_MANIFEST.exists() else b""
     if not manifest_bytes:
-        raise PackError("missing bundled manifest: static/pack-manifest-v1.33.json")
-    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.33.json")
+        raise PackError("missing bundled manifest: static/pack-manifest-v1.34.json")
+    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.34.json")
     _expect(ANDROID_MANIFEST.read_bytes() == manifest_bytes, "static and Android pack manifests differ")
-    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.33.json")
+    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.34.json")
     _expect(PAGES_MANIFEST.read_bytes() == manifest_bytes, "static and Pages pack manifests differ")
     manifest = _read_json(STATIC_MANIFEST)
     _expect(isinstance(manifest, dict) and set(manifest) == MANIFEST_KEYS,

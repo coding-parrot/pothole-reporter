@@ -54,8 +54,8 @@ async ({inside, outside}) => {
   const pack = await P.loadStatePack("in-cg-routing");
   const legacyCities = await P.majorCityCoverage();
 
-  eq("pack: v1.33 has eighteen independently pinned resources",
-     Object.keys(manifest && manifest.resources || {}).length, 18);
+  eq("pack: v1.34 has twenty-two independently pinned resources",
+     Object.keys(manifest && manifest.resources || {}).length, 22);
   ok("pack: statewide manifest entry exists", resource, manifest);
   eq("pack: adapter is data-only", resource && resource.adapter,
      "statewide-general-v1");
@@ -83,7 +83,7 @@ async ({inside, outside}) => {
        && (region && region.limitations || []).some((item) => /does not submit/i.test(item)),
      region && region.limitations);
 
-  eq("registry: statewide expansion is versioned", P.AUTHORITY_REGISTRY_VERSION, 16);
+  eq("registry: statewide expansion is versioned", P.AUTHORITY_REGISTRY_VERSION, 17);
   eq("registry: stable statewide authority is installed",
      P.CHHATTISGARH_STATE_AUTHORITY.id, "cg-statewide-unverified");
   eq("registry: primary CM Helpline handoff",
@@ -192,9 +192,9 @@ async ({inside, outside}) => {
   const jabalpur = await P.routeOfficer(
     {city:"Jabalpur", state:"Madhya Pradesh", country_code:"in"},
     23.1701522, 79.9324505, 12, null, null, "garbage");
-  eq("cross-state: Jabalpur remains on its Madhya Pradesh compatibility route",
+  eq("cross-state: Jabalpur uses exact Madhya Pradesh statewide containment",
      jabalpur && [jabalpur.authority_id, jabalpur.routing_pack_id, jabalpur.region],
-     ["in-mp-cm-helpline", "in-top50-routing", "jabalpur"]);
+     ["mp-statewide-unverified", "in-mp-routing", "madhya-pradesh-state"]);
 
   // All three points overlap Chhattisgarh's coarse download rectangle. Exact state
   // geometry must win even when a stale reverse geocoder says Chhattisgarh.
@@ -344,7 +344,7 @@ def main() -> None:
                     )
             unrelated = failed["unrelated"]
             if [unrelated.get("authority_id"), unrelated.get("routing_pack_id")] \
-                    != ["in-mp-cm-helpline", "in-top50-routing"]:
+                    != ["mp-statewide-unverified", "in-mp-routing"]:
                 failures.append(
                     f"{label} Chhattisgarh pack blocked Jabalpur: {unrelated!r}"
                 )

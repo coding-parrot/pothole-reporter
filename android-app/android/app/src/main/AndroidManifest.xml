@@ -19,6 +19,10 @@
         <package android:name="com.nic.dl.delhijanmitra" />
         <package android:name="in.nic.up.jansunwai.upjansunwai" />
         <package android:name="com.rajsampark.versiontwo" />
+        <package android:name="in.gov.dpg.cmhelpline" />
+        <package android:name="com.magnum.helpline" />
+        <package android:name="com.bpsms.jansamadhan" />
+        <package android:name="com.sociomatic.janasunani" />
         <package android:name="com.google.android.apps.maps" />
     </queries>
 
