@@ -25,9 +25,12 @@ INSIDE = [
     {"name": "rural Punjab", "lat": 30.4720, "lng": 75.2010},
 ]
 OUTSIDE = [
-    {"name": "Chandigarh", "lat": 30.7333, "lng": 76.7794},
-    {"name": "Panchkula", "lat": 30.6942, "lng": 76.8606},
-    {"name": "Ambala", "lat": 30.3782, "lng": 76.7767},
+    {"name": "Chandigarh", "lat": 30.7333, "lng": 76.7794,
+     "authority": "ch-statewide-unverified", "pack": "in-ch-routing"},
+    {"name": "Panchkula", "lat": 30.6942, "lng": 76.8606,
+     "authority": "hr-statewide-unverified", "pack": "in-hr-routing"},
+    {"name": "Ambala", "lat": 30.3782, "lng": 76.7767,
+     "authority": "hr-statewide-unverified", "pack": "in-hr-routing"},
 ]
 
 
@@ -73,7 +76,7 @@ async ({inside, outside}) => {
      region && region.limitations);
 
   eq("registry: release contains statewide Andhra Pradesh routing",
-     P.AUTHORITY_REGISTRY_VERSION, 17);
+     P.AUTHORITY_REGISTRY_VERSION, 18);
   eq("registry: stable Punjab authority is installed",
      P.PUNJAB_STATE_AUTHORITY.id, "pb-statewide-unverified");
   eq("registry: primary official handoff", P.PUNJAB_STATE_AUTHORITY.handoff_url,
@@ -140,8 +143,9 @@ async ({inside, outside}) => {
     ok(`${fixture.name}: routeOfficer never assigns Punjab`,
        !orchestrated || orchestrated.authority_id !== "pb-statewide-unverified",
        orchestrated);
-    eq(`${fixture.name}: outside-area result is explicit`,
-       orchestrated && orchestrated.unrouted_reason, "outside_area");
+    eq(`${fixture.name}: routeOfficer selects its own exact jurisdiction`,
+       orchestrated && [orchestrated.authority_id, orchestrated.routing_pack_id],
+       [fixture.authority, fixture.pack]);
   }
 
   const atLimit = await P.punjabRouteFromGeocode(null, 31.6340, 74.8723, 30);

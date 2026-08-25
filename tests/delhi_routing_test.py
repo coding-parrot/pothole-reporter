@@ -31,7 +31,7 @@ async () => {
   const coverage = await P.delhiCoverage();
 
   eq("registry: version includes the current statewide routing expansion",
-     P.AUTHORITY_REGISTRY_VERSION, 17);
+     P.AUTHORITY_REGISTRY_VERSION, 18);
   eq("registry: Delhi route has a stable ID", P.DELHI_PWD_AUTHORITY.id, "dl-pwd-sewa");
   eq("registry: primary route is PWD Sewa", P.DELHI_PWD_AUTHORITY.handoff_name, "PWD Sewa");
   ok("registry: primary complaint route is official HTTPS",

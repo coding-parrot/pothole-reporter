@@ -1,0 +1,847 @@
+{
+  "cache": {
+    "max_bytes": 67108864,
+    "routing_max_unused_days": 90,
+    "tender_max_unused_days": 30
+  },
+  "catalog_version": 1,
+  "format": "pothole-pack-manifest",
+  "resources": {
+    "in-an-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 2147041,
+      "coverage_scope": "Full Union Territory of Andaman and Nicobar Islands; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-an-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/an/routing-e0aaa4b7c996c1f2fdb2cc6670fa1114538ba6ea552489d35c7ba34164adbf2b.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "e0aaa4b7c996c1f2fdb2cc6670fa1114538ba6ea552489d35c7ba34164adbf2b",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "AN",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/an/routing-e0aaa4b7c996c1f2fdb2cc6670fa1114538ba6ea552489d35c7ba34164adbf2b.json"
+    },
+    "in-ap-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 632172,
+      "coverage_scope": "Full State of Andhra Pradesh; neutral PGRS grievance handoff; excludes Yanam, Puducherry Union Territory",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Andhra Pradesh grievance sources: respective source terms"
+      ],
+      "pack_id": "in-ap-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/ap/routing-7532126b708aa1b2aa5d7c6be6480f433aedac6e8b28de7e14f539cf05131a77.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "7532126b708aa1b2aa5d7c6be6480f433aedac6e8b28de7e14f539cf05131a77",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "AP",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ap/routing-7532126b708aa1b2aa5d7c6be6480f433aedac6e8b28de7e14f539cf05131a77.json"
+    },
+    "in-ar-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 244416,
+      "coverage_scope": "Full State of Arunachal Pradesh; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-ar-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/ar/routing-4fc9b94997345acb4699583b0994bae1800050c3ba74f3d00176686ab635eb6f.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "4fc9b94997345acb4699583b0994bae1800050c3ba74f3d00176686ab635eb6f",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "AR",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ar/routing-4fc9b94997345acb4699583b0994bae1800050c3ba74f3d00176686ab635eb6f.json"
+    },
+    "in-as-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 407459,
+      "coverage_scope": "Full State of Assam; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-as-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/as/routing-a34870c7acf39f92dc1e0a9b135f0e12f32fa4686db7ab7231eaf5ee53f3cfdb.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "a34870c7acf39f92dc1e0a9b135f0e12f32fa4686db7ab7231eaf5ee53f3cfdb",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "AS",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/as/routing-a34870c7acf39f92dc1e0a9b135f0e12f32fa4686db7ab7231eaf5ee53f3cfdb.json"
+    },
+    "in-br-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 403474,
+      "coverage_scope": "Full State of Bihar; neutral Lok Shikayat grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Bihar grievance sources: respective source terms"
+      ],
+      "pack_id": "in-br-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/br/routing-0694727a4f6dbc35bb6d31efcc0a84dc8917ff6bd452c4878b1b9687ec82f59a.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "0694727a4f6dbc35bb6d31efcc0a84dc8917ff6bd452c4878b1b9687ec82f59a",
+      "source_retrieved_at": "2026-08-25",
+      "state_code": "BR",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/br/routing-0694727a4f6dbc35bb6d31efcc0a84dc8917ff6bd452c4878b1b9687ec82f59a.json"
+    },
+    "in-cg-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 428053,
+      "coverage_scope": "Full State of Chhattisgarh; neutral CM Helpline grievance handoff with NIDAAN 1100 as an urban civic alternative",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Chhattisgarh grievance sources: respective source terms"
+      ],
+      "pack_id": "in-cg-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/cg/routing-879351463553d76bc5fcaf0abe46b7ebf83c6e06c8560a8e828d80cc3976e153.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "879351463553d76bc5fcaf0abe46b7ebf83c6e06c8560a8e828d80cc3976e153",
+      "source_retrieved_at": "2026-08-25",
+      "state_code": "CG",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/cg/routing-879351463553d76bc5fcaf0abe46b7ebf83c6e06c8560a8e828d80cc3976e153.json"
+    },
+    "in-ch-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 10104,
+      "coverage_scope": "Full Union Territory of Chandigarh; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-ch-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/ch/routing-423bfeae31bfa158f30cfc977e2f7a3793a451d082cdf472e982f77e68046023.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "423bfeae31bfa158f30cfc977e2f7a3793a451d082cdf472e982f77e68046023",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "CH",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ch/routing-423bfeae31bfa158f30cfc977e2f7a3793a451d082cdf472e982f77e68046023.json"
+    },
+    "in-dh-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 54852,
+      "coverage_scope": "Full Union Territory of Dadra and Nagar Haveli and Daman and Diu; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-dh-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/dh/routing-0bfeefbe98fdebd9d79095cc988ac758aadfb3c73493cd98764a7c7e41760268.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "0bfeefbe98fdebd9d79095cc988ac758aadfb3c73493cd98764a7c7e41760268",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "DH",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/dh/routing-0bfeefbe98fdebd9d79095cc988ac758aadfb3c73493cd98764a7c7e41760268.json"
+    },
+    "in-dl-routing": {
+      "adapter": "delhi-nct-v1",
+      "bytes": 19890,
+      "coverage_scope": "Delhi NCT",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0"
+      ],
+      "pack_id": "in-dl-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/dl/routing-848ef7a8b01c84096bd97d0ca3ec1b59500e9798e95c8ec83efd41e759875507.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "848ef7a8b01c84096bd97d0ca3ec1b59500e9798e95c8ec83efd41e759875507",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "DL",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/dl/routing-848ef7a8b01c84096bd97d0ca3ec1b59500e9798e95c8ec83efd41e759875507.json"
+    },
+    "in-ga-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 166916,
+      "coverage_scope": "Full State of Goa; neutral CM Helpline grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Goa grievance sources: respective source terms"
+      ],
+      "pack_id": "in-ga-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/ga/routing-7dc33a085dbb82dae8e23525ef39c11b09a197138bf59b7c634582140592df96.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "7dc33a085dbb82dae8e23525ef39c11b09a197138bf59b7c634582140592df96",
+      "source_retrieved_at": "2026-08-25",
+      "state_code": "GA",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ga/routing-7dc33a085dbb82dae8e23525ef39c11b09a197138bf59b7c634582140592df96.json"
+    },
+    "in-gj-routing": {
+      "adapter": "municipal-city-v1",
+      "bytes": 49039,
+      "coverage_scope": "Reviewed Ahmedabad 48-ward footprint; excludes wider AUDA",
+      "kind": "routing",
+      "licenses": [
+        "OpenCity / Oorvani Foundation data via Bharatlas: ODbL 1.0"
+      ],
+      "pack_id": "in-gj-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/gj/routing-96fad5f32c37d2e9144ec0905f71d6905dc4fc8816cb549d9d8438373b0714d7.json",
+      "review_after": "2026-09-21",
+      "schema_version": 1,
+      "sha256": "96fad5f32c37d2e9144ec0905f71d6905dc4fc8816cb549d9d8438373b0714d7",
+      "source_retrieved_at": "2026-08-23",
+      "state_code": "GJ",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/gj/routing-96fad5f32c37d2e9144ec0905f71d6905dc4fc8816cb549d9d8438373b0714d7.json"
+    },
+    "in-gj-state-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 978840,
+      "coverage_scope": "Full State of Gujarat; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-gj-state-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/gj/routing-f59d4678c143c1c7ccf88e02366de4508d6034c5b42dedec14eb8373cc8df3f4.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "f59d4678c143c1c7ccf88e02366de4508d6034c5b42dedec14eb8373cc8df3f4",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "GJ",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/gj/routing-f59d4678c143c1c7ccf88e02366de4508d6034c5b42dedec14eb8373cc8df3f4.json"
+    },
+    "in-hp-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 148309,
+      "coverage_scope": "Full State of Himachal Pradesh; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-hp-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/hp/routing-4a6b09298376bda1bb5ce816430b8a12d0d8cd0d993fbcdc1b9dd27ca000c31c.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "4a6b09298376bda1bb5ce816430b8a12d0d8cd0d993fbcdc1b9dd27ca000c31c",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "HP",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/hp/routing-4a6b09298376bda1bb5ce816430b8a12d0d8cd0d993fbcdc1b9dd27ca000c31c.json"
+    },
+    "in-hr-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 189936,
+      "coverage_scope": "Full State of Haryana; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-hr-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/hr/routing-cb2fd64d168241524cbb36e5ee9da7276ead2706d4ba50c898fac7d80bcbf1c3.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "cb2fd64d168241524cbb36e5ee9da7276ead2706d4ba50c898fac7d80bcbf1c3",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "HR",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/hr/routing-cb2fd64d168241524cbb36e5ee9da7276ead2706d4ba50c898fac7d80bcbf1c3.json"
+    },
+    "in-jh-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 419303,
+      "coverage_scope": "Full State of Jharkhand; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-jh-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/jh/routing-bf38768b5a6d35fb27d53c743701077f7c1c3c0ce17f37d06d578fc812d06527.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "bf38768b5a6d35fb27d53c743701077f7c1c3c0ce17f37d06d578fc812d06527",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "JH",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/jh/routing-bf38768b5a6d35fb27d53c743701077f7c1c3c0ce17f37d06d578fc812d06527.json"
+    },
+    "in-jk-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 367745,
+      "coverage_scope": "Full Union Territory of Jammu and Kashmir; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-jk-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/jk/routing-46052605961633abc698cfc6a0ca93fd7f3c7df1b3998dedf63e817b5a61132a.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "46052605961633abc698cfc6a0ca93fd7f3c7df1b3998dedf63e817b5a61132a",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "JK",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/jk/routing-46052605961633abc698cfc6a0ca93fd7f3c7df1b3998dedf63e817b5a61132a.json"
+    },
+    "in-ka-routing": {
+      "adapter": "karnataka-kgis-v1",
+      "bytes": 36011,
+      "coverage_scope": "Karnataka urban local bodies",
+      "kind": "routing",
+      "licenses": [
+        "Official Karnataka public-body records: respective source terms"
+      ],
+      "pack_id": "in-ka-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/ka/routing-75d521f1356291aff0ea8c75b6e2ac9c7c6fe10e3f410dd348d130ad56705dec.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "75d521f1356291aff0ea8c75b6e2ac9c7c6fe10e3f410dd348d130ad56705dec",
+      "source_retrieved_at": "2026-08-19",
+      "state_code": "KA",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ka/routing-75d521f1356291aff0ea8c75b6e2ac9c7c6fe10e3f410dd348d130ad56705dec.json"
+    },
+    "in-ka-state-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 545913,
+      "coverage_scope": "Full State of Karnataka; neutral Janaspandana grievance handoff; exact KGIS urban-body routes remain more specific",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Karnataka grievance sources: respective source terms"
+      ],
+      "pack_id": "in-ka-state-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/ka/routing-458340d38c9ce9d8cc3b1fc384ce6baa9fa015f3aef8f2b65f179470c67a3170.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "458340d38c9ce9d8cc3b1fc384ce6baa9fa015f3aef8f2b65f179470c67a3170",
+      "source_retrieved_at": "2026-08-25",
+      "state_code": "KA",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ka/routing-458340d38c9ce9d8cc3b1fc384ce6baa9fa015f3aef8f2b65f179470c67a3170.json"
+    },
+    "in-ka-tenders": {
+      "adapter": "karnataka-carriageway-indexed-v2",
+      "bytes": 1265193,
+      "coverage_scope": "Karnataka municipal procurement records",
+      "kind": "tenders",
+      "licenses": [
+        "Official Karnataka procurement records: respective source terms"
+      ],
+      "pack_id": "in-ka-tenders",
+      "pack_version": 1,
+      "path": "packs/v1/states/ka/tenders-0768b7abcb48cf3e28d576f4fd6a986a8b27909637dffdd49b310a16e016f97c.json",
+      "records": 5351,
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "0768b7abcb48cf3e28d576f4fd6a986a8b27909637dffdd49b310a16e016f97c",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "KA",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ka/tenders-0768b7abcb48cf3e28d576f4fd6a986a8b27909637dffdd49b310a16e016f97c.json"
+    },
+    "in-kl-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 300061,
+      "coverage_scope": "Full State of Kerala; neutral CMO grievance handoff with K-SMART local-body alternative; excludes Mahe, Puducherry Union Territory",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Kerala grievance sources: respective source terms"
+      ],
+      "pack_id": "in-kl-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/kl/routing-9d7d7776263e5aecba2ba62f8b2e79d507d9018a7272fe12f9ee87a43783b694.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "9d7d7776263e5aecba2ba62f8b2e79d507d9018a7272fe12f9ee87a43783b694",
+      "source_retrieved_at": "2026-08-25",
+      "state_code": "KL",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/kl/routing-9d7d7776263e5aecba2ba62f8b2e79d507d9018a7272fe12f9ee87a43783b694.json"
+    },
+    "in-la-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 288015,
+      "coverage_scope": "Full Union Territory of Ladakh; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-la-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/la/routing-1ada11a2bac8a477b4e5282b86e6987e80431bfc3f2aa07b3c35b8dd4ca05cc5.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "1ada11a2bac8a477b4e5282b86e6987e80431bfc3f2aa07b3c35b8dd4ca05cc5",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "LA",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/la/routing-1ada11a2bac8a477b4e5282b86e6987e80431bfc3f2aa07b3c35b8dd4ca05cc5.json"
+    },
+    "in-ld-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 11992,
+      "coverage_scope": "Full Union Territory of Lakshadweep; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-ld-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/ld/routing-c4dc68de53613dea254b8ea480a6c7bd1c7d5330bb621e68466b2caf91a90fb9.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "c4dc68de53613dea254b8ea480a6c7bd1c7d5330bb621e68466b2caf91a90fb9",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "LD",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ld/routing-c4dc68de53613dea254b8ea480a6c7bd1c7d5330bb621e68466b2caf91a90fb9.json"
+    },
+    "in-mh-routing": {
+      "adapter": "maharashtra-statewide-v1",
+      "bytes": 1574600,
+      "coverage_scope": "Full State of Maharashtra; exact MMR and Pune Municipal Corporation routes where verified",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Maharashtra GIS and public-authority sources: respective source terms"
+      ],
+      "pack_id": "in-mh-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/mh/routing-26223f8a2dca11615daf789645a98fc2a661acda700c77c06ad89c61fb180e54.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "26223f8a2dca11615daf789645a98fc2a661acda700c77c06ad89c61fb180e54",
+      "source_retrieved_at": "2026-08-23",
+      "state_code": "MH",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/mh/routing-26223f8a2dca11615daf789645a98fc2a661acda700c77c06ad89c61fb180e54.json"
+    },
+    "in-ml-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 145131,
+      "coverage_scope": "Full State of Meghalaya; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-ml-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/ml/routing-43c31b9841cd4b5bb9cf51b30d8ddaab32101943b7ae43ccc370050dc4875a36.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "43c31b9841cd4b5bb9cf51b30d8ddaab32101943b7ae43ccc370050dc4875a36",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "ML",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ml/routing-43c31b9841cd4b5bb9cf51b30d8ddaab32101943b7ae43ccc370050dc4875a36.json"
+    },
+    "in-mn-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 142602,
+      "coverage_scope": "Full State of Manipur; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-mn-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/mn/routing-2c082f397b4910a02224fdf11fc6b765ca554be80466bcafd19181edb82a298d.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "2c082f397b4910a02224fdf11fc6b765ca554be80466bcafd19181edb82a298d",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "MN",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/mn/routing-2c082f397b4910a02224fdf11fc6b765ca554be80466bcafd19181edb82a298d.json"
+    },
+    "in-mp-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 1503872,
+      "coverage_scope": "Full State of Madhya Pradesh; neutral CM Helpline grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Madhya Pradesh grievance sources: respective source terms"
+      ],
+      "pack_id": "in-mp-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/mp/routing-1b5e4302412434c0cbfec49ac4c3a3f7edcd657341dd2b400e25807b28a82ff8.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "1b5e4302412434c0cbfec49ac4c3a3f7edcd657341dd2b400e25807b28a82ff8",
+      "source_retrieved_at": "2026-08-25",
+      "state_code": "MP",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/mp/routing-1b5e4302412434c0cbfec49ac4c3a3f7edcd657341dd2b400e25807b28a82ff8.json"
+    },
+    "in-mz-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 302355,
+      "coverage_scope": "Full State of Mizoram; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-mz-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/mz/routing-2985227241a58a9668da12d26588878be6e9787357349daf411a034f04337afc.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "2985227241a58a9668da12d26588878be6e9787357349daf411a034f04337afc",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "MZ",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/mz/routing-2985227241a58a9668da12d26588878be6e9787357349daf411a034f04337afc.json"
+    },
+    "in-nl-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 214533,
+      "coverage_scope": "Full State of Nagaland; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-nl-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/nl/routing-be6d644c0b575f6e3018fda5b1d3d00f0f34b7c0e871270d92d33173979580d3.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "be6d644c0b575f6e3018fda5b1d3d00f0f34b7c0e871270d92d33173979580d3",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "NL",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/nl/routing-be6d644c0b575f6e3018fda5b1d3d00f0f34b7c0e871270d92d33173979580d3.json"
+    },
+    "in-od-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 483828,
+      "coverage_scope": "Full State of Odisha; neutral Jana Sunani grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Odisha grievance sources: respective source terms"
+      ],
+      "pack_id": "in-od-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/od/routing-2df3600c8209fa33e6ff4676d9dabaca186be237994fbab85a7f765f9e748807.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "2df3600c8209fa33e6ff4676d9dabaca186be237994fbab85a7f765f9e748807",
+      "source_retrieved_at": "2026-08-25",
+      "state_code": "OD",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/od/routing-2df3600c8209fa33e6ff4676d9dabaca186be237994fbab85a7f765f9e748807.json"
+    },
+    "in-pb-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 178035,
+      "coverage_scope": "Full State of Punjab; neutral Connect Punjab grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Punjab grievance sources: respective source terms"
+      ],
+      "pack_id": "in-pb-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/pb/routing-49127336c8ccdc08fe4e197fc84cf7634473c162eb61d8af98711779867ee613.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "49127336c8ccdc08fe4e197fc84cf7634473c162eb61d8af98711779867ee613",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "PB",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/pb/routing-49127336c8ccdc08fe4e197fc84cf7634473c162eb61d8af98711779867ee613.json"
+    },
+    "in-py-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 68733,
+      "coverage_scope": "Full Union Territory of Puducherry; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-py-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/py/routing-a5423764eaa7dd0c457c789193904ec55b76b89eab8b76946c3e6d6a0beb6a74.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "a5423764eaa7dd0c457c789193904ec55b76b89eab8b76946c3e6d6a0beb6a74",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "PY",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/py/routing-a5423764eaa7dd0c457c789193904ec55b76b89eab8b76946c3e6d6a0beb6a74.json"
+    },
+    "in-rj-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 457335,
+      "coverage_scope": "Full State of Rajasthan; neutral Rajasthan Sampark grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Rajasthan grievance sources: respective source terms"
+      ],
+      "pack_id": "in-rj-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/rj/routing-b80f47e0209704f7edbacbf3798eefa737e2650733a455865097931187a47499.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "b80f47e0209704f7edbacbf3798eefa737e2650733a455865097931187a47499",
+      "source_retrieved_at": "2026-08-25",
+      "state_code": "RJ",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/rj/routing-b80f47e0209704f7edbacbf3798eefa737e2650733a455865097931187a47499.json"
+    },
+    "in-sk-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 124094,
+      "coverage_scope": "Full State of Sikkim; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-sk-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/sk/routing-58da5dd581bf0b7623ea2015cb095d865c1731e54a0e0346556ec8730a5c1c85.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "58da5dd581bf0b7623ea2015cb095d865c1731e54a0e0346556ec8730a5c1c85",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "SK",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/sk/routing-58da5dd581bf0b7623ea2015cb095d865c1731e54a0e0346556ec8730a5c1c85.json"
+    },
+    "in-tg-routing": {
+      "adapter": "municipal-city-v1",
+      "bytes": 4405,
+      "coverage_scope": "Official Hyderabad 2,053 km² CURE point-query coverage; shared grievance intake",
+      "kind": "routing",
+      "licenses": [
+        "Official TGRAC public query service; no boundary geometry redistributed"
+      ],
+      "pack_id": "in-tg-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/tg/routing-92c67b4f7e7ec11b99f8f48411582cae0d0fabdd972480d7f1b82eb3fa1d0cb9.json",
+      "review_after": "2026-09-21",
+      "schema_version": 1,
+      "sha256": "92c67b4f7e7ec11b99f8f48411582cae0d0fabdd972480d7f1b82eb3fa1d0cb9",
+      "source_retrieved_at": "2026-08-23",
+      "state_code": "TG",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tg/routing-92c67b4f7e7ec11b99f8f48411582cae0d0fabdd972480d7f1b82eb3fa1d0cb9.json"
+    },
+    "in-tg-state-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 333514,
+      "coverage_scope": "Full State of Telangana; neutral Prajavani grievance handoff; exact Hyderabad CURE route remains more specific",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Telangana grievance sources: respective source terms"
+      ],
+      "pack_id": "in-tg-state-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/tg/routing-6ecabec0bbf110e023aa1f65c46e42c50efed2c63e9a67edb4aeb15a86832d67.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "6ecabec0bbf110e023aa1f65c46e42c50efed2c63e9a67edb4aeb15a86832d67",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "TG",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tg/routing-6ecabec0bbf110e023aa1f65c46e42c50efed2c63e9a67edb4aeb15a86832d67.json"
+    },
+    "in-tn-routing": {
+      "adapter": "municipal-city-v1",
+      "bytes": 15737,
+      "coverage_scope": "Greater Chennai Corporation limits",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0"
+      ],
+      "pack_id": "in-tn-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/tn/routing-d1d32b82476c98be6a344e5d4ec788f0acbe63a8b4479453e78c3392eff7bb56.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "d1d32b82476c98be6a344e5d4ec788f0acbe63a8b4479453e78c3392eff7bb56",
+      "source_retrieved_at": "2026-08-21",
+      "state_code": "TN",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tn/routing-d1d32b82476c98be6a344e5d4ec788f0acbe63a8b4479453e78c3392eff7bb56.json"
+    },
+    "in-tn-state-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 494448,
+      "coverage_scope": "Full State of Tamil Nadu; neutral Mudhalvarin Mugavari grievance handoff; excludes Puducherry Union Territory",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Tamil Nadu grievance sources: respective source terms"
+      ],
+      "pack_id": "in-tn-state-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/tn/routing-5933d7ff31dcc2c6bd34849c7f4349c71b713bdf9f06f5a4f00733058fe8dcd9.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "5933d7ff31dcc2c6bd34849c7f4349c71b713bdf9f06f5a4f00733058fe8dcd9",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "TN",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tn/routing-5933d7ff31dcc2c6bd34849c7f4349c71b713bdf9f06f5a4f00733058fe8dcd9.json"
+    },
+    "in-top50-routing": {
+      "adapter": "major-city-structured-v1",
+      "bytes": 64706,
+      "coverage_scope": "35 additional Census 2011 top-50 population centres; conservative structured city/state matching",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official state and urban grievance sources: respective source terms"
+      ],
+      "pack_id": "in-top50-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/in/routing-0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "IN",
+      "statewide": false,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/in/routing-0250e95980b7c801986a2bf025c82e4b8eb2745fe36dad09fc6dfb2a5a4f8bf5.json"
+    },
+    "in-tr-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 413714,
+      "coverage_scope": "Full State of Tripura; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-tr-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/tr/routing-b8e650c23ab5ce613087ccbddb39a458759e9f24f38a4fdaedb3b18ee19767e7.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "b8e650c23ab5ce613087ccbddb39a458759e9f24f38a4fdaedb3b18ee19767e7",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "TR",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/tr/routing-b8e650c23ab5ce613087ccbddb39a458759e9f24f38a4fdaedb3b18ee19767e7.json"
+    },
+    "in-uk-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 152992,
+      "coverage_scope": "Full State of Uttarakhand; conservative official grievance handoff",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official government grievance sources: respective source terms"
+      ],
+      "pack_id": "in-uk-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/uk/routing-106773d783ef0670ac39959a35c7041981bd1cad6716250c4762c4d4173bcd25.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "106773d783ef0670ac39959a35c7041981bd1cad6716250c4762c4d4173bcd25",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "UK",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/uk/routing-106773d783ef0670ac39959a35c7041981bd1cad6716250c4762c4d4173bcd25.json"
+    },
+    "in-up-routing": {
+      "adapter": "statewide-general-v1",
+      "bytes": 963055,
+      "coverage_scope": "Full State of Uttar Pradesh; neutral Jansunwai grievance handoff; excludes Delhi National Capital Territory",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official Uttar Pradesh grievance sources: respective source terms"
+      ],
+      "pack_id": "in-up-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/up/routing-568843c6fbad846df00d01b1c99f462c74b05afb0021e7317ca86f8076e6a7e6.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "568843c6fbad846df00d01b1c99f462c74b05afb0021e7317ca86f8076e6a7e6",
+      "source_retrieved_at": "2026-08-25",
+      "state_code": "UP",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/up/routing-568843c6fbad846df00d01b1c99f462c74b05afb0021e7317ca86f8076e6a7e6.json"
+    },
+    "in-wb-routing": {
+      "adapter": "west-bengal-statewide-v1",
+      "bytes": 2069831,
+      "coverage_scope": "Full State of West Bengal; exact Kolkata Municipal Corporation route where verified",
+      "kind": "routing",
+      "licenses": [
+        "OpenStreetMap data: ODbL 1.0",
+        "Official West Bengal UDMA and KMC sources: respective source terms"
+      ],
+      "pack_id": "in-wb-routing",
+      "pack_version": 1,
+      "path": "packs/v1/states/wb/routing-32d83cef19eb490cedfec38323ae17ad225c9a1f1ae267e385e9635eab5ccb83.json",
+      "review_after": "2026-11-21",
+      "schema_version": 1,
+      "sha256": "32d83cef19eb490cedfec38323ae17ad225c9a1f1ae267e385e9635eab5ccb83",
+      "source_retrieved_at": "2026-08-24",
+      "state_code": "WB",
+      "statewide": true,
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/wb/routing-32d83cef19eb490cedfec38323ae17ad225c9a1f1ae267e385e9635eab5ccb83.json"
+    }
+  },
+  "schema_version": 1
+}

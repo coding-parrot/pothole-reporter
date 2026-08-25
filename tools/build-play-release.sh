@@ -14,7 +14,7 @@ AAB_PATH=$ANDROID_ROOT/app/build/outputs/bundle/release/app-release.aab
 BUNDLE_MANIFEST=$ANDROID_ROOT/app/build/intermediates/bundle_manifest/release/processApplicationManifestReleaseForBundle/AndroidManifest.xml
 WWW_ROOT=android-app/www
 PACKAGED_ASSETS_ROOT=$ANDROID_ROOT/app/src/main/assets/public
-PACK_MANIFEST=static/pack-manifest-v1.34.json
+PACK_MANIFEST=static/pack-manifest-v1.35.json
 PREVIOUS_PACK_MANIFEST=static/pack-manifest-v1.33.json
 V131_PACK_MANIFEST=static/pack-manifest-v1.31.json
 V130_PACK_MANIFEST=static/pack-manifest-v1.30.json
@@ -70,7 +70,7 @@ echo "1/7 validating hosted data packs, municipal schemas and web-source mirrors
 python3 tools/build-state-packs.py --check
 python3 tools/build-national-highways.py --check
 python3 tests/state_pack_validation_test.py
-same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.34.json" "v1.34 pack manifest mirror"
+same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.35.json" "v1.35 pack manifest mirror"
 same_file "$PREVIOUS_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.33.json" "v1.33 pack manifest mirror"
 same_file "$V131_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.31.json" "v1.31 pack manifest mirror"
 same_file "$V130_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.30.json" "v1.30 pack manifest mirror"

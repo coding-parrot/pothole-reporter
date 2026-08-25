@@ -91,7 +91,7 @@
 
   <section>
     <h2>Versioned data packs</h2>
-    <p>Large routing, contact, highway, and procurement datasets are not embedded in the APK. The v1.34 state-pack manifest pins 22 resources—twenty-one routing/contact packs and one optional Karnataka tender pack—and the highway manifest pins 101 National Highway tiles by version, HTTPS URL, byte length, and SHA-256 checksum. The old unversioned and v1.26–v1.31 manifests remain unchanged for their cached clients; v1.32 introduced no catalog, and the v1.33 eighteen-resource manifest also remains unchanged. v1.34 reads <code>pack-manifest-v1.34.json</code> so a mixed cache cannot disable valid routing. Its Karnataka tender resource uses the carriageway-scope-filtered v2 adapter. The routing packs cover Andhra Pradesh, Bihar, Chhattisgarh, Delhi, Goa, Gujarat, Karnataka, Kerala, Madhya Pradesh, Maharashtra, Odisha, Punjab, Rajasthan, Tamil Nadu, Telangana, Uttar Pradesh, West Bengal, and the additional top-50 city routes; Karnataka, Tamil Nadu, and Telangana each use separate statewide and more-specific routing packs. The Gujarat pack contains a dissolved copy of the reviewed 48-ward AMC boundary.</p>
+    <p>Large routing, contact, highway, and procurement datasets are not embedded in the APK. The v1.35 state-pack manifest pins 42 resources—forty-one routing/contact packs covering all 28 states and all 8 Union Territories, including the additional top-50 city routes, plus one optional Karnataka tender pack—and the highway manifest pins 101 National Highway tiles by version, HTTPS URL, byte length, and SHA-256 checksum. The old unversioned and v1.26–v1.34 manifests remain unchanged for their cached clients; v1.32 introduced no catalog. v1.35 reads <code>pack-manifest-v1.35.json</code> so a mixed cache cannot disable valid routing. Its Karnataka tender resource uses the carriageway-scope-filtered v2 adapter. Karnataka, Tamil Nadu, and Telangana each use separate statewide and more-specific routing packs. The Gujarat packs keep the reviewed 48-ward AMC boundary and statewide containment separate.</p>
     <p>The app downloads a pack from this project's GitHub Pages site, verifies the complete response before parsing it, and caches only verified bytes locally. Missing, malformed, truncated, or checksum-mismatched required routing/contact data makes the affected route fail closed. Polygon routes never fall back to a geocoder place name. Failure of the optional Karnataka tender pack does not block a report—it continues without contract context. A verified cached pack can be read after its first successful download. On a subsequent pack use, caches past their unused limits are pruned automatically; <strong>Delete all app data</strong> clears the entire cache immediately.</p>
     <p>The request contains no report, road photo, or exact coordinates. GitHub Pages can receive the device's IP address, standard connection metadata, and the requested URL; the URL reveals a state or an approximate 2° highway tile. Keeping reference data separate prevents nationwide geometry from inflating the core APK.</p>
   </section>
@@ -158,6 +158,36 @@
     <h3>Statewide Odisha fallback</h3>
     <p>Every point whose complete GPS-accuracy circle is confidently inside <a href="https://www.openstreetmap.org/relation/1984022">OpenStreetMap relation 1984022</a> is eligible for neutral <a href="https://janasunani.odisha.gov.in/grievance-details">Odisha Jana Sunani</a> after the National Highway check. The ODbL MultiPolygon was retrieved on 25 August 2026 at seven-decimal precision, and its geometry SHA-256 is <code>af0fe4941b6cdd2abe5dc5717db8875bec6b68a2d6671002d2afc9c7d37d5179</code>. A GPS circle touching the coast, state edge, or a neighbouring state fails closed.</p>
     <p>The Government of Odisha portal accepts grievances through web, mobile app, WhatsApp, email, letter, and in-person channels and routes them to selected districts, departments, or offices. The official Android package is <a href="https://play.google.com/store/apps/details?id=com.sociomatic.janasunani"><code>com.sociomatic.janasunani</code></a>, its WhatsApp chatbot is <strong>+91 63709 51930</strong>, and the Government of Odisha publishes Sanjog helpline <strong>155335</strong>. Even the skip-login form requires mobile OTP and interactive locality and recipient choices. The user must verify those choices and finish externally; there is no documented public complaint-write API integration, automatic filing, ownership inference, or contract matching.</p>
+    <h3>Nationwide completion boundaries and handoffs</h3>
+    <p>Twenty separate checksum-pinned packs add or expand the 13 states and 7 Union Territories below, completing coordinate-based civic routing for all 28 states and all 8 Union Territories. Each ODbL administrative relation was retrieved through OpenStreetMap Nominatim on 26 August 2026 at seven-decimal precision. The build pins its relation ID, source bounding box, geometry SHA-256, test points, and official handoff metadata and refuses a changed object or geometry.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Jurisdiction</th><th>Pinned OSM relation</th><th>Conservative official handoff</th></tr></thead>
+        <tbody>
+          <tr><td>Arunachal Pradesh</td><td><a href="https://www.openstreetmap.org/relation/2027346">2027346</a></td><td><a href="https://cmejansunwai.arunachal.gov.in/">CM e-Jan Sunwai</a></td></tr>
+          <tr><td>Assam</td><td><a href="https://www.openstreetmap.org/relation/2025886">2025886</a></td><td><a href="https://pgportal.gov.in/">CPGRAMS</a></td></tr>
+          <tr><td>Gujarat</td><td><a href="https://www.openstreetmap.org/relation/1949080">1949080</a></td><td><a href="https://swagat.gujarat.gov.in/">SWAGAT</a></td></tr>
+          <tr><td>Haryana</td><td><a href="https://www.openstreetmap.org/relation/1942601">1942601</a></td><td><a href="https://pgportal.gov.in/">CPGRAMS</a></td></tr>
+          <tr><td>Himachal Pradesh</td><td><a href="https://www.openstreetmap.org/relation/364186">364186</a></td><td><a href="https://esamadhan.nic.in/welcome.aspx">eSamadhan</a></td></tr>
+          <tr><td>Jharkhand</td><td><a href="https://www.openstreetmap.org/relation/1960191">1960191</a></td><td><a href="https://pgportal.gov.in/">CPGRAMS</a>; <a href="https://pgms.dmajharkhand.in/index.aspx">municipal PGMS</a> alternate</td></tr>
+          <tr><td>Manipur</td><td><a href="https://www.openstreetmap.org/relation/2027869">2027869</a></td><td><a href="https://govconnectmanipur.mn.gov.in/">GovConnect Manipur</a></td></tr>
+          <tr><td>Meghalaya</td><td><a href="https://www.openstreetmap.org/relation/2027521">2027521</a></td><td><a href="https://cmconnect.meghalaya.gov.in/">CM Connect</a></td></tr>
+          <tr><td>Mizoram</td><td><a href="https://www.openstreetmap.org/relation/2029046">2029046</a></td><td><a href="https://mipuiaw.mizoram.gov.in/">Mipui Aw</a></td></tr>
+          <tr><td>Nagaland</td><td><a href="https://www.openstreetmap.org/relation/2027973">2027973</a></td><td><a href="https://pgportal.gov.in/">CPGRAMS</a></td></tr>
+          <tr><td>Sikkim</td><td><a href="https://www.openstreetmap.org/relation/1791324">1791324</a></td><td><a href="https://pgportal.gov.in/">CPGRAMS</a>; <a href="https://www.sikkim.gov.in/">Sikkim State Portal</a> alternate</td></tr>
+          <tr><td>Tripura</td><td><a href="https://www.openstreetmap.org/relation/2026458">2026458</a></td><td><a href="https://cmhelpline.tripura.gov.in/">CM Helpline</a></td></tr>
+          <tr><td>Uttarakhand</td><td><a href="https://www.openstreetmap.org/relation/9987086">9987086</a></td><td><a href="https://cmhelpline.uk.gov.in/">CM Helpline</a></td></tr>
+          <tr><td>Andaman and Nicobar Islands UT</td><td><a href="https://www.openstreetmap.org/relation/2025855">2025855</a></td><td><a href="https://pgportal.gov.in/">CPGRAMS</a></td></tr>
+          <tr><td>Chandigarh UT</td><td><a href="https://www.openstreetmap.org/relation/1942809">1942809</a></td><td><a href="https://pgportal.gov.in/">CPGRAMS</a></td></tr>
+          <tr><td>Dadra and Nagar Haveli and Daman and Diu UT</td><td><a href="https://www.openstreetmap.org/relation/1952530">1952530</a></td><td><a href="https://pgportal.gov.in/">CPGRAMS</a></td></tr>
+          <tr><td>Jammu and Kashmir UT</td><td><a href="https://www.openstreetmap.org/relation/1943188">1943188</a></td><td><a href="https://samadhan.jk.gov.in/">JK Samadhan</a></td></tr>
+          <tr><td>Ladakh UT</td><td><a href="https://www.openstreetmap.org/relation/5515045">5515045</a></td><td><a href="https://grievance.ladakh.gov.in/">Ladakh grievance portal</a></td></tr>
+          <tr><td>Lakshadweep UT</td><td><a href="https://www.openstreetmap.org/relation/2027460">2027460</a></td><td><a href="https://pgportal.gov.in/">CPGRAMS</a></td></tr>
+          <tr><td>Puducherry UT</td><td><a href="https://www.openstreetmap.org/relation/107001">107001</a></td><td><a href="https://pgportal.gov.in/">CPGRAMS</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>National Highway matching runs first, and existing exact municipal, metropolitan, and authority-specific routes remain preferred. A fallback is eligible only when the complete GPS-accuracy circle is inside one pinned state/UT polygon; coast, enclave, and border ambiguity fails closed. Containment selects a neutral starting channel only: it does not identify a municipality or road owner, guarantee category acceptance, call a complaint-write API, or submit anything. The citizen must choose and verify the recipient and retain the official reference ID.</p>
     <h3>National Capital Territory of Delhi</h3>
     <p>Delhi coverage uses <a href="https://www.openstreetmap.org/relation/1942586">OpenStreetMap relation 1942586</a> under the ODbL, checked against the <a href="https://stategisportal.nic.in/stategisportal/Home/Map/7">official Delhi State GIS scope</a>. The 21 August 2026 routing data measures 1,483.885 km² and the runtime pins geometry SHA-256 <code>3462ba68bdbbc1fdebc99403aa9e1f9db5e0b78e30ca138b2d25df7463506ab3</code>. Only the full Delhi NCT receives the Delhi route; Noida, Gurugram, Ghaziabad, and Faridabad cannot inherit it. Noida and Ghaziabad may qualify independently through the exact Uttar Pradesh route, while Faridabad retains its conservative top-50 neutral route. The NCT polygon cannot establish whether PWD, MCD, NDMC, Cantonment, DDA, NHAI, or another agency maintains a road.</p>
     <h3>External channels</h3>
@@ -216,12 +246,17 @@
           <tr>
             <td>Street address</td>
             <td><a href="https://nominatim.org/">OpenStreetMap Nominatim</a> reverse-geocodes phone coordinates.</td>
-            <td>Map data can be missing, stale, or imprecise. Place fields are display-only for every polygon route, including Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh, Rajasthan, Goa, Madhya Pradesh, Bihar, Odisha, and Ahmedabad. The 8 structured-city routes require exact configured city/municipality and state fields inside a conservative envelope, but those fields do not prove a boundary or owner. The complaint includes coordinates so the result can be checked.</td>
+            <td>Map data can be missing, stale, or imprecise. Place fields are display-only for every state/UT and exact polygon route. The 8 structured-city routes require exact configured city/municipality and state fields inside a conservative envelope, but those fields do not prove a boundary or owner. The complaint includes coordinates so the result can be checked.</td>
           </tr>
           <tr>
             <td>National Highway reference and grievance route</td>
             <td>A checksum-verified 2° tile derived from the pinned ODbL OpenStreetMap India extract is matched locally before municipal routing; accepted points offer Rajmargyatra, CPGRAMS, and 1033.</td>
             <td>Mapped geometry is not the legal highway register and does not identify NHAI, NHIDCL, BRO, or State PWD as maintainer. Ambiguous or low-confidence matches are refused.</td>
+          </tr>
+          <tr>
+            <td>Nationwide state/UT grievance route</td>
+            <td>Checksum-pinned ODbL administrative polygons provide coordinate containment for all 28 states and 8 Union Territories, then open a conservative official grievance channel.</td>
+            <td>National Highway and exact city/authority routes stay first. Containment does not prove the responsible body or road owner, and the app does not submit the complaint.</td>
           </tr>
           <tr>
             <td>Maharashtra coverage and civic-body suggestion</td>
@@ -356,6 +391,7 @@
   <section>
     <h2>Current coverage and data limits</h2>
     <ul>
+      <li>All 28 states and 8 Union Territories have checksum-pinned ODbL boundary containment and a conservative official grievance handoff. The complete GPS-accuracy circle must stay inside one jurisdiction; border ambiguity fails closed. National Highway and exact city/authority routes retain precedence. Containment does not prove road ownership, identify the responsible local body, guarantee category acceptance, or submit anything.</li>
       <li>Maharashtra-wide evidence and official-handoff coverage uses a pinned ODbL state boundary. Outside exact MMR and PMC routes, Aaple Sarkar is neutral and the user must select and verify the responsible department.</li>
       <li>MMR coverage targets all 19 urban local bodies and the remaining rural extent. The outer OSM outline is approximate and not a legal boundary. Eleven valid civic polygons can select a specific body; the rest use Aaple Sarkar. No suggestion determines road ownership.</li>
       <li>PMC-specific routing is limited to the current official PMC GIS boundary. PCMC remains in statewide Maharashtra coverage but is not routed as PMC.</li>
@@ -384,9 +420,9 @@
       <li>Of 42,283 title-matched source candidates, 18,972 are DMA or legacy BBMP records. Of those, 7,473 explicitly include carriageway work and the downloadable pack retains the 5,351 indexed to a supported body.</li>
       <li>The full source has 41,159 records without a winning bidder. The filtered 5,351-row pack has 4,825 without one and 526 with one.</li>
       <li>Mapped National Highways and National Expressways across India are checked before municipal routes and offered a neutral Rajmargyatra/1033 handoff. Unmapped stretches and unsafe matches are not guessed.</li>
-      <li>For Karnataka, rural roads, unknown road classes, and unsupported bodies are not routed to a municipal recipient; exact state containment can offer neutral Janaspandana instead. Other locations outside the nationwide mapped highway layer, the full Maharashtra/West Bengal/Punjab/Karnataka/Kerala/Tamil Nadu/Andhra Pradesh/Telangana/Uttar Pradesh/Chhattisgarh/Rajasthan/Goa/Madhya Pradesh/Bihar/Odisha boundaries, and the supported reviewed/top-50 routes are not routed.</li>
+      <li>For Karnataka, rural roads, unknown road classes, and unsupported bodies are not routed to a municipal recipient; exact state containment can offer neutral Janaspandana instead. Elsewhere, a confidently contained state/UT point can use the conservative official handoff even when no more specific city route exists.</li>
       <li>All counts describe the repository snapshot above, not the current contents of an external portal.</li>
-      <li>The public Nominatim endpoint is cached on an approximately 11 m grid and requests are serialized below one per second. A large deployment needs a policy-compliant managed or self-hosted service. The 8 additional city routes depend on exact Nominatim structured fields. Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh, Rajasthan, Goa, Madhya Pradesh, Bihar, Odisha, Delhi, and Ahmedabad boundary routing remains local; Android's specific Hyderabad CURE route sends the GPS-accuracy envelope to TGRAC's official CURE and Cantonment query services.</li>
+      <li>The public Nominatim endpoint is cached on an approximately 11 m grid and requests are serialized below one per second. A large deployment needs a policy-compliant managed or self-hosted service. The 8 additional city routes depend on exact Nominatim structured fields. All state/UT and other downloaded polygon routing remains local; Android's specific Hyderabad CURE route sends the GPS-accuracy envelope to TGRAC's official CURE and Cantonment query services.</li>
     </ul>
   </section>
 

@@ -91,6 +91,32 @@ EXPECTED_RESOURCES = {
         "WB", "routing", "pothole-routing-pack", "west-bengal-statewide-v1"
     ),
 }
+REMAINING_STATE_RESOURCES = {
+    "in-ar-routing": "AR",
+    "in-as-routing": "AS",
+    "in-gj-state-routing": "GJ",
+    "in-hr-routing": "HR",
+    "in-hp-routing": "HP",
+    "in-jh-routing": "JH",
+    "in-mn-routing": "MN",
+    "in-ml-routing": "ML",
+    "in-mz-routing": "MZ",
+    "in-nl-routing": "NL",
+    "in-sk-routing": "SK",
+    "in-tr-routing": "TR",
+    "in-uk-routing": "UK",
+    "in-an-routing": "AN",
+    "in-ch-routing": "CH",
+    "in-dh-routing": "DH",
+    "in-jk-routing": "JK",
+    "in-la-routing": "LA",
+    "in-ld-routing": "LD",
+    "in-py-routing": "PY",
+}
+EXPECTED_RESOURCES.update({
+    pack_id: (code, "routing", "pothole-routing-pack", "statewide-general-v1")
+    for pack_id, code in REMAINING_STATE_RESOURCES.items()
+})
 MUNICIPAL_CITY_RESOURCES = {
     "in-tn-routing": {
         "region_id": "chennai-gcc",
@@ -311,10 +337,10 @@ def check_municipal_city_pack(pack_id: str, envelope: dict, failures: list[str])
 
 
 def check_catalog(failures: list[str]) -> dict:
-    static_manifest = ROOT / "static" / "pack-manifest-v1.34.json"
-    pages_manifest = ROOT / "docs" / "pack-manifest-v1.34.json"
+    static_manifest = ROOT / "static" / "pack-manifest-v1.35.json"
+    pages_manifest = ROOT / "docs" / "pack-manifest-v1.35.json"
     if not MANIFEST_PATH.is_file() or not static_manifest.is_file() or not pages_manifest.is_file():
-        failures.append("pack-manifest-v1.34.json is missing from static, Android, or GitHub Pages assets")
+        failures.append("pack-manifest-v1.35.json is missing from static, Android, or GitHub Pages assets")
         return {}
     if MANIFEST_PATH.read_bytes() != static_manifest.read_bytes():
         failures.append("static and Android pack manifests differ")
@@ -322,7 +348,7 @@ def check_catalog(failures: list[str]) -> dict:
         failures.append("static and GitHub Pages pack manifests differ")
 
     # Older JavaScript hard-validates exact resource sets. Every earlier catalog must
-    # remain byte-for-byte immutable while v1.34 uses its own catalog URL.
+    # remain byte-for-byte immutable while v1.35 uses its own catalog URL.
     legacy_paths = [
         ROOT / "static" / "pack-manifest.json",
         ROOT / "android-app" / "www" / "pack-manifest.json",
@@ -504,6 +530,30 @@ def check_catalog(failures: list[str]) -> dict:
                 failures.append("v1.33 manifest no longer exposes exactly its 18 resources")
         except (TypeError, ValueError):
             failures.append("v1.33 pack manifest is not valid JSON")
+
+    v134_paths = [
+        ROOT / "static" / "pack-manifest-v1.34.json",
+        ROOT / "android-app" / "www" / "pack-manifest-v1.34.json",
+        ROOT / "docs" / "pack-manifest-v1.34.json",
+    ]
+    v134_digest = "019bb8b8f244db75c2031231ddd92b4db3205a46be47f2f76378c366b556b41e"
+    if any(not path.is_file() for path in v134_paths):
+        failures.append("v1.34 pack manifest mirror is missing")
+    else:
+        v134_bytes = v134_paths[0].read_bytes()
+        if any(path.read_bytes() != v134_bytes for path in v134_paths[1:]):
+            failures.append("v1.34 pack manifest mirrors differ")
+        if hashlib.sha256(v134_bytes).hexdigest() != v134_digest:
+            failures.append("v1.34 pack manifest changed")
+        try:
+            v134 = json.loads(v134_bytes)
+            v134_resources = v134.get("resources", {})
+            if len(v134_resources) != 22 or any(
+                pack_id in v134_resources for pack_id in REMAINING_STATE_RESOURCES
+            ):
+                failures.append("v1.34 manifest no longer exposes exactly its 22 resources")
+        except (TypeError, ValueError):
+            failures.append("v1.34 pack manifest is not valid JSON")
 
     try:
         manifest = load_manifest()
@@ -1183,7 +1233,7 @@ def check_bad_manifest(browser, failures: list[str]) -> None:
             route.abort()
 
         context.route(
-            "**/pack-manifest-v1.34.json",
+            "**/pack-manifest-v1.35.json",
             manifest_response(status, body),
         )
         context.route("**/packs/v1/**", count_pack)
@@ -1257,7 +1307,7 @@ def check_lru_limit(browser, manifest: dict, failures: list[str]) -> None:
 
     context = browser.new_context(viewport={"width": 390, "height": 844})
     context.route(
-        "**/pack-manifest-v1.34.json",
+        "**/pack-manifest-v1.35.json",
         lambda route: route.fulfill(
             status=200, content_type="application/json",
             body=json.dumps(custom, separators=(",", ":")),

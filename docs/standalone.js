@@ -96,7 +96,7 @@
   // State-specific contacts and polygons live in immutable data packs. The APK keeps
   // only the parsers, strict validators and the package IDs Android permits it to query.
   // A downloaded pack can therefore add data, never executable behaviour.
-  const AUTHORITY_REGISTRY_VERSION = 17;
+  const AUTHORITY_REGISTRY_VERSION = 18;
   const LAUNCHABLE_PACKAGES = new Set([
     "com.bmc.potholequickfix", "com.sis.pwdsewaapp", "com.kmc.app",
     "com.newnmmc.app", "com.nyatitechnologies.pmcroadmitra",
@@ -279,6 +279,13 @@
     "up-statewide-unverified", "cg-statewide-unverified", "rj-statewide-unverified",
     "ga-statewide-unverified", "mp-statewide-unverified", "br-statewide-unverified",
     "od-statewide-unverified",
+    "ar-statewide-unverified", "as-statewide-unverified", "gj-statewide-unverified",
+    "hr-statewide-unverified", "hp-statewide-unverified", "jh-statewide-unverified",
+    "mn-statewide-unverified", "ml-statewide-unverified", "mz-statewide-unverified",
+    "nl-statewide-unverified", "sk-statewide-unverified", "tr-statewide-unverified",
+    "uk-statewide-unverified", "an-statewide-unverified", "ch-statewide-unverified",
+    "dh-statewide-unverified", "jk-statewide-unverified", "la-statewide-unverified",
+    "ld-statewide-unverified", "py-statewide-unverified",
     "in-gj-enagar", "in-rj-sampark", "in-up-jansunwai", "in-mp-cm-helpline",
     "in-tn-cm-helpline", "in-kl-ksmart", "in-br-lok-shikayat", "in-ap-puramithra",
     "in-hr-nagar-darshan", "in-jh-municipal-grievance", "in-jk-samadhan", "in-cg-nidaan",
@@ -318,6 +325,7 @@
   const MADHYA_PRADESH_STATE_AUTHORITY = {};
   const BIHAR_STATE_AUTHORITY = {};
   const ODISHA_STATE_AUTHORITY = {};
+  const REMAINING_STATE_AUTHORITIES = new Map();
   const DELHI_PWD_AUTHORITY = {};
   const NATIONAL_HIGHWAY_AUTHORITY = {};
   const OFFICIAL_AUTHORITIES = [];
@@ -1071,7 +1079,16 @@ This is a strict before/after verification, not ordinary pothole detection:
     }
     validateOfficialHandoffRegistry(authorities);
     const byId = new Map(authorities.map((authority) => [authority.id, authority]));
-    if (pack.state_code === "MH") {
+    const remainingConfig = REMAINING_STATE_ROUTE_CONFIGS[pack.pack_id];
+    if (remainingConfig) {
+      if (pack.state_code !== remainingConfig.state_code || authorities.length !== 1
+          || !byId.has(remainingConfig.authority_id)) {
+        throw new Error("State/UT routing pack has an invalid authority registry.");
+      }
+      REMAINING_STATE_AUTHORITIES.set(pack.pack_id, byId.get(remainingConfig.authority_id));
+      PACK_AUTHORITIES_BY_STATE.set(pack.pack_id,
+        [REMAINING_STATE_AUTHORITIES.get(pack.pack_id)]);
+    } else if (pack.state_code === "MH") {
       const mmr = authorities.filter((authority) => authority.id.startsWith("mh-")
         && authority.id !== "mh-pmc" && authority.id !== "mh-mmr-unverified"
         && authority.id !== "mh-statewide-unverified");
@@ -1358,6 +1375,148 @@ This is a strict before/after verification, not ordinary pothole detection:
   // The signed APK carries this tiny manifest. It names one immutable URL and full
   // SHA-256 for every supported resource; GitHub Pages never gets coordinates, photos,
   // report IDs or the API key, only the state-specific path the phone requests.
+  const REMAINING_STATE_ROUTE_CONFIGS = Object.freeze({
+    "in-ar-routing": Object.freeze({
+      state_code: "AR", authority_id: "ar-statewide-unverified", name: "Arunachal Pradesh",
+      scope: "Full State of Arunachal Pradesh", relation_id: 2027346,
+      region_id: "arunachal-pradesh-state", routing_source: "osm_ar_state_boundary",
+      geometry_sha256: "cf8ed446e02b71170c565a43fec2ac4dc730f10f13adf34ab6e95ea4e898134d",
+      envelope: Object.freeze({ min_lng: 91.5623082, min_lat: 26.650863, max_lng: 97.3950905, max_lat: 29.3745566 }),
+    }),
+    "in-as-routing": Object.freeze({
+      state_code: "AS", authority_id: "as-statewide-unverified", name: "Assam",
+      scope: "Full State of Assam", relation_id: 2025886,
+      region_id: "assam-state", routing_source: "osm_as_state_boundary",
+      geometry_sha256: "fd8ac250fc17bfb9c07ab2035d84d874195bd98db60e5bc98731c136a83a59f4",
+      envelope: Object.freeze({ min_lng: 89.6986005, min_lat: 24.136033, max_lng: 96.0124397, max_lat: 27.9712428 }),
+    }),
+    "in-gj-state-routing": Object.freeze({
+      state_code: "GJ", authority_id: "gj-statewide-unverified", name: "Gujarat",
+      scope: "Full State of Gujarat", relation_id: 1949080,
+      region_id: "gujarat-state", routing_source: "osm_gj_state_boundary",
+      geometry_sha256: "11539b5cd872f93d70f7f1ba5fad4ef6fa237e808ff9721d0d6523ec5850024f",
+      envelope: Object.freeze({ min_lng: 68.1756585, min_lat: 20.1195321, max_lng: 74.4764325, max_lat: 24.7118932 }),
+    }),
+    "in-hr-routing": Object.freeze({
+      state_code: "HR", authority_id: "hr-statewide-unverified", name: "Haryana",
+      scope: "Full State of Haryana", relation_id: 1942601,
+      region_id: "haryana-state", routing_source: "osm_hr_state_boundary",
+      geometry_sha256: "3c0c4ddb274c2794ae25aaae3a827c2cbf3d846a49a81cf57ede9161ea5aab14",
+      envelope: Object.freeze({ min_lng: 74.4735074, min_lat: 27.6526273, max_lng: 77.6021432, max_lat: 30.9287706 }),
+    }),
+    "in-hp-routing": Object.freeze({
+      state_code: "HP", authority_id: "hp-statewide-unverified", name: "Himachal Pradesh",
+      scope: "Full State of Himachal Pradesh", relation_id: 364186,
+      region_id: "himachal-pradesh-state", routing_source: "osm_hp_state_boundary",
+      geometry_sha256: "6dd4a1580243a28e582a9eed78d8c005c07654602c3318c846c1077b13221b66",
+      envelope: Object.freeze({ min_lng: 75.5940055, min_lat: 30.3771701, max_lng: 79.0123843, max_lat: 33.2556686 }),
+    }),
+    "in-jh-routing": Object.freeze({
+      state_code: "JH", authority_id: "jh-statewide-unverified", name: "Jharkhand",
+      scope: "Full State of Jharkhand", relation_id: 1960191,
+      region_id: "jharkhand-state", routing_source: "osm_jh_state_boundary",
+      geometry_sha256: "14279df76d745224f5bb9c4076c73a7b5bdaa6f48aa56253f41507500ee46fd7",
+      envelope: Object.freeze({ min_lng: 83.3281137, min_lat: 21.9700317, max_lng: 87.9628253, max_lat: 25.3489225 }),
+    }),
+    "in-mn-routing": Object.freeze({
+      state_code: "MN", authority_id: "mn-statewide-unverified", name: "Manipur",
+      scope: "Full State of Manipur", relation_id: 2027869,
+      region_id: "manipur-state", routing_source: "osm_mn_state_boundary",
+      geometry_sha256: "1e1fac685f3309d7692c2b3164a5e6b69d26b51e7dd57cae5399ed21cbd984e3",
+      envelope: Object.freeze({ min_lng: 92.9707074, min_lat: 23.8336205, max_lng: 94.745244, max_lat: 25.6921015 }),
+    }),
+    "in-ml-routing": Object.freeze({
+      state_code: "ML", authority_id: "ml-statewide-unverified", name: "Meghalaya",
+      scope: "Full State of Meghalaya", relation_id: 2027521,
+      region_id: "meghalaya-state", routing_source: "osm_ml_state_boundary",
+      geometry_sha256: "db598e097615cee41266f4002c503a0b26ca6926eb470360dc38bd6a1d563bcf",
+      envelope: Object.freeze({ min_lng: 89.814444, min_lat: 25.0306475, max_lng: 92.8027367, max_lat: 26.1181651 }),
+    }),
+    "in-mz-routing": Object.freeze({
+      state_code: "MZ", authority_id: "mz-statewide-unverified", name: "Mizoram",
+      scope: "Full State of Mizoram", relation_id: 2029046,
+      region_id: "mizoram-state", routing_source: "osm_mz_state_boundary",
+      geometry_sha256: "1b968536683a5c4940b0da3365c8bb682a145be2f11aff152c498edbd6af2802",
+      envelope: Object.freeze({ min_lng: 92.2602224, min_lat: 21.9400528, max_lng: 93.4373696, max_lat: 24.5231304 }),
+    }),
+    "in-nl-routing": Object.freeze({
+      state_code: "NL", authority_id: "nl-statewide-unverified", name: "Nagaland",
+      scope: "Full State of Nagaland", relation_id: 2027973,
+      region_id: "nagaland-state", routing_source: "osm_nl_state_boundary",
+      geometry_sha256: "af89c3e42da64a065bf363339818b8d547aec93073ffd6e2f08680abc3777949",
+      envelope: Object.freeze({ min_lng: 93.3267005, min_lat: 25.1984274, max_lng: 95.2423775, max_lat: 27.035801 }),
+    }),
+    "in-sk-routing": Object.freeze({
+      state_code: "SK", authority_id: "sk-statewide-unverified", name: "Sikkim",
+      scope: "Full State of Sikkim", relation_id: 1791324,
+      region_id: "sikkim-state", routing_source: "osm_sk_state_boundary",
+      geometry_sha256: "4eaaf81eec2214272b63a7285f8a02bb6ccf008a3f51ef57c4f888574b3c04e8",
+      envelope: Object.freeze({ min_lng: 88.0120333, min_lat: 27.0792596, max_lng: 88.9211683, max_lat: 28.1240465 }),
+    }),
+    "in-tr-routing": Object.freeze({
+      state_code: "TR", authority_id: "tr-statewide-unverified", name: "Tripura",
+      scope: "Full State of Tripura", relation_id: 2026458,
+      region_id: "tripura-state", routing_source: "osm_tr_state_boundary",
+      geometry_sha256: "83f92257ffa7e8b496f3974b671fb68c29c212c0780c9170a189d50a7cd1fde8",
+      envelope: Object.freeze({ min_lng: 91.1508098, min_lat: 22.9376106, max_lng: 92.33585, max_lat: 24.530878 }),
+    }),
+    "in-uk-routing": Object.freeze({
+      state_code: "UK", authority_id: "uk-statewide-unverified", name: "Uttarakhand",
+      scope: "Full State of Uttarakhand", relation_id: 9987086,
+      region_id: "uttarakhand-state", routing_source: "osm_uk_state_boundary",
+      geometry_sha256: "b80016e74aee194fe734062b237855b3a3c8458a74dc345c07657fbc9cdd620a",
+      envelope: Object.freeze({ min_lng: 77.57133, min_lat: 28.7243243, max_lng: 81.044789, max_lat: 31.459016 }),
+    }),
+    "in-an-routing": Object.freeze({
+      state_code: "AN", authority_id: "an-statewide-unverified", name: "Andaman and Nicobar Islands",
+      scope: "Full Union Territory of Andaman and Nicobar Islands", relation_id: 2025855,
+      region_id: "andaman-and-nicobar-islands-ut", routing_source: "osm_an_ut_boundary",
+      geometry_sha256: "8fef75a710cb1c1f3b33f5c13253870a2c9d077768c354f65d4558bac0a2b090",
+      envelope: Object.freeze({ min_lng: 92.2042072, min_lat: 6.7562674, max_lng: 94.2773214, max_lat: 13.6753133 }),
+    }),
+    "in-ch-routing": Object.freeze({
+      state_code: "CH", authority_id: "ch-statewide-unverified", name: "Chandigarh",
+      scope: "Full Union Territory of Chandigarh", relation_id: 1942809,
+      region_id: "chandigarh-ut", routing_source: "osm_ch_ut_boundary",
+      geometry_sha256: "937c65d7f4fb34ddace22a55f32cc87fb6ca409b1f2586babbe4ca185cc6074d",
+      envelope: Object.freeze({ min_lng: 76.7049857, min_lat: 30.664974, max_lng: 76.849028, max_lat: 30.7949512 }),
+    }),
+    "in-dh-routing": Object.freeze({
+      state_code: "DH", authority_id: "dh-statewide-unverified", name: "Dadra and Nagar Haveli and Daman and Diu",
+      scope: "Full Union Territory of Dadra and Nagar Haveli and Daman and Diu", relation_id: 1952530,
+      region_id: "dadra-nagar-haveli-daman-diu-ut", routing_source: "osm_dh_ut_boundary",
+      geometry_sha256: "64dd2ec5067967a41915ba7e3ea1f7c6f29da0efd8fb91a1ad05ecf750d659bb",
+      envelope: Object.freeze({ min_lng: 70.8734588, min_lat: 20.0473907, max_lng: 73.2178258, max_lat: 20.7677936 }),
+    }),
+    "in-jk-routing": Object.freeze({
+      state_code: "JK", authority_id: "jk-statewide-unverified", name: "Jammu and Kashmir",
+      scope: "Full Union Territory of Jammu and Kashmir", relation_id: 1943188,
+      region_id: "jammu-and-kashmir-ut", routing_source: "osm_jk_ut_boundary",
+      geometry_sha256: "50af753f0a7a0ddcc52151bba8abb22024bf1d3629a5b2ead431524f800b9754",
+      envelope: Object.freeze({ min_lng: 73.7500338, min_lat: 32.2763569, max_lng: 76.7803165, max_lat: 34.7871414 }),
+    }),
+    "in-la-routing": Object.freeze({
+      state_code: "LA", authority_id: "la-statewide-unverified", name: "Ladakh",
+      scope: "Full Union Territory of Ladakh", relation_id: 5515045,
+      region_id: "ladakh-ut", routing_source: "osm_la_ut_boundary",
+      geometry_sha256: "816c039eb05986e1a75f53e7f4812b334bba73b32b73196b8813c8e90c9ac28c",
+      envelope: Object.freeze({ min_lng: 75.3269726, min_lat: 32.33574, max_lng: 79.460728, max_lat: 35.6729307 }),
+    }),
+    "in-ld-routing": Object.freeze({
+      state_code: "LD", authority_id: "ld-statewide-unverified", name: "Lakshadweep",
+      scope: "Full Union Territory of Lakshadweep", relation_id: 2027460,
+      region_id: "lakshadweep-ut", routing_source: "osm_ld_ut_boundary",
+      geometry_sha256: "d58545bdcecaa056484fb3ea7c6b3531ce744b5b120f6bac0185c3346cfd3a04",
+      envelope: Object.freeze({ min_lng: 71.5180377, min_lat: 8.0648198, max_lng: 73.9061436, max_lat: 12.6010064 }),
+    }),
+    "in-py-routing": Object.freeze({
+      state_code: "PY", authority_id: "py-statewide-unverified", name: "Puducherry",
+      scope: "Full Union Territory of Puducherry", relation_id: 107001,
+      region_id: "puducherry-ut", routing_source: "osm_py_ut_boundary",
+      geometry_sha256: "8bbb3f321588dacbce22ab379d9ba187d8c97a6a61b553f076a6da06a54c7c2d",
+      envelope: Object.freeze({ min_lng: 75.5265863, min_lat: 10.827721, max_lng: 82.3137136, max_lat: 16.7617112 }),
+    }),
+  });
   const PACK_SITE_ROOT = "https://coding-parrot.github.io/pothole-reporter/";
   const SUPPORTED_STATE_PACKS = Object.freeze({
     "in-dl-routing": { state_code: "DL", kind: "routing", adapter: "delhi-nct-v1" },
@@ -1382,6 +1541,11 @@ This is a strict before/after verification, not ordinary pothole detection:
     "in-tg-state-routing": { state_code: "TG", kind: "routing", adapter: "statewide-general-v1" },
     "in-tg-routing": { state_code: "TG", kind: "routing", adapter: "municipal-city-v1" },
     "in-gj-routing": { state_code: "GJ", kind: "routing", adapter: "municipal-city-v1" },
+    ...Object.fromEntries(Object.entries(REMAINING_STATE_ROUTE_CONFIGS).map(
+      ([packId, config]) => [packId, {
+        state_code: config.state_code, kind: "routing", adapter: "statewide-general-v1",
+      }],
+    )),
   });
   const STATE_PACK_MAX_BYTES = 16 * 1024 * 1024;
   const STATE_PACK_FETCH_TIMEOUT_MS = 30000;
@@ -1456,7 +1620,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     if (_statePackManifestPromise) return _statePackManifestPromise;
     _statePackManifestPromise = (async () => {
       try {
-        const response = await fetch("pack-manifest-v1.34.json", { cache: "no-store" });
+        const response = await fetch("pack-manifest-v1.35.json", { cache: "no-store" });
         if (!response.ok) return null;
         const text = await response.text();
         if (!text || text.length > 128 * 1024) return null;
@@ -2007,7 +2171,22 @@ This is a strict before/after verification, not ordinary pothole detection:
     }
     validateOfficialHandoffRegistry(pack.authorities);
     const payload = pack.payload;
-    if (resource.pack_id === "in-dl-routing") {
+    const remainingConfig = REMAINING_STATE_ROUTE_CONFIGS[resource.pack_id];
+    if (remainingConfig) {
+      if (pack.state_code !== remainingConfig.state_code
+          || pack.authorities.length !== 1
+          || pack.authorities[0].id !== remainingConfig.authority_id
+          || !await validatePinnedStatewidePayload(pack, {
+            region_id: remainingConfig.region_id,
+            authority_id: remainingConfig.authority_id,
+            name: remainingConfig.name,
+            scope: remainingConfig.scope,
+            relation_id: remainingConfig.relation_id,
+            geometry_sha256: remainingConfig.geometry_sha256,
+          })) {
+        throw new Error("State/UT routing pack failed its boundary, source or authority checks.");
+      }
+    } else if (resource.pack_id === "in-dl-routing") {
       const region = payload && payload.region;
       const digest = region && hasCoverageGeometry(region.geometry)
         ? await sha256Hex(JSON.stringify(region.geometry)) : null;
@@ -3370,8 +3549,9 @@ This is a strict before/after verification, not ordinary pothole detection:
         const pack = await loadStatePack(packId);
         const payload = pack && pack.payload;
         const region = payload && payload.region;
+        const authorityId = typeof authority === "string" ? authority : authority.id;
         if (payload && payload.version === 1 && region
-            && region.authority_id === authority.id
+            && region.authority_id === authorityId
             && Number(region.osm_relation_id) === relationId
             && region.geometry_sha256 === geometrySha256
             && hasCoverageGeometry(region.geometry)) {
@@ -3429,7 +3609,11 @@ This is a strict before/after verification, not ordinary pothole detection:
       return unroutedRoute("location_uncertain");
     }
     if (!inState) return null;
-    return authorityRoute(config.authority, {
+    const authority = config.authority || REMAINING_STATE_AUTHORITIES.get(config.pack_id);
+    if (!authority || authority.id !== coverage.region.authority_id) {
+      return unroutedRoute("jurisdiction_unavailable");
+    }
+    return authorityRoute(authority, {
       routing_source: config.routing_source,
       match_field: "boundary",
       match_value: `${config.name} (OpenStreetMap relation ${config.relation_id})`,
@@ -3545,6 +3729,31 @@ This is a strict before/after verification, not ordinary pothole detection:
       region_id: "odisha-state",
       pack_id: "in-od-routing",
     });
+
+  const remainingStateCoverage = (packId) => {
+    const config = REMAINING_STATE_ROUTE_CONFIGS[packId];
+    return config ? pinnedStateCoverage(packId, config.authority_id,
+      config.relation_id, config.geometry_sha256) : Promise.resolve(null);
+  };
+
+  async function remainingStateRouteFromGeocode(_geo, lat, lng, gpsAccuracy) {
+    let deferredFailure = null;
+    for (const [packId, config] of Object.entries(REMAINING_STATE_ROUTE_CONFIGS)) {
+      if (!pointInEnvelope(lat, lng, config.envelope)) continue;
+      const route = await pinnedStateRoute(lat, lng, gpsAccuracy, {
+        ...config,
+        pack_id: packId,
+        coverage: () => remainingStateCoverage(packId),
+      });
+      if (!route) continue;
+      if (route.unrouted_reason === "jurisdiction_unavailable") {
+        if (!deferredFailure) deferredFailure = route;
+        continue;
+      }
+      return route;
+    }
+    return deferredFailure;
+  }
 
   let _majorCityCoverage = null, _majorCityCoveragePromise = null;
   async function majorCityCoverage() {
@@ -4263,6 +4472,19 @@ This is a strict before/after verification, not ordinary pothole detection:
         return routeForIssue(deferredJurisdictionFailure, issueType);
       }
       return routeForIssue(majorCity, issueType);
+    }
+
+    // Every State and Union Territory now has an exact checksum-pinned outer boundary.
+    // Existing exact municipal routes and reviewed city-specific handoffs above retain
+    // precedence; these additions fill every remaining coordinate conservatively.
+    const remainingState = await remainingStateRouteFromGeocode(
+      geo, lat, lng, gpsAccuracy);
+    if (remainingState) {
+      if (remainingState.unrouted_reason === "jurisdiction_unavailable") {
+        if (!deferredJurisdictionFailure) deferredJurisdictionFailure = remainingState;
+      } else {
+        return routeForIssue(remainingState, issueType);
+      }
     }
 
     // Karnataka's polygon decides whether a neutral state fallback is permitted. KGIS
@@ -7018,6 +7240,14 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
   }
 
   function currentOfficialRouteBinding(packId, authorityId, pack, regionId = null) {
+    const remaining = REMAINING_STATE_ROUTE_CONFIGS[packId];
+    if (remaining) {
+      const region = pack && pack.payload && pack.payload.region;
+      if (!region || authorityId !== remaining.authority_id
+          || region.id !== remaining.region_id
+          || region.authority_id !== authorityId) return null;
+      return { region: remaining.region_id, routing_source: remaining.routing_source };
+    }
     const municipal = MUNICIPAL_CITY_CONFIGS[packId];
     if (municipal) {
       const region = pack && pack.payload && Array.isArray(pack.payload.regions)
@@ -7190,6 +7420,12 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
 
   function savedNonMunicipalLocationMatches(rec, packId, authorityId, pack) {
     const payload = pack && pack.payload;
+    const remaining = REMAINING_STATE_ROUTE_CONFIGS[packId];
+    if (remaining) {
+      return authorityId === remaining.authority_id
+        && savedBoundaryLocationMatches(rec,
+          payload && payload.region && payload.region.geometry);
+    }
     if (packId === "in-pb-routing") {
       return authorityId === "pb-statewide-unverified"
         && savedBoundaryLocationMatches(rec, payload && payload.region && payload.region.geometry);
@@ -7307,7 +7543,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       || packId === "in-cg-routing" || packId === "in-rj-routing"
       || packId === "in-ga-routing" || packId === "in-mp-routing"
       || packId === "in-br-routing" || packId === "in-od-routing"
-      || packId === "in-top50-routing";
+      || packId === "in-top50-routing"
+      || !!REMAINING_STATE_ROUTE_CONFIGS[packId];
     if (newNeutralRoute && present.length !== provenanceFields.length) return null;
     // The statewide West Bengal route did not exist before this pack release, so there
     // is no legitimate provenance-free legacy record to upgrade.
@@ -7331,6 +7568,13 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     }
     if (rec.region && rec.region !== binding.region) return null;
     if (newNeutralRoute && rec.region !== binding.region) return null;
+    const remaining = REMAINING_STATE_ROUTE_CONFIGS[packId];
+    if (remaining
+        && (rec.routing_source !== remaining.routing_source
+          || rec.routing_match_field !== "boundary"
+          || rec.routing_match_value !== `${remaining.name} (OpenStreetMap relation ${remaining.relation_id})`)) {
+      return null;
+    }
     if (packId === "in-wb-routing" && rec.routing_source
         && rec.routing_source !== binding.routing_source) return null;
     if (packId === "in-wb-routing" && rec.routing_match_field
@@ -7982,7 +8226,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
           no_address_for_body: "The civic body is known, but the app has no verified complaint recipient for it.",
           unsupported_issue_type: "The suggested civic body has no verified complaint channel for this issue category.",
           jurisdiction_unavailable: "The required verified civic-routing data could not be downloaded or read. Check the connection and try again.",
-          outside_area: "This civic issue is outside the enabled state, city, and urban-body coverage, so the app has no verified authority to open.",
+          outside_area: "This civic issue is outside India's verified State/UT boundaries, or exact routing data is unavailable, so the app has no verified authority to open.",
         };
         const roadErrors = {
           no_location: "This report has no location, so there is no way to tell which office is responsible. Retake it with location switched on.",
@@ -7992,7 +8236,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
           rural_road: "This road is outside every town boundary, so it belongs to the state PWD or a panchayat rather than a city body. The app will not guess an office.",
           no_address_for_body: "This town's body is known, but no official email address for it has been published, so there is no verified recipient to address.",
           jurisdiction_unavailable: "The required verified routing data could not be downloaded or read. Check the connection and try again; the app will not guess an authority.",
-          outside_area: "This road damage is outside mapped National Highways, statewide coverage in Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh, Rajasthan, Goa, Madhya Pradesh, Bihar and Odisha, Delhi NCT, and the other verified city routes, so there is no verified authority to address.",
+          outside_area: "This road damage is outside India's verified State/UT boundaries and mapped National Highways, or exact routing data is unavailable, so there is no verified authority to address.",
         };
         throw new Error((civic ? civicErrors : roadErrors)[rec.unrouted_reason]
           || "This report could not be routed to a responsible office, so there is nothing to send.");
@@ -8146,6 +8390,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    madhyaPradeshCoverage, madhyaPradeshRouteFromGeocode,
                    biharCoverage, biharRouteFromGeocode,
                    odishaCoverage, odishaRouteFromGeocode,
+                   remainingStateCoverage, remainingStateRouteFromGeocode,
                    majorCityCoverage, majorCityRouteFromGeocode,
                    inMajorCityCandidateEnvelope,
                    municipalCityCoverage, municipalCityRouteFromGeocode,
@@ -8160,6 +8405,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    validateRajasthanPayload,
                    validateGoaPayload, validateMadhyaPradeshPayload,
                    validateBiharPayload, validateOdishaPayload,
+                   validatePinnedStatewidePayload,
                    validateMajorCityPayload,
                    validateMunicipalCityPayload, MUNICIPAL_CITY_CONFIGS,
                    maharashtraRouteFromGeocode, inMaharashtraRoutingEnvelope,
@@ -8180,6 +8426,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    MADHYA_PRADESH_STATE_AUTHORITY,
                    BIHAR_STATE_AUTHORITY,
                    ODISHA_STATE_AUTHORITY,
+                   REMAINING_STATE_AUTHORITIES, REMAINING_STATE_ROUTE_CONFIGS,
                    DELHI_PWD_AUTHORITY, OFFICIAL_AUTHORITIES,
                    NATIONAL_HIGHWAY_AUTHORITY,
                    DELHI_GEOMETRY_SHA256, KMC_GEOMETRY_SHA256,

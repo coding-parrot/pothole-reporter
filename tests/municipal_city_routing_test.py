@@ -308,8 +308,9 @@ async () => {
   eq("routeOfficer: Hyderabad uses shared CURE intake",
      routedByOfficer.tg.authority_id, "tg-cure-shared");
   eq("routeOfficer: Ahmedabad uses the generic pack", routedByOfficer.gj.authority_id, "gj-amc");
-  eq("routeOfficer: wider AUDA outside the Ahmedabad boundary stays outside",
-     routedByOfficer.gjOutside.unrouted_reason, "outside_area");
+  eq("routeOfficer: wider AUDA outside AMC uses the Gujarat statewide handoff",
+     [routedByOfficer.gjOutside.authority_id, routedByOfficer.gjOutside.routing_pack_id],
+     ["gj-statewide-unverified", "in-gj-state-routing"]);
   eq("state isolation: municipal-city routing never calls Karnataka GIS", kgisCalls, 0);
 
   return checks;
@@ -450,7 +451,7 @@ def semantic_tamper_reason(browser, pack_id: str, envelope: dict) -> str | None:
 
     context = browser.new_context(viewport={"width": 390, "height": 844})
     context.route(
-        "**/pack-manifest-v1.34.json",
+        "**/pack-manifest-v1.35.json",
         lambda route: route.fulfill(
             status=200, content_type="application/json", body=manifest_body
         ),

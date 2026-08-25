@@ -82,7 +82,7 @@ async ({inside, outside, legacySha}) => {
      region && region.limitations);
 
   eq("registry: Karnataka and Kerala statewide release is versioned",
-     P.AUTHORITY_REGISTRY_VERSION, 17);
+     P.AUTHORITY_REGISTRY_VERSION, 18);
   eq("registry: stable statewide authority is installed",
      P.TAMIL_NADU_STATE_AUTHORITY.id, "tn-statewide-unverified");
   eq("registry: primary official handoff",

@@ -10,11 +10,10 @@ photo, routing, and any probable contract match before sending a complaint.
 
 Large routing, contact, and procurement datasets are not embedded in the APK. The app
 ships a small manifest that pins each supported resource's version, HTTPS URL, byte
-length, and SHA-256 checksum. The v1.34 state-pack manifest contains 22 resources: twenty-one
-routing/contact packs covering Andhra Pradesh, Bihar, Chhattisgarh, Delhi, Goa, Gujarat,
-Karnataka, Kerala, Madhya Pradesh, Maharashtra, Odisha, Punjab, Rajasthan, Tamil Nadu,
-Telangana, Uttar Pradesh, West Bengal, and the additional top-50 city routes, plus one optional
-Karnataka tender pack. Karnataka, Tamil Nadu, and Telangana each
+length, and SHA-256 checksum. The v1.35 state-pack manifest contains 42 resources: forty-one
+routing/contact packs covering all 28 states and all 8 Union Territories, including the
+additional top-50 city routes, plus one optional Karnataka tender pack. Karnataka, Tamil
+Nadu, and Telangana each
 use separate statewide and more-specific routing packs. Procurement data is
 requested only for an eligible Karnataka contract match.
 The old unversioned ten-resource manifest remains unchanged for cached v1.25 clients, and
@@ -23,10 +22,12 @@ The versioned v1.27 twelve-resource, v1.28 thirteen-resource, and v1.29 thirteen
 manifests also remain unchanged for their cached clients. The v1.30 fifteen-resource
 manifest and the v1.31 seventeen-resource manifest remain unchanged for their cached clients;
 v1.32 reused v1.31 and introduced no catalog. The v1.33 eighteen-resource manifest also
-remains unchanged for its cached clients. v1.34 reads `pack-manifest-v1.34.json`, preventing
-a mixed-cache release from disabling otherwise valid routing. Its Karnataka tender resource
-uses the carriageway-scope-filtered v2 adapter.
-The Gujarat pack contains a dissolved copy of the reviewed 48-ward AMC boundary.
+remains unchanged for its cached clients. The v1.34 twenty-two-resource manifest also remains
+unchanged. v1.35 reads `pack-manifest-v1.35.json`, preventing a mixed-cache release from
+disabling otherwise valid routing. Its Karnataka tender resource uses the
+carriageway-scope-filtered v2 adapter.
+The Gujarat packs keep the reviewed 48-ward AMC boundary and statewide containment
+separate.
 
 The app also ships a National Highway manifest that pins 101 immutable 2° geometry tiles.
 It downloads a pack or relevant tile from this project's GitHub Pages site, verifies the complete
@@ -508,6 +509,48 @@ and recipient choices. The user must verify those choices and complete the griev
 externally; there is no documented public complaint-write API integration, automatic filing,
 ownership inference, or contract matching.
 
+## Nationwide completion boundaries and complaint handoffs
+
+Twenty separate checksum-pinned packs complete coordinate-based civic routing for all
+28 states and all 8 Union Territories. They add or expand the 13 states and 7 Union
+Territories below; the other 16 jurisdictions are documented in their existing sections.
+Each ODbL administrative relation was retrieved through OpenStreetMap Nominatim on
+26 August 2026 at seven-decimal precision. The reviewed relation ID, source bounding box,
+geometry SHA-256, test points, and handoff metadata are pinned in
+[`tools/india_jurisdictions.py`](../tools/india_jurisdictions.py). A builder refuses a
+different object or changed geometry.
+
+| Jurisdiction | Pinned OSM relation | Conservative official handoff |
+| --- | ---: | --- |
+| Arunachal Pradesh | [2027346](https://www.openstreetmap.org/relation/2027346) | [CM e-Jan Sunwai](https://cmejansunwai.arunachal.gov.in/) |
+| Assam | [2025886](https://www.openstreetmap.org/relation/2025886) | [CPGRAMS](https://pgportal.gov.in/) |
+| Gujarat | [1949080](https://www.openstreetmap.org/relation/1949080) | [SWAGAT](https://swagat.gujarat.gov.in/) |
+| Haryana | [1942601](https://www.openstreetmap.org/relation/1942601) | [CPGRAMS](https://pgportal.gov.in/) |
+| Himachal Pradesh | [364186](https://www.openstreetmap.org/relation/364186) | [eSamadhan](https://esamadhan.nic.in/welcome.aspx) |
+| Jharkhand | [1960191](https://www.openstreetmap.org/relation/1960191) | [CPGRAMS](https://pgportal.gov.in/), with [Jharkhand municipal PGMS](https://pgms.dmajharkhand.in/index.aspx) as an alternate |
+| Manipur | [2027869](https://www.openstreetmap.org/relation/2027869) | [GovConnect Manipur](https://govconnectmanipur.mn.gov.in/) |
+| Meghalaya | [2027521](https://www.openstreetmap.org/relation/2027521) | [CM Connect](https://cmconnect.meghalaya.gov.in/) |
+| Mizoram | [2029046](https://www.openstreetmap.org/relation/2029046) | [Mipui Aw](https://mipuiaw.mizoram.gov.in/) |
+| Nagaland | [2027973](https://www.openstreetmap.org/relation/2027973) | [CPGRAMS](https://pgportal.gov.in/) |
+| Sikkim | [1791324](https://www.openstreetmap.org/relation/1791324) | [CPGRAMS](https://pgportal.gov.in/), with the [Sikkim State Portal](https://www.sikkim.gov.in/) as an alternate |
+| Tripura | [2026458](https://www.openstreetmap.org/relation/2026458) | [CM Helpline](https://cmhelpline.tripura.gov.in/) |
+| Uttarakhand | [9987086](https://www.openstreetmap.org/relation/9987086) | [CM Helpline](https://cmhelpline.uk.gov.in/) |
+| Andaman and Nicobar Islands UT | [2025855](https://www.openstreetmap.org/relation/2025855) | [CPGRAMS](https://pgportal.gov.in/) |
+| Chandigarh UT | [1942809](https://www.openstreetmap.org/relation/1942809) | [CPGRAMS](https://pgportal.gov.in/) |
+| Dadra and Nagar Haveli and Daman and Diu UT | [1952530](https://www.openstreetmap.org/relation/1952530) | [CPGRAMS](https://pgportal.gov.in/) |
+| Jammu and Kashmir UT | [1943188](https://www.openstreetmap.org/relation/1943188) | [JK Samadhan](https://samadhan.jk.gov.in/) |
+| Ladakh UT | [5515045](https://www.openstreetmap.org/relation/5515045) | [Ladakh grievance portal](https://grievance.ladakh.gov.in/) |
+| Lakshadweep UT | [2027460](https://www.openstreetmap.org/relation/2027460) | [CPGRAMS](https://pgportal.gov.in/) |
+| Puducherry UT | [107001](https://www.openstreetmap.org/relation/107001) | [CPGRAMS](https://pgportal.gov.in/) |
+
+National Highway matching runs first. Existing exact municipal, metropolitan, and
+authority-specific routes also remain preferred. A fallback is eligible only when the
+complete GPS-accuracy circle is inside one pinned state/UT polygon; coast, enclave, and
+border ambiguity fails closed. Containment chooses a neutral starting channel only. It
+does not identify a municipality or road owner, guarantee that a category will be
+accepted, call a complaint-write API, or submit anything. The citizen must choose and
+verify the recipient in the official service and retain its reference ID.
+
 ## Census top-50 city routes
 
 The selection list is the 50 largest serial-numbered Urban Agglomeration/City entries by
@@ -784,10 +827,9 @@ does not assign a municipal recipient or guarantee category acceptance.
 ## Street address
 
 **Source: OpenStreetMap, via Nominatim.** It turns coordinates into a street name and
-pincode for the complaint. In Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil
-Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh, Rajasthan, Goa, Madhya
-Pradesh, Bihar, Odisha, Delhi, and Ahmedabad, address fields are display-only routing clues; only a
-verified cached polygon selects statewide or local polygon coverage. Exact Hyderabad CURE
+pincode for the complaint. For all state/UT and exact polygon routes, address fields are
+display-only routing clues; only a verified cached polygon selects statewide, Union
+Territory, or local polygon coverage. Exact Hyderabad CURE
 coverage instead requires the live official TGRAC response described above. Free-form
 geocoder text is never used to expand any polygon route. The 8 additional top-50 routes
 are the explicit exception: they require
@@ -817,6 +859,11 @@ That wording is deliberate and should not be strengthened.
 
 ## Known limits
 
+- All 28 states and 8 Union Territories have checksum-pinned ODbL boundary containment
+  and a conservative official grievance handoff. The complete GPS-accuracy circle must
+  stay inside one jurisdiction; border ambiguity fails closed. National Highway and exact
+  city/authority routes retain precedence. Containment does not prove road ownership,
+  identify the responsible local body, guarantee category acceptance, or submit anything.
 - Maharashtra-wide evidence and official-handoff coverage uses a pinned ODbL state
   boundary. Outside exact MMR and PMC routes, Aaple Sarkar is neutral: it does not prove
   the responsible department, complaint category, road owner, or successful submission.
@@ -926,9 +973,7 @@ That wording is deliberate and should not be strengthened.
 - The public Nominatim endpoint is cached on an approximately 11 m grid and serialized
   below one request per second. National or municipal-scale deployment must switch the
   endpoint to a policy-compliant managed or self-hosted service. The 8 additional city
-  routes depend on exact Nominatim structured fields. Maharashtra, West Bengal, Punjab,
-  Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh,
-  Rajasthan, Goa, Madhya Pradesh, Bihar, Odisha,
-  Delhi, and Ahmedabad boundary routing remains local and does not depend on a geocoder
-  response. Native Android Hyderabad routing sends the GPS-accuracy envelope to TGRAC's
-  official CURE and Cantonment query services.
+  routes depend on exact Nominatim structured fields. All state/UT and other downloaded
+  polygon routing remains local and does not depend on a geocoder response. Native Android
+  Hyderabad routing sends the GPS-accuracy envelope to TGRAC's official CURE and Cantonment
+  query services.

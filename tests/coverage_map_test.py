@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lock the official top-50 catalog to the accessible coverage-map markers."""
+"""Lock nationwide coverage claims and the top-50 catalog to the accessible map."""
 
 import json
 import re
@@ -230,7 +230,7 @@ def main():
 
     svg_title = root.find(SVG_NS + "title")
     svg_desc = root.find(SVG_NS + "desc")
-    check(svg_title is not None and "top-50" in (svg_title.text or ""), "coverage map title missing", errors)
+    check(svg_title is not None and "nationwide India" in (svg_title.text or ""), "coverage map title missing", errors)
     description = "" if svg_desc is None else " ".join("".join(svg_desc.itertext()).split())
     check("50 available routes" in description, "coverage map description must say 50 routes are available", errors)
     check(
@@ -241,6 +241,21 @@ def main():
     check(
         "do not represent complete urban-agglomeration boundaries" in description,
         "coverage map description must disclaim complete UA boundaries",
+        errors,
+    )
+    check(
+        "All 28 states and 8 Union Territories" in description,
+        "coverage map description must claim exactly 28 states and 8 Union Territories",
+        errors,
+    )
+    check(
+        "exact city or authority routes retain precedence" in description,
+        "coverage map description must preserve exact-route precedence",
+        errors,
+    )
+    check(
+        "does not prove road ownership" in description and "nothing is submitted automatically" in description,
+        "coverage map description must preserve ownership and submission disclaimers",
         errors,
     )
 
@@ -273,28 +288,14 @@ def main():
     all_svg_text = " ".join("".join(root.itertext()).split())
     check("Available route · 50" in all_svg_text, "coverage map legend must show 50 available", errors)
     check("Structured city name · 8" in all_svg_text, "coverage map legend must show 8 city-name routes", errors)
-    check("8 use city-name matching" in all_svg_text, "coverage map summary must show 8 city-name routes", errors)
+    check("28 states · 8 Union Territories" in all_svg_text, "coverage map must show nationwide civic coverage", errors)
+    check("National Highway and exact city/authority routes stay first" in all_svg_text, "coverage map must show route precedence", errors)
+    check("No ownership proof · nothing is submitted automatically" in all_svg_text, "coverage map must show handoff limits", errors)
     check("Pending reviewed pack" not in all_svg_text, "coverage map still contains a pending legend", errors)
     for required_text in (
-        "Maharashtra",
-        "West Bengal",
-        "Punjab",
-        "Karnataka",
-        "Kerala",
-        "Uttar Pradesh",
-        "Chhattisgarh",
-        "Rajasthan",
-        "Goa",
-        "Madhya Pradesh",
-        "Bihar",
-        "Odisha",
-        "Tamil Nadu",
-        "Andhra Pradesh",
-        "Telangana",
-        "Chandigarh UT is outside Punjab coverage",
-        "Puducherry/Karaikal and Yanam stay outside their state routes",
-        "Mahe UT is outside Kerala coverage",
-        "Delhi NCT is outside Uttar Pradesh coverage",
+        "NATIONWIDE CIVIC HANDOFFS",
+        "Coordinate-pinned boundary containment",
+        "Fallback opens a conservative official grievance channel",
         "Mapped National Highways",
     ):
         check(required_text in all_svg_text, f"coverage map lost: {required_text}", errors)

@@ -88,9 +88,9 @@ async (states) => {
     name, !!value, detail === undefined ? value : detail, true,
   ]);
   const manifest = await P.getStatePackManifest();
-  eq("catalog: v1.34 has 22 reviewed resources",
-     Object.keys(manifest && manifest.resources || {}).length, 22);
-  eq("registry: four-state release is versioned", P.AUTHORITY_REGISTRY_VERSION, 17);
+  eq("catalog: v1.35 has 42 reviewed resources",
+     Object.keys(manifest && manifest.resources || {}).length, 42);
+  eq("registry: nationwide release is versioned", P.AUTHORITY_REGISTRY_VERSION, 18);
 
   for (const state of states) {
     const resource = manifest.resources[state.pack];

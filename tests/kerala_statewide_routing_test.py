@@ -54,8 +54,8 @@ async ({inside, outside}) => {
   const pack = await P.loadStatePack("in-kl-routing");
   const legacyCities = await P.majorCityCoverage();
 
-  eq("pack: v1.34 has twenty-two independently pinned resources",
-     Object.keys(manifest && manifest.resources || {}).length, 22);
+  eq("pack: v1.35 has forty-two independently pinned resources",
+     Object.keys(manifest && manifest.resources || {}).length, 42);
   ok("pack: statewide manifest entry exists", resource, manifest);
   eq("pack: adapter is data-only", resource && resource.adapter,
      "statewide-general-v1");
@@ -86,7 +86,7 @@ async ({inside, outside}) => {
        && (region && region.limitations || []).some((item) => /does not submit/i.test(item)),
      region && region.limitations);
 
-  eq("registry: statewide expansion is versioned", P.AUTHORITY_REGISTRY_VERSION, 17);
+  eq("registry: statewide expansion is versioned", P.AUTHORITY_REGISTRY_VERSION, 18);
   eq("registry: stable statewide authority is installed",
      P.KERALA_STATE_AUTHORITY.id, "kl-statewide-unverified");
   eq("registry: primary CMO grievance handoff",

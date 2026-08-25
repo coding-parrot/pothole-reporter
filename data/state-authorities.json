@@ -498,7 +498,197 @@
         "alternate_handoff_url": "https://www.amccrs.com/AMCPortal/View/ComplainRegistrationMobile.aspx",
         "whatsapp_url": "https://wa.me/917567855303",
         "helpline": "155303"
+      },
+      {
+        "id": "gj-statewide-unverified",
+        "name": "Gujarat authority (select in SWAGAT)",
+        "aliases": ["gujarat", "ગુજરાત"],
+        "handoff_name": "SWAGAT",
+        "handoff_url": "https://swagat.gujarat.gov.in/"
       }
     ]
+  },
+  "AR": {
+    "authorities": [{
+      "id": "ar-statewide-unverified",
+      "name": "Arunachal Pradesh authority (select in CM e-Jan Sunwai)",
+      "aliases": ["arunachal pradesh"],
+      "handoff_name": "CM e-Jan Sunwai",
+      "handoff_url": "https://cmejansunwai.arunachal.gov.in/",
+      "helpline": "1076"
+    }]
+  },
+  "AS": {
+    "authorities": [{
+      "id": "as-statewide-unverified",
+      "name": "Assam authority (select in CPGRAMS)",
+      "aliases": ["assam", "অসম"],
+      "handoff_name": "CPGRAMS",
+      "handoff_url": "https://pgportal.gov.in/"
+    }]
+  },
+  "HR": {
+    "authorities": [{
+      "id": "hr-statewide-unverified",
+      "name": "Haryana authority (select in CPGRAMS)",
+      "aliases": ["haryana", "हरियाणा"],
+      "handoff_name": "CPGRAMS",
+      "handoff_url": "https://pgportal.gov.in/"
+    }]
+  },
+  "HP": {
+    "authorities": [{
+      "id": "hp-statewide-unverified",
+      "name": "Himachal Pradesh authority (select in eSamadhan)",
+      "aliases": ["himachal pradesh", "हिमाचल प्रदेश"],
+      "handoff_name": "eSamadhan",
+      "handoff_url": "https://esamadhan.nic.in/welcome.aspx",
+      "helpline": "01772880490"
+    }]
+  },
+  "JH": {
+    "authorities": [{
+      "id": "jh-statewide-unverified",
+      "name": "Jharkhand authority (select in CPGRAMS)",
+      "aliases": ["jharkhand", "झारखंड", "झारखण्ड"],
+      "handoff_name": "CPGRAMS",
+      "handoff_url": "https://pgportal.gov.in/",
+      "alternate_handoff_name": "Jharkhand municipal PGMS",
+      "alternate_handoff_url": "https://pgms.dmajharkhand.in/index.aspx"
+    }]
+  },
+  "MN": {
+    "authorities": [{
+      "id": "mn-statewide-unverified",
+      "name": "Manipur authority (select in GovConnect Manipur)",
+      "aliases": ["manipur", "মণিপুর"],
+      "handoff_name": "GovConnect Manipur",
+      "handoff_url": "https://govconnectmanipur.mn.gov.in/"
+    }]
+  },
+  "ML": {
+    "authorities": [{
+      "id": "ml-statewide-unverified",
+      "name": "Meghalaya authority (select in CM Connect)",
+      "aliases": ["meghalaya"],
+      "handoff_name": "CM Connect",
+      "handoff_url": "https://cmconnect.meghalaya.gov.in/",
+      "helpline": "1971"
+    }]
+  },
+  "MZ": {
+    "authorities": [{
+      "id": "mz-statewide-unverified",
+      "name": "Mizoram authority (select in Mipui Aw)",
+      "aliases": ["mizoram"],
+      "handoff_name": "Mipui Aw",
+      "handoff_url": "https://mipuiaw.mizoram.gov.in/"
+    }]
+  },
+  "NL": {
+    "authorities": [{
+      "id": "nl-statewide-unverified",
+      "name": "Nagaland authority (select in CPGRAMS)",
+      "aliases": ["nagaland"],
+      "handoff_name": "CPGRAMS",
+      "handoff_url": "https://pgportal.gov.in/"
+    }]
+  },
+  "SK": {
+    "authorities": [{
+      "id": "sk-statewide-unverified",
+      "name": "Sikkim authority (select in CPGRAMS)",
+      "aliases": ["sikkim"],
+      "handoff_name": "CPGRAMS",
+      "handoff_url": "https://pgportal.gov.in/",
+      "alternate_handoff_name": "Sikkim State Portal",
+      "alternate_handoff_url": "https://www.sikkim.gov.in/"
+    }]
+  },
+  "TR": {
+    "authorities": [{
+      "id": "tr-statewide-unverified",
+      "name": "Tripura authority (select in CM Helpline)",
+      "aliases": ["tripura"],
+      "handoff_name": "CM Helpline",
+      "handoff_url": "https://cmhelpline.tripura.gov.in/",
+      "alternate_handoff_name": "Tripura grievance portal",
+      "alternate_handoff_url": "https://grievance.tripura.gov.in/",
+      "whatsapp_url": "https://wa.me/916033374544",
+      "helpline": "1905"
+    }]
+  },
+  "UK": {
+    "authorities": [{
+      "id": "uk-statewide-unverified",
+      "name": "Uttarakhand authority (select in CM Helpline)",
+      "aliases": ["uttarakhand", "उत्तराखण्ड", "उत्तराखंड"],
+      "handoff_name": "CM Helpline",
+      "handoff_url": "https://cmhelpline.uk.gov.in/",
+      "helpline": "1905"
+    }]
+  },
+  "AN": {
+    "authorities": [{
+      "id": "an-statewide-unverified",
+      "name": "Andaman and Nicobar Islands authority (select in CPGRAMS)",
+      "aliases": ["andaman and nicobar islands", "andaman & nicobar islands"],
+      "handoff_name": "CPGRAMS",
+      "handoff_url": "https://pgportal.gov.in/"
+    }]
+  },
+  "CH": {
+    "authorities": [{
+      "id": "ch-statewide-unverified",
+      "name": "Chandigarh authority (select in CPGRAMS)",
+      "aliases": ["chandigarh", "ਚੰਡੀਗੜ੍ਹ", "चंडीगढ़"],
+      "handoff_name": "CPGRAMS",
+      "handoff_url": "https://pgportal.gov.in/"
+    }]
+  },
+  "DH": {
+    "authorities": [{
+      "id": "dh-statewide-unverified",
+      "name": "Dadra and Nagar Haveli and Daman and Diu authority (select in CPGRAMS)",
+      "aliases": ["dadra and nagar haveli and daman and diu", "dnhdd"],
+      "handoff_name": "CPGRAMS",
+      "handoff_url": "https://pgportal.gov.in/"
+    }]
+  },
+  "JK": {
+    "authorities": [{
+      "id": "jk-statewide-unverified",
+      "name": "Jammu and Kashmir authority (select in JK Samadhan)",
+      "aliases": ["jammu and kashmir", "jammu & kashmir", "जम्मू और कश्मीर"],
+      "handoff_name": "JK Samadhan",
+      "handoff_url": "https://samadhan.jk.gov.in/"
+    }]
+  },
+  "LA": {
+    "authorities": [{
+      "id": "la-statewide-unverified",
+      "name": "Ladakh authority (select in Ladakh grievance portal)",
+      "aliases": ["ladakh"],
+      "handoff_name": "Ladakh grievance portal",
+      "handoff_url": "https://grievance.ladakh.gov.in/"
+    }]
+  },
+  "LD": {
+    "authorities": [{
+      "id": "ld-statewide-unverified",
+      "name": "Lakshadweep authority (select in CPGRAMS)",
+      "aliases": ["lakshadweep"],
+      "handoff_name": "CPGRAMS",
+      "handoff_url": "https://pgportal.gov.in/"
+    }]
+  },
+  "PY": {
+    "authorities": [{
+      "id": "py-statewide-unverified",
+      "name": "Puducherry authority (select in CPGRAMS)",
+      "aliases": ["puducherry", "pondicherry", "புதுச்சேரி"],
+      "handoff_name": "CPGRAMS",
+      "handoff_url": "https://pgportal.gov.in/"
+    }]
   }
 }

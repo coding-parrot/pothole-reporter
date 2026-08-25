@@ -15,14 +15,17 @@ from pathlib import Path
 from typing import Any
 
 from tender_scope import is_road_surface_contract
+from india_jurisdictions import JURISDICTIONS as REMAINING_JURISDICTIONS
+from india_jurisdictions import pack_id as remaining_pack_id
+from india_jurisdictions import source_path as remaining_source_path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = PROJECT_ROOT / "docs"
-STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.34.json"
-ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.34.json"
-PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.34.json"
-PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.33.json"
+STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.35.json"
+ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.35.json"
+PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.35.json"
+PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.34.json"
 AUTHORITIES_SOURCE = PROJECT_ROOT / "data" / "state-authorities.json"
 PUBLIC_BASE_URL = "https://coding-parrot.github.io/pothole-reporter/"
 PACK_FORMAT = "pothole-pack-manifest"
@@ -429,6 +432,27 @@ SPECS = {
         "data/metro-coverage/gj.json",
     ),
 }
+
+# The v1.35 expansion is table-driven so every remaining State/UT uses the same
+# checksum, boundary, authority and fail-closed validation contract.
+for _jurisdiction in REMAINING_JURISDICTIONS:
+    _pack_id = remaining_pack_id(_jurisdiction)
+    _label = str(_jurisdiction["label"])
+    _kind = "Union Territory" if _jurisdiction["kind"] == "union_territory" else "State"
+    SPECS[_pack_id] = ResourceSpec(
+        _pack_id,
+        str(_jurisdiction["code"]),
+        "routing",
+        "statewide-general-v1",
+        f"Full {_kind} of {_label}; conservative official grievance handoff",
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official government grievance sources: respective source terms",
+        ),
+        remaining_source_path(_jurisdiction),
+    )
+
 REQUIRED_RESOURCE_IDS = set(SPECS)
 
 MUNICIPAL_PAYLOAD_KEYS = {"version", "retrieved_at", "regions"}
@@ -898,6 +922,20 @@ def _authority_snapshot(spec: ResourceSpec) -> list[dict[str, Any]]:
         if len(authorities) != 1:
             raise PackError(
                 f"state-authorities.json has no unique TG authority for {spec.pack_id}"
+            )
+    if state_code == "GJ":
+        required_id = (
+            "gj-statewide-unverified"
+            if spec.pack_id == "in-gj-state-routing"
+            else "gj-amc"
+        )
+        authorities = [
+            authority for authority in authorities
+            if isinstance(authority, dict) and authority.get("id") == required_id
+        ]
+        if len(authorities) != 1:
+            raise PackError(
+                f"state-authorities.json has no unique GJ authority for {spec.pack_id}"
             )
     if state_code == "MH":
         for key in ("pmc", "fallback", "statewide"):
@@ -1842,6 +1880,89 @@ def _validate_new_statewide_payload(
             f"{pack_id} authority registry differs from its reviewed pin")
 
 
+def _validate_remaining_statewide_payload(
+    pack_id: str,
+    payload: Any,
+    *,
+    generated_at: str | None = None,
+    authorities: Any = None,
+) -> None:
+    pin = next(
+        (item for item in REMAINING_JURISDICTIONS
+         if remaining_pack_id(item) == pack_id),
+        None,
+    )
+    _expect(pin is not None, f"unsupported remaining-jurisdiction pack: {pack_id}")
+    _expect(
+        isinstance(payload, dict) and set(payload) == {"version", "retrieved_at", "region"},
+        f"{pack_id} payload fields differ from the statewide contract",
+    )
+    _expect(type(payload.get("version")) is int and payload["version"] == 1,
+            f"{pack_id} payload version must be 1")
+    retrieved_at = payload.get("retrieved_at")
+    _expect(_is_date(retrieved_at), f"{pack_id} retrieved_at is invalid")
+    if generated_at is not None:
+        _expect(retrieved_at == generated_at,
+                f"{pack_id} retrieved_at differs from the pack date")
+
+    region = payload.get("region")
+    _expect(
+        isinstance(region, dict) and set(region) == PUNJAB_STATE_REGION_KEYS,
+        f"{pack_id} region fields differ from the statewide contract",
+    )
+    relation_id = int(pin["relation_id"])
+    territory = pin["kind"] == "union_territory"
+    expected = {
+        "id": pin["region_id"],
+        "authority_id": pin["authority"]["id"],
+        "name": pin["label"],
+        "scope": f"Full {'Union Territory' if territory else 'State'} of {pin['label']}",
+        "osm_relation_id": relation_id,
+        "source_name": "OpenStreetMap contributors",
+        "source_home_url": f"https://www.openstreetmap.org/relation/{relation_id}",
+        "source_license": "Open Data Commons Open Database License (ODbL) 1.0",
+        "attribution": "© OpenStreetMap contributors",
+        "coordinate_precision": 7,
+        "bbox": pin["bbox"],
+        "geometry_sha256": pin["geometry_sha256"],
+    }
+    for field, value in expected.items():
+        _expect(region.get(field) == value,
+                f"{pack_id} {field} differs from its reviewed pin")
+    _expect(
+        isinstance(region.get("source_url"), str)
+        and region["source_url"].startswith("https://nominatim.openstreetmap.org/lookup?")
+        and f"osm_ids=R{relation_id}" in region["source_url"],
+        f"{pack_id} lookup URL is invalid",
+    )
+    handoff_name = str(pin["authority"]["handoff_name"])
+    _expect(
+        isinstance(region.get("routing_note"), str)
+        and handoff_name in region["routing_note"]
+        and "National Highways" in region["routing_note"]
+        and "does not identify" in region["routing_note"],
+        f"{pack_id} routing note is invalid",
+    )
+    limitations = region.get("limitations")
+    _expect(
+        isinstance(limitations, list) and 1 <= len(limitations) <= 10
+        and all(isinstance(item, str) and item and len(item) <= 500 for item in limitations)
+        and any("user must select" in item for item in limitations)
+        and any("does not submit" in item for item in limitations),
+        f"{pack_id} limitations are invalid",
+    )
+    bounds = _validate_municipal_geometry(region.get("geometry"), f"{pack_id}.region")
+    _expect(bounds == region["bbox"],
+            f"{pack_id} geometry does not match its bounding box")
+    digest = hashlib.sha256(json.dumps(
+        region["geometry"], ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")).hexdigest()
+    _expect(digest == pin["geometry_sha256"],
+            f"{pack_id} geometry digest does not match")
+    _expect(authorities == [pin["authority"]],
+            f"{pack_id} authority registry differs from its reviewed pin")
+
+
 def _top50_alias_key(value: str) -> str:
     return " ".join(value.casefold().replace("-", " ").split())
 
@@ -2326,6 +2447,14 @@ def _validate_raw_payload(
             generated_at=generated_at,
             authorities=authorities,
         )
+    elif any(remaining_pack_id(item) == spec.pack_id
+             for item in REMAINING_JURISDICTIONS):
+        _validate_remaining_statewide_payload(
+            spec.pack_id,
+            payload,
+            generated_at=generated_at,
+            authorities=authorities,
+        )
     elif spec.pack_id == "in-top50-routing":
         _validate_top50_payload(
             payload,
@@ -2622,10 +2751,10 @@ def verify_all() -> None:
     """Fail unless the manifests and all referenced hosted packs match exactly."""
     manifest_bytes = STATIC_MANIFEST.read_bytes() if STATIC_MANIFEST.exists() else b""
     if not manifest_bytes:
-        raise PackError("missing bundled manifest: static/pack-manifest-v1.34.json")
-    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.34.json")
+        raise PackError("missing bundled manifest: static/pack-manifest-v1.35.json")
+    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.35.json")
     _expect(ANDROID_MANIFEST.read_bytes() == manifest_bytes, "static and Android pack manifests differ")
-    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.34.json")
+    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.35.json")
     _expect(PAGES_MANIFEST.read_bytes() == manifest_bytes, "static and Pages pack manifests differ")
     manifest = _read_json(STATIC_MANIFEST)
     _expect(isinstance(manifest, dict) and set(manifest) == MANIFEST_KEYS,

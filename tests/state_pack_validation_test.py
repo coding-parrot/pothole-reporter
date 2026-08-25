@@ -20,6 +20,10 @@ from state_pack_tools import (  # noqa: E402
     _authority_snapshot,
     _validate_raw_payload,
 )
+from india_jurisdictions import (  # noqa: E402
+    JURISDICTIONS as REMAINING_JURISDICTIONS,
+    pack_id as remaining_pack_id,
+)
 
 
 Mutation = Callable[[dict[str, Any], list[dict[str, Any]]], None]
@@ -42,6 +46,7 @@ VALIDATED_IDS = (
     "in-br-routing",
     "in-od-routing",
     "in-top50-routing",
+    *(remaining_pack_id(item) for item in REMAINING_JURISDICTIONS),
 )
 
 
