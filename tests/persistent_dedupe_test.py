@@ -16,12 +16,11 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 APP = "http://localhost:8765/"
 
 ACCEPTED = {
+    "is_pothole": True,
     "looks_like_speed_breaker": False,
-    "reportable": True,
-    "assessment": "clear",
     "image_quality": "usable",
-    "damage_type": "pothole_cavity",
     "on_drivable_surface": True,
+    "has_localized_cavity": True,
     "has_broken_edge_or_rim": True,
     "has_depth_or_surface_loss": True,
     "temporal_consistency": "consistent",
@@ -70,7 +69,7 @@ INIT = r"""
     if (target.includes("api.openai.com/v1/responses")) {
       const body = JSON.parse(init.body || "{}");
       const name = body.text && body.text.format && body.text.format.name;
-      if (name !== "road_damage_assessment") {
+      if (name !== "pothole_binary_assessment") {
         throw new Error(`Unexpected model call: ${name || "unnamed"}`);
       }
       window.__detectorCalls++;
@@ -133,7 +132,14 @@ async function jpeg() {
 }
 async function requestBody(path, opts = {}) {
   const fd = new FormData();
-  fd.append("photo", await jpeg(), "event.jpg");
+  if (path === "/api/frame") {
+    fd.append("photo", await jpeg(), "event-before.jpg");
+    fd.append("photo", await jpeg(), "event-primary.jpg");
+    fd.append("photo", await jpeg(), "event-after.jpg");
+    fd.append("primary_index", "1");
+  } else {
+    fd.append("photo", await jpeg(), "event.jpg");
+  }
   if (opts.lat != null) fd.append("lat", String(opts.lat));
   if (opts.lng != null) fd.append("lng", String(opts.lng));
   if (path === "/api/frame") {

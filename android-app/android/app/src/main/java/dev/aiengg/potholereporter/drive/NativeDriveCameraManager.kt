@@ -125,6 +125,7 @@ class NativeDriveCameraManager(
 
     companion object {
         const val BURST_COUNT = 3
+        const val MIN_DETECTION_SOURCE_FRAMES = 2
         const val BURST_SPACING_MS = 180L
         private const val MAX_FRAME_WAIT_MS = 2_000L
         private const val RECORDING_SEGMENT_MS = 60_000L
@@ -299,7 +300,13 @@ class NativeDriveCameraManager(
                         qualities += quality
                     }
                 }
-                if (frames.isEmpty()) return@withContext null
+                if (frames.size < MIN_DETECTION_SOURCE_FRAMES) {
+                    // A full-frame view and a crop of that same bitmap are not temporal
+                    // evidence. Fail closed instead of asking the model to infer motion
+                    // consistency from one real camera frame.
+                    frames.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }
+                    return@withContext null
+                }
                 Pair(frames, FrameQualityEvaluator.selectBestBurstIndex(qualities))
             } catch (error: Throwable) {
                 frames.forEach { if (!it.bitmap.isRecycled) it.bitmap.recycle() }

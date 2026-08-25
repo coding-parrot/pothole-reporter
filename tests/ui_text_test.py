@@ -135,6 +135,19 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
     if not re.search(r'official_grievance_generic_label: "[^"]+"', s):
         fails.append(f"{name}: generic official grievance/reference label is missing")
 
+    # New detections have one public decision only. Do not let confidence, subtype,
+    # or clear/probable wording creep back into the visible result or labelling UI.
+    detected = re.findall(r'^\s{4}verdict_detected: "([^"]+)"', s, re.MULTILINE)
+    rejected = re.findall(r'^\s{4}verdict_rejected: "([^"]+)"', s, re.MULTILINE)
+    if len(detected) != 4 or len(rejected) != 4:
+        fails.append(f"{name}: expected four localized binary pothole verdict pairs")
+    elif detected[0] != "Pothole: YES" or rejected[0] != "Pothole: NO":
+        fails.append(f"{name}: English detection verdict is not binary YES/NO")
+    if re.search(r'^\s{4}confidence:', s, re.MULTILINE):
+        fails.append(f"{name}: visible confidence wording returned")
+    if any(button in s for button in ('id="lblPatch"', 'id="lblSurface"', 'id="lblRut"')):
+        fails.append(f"{name}: human detector labels are not binary")
+
     # Every refusal reason the engine can emit needs user-facing text.
     eng = (ROOT / "static/standalone.js").read_text(encoding="utf-8")
     reasons = set(re.findall(r'return \[null, null, "([a-z_]+)"', eng))

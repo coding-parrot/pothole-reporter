@@ -1,7 +1,7 @@
 # Pothole Reporter
 
 An independent Android app for potholes, garbage, and open or damaged manholes. **Drive**
-detects visible road damage; **Photo** lets the user choose the issue and prepares evidence
+detects visible potholes; **Photo** lets the user choose the issue and prepares evidence
 for an official complaint channel. Reports remain on the phone, and nothing is filed
 automatically. There is no project-operated backend or account system.
 
@@ -48,7 +48,10 @@ WhatsApp, dialler, share sheet, or email client. Nothing is submitted automatica
 - A selectable 15/30/60/90-minute active-time battery limit stops Drive automatically; paused time does not count. The default is 30 minutes.
 - **Photo** offers **Pothole**, **Garbage**, or **Manhole**. Pothole photos use AI; the
   other two are explicit user reports and are not sent to OpenAI.
-- OpenAI vision assesses visible potholes, failed patches, breakup, ruts, and depressions.
+- OpenAI vision returns only **Pothole: Yes/No**. A Yes requires a localized cavity,
+  broken rim, visible material loss, usable imagery, and consistent Drive views; ambiguous
+  surfaces and speed breakers are No. Accepted potholes receive an approximate
+  small/medium/large app size.
 - Nearby repeat observations are grouped into one report; Debug mode retains each one.
 - On a later live drive, **Fixed** requires a separate before/after AI check that clearly
   sees the same footprint covered by completed, intact repair material. Probable,

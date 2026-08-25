@@ -106,37 +106,28 @@ CASES = r"""
   eq("dedupe: small and large observations remain separate",
      P.roadEventMatch({...laterDrive, size:"large"}, {...priorDrive, size:"small"}), null);
 
-  // ---- streamed road-damage decision contract ----
-  const accepted = '{"looks_like_speed_breaker":false,"reportable":true,"assessment":"clear","image_quality":"usable","damage_type":"pothole_cavity","on_drivable_surface":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"large","description":"x"}';
-  const rejected = '{"looks_like_speed_breaker":false,"reportable":false,"assessment":"absent","image_quality":"usable","damage_type":"none","on_drivable_surface":false,"has_broken_edge_or_rim":false,"has_depth_or_surface_loss":false,"temporal_consistency":"not_applicable","size":null,"description":"none"}';
-  const speedBreaker = '{"looks_like_speed_breaker":true,"reportable":true,"assessment":"clear","image_quality":"usable","damage_type":"pothole_cavity","on_drivable_surface":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"painted transverse raised ridge"}';
-  const uncertain = '{"looks_like_speed_breaker":false,"reportable":true,"assessment":"uncertain","image_quality":"degraded","damage_type":"failed_patch","on_drivable_surface":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"x"}';
-  eq("peek: nothing yet", P.peekVerdict('{"report'), null);
-  eq("peek: partial damage type cannot decide",
-     P.peekVerdict('{"looks_like_speed_breaker":false,"reportable":true,"assessment":"clear","image_quality":"usable","damage_type":"pothole_cav'), null);
-  eq("peek: speed breaker is immediately rejected despite contradictory pothole fields",
-     P.peekVerdict(speedBreaker),
-     {accepted:false, review:false, damage_type:"none", assessment:"absent"});
-  eq("peek: reportable false without required breaker is not a verdict",
-     P.peekVerdict('{"reportable": false'), null);
-  const earlyAccepted = P.peekVerdict(accepted.slice(0, accepted.indexOf(',"size"')));
-  eq("peek: accepted uses semantic policy", earlyAccepted,
+  // ---- streamed binary pothole contract ----
+  const accepted = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","on_drivable_surface":true,"has_localized_cavity":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"large","description":"localized cavity"}';
+  const rejected = '{"is_pothole":false,"looks_like_speed_breaker":false,"image_quality":"usable","on_drivable_surface":true,"has_localized_cavity":false,"has_broken_edge_or_rim":false,"has_depth_or_surface_loss":false,"temporal_consistency":"not_applicable","size":null,"description":"no cavity"}';
+  const speedBreaker = '{"is_pothole":true,"looks_like_speed_breaker":true,"image_quality":"usable","on_drivable_surface":true,"has_localized_cavity":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"painted transverse raised ridge"}';
+  const surfaceBreakup = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","on_drivable_surface":true,"has_localized_cavity":false,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"broad breakup"}';
+  eq("peek: nothing yet", P.peekVerdict('{"is_pot'), null);
+  eq("peek: YES cannot be announced before size",
+     P.peekVerdict(accepted.slice(0, accepted.indexOf(',"size"'))), null);
+  eq("peek: complete physical pothole is YES", P.peekVerdict(accepted),
      {accepted:true, review:false, damage_type:"pothole_cavity", assessment:"clear"});
-  const earlyReview = P.peekVerdict(uncertain.slice(0, uncertain.indexOf(',"size"')));
-  eq("peek: uncertainty becomes review", earlyReview,
-     {accepted:false, review:true, damage_type:"failed_patch", assessment:"uncertain"});
+  eq("peek: explicit NO is immediately final", P.peekVerdict('{"is_pothole":false'),
+     {accepted:false, review:false, damage_type:"none", assessment:"absent"});
+  eq("peek: speed breaker vetoes contradictory pothole fields", P.peekVerdict(speedBreaker),
+     {accepted:false, review:false, damage_type:"none", assessment:"absent"});
+  eq("peek: surface breakup without a localized cavity is NO", P.peekVerdict(surfaceBreakup),
+     {accepted:false, review:false, damage_type:"none", assessment:"absent"});
 
-  ok("reject: not yet decidable", P.peekReject('{"reportable"') === false);
-  ok("reject: speed-breaker true is immediately final",
-     P.peekReject('{"looks_like_speed_breaker":true') === true);
-  ok("reject: speed-breaker false alone is not final",
-     P.peekReject('{"looks_like_speed_breaker":false') === false);
-  ok("reject: valid reportable false is immediately final",
-     P.peekReject('{"looks_like_speed_breaker":false,"reportable": false') === true);
-  ok("reject: malformed missing breaker still fails closed",
-     P.peekReject('{"reportable": false') === true);
-  ok("reject: true alone is not final", P.peekReject('{"reportable": true') === false);
-  ok("reject: uncertain becomes final only after evidence fields", P.peekReject(uncertain) === true);
+  ok("reject: not yet decidable", P.peekReject('{"is_pot') === false);
+  ok("reject: explicit NO is immediately final", P.peekReject('{"is_pothole":false') === true);
+  ok("reject: YES alone is not final", P.peekReject('{"is_pothole":true') === false);
+  ok("reject: speed breaker becomes final after required fields", P.peekReject(speedBreaker) === true);
+  ok("reject: non-cavity breakup becomes final after required fields", P.peekReject(surfaceBreakup) === true);
 
   // An accepted response must never be reported as rejected at any prefix.
   let wrongAbort = null;
@@ -144,34 +135,47 @@ CASES = r"""
   ok("reject: never aborts an accepted frame at any prefix", wrongAbort === null, wrongAbort);
 
   const rv = P.rejectedVerdict(rejected.slice(0, rejected.indexOf(',"size"')));
-  ok("rejectedVerdict: not reportable", rv.reportable === false, rv);
+  ok("rejectedVerdict: binary NO", rv.is_pothole === false && rv.reportable === false, rv);
   ok("rejectedVerdict: shape is complete",
-     ["looks_like_speed_breaker","assessment","image_quality","damage_type","on_drivable_surface",
-      "has_broken_edge_or_rim","has_depth_or_surface_loss","temporal_consistency",
+     ["is_pothole","looks_like_speed_breaker","assessment","image_quality","damage_type",
+      "on_drivable_surface","has_localized_cavity","has_broken_edge_or_rim",
+      "has_depth_or_surface_loss","temporal_consistency",
       "size","description"].every((k) => k in rv), Object.keys(rv));
 
   // ---- final semantic gate ----
-  const good = { looks_like_speed_breaker:false,
-    reportable:true, assessment:"clear", image_quality:"usable",
-    damage_type:"pothole_cavity", on_drivable_surface:true,
-    has_broken_edge_or_rim:true, has_depth_or_surface_loss:false,
-    temporal_consistency:"consistent" };
-  for (const type of ["pothole_cavity","failed_patch","surface_breakup","rut_or_depression","other_road_damage"]) {
-    eq(`decision: accepts clear ${type}`, P.decisionFor({...good, damage_type:type}), "accept");
+  const good = { is_pothole:true, looks_like_speed_breaker:false,
+    image_quality:"usable", on_drivable_surface:true, has_localized_cavity:true,
+    has_broken_edge_or_rim:true, has_depth_or_surface_loss:true,
+    temporal_consistency:"consistent", size:"medium" };
+  for (const size of ["small","medium","large"]) {
+    eq(`decision: accepts clear ${size} pothole`, P.decisionFor({...good, size}), "accept");
   }
-  eq("decision: probable strong evidence accepts", P.decisionFor({...good, assessment:"probable"}), "accept");
+  eq("decision: manual Photo accepts a defensible single view",
+     P.decisionFor({...good, temporal_consistency:"single_view"}, false, 1), "accept");
+  eq("decision: Drive requires chronological consistency",
+     P.decisionFor({...good, temporal_consistency:"single_view"}, true, 3), "reject");
+  eq("decision: Drive rejects one source frame even if model claims consistency",
+     P.decisionFor(good, true, 1), "reject");
+  eq("decision: Drive accepts at least two consistent source frames",
+     P.decisionFor(good, true, 3), "accept");
   eq("decision: speed breaker hard-vetoes an otherwise accepted pothole",
      P.decisionFor({...good, looks_like_speed_breaker:true}), "reject");
   const missingBreaker = {...good}; delete missingBreaker.looks_like_speed_breaker;
   eq("decision: missing speed-breaker field fails closed", P.decisionFor(missingBreaker), "reject");
   eq("decision: mistyped speed-breaker field fails closed",
      P.decisionFor({...good, looks_like_speed_breaker:"false"}), "reject");
-  eq("decision: uncertainty is review", P.decisionFor({...good, assessment:"uncertain"}), "review");
-  eq("decision: unusable is review", P.decisionFor({...good, image_quality:"unusable"}), "review");
-  eq("decision: contradictory none rejects", P.decisionFor({...good, damage_type:"none"}), "reject");
+  eq("decision: model NO rejects", P.decisionFor({...good, is_pothole:false}), "reject");
+  eq("decision: unusable is NO", P.decisionFor({...good, image_quality:"unusable"}), "reject");
   eq("decision: off-road rejects", P.decisionFor({...good, on_drivable_surface:false}), "reject");
-  eq("decision: no structural cue is review",
-     P.decisionFor({...good, has_broken_edge_or_rim:false, has_depth_or_surface_loss:false}), "review");
+  eq("decision: no localized cavity is NO",
+     P.decisionFor({...good, has_localized_cavity:false}), "reject");
+  eq("decision: missing broken rim is NO",
+     P.decisionFor({...good, has_broken_edge_or_rim:false}), "reject");
+  eq("decision: missing depth or surface loss is NO",
+     P.decisionFor({...good, has_depth_or_surface_loss:false}), "reject");
+  eq("decision: inconsistent views are NO",
+     P.decisionFor({...good, temporal_consistency:"inconsistent"}), "reject");
+  eq("decision: YES without size is NO", P.decisionFor({...good, size:null}), "reject");
 
   // ---- strict physical repair status ----
   const repairPrior = {...event, id:41, photo:"data:image/jpeg;base64,eA==",

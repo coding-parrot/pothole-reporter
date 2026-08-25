@@ -25,32 +25,27 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 data class AssessmentResult(
+    val isPothole: Boolean,
     val looksLikeSpeedBreaker: Boolean,
     val reportable: Boolean,
     val assessment: String,
     val imageQuality: String,
     val damageType: String,
     val onDrivableSurface: Boolean,
+    val hasLocalizedCavity: Boolean,
     val hasBrokenEdgeOrRim: Boolean,
     val hasDepthOrSurfaceLoss: Boolean,
     val temporalConsistency: String,
     val size: String?,
     val description: String,
-    val decision: String // "accept", "review", "reject"
+    val decision: String // "accept" or "reject"
 )
 
 /** Parses only a complete structured detector response. Missing or mistyped fields are
  * never filled with absence-friendly defaults, because that result can gate a repair check. */
 internal object NativeCompleteVerdictParser {
-    private val assessments = setOf("clear", "probable", "uncertain", "absent")
-    private val imageQualities = setOf("usable", "degraded", "unusable")
-    private val damageTypes = setOf(
-        "pothole_cavity", "failed_patch", "surface_breakup", "rut_or_depression",
-        "other_road_damage", "none"
-    )
-    private val temporalValues = setOf(
-        "consistent", "single_view", "inconsistent", "not_applicable"
-    )
+    private val imageQualities = setOf("usable", "unusable")
+    private val temporalValues = setOf("consistent", "inconsistent", "not_applicable")
     private val sizes = setOf("small", "medium", "large")
 
     fun parse(text: String): AssessmentResult? {
@@ -59,12 +54,11 @@ internal object NativeCompleteVerdictParser {
             val sizeValue = json.get("size")
             fromFields(
                 mapOf(
+                    "is_pothole" to json.get("is_pothole"),
                     "looks_like_speed_breaker" to json.get("looks_like_speed_breaker"),
-                    "reportable" to json.get("reportable"),
-                    "assessment" to json.get("assessment"),
                     "image_quality" to json.get("image_quality"),
-                    "damage_type" to json.get("damage_type"),
                     "on_drivable_surface" to json.get("on_drivable_surface"),
+                    "has_localized_cavity" to json.get("has_localized_cavity"),
                     "has_broken_edge_or_rim" to json.get("has_broken_edge_or_rim"),
                     "has_depth_or_surface_loss" to json.get("has_depth_or_surface_loss"),
                     "temporal_consistency" to json.get("temporal_consistency"),
@@ -79,64 +73,65 @@ internal object NativeCompleteVerdictParser {
 
     internal fun fromFields(fields: Map<String, Any?>): AssessmentResult? {
         val required = setOf(
-            "looks_like_speed_breaker", "reportable", "assessment", "image_quality", "damage_type",
-            "on_drivable_surface", "has_broken_edge_or_rim", "has_depth_or_surface_loss",
+            "is_pothole", "looks_like_speed_breaker", "image_quality", "on_drivable_surface",
+            "has_localized_cavity", "has_broken_edge_or_rim", "has_depth_or_surface_loss",
             "temporal_consistency", "size", "description"
         )
         if (!fields.keys.containsAll(required)) return null
+        val modelIsPothole = fields["is_pothole"] as? Boolean ?: return null
         val looksLikeSpeedBreaker = fields["looks_like_speed_breaker"] as? Boolean ?: return null
-        val reportable = fields["reportable"] as? Boolean ?: return null
         val onRoad = fields["on_drivable_surface"] as? Boolean ?: return null
+        val localizedCavity = fields["has_localized_cavity"] as? Boolean ?: return null
         val brokenEdge = fields["has_broken_edge_or_rim"] as? Boolean ?: return null
         val depth = fields["has_depth_or_surface_loss"] as? Boolean ?: return null
-        val assessment = fields["assessment"] as? String ?: return null
         val imageQuality = fields["image_quality"] as? String ?: return null
-        val damageType = fields["damage_type"] as? String ?: return null
         val temporal = fields["temporal_consistency"] as? String ?: return null
         val description = fields["description"] as? String ?: return null
-        if (assessment !in assessments || imageQuality !in imageQualities ||
-            damageType !in damageTypes || temporal !in temporalValues) return null
+        if (imageQuality !in imageQualities || temporal !in temporalValues) return null
         val sizeValue = fields["size"]
         if (sizeValue != null && (sizeValue !is String || sizeValue !in sizes)) return null
         val size = sizeValue as? String
+        val decision = decisionFor(
+            modelIsPothole, looksLikeSpeedBreaker, imageQuality, onRoad, localizedCavity,
+            brokenEdge, depth, temporal, size
+        )
+        val accepted = decision == "accept"
 
         return AssessmentResult(
+            isPothole = accepted,
             looksLikeSpeedBreaker = looksLikeSpeedBreaker,
-            reportable = reportable,
-            assessment = assessment,
+            reportable = accepted,
+            assessment = if (accepted) "clear" else "absent",
             imageQuality = imageQuality,
-            damageType = damageType,
+            damageType = if (accepted) "pothole_cavity" else "none",
             onDrivableSurface = onRoad,
+            hasLocalizedCavity = localizedCavity,
             hasBrokenEdgeOrRim = brokenEdge,
             hasDepthOrSurfaceLoss = depth,
             temporalConsistency = temporal,
-            size = size,
+            size = if (accepted) size else null,
             description = description,
-            decision = decisionFor(
-                looksLikeSpeedBreaker, reportable, assessment, imageQuality, damageType,
-                onRoad, brokenEdge, depth, temporal
-            )
+            decision = decision
         )
     }
 
     internal fun decisionFor(
+        isPothole: Boolean,
         looksLikeSpeedBreaker: Boolean,
-        reportable: Boolean,
-        assessment: String,
         imageQuality: String,
-        damageType: String,
         onDrivableSurface: Boolean,
+        hasLocalizedCavity: Boolean,
         hasBrokenEdgeOrRim: Boolean,
         hasDepthOrSurfaceLoss: Boolean,
-        temporalConsistency: String
+        temporalConsistency: String,
+        size: String?
     ): String {
-        if (looksLikeSpeedBreaker) return "reject"
-        if (!reportable || damageType == "none" || !onDrivableSurface) return "reject"
-        if (assessment == "absent") return "reject"
-        if (imageQuality == "unusable" || assessment == "uncertain" ||
-            temporalConsistency == "inconsistent") return "review"
-        if (assessment != "clear" && assessment != "probable") return "review"
-        if (!hasBrokenEdgeOrRim && !hasDepthOrSurfaceLoss) return "review"
+        if (!isPothole || looksLikeSpeedBreaker) return "reject"
+        if (imageQuality != "usable" || !onDrivableSurface || !hasLocalizedCavity) return "reject"
+        if (!hasBrokenEdgeOrRim || !hasDepthOrSurfaceLoss) return "reject"
+        // NativeInferenceEngine is Drive-only and always receives a chronological burst.
+        if (temporalConsistency != "consistent") return "reject"
+        if (size !in sizes) return "reject"
         return "accept"
     }
 }
@@ -198,28 +193,29 @@ class NativeInferenceEngine(
     companion object {
         private const val OAI_URL = "https://api.openai.com/v1/responses"
         private const val NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
-        private const val PROMPT_VERSION = "road-damage-v4"
-        private const val SCHEMA_VERSION = 4
+        private const val PROMPT_VERSION = "pothole-binary-v5"
+        private const val SCHEMA_VERSION = 5
         const val REPAIR_PROMPT_VERSION = "road-repair-v1"
         const val REPAIR_SCHEMA_VERSION = 1
 
+        private val IS_POTHOLE_RE = Pattern.compile("\"is_pothole\"\\s*:\\s*(true|false)")
         private val SPEED_BREAKER_RE = Pattern.compile("\"looks_like_speed_breaker\"\\s*:\\s*(true|false)")
-        private val REPORTABLE_RE = Pattern.compile("\"reportable\"\\s*:\\s*(true|false)")
-        private val ASSESSMENT_RE = Pattern.compile("\"assessment\"\\s*:\\s*\"(clear|probable|uncertain|absent)\"")
-        private val QUALITY_RE = Pattern.compile("\"image_quality\"\\s*:\\s*\"(usable|degraded|unusable)\"")
-        private val DAMAGE_RE = Pattern.compile("\"damage_type\"\\s*:\\s*\"(pothole_cavity|failed_patch|surface_breakup|rut_or_depression|other_road_damage|none)\"")
+        private val QUALITY_RE = Pattern.compile("\"image_quality\"\\s*:\\s*\"(usable|unusable)\"")
         private val ROAD_RE = Pattern.compile("\"on_drivable_surface\"\\s*:\\s*(true|false)")
+        private val CAVITY_RE = Pattern.compile("\"has_localized_cavity\"\\s*:\\s*(true|false)")
         private val EDGE_RE = Pattern.compile("\"has_broken_edge_or_rim\"\\s*:\\s*(true|false)")
         private val DEPTH_RE = Pattern.compile("\"has_depth_or_surface_loss\"\\s*:\\s*(true|false)")
         private val TEMPORAL_RE = Pattern.compile("\"temporal_consistency\"\\s*:\\s*\"(consistent|single_view|inconsistent|not_applicable)\"")
+        private val SIZE_RE = Pattern.compile("\"size\"\\s*:\\s*(?:\"(small|medium|large)\"|null)")
 
         private const val DETECT_PROMPT =
-            "You are inspecting chronologically ordered road views for a civic complaint app. Classify reportable damage on the paved surface used by moving traffic: pothole_cavity is a localized open cavity with a broken rim, missing material, or visible depth; failed_patch is a previous repair that has broken, sunk, opened, or shed aggregate; surface_breakup is material disintegration across an area; rut_or_depression is a materially sunken wheel path or genuine level change; other_road_damage is another serious travelled-surface defect; none means no reportable damage. " +
-            "First decide whether the candidate is an intentional raised speed breaker, road hump, or rumble strip. These usually form a continuous transverse ridge across most or all of the lane and may have white rectangles or stripes, reflectors, and parallel leading and trailing edges. Across chronological views, a raised breaker expands uniformly as the vehicle approaches. " +
-            "Set looks_like_speed_breaker true whenever the candidate itself is, or could reasonably be, a speed breaker. If raised-versus-concave geometry is ambiguous, fail closed and set it true. Its painted border, dark leading or trailing shadow, reflector, camera pitch, or vehicle jolt is not a broken rim or depth cue. In that case set reportable false and damage_type none. " +
-            "Set looks_like_speed_breaker false only when the candidate is clearly not an intentional raised feature. A separate localized cavity or missing road material on or beside a breaker may still be damage, but it must be visually unambiguous and distinct from the raised ridge. " +
-            "A shadow, stain, water, glare, dust, loose roadside debris, lane marking, intact patch, manhole, drain, road edge, shoulder erosion, or expansion joint is not reportable damage by itself. The defect must be on the drivable paved surface. Use agreement and parallax across views, and never convert an uncertain confounder into a positive result. " +
-            "Return structured assessment according to the schema."
+            "You are a high-precision binary pothole detector inspecting chronologically ordered road views for a civic complaint app. Return one decision only: is_pothole true (YES) or false (NO). There is no confidence score, probability, probable result, review result, or general road-damage category. False positives are more harmful than false negatives, so any ambiguity must be NO. " +
+            "A pothole is a localized concave open cavity in the drivable paved surface with pavement material visibly missing or disintegrated. YES requires the feature to be on the paved surface used by moving traffic, have a distinct broken edge or rim, have visible depth or material loss, and be geometrically consistent across supplied chronological views. " +
+            "Return NO for a speed breaker, road hump, rumble strip, shadow, stain, water, glare, dust, loose debris, lane marking, intact patch, crack, broad surface breakup without a distinct cavity, rut or smooth depression, manhole, drain, expansion joint, road edge, or shoulder erosion. A failed patch is YES only when it now contains a distinct open cavity satisfying every pothole rule. " +
+            "Set looks_like_speed_breaker true whenever the feature is or could reasonably be an intentional raised breaker, hump, or rumble strip. Painted rectangles or stripes, reflectors, a transverse ridge, parallel leading and trailing edges, camera pitch, and a vehicle jolt support NO. A separate cavity on or beside a breaker is YES only when visually unambiguous and distinct from the raised ridge. If raised-versus-concave geometry is uncertain, return NO. " +
+            "Set image_quality unusable when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. Use temporal_consistency consistent only when the chronological views agree; otherwise use inconsistent. " +
+            "Only after YES, classify approximate visual size using these app bands: small means maximum visible opening width below 30 cm; medium means 30 to 60 cm; large means above 60 cm or a connected cavity cluster. For NO, size must be null. These are app estimates, not municipal measurements. " +
+            "The description must be factual. Never output a confidence percentage."
 
         private const val REPAIR_PROMPT =
             "You are comparing a previously accepted road-damage report with a new " +
@@ -250,7 +246,9 @@ class NativeInferenceEngine(
         heading: Float?,
         requireCompleteVerdict: Boolean = false
     ): InferenceOutcome = withContext(Dispatchers.IO) {
-        if (burstFrames.isEmpty()) {
+        if (burstFrames.size < NativeDriveCameraManager.MIN_DETECTION_SOURCE_FRAMES) {
+            // Defensive gate for callers and restored keyframes: Drive Mode may never
+            // turn one source bitmap plus its crop into a multi-frame YES.
             return@withContext InferenceOutcome(analyzed = false, accepted = false, decision = "reject", assessment = null)
         }
 
@@ -304,11 +302,13 @@ class NativeInferenceEngine(
             photoDataUrl = photoThumbUrl,
             photoFullPath = photoFile.absolutePath,
             isReportable = if (assessment.reportable) 1 else 0,
-            isPothole = if (assessment.damageType == "pothole_cavity") 1 else 0,
+            isPothole = if (assessment.isPothole) 1 else 0,
+            looksLikeSpeedBreaker = assessment.looksLikeSpeedBreaker,
             damageType = assessment.damageType,
             assessment = assessment.assessment,
             imageQuality = assessment.imageQuality,
             onDrivableSurface = assessment.onDrivableSurface,
+            hasLocalizedCavity = assessment.hasLocalizedCavity,
             hasBrokenEdgeOrRim = assessment.hasBrokenEdgeOrRim,
             hasDepthOrSurfaceLoss = assessment.hasDepthOrSurfaceLoss,
             temporalConsistency = assessment.temporalConsistency,
@@ -581,17 +581,16 @@ class NativeInferenceEngine(
             {
               "type": "object",
               "additionalProperties": false,
-              "required": ["looks_like_speed_breaker", "reportable", "assessment", "image_quality", "damage_type", "on_drivable_surface", "has_broken_edge_or_rim", "has_depth_or_surface_loss", "temporal_consistency", "size", "description"],
+              "required": ["is_pothole", "looks_like_speed_breaker", "image_quality", "on_drivable_surface", "has_localized_cavity", "has_broken_edge_or_rim", "has_depth_or_surface_loss", "temporal_consistency", "size", "description"],
               "properties": {
+                "is_pothole": { "type": "boolean" },
                 "looks_like_speed_breaker": { "type": "boolean" },
-                "reportable": { "type": "boolean" },
-                "assessment": { "type": "string", "enum": ["clear", "probable", "uncertain", "absent"] },
-                "image_quality": { "type": "string", "enum": ["usable", "degraded", "unusable"] },
-                "damage_type": { "type": "string", "enum": ["pothole_cavity", "failed_patch", "surface_breakup", "rut_or_depression", "other_road_damage", "none"] },
+                "image_quality": { "type": "string", "enum": ["usable", "unusable"] },
                 "on_drivable_surface": { "type": "boolean" },
+                "has_localized_cavity": { "type": "boolean" },
                 "has_broken_edge_or_rim": { "type": "boolean" },
                 "has_depth_or_surface_loss": { "type": "boolean" },
-                "temporal_consistency": { "type": "string", "enum": ["consistent", "single_view", "inconsistent", "not_applicable"] },
+                "temporal_consistency": { "type": "string", "enum": ["consistent", "inconsistent", "not_applicable"] },
                 "size": { "type": ["string", "null"], "enum": ["small", "medium", "large", null] },
                 "description": { "type": "string" }
               }
@@ -601,7 +600,7 @@ class NativeInferenceEngine(
 
         val textFormat = JSONObject()
         textFormat.put("type", "json_schema")
-        textFormat.put("name", "road_damage_assessment")
+        textFormat.put("name", "pothole_binary_assessment")
         textFormat.put("strict", true)
         textFormat.put("schema", schemaObj)
         val textConfig = JSONObject()
@@ -703,117 +702,115 @@ class NativeInferenceEngine(
     }
 
     private fun peekReject(text: String): Boolean {
+        val verdictMatcher = IS_POTHOLE_RE.matcher(text)
+        if (!verdictMatcher.find()) return false
+        val isPothole = verdictMatcher.group(1) == "true"
+        if (!isPothole) return true
+
         val breakerMatcher = SPEED_BREAKER_RE.matcher(text)
-        if (!breakerMatcher.find()) return false
-        if (breakerMatcher.group(1) == "true") return true
-
-        val repMatcher = REPORTABLE_RE.matcher(text)
-        if (!repMatcher.find()) return false
-        if (repMatcher.group(1) == "false") return true
-
-        val assessMatcher = ASSESSMENT_RE.matcher(text)
+        val breakerFound = breakerMatcher.find()
+        if (breakerFound && breakerMatcher.group(1) == "true") return true
         val qualMatcher = QUALITY_RE.matcher(text)
-        val dmgMatcher = DAMAGE_RE.matcher(text)
         val roadMatcher = ROAD_RE.matcher(text)
+        val cavityMatcher = CAVITY_RE.matcher(text)
         val edgeMatcher = EDGE_RE.matcher(text)
         val depthMatcher = DEPTH_RE.matcher(text)
         val tempMatcher = TEMPORAL_RE.matcher(text)
+        val sizeMatcher = SIZE_RE.matcher(text)
 
-        if (!assessMatcher.find() || !qualMatcher.find() || !dmgMatcher.find() ||
-            !roadMatcher.find() || !edgeMatcher.find() || !depthMatcher.find() || !tempMatcher.find()
+        if (!breakerFound || !qualMatcher.find() || !roadMatcher.find() ||
+            !cavityMatcher.find() || !edgeMatcher.find() || !depthMatcher.find() ||
+            !tempMatcher.find() || !sizeMatcher.find()
         ) {
             return false
         }
 
-        val reportable = repMatcher.group(1) == "true"
-        val assessment = assessMatcher.group(1) ?: "absent"
-        val imageQuality = qualMatcher.group(1) ?: "unusable"
-        val damageType = dmgMatcher.group(1) ?: "none"
-        val onRoad = roadMatcher.group(1) == "true"
-        val hasEdge = edgeMatcher.group(1) == "true"
-        val hasDepth = depthMatcher.group(1) == "true"
-        val temporal = tempMatcher.group(1) ?: "inconsistent"
-
         val dec = evaluateDecision(
-            false, reportable, assessment, imageQuality, damageType, onRoad, hasEdge,
-            hasDepth, temporal
+            true,
+            breakerMatcher.group(1) == "true",
+            qualMatcher.group(1) ?: "unusable",
+            roadMatcher.group(1) == "true",
+            cavityMatcher.group(1) == "true",
+            edgeMatcher.group(1) == "true",
+            depthMatcher.group(1) == "true",
+            tempMatcher.group(1) ?: "inconsistent",
+            sizeMatcher.group(1)
         )
         return dec != "accept"
     }
 
     private fun evaluateDecision(
+        isPothole: Boolean,
         looksLikeSpeedBreaker: Boolean,
-        reportable: Boolean,
-        assessment: String,
         imageQuality: String,
-        damageType: String,
         onDrivableSurface: Boolean,
+        hasLocalizedCavity: Boolean,
         hasBrokenEdgeOrRim: Boolean,
         hasDepthOrSurfaceLoss: Boolean,
-        temporalConsistency: String
+        temporalConsistency: String,
+        size: String?
     ): String = NativeCompleteVerdictParser.decisionFor(
+        isPothole,
         looksLikeSpeedBreaker,
-        reportable,
-        assessment,
         imageQuality,
-        damageType,
         onDrivableSurface,
+        hasLocalizedCavity,
         hasBrokenEdgeOrRim,
         hasDepthOrSurfaceLoss,
-        temporalConsistency
+        temporalConsistency,
+        size
     )
 
     private fun rejectedVerdict(text: String): AssessmentResult {
+        val verdictMatcher = IS_POTHOLE_RE.matcher(text)
         val breakerMatcher = SPEED_BREAKER_RE.matcher(text)
-        val repMatcher = REPORTABLE_RE.matcher(text)
-        val assessMatcher = ASSESSMENT_RE.matcher(text)
         val qualMatcher = QUALITY_RE.matcher(text)
-        val dmgMatcher = DAMAGE_RE.matcher(text)
         val roadMatcher = ROAD_RE.matcher(text)
+        val cavityMatcher = CAVITY_RE.matcher(text)
         val edgeMatcher = EDGE_RE.matcher(text)
         val depthMatcher = DEPTH_RE.matcher(text)
         val tempMatcher = TEMPORAL_RE.matcher(text)
 
-        // The speed-breaker field is first in the strict schema. A missing value here
-        // means a malformed/truncated stream, so fail closed.
+        // The binary field is first in the strict schema. A missing value means a
+        // malformed/truncated stream; either way this reconstructed result is NO.
+        val modelSaidPothole = verdictMatcher.find() && verdictMatcher.group(1) == "true"
         val looksLikeSpeedBreaker = !breakerMatcher.find() || breakerMatcher.group(1) == "true"
-        val reportable = repMatcher.find() && repMatcher.group(1) == "true"
-        val assessment = if (assessMatcher.find()) assessMatcher.group(1)!! else "absent"
-        val imageQuality = if (qualMatcher.find()) qualMatcher.group(1)!! else "usable"
-        val damageType = if (dmgMatcher.find()) dmgMatcher.group(1)!! else "none"
+        val imageQuality = if (qualMatcher.find()) qualMatcher.group(1)!! else "unusable"
         val onRoad = roadMatcher.find() && roadMatcher.group(1) == "true"
+        val hasCavity = cavityMatcher.find() && cavityMatcher.group(1) == "true"
         val hasEdge = edgeMatcher.find() && edgeMatcher.group(1) == "true"
         val hasDepth = depthMatcher.find() && depthMatcher.group(1) == "true"
         val temporal = if (tempMatcher.find()) tempMatcher.group(1)!! else "not_applicable"
 
-        val dec = evaluateDecision(
-            looksLikeSpeedBreaker, reportable, assessment, imageQuality, damageType,
-            onRoad, hasEdge, hasDepth, temporal
-        )
         return AssessmentResult(
+            isPothole = false,
             looksLikeSpeedBreaker = looksLikeSpeedBreaker,
-            reportable = reportable,
-            assessment = assessment,
+            reportable = false,
+            assessment = "absent",
             imageQuality = imageQuality,
-            damageType = damageType,
+            damageType = "none",
             onDrivableSurface = onRoad,
+            hasLocalizedCavity = hasCavity,
             hasBrokenEdgeOrRim = hasEdge,
             hasDepthOrSurfaceLoss = hasDepth,
             temporalConsistency = temporal,
             size = null,
-            description = "Road damage not meeting reporting criteria.",
-            decision = dec
+            description = if (modelSaidPothole) "Pothole evidence failed a required physical gate."
+                else "No pothole detected.",
+            decision = "reject"
         )
     }
 
     private fun parseCompleteVerdict(text: String): AssessmentResult {
         return NativeCompleteVerdictParser.parse(text) ?: AssessmentResult(
+            isPothole = false,
             looksLikeSpeedBreaker = true,
             reportable = false,
-            assessment = "uncertain",
+            assessment = "absent",
             imageQuality = "unusable",
             damageType = "none",
             onDrivableSurface = false,
+            hasLocalizedCavity = false,
             hasBrokenEdgeOrRim = false,
             hasDepthOrSurfaceLoss = false,
             temporalConsistency = "inconsistent",

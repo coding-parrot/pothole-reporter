@@ -1,5 +1,5 @@
 {
- "_comment": "Legacy seed labels for the road-damage benchmark. Images are NOT committed: see eval/README.md. The v3 taxonomy is pothole_cavity, failed_patch, surface_breakup, rut_or_depression, other_road_damage, not_reportable or unlabelled; this seed still uses legacy pothole/not_pothole until the owner re-labels each subtype. Only six photos were confirmed by the owner, all positive. Every negative is assistant-judged and UNVERIFIED, so this set cannot measure false-positive accuracy or act as a release gate. Disputed images remain excluded.",
+ "_comment": "Binary pothole benchmark labels. Images are NOT committed: see eval/README.md. Six seed photos are owner-confirmed positives and the tester's second speed-breaker burst is an owner-confirmed negative. Other negatives remain assistant-judged and UNVERIFIED; disputed and unlabelled images are excluded from rates. This small set is still not a release gate.",
  "images": [
   {
    "path": "seed/IMG20260720144314.jpg",
@@ -144,6 +144,22 @@
    "source": "project owner, dashcam frame",
    "licence": "owner",
    "labelled_by": "assistant, UNVERIFIED"
+  },
+  {
+   "event_id": "tester-second-speed-breaker-2026-08-25",
+   "path": "tester-speed-breaker-2026-08-25/t070.jpg",
+   "frames": [
+    "tester-speed-breaker-2026-08-25/t065.jpg",
+    "tester-speed-breaker-2026-08-25/t070.jpg",
+    "tester-speed-breaker-2026-08-25/t075.jpg"
+   ],
+   "primary_index": 1,
+   "mode": "drive",
+   "label": "not_pothole",
+   "notes": "Owner-confirmed second painted speed breaker from the closed-test demonstration. This is documentation filmed from another phone, not the original app-camera burst, so it is a useful regression but not a substitute for retaining the raw detector frames.",
+   "source": "private tester demonstration supplied by project owner",
+   "licence": "private evaluation only; frames are not distributed",
+   "labelled_by": "owner"
   }
  ]
 }

@@ -9,17 +9,19 @@ from playwright.sync_api import sync_playwright
 APP = "http://localhost:8765/"
 
 ACCEPTED = {
+    "is_pothole": True,
     "looks_like_speed_breaker": False,
-    "reportable": True, "assessment": "clear", "image_quality": "usable",
-    "damage_type": "pothole_cavity", "on_drivable_surface": True,
+    "image_quality": "usable", "on_drivable_surface": True,
+    "has_localized_cavity": True,
     "has_broken_edge_or_rim": True, "has_depth_or_surface_loss": True,
     "temporal_consistency": "consistent", "size": "medium",
     "description": "A broken cavity is visible on the travelled surface.",
 }
 ABSENT = {
+    "is_pothole": False,
     "looks_like_speed_breaker": False,
-    "reportable": False, "assessment": "absent", "image_quality": "usable",
-    "damage_type": "none", "on_drivable_surface": False,
+    "image_quality": "usable", "on_drivable_surface": True,
+    "has_localized_cavity": False,
     "has_broken_edge_or_rim": False, "has_depth_or_surface_loss": False,
     "temporal_consistency": "not_applicable", "size": None,
     "description": "No reportable damage is visible in the current burst.",
@@ -29,8 +31,6 @@ SPEED_BREAKER = {
     "looks_like_speed_breaker": True,
     # Deliberately contradictory model fields reproduce the tester failure: the hard
     # veto must win even if another part of the model response calls it a pothole.
-    "reportable": True,
-    "damage_type": "pothole_cavity",
     "description": "A painted transverse raised ridge spans the lane.",
 }
 REPAIRED = {
@@ -121,7 +121,10 @@ async function repairSubmit(drive, key, lat, verdict, comparison) {
   window.__assessments.push(verdict);
   if (comparison) window.__repairs.push(comparison);
   const fd = new FormData();
-  fd.append("photo", await repairJpeg(), "road.jpg");
+  fd.append("photo", await repairJpeg(), "road-before.jpg");
+  fd.append("photo", await repairJpeg(), "road-primary.jpg");
+  fd.append("photo", await repairJpeg(), "road-after.jpg");
+  fd.append("primary_index", "1");
   fd.append("lat", String(lat)); fd.append("lng", "77.642700");
   fd.append("drive_id", drive); fd.append("capture_source", "drive_live");
   fd.append("source_event_key", key); fd.append("gps_accuracy", "4");

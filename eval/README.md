@@ -1,9 +1,10 @@
 # Detection benchmark
 
-The detector now makes an evidence-based road-damage assessment: subtype plus
-`clear` / `probable` / `uncertain` / `absent`. It does not ask a language model to
-invent a calibrated percentage. This directory holds labels, prompt arms and the
-production-semantic replay harness.
+The detector now returns one binary result: `is_pothole: true/false`. A positive must
+pass every physical evidence gate and include an approximate `small` / `medium` /
+`large` size; ambiguous inputs are negative. It does not ask a language model for a
+confidence score or accept generic road damage. This directory holds labels, prompt
+arms and the production-semantic replay harness.
 
 ```bash
 python3 eval/run_eval.py --mode drive --trials 5
@@ -53,22 +54,23 @@ own licence and attribution terms. `eval/images/` is gitignored. `labels.json`
 records the path, the label, why it is labelled that way, the source and the
 licence, so an image set can be rebuilt and its provenance stays auditable.
 
-New labels are `pothole_cavity`, `failed_patch`, `surface_breakup`,
-`rut_or_depression`, `other_road_damage`, `not_reportable`, or `unlabelled`.
-Legacy `pothole` / `not_pothole` values remain readable. Unlabelled and disputed
-images run but are excluded from binary rates.
+New labels are `pothole` or `not_pothole`. Legacy `pothole_cavity` is positive and
+clearly non-cavity surface classes are negative. Legacy `failed_patch` is excluded until
+a human records whether it contains a distinct cavity. Unlabelled and disputed images
+also run but are excluded from binary rates.
 
-The current seed set is not a release gate: it has owner-verified positives but no
-owner-verified negatives, and historical result files predate this contract. Do not
-choose a model or claim accuracy from it. First collect fully audited drives with both
-positive events and ordinary negative road, keep adjacent frames in one event/split,
-and lock a held-out test set.
+The current set is not a release gate: it has six owner-verified positive photos and one
+owner-verified speed-breaker burst, while the other negative labels are unverified and
+historical result files predate this contract. Do not choose a model or claim accuracy
+from it. First collect fully audited drives with diverse positive and negative events,
+keep adjacent frames in one event/split, and lock a held-out test set.
 
-To reproduce the seed set, drop the owner's photos and drive frames into
-`eval/images/seed/`. When adding third-party imagery, record its licence and
-attribution in `labels.json`. Openly licensed street-level imagery is suitable for
-evaluation; it is **not** suitable for filing complaints, because a complaint
-asserts a current condition on a road you observed.
+To reproduce the set, drop the owner's photos and drive frames into the paths under
+`eval/images/` named in `labels.json`. The private tester frames must not be distributed.
+When adding third-party imagery, record its licence and attribution in `labels.json`.
+Openly licensed street-level imagery is suitable for evaluation; it is **not** suitable
+for filing complaints, because a complaint asserts a current condition on a road you
+observed.
 
 ## Arms
 
@@ -76,8 +78,8 @@ asserts a current condition on a road you observed.
 control cannot silently drift from what ships. Every `.txt` file in
 `eval/prompts/` becomes an additional arm named after the file.
 
-Everything below is a historical log for the retired binary confidence schema. It
-explains past choices but is not directly comparable with v3 results.
+Everything below is a historical log for retired detector contracts. It explains past
+choices but is not directly comparable with the binary v5 result.
 
 ## Results log
 
@@ -113,9 +115,10 @@ mid-lane texture: an erosion and silt strip, and an intact but dusty road. The
 hypothesis the evidence supports is a clause requiring a **visible depth cue or a
 defined rim**, rather than anything about where on the road the defect sits.
 
-The seed set is too small to settle this: 6 confirmed potholes, 4 confirmed
-negatives, and 5 frames nobody has reviewed. Growing it with openly licensed
-Indian street-level imagery is the highest-value work available here.
+The set is too small to settle this: six owner-confirmed potholes, one owner-confirmed
+speed-breaker burst, several assistant-labelled negatives, and five frames nobody has
+reviewed. Growing it with retained raw Drive bursts and openly licensed Indian
+street-level imagery is the highest-value work available here.
 
 ## 20 Aug 2026: the repair-scar clause, ACCEPTED
 

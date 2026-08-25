@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Host-side schema contract for Room migration 3 -> 4."""
+"""Host-side schema contracts for Room migrations 3 -> 4 and 4 -> 5."""
 
 from __future__ import annotations
 
@@ -30,12 +30,13 @@ def kotlin_trim_indent(value: str) -> str:
     return "\n".join(line[indent:] if line.strip() else "" for line in lines)
 
 
-def migration_sql() -> list[str]:
+def migration_sql(name: str) -> list[str]:
     match = re.search(
-        r"private val MIGRATION_3_4\b(?P<body>[\s\S]*?)(?=\n\s*fun getDatabase\()",
+        rf"private val {re.escape(name)}\b(?P<body>[\s\S]*?)"
+        r"(?=\n\s*private val MIGRATION_|\n\s*fun getDatabase\()",
         DATABASE,
     )
-    require(match is not None, "MIGRATION_3_4 was not found")
+    require(match is not None, f"{name} was not found")
     calls = re.finditer(
         r'db\.execSQL\(\s*(?:"""(?P<raw>[\s\S]*?)"""\.trimIndent\(\)|'
         r'"(?P<quoted>(?:\\.|[^"\\])*)")\s*\)',
@@ -47,7 +48,7 @@ def migration_sql() -> list[str]:
         else json.loads(f'"{call.group("quoted")}"')
         for call in calls
     ]
-    require(statements, "MIGRATION_3_4 contains no executable SQL")
+    require(statements, f"{name} contains no executable SQL")
     return statements
 
 
@@ -98,7 +99,7 @@ def entity_contract() -> tuple[list[tuple[str, str, int, int]], dict[str, tuple[
 
 def main() -> int:
     expected_columns, expected_indexes = entity_contract()
-    statements = migration_sql()
+    statements = migration_sql("MIGRATION_3_4")
     require(len(statements) == 1 + len(expected_indexes),
             "migration must contain one table and exactly the entity's indexes")
 
@@ -134,7 +135,37 @@ def main() -> int:
         "SELECT 1 FROM sqlite_master WHERE name = 'v3_sentinel'"
     ).fetchone() is not None, "migration damaged the existing v3 schema")
 
-    print("DRIVE KEYFRAME MIGRATION 3->4 TEST PASS")
+    binary_statements = migration_sql("MIGRATION_4_5")
+    require(len(binary_statements) == 2,
+            "MIGRATION_4_5 must add exactly the two binary evidence columns")
+    binary_connection = sqlite3.connect(":memory:")
+    binary_connection.execute(
+        "CREATE TABLE reports (id INTEGER PRIMARY KEY NOT NULL, promptVersion TEXT)"
+    )
+    binary_connection.execute(
+        "INSERT INTO reports (id, promptVersion) VALUES (1, 'road-damage-v4')"
+    )
+    for statement in binary_statements:
+        binary_connection.execute(statement)
+    binary_columns = {
+        row[1]: (row[2].upper(), row[3], str(row[4]))
+        for row in binary_connection.execute("PRAGMA table_info('reports')")
+    }
+    require(binary_columns.get("looksLikeSpeedBreaker") == ("INTEGER", 1, "1"),
+            "speed-breaker migration column must fail closed for old rows")
+    require(binary_columns.get("hasLocalizedCavity") == ("INTEGER", 1, "0"),
+            "localized-cavity migration column must fail closed for old rows")
+    migrated = binary_connection.execute(
+        "SELECT looksLikeSpeedBreaker, hasLocalizedCavity, promptVersion FROM reports WHERE id = 1"
+    ).fetchone()
+    require(migrated == (1, 0, "road-damage-v4"),
+            f"v4 report was not preserved with conservative evidence defaults: {migrated}")
+    require('@ColumnInfo(defaultValue = "1")\n    val looksLikeSpeedBreaker' in ENTITIES,
+            "Room entity speed-breaker default diverges from MIGRATION_4_5")
+    require('@ColumnInfo(defaultValue = "0")\n    val hasLocalizedCavity' in ENTITIES,
+            "Room entity cavity default diverges from MIGRATION_4_5")
+
+    print("ROOM MIGRATION 3->4 AND 4->5 TEST PASS")
     return 0
 
 

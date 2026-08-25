@@ -17,22 +17,20 @@ DEFAULT_MODEL = "gpt-5-mini"
 ALLOWED_MODELS = {DEFAULT_MODEL, "gpt-5.6"}
 ALLOWED_DETAILS = {"high", "original"}
 ROAD_BAND = 0.60
-PROMPT_VERSION = "road-damage-v4"
-SCHEMA_VERSION = 4
+PROMPT_VERSION = "pothole-binary-v5"
+SCHEMA_VERSION = 5
 
 SCHEMA = {
     "type": "object", "additionalProperties": False,
-    "required": ["looks_like_speed_breaker", "reportable", "assessment", "image_quality", "damage_type",
-                 "on_drivable_surface", "has_broken_edge_or_rim",
+    "required": ["is_pothole", "looks_like_speed_breaker", "image_quality",
+                 "on_drivable_surface", "has_localized_cavity", "has_broken_edge_or_rim",
                  "has_depth_or_surface_loss", "temporal_consistency", "size", "description"],
     "properties": {
+        "is_pothole": {"type": "boolean"},
         "looks_like_speed_breaker": {"type": "boolean"},
-        "reportable": {"type": "boolean"},
-        "assessment": {"type": "string", "enum": ["clear", "probable", "uncertain", "absent"]},
-        "image_quality": {"type": "string", "enum": ["usable", "degraded", "unusable"]},
-        "damage_type": {"type": "string", "enum": ["pothole_cavity", "failed_patch",
-            "surface_breakup", "rut_or_depression", "other_road_damage", "none"]},
+        "image_quality": {"type": "string", "enum": ["usable", "unusable"]},
         "on_drivable_surface": {"type": "boolean"},
+        "has_localized_cavity": {"type": "boolean"},
         "has_broken_edge_or_rim": {"type": "boolean"},
         "has_depth_or_surface_loss": {"type": "boolean"},
         "temporal_consistency": {"type": "string", "enum": ["consistent", "single_view",
@@ -172,25 +170,29 @@ def build_request(views, prompt, model, detail):
         "model": model,
         "reasoning": {"effort": "none" if model == "gpt-5.6" else "minimal"},
         "input": [{"role": "user", "content": content}],
-        "text": {"format": {"type": "json_schema", "name": "road_damage_assessment",
+        "text": {"format": {"type": "json_schema", "name": "pothole_binary_assessment",
                               "schema": SCHEMA, "strict": True}, "verbosity": "low"},
     }
 
 
-def decision(result):
-    if not result or result.get("looks_like_speed_breaker") is not False:
+def decision(result, mode="drive", source_view_count=3):
+    if not result or result.get("is_pothole") is not True:
         return "reject"
-    if result.get("reportable") is not True or result.get("damage_type") == "none":
+    if result.get("looks_like_speed_breaker") is not False:
         return "reject"
-    if result.get("on_drivable_surface") is not True or result.get("assessment") == "absent":
+    if result.get("image_quality") != "usable" or result.get("on_drivable_surface") is not True:
         return "reject"
-    if (result.get("image_quality") == "unusable" or result.get("assessment") == "uncertain"
-            or result.get("temporal_consistency") == "inconsistent"):
-        return "review"
-    if result.get("assessment") not in {"clear", "probable"}:
-        return "review"
-    if not result.get("has_broken_edge_or_rim") and not result.get("has_depth_or_surface_loss"):
-        return "review"
+    if result.get("has_localized_cavity") is not True:
+        return "reject"
+    if result.get("has_broken_edge_or_rim") is not True or result.get("has_depth_or_surface_loss") is not True:
+        return "reject"
+    if mode == "drive":
+        if result.get("temporal_consistency") != "consistent" or source_view_count < 2:
+            return "reject"
+    elif result.get("temporal_consistency") not in {"consistent", "single_view"}:
+        return "reject"
+    if result.get("size") not in {"small", "medium", "large"}:
+        return "reject"
     return "accept"
 
 
@@ -221,11 +223,15 @@ def call(key, body, cache_dir, cache_slot):
 
 
 def binary_label(label):
-    if label in {"pothole", "pothole_cavity", "failed_patch", "surface_breakup",
-                 "rut_or_depression", "other_road_damage", "reportable"}:
+    if label in {"pothole", "pothole_cavity"}:
         return True
-    if label in {"not_pothole", "not_reportable", "none"}:
+    if label in {"not_pothole", "not_reportable", "none",
+                 "surface_breakup", "rut_or_depression", "other_road_damage"}:
         return False
+    # The retired failed_patch class did not record whether the failed repair contained
+    # a distinct cavity, so it cannot be converted into binary truth without relabelling.
+    if label == "failed_patch":
+        return None
     return None
 
 
@@ -328,7 +334,7 @@ def main():
             rows.append({"arm": name, "event": entry.get("event_id") or entry["path"],
                          "image": entry["path"], "label": entry["label"],
                          "labelled_by": entry.get("labelled_by"), "trial": trial,
-                         "decision": decision(result), "cached": cached,
+                         "decision": decision(result, args.mode, len(entry_paths(entry))), "cached": cached,
                          "request_hash": cache_key, "transforms": transforms, **result})
             if index % 25 == 0:
                 print(f"  {index}/{len(jobs)}")
@@ -349,7 +355,8 @@ def main():
                 rate = sum(row["decision"] == "accept" for row in grouped) / len(grouped)
                 (positives if truth else negatives).append(rate)
                 for row in grouped:
-                    confusion[(grouped[0]["label"], row.get("damage_type", "none"))] += 1
+                    predicted = "pothole" if row["decision"] == "accept" else "not_pothole"
+                    confusion[(grouped[0]["label"], predicted)] += 1
             recall = cluster_interval(positives)
             false_rate = cluster_interval(negatives)
             return positives, negatives, recall, false_rate, confusion
@@ -384,7 +391,7 @@ def main():
         "mode": args.mode, "trials_per_event": args.trials, "prompt_version": PROMPT_VERSION,
         "schema_version": SCHEMA_VERSION, "schema_sha256": sha(json.dumps(SCHEMA, sort_keys=True)),
         "labels_sha256": sha(label_bytes), "configs": [config[0] for config in configs],
-        "warning": "The seed set is not a release gate until it contains verified positives and negatives.",
+        "warning": "The small set is not a release gate; collect diverse verified events and lock a held-out split.",
     }
     (outdir / "manifest.json").write_text(json.dumps(manifest, indent=1))
     (outdir / "summary.json").write_text(json.dumps(summary, indent=1))

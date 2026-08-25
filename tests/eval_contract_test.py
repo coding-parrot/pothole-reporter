@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Offline guard that the evaluator still represents the pure client's v4 contract."""
-import importlib.util, pathlib, sys, tempfile
+"""Offline guard that the evaluator mirrors the pure client's binary v5 contract."""
+import importlib.util, json, pathlib, sys, tempfile
 from PIL import Image
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -8,6 +8,15 @@ spec = importlib.util.spec_from_file_location("road_eval", ROOT / "eval" / "run_
 road_eval = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(road_eval)
 client = (ROOT / "static" / "standalone.js").read_text()
+native = (ROOT / "android-app" / "android" / "app" / "src" / "main" / "java" /
+          "dev" / "aiengg" / "potholereporter" / "drive" / "NativeInferenceEngine.kt").read_text()
+entities = (ROOT / "android-app" / "android" / "app" / "src" / "main" / "java" /
+            "dev" / "aiengg" / "potholereporter" / "db" / "Entities.kt").read_text()
+database = (ROOT / "android-app" / "android" / "app" / "src" / "main" / "java" /
+            "dev" / "aiengg" / "potholereporter" / "db" / "PotholeDatabase.kt").read_text()
+plugin = (ROOT / "android-app" / "android" / "app" / "src" / "main" / "java" /
+          "dev" / "aiengg" / "potholereporter" / "plugin" / "DriveModePlugin.kt").read_text()
+labels = json.loads((ROOT / "eval" / "labels.json").read_text())["images"]
 fails = []
 
 
@@ -17,20 +26,40 @@ def check(name, condition):
         fails.append(name)
 
 
-check("schema version", 'const SCHEMA_VERSION = 4;' in client and road_eval.SCHEMA_VERSION == 4)
+check("schema version", 'const SCHEMA_VERSION = 5;' in client and road_eval.SCHEMA_VERSION == 5)
 check("prompt version", f'const PROMPT_VERSION = "{road_eval.PROMPT_VERSION}";' in client)
+check("native prompt version", f'PROMPT_VERSION = "{road_eval.PROMPT_VERSION}"' in native)
 check("road-band transform", 'const ROAD_BAND = 0.6;' in client and road_eval.ROAD_BAND == .60)
 check("schema has no model-confidence gate", "confidence" not in road_eval.SCHEMA["properties"])
+check("schema has one binary pothole verdict",
+      road_eval.SCHEMA["properties"].get("is_pothole") == {"type": "boolean"})
+for removed in ("reportable", "assessment", "damage_type"):
+    check(f"model no longer predicts {removed}", removed not in road_eval.SCHEMA["properties"])
 check("speed-breaker veto is required",
       "looks_like_speed_breaker" in road_eval.SCHEMA["required"])
 check("speed-breaker veto is boolean",
       road_eval.SCHEMA["properties"].get("looks_like_speed_breaker") == {"type": "boolean"})
 check("prompt explicitly distinguishes speed breakers",
       "speed breaker" in road_eval.prompts()["baseline"].lower())
+check("prompt makes ambiguity a negative",
+      "any ambiguity must be no" in road_eval.prompts()["baseline"].lower())
+check("prompt defines every fallback size band",
+      all(term in road_eval.prompts()["baseline"].lower()
+          for term in ("below 30 cm", "30 to 60 cm", "above 60 cm")))
+check("native prompt defines the same fallback size bands",
+      all(term in native.lower() for term in ("below 30 cm", "30 to 60 cm", "above 60 cm")))
+check("native schema exposes the binary verdict",
+      '"is_pothole": { "type": "boolean" }' in native and
+      '"has_localized_cavity": { "type": "boolean" }' in native)
+check("native Drive cannot emit a single-view positive",
+      '"consistent", "single_view"' not in native)
+check("native persists and syncs every binary physical gate",
+      all(term in entities for term in ("looksLikeSpeedBreaker", "hasLocalizedCavity"))
+      and all(f'put("{term}"' in plugin for term in
+              ("looks_like_speed_breaker", "has_localized_cavity"))
+      and "MIGRATION_4_5" in database and "version = 5" in database)
 for field in road_eval.SCHEMA["required"]:
     check(f"required field {field}", f'"{field}"' in client)
-for damage in road_eval.SCHEMA["properties"]["damage_type"]["enum"]:
-    check(f"damage enum {damage}", damage in client)
 
 request = road_eval.build_request(["one", "two", "three", "four", "five"],
                                   "PROMPT", "gpt-5.6", "original")
@@ -44,12 +73,20 @@ check("mini rejects unsupported original detail",
       road_eval.build_request(["one"], "P", "gpt-5-mini", "original")
       ["input"][0]["content"][0]["detail"] == "high")
 
-good = {"looks_like_speed_breaker": False,
-        "reportable": True, "assessment": "clear", "image_quality": "usable",
-        "damage_type": "failed_patch", "on_drivable_surface": True,
-        "has_broken_edge_or_rim": False, "has_depth_or_surface_loss": True,
-        "temporal_consistency": "consistent"}
-check("failed repair accepted without cavity rim", road_eval.decision(good) == "accept")
+good = {"is_pothole": True, "looks_like_speed_breaker": False,
+        "image_quality": "usable", "on_drivable_surface": True,
+        "has_localized_cavity": True, "has_broken_edge_or_rim": True,
+        "has_depth_or_surface_loss": True, "temporal_consistency": "consistent",
+        "size": "medium"}
+check("complete physical pothole is accepted", road_eval.decision(good) == "accept")
+check("manual Photo permits one defensible view",
+      road_eval.decision({**good, "temporal_consistency": "single_view"},
+                         "manual", 1) == "accept")
+check("Drive requires temporal agreement",
+      road_eval.decision({**good, "temporal_consistency": "single_view"},
+                         "drive", 3) == "reject")
+check("Drive cannot turn one source frame into a consistent burst",
+      road_eval.decision(good, "drive", 1) == "reject")
 check("speed breaker hard-vetoes contradictory damage",
       road_eval.decision({**good, "looks_like_speed_breaker": True}) == "reject")
 check("missing speed-breaker verdict fails closed",
@@ -57,11 +94,35 @@ check("missing speed-breaker verdict fails closed",
                           if key != "looks_like_speed_breaker"}) == "reject")
 check("mistyped speed-breaker verdict fails closed",
       road_eval.decision({**good, "looks_like_speed_breaker": "false"}) == "reject")
-check("uncertain held for review", road_eval.decision({**good, "assessment": "uncertain"}) == "review")
 check("off-road rejected", road_eval.decision({**good, "on_drivable_surface": False}) == "reject")
+check("surface damage without a localized cavity is NO",
+      road_eval.decision({**good, "has_localized_cavity": False}) == "reject")
+check("missing broken rim is NO",
+      road_eval.decision({**good, "has_broken_edge_or_rim": False}) == "reject")
+check("missing visible depth or material loss is NO",
+      road_eval.decision({**good, "has_depth_or_surface_loss": False}) == "reject")
+check("inconsistent chronological views are NO",
+      road_eval.decision({**good, "temporal_consistency": "inconsistent"}) == "reject")
+check("positive without size is NO", road_eval.decision({**good, "size": None}) == "reject")
+check("all fallback sizes are valid",
+      all(road_eval.decision({**good, "size": size}) == "accept"
+          for size in ("small", "medium", "large")))
+check("decision surface is strictly binary",
+      {road_eval.decision(good), road_eval.decision({**good, "image_quality": "unusable"})}
+      == {"accept", "reject"})
 check("legacy positive label", road_eval.binary_label("pothole") is True)
-check("new failed-surface label", road_eval.binary_label("surface_breakup") is True)
+check("non-cavity surface breakup label is negative",
+      road_eval.binary_label("surface_breakup") is False)
+check("legacy failed patch awaits explicit binary relabelling",
+      road_eval.binary_label("failed_patch") is None)
 check("unverified category excluded", road_eval.binary_label("disputed") is None)
+speed_breaker_events = [entry for entry in labels
+                        if entry.get("event_id") == "tester-second-speed-breaker-2026-08-25"]
+check("tester speed breaker is retained as a verified negative event",
+      len(speed_breaker_events) == 1
+      and speed_breaker_events[0].get("label") == "not_pothole"
+      and speed_breaker_events[0].get("labelled_by") == "owner"
+      and len(speed_breaker_events[0].get("frames", [])) == 3)
 check("manual and drive sets stay separate",
       road_eval.entry_mode({"source": "project owner, dashcam frame"}) == "drive"
       and road_eval.entry_mode({"source": "project owner, own camera"}) == "manual")

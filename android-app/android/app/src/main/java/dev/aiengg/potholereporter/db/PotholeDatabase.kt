@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         FootageSegmentEntity::class,
         DriveKeyframeEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class PotholeDatabase : RoomDatabase() {
@@ -136,13 +136,25 @@ abstract class PotholeDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Old v4 rows are rejected by their detector version during web sync.
+                // Conservative defaults prevent missing evidence from being interpreted
+                // as a successful v5 physical gate.
+                db.execSQL("ALTER TABLE `reports` ADD COLUMN `looksLikeSpeedBreaker` INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE `reports` ADD COLUMN `hasLocalizedCavity` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): PotholeDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     PotholeDatabase::class.java,
                     "native_potholes.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
+                ).addMigrations(
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5
+                ).build()
                 INSTANCE = instance
                 instance
             }

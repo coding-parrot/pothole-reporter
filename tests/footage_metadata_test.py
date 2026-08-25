@@ -96,11 +96,15 @@ with sync_playwright() as p:
                              "gps_accuracy", "speed", "heading"]) {
             row[key] = fd.get(key);
           }
+          row.photo_count = fd.getAll("photo").length;
+          row.primary_index = fd.get("primary_index");
           frames.push(row);
           const observation = {
+            is_pothole: false,
             looks_like_speed_breaker: false,
             reportable: false, assessment: "absent", image_quality: "usable",
             damage_type: "none", on_drivable_surface: true,
+            has_localized_cavity: false,
             has_broken_edge_or_rim: false, has_depth_or_surface_loss: false,
             temporal_consistency: "consistent", size: null, description: "No damage.",
           };
@@ -196,6 +200,8 @@ else:
         frame, at_ms = by_seq[seq]
         if frame.get("drive_id") != "metadata-gap-drive" or frame.get("capture_source") != "drive_vod":
             fails.append(f"clip {seq} lost its Drive/VOD identity: {frame}")
+        if frame.get("photo_count") != 3 or int(frame.get("primary_index") or -1) not in range(3):
+            fails.append(f"clip {seq} did not submit a real three-frame VOD burst: {frame}")
         if int(frame.get("source_offset_ms") or -1) != want["offset"] + at_ms:
             fails.append(f"clip {seq} used compacted duration instead of real source offset: {frame}")
         if int(frame.get("captured_at_ms") or -1) != want["start"] + at_ms:

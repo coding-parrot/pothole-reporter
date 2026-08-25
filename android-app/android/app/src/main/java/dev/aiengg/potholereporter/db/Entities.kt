@@ -3,6 +3,7 @@ package dev.aiengg.potholereporter.db
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.ColumnInfo
 
 @Entity(
     tableName = "reports",
@@ -24,10 +25,14 @@ data class ReportEntity(
     val photoFullPath: String? = null,
     val isReportable: Int = 1,
     val isPothole: Int = 1,
+    @ColumnInfo(defaultValue = "1")
+    val looksLikeSpeedBreaker: Boolean = false,
     val damageType: String? = "pothole_cavity",
     val assessment: String? = "clear",
     val imageQuality: String? = "usable",
     val onDrivableSurface: Boolean = true,
+    @ColumnInfo(defaultValue = "0")
+    val hasLocalizedCavity: Boolean = true,
     val hasBrokenEdgeOrRim: Boolean = true,
     val hasDepthOrSurfaceLoss: Boolean = true,
     val temporalConsistency: String? = "consistent",
@@ -39,8 +44,8 @@ data class ReportEntity(
     val status: String = "draft",
     val detectionModel: String? = "gpt-5-mini",
     val imageDetail: String? = "high",
-    val promptVersion: String? = "road-damage-v4",
-    val schemaVersion: Int = 4,
+    val promptVersion: String? = "pothole-binary-v5",
+    val schemaVersion: Int = 5,
     val evidenceCount: Int = 4,
     val unroutedReason: String? = null,
     val unroutedBody: String? = null,

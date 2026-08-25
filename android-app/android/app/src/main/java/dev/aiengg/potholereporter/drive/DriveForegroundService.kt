@@ -492,11 +492,13 @@ class DriveForegroundService : LifecycleService() {
                             // This is a complete verdict because candidate presence disabled
                             // early stream cancellation above. Even so, it is merely the gate
                             // for a separate before/after comparison, never repair proof.
-                            !assessment.looksLikeSpeedBreaker &&
+                            !assessment.isPothole &&
+                                !assessment.looksLikeSpeedBreaker &&
                                 !assessment.reportable &&
                                 assessment.damageType == "none" &&
                                 assessment.assessment == "absent" &&
                                 assessment.imageQuality == "usable" &&
+                                !assessment.hasLocalizedCavity &&
                                 !assessment.hasBrokenEdgeOrRim &&
                                 !assessment.hasDepthOrSurfaceLoss &&
                                 assessment.decision == "reject"

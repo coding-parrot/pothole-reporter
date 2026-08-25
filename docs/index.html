@@ -112,7 +112,7 @@
       <button id="driveStop" style="position:absolute;top:12px;right:12px;background:var(--bad);color:#fff;font-size:17px;font-weight:700;padding:14px 24px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.5)">&#9632; Stop</button>
       <span class="hidden"></span>
       <div style="position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:10px;max-width:75%">
-        <div class="verdict" id="driveCount" style="margin:0;font-size:16px;color:#fff">0 road-damage events</div>
+        <div class="verdict" id="driveCount" style="margin:0;font-size:16px;color:#fff">0 potholes</div>
         <div class="meta" id="driveStatus" style="color:#d5d5da">Starting...</div>
       </div>
     </div>
@@ -123,7 +123,7 @@
         <div id="nativeCameraBadge" style="position:absolute;top:12px;left:12px;background:rgba(120,0,0,.82);color:#fff;font-size:12px;font-weight:800;padding:8px 10px;border-radius:99px;letter-spacing:.04em">&#9679; CAMERA ACTIVE</div>
         <button id="nativeDriveStop" style="position:absolute;top:12px;right:12px;background:var(--bad);color:#fff;font-size:17px;font-weight:700;padding:14px 24px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.5)">&#9632; Stop</button>
         <div style="position:absolute;left:12px;right:12px;bottom:12px;background:rgba(0,0,0,.68);padding:9px 12px;border-radius:10px">
-          <div class="verdict" id="nativeDriveCount" style="margin:0;font-size:16px;color:#fff">0 road-damage events</div>
+          <div class="verdict" id="nativeDriveCount" style="margin:0;font-size:16px;color:#fff">0 potholes</div>
           <div class="meta" id="nativeDriveStatus" style="color:#d5d5da">Starting camera and GPS...</div>
         </div>
       </div>
@@ -156,18 +156,11 @@
     <div class="meta" id="reviewMeta"></div>
     <div class="meta" id="reviewSaid" style="margin-top:6px"></div>
     <div class="btn-row">
-      <button class="send" id="lblPothole">Pothole cavity</button>
-      <button class="ghost" id="lblPatch">Failed repair</button>
+      <button class="send" id="lblPothole">Pothole</button>
+      <button class="ghost danger" id="lblNo">Not pothole</button>
     </div>
     <div class="btn-row">
-      <button class="ghost" id="lblSurface">Surface breakup</button>
-      <button class="ghost" id="lblRut">Rut / depression</button>
-    </div>
-    <div class="btn-row">
-      <button class="ghost danger" id="lblNo">Not reportable</button>
       <button class="ghost" id="lblSkip">Skip</button>
-    </div>
-    <div class="btn-row">
       <button class="ghost" id="reviewBack">Done</button>
     </div>
   </div>
@@ -272,7 +265,7 @@ const I18N = {
     issue_picker_title: "Report",
     issue_picker_hint: "Choose the issue, then take a clear photo while safely stopped.",
     issue_road: "Pothole", issue_garbage: "Garbage", issue_open_manhole: "Manhole",
-    issue_road_damage: "road damage", issue_garbage_label: "garbage",
+    issue_road_damage: "pothole", issue_garbage_label: "garbage",
     issue_open_manhole_label: "open / damaged manhole",
     verdict_civic_prepared: "{type} report prepared from your photo",
     drive_btn: "&#128663; &nbsp;Drive",
@@ -297,7 +290,7 @@ const I18N = {
     wipe_btn: "Delete all app data",
     welcome_hint: "Add your OpenAI API key to use Pothole and Drive. Garbage and Manhole work without it. The key is saved on this device and sent to OpenAI only as the request credential.",
     back: "Back", save: "Save", discard: "Discard", del: "Delete", email_btn: "Email", stop: "&#9632; Stop", working: "Working...",
-    chip_draft: "Draft", chip_sent: "Marked submitted", chip_queued: "Opened in email", chip_queued_bmc: "BMC handoff opened", chip_rejected: "Not reportable", chip_review: "Needs review",
+    chip_draft: "Draft", chip_sent: "Marked submitted", chip_queued: "Opened in email", chip_queued_bmc: "BMC handoff opened", chip_rejected: "Pothole: NO", chip_review: "Needs review",
     chip_unrouted: "Not routed",
     chip_fixed: "Fixed", chip_repair_review: "Repair needs review",
     fixed_action_blocked: "This pothole is verified fixed, so the old complaint cannot be filed again.",
@@ -341,9 +334,9 @@ const I18N = {
     dash_range: "{days} of reporting · first on {first}",
     dash_empty: "No reports yet. Your map fills up as you report issues or drive.",
     day_one: "1 day", day_many: "{n} days",
-    stat_found: "reports saved", stat_reported: "confirmed submissions", stat_frames: "road events checked",
+    stat_found: "reports saved", stat_reported: "confirmed submissions", stat_frames: "pothole checks",
     stat_drives: "drives", stat_footage: "MB of footage", stat_km: "km of road covered",
-    by_type: "By report type", by_size: "By road-damage size", by_area: "By corporation", map_pins: "{n} pinned",
+    by_type: "By report type", by_size: "By pothole size", by_area: "By corporation", map_pins: "{n} pinned",
     map_offline: "Map tiles need a connection. Points are still plotted below.",
     zoom_hint: "Pinch to zoom · drag to pan · double tap to reset",
     rec_suffix: "· recording {mb} MB", rec_failed: "· not recording",
@@ -356,7 +349,7 @@ const I18N = {
     footage_line: "Footage: {mb} MB · {segments} clips",
     analyse_btn: "Analyse footage", delete_footage: "Delete footage",
     analysing: "Frame {i} of {n} · {found} new",
-    analyse_done: "Footage analysed: {found} new road-damage events from {n} frames.",
+    analyse_done: "Footage analysed: {found} new potholes from {n} frames.",
     analyse_none: "No footage stored for this drive.",
     analysing_dup: "({n} already reported)",
     analyse_dup: "{n} of them were already reported.",
@@ -364,7 +357,7 @@ const I18N = {
     frames_no_permission: "Saving frames to storage was not permitted. Analyse anyway without saving them?",
     analysing_failed: "· {n} failed",
     analyse_incomplete: "Could not finish: {failed} of {n} frames were not checked ({err}) So no result is being claimed, and the video has been kept.",
-    debug_note: "On: the video survives analysis, so a drive can be re-examined or re-run against a better model. Off: the video is deleted after its road-damage events are extracted.",
+    debug_note: "On: the video survives analysis, so a drive can be re-examined or re-run against a better model. Off: the video is deleted after detected potholes are extracted.",
     record_label: "Record local video during a drive (no audio; off by default)",
     drive_limit_label: "Drive battery limit",
     drive_limit_note: "Active time only. Drive stops automatically; paused time does not count.",
@@ -374,16 +367,15 @@ const I18N = {
     frames_failed: "Could not write frames to the device.",
     footage_freed: "Video deleted, {mb} MB freed.",
     footage_kept: "Video kept (debug mode).",
-    offer_analyse: "Analyse this drive's video now? {clips} clips, {mb} MB. Reportable road damage is kept as photos; the rest is discarded.",
+    offer_analyse: "Analyse this drive's video now? {clips} clips, {mb} MB. Detected potholes are kept as photos; the rest is discarded.",
     confirm_delete_footage: "Delete the recorded video for this drive? The reports stay.",
     drive_group: "{date} · {found}{known} · {checked} live frames checked{video}",
     drive_video_suffix: " · {n} video frames checked",
     drive_group_partial: "{date} · {found} · {kept} kept",
-    lbl_pothole: "Pothole cavity", lbl_patch: "Failed repair", lbl_surface: "Surface breakup",
-    lbl_rut: "Rut / depression", lbl_no: "Not reportable", lbl_skip: "Skip", lbl_done: "Done",
+    lbl_pothole: "Pothole", lbl_no: "Not pothole", lbl_skip: "Skip", lbl_done: "Done",
     review_empty: "Nothing left to label. Drive with debug mode on to collect frames.",
     review_progress: "{n} left to label · {done} labelled so far",
-    model_said: "The app said: {verdict} · {assessment}",
+    model_said: "The app said: {verdict}",
     export_ready: "{n} labelled frames, {mb} MB. Choose where to send it.",
     outside_coverage: "This location is outside the area this app covers.",
     outside_coverage_help: "This point is outside mapped National Highways and Expressways across India, the full States of Maharashtra, West Bengal, Punjab, Karnataka, Kerala (excluding Mahe), Tamil Nadu (excluding Puducherry and Karaikal), Andhra Pradesh (excluding Yanam), Telangana, Uttar Pradesh (excluding Delhi NCT), Chhattisgarh, Rajasthan, Goa, Madhya Pradesh, Bihar, and Odisha, and the supported Census top-50 city routes (including Delhi NCT). The photo and location are saved without a recipient.",
@@ -392,15 +384,14 @@ const I18N = {
     damage_surface_breakup: "broken road surface", damage_rut_or_depression: "road rut / depression",
     damage_other_road_damage: "other road damage", damage_none: "no reportable damage",
     assessment_clear: "clear", assessment_probable: "probable", assessment_uncertain: "uncertain", assessment_absent: "absent",
-    verdict_detected: "{type} detected · {assessment}",
+    verdict_detected: "Pothole: YES",
     verdict_review: "Possible {type} — retake or review before reporting",
-    verdict_rejected: "No reportable road damage confirmed",
-    early_yes: "Reportable {type} found. Preparing the complaint...",
+    verdict_rejected: "Pothole: NO",
+    early_yes: "Pothole: YES. Preparing the complaint...",
     early_review: "Possible road damage. A clearer photo is needed.",
-    early_no: "No reportable road damage in this photo.",
+    early_no: "Pothole: NO.",
     verdict_sent: "Marked submitted",
     verdict_queued: "Opened in your email app. Edit and resend if you didn't send it.",
-    confidence: "confidence",
     email_subject_label: "Email subject",
     email_body_label: "Email body (review before sending)",
     routes_to: "Routes to:",
@@ -411,12 +402,12 @@ const I18N = {
     holding: "Holding position ({checked} checked, {found} found)",
     scanning: "Scanning ({mode})... {checked} checked{analyzing}",
     analyzing_suffix: ", {n} analyzing",
-    potholes_one: "{n} damage event", potholes_many: "{n} damage events",
+    potholes_one: "{n} pothole", potholes_many: "{n} potholes",
     drive_tip: "Before moving, aim the camera so the travelled road fills the orange guide with little sky or dashboard. Each check uses a three-frame burst. The back button also stops the drive.",
     drive_end: "Drive ended: {found} found, {checked} frames checked.",
     drive_end_known: "Drive ended: no new report; {already} seen again, {checked} frames checked.",
     drive_seen_suffix: " {already} seen again.",
-    drive_end_zero: "No reportable road damage found in this drive ({checked} events checked{debug}).",
+    drive_end_zero: "No potholes found in this drive ({checked} events checked{debug}).",
     debug_saved_suffix: ", debug frames saved for review",
     confirm_send: "Open your email app with the complaint addressed to {to}?",
     confirm_suggested_email: "Location suggests {authority}, but this does not prove road ownership. Open your email app with the complaint addressed to {to}?",
@@ -464,7 +455,7 @@ const I18N = {
     issue_picker_title: "ವರದಿ",
     issue_picker_hint: "ಸುರಕ್ಷಿತವಾಗಿ ನಿಂತ ನಂತರ ಸಮಸ್ಯೆಯನ್ನು ಆಯ್ಕೆ ಮಾಡಿ ಸ್ಪಷ್ಟ ಫೋಟೋ ತೆಗೆಯಿರಿ.",
     issue_road: "ಗುಂಡಿ", issue_garbage: "ಕಸ", issue_open_manhole: "ಮ್ಯಾನ್‌ಹೋಲ್",
-    issue_road_damage: "ರಸ್ತೆ ಹಾನಿ", issue_garbage_label: "ಕಸ",
+    issue_road_damage: "ಗುಂಡಿ", issue_garbage_label: "ಕಸ",
     issue_open_manhole_label: "ತೆರೆದ / ಹಾನಿಗೊಂಡ ಮ್ಯಾನ್‌ಹೋಲ್",
     verdict_civic_prepared: "ನಿಮ್ಮ ಫೋಟೋದಿಂದ {type} ವರದಿ ಸಿದ್ಧವಾಗಿದೆ",
     drive_btn: "&#128663; &nbsp;ಡ್ರೈವ್",
@@ -489,7 +480,7 @@ const I18N = {
     wipe_btn: "ಎಲ್ಲಾ ಆ್ಯಪ್ ಡೇಟಾ ಅಳಿಸಿ",
     welcome_hint: "ಗುಂಡಿ ಮತ್ತು ಡ್ರೈವ್ ಬಳಸಲು OpenAI API ಕೀ ಸೇರಿಸಿ. ಕಸ ಮತ್ತು ಮ್ಯಾನ್‌ಹೋಲ್ ಕೀ ಇಲ್ಲದೆ ಕೆಲಸ ಮಾಡುತ್ತವೆ. ಕೀ ಸಾಧನದಲ್ಲಿ ಉಳಿದು OpenAI ಗೆ ಪ್ರಮಾಣಪತ್ರವಾಗಿ ಮಾತ್ರ ಹೋಗುತ್ತದೆ.",
     back: "ಹಿಂದೆ", save: "ಉಳಿಸಿ", discard: "ತ್ಯಜಿಸಿ", del: "ಅಳಿಸಿ", email_btn: "ಇಮೇಲ್", stop: "&#9632; ನಿಲ್ಲಿಸಿ", working: "ನಡೆಯುತ್ತಿದೆ...",
-    chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_queued_bmc: "BMC ಹಸ್ತಾಂತರ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ವರದಿ ಯೋಗ್ಯವಲ್ಲ", chip_review: "ಪರಿಶೀಲನೆ ಬೇಕು",
+    chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_queued_bmc: "BMC ಹಸ್ತಾಂತರ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ಗುಂಡಿ: ಇಲ್ಲ", chip_review: "ಪರಿಶೀಲನೆ ಬೇಕು",
     chip_unrouted: "ಮಾರ್ಗ ನಿಗದಿಯಾಗಿಲ್ಲ",
     chip_fixed: "ದುರಸ್ತಿಯಾಗಿದೆ", chip_repair_review: "ದುರಸ್ತಿ ಪರಿಶೀಲನೆ ಬೇಕು",
     verdict_fixed: "ನಂತರದ ಡ್ರೈವ್‌ನಲ್ಲಿ ದುರಸ್ತಿಯಾಗಿದೆ ಎಂದು ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
@@ -533,9 +524,9 @@ const I18N = {
     dash_range: "{days} ವರದಿ · ಮೊದಲನೆಯದು {first}",
     dash_empty: "ಇನ್ನೂ ವರದಿಗಳಿಲ್ಲ. ಸಮಸ್ಯೆಗಳನ್ನು ವರದಿ ಮಾಡಿದಂತೆ ಅಥವಾ ಡ್ರೈವ್ ಮಾಡಿದಂತೆ ನಕ್ಷೆ ತುಂಬುತ್ತದೆ.",
     day_one: "1 ದಿನ", day_many: "{n} ದಿನಗಳು",
-    stat_found: "ಉಳಿಸಿದ ವರದಿಗಳು", stat_reported: "ದೃಢೀಕರಿಸಿದ ಸಲ್ಲಿಕೆಗಳು", stat_frames: "ಪರಿಶೀಲಿಸಿದ ರಸ್ತೆ ಘಟನೆಗಳು",
+    stat_found: "ಉಳಿಸಿದ ವರದಿಗಳು", stat_reported: "ದೃಢೀಕರಿಸಿದ ಸಲ್ಲಿಕೆಗಳು", stat_frames: "ಗುಂಡಿ ಪರಿಶೀಲನೆಗಳು",
     stat_drives: "ಡ್ರೈವ್‌ಗಳು", stat_footage: "MB ವಿಡಿಯೋ", stat_km: "ಕಿಮೀ ರಸ್ತೆ",
-    by_type: "ವರದಿ ಪ್ರಕಾರ", by_size: "ರಸ್ತೆ ಹಾನಿಯ ಗಾತ್ರ", by_area: "ಪಾಲಿಕೆ ಪ್ರಕಾರ", map_pins: "{n} ಗುರುತಿಸಲಾಗಿದೆ",
+    by_type: "ವರದಿ ಪ್ರಕಾರ", by_size: "ಗುಂಡಿಯ ಗಾತ್ರ", by_area: "ಪಾಲಿಕೆ ಪ್ರಕಾರ", map_pins: "{n} ಗುರುತಿಸಲಾಗಿದೆ",
     map_offline: "ನಕ್ಷೆಗೆ ಇಂಟರ್ನೆಟ್ ಬೇಕು. ಬಿಂದುಗಳು ಕೆಳಗೆ ತೋರಿಸಲಾಗಿದೆ.",
     zoom_hint: "ಜೂಮ್‌ಗೆ ಪಿಂಚ್ · ಸರಿಸಲು ಎಳೆಯಿರಿ · ಮರುಹೊಂದಿಸಲು ಡಬಲ್ ಟ್ಯಾಪ್",
     rec_suffix: "· {mb} MB ರೆಕಾರ್ಡ್", rec_failed: "· ರೆಕಾರ್ಡ್ ಆಗುತ್ತಿಲ್ಲ",
@@ -571,11 +562,10 @@ const I18N = {
     drive_group: "{date} · {found}{known} · {checked} ಲೈವ್ ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ{video}",
     drive_video_suffix: " · {n} ವಿಡಿಯೋ ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ",
     drive_group_partial: "{date} · {found} · {kept} ಉಳಿಸಲಾಗಿದೆ",
-    lbl_pothole: "ರಸ್ತೆ ಗುಂಡಿ", lbl_patch: "ವಿಫಲ ದುರಸ್ತಿ", lbl_surface: "ಮೇಲ್ಮೈ ಹಾನಿ",
-    lbl_rut: "ರಸ್ತೆ ಕುಸಿತ", lbl_no: "ವರದಿ ಯೋಗ್ಯವಲ್ಲ", lbl_skip: "ಬಿಟ್ಟುಬಿಡಿ", lbl_done: "ಮುಗಿಯಿತು",
+    lbl_pothole: "ರಸ್ತೆ ಗುಂಡಿ", lbl_no: "ಗುಂಡಿ ಅಲ್ಲ", lbl_skip: "ಬಿಟ್ಟುಬಿಡಿ", lbl_done: "ಮುಗಿಯಿತು",
     review_empty: "ಗುರುತಿಸಲು ಏನೂ ಉಳಿದಿಲ್ಲ. ಡೀಬಗ್ ಮೋಡ್ ಆನ್ ಮಾಡಿ ಡ್ರೈವ್ ಮಾಡಿ.",
     review_progress: "{n} ಬಾಕಿ · {done} ಗುರುತಿಸಲಾಗಿದೆ",
-    model_said: "ಆ್ಯಪ್ ಹೇಳಿದ್ದು: {verdict} · {assessment}",
+    model_said: "ಆ್ಯಪ್ ಹೇಳಿದ್ದು: {verdict}",
     export_ready: "{n} ಗುರುತಿಸಿದ ಫ್ರೇಮ್‌ಗಳು, {mb} MB. ಎಲ್ಲಿಗೆ ಕಳುಹಿಸಬೇಕೆಂದು ಆಯ್ಕೆಮಾಡಿ.",
     outside_coverage: "ಈ ಸ್ಥಳ ಈ ಆ್ಯಪ್ ಒಳಗೊಂಡ ವ್ಯಾಪ್ತಿಯ ಹೊರಗಿದೆ.",
     outside_coverage_help: "ಈ ಸ್ಥಳವು ಭಾರತದೆಲ್ಲೆಡೆ ನಕ್ಷೆಗೊಂಡ ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಗಳು ಮತ್ತು ಎಕ್ಸ್‌ಪ್ರೆಸ್‌ವೇಗಳು, ಸಂಪೂರ್ಣ ಮಹಾರಾಷ್ಟ್ರ, ಪಶ್ಚಿಮ ಬಂಗಾಳ, ಪಂಜಾಬ್, ಕರ್ನಾಟಕ, ಕೇರಳ (ಮಾಹೆ ಹೊರತುಪಡಿಸಿ), ತಮಿಳುನಾಡು (ಪುದುಚೇರಿ ಹಾಗೂ ಕಾರೈಕಲ್ ಹೊರತುಪಡಿಸಿ), ಆಂಧ್ರ ಪ್ರದೇಶ (ಯಾನಂ ಹೊರತುಪಡಿಸಿ), ತೆಲಂಗಾಣ, ಉತ್ತರ ಪ್ರದೇಶ (ದೆಹಲಿ NCT ಹೊರತುಪಡಿಸಿ), ಛತ್ತೀಸ್‌ಗಢ, ರಾಜಸ್ಥಾನ, ಗೋವಾ, ಮಧ್ಯ ಪ್ರದೇಶ, ಬಿಹಾರ ಮತ್ತು ಒಡಿಶಾ, ಹಾಗೂ ದೆಹಲಿ NCT ಸೇರಿದಂತೆ ಬೆಂಬಲಿತ Census ಟಾಪ್-50 ನಗರ ಮಾರ್ಗಗಳ ಹೊರಗಿದೆ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳವನ್ನು ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
@@ -584,15 +574,14 @@ const I18N = {
     damage_surface_breakup: "ಹಾಳಾದ ರಸ್ತೆ ಮೇಲ್ಮೈ", damage_rut_or_depression: "ರಸ್ತೆ ಕುಸಿತ",
     damage_other_road_damage: "ಇತರೆ ರಸ್ತೆ ಹಾನಿ", damage_none: "ವರದಿ ಮಾಡಬಹುದಾದ ಹಾನಿ ಇಲ್ಲ",
     assessment_clear: "ಸ್ಪಷ್ಟ", assessment_probable: "ಸಂಭಾವ್ಯ", assessment_uncertain: "ಅನಿಶ್ಚಿತ", assessment_absent: "ಇಲ್ಲ",
-    verdict_detected: "{type} ಪತ್ತೆಯಾಗಿದೆ · {assessment}",
+    verdict_detected: "ಗುಂಡಿ: ಹೌದು",
     verdict_review: "ಸಂಭಾವ್ಯ {type} — ವರದಿಗೂ ಮೊದಲು ಸ್ಪಷ್ಟ ಫೋಟೋ ಅಥವಾ ಪರಿಶೀಲನೆ ಬೇಕು",
-    verdict_rejected: "ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ದೃಢಪಟ್ಟಿಲ್ಲ",
-    early_yes: "ವರದಿ ಮಾಡಬಹುದಾದ {type} ಪತ್ತೆಯಾಗಿದೆ. ದೂರು ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ...",
+    verdict_rejected: "ಗುಂಡಿ: ಇಲ್ಲ",
+    early_yes: "ಗುಂಡಿ: ಹೌದು. ದೂರು ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ...",
     early_review: "ಸಂಭಾವ್ಯ ರಸ್ತೆ ಹಾನಿ. ಸ್ಪಷ್ಟ ಫೋಟೋ ಬೇಕು.",
-    early_no: "ಈ ಫೋಟೋದಲ್ಲಿ ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಇಲ್ಲ.",
+    early_no: "ಗುಂಡಿ: ಇಲ್ಲ.",
     verdict_sent: "ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ",
     verdict_queued: "ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ. ಕಳುಹಿಸಿಲ್ಲದಿದ್ದರೆ ತಿದ್ದಿ ಮತ್ತೆ ತೆರೆಯಿರಿ.",
-    confidence: "ವಿಶ್ವಾಸ",
     email_subject_label: "ಇಮೇಲ್ ವಿಷಯ",
     email_body_label: "ಇಮೇಲ್ ಪಠ್ಯ (ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ)",
     routes_to: "ಯಾರಿಗೆ:",
@@ -603,12 +592,12 @@ const I18N = {
     holding: "ಸ್ಥಳದಲ್ಲಿದ್ದೀರಿ ({checked} ಪರಿಶೀಲನೆ, {found} ಪತ್ತೆ)",
     scanning: "ಸ್ಕ್ಯಾನ್ ({mode})... {checked} ಪರಿಶೀಲನೆ{analyzing}",
     analyzing_suffix: ", {n} ವಿಶ್ಲೇಷಣೆ",
-    potholes_one: "{n} ಹಾನಿ ಘಟನೆ", potholes_many: "{n} ಹಾನಿ ಘಟನೆಗಳು",
+    potholes_one: "{n} ಗುಂಡಿ", potholes_many: "{n} ಗುಂಡಿಗಳು",
     drive_tip: "ಚಲಿಸುವ ಮೊದಲು ರಸ್ತೆ ಕಿತ್ತಳೆ ಮಾರ್ಗದರ್ಶಿಯೊಳಗೆ ತುಂಬುವಂತೆ ಕ್ಯಾಮೆರಾ ಹೊಂದಿಸಿ; ಆಕಾಶ ಮತ್ತು ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ಕಡಿಮೆ ಇರಲಿ. ಪ್ರತಿ ಪರಿಶೀಲನೆ ಮೂರು ಫ್ರೇಮ್‌ಗಳನ್ನು ಬಳಸುತ್ತದೆ.",
     drive_end: "ಡ್ರೈವ್ ಮುಗಿಯಿತು: {found} ಪತ್ತೆ, {checked} ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ.",
     drive_end_known: "ಡ್ರೈವ್ ಮುಗಿಯಿತು: ಹೊಸ ವರದಿ ಇಲ್ಲ; {already} ಮತ್ತೆ ಕಂಡಿದೆ, {checked} ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ.",
     drive_seen_suffix: " {already} ಮತ್ತೆ ಕಂಡಿದೆ.",
-    drive_end_zero: "ಈ ಡ್ರೈವ್‌ನಲ್ಲಿ ವರದಿ ಮಾಡಬಹುದಾದ ರಸ್ತೆ ಹಾನಿ ಪತ್ತೆಯಾಗಿಲ್ಲ ({checked} ಪರಿಶೀಲನೆ{debug}).",
+    drive_end_zero: "ಈ ಡ್ರೈವ್‌ನಲ್ಲಿ ಗುಂಡಿಗಳು ಪತ್ತೆಯಾಗಿಲ್ಲ ({checked} ಪರಿಶೀಲನೆಗಳು{debug}).",
     debug_saved_suffix: ", ಡೀಬಗ್ ಫ್ರೇಮ್‌ಗಳು ಉಳಿದಿವೆ",
     confirm_send: "{to} ಗೆ ಉದ್ದೇಶಿಸಿದ ದೂರಿನೊಂದಿಗೆ ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ?",
     confirm_suggested_email: "ಸ್ಥಳವು {authority} ಅನ್ನು ಸೂಚಿಸುತ್ತದೆ, ಆದರೆ ಇದು ರಸ್ತೆ ಮಾಲೀಕತ್ವವನ್ನು ಸಾಬೀತುಪಡಿಸುವುದಿಲ್ಲ. {to} ಗೆ ಉದ್ದೇಶಿಸಿದ ದೂರಿನೊಂದಿಗೆ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ?",
@@ -649,7 +638,7 @@ const I18N = {
     issue_picker_title: "तक्रार",
     issue_picker_hint: "सुरक्षितपणे थांबल्यावर समस्या निवडा आणि स्पष्ट फोटो घ्या.",
     issue_road: "खड्डा", issue_garbage: "कचरा", issue_open_manhole: "मॅनहोल",
-    issue_road_damage: "रस्त्याचे नुकसान", issue_garbage_label: "कचरा",
+    issue_road_damage: "खड्डा", issue_garbage_label: "कचरा",
     issue_open_manhole_label: "उघडे / खराब मॅनहोल",
     verdict_civic_prepared: "तुमच्या फोटोवरून {type} तक्रार तयार केली",
     drive_btn: "&#128663; &nbsp;ड्राइव्ह",
@@ -676,7 +665,7 @@ const I18N = {
     back: "मागे", save: "जतन करा", discard: "रद्द करा", del: "हटवा", email_btn: "ईमेल",
     stop: "&#9632; थांबवा", working: "प्रक्रिया सुरू आहे...",
     chip_draft: "मसुदा", chip_sent: "सादर केल्याची नोंद", chip_queued: "ईमेलमध्ये उघडले",
-    chip_queued_bmc: "BMC माध्यम उघडले", chip_rejected: "नोंदवण्यायोग्य नाही",
+    chip_queued_bmc: "BMC माध्यम उघडले", chip_rejected: "खड्डा: नाही",
     chip_review: "पुनर्तपासणी आवश्यक", chip_unrouted: "मार्ग निश्चित नाही",
     chip_fixed: "दुरुस्त", chip_repair_review: "दुरुस्तीची तपासणी आवश्यक",
     verdict_fixed: "नंतरच्या ड्राइव्हमध्ये दुरुस्ती झाल्याची पडताळणी",
@@ -720,9 +709,9 @@ const I18N = {
     dash_range: "{days} चा अहवाल · पहिली नोंद {first}",
     dash_empty: "अजून तक्रारी नाहीत. समस्या नोंदवल्यावर किंवा ड्राइव्ह केल्यावर नकाशा भरत जाईल.",
     day_one: "1 दिवस", day_many: "{n} दिवस",
-    stat_found: "जतन केलेल्या तक्रारी", stat_reported: "पुष्टी केलेल्या नोंदी", stat_frames: "तपासलेल्या रस्त्याच्या घटना",
+    stat_found: "जतन केलेल्या तक्रारी", stat_reported: "पुष्टी केलेल्या नोंदी", stat_frames: "खड्ड्यांच्या तपासण्या",
     stat_drives: "ड्राइव्ह", stat_footage: "MB व्हिडिओ", stat_km: "किमी तपासलेला रस्ता",
-    by_type: "तक्रारीच्या प्रकारानुसार", by_size: "रस्त्याच्या नुकसानीच्या आकारानुसार", by_area: "महानगरपालिकेनुसार",
+    by_type: "तक्रारीच्या प्रकारानुसार", by_size: "खड्ड्याच्या आकारानुसार", by_area: "महानगरपालिकेनुसार",
     map_pins: "{n} ठिकाणे", map_offline: "नकाशासाठी इंटरनेट आवश्यक आहे. ठिकाणे तरीही खाली दाखवली आहेत.",
     zoom_hint: "झूमसाठी पिंच करा · हलवण्यासाठी ओढा · रीसेटसाठी दोनदा टॅप करा",
     rec_suffix: "· रेकॉर्डिंग {mb} MB", rec_failed: "· रेकॉर्डिंग होत नाही",
@@ -733,7 +722,7 @@ const I18N = {
     drive_end_failed: "नेटवर्कमुळे {n} फ्रेम्स तपासता आल्या नाहीत.",
     footage_line: "व्हिडिओ: {mb} MB · {segments} क्लिप्स", analyse_btn: "व्हिडिओचे विश्लेषण करा",
     delete_footage: "व्हिडिओ हटवा", analysing: "फ्रेम {i} पैकी {n} · {found} नवीन",
-    analyse_done: "व्हिडिओचे विश्लेषण पूर्ण: {n} फ्रेम्समधून रस्त्याच्या हानीच्या {found} नवीन घटना.",
+    analyse_done: "व्हिडिओचे विश्लेषण पूर्ण: {n} फ्रेम्समधून {found} नवीन खड्डे.",
     analyse_none: "या ड्राइव्हचा कोणताही व्हिडिओ जतन केलेला नाही.",
     analysing_dup: "({n} आधीच नोंदवलेल्या)", analyse_dup: "त्यापैकी {n} घटना आधीच नोंदवल्या होत्या.",
     already_one: "आधीच नोंदवलेली {n} घटना", already_many: "आधीच नोंदवलेल्या {n} घटना",
@@ -748,15 +737,14 @@ const I18N = {
     keep_frames_note: "AI ने तपासलेली प्रत्येक फ्रेम आणि निष्कर्ष Documents/pothole-frames मध्ये लिहिला जातो. प्रत्येक फ्रेम साधारण 300 KB असू शकते.",
     frames_saved: "{n} फ्रेम्स Documents/{dir} मध्ये लिहिल्या.", frames_failed: "फ्रेम्स साधनावर लिहिता आल्या नाहीत.",
     footage_freed: "व्हिडिओ हटवला; {mb} MB जागा मोकळी झाली.", footage_kept: "व्हिडिओ जतन केला आहे (डीबग मोड).",
-    offer_analyse: "या ड्राइव्हच्या व्हिडिओचे आता विश्लेषण करायचे का? {clips} क्लिप्स, {mb} MB. नोंदवण्यायोग्य नुकसान फोटो म्हणून ठेवले जाईल.",
+    offer_analyse: "या ड्राइव्हच्या व्हिडिओचे आता विश्लेषण करायचे का? {clips} क्लिप्स, {mb} MB. आढळलेले खड्डे फोटो म्हणून ठेवले जातील.",
     confirm_delete_footage: "या ड्राइव्हचा रेकॉर्ड केलेला व्हिडिओ हटवायचा का? अहवाल जतन राहतील.",
     drive_group: "{date} · {found}{known} · {checked} थेट फ्रेम्स तपासल्या{video}",
     drive_video_suffix: " · {n} व्हिडिओ फ्रेम्स तपासल्या", drive_group_partial: "{date} · {found} · {kept} जतन केले",
-    lbl_pothole: "रस्त्यातील खड्डा", lbl_patch: "उखडलेली दुरुस्ती", lbl_surface: "उखडलेला पृष्ठभाग",
-    lbl_rut: "चाकांची चर / खोलगट भाग", lbl_no: "नोंदवण्यायोग्य नाही", lbl_skip: "वगळा", lbl_done: "पूर्ण",
+    lbl_pothole: "रस्त्यातील खड्डा", lbl_no: "खड्डा नाही", lbl_skip: "वगळा", lbl_done: "पूर्ण",
     review_empty: "लेबल करण्यासाठी काहीही उरलेले नाही. फ्रेम्स गोळा करण्यासाठी डीबग मोड सुरू ठेवून ड्राइव्ह करा.",
     review_progress: "{n} लेबल करणे बाकी · आतापर्यंत {done} लेबल केले",
-    model_said: "अॅपचा निष्कर्ष: {verdict} · {assessment}",
+    model_said: "अॅपचा निष्कर्ष: {verdict}",
     export_ready: "{n} लेबल केलेल्या फ्रेम्स, {mb} MB. कुठे पाठवायचे ते निवडा.",
     outside_coverage: "हे स्थान अॅपच्या कार्यक्षेत्राबाहेर आहे.",
     outside_coverage_help: "हे ठिकाण भारतभर नकाशित राष्ट्रीय महामार्ग व द्रुतगती मार्ग, संपूर्ण महाराष्ट्र, पश्चिम बंगाल, पंजाब, कर्नाटक, केरळ (माहे वगळून), तामिळनाडू (पुद्दुचेरी व कारैकल वगळून), आंध्र प्रदेश (यानम वगळून), तेलंगणा, उत्तर प्रदेश (दिल्ली NCT वगळून), छत्तीसगड, राजस्थान, गोवा, मध्य प्रदेश, बिहार आणि ओडिशा, तसेच दिल्ली NCT सह समर्थित Census टॉप-50 शहर मार्गांच्या बाहेर आहे. फोटो आणि स्थान प्राप्तकर्त्याशिवाय जतन केले आहे.",
@@ -765,26 +753,26 @@ const I18N = {
     damage_surface_breakup: "उखडलेला रस्ता पृष्ठभाग", damage_rut_or_depression: "रस्त्यावरील चर / खोलगट भाग",
     damage_other_road_damage: "रस्त्याचे इतर नुकसान", damage_none: "नोंदवण्यायोग्य नुकसान नाही",
     assessment_clear: "स्पष्ट", assessment_probable: "संभाव्य", assessment_uncertain: "अनिश्चित", assessment_absent: "आढळले नाही",
-    verdict_detected: "{type} आढळले · {assessment}",
+    verdict_detected: "खड्डा: होय",
     verdict_review: "संभाव्य {type} — नोंदवण्यापूर्वी पुन्हा फोटो घ्या किंवा तपासा",
-    verdict_rejected: "नोंदवण्यायोग्य रस्त्याचे नुकसान निश्चित झाले नाही",
-    early_yes: "नोंदवण्यायोग्य {type} आढळले. तक्रार तयार करत आहे...",
+    verdict_rejected: "खड्डा: नाही",
+    early_yes: "खड्डा: होय. तक्रार तयार करत आहे...",
     early_review: "रस्त्याचे संभाव्य नुकसान. अधिक स्पष्ट फोटो आवश्यक आहे.",
-    early_no: "या फोटोमध्ये नोंदवण्यायोग्य रस्त्याचे नुकसान नाही.",
+    early_no: "खड्डा: नाही.",
     verdict_sent: "सादर केल्याची नोंद", verdict_queued: "ईमेल अॅपमध्ये उघडले आहे; हे पाठवले असल्याचा पुरावा नाही.",
-    confidence: "विश्वासपातळी", email_subject_label: "ईमेलचा विषय",
+    email_subject_label: "ईमेलचा विषय",
     email_body_label: "ईमेलचा मजकूर (पाठवण्यापूर्वी तपासा)", routes_to: "यांच्याकडे पाठवले जाईल:",
     getting_location: "तुमचे स्थान मिळवत आहे...", waiting_gps: "GPS ची प्रतीक्षा करत आहे...",
     gps_30s: "30 सेकंदांनंतरही GPS स्थान मिळाले नाही. उच्च अचूकतेसह स्थान सेवा सुरू आहे का ते तपासा.",
     gps_lost: "GPS सिग्नल हरवला; नवीन स्थानाची प्रतीक्षा करत आहे...",
     holding: "स्थान स्थिर ({checked} तपासले, {found} आढळले)",
     scanning: "स्कॅन सुरू ({mode})... {checked} तपासले{analyzing}", analyzing_suffix: ", {n} चे विश्लेषण सुरू",
-    potholes_one: "हानीची {n} घटना", potholes_many: "हानीच्या {n} घटना",
+    potholes_one: "{n} खड्डा", potholes_many: "{n} खड्डे",
     drive_tip: "वाहन सुरू करण्यापूर्वी कॅमेरा असा लावा की रस्ता नारिंगी मार्गदर्शकात भरलेला दिसेल. प्रत्येक तपासणीत तीन फ्रेम्स वापरल्या जातात. वाहन चालवताना फोन हाताळू नका.",
     drive_end: "ड्राइव्ह पूर्ण: {found} आढळले, {checked} फ्रेम्स तपासल्या.",
     drive_end_known: "ड्राइव्ह पूर्ण: नवीन अहवाल नाही; {already} पुन्हा दिसले, {checked} फ्रेम्स तपासल्या.",
     drive_seen_suffix: " {already} पुन्हा दिसले.",
-    drive_end_zero: "या ड्राइव्हमध्ये नोंदवण्यायोग्य नुकसान आढळले नाही ({checked} घटना तपासल्या{debug}).",
+    drive_end_zero: "या ड्राइव्हमध्ये खड्डे आढळले नाहीत ({checked} तपासण्या{debug}).",
     debug_saved_suffix: ", डीबग फ्रेम्स पुनर्तपासणीसाठी जतन केल्या",
     confirm_send: "{to} यांना उद्देशून तयार केलेली तक्रार तुमच्या ईमेल अॅपमध्ये उघडायची का?",
     confirm_suggested_email: "स्थानावरून {authority} ही संस्था सुचते, पण यावरून रस्त्याची मालकी सिद्ध होत नाही. {to} यांना उद्देशून तक्रार ईमेल अॅपमध्ये उघडायची का?",
@@ -824,7 +812,7 @@ const I18N = {
     issue_picker_title: "অভিযোগ",
     issue_picker_hint: "নিরাপদে থামার পরে সমস্যাটি বেছে নিয়ে একটি পরিষ্কার ছবি তুলুন।",
     issue_road: "গর্ত", issue_garbage: "আবর্জনা", issue_open_manhole: "ম্যানহোল",
-    issue_road_damage: "রাস্তার ক্ষতি", issue_garbage_label: "আবর্জনা",
+    issue_road_damage: "রাস্তার গর্ত", issue_garbage_label: "আবর্জনা",
     issue_open_manhole_label: "খোলা / ক্ষতিগ্রস্ত ম্যানহোল",
     verdict_civic_prepared: "আপনার ছবি থেকে {type} অভিযোগ প্রস্তুত হয়েছে",
     drive_btn: "&#128663; &nbsp;ড্রাইভ",
@@ -849,7 +837,7 @@ const I18N = {
     wipe_btn: "অ্যাপের সব তথ্য মুছুন",
     welcome_hint: "গর্ত ও ড্রাইভের জন্য OpenAI API key যোগ করুন। আবর্জনা ও ম্যানহোল key ছাড়াই চলে। key এই ডিভাইসে থাকে এবং শুধু অনুরোধের অনুমোদন হিসেবে OpenAI-তে যায়।",
     back: "ফিরে যান", save: "সংরক্ষণ করুন", discard: "বাদ দিন", del: "মুছুন", email_btn: "ইমেল", stop: "&#9632; থামান", working: "কাজ চলছে...",
-    chip_draft: "খসড়া", chip_sent: "জমা হয়েছে বলে চিহ্নিত", chip_queued: "ইমেলে খোলা হয়েছে", chip_queued_bmc: "BMC পরিষেবা খোলা হয়েছে", chip_rejected: "অভিযোগযোগ্য নয়", chip_review: "যাচাই প্রয়োজন",
+    chip_draft: "খসড়া", chip_sent: "জমা হয়েছে বলে চিহ্নিত", chip_queued: "ইমেলে খোলা হয়েছে", chip_queued_bmc: "BMC পরিষেবা খোলা হয়েছে", chip_rejected: "রাস্তার গর্ত: না", chip_review: "যাচাই প্রয়োজন",
     chip_unrouted: "প্রাপক নির্ধারিত নয়",
     chip_fixed: "মেরামত হয়েছে", chip_repair_review: "মেরামত যাচাই দরকার",
     verdict_fixed: "পরবর্তী ড্রাইভে মেরামত হয়েছে বলে যাচাই করা হয়েছে",
@@ -893,9 +881,9 @@ const I18N = {
     dash_range: "{days} ধরে রিপোর্ট · প্রথম রিপোর্ট {first}",
     dash_empty: "এখনও কোনও রিপোর্ট নেই। সমস্যা রিপোর্ট করা বা ড্রাইভ করার সঙ্গে সঙ্গে মানচিত্র পূর্ণ হবে।",
     day_one: "1 দিন", day_many: "{n} দিন",
-    stat_found: "সংরক্ষিত রিপোর্ট", stat_reported: "নিশ্চিতভাবে জমা দেওয়া অভিযোগ", stat_frames: "রাস্তার ঘটনা পরীক্ষা করা হয়েছে",
+    stat_found: "সংরক্ষিত রিপোর্ট", stat_reported: "নিশ্চিতভাবে জমা দেওয়া অভিযোগ", stat_frames: "রাস্তার গর্ত পরীক্ষা",
     stat_drives: "ড্রাইভ", stat_footage: "MB ভিডিও ফুটেজ", stat_km: "কিমি রাস্তা পর্যবেক্ষণ",
-    by_type: "রিপোর্টের ধরন অনুযায়ী", by_size: "রাস্তার ক্ষতির আকার অনুযায়ী", by_area: "পৌরসংস্থা অনুযায়ী", map_pins: "{n}টি পিন",
+    by_type: "রিপোর্টের ধরন অনুযায়ী", by_size: "রাস্তার গর্তের আকার অনুযায়ী", by_area: "পৌরসংস্থা অনুযায়ী", map_pins: "{n}টি পিন",
     map_offline: "মানচিত্রের টাইল দেখাতে ইন্টারনেট প্রয়োজন। অবস্থানগুলি নীচে তবুও দেখানো হচ্ছে।",
     zoom_hint: "জুম করতে আঙুল ছড়ান · সরাতে টানুন · রিসেট করতে দু’বার ট্যাপ করুন",
     rec_suffix: "· রেকর্ড হচ্ছে {mb} MB", rec_failed: "· রেকর্ড হচ্ছে না",
@@ -908,7 +896,7 @@ const I18N = {
     footage_line: "ভিডিও: {mb} MB · {segments}টি ক্লিপ",
     analyse_btn: "ভিডিও বিশ্লেষণ করুন", delete_footage: "ভিডিও মুছুন",
     analysing: "ফ্রেম {i}/{n} · {found}টি নতুন",
-    analyse_done: "ভিডিও বিশ্লেষণ শেষ: {n}টি ফ্রেম থেকে রাস্তার ক্ষতির {found}টি নতুন ঘটনা পাওয়া গেছে।",
+    analyse_done: "ভিডিও বিশ্লেষণ শেষ: {n}টি ফ্রেম থেকে {found}টি নতুন রাস্তার গর্ত পাওয়া গেছে।",
     analyse_none: "এই ড্রাইভের কোনও ভিডিও সংরক্ষিত নেই।",
     analysing_dup: "({n}টি আগেই রিপোর্ট করা)", analyse_dup: "এর মধ্যে {n}টি আগেই রিপোর্ট করা হয়েছিল।",
     already_one: "আগেই রিপোর্ট করা {n}টি ঘটনা", already_many: "আগেই রিপোর্ট করা {n}টি ঘটনা",
@@ -925,16 +913,15 @@ const I18N = {
     frames_failed: "ডিভাইসে ফ্রেম লেখা যায়নি।",
     footage_freed: "ভিডিও মুছে {mb} MB জায়গা খালি হয়েছে।",
     footage_kept: "ভিডিও রাখা হয়েছে (ডিবাগ মোড)।",
-    offer_analyse: "এই ড্রাইভের ভিডিও এখন বিশ্লেষণ করবেন? {clips}টি ক্লিপ, {mb} MB। অভিযোগযোগ্য ক্ষতি ছবি হিসেবে রাখা হবে; বাকিটা মুছে যাবে।",
+    offer_analyse: "এই ড্রাইভের ভিডিও এখন বিশ্লেষণ করবেন? {clips}টি ক্লিপ, {mb} MB। শনাক্ত রাস্তার গর্ত ছবি হিসেবে রাখা হবে; বাকিটা মুছে যাবে।",
     confirm_delete_footage: "এই ড্রাইভের রেকর্ড করা ভিডিও মুছবেন? রিপোর্টগুলি থেকে যাবে।",
     drive_group: "{date} · {found}{known} · {checked}টি লাইভ ফ্রেম পরীক্ষা{video}",
     drive_video_suffix: " · {n}টি ভিডিও ফ্রেম পরীক্ষা",
     drive_group_partial: "{date} · {found} · {kept}টি রাখা হয়েছে",
-    lbl_pothole: "রাস্তার গর্ত", lbl_patch: "ভেঙে যাওয়া মেরামত", lbl_surface: "ভাঙা রাস্তার উপরিভাগ",
-    lbl_rut: "চাকার খাঁজ / দেবে যাওয়া অংশ", lbl_no: "অভিযোগযোগ্য নয়", lbl_skip: "এড়িয়ে যান", lbl_done: "শেষ",
+    lbl_pothole: "রাস্তার গর্ত", lbl_no: "রাস্তার গর্ত নয়", lbl_skip: "এড়িয়ে যান", lbl_done: "শেষ",
     review_empty: "লেবেল দেওয়ার মতো কিছু বাকি নেই। ফ্রেম সংগ্রহ করতে ডিবাগ মোড চালু রেখে ড্রাইভ করুন।",
     review_progress: "{n}টি লেবেল দেওয়া বাকি · এখনও পর্যন্ত {done}টি সম্পন্ন",
-    model_said: "অ্যাপের সিদ্ধান্ত: {verdict} · {assessment}",
+    model_said: "অ্যাপের সিদ্ধান্ত: {verdict}",
     export_ready: "{n}টি লেবেল দেওয়া ফ্রেম, {mb} MB। কোথায় পাঠাবেন বেছে নিন।",
     outside_coverage: "এই অবস্থানটি অ্যাপের আওতাভুক্ত এলাকার বাইরে।",
     outside_coverage_help: "এই স্থানটি ভারতজুড়ে মানচিত্রভুক্ত জাতীয় সড়ক ও এক্সপ্রেসওয়ে, সমগ্র মহারাষ্ট্র, পশ্চিমবঙ্গ, পাঞ্জাব, কর্ণাটক, কেরল (মাহে বাদে), তামিলনাড়ু (পুদুচেরি ও কারাইকাল বাদে), অন্ধ্রপ্রদেশ (ইয়ানাম বাদে), তেলেঙ্গানা, উত্তরপ্রদেশ (দিল্লি NCT বাদে), ছত্তিশগড়, রাজস্থান, গোয়া, মধ্যপ্রদেশ, বিহার এবং ওড়িশা, এবং দিল্লি NCT-সহ সমর্থিত Census শীর্ষ-৫০ শহরের রুটের বাইরে। ছবি ও অবস্থান কোনও প্রাপক ছাড়াই সংরক্ষিত হয়েছে।",
@@ -943,15 +930,14 @@ const I18N = {
     damage_surface_breakup: "ভাঙা রাস্তার উপরিভাগ", damage_rut_or_depression: "চাকার খাঁজ / দেবে যাওয়া অংশ",
     damage_other_road_damage: "রাস্তার অন্যান্য ক্ষতি", damage_none: "অভিযোগযোগ্য ক্ষতি নেই",
     assessment_clear: "স্পষ্ট", assessment_probable: "সম্ভাব্য", assessment_uncertain: "অনিশ্চিত", assessment_absent: "নেই",
-    verdict_detected: "{type} শনাক্ত হয়েছে · {assessment}",
+    verdict_detected: "রাস্তার গর্ত: হ্যাঁ",
     verdict_review: "সম্ভাব্য {type} — রিপোর্ট করার আগে আবার ছবি তুলুন বা যাচাই করুন",
-    verdict_rejected: "অভিযোগযোগ্য রাস্তার ক্ষতি নিশ্চিত হয়নি",
-    early_yes: "অভিযোগযোগ্য {type} পাওয়া গেছে। অভিযোগের খসড়া তৈরি হচ্ছে...",
+    verdict_rejected: "রাস্তার গর্ত: না",
+    early_yes: "রাস্তার গর্ত: হ্যাঁ। অভিযোগের খসড়া তৈরি হচ্ছে...",
     early_review: "রাস্তার সম্ভাব্য ক্ষতি। আরও পরিষ্কার ছবি প্রয়োজন।",
-    early_no: "এই ছবিতে অভিযোগযোগ্য রাস্তার ক্ষতি নেই।",
+    early_no: "রাস্তার গর্ত: না।",
     verdict_sent: "জমা হয়েছে বলে চিহ্নিত",
     verdict_queued: "ইমেল অ্যাপে খোলা হয়েছে। পাঠিয়ে না থাকলে সম্পাদনা করে আবার পাঠান।",
-    confidence: "নিশ্চয়তার মাত্রা",
     email_subject_label: "ইমেলের বিষয়",
     email_body_label: "ইমেলের বক্তব্য (পাঠানোর আগে যাচাই করুন)",
     routes_to: "যে দপ্তরে যাবে:",
@@ -962,12 +948,12 @@ const I18N = {
     holding: "একই অবস্থানে ({checked}টি পরীক্ষা, {found}টি পাওয়া গেছে)",
     scanning: "স্ক্যান চলছে ({mode})... {checked}টি পরীক্ষা{analyzing}",
     analyzing_suffix: ", {n}টি বিশ্লেষণাধীন",
-    potholes_one: "ক্ষতির {n}টি ঘটনা", potholes_many: "ক্ষতির {n}টি ঘটনা",
+    potholes_one: "{n}টি রাস্তার গর্ত", potholes_many: "{n}টি রাস্তার গর্ত",
     drive_tip: "চলতে শুরু করার আগে ক্যামেরা এমনভাবে বসান যাতে কমলা নির্দেশকের মধ্যে চলার রাস্তা বেশি এবং আকাশ বা ড্যাশবোর্ড কম থাকে। প্রতিটি পরীক্ষায় পরপর তিনটি ফ্রেম নেওয়া হয়। ফিরে যাওয়ার বোতামেও ড্রাইভ বন্ধ হবে।",
     drive_end: "ড্রাইভ শেষ: {found}টি পাওয়া গেছে, {checked}টি ফ্রেম পরীক্ষা করা হয়েছে।",
     drive_end_known: "ড্রাইভ শেষ: নতুন রিপোর্ট নেই; {already} আবার দেখা গেছে, {checked}টি ফ্রেম পরীক্ষা করা হয়েছে।",
     drive_seen_suffix: " {already} আবার দেখা গেছে।",
-    drive_end_zero: "এই ড্রাইভে অভিযোগযোগ্য রাস্তার ক্ষতি পাওয়া যায়নি ({checked}টি ঘটনা পরীক্ষা{debug})।",
+    drive_end_zero: "এই ড্রাইভে রাস্তার গর্ত পাওয়া যায়নি ({checked}টি পরীক্ষা{debug})।",
     debug_saved_suffix: ", যাচাইয়ের জন্য ডিবাগ ফ্রেম সংরক্ষিত",
     confirm_send: "{to}-কে ঠিকানা দিয়ে অভিযোগটি ইমেল অ্যাপে খুলবেন?",
     confirm_suggested_email: "অবস্থান অনুযায়ী {authority} প্রস্তাবিত, কিন্তু এতে রাস্তার মালিকানা প্রমাণিত নয়। {to}-কে ঠিকানা দিয়ে অভিযোগটি ইমেল অ্যাপে খুলবেন?",
@@ -1137,9 +1123,6 @@ function applyLang() {
   $("reviewBtn").textContent = t("review_btn");
   $("exportBtn").textContent = t("export_btn");
   $("lblPothole").textContent = t("lbl_pothole");
-  $("lblPatch").textContent = t("lbl_patch");
-  $("lblSurface").textContent = t("lbl_surface");
-  $("lblRut").textContent = t("lbl_rut");
   $("lblNo").textContent = t("lbl_no");
   $("lblSkip").textContent = t("lbl_skip");
   $("reviewBack").textContent = t("lbl_done");
@@ -1148,7 +1131,7 @@ function applyLang() {
     $("keepFramesSetting").classList.add("hidden");
     $("keepFramesNote").classList.add("hidden");
     $("debugLabel").textContent = "Debug mode: keep repeat detections as separate reports";
-    $("debugNote").textContent = "Normally, nearby sightings of the same road damage are grouped into one report.";
+    $("debugNote").textContent = "Normally, nearby sightings of the same pothole are grouped into one report.";
   }
 }
 
@@ -1640,7 +1623,8 @@ function detectionVerdict(r) {
   if (physicalCondition(r) === "repair_review") return t("verdict_repair_review");
   if (r.status === "review") return t("verdict_review", { type: tDamage(r) });
   if (r.status === "rejected") return t("verdict_rejected");
-  return t("verdict_detected", { type: tDamage(r), assessment: tAssessment(r) });
+  const binary = t("verdict_detected");
+  return r.size ? `${binary} · ${tSize(r.size)}` : binary;
 }
 
 function repairEvidenceHtml(r) {
@@ -1718,7 +1702,7 @@ function openDetail(r, list) {
         <div class="verdict" style="color:${r.status === "review" ? "var(--accent)" : "var(--bad)"}">${escapeHtml(detectionVerdict(r))}</div>
         <div>${chip(r.status, r)} ${conditionChip(r)}</div>
         <div class="meta">${escapeHtml(r.description || "")}</div>
-        <div class="meta">${escapeHtml(tDamage(r))} · ${escapeHtml(tAssessment(r))}${r.image_quality ? ` · ${escapeHtml(r.image_quality)}` : ""}</div>
+        ${r.status === "review" ? `<div class="meta">${escapeHtml(tDamage(r))} · ${escapeHtml(tAssessment(r))}${r.image_quality ? ` · ${escapeHtml(r.image_quality)}` : ""}</div>` : ""}
         ${repairEvidenceHtml(r)}
         <div class="btn-row">
           <button class="ghost" id="backBtn">${t("back")}</button>
@@ -2027,6 +2011,7 @@ let SEGMENT_MS = 15000;            // footage is written in 15s pieces so memory
 let RECORD_BITRATE = 2_500_000;    // ~18 MB/min at 1080p
 let RECORDER_STOP_TIMEOUT_MS = 10000; // a broken WebView must not lock Drive shutdown forever
 let VOD_STEP_S = 1.0;              // frame spacing when re-analysing footage
+const VOD_BURST_HALF_SPAN_S = 0.18; // mirrors the live three-frame temporal window
 const DRIVE_LIMIT_OPTIONS = [15, 30, 60, 90];
 function driveLimitMinutes() {
   const selected = Number(localStorage.getItem("drive_limit_minutes"));
@@ -3212,9 +3197,7 @@ function nextReviewFrame() {
   const r = reviewQueue[0];
   $("reviewPhoto").src = photoSrc(r);
   $("reviewMeta").innerHTML = t("review_progress", { n: reviewQueue.length, done: reviewDone });
-  $("reviewSaid").textContent = t("model_said", {
-    verdict: tDamage(r), assessment: tAssessment(r),
-  });
+  $("reviewSaid").textContent = t("model_said", { verdict: detectionVerdict(r) });
 }
 
 async function labelCurrent(label) {
@@ -3615,6 +3598,27 @@ async function analyseFootage(driveId, driveRec) {
     });
   }
 
+  async function grabVodBurst(v, canvas, at, duration) {
+    const last = Math.max(0.001, duration - 0.001);
+    const candidates = [Math.max(0.001, at - VOD_BURST_HALF_SPAN_S), at,
+      Math.min(last, at + VOD_BURST_HALF_SPAN_S)];
+    const distinct = candidates.filter((value, index, all) =>
+      all.findIndex((other) => Math.abs(other - value) < 0.04) === index);
+    const frames = [];
+    for (const time of distinct) {
+      const frame = await grabFrom(v, canvas, time);
+      if (frame) frames.push({ time, blob: frame });
+    }
+    if (frames.length < 2) return null;
+    let primaryIndex = 0;
+    for (let index = 1; index < frames.length; index++) {
+      if (Math.abs(frames[index].time - at) < Math.abs(frames[primaryIndex].time - at)) {
+        primaryIndex = index;
+      }
+    }
+    return { frames, primaryIndex };
+  }
+
   let frameNo = -1;
   for (const clip of clips) {
     if (aborted) break;
@@ -3654,14 +3658,17 @@ async function analyseFootage(driveId, driveRec) {
           return;
         }
         const at = clip.times[idx];
-        const blob = await grabFrom(slot.v, slot.canvas, at);
-        if (!blob) { await submitInOrder(idx, null); done++; paint(); continue; }
+        const burst = await grabVodBurst(slot.v, slot.canvas, at, clip.dur);
+        if (!burst) { await submitInOrder(idx, null); done++; paint(); continue; }
+        const blob = burst.frames[burst.primaryIndex].blob;
         // New recordings carry their real segment start, so recorder restart/write gaps
         // stay aligned with GPS and live detections. Summed duration is legacy fallback.
         const atAbs = Number.isFinite(clip.sourceOffsetS) ? clip.sourceOffsetS + at : elapsed + at;
         const pos = gpsAt(track, atAbs);
         const fd = new FormData();
-        fd.append("photo", blob, "vod.jpg");
+        burst.frames.forEach((frame, index) =>
+          fd.append("photo", frame.blob, `vod-burst-${index + 1}.jpg`));
+        fd.append("primary_index", String(burst.primaryIndex));
         if (pos) { fd.append("lat", String(pos.lat)); fd.append("lng", String(pos.lng)); }
         fd.append("drive_id", String(driveId));
         fd.append("capture_source", "drive_vod");
@@ -3694,6 +3701,7 @@ async function analyseFootage(driveId, driveRec) {
                 manifest.push({ file: file.split("/").pop(), at_seconds: +atAbs.toFixed(2),
                   lat: pos ? pos.lat : null, lng: pos ? pos.lng : null,
                   model_said: {
+                    is_pothole: !!observation.is_pothole || !!observation.is_reportable,
                     is_reportable: !!observation.reportable || !!observation.is_reportable,
                     damage_type: observation.damage_type || "none",
                     assessment: observation.assessment || "absent",
@@ -3881,9 +3889,6 @@ $("dashBack").onclick = () => { show("home"); loadReports(); };
 $("reviewBtn").onclick = startReview;
 $("reviewPhoto").onclick = () => { if (reviewQueue[0]) openViewer(reviewQueue[0]); };
 $("lblPothole").onclick = () => labelCurrent("pothole_cavity");
-$("lblPatch").onclick = () => labelCurrent("failed_patch");
-$("lblSurface").onclick = () => labelCurrent("surface_breakup");
-$("lblRut").onclick = () => labelCurrent("rut_or_depression");
 $("lblNo").onclick = () => labelCurrent("not_reportable");
 $("lblSkip").onclick = () => labelCurrent(null);
 $("reviewBack").onclick = () => { show("home"); loadReports(); };
@@ -3935,7 +3940,7 @@ window.addEventListener("pipeline-progress", (e) => {
 window.addEventListener("pipeline-verdict", (e) => {
   if ($("progress").classList.contains("hidden")) return;
   $("progressText").textContent = e.detail.accepted
-    ? t("early_yes", { type: tDamage(e.detail.damage_type) })
+    ? t("early_yes")
     : e.detail.review ? t("early_review") : t("early_no");
 });
 

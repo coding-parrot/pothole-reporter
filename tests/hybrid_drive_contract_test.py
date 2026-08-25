@@ -9,6 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 CAMERA = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeDriveCameraManager.kt").read_text()
 SERVICE = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/DriveForegroundService.kt").read_text()
+INFERENCE = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeInferenceEngine.kt").read_text()
 POLICY = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/DriveSessionLimitPolicy.kt").read_text()
 PLUGIN = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/plugin/DriveModePlugin.kt").read_text()
 DATABASE = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/db/PotholeDatabase.kt").read_text()
@@ -28,6 +29,10 @@ check("continuous video requests SD, never HD",
       "Quality.SD" in CAMERA and "Quality.HD" not in CAMERA)
 check("only one raw burst may wait for inference",
       re.search(r"jobChannel\s*=\s*Channel\([\s\S]{0,500}?capacity\s*=\s*1\b", SERVICE))
+check("native detection requires at least two real source frames",
+      "MIN_DETECTION_SOURCE_FRAMES = 2" in CAMERA
+      and "frames.size < MIN_DETECTION_SOURCE_FRAMES" in CAMERA
+      and "burstFrames.size < NativeDriveCameraManager.MIN_DETECTION_SOURCE_FRAMES" in INFERENCE)
 check("30-minute active-time limit is bounded to 15..90 minutes",
       all(value in POLICY for value in (
           "MIN_LIMIT_MINUTES = 15", "MAX_LIMIT_MINUTES = 90",
@@ -42,6 +47,10 @@ check("sparse keyframes are durable and unique per drive capture",
       and "if (!recordingEnabled" in SERVICE
       and "MIGRATION_3_4" in DATABASE
       and "index_drive_keyframes_sessionId_captureSeq" in DATABASE)
+check("binary detector evidence has a non-destructive Room migration",
+      "version = 5" in DATABASE and "MIGRATION_4_5" in DATABASE
+      and "ADD COLUMN `looksLikeSpeedBreaker` INTEGER NOT NULL DEFAULT 1" in DATABASE
+      and "ADD COLUMN `hasLocalizedCavity` INTEGER NOT NULL DEFAULT 0" in DATABASE)
 check("native bridge exposes pending keyframe replay",
       all(f"fun {method}(" in PLUGIN for method in
           ("listKeyframes", "readKeyframe", "markKeyframeAnalyzed"))

@@ -264,25 +264,44 @@ with sync_playwright() as playwright:
         id: 91, created_at: Date.now() / 1000, lat: 28.6129, lng: 77.2295,
         photo_data_url: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==",
         photo_full_data_url: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==",
-        is_reportable: 1, damage_type: "pothole_cavity", assessment: "clear",
-        image_quality: "usable", on_drivable_surface: true,
+        is_reportable: 1, is_pothole: 1, damage_type: "pothole_cavity", assessment: "clear",
+        looks_like_speed_breaker: false, image_quality: "usable", on_drivable_surface: true,
+        has_localized_cavity: true,
         has_broken_edge_or_rim: true, has_depth_or_surface_loss: true,
         temporal_consistency: "consistent", size: "medium", decision: "accept",
         description: "Test native Drive detection", detection_model: "gpt-5-mini",
-        image_detail: "high", prompt_version: "road-damage-v4", schema_version: 4,
+        image_detail: "high", prompt_version: "pothole-binary-v5", schema_version: 5,
         evidence_count: 4, drive_id: "native-import", capture_source: "drive_live",
         source_event_key: "live:native-import:1", captured_at: Date.now() / 1000,
         source_offset_s: 4, gps_accuracy: 5, speed_mps: 8, heading: 0,
       };
       const first = await api("/api/native-report", {method: "POST", body: JSON.stringify(native)});
       const second = await api("/api/native-report", {method: "POST", body: JSON.stringify(native)});
+      const obsolete = {...native, id: 92, prompt_version: "road-damage-v4", schema_version: 4,
+        source_event_key: "live:native-import:obsolete"};
+      const ignored = await api("/api/native-report", {method: "POST", body: JSON.stringify(obsolete)});
+      const invalids = [
+        {...native, id: 93, looks_like_speed_breaker: true,
+          source_event_key: "live:native-import:breaker"},
+        {...native, id: 94, has_localized_cavity: false,
+          source_event_key: "live:native-import:no-cavity"},
+        {...native, id: 95, temporal_consistency: "single_view",
+          source_event_key: "live:native-import:single-view"},
+      ];
+      const invalidResults = [];
+      for (const value of invalids) invalidResults.push(await api("/api/native-report",
+        {method: "POST", body: JSON.stringify(value)}));
       const reports = await api("/api/reports");
-      return {first, second, count: reports.length, report: reports[0]};
+      return {first, second, ignored, invalidResults, count: reports.length, report: reports[0]};
     }""")
     if imported["count"] != 1 or not imported["second"]["duplicate"]:
         failures.append(f"native report retry was not idempotent: {imported}")
     if not imported["report"].get("authority_id") or imported["report"].get("status") != "draft":
         failures.append(f"native report did not use the existing authority router: {imported}")
+    if imported["ignored"].get("ignored") is not True or imported["count"] != 1:
+        failures.append(f"obsolete non-binary native report was imported: {imported}")
+    if any(result.get("ignored") is not True for result in imported["invalidResults"]):
+        failures.append(f"native report bypassed a persisted binary gate: {imported}")
     context.close()
     browser.close()
 
