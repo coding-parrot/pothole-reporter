@@ -12,7 +12,6 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
 
 data class QualityScore(
     val sharpness: Float,
@@ -29,6 +28,8 @@ data class BurstFrame(
 
 object FrameQualityEvaluator {
     private const val ROAD_BAND = 0.60f
+    private const val LUMINANCE_SAMPLE_MAX_WIDTH = 160
+    private const val LUMINANCE_SAMPLE_MAX_HEIGHT = 96
 
     fun scoreRoadPixels(pixels: IntArray, width: Int, height: Int): QualityScore {
         val gray = FloatArray(width * height)
@@ -176,34 +177,42 @@ object FrameQualityEvaluator {
     }
 
     private fun calculateAverageLuminance(bitmap: Bitmap): Pair<Float, Float> {
-        val width = bitmap.width
-        val height = bitmap.height
-        val step = max(1, sqrt((width * height).toDouble() / 12000.0).toInt())
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+        val scale = min(
+            1f,
+            min(
+                LUMINANCE_SAMPLE_MAX_WIDTH.toFloat() / bitmap.width.toFloat(),
+                LUMINANCE_SAMPLE_MAX_HEIGHT.toFloat() / bitmap.height.toFloat()
+            )
+        )
+        val width = max(1, (bitmap.width * scale).roundToInt())
+        val height = max(1, (bitmap.height * scale).roundToInt())
+        val sampled = Bitmap.createScaledBitmap(bitmap, width, height, true)
 
-        var total = 0f
-        var count = 0
-        var dark = 0
-        var bright = 0
+        try {
+            val pixels = IntArray(width * height)
+            sampled.getPixels(pixels, 0, width, 0, 0, width, height)
 
-        for (y in 0 until height step step) {
-            for (x in 0 until width step step) {
-                val c = pixels[y * width + x]
+            var total = 0f
+            var bright = 0
+
+            for (c in pixels) {
                 val r = Color.red(c)
                 val g = Color.green(c)
                 val b = Color.blue(c)
                 val lum = 0.2126f * r + 0.7152f * g + 0.0722f * b
                 total += lum
-                count++
-                if (lum < 12f) dark++
                 if (lum > 245f) bright++
             }
-        }
 
-        val mean = if (count > 0) total / count else 0f
-        val brightRatio = if (count > 0) bright.toFloat() / count else 0f
-        return Pair(mean, brightRatio)
+            val count = pixels.size
+            val mean = if (count > 0) total / count else 0f
+            val brightRatio = if (count > 0) bright.toFloat() / count else 0f
+            return Pair(mean, brightRatio)
+        } finally {
+            if (sampled !== bitmap && !sampled.isRecycled) {
+                sampled.recycle()
+            }
+        }
     }
 
     private fun applyBrightnessContrast(src: Bitmap, brightness: Float, contrast: Float): Bitmap {

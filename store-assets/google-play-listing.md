@@ -40,17 +40,18 @@ Important limits and data use
 • Selected resized road-damage images go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; Karnataka and exact Hyderabad checks may query official GIS.
 • Downloaded state, city, and highway packs are SHA-256 verified and checked on-device. Pack requests contain no report, photo, or exact coordinates.
 • Karnataka contract suggestions are optional and probable. Roadside-only drain, footpath, sewer, pipeline, lighting, building, bridge, and culvert work is excluded.
-• Drive recording is optional, off by default, and shown through Android's foreground-service notification.
+• Drive recording is optional and off by default. When enabled, it stores low-resolution silent video plus a 720p evidence frame at most every two seconds locally; saved-frame retry uses nearby before/after video context. The persistent notification and live screen show camera/recording status.
+• Drive automatically stops at the selected 15/30/60/90-minute active-time battery limit (30 minutes by default); paused time does not count.
 • The app is not affiliated with or endorsed by any government body.
 
 Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
 Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.34.1 / version code 53)
+## Release notes (1.35.0 / version code 54)
 
 ```text
-Reduces speed-breaker false positives in Drive by requiring an explicit speed-breaker check and rejecting raised road features before a pothole is counted.
+Faster, safer Drive Mode: low-resolution local video, sparse 720p evidence frames for post-drive retry, bounded camera memory, quicker startup and Stop, plus a 30-minute default battery limit.
 ```
 
 ## Play Console fields

@@ -16,8 +16,11 @@ interface ReportDao {
     @Query("SELECT * FROM reports WHERE id = :id")
     suspend fun getReportById(id: Long): ReportEntity?
 
-    @Query("SELECT * FROM reports WHERE syncedToWeb = 0 ORDER BY id ASC")
-    suspend fun getUnsyncedReports(): List<ReportEntity>
+    @Query("SELECT * FROM reports WHERE syncedToWeb = 0 ORDER BY id ASC LIMIT :limit")
+    suspend fun getUnsyncedReports(limit: Int): List<ReportEntity>
+
+    @Query("SELECT COUNT(*) FROM reports WHERE syncedToWeb = 0")
+    suspend fun countUnsyncedReports(): Int
 
     @Query("UPDATE reports SET syncedToWeb = 1 WHERE id IN (:ids)")
     suspend fun markReportsSynced(ids: List<Long>)
@@ -118,6 +121,15 @@ interface FootageDao {
     @Query("SELECT * FROM footage_segments WHERE sessionId = :sessionId ORDER BY startedAt ASC")
     suspend fun getSegmentsForSession(sessionId: String): List<FootageSegmentEntity>
 
+    @Query("""SELECT * FROM footage_segments
+        WHERE sessionId = :sessionId AND endedAt >= :windowStartSeconds AND startedAt <= :windowEndSeconds
+        ORDER BY startedAt ASC""")
+    suspend fun getSegmentsNear(
+        sessionId: String,
+        windowStartSeconds: Long,
+        windowEndSeconds: Long
+    ): List<FootageSegmentEntity>
+
     @Query("SELECT * FROM footage_segments ORDER BY startedAt DESC")
     suspend fun getAllSegments(): List<FootageSegmentEntity>
 
@@ -128,5 +140,35 @@ interface FootageDao {
     suspend fun deleteSegment(id: Long)
 
     @Query("DELETE FROM footage_segments")
+    suspend fun clearAll()
+}
+
+@Dao
+interface DriveKeyframeDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertKeyframe(keyframe: DriveKeyframeEntity): Long
+
+    @Query("SELECT * FROM drive_keyframes WHERE id = :id")
+    suspend fun getKeyframe(id: Long): DriveKeyframeEntity?
+
+    @Query("SELECT * FROM drive_keyframes WHERE sessionId = :sessionId ORDER BY captureSeq ASC")
+    suspend fun getForSession(sessionId: String): List<DriveKeyframeEntity>
+
+    @Query("SELECT * FROM drive_keyframes WHERE sessionId = :sessionId AND liveAnalyzed = 0 ORDER BY captureSeq ASC")
+    suspend fun getPendingForSession(sessionId: String): List<DriveKeyframeEntity>
+
+    @Query("SELECT * FROM drive_keyframes ORDER BY capturedAtMs DESC")
+    suspend fun getAll(): List<DriveKeyframeEntity>
+
+    @Query("UPDATE drive_keyframes SET liveAnalyzed = 1 WHERE id = :id")
+    suspend fun markAnalyzed(id: Long)
+
+    @Query("DELETE FROM drive_keyframes WHERE id = :id")
+    suspend fun deleteKeyframe(id: Long)
+
+    @Query("DELETE FROM drive_keyframes WHERE sessionId = :sessionId")
+    suspend fun deleteForSession(sessionId: String)
+
+    @Query("DELETE FROM drive_keyframes")
     suspend fun clearAll()
 }

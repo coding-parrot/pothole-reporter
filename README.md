@@ -5,7 +5,7 @@ detects visible road damage; **Photo** lets the user choose the issue and prepar
 for an official complaint channel. Reports remain on the phone, and nothing is filed
 automatically. There is no project-operated backend or account system.
 
-Current release: [v1.34.1](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.34.1)
+Current release: [v1.35.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.35.0)
 
 <p>
   <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
@@ -44,7 +44,8 @@ WhatsApp, dialler, share sheet, or email client. Nothing is submitted automatica
 
 ## How it works
 
-- **Drive** shows a live road view and counters. Its Android foreground service keeps scanning—and, when explicitly enabled, recording silent local video—under a truthful persistent notification while Maps or a call is open.
+- **Drive** shows a live road view and counters while Maps or a call is open. Optional recording pairs low-resolution silent video with a sharper 720p frame at most every two seconds, keeps only one raw burst waiting for live AI, and can retry unfinished frames after the drive with low-resolution before/after context.
+- A selectable 15/30/60/90-minute active-time battery limit stops Drive automatically; paused time does not count. The default is 30 minutes.
 - **Photo** offers **Pothole**, **Garbage**, or **Manhole**. Pothole photos use AI; the
   other two are explicit user reports and are not sent to OpenAI.
 - OpenAI vision assesses visible potholes, failed patches, breakup, ruts, and depressions.

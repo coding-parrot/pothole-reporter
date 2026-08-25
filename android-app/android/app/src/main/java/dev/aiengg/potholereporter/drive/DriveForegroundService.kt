@@ -9,9 +9,11 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import androidx.camera.core.Preview
+import dev.aiengg.potholereporter.db.DriveKeyframeEntity
 import dev.aiengg.potholereporter.db.FootageSegmentEntity
 import dev.aiengg.potholereporter.db.PotholeDatabase
 import dev.aiengg.potholereporter.db.SessionEntity
@@ -20,11 +22,14 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import org.json.JSONArray
 import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.ceil
 
 data class BurstJob(
     val burstFrames: List<BurstFrame>, val primaryIndex: Int, val fix: GpsFix,
-    val captureSeq: Int, val capturedAtMs: Long, val sourceOffsetMs: Long
+    val captureSeq: Int, val capturedAtMs: Long, val sourceOffsetMs: Long,
+    val keyframeId: Long? = null
 )
 
 data class DriveStatusSnapshot(
@@ -34,7 +39,8 @@ data class DriveStatusSnapshot(
     val dropped: Int, val status: String, val recordingEnabled: Boolean,
     val isRecording: Boolean, val videoSupported: Boolean,
     val segmentCount: Int, val recordedBytes: Long, val cameraActive: Boolean,
-    val recordingIssue: String?
+    val recordingIssue: String?, val keyframeCount: Int,
+    val remainingMs: Long, val maxDurationMinutes: Int
 )
 
 data class DriveEndSummary(
@@ -43,7 +49,8 @@ data class DriveEndSummary(
     val found: Int,
     val already: Int,
     val error: String? = null,
-    val discarded: Boolean = false
+    val discarded: Boolean = false,
+    val reason: String? = null
 )
 
 internal class DriveStartCompletionLedger {
@@ -93,6 +100,7 @@ class DriveForegroundService : LifecycleService() {
     @Volatile private var recordedBytes = 0L
     @Volatile private var cameraActive = false
     @Volatile private var recordingIssue: String? = null
+    @Volatile private var keyframeCount = 0
     @Volatile private var pauseTransitioning = false
     @Volatile private var notificationStopRequested = false
     @Volatile private var lastNotificationCheckMs = 0L
@@ -105,7 +113,17 @@ class DriveForegroundService : LifecycleService() {
     private var scanJob: Job? = null
     private var workerJob: Job? = null
     private var cameraTransitionJob: Job? = null
+    private var sessionLimitJob: Job? = null
+    private var sessionLimitPolicy: DriveSessionLimitPolicy? = null
+    private var sessionLimitMinutes = DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES
+    private var lastKeyframeAtMs = 0L
+    @Volatile private var lastStatusDispatchElapsedMs = 0L
+    @Volatile private var deferredStatusDispatch = false
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val deferredStatusRunnable = Runnable {
+        deferredStatusDispatch = false
+        dispatchStatus()
+    }
     private val stopCallbacks = mutableListOf<(DriveEndSummary) -> Unit>()
     @Volatile private var completedStopSummary: DriveEndSummary? = null
     private val segmentPersistJobs = mutableListOf<Job>()
@@ -124,10 +142,15 @@ class DriveForegroundService : LifecycleService() {
         const val EXTRA_LANGUAGE = "extra_language"
         const val EXTRA_DEBUG = "extra_debug"
         const val EXTRA_RECORD_VIDEO = "extra_record_video"
+        const val EXTRA_MAX_DRIVE_MINUTES = "extra_max_drive_minutes"
         const val EXTRA_START_REQUEST_ID = "extra_start_request_id"
         const val EXTRA_STOP_REQUEST_ID = "extra_stop_request_id"
         const val EXTRA_STOP_DISCARD_DATA = "extra_stop_discard_data"
         private const val MAX_WAKELOCK_MS = 4 * 60 * 60 * 1000L
+        private const val KEYFRAME_INTERVAL_MS = 2_000L
+        private const val KEYFRAME_JPEG_QUALITY = 88
+        private const val MIN_KEYFRAME_FREE_BYTES = 500L * 1024 * 1024
+        private const val ROUTINE_STATUS_THROTTLE_MS = 1_000L
         private val startCompletionLedger = DriveStartCompletionLedger()
 
         @Volatile var activeService: DriveForegroundService? = null
@@ -135,7 +158,7 @@ class DriveForegroundService : LifecycleService() {
         var onReportListener: ((Long, String, String?) -> Unit)? = null
         var onDriveEndedListener: ((DriveEndSummary) -> Unit)? = null
         fun status(): DriveStatusSnapshot = activeService?.snapshot()
-            ?: DriveStatusSnapshot(false, false, false, false, null, 0, 0, 0, 0, 0, "Idle", false, false, true, 0, 0, false, null)
+            ?: DriveStatusSnapshot(false, false, false, false, null, 0, 0, 0, 0, 0, "Idle", false, false, true, 0, 0, false, null, 0, 0, DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES)
         fun activeStartRequestId(): String? = activeService?.startRequestId
         fun completedStartSummary(requestId: String): DriveEndSummary? =
             startCompletionLedger.summaryFor(requestId)
@@ -162,7 +185,14 @@ class DriveForegroundService : LifecycleService() {
                     intent?.getStringExtra(EXTRA_DETAIL) ?: "high",
                     intent?.getStringExtra(EXTRA_LANGUAGE) ?: "en",
                     intent?.getBooleanExtra(EXTRA_DEBUG, false) ?: false,
-                    intent?.getBooleanExtra(EXTRA_RECORD_VIDEO, false) ?: false
+                    intent?.getBooleanExtra(EXTRA_RECORD_VIDEO, false) ?: false,
+                    (intent?.getIntExtra(
+                        EXTRA_MAX_DRIVE_MINUTES,
+                        DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES
+                    ) ?: DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES).coerceIn(
+                        DriveSessionLimitPolicy.MIN_LIMIT_MINUTES,
+                        DriveSessionLimitPolicy.MAX_LIMIT_MINUTES
+                    )
                 )
             }
             ACTION_PAUSE -> pauseDrive()
@@ -194,7 +224,8 @@ class DriveForegroundService : LifecycleService() {
             checked = checkedCount,
             found = foundCount,
             already = alreadyCount,
-            discarded = discardData
+            discarded = discardData,
+            reason = "Stopped"
         )
         startCompletionLedger.record(requestedStart, summary)
         runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
@@ -207,7 +238,8 @@ class DriveForegroundService : LifecycleService() {
         detail: String,
         language: String,
         debug: Boolean,
-        recordVideo: Boolean
+        recordVideo: Boolean,
+        maxDriveMinutes: Int
     ) {
         startedAtMs = System.currentTimeMillis()
         sessionId = startedAtMs.toString()
@@ -217,6 +249,9 @@ class DriveForegroundService : LifecycleService() {
         recordingEnabled = recordVideo; isRecording = false; videoSupported = true
         debugMode = debug
         segmentCount = 0; recordedBytes = 0L; pauseTransitioning = false
+        keyframeCount = 0; lastKeyframeAtMs = 0L
+        sessionLimitMinutes = maxDriveMinutes
+        sessionLimitPolicy = DriveSessionLimitPolicy(SystemClock.elapsedRealtime(), maxDriveMinutes)
         discardDataOnStop = false
         completedStopSummary = null
         synchronized(segmentPersistErrors) { segmentPersistErrors.clear() }
@@ -230,7 +265,10 @@ class DriveForegroundService : LifecycleService() {
 
         inferenceEngine = NativeInferenceEngine(applicationContext, apiKey, model, detail, language, debug)
         jobChannel = Channel(
-            capacity = 6,
+            // A remote model cannot consume raw camera bursts at capture cadence. Retain
+            // only the latest pending burst; sparse JPEG keyframes preserve replayable
+            // evidence without allowing ARGB bitmap memory to grow with network latency.
+            capacity = 1,
             onBufferOverflow = BufferOverflow.DROP_OLDEST,
             onUndeliveredElement = { item ->
                 recycle(item); droppedCount++; queuedCount = (queuedCount - 1).coerceAtLeast(0)
@@ -275,6 +313,7 @@ class DriveForegroundService : LifecycleService() {
 
         startScanLoop()
         startInferenceWorker()
+        startSessionLimitLoop()
         trackSessionPersist(lifecycleScope.launch(Dispatchers.IO) {
             try {
                 database.sessionDao().insertSession(SessionEntity(id = sessionId, startedAt = startedAtMs / 1000))
@@ -330,10 +369,79 @@ class DriveForegroundService : LifecycleService() {
                 if (!cam.isCameraReady || !loc.shouldTriggerCapture(lastCapFix, lastCapTimeMs, fix)) continue
                 val capturedAt = System.currentTimeMillis()
                 val burst = cam.captureBurst() ?: continue
-                val item = BurstJob(burst.first, burst.second, fix, ++captureSeq, capturedAt, capturedAt - startedAtMs)
+                val sequence = ++captureSeq
+                val sourceOffset = capturedAt - startedAtMs
+                val baseItem = BurstJob(
+                    burst.first, burst.second, fix, sequence, capturedAt, sourceOffset
+                )
+                val keyframeId = persistSparseKeyframe(baseItem)
+                val item = baseItem.copy(keyframeId = keyframeId)
                 lastCapFix = fix; lastCapTimeMs = capturedAt
                 if (jobChannel?.trySend(item)?.isSuccess == true) queuedCount++ else recycle(item)
                 publish("Scanning live")
+            }
+        }
+    }
+
+    /** Saves one bounded evidence-resolution JPEG at most once every two seconds. */
+    private suspend fun persistSparseKeyframe(item: BurstJob): Long? {
+        if (!recordingEnabled || item.capturedAtMs - lastKeyframeAtMs < KEYFRAME_INTERVAL_MS) return null
+        lastKeyframeAtMs = item.capturedAtMs
+        val frame = item.burstFrames.getOrElse(item.primaryIndex) { item.burstFrames.firstOrNull() }
+            ?: return null
+        val jpeg = try {
+            FrameQualityEvaluator.bitmapToJpegBytes(frame.bitmap, KEYFRAME_JPEG_QUALITY)
+        } catch (_: Exception) {
+            return null
+        }
+        if (jpeg.isEmpty()) return null
+        return withContext(Dispatchers.IO) {
+            if (filesDir.usableSpace < MIN_KEYFRAME_FREE_BYTES) return@withContext null
+            val directory = File(filesDir, "footage/$sessionId/keyframes")
+            if (!directory.exists() && !directory.mkdirs()) return@withContext null
+            val file = File(directory, "frame_${item.captureSeq.toString().padStart(6, '0')}.jpg")
+            val temporary = File(directory, "${file.name}.tmp")
+            try {
+                FileOutputStream(temporary).use { it.write(jpeg) }
+                val committed = temporary.renameTo(file) || runCatching {
+                    temporary.copyTo(file, overwrite = true)
+                    temporary.delete()
+                    true
+                }.getOrDefault(false)
+                if (!committed) {
+                    throw IllegalStateException("Could not commit keyframe")
+                }
+                val id = database.driveKeyframeDao().insertKeyframe(
+                    DriveKeyframeEntity(
+                        sessionId = sessionId,
+                        captureSeq = item.captureSeq,
+                        filePath = file.absolutePath,
+                        // The burst takes several hundred milliseconds. Anchor replay
+                        // context to the selected sharp frame, not to the instant before
+                        // the burst began, so before/evidence/after ordering is truthful.
+                        capturedAtMs = frame.capturedAtMs,
+                        sourceOffsetMs = (frame.capturedAtMs - startedAtMs).coerceAtLeast(0L),
+                        lat = item.fix.lat,
+                        lng = item.fix.lng,
+                        gpsAccuracy = item.fix.accuracy,
+                        speedMps = item.fix.speedMps,
+                        heading = item.fix.heading,
+                        width = frame.bitmap.width,
+                        height = frame.bitmap.height,
+                        bytes = file.length()
+                    )
+                )
+                keyframeCount++
+                cameraManager?.noteStoredBytes(file.length())
+                id
+            } catch (cancelled: CancellationException) {
+                temporary.delete()
+                file.delete()
+                throw cancelled
+            } catch (_: Exception) {
+                temporary.delete()
+                file.delete()
+                null
             }
         }
     }
@@ -344,6 +452,7 @@ class DriveForegroundService : LifecycleService() {
         workerJob = lifecycleScope.launch(Dispatchers.IO) {
             for (item in channel) {
                 queuedCount = (queuedCount - 1).coerceAtLeast(0)
+                var analysisCompleted = false
                 try {
                     // Looking up a candidate is local and fail-closed. If Room has a
                     // transient problem, ordinary damage detection must still proceed.
@@ -417,6 +526,9 @@ class DriveForegroundService : LifecycleService() {
                             if (!queued) runCatching { File(verification.currentPhotoPath).delete() }
                         }
                     }
+                    // A model response alone is not a completed job: keep the durable
+                    // keyframe pending if local deduplication/report persistence failed.
+                    analysisCompleted = true
                     publish(if (isStopping) "Finishing queued detections" else "Scanning live")
                 } catch (cancelled: CancellationException) {
                     throw cancelled
@@ -427,9 +539,49 @@ class DriveForegroundService : LifecycleService() {
                     }
                 } catch (error: Exception) {
                     publish("Detection retrying: ${error.message ?: "temporary error"}")
-                } finally { recycle(item) }
+                } finally {
+                    if (analysisCompleted) item.keyframeId?.let { keyframeId ->
+                        runCatching { database.driveKeyframeDao().markAnalyzed(keyframeId) }
+                    }
+                    recycle(item)
+                }
             }
         }
+    }
+
+    private fun startSessionLimitLoop() {
+        sessionLimitJob?.cancel()
+        sessionLimitJob = lifecycleScope.launch {
+            var lastShownMinutes = Int.MAX_VALUE
+            while (isActive && sessionRunning && !isStopping) {
+                delay(1_000L)
+                if (isPaused) continue
+                val remaining = remainingDriveMs()
+                if (remaining <= 0L) {
+                    stopDriveSession("Stopped after the $sessionLimitMinutes-minute battery limit")
+                    return@launch
+                }
+                val minutes = ceil(remaining / 60_000.0).toInt()
+                if (minutes != lastShownMinutes) {
+                    lastShownMinutes = minutes
+                    publish(statusText)
+                }
+            }
+        }
+    }
+
+    @Synchronized
+    private fun remainingDriveMs(): Long = sessionLimitPolicy
+        ?.remainingMs(SystemClock.elapsedRealtime()) ?: 0L
+
+    @Synchronized
+    private fun pauseSessionLimit() {
+        sessionLimitPolicy?.pause(SystemClock.elapsedRealtime())
+    }
+
+    @Synchronized
+    private fun resumeSessionLimit() {
+        sessionLimitPolicy?.resume(SystemClock.elapsedRealtime())
     }
 
     fun pauseDrive(onComplete: ((DriveStatusSnapshot) -> Unit)? = null) {
@@ -441,6 +593,7 @@ class DriveForegroundService : LifecycleService() {
             onComplete?.invoke(snapshot())
             return
         }
+        pauseSessionLimit()
         isPaused = true; pauseTransitioning = true; scanJob?.cancel()
         locationProvider?.stopUpdates(); releaseWakeLock()
         publish("Pausing safely")
@@ -476,6 +629,7 @@ class DriveForegroundService : LifecycleService() {
             onComplete?.invoke(snapshot())
             return
         }
+        resumeSessionLimit()
         isPaused = false; acquireWakeLock(); locationProvider?.resumeUpdates()
         cameraActive = false
         publish("Camera starting")
@@ -575,7 +729,8 @@ class DriveForegroundService : LifecycleService() {
         if (!sessionRunning) {
             val summary = DriveEndSummary(
                 sessionId, checkedCount, foundCount, alreadyCount,
-                discarded = discardDataOnStop
+                discarded = discardDataOnStop,
+                reason = reason
             )
             val callbacks = synchronized(stopCallbacks) {
                 stopCallbacks.toList().also { stopCallbacks.clear() }
@@ -594,9 +749,11 @@ class DriveForegroundService : LifecycleService() {
             recordStopError(error.message?.let { "$prefix: $it" } ?: prefix)
         }
         isStopping = true; sessionRunning = false; statusText = reason
+        sessionLimitJob?.cancel()
         runCatching { publish("Stopping safely") }
             .onFailure { recordStopError("Could not update the stopping status", it) }
-        runCatching { scanJob?.cancel() }
+        val scanningJob = scanJob
+        runCatching { scanningJob?.cancel() }
             .onFailure { recordStopError("Could not stop camera scheduling", it) }
         val drainingChannel = jobChannel
         runCatching { drainingChannel?.close() }
@@ -632,6 +789,21 @@ class DriveForegroundService : LifecycleService() {
                     throw error
                 } catch (error: Throwable) {
                     recordStopError("Detection worker teardown failed", error)
+                    false
+                }
+            }
+
+            suspend fun stopScannerWithinLimit(limitMs: Long): Boolean {
+                val scanner = scanningJob ?: return true
+                return try {
+                    withTimeoutOrNull(limitMs) {
+                        scanner.join()
+                        true
+                    } == true
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Throwable) {
+                    recordStopError("Camera scheduler teardown failed", error)
                     false
                 }
             }
@@ -680,9 +852,12 @@ class DriveForegroundService : LifecycleService() {
                 }
             }
             try {
-                val drained = stopWorkerWithinLimit(30_000L)
+                if (!stopScannerWithinLimit(3_000L)) {
+                    recordStopError("Camera scheduling did not stop within the cancellation limit")
+                }
+                val drained = stopWorkerWithinLimit(8_000L)
                 if (!drained) {
-                    recordStopError("Some queued detections exceeded the 30-second Stop limit")
+                    recordStopError("A live detection was saved for post-drive analysis after exceeding the 8-second Stop limit")
                     // OkHttp execute() is blocking. Cancel its Call before cancelling the
                     // coroutine, then give the worker only a second bounded exit window.
                     closeInference()
@@ -690,7 +865,7 @@ class DriveForegroundService : LifecycleService() {
                         .onFailure { recordStopError("Could not cancel the detection worker", it) }
                     runCatching { drainingChannel?.cancel() }
                         .onFailure { recordStopError("Could not discard the remaining detection queue", it) }
-                    if (!stopWorkerWithinLimit(5_000L)) {
+                    if (!stopWorkerWithinLimit(3_000L)) {
                         recordStopError("Detection worker did not stop within the cancellation limit")
                     }
                 }
@@ -714,8 +889,11 @@ class DriveForegroundService : LifecycleService() {
                     try {
                     // Every operation below is isolated so no camera, database, or client
                     // exception can leave the foreground notification or a plugin call stuck.
-                    runCatching { scanJob?.cancel() }
+                    runCatching { scanningJob?.cancel() }
                         .onFailure { recordStopError("Could not stop camera scheduling", it) }
+                    if (scanningJob?.isCompleted != true && !stopScannerWithinLimit(3_000L)) {
+                        recordStopError("Camera scheduling remained active after Stop")
+                    }
                     runCatching { drainingChannel?.cancel() }
                         .onFailure { recordStopError("Could not close the detection queue", it) }
 
@@ -778,7 +956,8 @@ class DriveForegroundService : LifecycleService() {
                     completedSummary = DriveEndSummary(
                         endedSession, checkedCount, foundCount, alreadyCount,
                         error = summaryError,
-                        discarded = discarded
+                        discarded = discarded,
+                        reason = reason
                     )
                     } catch (error: Throwable) {
                         recordStopError("Final Drive teardown failed", error)
@@ -821,7 +1000,8 @@ class DriveForegroundService : LifecycleService() {
                             error = synchronized(stopErrors) {
                                 stopErrors.takeIf { it.isNotEmpty() }?.joinToString("; ")
                             },
-                            discarded = discardDataOnStop
+                            discarded = discardDataOnStop,
+                            reason = reason
                         )
                         val callbacks: List<(DriveEndSummary) -> Unit>
                         val summary = synchronized(stopCallbacks) {
@@ -846,6 +1026,7 @@ class DriveForegroundService : LifecycleService() {
                         workerJob = null
                         scanJob = null
                         cameraTransitionJob = null
+                        sessionLimitJob = null
                         try {
                             runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
                                 .onFailure { recordStopError("Could not remove the Drive Mode notification", it) }
@@ -860,6 +1041,7 @@ class DriveForegroundService : LifecycleService() {
     }
 
     private fun persistVideoSegment(segment: NativeVideoSegment) {
+        val storageLedger = cameraManager
         val job = lifecycleScope.launch(Dispatchers.IO) {
             try {
                 database.footageDao().insertSegment(FootageSegmentEntity(
@@ -878,7 +1060,7 @@ class DriveForegroundService : LifecycleService() {
                     publish(statusText)
                 }
             } catch (error: Exception) {
-                File(segment.filePath).delete()
+                if (File(segment.filePath).delete()) storageLedger?.noteStoredBytes(-segment.bytes)
                 val message = "A video clip could not be indexed and was discarded"
                 synchronized(segmentPersistErrors) {
                     segmentPersistErrors.add(error.message?.let { "$message: $it" } ?: message)
@@ -934,14 +1116,36 @@ class DriveForegroundService : LifecycleService() {
         sessionId.takeIf(String::isNotBlank), checkedCount,
         foundCount, alreadyCount, queuedCount, droppedCount, statusText,
         recordingEnabled, isRecording, videoSupported, segmentCount, recordedBytes, cameraActive,
-        recordingIssue
+        recordingIssue, keyframeCount, remainingDriveMs(), sessionLimitMinutes
     )
 
     private fun publish(text: String) {
         statusText = text
+        val routine = text == "Scanning live" || text == "Finishing queued detections"
+        val now = SystemClock.elapsedRealtime()
+        val waitMs = ROUTINE_STATUS_THROTTLE_MS - (now - lastStatusDispatchElapsedMs)
+        if (routine && waitMs > 0L) {
+            if (!deferredStatusDispatch) {
+                deferredStatusDispatch = true
+                mainHandler.postDelayed(deferredStatusRunnable, waitMs)
+            }
+            return
+        }
+        mainHandler.removeCallbacks(deferredStatusRunnable)
+        deferredStatusDispatch = false
+        dispatchStatus()
+    }
+
+    private fun dispatchStatus() {
+        lastStatusDispatchElapsedMs = SystemClock.elapsedRealtime()
+        val remaining = if (sessionRunning && !isStopping) remainingDriveMs() else 0L
+        val notificationStatus = if (remaining > 0L) {
+            val minutes = ceil(remaining / 60_000.0).toInt()
+            "$statusText · $minutes min left"
+        } else statusText
         if (sessionRunning || isStopping) {
             val notification = NotificationHelper.buildNotification(
-                this, isPaused, checkedCount, foundCount, alreadyCount, statusText,
+                this, isPaused, checkedCount, foundCount, alreadyCount, notificationStatus,
                 isStopping = isStopping,
                 isPausing = pauseTransitioning,
                 recordingEnabled = recordingEnabled,
@@ -963,7 +1167,8 @@ class DriveForegroundService : LifecycleService() {
 
     override fun onDestroy() {
         activeService = null; sessionRunning = false
-        scanJob?.cancel(); workerJob?.cancel(); jobChannel?.cancel()
+        scanJob?.cancel(); workerJob?.cancel(); sessionLimitJob?.cancel(); jobChannel?.cancel()
+        mainHandler.removeCallbacks(deferredStatusRunnable)
         cameraManager?.closeImmediately(); locationProvider?.stopUpdates(); inferenceEngine?.close(); releaseWakeLock()
         super.onDestroy()
     }

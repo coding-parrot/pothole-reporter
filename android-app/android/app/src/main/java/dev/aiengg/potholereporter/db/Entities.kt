@@ -197,3 +197,37 @@ data class FootageSegmentEntity(
     val errorCode: Int? = null,
     val complete: Boolean = true
 )
+
+/**
+ * A sparse evidence-resolution frame captured alongside the low-resolution local video.
+ * Raw camera bitmaps are never retained: the service writes one bounded JPEG and then
+ * recycles the burst. Frames that the live worker could not finish remain available for
+ * the explicit post-drive pass.
+ */
+@Entity(
+    tableName = "drive_keyframes",
+    indices = [
+        Index(value = ["sessionId"]),
+        Index(value = ["sessionId", "captureSeq"], unique = true),
+        Index(value = ["liveAnalyzed"]),
+        Index(value = ["filePath"], unique = true)
+    ]
+)
+data class DriveKeyframeEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val sessionId: String,
+    val captureSeq: Int,
+    val filePath: String,
+    val capturedAtMs: Long,
+    val sourceOffsetMs: Long,
+    val lat: Double?,
+    val lng: Double?,
+    val gpsAccuracy: Float?,
+    val speedMps: Float?,
+    val heading: Float?,
+    val width: Int,
+    val height: Int,
+    val bytes: Long,
+    val liveAnalyzed: Boolean = false
+)

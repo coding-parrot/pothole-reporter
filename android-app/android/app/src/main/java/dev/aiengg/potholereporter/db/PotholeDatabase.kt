@@ -14,9 +14,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         RepairTargetEntity::class,
         RepairObservationEntity::class,
         SessionEntity::class,
-        FootageSegmentEntity::class
+        FootageSegmentEntity::class,
+        DriveKeyframeEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class PotholeDatabase : RoomDatabase() {
@@ -26,6 +27,7 @@ abstract class PotholeDatabase : RoomDatabase() {
     abstract fun repairObservationDao(): RepairObservationDao
     abstract fun sessionDao(): SessionDao
     abstract fun footageDao(): FootageDao
+    abstract fun driveKeyframeDao(): DriveKeyframeDao
 
     companion object {
         @Volatile
@@ -106,13 +108,41 @@ abstract class PotholeDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `drive_keyframes` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `sessionId` TEXT NOT NULL,
+                        `captureSeq` INTEGER NOT NULL,
+                        `filePath` TEXT NOT NULL,
+                        `capturedAtMs` INTEGER NOT NULL,
+                        `sourceOffsetMs` INTEGER NOT NULL,
+                        `lat` REAL,
+                        `lng` REAL,
+                        `gpsAccuracy` REAL,
+                        `speedMps` REAL,
+                        `heading` REAL,
+                        `width` INTEGER NOT NULL,
+                        `height` INTEGER NOT NULL,
+                        `bytes` INTEGER NOT NULL,
+                        `liveAnalyzed` INTEGER NOT NULL
+                    )""".trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_drive_keyframes_sessionId` ON `drive_keyframes` (`sessionId`)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_drive_keyframes_sessionId_captureSeq` ON `drive_keyframes` (`sessionId`, `captureSeq`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_drive_keyframes_liveAnalyzed` ON `drive_keyframes` (`liveAnalyzed`)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_drive_keyframes_filePath` ON `drive_keyframes` (`filePath`)")
+            }
+        }
+
         fun getDatabase(context: Context): PotholeDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     PotholeDatabase::class.java,
                     "native_potholes.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
                 INSTANCE = instance
                 instance
             }

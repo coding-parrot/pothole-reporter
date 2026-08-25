@@ -5956,8 +5956,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     // Measured on a real device: a 2000px frame is ~1.1 MB of base64 and every request
     // is marshalled across the JS-to-native bridge, which made a live detection call
     // take 13.5s median and stuttered the preview. The live pass therefore runs on a
-    // smaller frame; the recorded footage keeps full quality, so a pothole missed live
-    // is still recoverable by re-analysing the video. Single shots stay at full size:
+    // smaller frame. Native Drive retains sparse 720p evidence frames beside low-resolution
+    // video, so interrupted saved-frame checks can be retried later with nearby temporal
+    // context. Single shots stay at full size:
     // one photo, someone waiting, and no footage behind it.
     // Drive Mode supplies one short burst. The model sees a full context view of the
     // sharpest frame plus three road-band crops in chronological order. Context keeps

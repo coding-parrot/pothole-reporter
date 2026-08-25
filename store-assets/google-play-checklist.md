@@ -1,13 +1,13 @@
 # Google Play publication checklist
 
-Status reviewed 25 August 2026 for release 1.34.1 / version code 53. This is a release
+Status reviewed 25 August 2026 for release 1.35.0 / version code 54. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [x] **Fresh signed release bundle:** build version 1.34.1/code 53 with the speed-breaker false-positive guard;
+- [x] **Fresh signed release bundle:** build version 1.35.0/code 54 with bounded hybrid Drive capture;
   confirmed it is non-debuggable and signed with the upload key kept outside Git. Upload
   and inspect it in Play Console.
 - [x] **Hosted privacy page:** verified on the stable public host:
@@ -223,7 +223,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.34.1 release. Include the issue picker, an independent civic handoff, and regional-language support
+  the 1.35.0 release. Include the issue picker, an independent civic handoff, and regional-language support
   without displaying private coordinates, an API key, a real grievance ID, or civic-body
   marks. Put other city-specific flows in reviewer instructions instead of implying that
   one screenshot proves every supported route.

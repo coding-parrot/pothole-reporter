@@ -25,9 +25,13 @@ import androidx.camera.video.VideoRecordEvent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
@@ -83,6 +87,16 @@ class NativeDriveCameraManager(
     private val pendingFrameLock = Any()
     private var pendingFrameRequest: CompletableDeferred<Bitmap?>? = null
     private val recordingHandler = Handler(Looper.getMainLooper())
+    private val storageScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // The first recording request inventories existing footage off the main thread. New
+    // segments are then added to this total as they finalize, so minute rollovers never
+    // rescan a potentially multi-gigabyte directory while the UI is trying to update.
+    @Volatile private var cachedTotalFootageBytes: Long? = null
+    private val storageLedgerLock = Any()
+    private var bytesCommittedBeforeInventory = 0L
+    private var storagePreparationInFlight = false
+    private var storagePreparationGeneration = 0L
 
     @Volatile
     var isVideoRecordingEnabled: Boolean = initialVideoRecordingEnabled
@@ -181,30 +195,24 @@ class NativeDriveCameraManager(
             boundCamera = try {
                 isVideoSupported = true
                 bindWithVideo(QualitySelector.from(
-                    Quality.HD,
+                    // SD is the requested recording profile. The fallback searches below
+                    // it first and only moves higher when a camera exposes no SD profile.
+                    Quality.SD,
                     FallbackStrategy.lowerQualityOrHigherThan(Quality.SD)
                 ))
             } catch (_: Exception) {
                 provider.unbindAll()
-                try {
-                    bindWithVideo(QualitySelector.from(
-                        Quality.SD,
-                        FallbackStrategy.lowerQualityOrHigherThan(Quality.SD)
-                    ))
-                } catch (_: Exception) {
-                    // Some cameras cannot run Preview + Analysis + VideoCapture together.
-                    // Detection stays available and the UI says video is unavailable.
-                    provider.unbindAll()
-                    videoCapture = null
-                    isVideoSupported = false
-                    onRecordingStateChange(isVideoRecordingEnabled, false, false, "Video recording unavailable on this camera")
-                    provider.bindToLifecycle(
-                        lifecycleOwner,
-                        CameraSelector.DEFAULT_BACK_CAMERA,
-                        preview,
-                        analysis
-                    )
-                }
+                // Some cameras cannot run Preview + Analysis + VideoCapture together.
+                // Detection stays available and the UI says video is unavailable.
+                videoCapture = null
+                isVideoSupported = false
+                onRecordingStateChange(isVideoRecordingEnabled, false, false, "Video recording unavailable on this camera")
+                provider.bindToLifecycle(
+                    lifecycleOwner,
+                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    preview,
+                    analysis
+                )
             }.also { camera ->
                 camera.cameraInfo.cameraState.observe(lifecycleOwner, ::handleCameraState)
             }
@@ -354,23 +362,93 @@ class NativeDriveCameraManager(
 
     @SuppressLint("MissingPermission")
     private fun startRecordingSegment() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            recordingHandler.post(::startRecordingSegment)
+            return
+        }
+        if (!requested || destroyed || !isCameraReady || !isVideoRecordingEnabled || !isVideoSupported ||
+            activeVideoSegment != null || storageBlocked || storagePreparationInFlight
+        ) return
+
+        // File walking and filesystem capacity checks are disk operations. Serialize them
+        // here and revalidate all camera state on the main thread before touching Recorder;
+        // camera-open callbacks and segment-rollover callbacks may both request a start.
+        val footageRoot = File(context.filesDir, "footage/$sessionId")
+        val needsInitialInventory = cachedTotalFootageBytes == null
+        val generation = ++storagePreparationGeneration
+        storagePreparationInFlight = true
+        storageScope.launch {
+            val prepared = runCatching {
+                val directoryReady = footageRoot.exists() || footageRoot.mkdirs()
+                val existingBytes = if (needsInitialInventory) {
+                    File(context.filesDir, "footage").walkTopDown()
+                        .filter(File::isFile)
+                        .sumOf(File::length)
+                } else null
+                Triple(directoryReady, existingBytes, context.filesDir.usableSpace)
+            }
+            withContext(Dispatchers.Main.immediate) {
+                if (generation != storagePreparationGeneration || destroyed || fullyClosed) return@withContext
+                storagePreparationInFlight = false
+                prepared.getOrNull()?.second?.let { inventoriedBytes ->
+                    synchronized(storageLedgerLock) {
+                        // A sparse JPEG can finish while the first disk walk is running.
+                        // Counting that small overlap twice is safer than exceeding the
+                        // hard storage cap; later sessions begin from a fresh inventory.
+                        cachedTotalFootageBytes = addStorageBytesSafely(
+                            inventoriedBytes,
+                            bytesCommittedBeforeInventory
+                        )
+                        bytesCommittedBeforeInventory = 0L
+                    }
+                }
+
+                // The user may pause/stop/toggle recording, or CameraX may rebind, while
+                // storage is being prepared. A stale completion must never start a segment.
+                if (!requested || !isCameraReady || !isVideoRecordingEnabled || !isVideoSupported ||
+                    activeVideoSegment != null || storageBlocked
+                ) return@withContext
+
+                val result = prepared.getOrNull()
+                if (result == null || !result.first) {
+                    storageBlocked = true
+                    onRecordingStateChange(true, false, true, "Video could not start: local storage is unavailable")
+                    return@withContext
+                }
+                val allFootageBytes = cachedTotalFootageBytes ?: 0L
+                if (result.third < MIN_FREE_STORAGE_BYTES + RECORDING_SEGMENT_MAX_BYTES ||
+                    allFootageBytes >= MAX_TOTAL_FOOTAGE_BYTES
+                ) {
+                    blockRecordingForStorage(allFootageBytes)
+                    return@withContext
+                }
+                startPreparedRecordingSegment(footageRoot)
+            }
+        }
+    }
+
+    private fun blockRecordingForStorage(allFootageBytes: Long) {
+        storageBlocked = true
+        val message = if (allFootageBytes >= MAX_TOTAL_FOOTAGE_BYTES)
+            "Video stopped: 4 GB footage limit reached; share or delete old clips"
+        else "Video stopped: keep at least 500 MB free"
+        onRecordingStateChange(true, false, true, message)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startPreparedRecordingSegment(footageRoot: File) {
         if (!requested || destroyed || !isCameraReady || !isVideoRecordingEnabled || !isVideoSupported ||
             activeVideoSegment != null || storageBlocked
         ) return
         val recorder = videoCapture?.output ?: return
-        val footageRoot = File(context.filesDir, "footage/$sessionId")
-        val allFootageBytes = File(context.filesDir, "footage").walkTopDown()
-            .filter(File::isFile)
-            .sumOf(File::length)
-        if ((!footageRoot.exists() && !footageRoot.mkdirs()) ||
-            context.filesDir.usableSpace < MIN_FREE_STORAGE_BYTES + RECORDING_SEGMENT_MAX_BYTES ||
-            allFootageBytes >= MAX_TOTAL_FOOTAGE_BYTES
-        ) {
+        val allFootageBytes = cachedTotalFootageBytes ?: 0L
+        if (allFootageBytes >= MAX_TOTAL_FOOTAGE_BYTES) {
+            blockRecordingForStorage(allFootageBytes)
+            return
+        }
+        if (!footageRoot.isDirectory) {
             storageBlocked = true
-            val message = if (allFootageBytes >= MAX_TOTAL_FOOTAGE_BYTES)
-                "Video stopped: 4 GB footage limit reached; share or delete old clips"
-            else "Video stopped: keep at least 500 MB free"
-            onRecordingStateChange(true, false, true, message)
+            onRecordingStateChange(true, false, true, "Video could not start: local storage is unavailable")
             return
         }
         val sequence = ++recordingSequence
@@ -433,7 +511,10 @@ class NativeDriveCameraManager(
             errorCode = event.error.takeIf { it != VideoRecordEvent.Finalize.ERROR_NONE },
             complete = complete
         ) else null
-        if (result != null) onSegmentFinalized(result) else segment.file.delete()
+        if (result != null) {
+            noteStoredBytes(bytes)
+            onSegmentFinalized(result)
+        } else segment.file.delete()
         segment.completion.complete(result)
 
         when (event.error) {
@@ -561,6 +642,9 @@ class NativeDriveCameraManager(
             requested = false
             isCameraReady = false
             recordingHandler.removeCallbacks(restartRecording)
+            storagePreparationGeneration++
+            storagePreparationInFlight = false
+            storageScope.cancel()
             if (abandonActiveRecording) abandonActiveVideoSegment()
             try {
                 releaseCameraUseCases()
@@ -607,4 +691,31 @@ class NativeDriveCameraManager(
         }
         pending?.complete(null)
     }
+
+    /** Keeps the shared MP4 + sparse-JPEG storage cap current without rescanning disk. */
+    fun noteStoredBytes(delta: Long) {
+        if (delta == 0L) return
+        synchronized(storageLedgerLock) {
+            val current = cachedTotalFootageBytes
+            if (current == null) {
+                // Ignore pre-inventory deletions: the disk walk already observes the file
+                // as absent. Positive writes may race the walk, so conservatively add them.
+                if (delta > 0L) {
+                    bytesCommittedBeforeInventory = addStorageBytesSafely(
+                        bytesCommittedBeforeInventory,
+                        delta
+                    )
+                }
+            } else {
+                cachedTotalFootageBytes = if (delta > 0L) {
+                    addStorageBytesSafely(current, delta)
+                } else {
+                    (current + delta).coerceAtLeast(0L)
+                }
+            }
+        }
+    }
+
+    private fun addStorageBytesSafely(current: Long, added: Long): Long =
+        if (added > 0L && Long.MAX_VALUE - current < added) Long.MAX_VALUE else current + added
 }

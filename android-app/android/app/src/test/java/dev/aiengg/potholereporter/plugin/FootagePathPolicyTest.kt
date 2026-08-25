@@ -53,4 +53,22 @@ class FootagePathPolicyTest {
         assertTrue(validClip.exists())
         assertTrue(outsideFile.exists())
     }
+
+    @Test
+    fun savedFramesMustStayInsideTheSessionKeyframeDirectory() {
+        val filesDir = temporaryFolder.newFolder("files-keyframes")
+        val sessionRoot = FootagePathPolicy.sessionDirectory(filesDir, "1724321000001")
+            .apply { mkdirs() }
+        val keyframeRoot = File(sessionRoot, "keyframes").apply { mkdirs() }
+        val valid = File(keyframeRoot, "frame_000001.jpg").apply { writeText("jpeg") }
+        val segment = File(sessionRoot, "segment_0001.mp4").apply { writeText("video") }
+
+        assertEquals(valid.canonicalFile, FootagePathPolicy.keyframeFile(sessionRoot, valid.path))
+        assertThrows(IllegalArgumentException::class.java) {
+            FootagePathPolicy.keyframeFile(sessionRoot, segment.path)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            FootagePathPolicy.keyframeFile(sessionRoot, File(filesDir, "outside.jpg").path)
+        }
+    }
 }

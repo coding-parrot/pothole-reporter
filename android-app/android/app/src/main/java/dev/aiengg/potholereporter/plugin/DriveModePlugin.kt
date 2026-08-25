@@ -3,6 +3,8 @@ package dev.aiengg.potholereporter.plugin
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.util.Base64
@@ -16,6 +18,7 @@ import dev.aiengg.potholereporter.db.RepairTargetEntity
 import dev.aiengg.potholereporter.db.SessionEntity
 import dev.aiengg.potholereporter.drive.DriveEndSummary
 import dev.aiengg.potholereporter.drive.DriveForegroundService
+import dev.aiengg.potholereporter.drive.DriveSessionLimitPolicy
 import dev.aiengg.potholereporter.drive.NotificationHelper
 import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
@@ -32,9 +35,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.UUID
 
@@ -58,6 +64,17 @@ internal object FootagePathPolicy {
         val target = File(storedPath).canonicalFile
         require(target != canonicalSession && target.parentFile == canonicalSession) {
             "Stored footage path is outside this drive"
+        }
+        return target
+    }
+
+    fun keyframeFile(sessionDirectory: File, storedPath: String): File {
+        val canonicalSession = sessionDirectory.canonicalFile
+        val keyframeDirectory = File(canonicalSession, "keyframes").canonicalFile
+        require(keyframeDirectory.parentFile == canonicalSession) { "Invalid keyframe directory" }
+        val target = File(storedPath).canonicalFile
+        require(target != keyframeDirectory && target.parentFile == keyframeDirectory) {
+            "Stored keyframe path is outside this drive"
         }
         return target
     }
@@ -131,6 +148,8 @@ class DriveModePlugin : Plugin() {
     private val pluginScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val pendingStartLock = Any()
     private var pendingStart: PendingDriveStart? = null
+    @Volatile private var nativeStateReconciled = false
+    private val nativeStateReconcileMutex = Mutex()
 
     private data class PendingDriveStart(
         val call: PluginCall,
@@ -150,6 +169,7 @@ class DriveModePlugin : Plugin() {
         const val START_POLL_MS = 50L
         const val MAX_REPAIR_TARGETS = 2_000
         const val MAX_REPAIR_TARGET_IMAGE_BYTES = 4 * 1024 * 1024
+        const val MAX_KEYFRAME_IMAGE_BYTES = 8 * 1024 * 1024
     }
 
     override fun load() {
@@ -174,6 +194,9 @@ class DriveModePlugin : Plugin() {
                 put("recordedBytes", status.recordedBytes)
                 put("cameraActive", status.cameraActive)
                 put("recordingIssue", status.recordingIssue)
+                put("keyframeCount", status.keyframeCount)
+                put("remainingMs", status.remainingMs)
+                put("maxDurationMinutes", status.maxDurationMinutes)
             }
             notifyListeners("driveStatusChange", data)
         }
@@ -200,6 +223,11 @@ class DriveModePlugin : Plugin() {
         val language = call.getString("language") ?: "en"
         val debug = call.getBoolean("debug") ?: false
         val recordVideo = call.getBoolean("recordVideo") ?: false
+        val maxDurationMinutes = (call.getInt("maxDurationMinutes")
+            ?: DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES).coerceIn(
+            DriveSessionLimitPolicy.MIN_LIMIT_MINUTES,
+            DriveSessionLimitPolicy.MAX_LIMIT_MINUTES
+        )
 
         if (!hasDrivePermissions()) {
             call.reject("Camera and location permission are required before Drive Mode can start")
@@ -245,6 +273,7 @@ class DriveModePlugin : Plugin() {
             putExtra(DriveForegroundService.EXTRA_LANGUAGE, language)
             putExtra(DriveForegroundService.EXTRA_DEBUG, debug)
             putExtra(DriveForegroundService.EXTRA_RECORD_VIDEO, recordVideo)
+            putExtra(DriveForegroundService.EXTRA_MAX_DRIVE_MINUTES, maxDurationMinutes)
             putExtra(DriveForegroundService.EXTRA_START_REQUEST_ID, pending.requestId)
         }
 
@@ -457,7 +486,8 @@ class DriveModePlugin : Plugin() {
             checked = status.checked,
             found = status.found,
             already = status.already,
-            discarded = discardData
+            discarded = discardData,
+            reason = status.status
         )
 
     @PluginMethod
@@ -522,10 +552,13 @@ class DriveModePlugin : Plugin() {
 
     @PluginMethod
     fun syncReports(call: PluginCall) {
+        val limit = (call.getInt("limit") ?: 5).coerceIn(1, 5)
         pluginScope.launch {
             try {
                 val db = PotholeDatabase.getDatabase(context)
-                val unsynced = db.reportDao().getUnsyncedReports()
+                // Evidence images cross the Capacitor bridge as Base64. Bound each page so
+                // a long drive cannot allocate the entire outbox in Java and JS at once.
+                val unsynced = db.reportDao().getUnsyncedReports(limit)
                 val array = JSArray()
                 for (r in unsynced) {
                     val obj = JSObject().apply {
@@ -576,6 +609,7 @@ class DriveModePlugin : Plugin() {
                 val ret = JSObject().apply {
                     put("reports", array)
                     put("count", array.length())
+                    put("remaining", db.reportDao().countUnsyncedReports())
                 }
                 call.resolve(ret)
             } catch (e: Exception) {
@@ -603,9 +637,9 @@ class DriveModePlugin : Plugin() {
     }
 
     /**
-     * Atomically replaces the WebView-to-native repair cache before Drive starts. A
-     * generation directory means a malformed or interrupted payload cannot leave Room
-     * pointing at a half-written set of historical evidence images.
+     * Atomically replaces the WebView-to-native repair cache. A generation directory
+     * means a malformed or interrupted payload cannot leave Room pointing at a
+     * half-written set of historical evidence images.
      */
     @PluginMethod
     fun replaceRepairTargets(call: PluginCall) {
@@ -618,12 +652,6 @@ class DriveModePlugin : Plugin() {
             call.reject("Too many repair targets")
             return
         }
-        val driveStatus = DriveForegroundService.status()
-        if (driveStatus.isRunning || driveStatus.isStopping) {
-            call.reject("Repair targets can only be replaced before Drive Mode starts")
-            return
-        }
-
         pluginScope.launch {
             val root = File(context.filesDir, "repair_targets")
             val generation = File(root, "generation-${UUID.randomUUID()}")
@@ -718,7 +746,13 @@ class DriveModePlugin : Plugin() {
                         db.repairTargetDao().insertTargets(effectiveTargets)
                     }
                 }
-                root.listFiles()?.filter { it != generation }?.forEach { it.deleteRecursively() }
+                // Room replacement is atomic. If Drive is active, retain the prior
+                // generation until the next idle refresh because an inference already
+                // in flight may still hold one of its photo paths.
+                val currentStatus = DriveForegroundService.status()
+                if (!currentStatus.isRunning && !currentStatus.isStopping) {
+                    root.listFiles()?.filter { it != generation }?.forEach { it.deleteRecursively() }
+                }
                 call.resolve(JSObject().apply { put("replaced", effectiveTargets.size) })
             } catch (error: Exception) {
                 generation.deleteRecursively()
@@ -832,6 +866,7 @@ class DriveModePlugin : Plugin() {
                     throw IllegalStateException("some repair target photos could not be deleted")
                 }
                 db.footageDao().clearAll()
+                db.driveKeyframeDao().clearAll()
                 db.eventSightingDao().clearAll()
                 db.repairObservationDao().clearAll()
                 db.repairTargetDao().clearAll()
@@ -865,12 +900,14 @@ class DriveModePlugin : Plugin() {
         pluginScope.launch {
             try {
                 val db = PotholeDatabase.getDatabase(context)
-                reconcileNativeState(db)
+                reconcileNativeStateOnce(db)
                 val sessions = db.sessionDao().getAllSessions()
                 val footageBySession = db.footageDao().getAllSegments().groupBy { it.sessionId }
+                val keyframesBySession = db.driveKeyframeDao().getAll().groupBy { it.sessionId }
                 val array = JSArray()
                 for (s in sessions) {
                     val footage = footageBySession[s.id].orEmpty()
+                    val keyframes = keyframesBySession[s.id].orEmpty()
                     val obj = JSObject().apply {
                         put("id", s.id)
                         put("started_at", s.startedAt)
@@ -884,6 +921,9 @@ class DriveModePlugin : Plugin() {
                         put("footage_segments", footage.size)
                         put("footage_bytes", footage.sumOf { it.bytes })
                         put("footage_duration_ms", footage.sumOf { it.durationMs })
+                        put("keyframe_count", keyframes.size)
+                        put("pending_keyframes", keyframes.count { !it.liveAnalyzed })
+                        put("keyframe_bytes", keyframes.sumOf { it.bytes })
                     }
                     array.put(obj)
                 }
@@ -918,6 +958,121 @@ class DriveModePlugin : Plugin() {
                 call.resolve(JSObject().apply { put("segments", array) })
             } catch (error: Exception) {
                 call.reject("Failed to list footage: ${error.message}")
+            }
+        }
+    }
+
+    @PluginMethod
+    fun listKeyframes(call: PluginCall) {
+        val requestedSession = call.getString("sessionId")
+        if (requestedSession.isNullOrBlank()) {
+            call.reject("A drive session is required")
+            return
+        }
+        val pendingOnly = call.getBoolean("pendingOnly") ?: true
+        pluginScope.launch {
+            try {
+                requireDriveReplayIsIdle(requestedSession)
+                val sessionRoot = FootagePathPolicy.sessionDirectory(context.filesDir, requestedSession)
+                val dao = PotholeDatabase.getDatabase(context).driveKeyframeDao()
+                val frames = if (pendingOnly) dao.getPendingForSession(requestedSession)
+                    else dao.getForSession(requestedSession)
+                val array = JSArray()
+                frames.forEach { frame ->
+                    val file = FootagePathPolicy.keyframeFile(sessionRoot, frame.filePath)
+                    if (!file.isFile) return@forEach
+                    array.put(JSObject().apply {
+                        put("id", frame.id)
+                        put("captureSeq", frame.captureSeq)
+                        put("capturedAtMs", frame.capturedAtMs)
+                        put("sourceOffsetMs", frame.sourceOffsetMs)
+                        put("lat", frame.lat)
+                        put("lng", frame.lng)
+                        put("gpsAccuracy", frame.gpsAccuracy)
+                        put("speedMps", frame.speedMps)
+                        put("heading", frame.heading)
+                        put("width", frame.width)
+                        put("height", frame.height)
+                        put("bytes", frame.bytes)
+                        put("liveAnalyzed", frame.liveAnalyzed)
+                    })
+                }
+                call.resolve(JSObject().apply {
+                    put("keyframes", array)
+                    put("count", array.length())
+                })
+            } catch (error: Exception) {
+                call.reject("Failed to list saved frames: ${error.message}")
+            }
+        }
+    }
+
+    @PluginMethod
+    fun readKeyframe(call: PluginCall) {
+        val id = call.getLong("id") ?: -1L
+        if (id <= 0L) {
+            call.reject("A saved frame is required")
+            return
+        }
+        pluginScope.launch {
+            try {
+                val db = PotholeDatabase.getDatabase(context)
+                val frame = db.driveKeyframeDao().getKeyframe(id)
+                    ?: throw IllegalArgumentException("Saved frame not found")
+                requireDriveReplayIsIdle(frame.sessionId)
+                val sessionRoot = FootagePathPolicy.sessionDirectory(context.filesDir, frame.sessionId)
+                val file = FootagePathPolicy.keyframeFile(sessionRoot, frame.filePath)
+                if (!file.isFile || file.length() <= 0L || file.length() > MAX_KEYFRAME_IMAGE_BYTES) {
+                    throw IllegalStateException("Saved frame is unavailable")
+                }
+                val temporalContext = nearbyVideoFrameDataUrls(frame.capturedAtMs, frame.sessionId, db)
+                val before = temporalContext.filter { it.first < frame.capturedAtMs }
+                val after = temporalContext.filter { it.first > frame.capturedAtMs }
+                val photos = JSArray().apply {
+                    before.forEach { put(it.second) }
+                    put("data:image/jpeg;base64," + Base64.encodeToString(file.readBytes(), Base64.NO_WRAP))
+                    after.forEach { put(it.second) }
+                }
+                call.resolve(JSObject().apply {
+                    put("id", frame.id)
+                    put("sessionId", frame.sessionId)
+                    put("captureSeq", frame.captureSeq)
+                    put("capturedAtMs", frame.capturedAtMs)
+                    put("sourceOffsetMs", frame.sourceOffsetMs)
+                    put("lat", frame.lat)
+                    put("lng", frame.lng)
+                    put("gpsAccuracy", frame.gpsAccuracy)
+                    put("speedMps", frame.speedMps)
+                    put("heading", frame.heading)
+                    put("photos", photos)
+                    // Video context is ordered before/evidence/after. The WebView keeps
+                    // the evidence frame as the primary image while the model can use
+                    // motion/parallax to reject raised speed breakers.
+                    put("primaryIndex", before.size)
+                })
+            } catch (error: Exception) {
+                call.reject("Failed to read saved frame: ${error.message}")
+            }
+        }
+    }
+
+    @PluginMethod
+    fun markKeyframeAnalyzed(call: PluginCall) {
+        val id = call.getLong("id") ?: -1L
+        if (id <= 0L) {
+            call.reject("A saved frame is required")
+            return
+        }
+        pluginScope.launch {
+            try {
+                val dao = PotholeDatabase.getDatabase(context).driveKeyframeDao()
+                val frame = dao.getKeyframe(id)
+                    ?: throw IllegalArgumentException("Saved frame not found")
+                requireDriveReplayIsIdle(frame.sessionId)
+                dao.markAnalyzed(id)
+                call.resolve(JSObject().apply { put("analyzed", id) })
+            } catch (error: Exception) {
+                call.reject("Failed to checkpoint saved frame: ${error.message}")
             }
         }
     }
@@ -997,6 +1152,8 @@ class DriveModePlugin : Plugin() {
                     throw IllegalStateException("the footage folder could not be deleted")
                 }
                 dao.deleteForSession(requestedSession)
+                PotholeDatabase.getDatabase(context).driveKeyframeDao()
+                    .deleteForSession(requestedSession)
                 call.resolve(JSObject().apply { put("deleted", deleted) })
             } catch (error: Exception) {
                 call.reject("Failed to delete footage: ${error.message}")
@@ -1026,6 +1183,18 @@ class DriveModePlugin : Plugin() {
         val indexed = db.footageDao().getAllSegments()
         indexed.filter { !File(it.filePath).isFile }.forEach { db.footageDao().deleteSegment(it.id) }
         val indexedPaths = indexed.filter { File(it.filePath).isFile }.mapTo(HashSet()) { it.filePath }
+        // Stale rows must be removed even when Android has already removed the whole
+        // footage directory (for example after storage cleanup outside the app).
+        val indexedKeyframes = db.driveKeyframeDao().getAll()
+        indexedKeyframes.filter { frame ->
+            runCatching {
+                val root = FootagePathPolicy.sessionDirectory(context.filesDir, frame.sessionId)
+                !FootagePathPolicy.keyframeFile(root, frame.filePath).isFile
+            }.getOrDefault(true)
+        }.forEach { db.driveKeyframeDao().deleteKeyframe(it.id) }
+        val indexedKeyframePaths = indexedKeyframes
+            .filter { File(it.filePath).isFile }
+            .mapTo(HashSet()) { it.filePath }
         val footageRoot = File(context.filesDir, "footage")
         if (!footageRoot.isDirectory) return
         val orphanFiles = footageRoot.walkTopDown()
@@ -1056,8 +1225,36 @@ class DriveModePlugin : Plugin() {
                 complete = false
             ))
         }
-        footageRoot.listFiles()?.filter(File::isDirectory)?.forEach { directory ->
-            if (directory.listFiles().isNullOrEmpty()) directory.delete()
+        // A crash can happen after an atomic JPEG rename but before the Room insert.
+        // Such files have no GPS/timing identity and cannot be replayed safely. Temporary
+        // files are likewise never valid evidence. Avoid the active session while its
+        // write transaction may still be in flight.
+        footageRoot.walkTopDown()
+            .filter(File::isFile)
+            .filter { it.parentFile?.name == "keyframes" }
+            .filter { it.parentFile?.parentFile?.name != activeSessionId }
+            .filter { it.extension.equals("tmp", ignoreCase = true) ||
+                (it.extension.equals("jpg", ignoreCase = true) && it.absolutePath !in indexedKeyframePaths) }
+            .toList()
+            .forEach { runCatching { it.delete() } }
+        footageRoot.walkBottomUp()
+            .filter { it.isDirectory && it != footageRoot }
+            .forEach { directory -> if (directory.listFiles().isNullOrEmpty()) directory.delete() }
+    }
+
+    private suspend fun reconcileNativeStateOnce(db: PotholeDatabase) {
+        if (nativeStateReconciled) return
+        nativeStateReconcileMutex.withLock {
+            if (nativeStateReconciled) return@withLock
+            reconcileNativeState(db)
+            nativeStateReconciled = true
+        }
+    }
+
+    private fun requireDriveReplayIsIdle(sessionId: String) {
+        val status = DriveForegroundService.status()
+        if ((status.isRunning || status.isStopping) && status.sessionId == sessionId) {
+            throw IllegalStateException("Stop this drive before analysing its saved frames")
         }
     }
 
@@ -1099,6 +1296,96 @@ class DriveModePlugin : Plugin() {
         put("recordedBytes", status.recordedBytes)
         put("cameraActive", status.cameraActive)
         put("recordingIssue", status.recordingIssue)
+        put("keyframeCount", status.keyframeCount)
+        put("remainingMs", status.remainingMs)
+        put("maxDurationMinutes", status.maxDurationMinutes)
+    }
+
+    private suspend fun nearbyVideoFrameDataUrls(
+        capturedAtMs: Long,
+        sessionId: String,
+        db: PotholeDatabase
+    ): List<Pair<Long, String>> = withContext(Dispatchers.IO) {
+        val contextOffsetMs = 900L
+        val targetTimes = listOf(capturedAtMs - contextOffsetMs, capturedAtMs + contextOffsetMs)
+        val segments = db.footageDao().getSegmentsNear(
+            sessionId,
+            (capturedAtMs - 2_000L).coerceAtLeast(0L) / 1_000L,
+            (capturedAtMs + 2_999L) / 1_000L
+        )
+        if (segments.isEmpty()) return@withContext emptyList()
+        val sessionRoot = try {
+            FootagePathPolicy.sessionDirectory(context.filesDir, sessionId)
+        } catch (_: Exception) {
+            return@withContext emptyList()
+        }
+
+        fun distanceFromSegment(targetMs: Long, segment: FootageSegmentEntity): Long {
+            val startMs = segment.startedAt * 1_000L
+            val durationEndMs = startMs + segment.durationMs.coerceAtLeast(0L)
+            val endMs = maxOf(durationEndMs, segment.endedAt * 1_000L)
+            return when {
+                targetMs < startMs -> startMs - targetMs
+                targetMs > endMs -> targetMs - endMs
+                else -> 0L
+            }
+        }
+
+        val selected = targetTimes.mapNotNull { targetMs ->
+            val segment = segments.minByOrNull { distanceFromSegment(targetMs, it) }
+                ?: return@mapNotNull null
+            if (distanceFromSegment(targetMs, segment) > 1_500L) null else segment to targetMs
+        }
+        val results = mutableListOf<Pair<Long, String>>()
+        selected.groupBy({ it.first }, { it.second }).forEach { (segment, targets) ->
+            val video = try {
+                FootagePathPolicy.segmentFile(sessionRoot, segment.filePath)
+            } catch (_: Exception) {
+                return@forEach
+            }
+            if (!video.isFile) return@forEach
+            val retriever = MediaMetadataRetriever()
+            try {
+                retriever.setDataSource(video.absolutePath)
+                targets.sorted().forEach targetLoop@{ targetMs ->
+                    var bitmap: Bitmap? = null
+                    var scaled: Bitmap? = null
+                    try {
+                        val offsetMs = (targetMs - segment.startedAt * 1_000L)
+                            .coerceIn(0L, segment.durationMs.coerceAtLeast(0L))
+                        bitmap = retriever.getFrameAtTime(
+                            offsetMs * 1_000L,
+                            MediaMetadataRetriever.OPTION_CLOSEST
+                        ) ?: return@targetLoop
+                        val source = bitmap ?: return@targetLoop
+                        val scale = minOf(1f, 640f / maxOf(source.width, source.height).toFloat())
+                        val width = maxOf(1, (source.width * scale).toInt())
+                        val height = maxOf(1, (source.height * scale).toInt())
+                        scaled = Bitmap.createScaledBitmap(source, width, height, true)
+                        val bytes = ByteArrayOutputStream().use { stream ->
+                            if (!(scaled ?: source).compress(Bitmap.CompressFormat.JPEG, 72, stream)) {
+                                return@targetLoop
+                            }
+                            stream.toByteArray()
+                        }
+                        results += targetMs to (
+                            "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
+                        )
+                    } catch (_: Exception) {
+                        // Keep the evidence keyframe usable when either temporal sample
+                        // is unavailable or a device decoder rejects this clip.
+                    } finally {
+                        if (scaled != null && scaled !== bitmap && scaled?.isRecycled == false) scaled?.recycle()
+                        if (bitmap?.isRecycled == false) bitmap?.recycle()
+                    }
+                }
+            } catch (_: Exception) {
+                // A finalized keyframe is still valid single-view evidence.
+            } finally {
+                runCatching { retriever.release() }
+            }
+        }
+        results.sortedBy { it.first }
     }
 
     private fun endSummaryObject(summary: dev.aiengg.potholereporter.drive.DriveEndSummary) = JSObject().apply {
@@ -1109,6 +1396,7 @@ class DriveModePlugin : Plugin() {
         put("already", summary.already)
         put("error", summary.error)
         put("discarded", summary.discarded)
+        put("reason", summary.reason)
     }
 
     private fun fileAsDataUrl(path: String?): String? {

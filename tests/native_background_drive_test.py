@@ -92,7 +92,11 @@ INIT = r"""
 
 failures = []
 with sync_playwright() as playwright:
-    browser = playwright.chromium.launch(args=["--disable-web-security"])
+    launch_options = {"args": ["--disable-web-security"]}
+    system_chrome = pathlib.Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+    if system_chrome.is_file():
+        launch_options["executable_path"] = str(system_chrome)
+    browser = playwright.chromium.launch(**launch_options)
     context = browser.new_context(viewport={"width": 390, "height": 844})
     context.add_init_script(INIT)
     page = context.new_page()
@@ -181,7 +185,7 @@ with sync_playwright() as playwright:
       saved: localStorage.getItem('record_video'),
     })""")
     if (video_on["calls"] != 1 or not video_on["enabled"] or not video_on["recording"]
-            or video_on["button"] != "Video: On" or "RECORDING VIDEO" not in video_on["badge"]
+            or video_on["button"] != "Video: Low" or "RECORDING LOW-RES VIDEO" not in video_on["badge"]
             or video_on["saved"] != "1"):
         failures.append(f"video-on UI diverged from native recording truth: {video_on}")
 

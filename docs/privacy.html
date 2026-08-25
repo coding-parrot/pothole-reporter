@@ -106,7 +106,7 @@
         <tbody>
           <tr>
             <td>Road-damage photos and video frames</td>
-            <td>A road-damage photo, or selected still frames sampled during Drive Mode or from saved drive video, is resized and sent to the OpenAI API. On a precise later live-drive revisit, the saved earlier damage photo and current views may be sent together for a separate before/after repair check. Images are not blurred first and may contain faces, number plates, people, vehicles, or shopfronts. The complete saved video file is not uploaded by the app.</td>
+            <td>A road-damage photo, or selected still frames sampled during Drive Mode or from saved drive evidence, is resized and sent to the OpenAI API. When optional recording is enabled, Android stores a 720p evidence frame at most every two seconds beside low-resolution video; an explicit post-drive pass can send an unfinished evidence frame with low-resolution frames from just before and after it. On a precise later live-drive revisit, the saved earlier damage photo and current views may be sent together for a separate before/after repair check. Images are not blurred first and may contain faces, number plates, people, vehicles, or shopfronts. The complete saved video file is not uploaded by the app.</td>
             <td>Assess visible road damage and create an editable local report.</td>
           </tr>
           <tr>
@@ -136,7 +136,7 @@
           </tr>
           <tr>
             <td>Name, settings, reports, labels, photos, footage, and drive summaries</td>
-            <td>These are stored on the device. A verified or review-needed repair revisit also stores its current evidence photo and physical-condition status locally, separately from complaint-submission status. Your name is placed in the complaint signature. An official grievance/reference ID is stored locally only if you enter it to mark an official-channel report submitted. Settings include language, model, image detail, recording, frame-saving, and debug choices.</td>
+            <td>These are stored on the device. A verified or review-needed repair revisit also stores its current evidence photo and physical-condition status locally, separately from complaint-submission status. Your name is placed in the complaint signature. An official grievance/reference ID is stored locally only if you enter it to mark an official-channel report submitted. Settings include language, model, image detail, recording, Drive battery limit, frame-saving, and debug choices.</td>
             <td>Run the app, preserve history, allow review, and prepare complaint drafts.</td>
           </tr>
           <tr>
@@ -188,11 +188,12 @@
   <section>
     <h2>Retention and deletion</h2>
     <ul>
-      <li>Drive recording is off by default. If you enable it, silent 60-second clips are written to app-private storage on the device; the live screen and persistent notification state when video is being saved. Recording stops instead of deleting older clips when total footage reaches 4 GB or free space approaches 500 MB.</li>
-      <li>Reports, original and repair-evidence photos, physical-condition history, drive summaries, and recorded footage remain in app-private storage until the app deletes them automatically or you delete them.</li>
+      <li>Drive recording is off by default. If you enable it, low-resolution silent 60-second clips and sparse 720p evidence frames are written to app-private storage; the live screen and persistent notification state when video is being saved. Recording stops instead of deleting older clips when total footage reaches 4 GB or free space approaches 500 MB.</li>
+      <li>Drive has a selectable 15, 30, 60, or 90-minute active-time battery limit and defaults to 30 minutes. When the active-time limit expires, camera, location, recording, inference, and the foreground service stop through the normal Drive shutdown; paused time does not consume the limit.</li>
+      <li>Reports, original and repair-evidence photos, sparse Drive frames, physical-condition history, drive summaries, and recorded footage remain in app-private storage until the app deletes them automatically or you delete them.</li>
       <li>An official grievance/reference ID you enter remains in the local report until that report or all app data is deleted.</li>
       <li>Sharing report evidence or an exported dataset creates temporary files in the app's dedicated cache folder. Android may clear cache automatically, and <strong>Delete all app data</strong> removes that folder. Copies already handed to another app are controlled by that destination.</li>
-      <li>With Debug mode off, successfully analysed drive footage is deleted after analysis completes without failed frame requests. Debug mode keeps it. You can also delete footage from History.</li>
+      <li>For browser fallback recording, successfully analysed footage is deleted when analysis completes without failed frame requests and Debug is off. Native Android low-resolution clips and sparse frames remain until you delete that drive's footage from History or delete all app data.</li>
       <li>Verified state packs and highway tiles are cached locally after download. On a subsequent pack use, entries past their unused limits or above the shared cache-size limit are pruned automatically and can be downloaded again when needed.</li>
       <li><strong>Delete all app data</strong> clears local reports, photos, drive summaries, app-held footage, downloaded packs and highway tiles, the API key, sender name, settings, and the app's <code>Documents/pothole-frames</code> folder.</li>
       <li>Files already exported, shared, attached, copied elsewhere, or sent are outside the app's control and must be deleted from their destination separately.</li>
