@@ -290,6 +290,17 @@ async ({fixtures}) => {
   eq("collision: actual Kolkata remains on KMC containment",
      kolkata && kolkata.authority_id, "wb-kmc");
 
+  // The immutable top-50 pack still validates old Kerala saved reports, but every new
+  // Kerala report must use exact state containment and the current statewide pack.
+  for (const fixture of fixtures.filter((item) => item.state_code === "KL")) {
+    const route = await P.routeOfficer(
+      {city:fixture.name,state:"Kerala",country_code:"in"},
+      fixture.lat,fixture.lng,12,null,null,"garbage");
+    eq(`supersession: ${fixture.id} uses exact Kerala state containment`,
+       route && [route.authority_id, route.routing_pack_id, route.region],
+       ["kl-statewide-unverified", "in-kl-routing", "kerala-state"]);
+  }
+
   // This coordinate is an exact checked-in NH-48 segment inside Surat's search
   // envelope. Road damage goes national first; garbage still uses the civic handoff.
   const suratGeo = {city:"Surat",state:"Gujarat",country_code:"in"};

@@ -96,7 +96,7 @@
   // State-specific contacts and polygons live in immutable data packs. The APK keeps
   // only the parsers, strict validators and the package IDs Android permits it to query.
   // A downloaded pack can therefore add data, never executable behaviour.
-  const AUTHORITY_REGISTRY_VERSION = 13;
+  const AUTHORITY_REGISTRY_VERSION = 14;
   const LAUNCHABLE_PACKAGES = new Set([
     "com.bmc.potholequickfix", "com.sis.pwdsewaapp", "com.kmc.app",
     "com.newnmmc.app", "com.nyatitechnologies.pmcroadmitra",
@@ -193,7 +193,7 @@
   const GENERAL_CIVIC_AUTHORITY_IDS = new Set([
     "wb-kmc", "wb-statewide-unverified", "tn-gcc", "tn-statewide-unverified",
     "tg-cure-shared", "tg-statewide-unverified", "gj-amc", "pb-statewide-unverified",
-    "ap-statewide-unverified",
+    "ap-statewide-unverified", "ka-statewide-unverified", "kl-statewide-unverified",
     "in-gj-enagar", "in-rj-sampark", "in-up-jansunwai", "in-mp-cm-helpline",
     "in-tn-cm-helpline", "in-kl-ksmart", "in-br-lok-shikayat", "in-ap-puramithra",
     "in-hr-nagar-darshan", "in-jh-municipal-grievance", "in-jk-samadhan", "in-cg-nidaan",
@@ -224,6 +224,8 @@
   const TAMIL_NADU_STATE_AUTHORITY = {};
   const ANDHRA_PRADESH_STATE_AUTHORITY = {};
   const TELANGANA_STATE_AUTHORITY = {};
+  const KARNATAKA_STATE_AUTHORITY = {};
+  const KERALA_STATE_AUTHORITY = {};
   const DELHI_PWD_AUTHORITY = {};
   const NATIONAL_HIGHWAY_AUTHORITY = {};
   const OFFICIAL_AUTHORITIES = [];
@@ -1001,6 +1003,20 @@ This is a strict before/after verification, not ordinary pothole detection:
       replaceStableObject(TELANGANA_STATE_AUTHORITY,
         byId.get("tg-statewide-unverified"));
       PACK_AUTHORITIES_BY_STATE.set(pack.pack_id, [TELANGANA_STATE_AUTHORITY]);
+    } else if (pack.pack_id === "in-ka-state-routing") {
+      if (authorities.length !== 1 || !byId.has("ka-statewide-unverified")) {
+        throw new Error("Karnataka statewide routing pack has an invalid authority registry.");
+      }
+      replaceStableObject(KARNATAKA_STATE_AUTHORITY,
+        byId.get("ka-statewide-unverified"));
+      PACK_AUTHORITIES_BY_STATE.set(pack.pack_id, [KARNATAKA_STATE_AUTHORITY]);
+    } else if (pack.pack_id === "in-kl-routing") {
+      if (authorities.length !== 1 || !byId.has("kl-statewide-unverified")) {
+        throw new Error("Kerala statewide routing pack has an invalid authority registry.");
+      }
+      replaceStableObject(KERALA_STATE_AUTHORITY,
+        byId.get("kl-statewide-unverified"));
+      PACK_AUTHORITIES_BY_STATE.set(pack.pack_id, [KERALA_STATE_AUTHORITY]);
     } else if (pack.state_code === "KA") {
       if (authorities.length) throw new Error("Karnataka contacts must use the LGD registry.");
       PACK_AUTHORITIES_BY_STATE.set(pack.pack_id, []);
@@ -1163,7 +1179,9 @@ This is a strict before/after verification, not ordinary pothole detection:
     "in-pb-routing": { state_code: "PB", kind: "routing", adapter: "statewide-general-v1" },
     "in-top50-routing": { state_code: "IN", kind: "routing", adapter: "major-city-structured-v1" },
     "in-ka-routing": { state_code: "KA", kind: "routing", adapter: "karnataka-kgis-v1" },
+    "in-ka-state-routing": { state_code: "KA", kind: "routing", adapter: "statewide-general-v1" },
     "in-ka-tenders": { state_code: "KA", kind: "tenders", adapter: "karnataka-carriageway-indexed-v2" },
+    "in-kl-routing": { state_code: "KL", kind: "routing", adapter: "statewide-general-v1" },
     "in-tn-routing": { state_code: "TN", kind: "routing", adapter: "municipal-city-v1" },
     "in-tn-state-routing": { state_code: "TN", kind: "routing", adapter: "statewide-general-v1" },
     "in-ap-routing": { state_code: "AP", kind: "routing", adapter: "statewide-general-v1" },
@@ -1244,7 +1262,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     if (_statePackManifestPromise) return _statePackManifestPromise;
     _statePackManifestPromise = (async () => {
       try {
-        const response = await fetch("pack-manifest-v1.29.json", { cache: "no-store" });
+        const response = await fetch("pack-manifest-v1.30.json", { cache: "no-store" });
         if (!response.ok) return null;
         const text = await response.text();
         if (!text || text.length > 128 * 1024) return null;
@@ -1636,6 +1654,53 @@ This is a strict before/after verification, not ordinary pothole detection:
         && !!item && item.length <= 500);
   }
 
+  async function validatePinnedStatewidePayload(pack, expected) {
+    const payload = pack.payload;
+    const region = payload && payload.region;
+    const fields = [
+      "id", "authority_id", "name", "scope", "osm_relation_id", "source_name",
+      "source_home_url", "source_url", "source_license", "attribution", "routing_note",
+      "limitations", "coordinate_precision", "bbox", "geometry_sha256", "geometry",
+    ];
+    const digest = region && hasCoverageGeometry(region.geometry)
+      ? await sha256Hex(JSON.stringify(region.geometry)) : null;
+    const calculated = region && municipalGeometryBounds(region.geometry);
+    const near = (first, second) => Math.abs(first - second) <= 1e-7;
+    return exactObjectKeys(payload, ["version", "retrieved_at", "region"])
+      && payload.version === 1 && payload.retrieved_at === pack.generated_at
+      && exactObjectKeys(region, fields)
+      && region.id === expected.region_id && region.authority_id === expected.authority_id
+      && region.name === expected.name && region.scope === expected.scope
+      && Number(region.osm_relation_id) === expected.relation_id
+      && region.source_home_url === `https://www.openstreetmap.org/relation/${expected.relation_id}`
+      && region.source_url.startsWith("https://nominatim.openstreetmap.org/lookup?")
+      && region.source_url.includes(`osm_ids=R${expected.relation_id}`)
+      && Number.isInteger(region.coordinate_precision) && region.coordinate_precision === 7
+      && validMunicipalEnvelope(region.bbox) && calculated
+      && Object.keys(calculated).every((key) => near(calculated[key], region.bbox[key]))
+      && region.geometry_sha256 === expected.geometry_sha256
+      && digest === expected.geometry_sha256
+      && ["source_name", "source_license", "attribution", "routing_note"]
+        .every((field) => typeof region[field] === "string"
+          && !!region[field] && region[field].length <= 1000)
+      && Array.isArray(region.limitations) && region.limitations.length > 0
+      && region.limitations.length <= 10
+      && region.limitations.every((item) => typeof item === "string"
+        && !!item && item.length <= 500);
+  }
+
+  const validateKarnatakaStatePayload = (pack) => validatePinnedStatewidePayload(pack, {
+    region_id: "karnataka-state", authority_id: "ka-statewide-unverified",
+    name: "Karnataka", scope: "Full State of Karnataka", relation_id: 2019939,
+    geometry_sha256: KARNATAKA_STATE_GEOMETRY_SHA256,
+  });
+
+  const validateKeralaPayload = (pack) => validatePinnedStatewidePayload(pack, {
+    region_id: "kerala-state", authority_id: "kl-statewide-unverified",
+    name: "Kerala", scope: "Full State of Kerala; excludes Mahe, Puducherry Union Territory",
+    relation_id: 2018151, geometry_sha256: KERALA_STATE_GEOMETRY_SHA256,
+  });
+
   function validateMajorCityPayload(pack) {
     const payload = pack.payload;
     const expectedAuthorityIds = new Set(Object.values(TOP50_AUTHORITY_BY_STATE));
@@ -1786,6 +1851,18 @@ This is a strict before/after verification, not ordinary pothole detection:
           || pack.authorities[0].id !== "tg-statewide-unverified"
           || !await validateTelanganaPayload(pack)) {
         throw new Error("Telangana routing pack failed its boundary, source or authority checks.");
+      }
+    } else if (resource.pack_id === "in-ka-state-routing") {
+      if (pack.authorities.length !== 1
+          || pack.authorities[0].id !== "ka-statewide-unverified"
+          || !await validateKarnatakaStatePayload(pack)) {
+        throw new Error("Karnataka statewide routing pack failed its boundary, source or authority checks.");
+      }
+    } else if (resource.pack_id === "in-kl-routing") {
+      if (pack.authorities.length !== 1
+          || pack.authorities[0].id !== "kl-statewide-unverified"
+          || !await validateKeralaPayload(pack)) {
+        throw new Error("Kerala routing pack failed its boundary, source or authority checks.");
       }
     } else if (resource.pack_id === "in-top50-routing") {
       if (!validateMajorCityPayload(pack)) {
@@ -2029,6 +2106,8 @@ This is a strict before/after verification, not ordinary pothole detection:
     _andhraPradeshCoveragePromise = null;
     _telanganaCoverage = null;
     _telanganaCoveragePromise = null;
+    _newStateCoverage.clear();
+    _newStateCoveragePromises.clear();
     _majorCityCoverage = null;
     _majorCityCoveragePromise = null;
     resetHighwayPackMemory();
@@ -2490,6 +2569,16 @@ This is a strict before/after verification, not ordinary pothole detection:
   };
   const TELANGANA_STATE_GEOMETRY_SHA256 =
     "77183815e4b698ec1e823f4a94a6f213d1d827ea35de8fec8c0ab3b6a9d15175";
+  const KARNATAKA_STATE_ROUTING_ENVELOPE = {
+    min_lng: 74.0543908, min_lat: 11.5945587, max_lng: 78.5875761, max_lat: 18.4766494,
+  };
+  const KARNATAKA_STATE_GEOMETRY_SHA256 =
+    "9d7fe3f01a80cb41712c09139efcd43e0e11a644849d5f3bffe125cc0bc1c5ad";
+  const KERALA_ROUTING_ENVELOPE = {
+    min_lng: 74.8640682, min_lat: 8.2935318, max_lng: 77.4123612, max_lat: 12.7960559,
+  };
+  const KERALA_STATE_GEOMETRY_SHA256 =
+    "51e226750b1d6c08a5030e6074e2641282e01c328f46d8aee741de664bef705c";
 
   // These coarse centres only decide whether the small, checksum-pinned national pack
   // should be loaded. The pack's own envelope plus an exact structured city/state match
@@ -2954,6 +3043,87 @@ This is a strict before/after verification, not ordinary pothole detection:
       pack_id: "in-tg-state-routing",
     });
   }
+
+  const _newStateCoverage = new Map();
+  const _newStateCoveragePromises = new Map();
+  async function pinnedStateCoverage(packId, authority, relationId, geometrySha256) {
+    if (_newStateCoverage.has(packId)) return _newStateCoverage.get(packId);
+    if (_newStateCoveragePromises.has(packId)) return _newStateCoveragePromises.get(packId);
+    const request = (async () => {
+      try {
+        const pack = await loadStatePack(packId);
+        const payload = pack && pack.payload;
+        const region = payload && payload.region;
+        if (payload && payload.version === 1 && region
+            && region.authority_id === authority.id
+            && Number(region.osm_relation_id) === relationId
+            && region.geometry_sha256 === geometrySha256
+            && hasCoverageGeometry(region.geometry)) {
+          _newStateCoverage.set(packId, payload);
+          return payload;
+        }
+      } catch (e) { /* fail closed and allow a later retry */ }
+      return null;
+    })();
+    _newStateCoveragePromises.set(packId, request);
+    try { return await request; }
+    finally { _newStateCoveragePromises.delete(packId); }
+  }
+
+  const karnatakaStateCoverage = () => pinnedStateCoverage(
+    "in-ka-state-routing", KARNATAKA_STATE_AUTHORITY, 2019939,
+    KARNATAKA_STATE_GEOMETRY_SHA256);
+  const keralaCoverage = () => pinnedStateCoverage(
+    "in-kl-routing", KERALA_STATE_AUTHORITY, 2018151, KERALA_STATE_GEOMETRY_SHA256);
+
+  async function pinnedStateRoute(lat, lng, gpsAccuracy, config) {
+    if (!pointInEnvelope(lat, lng, config.envelope)) return null;
+    const coverage = await config.coverage();
+    if (!coverage) return unroutedRoute("jurisdiction_unavailable");
+    const geometry = coverage.region.geometry;
+    const inState = pointInGeometry(lng, lat, geometry);
+    const enforceGpsAccuracy = gpsAccuracy !== undefined;
+    if (enforceGpsAccuracy
+        && (!Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 30)) {
+      return inState ? unroutedRoute("location_uncertain") : null;
+    }
+    if (Number.isFinite(gpsAccuracy)
+        && geometryBoundaryDistanceMeters(lng, lat, geometry) <= gpsAccuracy) {
+      return unroutedRoute("location_uncertain");
+    }
+    if (!inState) return null;
+    return authorityRoute(config.authority, {
+      routing_source: config.routing_source,
+      match_field: "boundary",
+      match_value: `${config.name} (OpenStreetMap relation ${config.relation_id})`,
+      region: config.region_id,
+      pack_id: config.pack_id,
+    });
+  }
+
+  const karnatakaStateRouteFromGeocode = (_geo, lat, lng, gpsAccuracy) =>
+    pinnedStateRoute(lat, lng, gpsAccuracy, {
+      envelope: KARNATAKA_STATE_ROUTING_ENVELOPE,
+      coverage: karnatakaStateCoverage,
+      authority: KARNATAKA_STATE_AUTHORITY,
+      routing_source: "osm_karnataka_state_boundary",
+      name: "Karnataka",
+      relation_id: 2019939,
+      region_id: "karnataka-state",
+      pack_id: "in-ka-state-routing",
+    });
+
+  const keralaRouteFromGeocode = (_geo, lat, lng, gpsAccuracy) =>
+    pinnedStateRoute(lat, lng, gpsAccuracy, {
+      envelope: KERALA_ROUTING_ENVELOPE,
+      coverage: keralaCoverage,
+      authority: KERALA_STATE_AUTHORITY,
+      routing_source: "osm_kerala_state_boundary",
+      name: "Kerala",
+      relation_id: 2018151,
+      region_id: "kerala-state",
+      pack_id: "in-kl-routing",
+    });
 
   let _majorCityCoverage = null, _majorCityCoveragePromise = null;
   async function majorCityCoverage() {
@@ -3562,10 +3732,31 @@ This is a strict before/after verification, not ordinary pothole detection:
     }
 
     const maharashtra = await maharashtraRouteFromGeocode(geo, lat, lng, gpsAccuracy);
-    if (maharashtra) return routeForIssue(maharashtra, issueType);
+    if (maharashtra) {
+      // Maharashtra's coarse download envelope overlaps northern Karnataka. A missing
+      // Maharashtra pack is not evidence that a Kalaburagi-area point belongs there;
+      // preserve the failure but allow Karnataka's independent exact polygon to decide.
+      if (maharashtra.unrouted_reason === "jurisdiction_unavailable") {
+        if (!deferredJurisdictionFailure) deferredJurisdictionFailure = maharashtra;
+      } else {
+        return routeForIssue(maharashtra, issueType);
+      }
+    }
 
     const punjab = await punjabRouteFromGeocode(geo, lat, lng, gpsAccuracy);
     if (punjab) return routeForIssue(punjab, issueType);
+
+    // The old top-50 pack names seven Kerala cities from geocoder text. The exact state
+    // polygon is stronger evidence and now covers every Kerala location, so it gets the
+    // vote first while the old pack remains available only for saved-report compatibility.
+    const kerala = await keralaRouteFromGeocode(geo, lat, lng, gpsAccuracy);
+    if (kerala) {
+      if (kerala.unrouted_reason === "jurisdiction_unavailable") {
+        if (!deferredJurisdictionFailure) deferredJurisdictionFailure = kerala;
+      } else {
+        return routeForIssue(kerala, issueType);
+      }
+    }
 
     const majorCity = await majorCityRouteFromGeocode(geo, lat, lng, gpsAccuracy);
     if (majorCity) {
@@ -3574,61 +3765,66 @@ This is a strict before/after verification, not ordinary pothole detection:
       // statewide pack must never make a new report silently fall back to those stale
       // channels; retain the transient failure so the user can retry safely.
       const supersededCityRoute = majorCity.authority_id === "in-ap-puramithra"
-        || majorCity.authority_id === "in-tn-cm-helpline";
+        || majorCity.authority_id === "in-tn-cm-helpline"
+        || majorCity.authority_id === "in-kl-ksmart";
       if (deferredJurisdictionFailure && supersededCityRoute) {
         return routeForIssue(deferredJurisdictionFailure, issueType);
       }
       return routeForIssue(majorCity, issueType);
     }
 
-    // Geocoder labels are evidence for the structured-city adapter only. They may be
-    // stale after a drive or wrong beside a border, so the exact KGIS point query gets
-    // the final vote inside Karnataka's coarse download envelope instead of a label
-    // blocking a valid coordinate. Coordinates outside that envelope need no KGIS call.
-    if (!inKarnatakaRoutingEnvelope(lat, lng)) {
+    // Karnataka's polygon decides whether a neutral state fallback is permitted. KGIS
+    // may still select a more specific reviewed urban body, but neither the old coarse
+    // rectangle nor a reverse-geocoder label can establish state membership.
+    const karnatakaState = await karnatakaStateRouteFromGeocode(
+      geo, lat, lng, gpsAccuracy);
+    if (!karnatakaState) {
       return routeForIssue(
         deferredJurisdictionFailure || unroutedRoute("outside_area"), issueType);
     }
+    if (karnatakaState.unrouted_reason === "location_uncertain") {
+      return routeForIssue(karnatakaState, issueType);
+    }
+    const karnatakaFallback = karnatakaState.routed ? karnatakaState : null;
 
-    // If the state cannot tell us what this road is, we do not name anyone. The highway
-    // check lives inside kgisJurisdiction, so any path that routes without it can address
-    // a Commissioner for a carriageway NHAI owns: with the GIS blocked, NH48 at
-    // Nelamangala produced a send-ready draft to comm@bbmp.gov.in, because it sits inside
-    // the old Bengaluru bounding box that the fallback trusted.
-    //
-    // Nothing is lost by refusing. Detection itself needs the network, so there is no
-    // offline report to route; this path only fires when OpenAI is reachable and the
-    // state GIS is not, and in that case the road's owner is genuinely unknown.
+    // The nationwide NH geometry has already had first refusal. KGIS can now improve a
+    // Karnataka match to a verified urban body; any ambiguous rural/owner result stays
+    // with Janaspandana and is explicitly marked ownership-unverified.
     let where;
     try {
       where = issueType === "road_damage"
         ? await jurisdictionOf(lat, lng) : await kgisCivicJurisdiction(lat, lng);
     } catch (e) {
-      return routeForIssue(unroutedRoute(
+      return routeForIssue(karnatakaFallback || unroutedRoute(
         issueType === "road_damage" ? "road_class_unknown" : "jurisdiction_unavailable"), issueType);
     }
 
     if (where.kind === "outside_state") {
-      return routeForIssue(
-        deferredJurisdictionFailure || unroutedRoute("outside_area"), issueType);
+      return routeForIssue(karnatakaFallback
+        || deferredJurisdictionFailure || unroutedRoute("outside_area"), issueType);
     }
     if (where.kind === "jurisdiction_unavailable") {
-      return routeForIssue(unroutedRoute("jurisdiction_unavailable"), issueType);
+      return routeForIssue(karnatakaFallback
+        || unroutedRoute("jurisdiction_unavailable"), issueType);
     }
     if (where.kind === "national_highway") {
       return routeForIssue(issueType === "road_damage"
         ? unroutedRoute("national_highway", where.name)
         : unroutedRoute("outside_area", where.name), issueType);
     }
-    if (where.kind === "road_class_unknown") return routeForIssue(unroutedRoute("road_class_unknown"), issueType);
-    if (where.kind === "rural") return routeForIssue(unroutedRoute("rural_road", where.name), issueType);
+    if (where.kind === "road_class_unknown") return routeForIssue(karnatakaFallback
+      || unroutedRoute("road_class_unknown"), issueType);
+    if (where.kind === "rural") return routeForIssue(karnatakaFallback
+      || unroutedRoute("rural_road", where.name), issueType);
 
     const registry = await bodies();
-    if (!registry) return routeForIssue(unroutedRoute("jurisdiction_unavailable", where.name), issueType);
+    if (!registry) return routeForIssue(karnatakaFallback
+      || unroutedRoute("jurisdiction_unavailable", where.name), issueType);
     const entry = where.lgd && registry[where.lgd];
-    if (!entry || !entry.email) return routeForIssue(unroutedRoute("no_address_for_body", where.name), issueType);
+    if (!entry || !entry.email) return routeForIssue(karnatakaFallback
+      || unroutedRoute("no_address_for_body", where.name), issueType);
     const title = entry.officer || OFFICER_TITLES[entry.type || where.type] || "Chief Officer";
-    return routeForIssue({
+    const exactKarnataka = routeForIssue({
       routed: true,
       officer_name: `${title}, ${entry.name}${entry.short ? ` (${entry.short})` : ""}`,
       officer_email: entry.email,
@@ -3646,6 +3842,10 @@ This is a strict before/after verification, not ordinary pothole detection:
       tender_eligible: true,
       ...statePackProvenance("in-ka-routing"),
     }, issueType);
+    if (issueType !== "road_damage" && !exactKarnataka.routed) {
+      return routeForIssue(karnatakaFallback || exactKarnataka, issueType);
+    }
+    return exactKarnataka;
   }
 
   function distMeters(lat1, lng1, lat2, lng2) {
@@ -5802,6 +6002,18 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
           || region.authority_id !== authorityId) return null;
       return { region: region.id, routing_source: "osm_telangana_state_boundary" };
     }
+    if (packId === "in-ka-state-routing" && authorityId === "ka-statewide-unverified") {
+      const region = pack && pack.payload && pack.payload.region;
+      if (!region || region.id !== "karnataka-state"
+          || region.authority_id !== authorityId) return null;
+      return { region: region.id, routing_source: "osm_karnataka_state_boundary" };
+    }
+    if (packId === "in-kl-routing" && authorityId === "kl-statewide-unverified") {
+      const region = pack && pack.payload && pack.payload.region;
+      if (!region || region.id !== "kerala-state"
+          || region.authority_id !== authorityId) return null;
+      return { region: region.id, routing_source: "osm_kerala_state_boundary" };
+    }
     if (packId === "in-dl-routing" && authorityId === "dl-pwd-sewa") {
       return { region: "delhi", routing_source: "osm_delhi_nct_boundary" };
     }
@@ -5898,6 +6110,14 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       return authorityId === "tg-statewide-unverified"
         && savedBoundaryLocationMatches(rec, payload && payload.region && payload.region.geometry);
     }
+    if (packId === "in-ka-state-routing") {
+      return authorityId === "ka-statewide-unverified"
+        && savedBoundaryLocationMatches(rec, payload && payload.region && payload.region.geometry);
+    }
+    if (packId === "in-kl-routing") {
+      return authorityId === "kl-statewide-unverified"
+        && savedBoundaryLocationMatches(rec, payload && payload.region && payload.region.geometry);
+    }
     if (packId === "in-top50-routing") {
       return savedMajorCityLocationMatches(rec, pack);
     }
@@ -5958,7 +6178,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     if (municipal && present.length !== provenanceFields.length) return null;
     const newNeutralRoute = packId === "in-pb-routing"
       || packId === "in-tn-state-routing" || packId === "in-ap-routing"
-      || packId === "in-tg-state-routing" || packId === "in-top50-routing";
+      || packId === "in-tg-state-routing" || packId === "in-ka-state-routing"
+      || packId === "in-kl-routing" || packId === "in-top50-routing";
     if (newNeutralRoute && present.length !== provenanceFields.length) return null;
     // The statewide West Bengal route did not exist before this pack release, so there
     // is no legitimate provenance-free legacy record to upgrade.
@@ -6015,6 +6236,18 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         && (rec.routing_source !== binding.routing_source
           || rec.routing_match_field !== "boundary"
           || rec.routing_match_value !== "Telangana (OpenStreetMap relation 3250963)")) {
+      return null;
+    }
+    if (packId === "in-ka-state-routing"
+        && (rec.routing_source !== binding.routing_source
+          || rec.routing_match_field !== "boundary"
+          || rec.routing_match_value !== "Karnataka (OpenStreetMap relation 2019939)")) {
+      return null;
+    }
+    if (packId === "in-kl-routing"
+        && (rec.routing_source !== binding.routing_source
+          || rec.routing_match_field !== "boundary"
+          || rec.routing_match_value !== "Kerala (OpenStreetMap relation 2018151)")) {
       return null;
     }
     if (packId === "in-top50-routing"
@@ -6578,7 +6811,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
           rural_road: "This road is outside every town boundary, so it belongs to the state PWD or a panchayat rather than a city body. The app will not guess an office.",
           no_address_for_body: "This town's body is known, but no official email address for it has been published, so there is no verified recipient to address.",
           jurisdiction_unavailable: "The required verified routing data could not be downloaded or read. Check the connection and try again; the app will not guess an authority.",
-          outside_area: "This road damage is outside mapped National Highways, statewide coverage in Maharashtra, West Bengal, Punjab, Tamil Nadu and Andhra Pradesh, Karnataka urban bodies, Delhi NCT, and the other verified city routes, so there is no verified authority to address.",
+          outside_area: "This road damage is outside mapped National Highways, statewide coverage in Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh and Telangana, Delhi NCT, and the other verified city routes, so there is no verified authority to address.",
         };
         throw new Error((civic ? civicErrors : roadErrors)[rec.unrouted_reason]
           || "This report could not be routed to a responsible office, so there is nothing to send.");
@@ -6716,6 +6949,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    tamilNaduCoverage, tamilNaduRouteFromGeocode,
                    andhraPradeshCoverage, andhraPradeshRouteFromGeocode,
                    telanganaCoverage, telanganaRouteFromGeocode,
+                   karnatakaStateCoverage, karnatakaStateRouteFromGeocode,
+                   keralaCoverage, keralaRouteFromGeocode,
                    majorCityCoverage, majorCityRouteFromGeocode,
                    inMajorCityCandidateEnvelope,
                    municipalCityCoverage, municipalCityRouteFromGeocode,
@@ -6725,6 +6960,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    savedOfficialRouteBinding, currentOfficialRouteBinding,
                    validatePunjabPayload, validateTamilNaduPayload,
                    validateAndhraPradeshPayload, validateTelanganaPayload,
+                   validateKarnatakaStatePayload, validateKeralaPayload,
                    validateMajorCityPayload,
                    validateMunicipalCityPayload, MUNICIPAL_CITY_CONFIGS,
                    maharashtraRouteFromGeocode, inMaharashtraRoutingEnvelope,
@@ -6736,6 +6972,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    TAMIL_NADU_STATE_AUTHORITY,
                    ANDHRA_PRADESH_STATE_AUTHORITY,
                    TELANGANA_STATE_AUTHORITY,
+                   KARNATAKA_STATE_AUTHORITY,
+                   KERALA_STATE_AUTHORITY,
                    DELHI_PWD_AUTHORITY, OFFICIAL_AUTHORITIES,
                    NATIONAL_HIGHWAY_AUTHORITY,
                    DELHI_GEOMETRY_SHA256, KMC_GEOMETRY_SHA256,
@@ -6744,6 +6982,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    TAMIL_NADU_STATE_GEOMETRY_SHA256,
                    ANDHRA_PRADESH_STATE_GEOMETRY_SHA256,
                    TELANGANA_STATE_GEOMETRY_SHA256,
+                   KARNATAKA_STATE_GEOMETRY_SHA256,
+                   KERALA_STATE_GEOMETRY_SHA256,
                    MAHARASHTRA_STATE_GEOMETRY_SHA256,
                    AUTHORITY_REGISTRY_VERSION, ISSUE_TYPES, CIVIC_HANDOFF_OVERRIDES,
                    BENGALURU_HANDOFF, BENGALURU_AUTHORITY_NAMES,

@@ -13,7 +13,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST = ROOT / "static" / "pack-manifest-v1.29.json"
+MANIFEST = ROOT / "static" / "pack-manifest-v1.30.json"
 OUTPUT = ROOT / "data" / "metro-coverage" / "wb.json"
 RELATION_ID = 1_960_177
 RETRIEVED_AT = "2026-08-24"

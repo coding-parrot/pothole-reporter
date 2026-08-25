@@ -23,7 +23,7 @@ CASES = [
     ("Chikkaballapur CMC",     13.4310,  77.7270,  "draft",    None,               "email",            None),
     # 13.4355,77.7315 is on NH69. It used to be addressed to the town's Chief Officer.
     ("NH69 at Chikkaballapur", 13.4355,  77.7315,  "unrouted", "national_highway", None,               None),
-    ("rural Magadi taluk",     13.0000,  77.2000,  "unrouted", "rural_road",       None,               None),
+    ("rural Magadi taluk",     13.0000,  77.2000,  "draft",    None,               "official_handoff", "ka-statewide-unverified"),
     ("Chennai GCC",            13.0827,  80.2707,  "draft",    None,               "official_handoff", "tn-gcc"),
     ("Hyderabad CURE",         17.3616,  78.4747,  "draft",    None,               "official_handoff", "tg-cure-shared"),
     # Ahmedabad routing is a local point-in-polygon check against the pinned 48-ward union.
@@ -57,7 +57,7 @@ with sync_playwright() as p:
     # Hyderabad's official TGRAC service is deliberately native-only. Simulate the
     # Capacitor shell while keeping immutable state packs local to the release fixture.
     context.add_init_script("window.Capacitor={isNativePlatform:()=>true,Plugins:{}};")
-    manifest = json.loads((ROOT / "static" / "pack-manifest-v1.29.json").read_text())
+    manifest = json.loads((ROOT / "static" / "pack-manifest-v1.30.json").read_text())
     local_packs = {
         resource["url"]: (ROOT / "docs" / resource["path"]).read_bytes()
         for resource in manifest["resources"].values()

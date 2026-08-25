@@ -45,16 +45,16 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
             fails.append(f"{name}: Kannada out-of-coverage text still says Bengaluru only")
         if any(term not in coverage[0] for term in (
             "National Highways", "across India",
-            "Maharashtra", "West Bengal", "Punjab", "Tamil Nadu", "Andhra Pradesh",
-            "Yanam", "Census top-50",
-            "Karnataka urban bodies", "Delhi NCT",
+            "Maharashtra", "West Bengal", "Punjab", "Karnataka", "Kerala", "Mahe",
+            "Tamil Nadu", "Andhra Pradesh", "Yanam", "Telangana", "Census top-50",
+            "Delhi NCT",
         )):
             fails.append(f"{name}: English out-of-coverage text omits a supported region")
-        if any(term not in coverage[1] for term in ("ಭಾರತದೆಲ್ಲೆಡೆ", "ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಗಳು", "ಸಂಪೂರ್ಣ ಮಹಾರಾಷ್ಟ್ರ", "ಪಶ್ಚಿಮ ಬಂಗಾಳ", "ಪಂಜಾಬ್", "ತಮಿಳುನಾಡು", "ಆಂಧ್ರ ಪ್ರದೇಶ", "ಯಾನಂ", "ಟಾಪ್-50", "ಕರ್ನಾಟಕ", "ದೆಹಲಿ NCT")):
+        if any(term not in coverage[1] for term in ("ಭಾರತದೆಲ್ಲೆಡೆ", "ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಗಳು", "ಸಂಪೂರ್ಣ ಮಹಾರಾಷ್ಟ್ರ", "ಪಶ್ಚಿಮ ಬಂಗಾಳ", "ಪಂಜಾಬ್", "ಕರ್ನಾಟಕ", "ಕೇರಳ", "ಮಾಹೆ", "ತಮಿಳುನಾಡು", "ಆಂಧ್ರ ಪ್ರದೇಶ", "ಯಾನಂ", "ತೆಲಂಗಾಣ", "ಟಾಪ್-50", "ದೆಹಲಿ NCT")):
             fails.append(f"{name}: Kannada out-of-coverage text omits a supported region")
-        if any(term not in coverage[2] for term in ("भारतभर", "राष्ट्रीय महामार्ग", "संपूर्ण महाराष्ट्र", "पश्चिम बंगाल", "पंजाब", "तामिळनाडू", "आंध्र प्रदेश", "यानम", "टॉप-50", "कर्नाटक", "दिल्ली NCT")):
+        if any(term not in coverage[2] for term in ("भारतभर", "राष्ट्रीय महामार्ग", "संपूर्ण महाराष्ट्र", "पश्चिम बंगाल", "पंजाब", "कर्नाटक", "केरळ", "माहे", "तामिळनाडू", "आंध्र प्रदेश", "यानम", "तेलंगणा", "टॉप-50", "दिल्ली NCT")):
             fails.append(f"{name}: Marathi out-of-coverage text omits a supported region")
-        if any(term not in coverage[3] for term in ("ভারতজুড়ে", "জাতীয় সড়ক", "সমগ্র মহারাষ্ট্র", "পশ্চিমবঙ্গ", "পাঞ্জাব", "তামিলনাড়ু", "অন্ধ্রপ্রদেশ", "ইয়ানাম", "শীর্ষ-৫০", "কর্ণাটক", "দিল্লি NCT")):
+        if any(term not in coverage[3] for term in ("ভারতজুড়ে", "জাতীয় সড়ক", "সমগ্র মহারাষ্ট্র", "পশ্চিমবঙ্গ", "পাঞ্জাব", "কর্ণাটক", "কেরল", "মাহে", "তামিলনাড়ু", "অন্ধ্রপ্রদেশ", "ইয়ানাম", "তেলেঙ্গানা", "শীর্ষ-৫০", "দিল্লি NCT")):
             fails.append(f"{name}: Bengali out-of-coverage text omits a supported region")
     else:
         fails.append(f"{name}: expected 4 outside_coverage_help strings, found {len(coverage)}")
@@ -151,6 +151,17 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
         val = re.search(rf'\n    {m.group(2)}: "([^"]*)"', s)
         if val and re.search(r"&[a-z]+;|&#\d+;", val.group(1)):
             fails.append(f"{name}: {m.group(2)} holds an HTML entity but is set via textContent")
+
+runtime = (ROOT / "static/standalone.js").read_text(encoding="utf-8")
+road_outside_error = re.search(
+    r'outside_area: "(This road damage is outside mapped National Highways[^\"]+)"',
+    runtime,
+)
+if not road_outside_error or any(term not in road_outside_error.group(1) for term in (
+    "Maharashtra", "West Bengal", "Punjab", "Karnataka", "Kerala", "Tamil Nadu",
+    "Andhra Pradesh", "Telangana", "Delhi NCT",
+)):
+    fails.append("standalone.js road out-of-coverage error omits a supported region")
 
 if (ROOT / "android-app/www/standalone.js").read_bytes() != (ROOT / "static/standalone.js").read_bytes():
     fails.append("android-app/www/standalone.js has drifted from static/standalone.js")

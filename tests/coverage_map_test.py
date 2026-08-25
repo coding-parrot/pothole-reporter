@@ -80,6 +80,12 @@ EXISTING_ROUTES = {
     "pune": ("reviewed-specific", "in-mh-routing"),
     "nagpur": ("statewide-neutral", "in-mh-routing"),
     "coimbatore": ("statewide-neutral", "in-tn-state-routing"),
+    "kochi": ("statewide-neutral", "in-kl-routing"),
+    "kozhikode": ("statewide-neutral", "in-kl-routing"),
+    "thrissur": ("statewide-neutral", "in-kl-routing"),
+    "malappuram": ("statewide-neutral", "in-kl-routing"),
+    "thiruvananthapuram": ("statewide-neutral", "in-kl-routing"),
+    "kannur": ("statewide-neutral", "in-kl-routing"),
     "ludhiana": ("statewide-neutral", "in-pb-routing"),
     "nashik": ("statewide-neutral", "in-mh-routing"),
     "visakhapatnam": ("statewide-neutral", "in-ap-routing"),
@@ -89,6 +95,7 @@ EXISTING_ROUTES = {
     "vasai-virar": ("reviewed-specific", "in-mh-routing"),
     "chhatrapati-sambhajinagar": ("statewide-neutral", "in-mh-routing"),
     "amritsar": ("statewide-neutral", "in-pb-routing"),
+    "kollam": ("statewide-neutral", "in-kl-routing"),
 }
 
 
@@ -198,7 +205,7 @@ def main():
         check(city.get("pack_id") == expected_pack, f"{city_id}: wrong pack id", errors)
         if expected_tier == "major-city-neutral":
             major_city_ids.append(city_id)
-    check(len(major_city_ids) == 31, "exactly 31 cities must use the conservative top-50 route", errors)
+    check(len(major_city_ids) == 24, "exactly 24 cities must use the conservative top-50 route", errors)
 
     root = ET.parse(MAP_PATH).getroot()
     check(root.tag == SVG_NS + "svg", "coverage map root must be SVG", errors)
@@ -249,18 +256,21 @@ def main():
 
     all_svg_text = " ".join("".join(root.itertext()).split())
     check("Available route · 50" in all_svg_text, "coverage map legend must show 50 available", errors)
-    check("Structured city name · 31" in all_svg_text, "coverage map legend must show 31 city-name routes", errors)
-    check("31 use city-name matching" in all_svg_text, "coverage map summary must show 31 city-name routes", errors)
+    check("Structured city name · 24" in all_svg_text, "coverage map legend must show 24 city-name routes", errors)
+    check("24 use city-name matching" in all_svg_text, "coverage map summary must show 24 city-name routes", errors)
     check("Pending reviewed pack" not in all_svg_text, "coverage map still contains a pending legend", errors)
     for required_text in (
         "Maharashtra",
         "West Bengal",
         "Punjab",
+        "Karnataka",
+        "Kerala",
         "Tamil Nadu",
         "Andhra Pradesh",
+        "Telangana",
         "Chandigarh UT is outside Punjab coverage",
-        "Puducherry UT is outside Tamil Nadu coverage",
-        "Yanam is outside Andhra Pradesh coverage",
+        "Puducherry/Karaikal and Yanam stay outside their state routes",
+        "Mahe UT is outside Kerala coverage",
         "Mapped National Highways",
     ):
         check(required_text in all_svg_text, f"coverage map lost: {required_text}", errors)

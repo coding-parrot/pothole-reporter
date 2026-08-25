@@ -223,8 +223,8 @@
       "state_code": "KL",
       "population": 2119724,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-kl-routing"
     },
     {
       "rank": 18,
@@ -247,8 +247,8 @@
       "state_code": "KL",
       "population": 2028399,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-kl-routing"
     },
     {
       "rank": 20,
@@ -271,8 +271,8 @@
       "state_code": "KL",
       "population": 1861269,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-kl-routing"
     },
     {
       "rank": 22,
@@ -319,8 +319,8 @@
       "state_code": "KL",
       "population": 1699060,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-kl-routing"
     },
     {
       "rank": 26,
@@ -331,8 +331,8 @@
       "state_code": "KL",
       "population": 1679754,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-kl-routing"
     },
     {
       "rank": 27,
@@ -343,8 +343,8 @@
       "state_code": "KL",
       "population": 1640986,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-kl-routing"
     },
     {
       "rank": 28,
@@ -595,8 +595,8 @@
       "state_code": "KL",
       "population": 1110668,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-kl-routing"
     },
     {
       "rank": 49,

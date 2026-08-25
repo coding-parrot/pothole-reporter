@@ -5,7 +5,7 @@ detects visible road damage; **Photo** lets the user choose the issue and prepar
 for an official complaint channel. Reports remain on the phone, and nothing is filed
 automatically. There is no project-operated backend or account system.
 
-Current release: [v1.29.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.29.0)
+Current release: [v1.30.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.30.0)
 
 <p>
   <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
@@ -19,12 +19,13 @@ Current release: [v1.29.0](https://github.com/coding-parrot/pothole-reporter/rel
 | Area | Current scope and handoff |
 | --- | --- |
 | National Highways | Potholes only, on operational NH/NE carriageways mapped in the pinned 20 August 2026 OpenStreetMap extract. Matches open Rajmargyatra/1033; the maintainer is not guessed. |
-| 50 largest population centres | All 50 from Census 2011 A-04(I). Existing reviewed/statewide routes stay preferred; 31 centres require both a conservative coordinate envelope and an exact structured city/state match before offering a neutral official grievance channel. Markers do not claim complete Urban Agglomeration boundaries. |
+| 50 largest population centres | All 50 from Census 2011 A-04(I). Existing reviewed/statewide routes stay preferred; 24 centres require both a conservative coordinate envelope and an exact structured city/state match before offering a neutral official grievance channel. Markers do not claim complete Urban Agglomeration boundaries. |
 | Delhi | Full Delhi NCT. Road damage uses PWD Sewa; garbage and manholes use CM JanSunwai. NCR places outside NCT never inherit Delhi's route; Ghaziabad and Faridabad can qualify separately through their top-50 neutral routes. |
 | Maharashtra | Full state coverage. Verified MMR and PMC polygons keep their specific routes; every other Maharashtra point uses Aaple Sarkar, with MahaULB offered for urban areas. The app does not guess the local body or road owner. |
 | West Bengal | Full state coverage. The verified KMC polygon keeps KMC Grievance 2.0; every other West Bengal point uses the neutral West Bengal PGRS handoff, with CMO Grievance as an alternate. The user must select and verify the district or department. |
 | Punjab | Full state coverage through Connect Punjab, with mSeva offered for urban areas. Chandigarh is outside the Punjab boundary. The user must select and verify the department or local body. |
-| Karnataka | Road-damage routing for supported urban bodies. Garbage and manholes are enabled only in the five Bengaluru city corporations through Sahaaya 2.0. |
+| Karnataka | Full state coverage. Verified urban-body and Bengaluru routes stay preferred; every other confidently contained point uses the neutral Janaspandana iPGRS handoff, with Janahitha offered as an urban alternate and 1902 as the grievance helpline. The app does not guess the department, local body, or road owner. |
+| Kerala | Full state coverage through the neutral Kerala CMO grievance portal, with K-SMART offered for local-body issues. Help/status line 1076 does not accept complaints by phone. Mahe is outside the Kerala boundary. The user must select and verify the department or local body. |
 | Tamil Nadu | Full state coverage. The exact Greater Chennai Corporation route stays preferred; every other confidently contained Tamil Nadu point uses the neutral Mudhalvarin Mugavari grievance service. Puducherry and Karaikal are excluded. |
 | Andhra Pradesh | Full state coverage through the statewide PGRS service, with CDMA/Puramithra offered for urban areas. Yanam is excluded. The app does not guess the local body or road owner. |
 | Telangana | Full state coverage through neutral Telangana Prajavani, with Citizen Buddy offered for municipal areas outside Hyderabad. Verified Hyderabad CURE points keep the specific My Cure route; Secunderabad Cantonment is excluded from My Cure but can use neutral Prajavani. The app does not guess the local body or road owner. |
@@ -47,7 +48,7 @@ WhatsApp, dialler, share sheet, or email client. Nothing is submitted automatica
 - The app preserves the photo, coordinates, time, category, complaint draft, and official
   reference ID locally. A genuinely temporary routing-data failure can be retried later;
   permanent boundary/category refusals require a new report or added coverage.
-- Garbage and manhole handoffs are enabled throughout Maharashtra, West Bengal, Punjab, Tamil Nadu, Andhra Pradesh, and Telangana,
+- Garbage and manhole handoffs are enabled throughout Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, and Telangana,
   plus all accepted top-50 city routes. Road damage keeps its road-specific channel where one exists.
 - English, Kannada, Marathi, and Bengali are supported.
 
@@ -107,8 +108,8 @@ state or an approximate 2° highway tile. See the
 - Selected road-damage images and the user's API key go directly to OpenAI. Garbage and
   manhole photos do not. Exact coordinates go to OpenStreetMap Nominatim; Karnataka
   locations query Karnataka GIS, and exact Hyderabad CURE checks query Telangana GIS. Maharashtra,
-  West Bengal, Punjab, Tamil Nadu, Andhra Pradesh, and Telangana containment is checked locally against downloaded ODbL state boundaries.
-  The 31 structured-city routes require Nominatim's city/municipality and state fields;
+  West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, and Telangana containment is checked locally against downloaded ODbL state boundaries.
+  The 24 structured-city routes require Nominatim's city/municipality and state fields;
   a broad envelope or stale place label alone cannot select a route.
 - Contract matching is optional and available only for eligible Karnataka routes. A match
   is not proof that a contractor or warranty applies. Only explicit carriageway-work

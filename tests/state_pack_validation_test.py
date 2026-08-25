@@ -32,6 +32,8 @@ VALIDATED_IDS = (
     "in-tn-state-routing",
     "in-ap-routing",
     "in-tg-state-routing",
+    "in-ka-state-routing",
+    "in-kl-routing",
     "in-top50-routing",
 )
 
@@ -232,6 +234,32 @@ def main() -> int:
         ("in-tg-state-routing", "changed reviewed scope", lambda p, a: p[
             "region"
         ].update({"scope": "Hyderabad only"})),
+        ("in-ka-state-routing", "wrong state relation", lambda p, a: p["region"].update(
+            {"osm_relation_id": 1}
+        )),
+        ("in-ka-state-routing", "state geometry digest mismatch", lambda p, a: p[
+            "region"
+        ].update({"geometry_sha256": "0" * 64})),
+        ("in-ka-state-routing", "missing statewide authority", lambda p, a: a.clear()),
+        ("in-ka-state-routing", "unreviewed statewide grievance URL", lambda p, a: a[
+            0
+        ].update({"handoff_url": "https://example.invalid/unreviewed"})),
+        ("in-ka-state-routing", "changed reviewed scope", lambda p, a: p[
+            "region"
+        ].update({"scope": "Bengaluru only"})),
+        ("in-kl-routing", "wrong state relation", lambda p, a: p["region"].update(
+            {"osm_relation_id": 1}
+        )),
+        ("in-kl-routing", "state geometry digest mismatch", lambda p, a: p[
+            "region"
+        ].update({"geometry_sha256": "0" * 64})),
+        ("in-kl-routing", "missing statewide authority", lambda p, a: a.clear()),
+        ("in-kl-routing", "unreviewed statewide grievance URL", lambda p, a: a[
+            0
+        ].update({"handoff_url": "https://example.invalid/unreviewed"})),
+        ("in-kl-routing", "Mahe included in declared scope", lambda p, a: p[
+            "region"
+        ].update({"scope": "Full State of Kerala including Mahe"})),
         ("in-top50-routing", "missing city region", lambda p, a: p["regions"].pop()),
         ("in-top50-routing", "changed Census rank", lambda p, a: p["regions"][0].update(
             {"rank": 8}

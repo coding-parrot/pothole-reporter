@@ -88,8 +88,9 @@ async ({authorities, pixel}) => {
       whatsapp_url: authority.whatsapp_url || null,
       helpline: authority.helpline || null,
       requires_official_reference: handoff,
-      // Karnataka road routes alone are eligible for the separate tender matcher.
-      tender_eligible: authority.source_state === "KA",
+      // Only exact Karnataka ULB routes are eligible for the separate tender matcher;
+      // neutral statewide containment never identifies a contract owner.
+      tender_eligible: authority.id.startsWith("ka-lgd-"),
     };
   };
 
@@ -204,6 +205,22 @@ async ({authorities, pixel}) => {
        "https://play.google.com/store/apps/details?id=vmax.com.citizenbuddy");
     eq(`Telangana ${issue}: no unsupported helpline is invented`,
        telangana && telangana.helpline, null);
+
+    const karnataka = routeFor("ka-statewide-unverified", issue);
+    eq(`Karnataka ${issue}: statewide Janaspandana route`,
+       karnataka && karnataka.handoff_url, "https://ipgrs.karnataka.gov.in/");
+    eq(`Karnataka ${issue}: urban alternate is retained`,
+       karnataka && karnataka.alternate_handoff_url,
+       "https://www.mrc.gov.in/janahita/login");
+    eq(`Karnataka ${issue}: official helpline`, karnataka && karnataka.helpline, "1902");
+
+    const kerala = routeFor("kl-statewide-unverified", issue);
+    eq(`Kerala ${issue}: statewide CMO route`, kerala && kerala.handoff_url,
+       "https://complaints.cmo.kerala.gov.in/cmoportal/login.htm?lang=en");
+    eq(`Kerala ${issue}: K-SMART alternate is retained`,
+       kerala && kerala.alternate_handoff_url,
+       "https://ksmart.lsgkerala.gov.in/ui/web-portal/services");
+    eq(`Kerala ${issue}: official helpline`, kerala && kerala.helpline, "1076");
   }
 
   const bengaluru = authorities.filter((authority) =>
@@ -223,7 +240,7 @@ async ({authorities, pixel}) => {
   eq("Bengaluru: every civic route uses Sahaaya 2.0", bengaluruProblems, []);
 
   const nonBengaluruKarnataka = authorities.find((authority) =>
-    authority.source_state === "KA"
+    authority.id.startsWith("ka-lgd-")
     && !P.BENGALURU_AUTHORITY_NAMES.has(P.normaliseAuthorityValue(authority.name)));
   const unsupported = nonBengaluruKarnataka
     && routeFor(nonBengaluruKarnataka.id, "garbage");
@@ -454,10 +471,10 @@ def main() -> None:
     inventory = authority_inventory()
     # These counts pin the intended current scope and make an accidental source omission
     # visible instead of silently reducing the matrix.
-    if len(inventory) != 226:
-        raise AssertionError(f"expected 226 configured routes/bodies, found {len(inventory)}")
-    if sum(item["source_state"] == "KA" for item in inventory) != 182:
-        raise AssertionError("expected all 182 configured Karnataka ULBs")
+    if len(inventory) != 228:
+        raise AssertionError(f"expected 228 configured routes/bodies, found {len(inventory)}")
+    if sum(item["source_state"] == "KA" for item in inventory) != 183:
+        raise AssertionError("expected the Karnataka statewide route and all 182 configured ULBs")
 
     _, delhi_pack_raw = read_pack("in-dl-routing")
     _, maharashtra_pack_raw = read_pack("in-mh-routing")

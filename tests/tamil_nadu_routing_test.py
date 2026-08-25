@@ -81,8 +81,8 @@ async ({inside, outside, legacySha}) => {
        && (region && region.limitations || []).some((item) => /user must select/i.test(item)),
      region && region.limitations);
 
-  eq("registry: Tamil Nadu statewide release is versioned",
-     P.AUTHORITY_REGISTRY_VERSION, 13);
+  eq("registry: Karnataka and Kerala statewide release is versioned",
+     P.AUTHORITY_REGISTRY_VERSION, 14);
   eq("registry: stable statewide authority is installed",
      P.TAMIL_NADU_STATE_AUTHORITY.id, "tn-statewide-unverified");
   eq("registry: primary official handoff",
@@ -403,7 +403,8 @@ def main() -> None:
                 13.0827,80.2707,12,null,null,'garbage');
               return {kochi, bengaluru, tamilNadu, chennai};
             }""")
-            if fallthrough["kochi"].get("authority_id") != "in-kl-ksmart":
+            if (fallthrough["kochi"].get("authority_id") != "kl-statewide-unverified"
+                    or fallthrough["kochi"].get("routing_pack_id") != "in-kl-routing"):
                 failures.append(
                     f"{label} Tamil Nadu pack blocked Kochi: {fallthrough['kochi']!r}"
                 )

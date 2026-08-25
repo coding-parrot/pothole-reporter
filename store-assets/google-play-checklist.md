@@ -1,13 +1,13 @@
 # Google Play publication checklist
 
-Status reviewed 24 August 2026 for release 1.29.0 / version code 47. This is a release
+Status reviewed 25 August 2026 for release 1.30.0 / version code 48. This is a release
 checklist, not a substitute for the current Play Console tasks shown for the publisher's account.
 
 ## Go/no-go blockers
 
 - [x] **Target API:** the Android project targets API 36, meeting the mobile-app rule that
   starts 31 August 2026. Recheck before every later update.
-- [ ] **Fresh signed release bundle:** build version 1.29.0/code 47 after the repair-status and tender-scope changes,
+- [ ] **Fresh signed release bundle:** build version 1.30.0/code 48 after the Karnataka and Kerala statewide-routing changes,
   confirm it is non-debuggable and signed with the upload key kept outside Git, then inspect
   it in Play Console.
 - [x] **Hosted privacy page:** verified on the stable public host:
@@ -77,7 +77,20 @@ Do not submit to production until every applicable item above is complete.
   neutral Prajavani; the complete GPS-accuracy circle must be inside; Citizen Buddy is
   described only as an urban alternate outside Hyderabad; and no local body, road owner,
   category acceptance, contract, complaint-write API, or submission is inferred.
-- [ ] Test all 31 additional top-50 city centres for Pothole, Garbage, and Manhole, plus
+- [ ] Test Karnataka fixtures in Bengaluru, Mysuru, Mangaluru, Hubballi-Dharwad, rural
+  districts, the state edge, and neighbouring states. Confirm National Highways run first;
+  verified urban-body and Bengaluru routes remain preferred; only the checksum-pinned state
+  polygon offers neutral Janaspandana elsewhere; Janahitha is labelled only as an urban
+  alternate; and a place name alone never routes. Repeat all three issue types and confirm
+  no department, local body, road owner, category acceptance, complaint-write API, automatic
+  submission, or statewide contract match is inferred.
+- [ ] Test Kerala fixtures in Thiruvananthapuram, Kochi, Kozhikode, Kannur, rural districts,
+  the state edge, Mahe, and neighbouring states. Confirm National Highways run first; only
+  the checksum-pinned state polygon offers neutral Kerala CMO grievance; K-SMART is labelled
+  only as a local-body alternate; the complete GPS-accuracy circle must be inside; and Mahe
+  remains excluded. Repeat all three issue types and confirm no department, local body,
+  road owner, category acceptance, contract, complaint-write API, or submission is inferred.
+- [ ] Test all 24 additional top-50 city centres for Pothole, Garbage, and Manhole, plus
   one outside-envelope, wrong-state, stale-city, missing-geocode, and boundary-touching
   fixture per state group. Confirm the coordinate envelope and exact structured
   city/municipality plus state fields are all required, National Highways remain first,
@@ -99,7 +112,7 @@ Do not submit to production until every applicable item above is complete.
   union, including South Bopal/Ghuma as known outer-expansion gap fixtures. Confirm the
   app does not claim current outer AMC or wider AUDA completeness and never falls back to
   an Ahmedabad place-name guess.
-- [ ] Across Maharashtra, West Bengal, Punjab, Tamil Nadu, Andhra Pradesh, Telangana, the accepted top-50 routes, Delhi, all five
+- [ ] Across Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, the accepted top-50 routes, Delhi, all five
   Bengaluru city corporations, Chennai, Hyderabad, and Ahmedabad, create Pothole, Garbage,
   and Manhole reports. Confirm road damage keeps
   its road-specific route, the other categories use only reviewed general-civic channels,
@@ -132,6 +145,14 @@ Do not submit to production until every applicable item above is complete.
   outside Hyderabad, including cancellation and back navigation. Confirm all three issue
   types remain user-completed and no department, local body, road owner, category,
   contractor, complaint-write API, automatic submission, or successful filing is claimed.
+- [ ] Test statewide Karnataka handoffs: Janaspandana portal and helpline 1902, plus
+  Janahitha as an urban alternate, including cancellation and back navigation. Confirm
+  verified municipal/Bengaluru routes retain precedence and the neutral fallback never
+  claims a department, body, road owner, category, contractor, API submission, or filing.
+- [ ] Test statewide Kerala handoffs: CMO grievance portal and help/status line 1076, plus K-SMART
+  as a local-body alternate, including cancellation and back navigation. Confirm neither
+  route claims a department, body, road owner, category, contractor, API submission, or filing,
+  and the app does not claim that 1076 accepts a complaint by phone.
 - [ ] Test Hyderabad handoffs: installed and uninstalled My Cure package `cgg.gov.ghmc`,
   OTP-bound web fallback, complaint-status alternate, cancellation, and back navigation.
   Confirm a failed CURE check never opens My Cure and instead offers only neutral Prajavani
@@ -154,9 +175,9 @@ Do not submit to production until every applicable item above is complete.
   pipeline-, lighting-, building-, bridge-, and culvert-only rows never enter a shortlist,
   while explicit mixed road-and-drain work remains eligible.
 - [ ] Confirm the release contains no API key, test frame, private location, debug-only
-  setting, or legacy regional dataset; verify bundled web assets and all 13 resources in the
-  v1.29 state-pack manifest against the reviewed byte count and SHA-256. Confirm the old
-  unversioned, v1.26, v1.27, and v1.28 manifests remain byte-for-byte immutable.
+  setting, or legacy regional dataset; verify bundled web assets and all 15 resources in the
+  v1.30 state-pack manifest against the reviewed byte count and SHA-256. Confirm the old
+  unversioned, v1.26, v1.27, v1.28, and v1.29 manifests remain byte-for-byte immutable.
 - [ ] Review the Pre-launch report and address crashes, ANRs, accessibility failures, and
   policy warnings before widening the track.
 
@@ -169,7 +190,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
 - [ ] Paste the reviewed title, short description, full description, and release notes from
   [`google-play-listing.md`](google-play-listing.md).
 - [ ] Replace or re-verify the icon, feature graphic, and four phone screenshots against
-  the 1.29.0 release. Include the issue picker, an independent civic handoff, and regional-language support
+  the 1.30.0 release. Include the issue picker, an independent civic handoff, and regional-language support
   without displaying private coordinates, an API key, a real grievance ID, or civic-body
   marks. Put other city-specific flows in reviewer instructions instead of implying that
   one screenshot proves every supported route.
@@ -180,7 +201,8 @@ Official references: [target API schedule](https://support.google.com/googleplay
   NH/NE carriageways across India plus the areas listed in `google-play-listing.md`; keep the Delhi-NCT versus separate NCR-city distinction, wider
   exact GCC versus statewide Tamil Nadu routing, Puducherry/Karaikal exclusions, statewide
   Andhra Pradesh routing and the Yanam exclusion, statewide Telangana routing, exact My Cure
-  precedence and the neutral Prajavani fallback for Cantonment,
+  precedence and the neutral Prajavani fallback for Cantonment, full-state Karnataka routing
+  with verified local-route precedence, and full-state Kerala routing with Mahe excluded,
   and Ahmedabad outer-expansion limitations visible; explain that
   non-KMC West Bengal routes require the user to select the responsible district or department.
 - [ ] Keep the non-affiliation statement and the clearly labelled government-information
@@ -197,9 +219,9 @@ Official references: [target API schedule](https://support.google.com/googleplay
   - selected road-damage photos and Drive/VOD image frames sent to OpenAI; user-confirmed
     Garbage and Manhole photos are not sent to OpenAI;
   - precise coordinates sent to Nominatim (including structured city/state fields used by
-    the 31 additional city routes), to Karnataka GIS for Karnataka points, and with
+    the 24 additional city routes), to Karnataka GIS for Karnataka points, and with
     the GPS-accuracy envelope to official Telangana GIS for exact Hyderabad CURE routing;
-    Maharashtra, West Bengal, Punjab, Tamil Nadu (including GCC), Andhra Pradesh, Telangana,
+    Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu (including GCC), Andhra Pradesh, Telangana,
     Delhi NCT, and Ahmedabad boundary checks remain on-device;
   - for eligible Karnataka routes only, road address and procurement shortlist sent to
     OpenAI for probable contract matching; contract matching elsewhere is disabled;

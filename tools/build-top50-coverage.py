@@ -279,13 +279,25 @@ def validate_catalog() -> None:
         item.get("id") for item in cities
         if isinstance(item, dict) and item.get("pack_id") == "in-top50-routing"
     }
-    compatibility_ids = {"coimbatore", "madurai"}
-    if routed_ids != expected_ids - compatibility_ids:
-        raise BuildError("active top-50 inventory does not match the 33 reviewed centres")
-    for city_id in compatibility_ids:
+    compatibility_assignments = {
+        "coimbatore": "in-tn-state-routing",
+        "madurai": "in-tn-state-routing",
+        "visakhapatnam": "in-ap-routing",
+        "vijayawada": "in-ap-routing",
+        "kochi": "in-kl-routing",
+        "kozhikode": "in-kl-routing",
+        "thrissur": "in-kl-routing",
+        "malappuram": "in-kl-routing",
+        "thiruvananthapuram": "in-kl-routing",
+        "kannur": "in-kl-routing",
+        "kollam": "in-kl-routing",
+    }
+    if routed_ids != expected_ids - set(compatibility_assignments):
+        raise BuildError("active top-50 inventory does not match the 24 reviewed centres")
+    for city_id, pack_id in compatibility_assignments.items():
         item = by_id.get(city_id)
-        if not isinstance(item, dict) or item.get("pack_id") != "in-tn-state-routing":
-            raise BuildError(f"{city_id} is not assigned to statewide Tamil Nadu routing")
+        if not isinstance(item, dict) or item.get("pack_id") != pack_id:
+            raise BuildError(f"{city_id} is not assigned to {pack_id}")
     for spec in CITIES:
         item = by_id.get(spec["id"])
         actual = (item.get("rank"), item.get("current_name"), item.get("state_code"))

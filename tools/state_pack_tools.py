@@ -19,10 +19,10 @@ from tender_scope import is_road_surface_contract
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = PROJECT_ROOT / "docs"
-STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.29.json"
-ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.29.json"
-PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.29.json"
-PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.28.json"
+STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.30.json"
+ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.30.json"
+PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.30.json"
+PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.29.json"
 AUTHORITIES_SOURCE = PROJECT_ROOT / "data" / "state-authorities.json"
 PUBLIC_BASE_URL = "https://coding-parrot.github.io/pothole-reporter/"
 PACK_FORMAT = "pothole-pack-manifest"
@@ -63,6 +63,12 @@ ANDHRA_PRADESH_STATE_GEOMETRY_SHA256 = (
 TELANGANA_STATE_GEOMETRY_SHA256 = (
     "77183815e4b698ec1e823f4a94a6f213d1d827ea35de8fec8c0ab3b6a9d15175"
 )
+KARNATAKA_STATE_GEOMETRY_SHA256 = (
+    "9d7fe3f01a80cb41712c09139efcd43e0e11a644849d5f3bffe125cc0bc1c5ad"
+)
+KERALA_STATE_GEOMETRY_SHA256 = (
+    "51e226750b1d6c08a5030e6074e2641282e01c328f46d8aee741de664bef705c"
+)
 KMC_GEOMETRY_SHA256 = (
     "fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5"
 )
@@ -81,6 +87,8 @@ PUNJAB_STATE_REGION_KEYS = {
 TAMIL_NADU_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 ANDHRA_PRADESH_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 TELANGANA_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
+KARNATAKA_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
+KERALA_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 KMC_REGION_KEYS = {
     "authority_id", "authority_name", "scope", "ulb_code", "mun_id",
     "retrieved_at",
@@ -199,6 +207,38 @@ SPECS = {
             "Official Telangana grievance sources: respective source terms",
         ),
         "data/metro-coverage/tg-state.json",
+    ),
+    "in-ka-state-routing": ResourceSpec(
+        "in-ka-state-routing",
+        "KA",
+        "routing",
+        "statewide-general-v1",
+        (
+            "Full State of Karnataka; neutral Janaspandana grievance handoff; "
+            "exact KGIS urban-body routes remain more specific"
+        ),
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Karnataka grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/ka-state.json",
+    ),
+    "in-kl-routing": ResourceSpec(
+        "in-kl-routing",
+        "KL",
+        "routing",
+        "statewide-general-v1",
+        (
+            "Full State of Kerala; neutral CMO grievance handoff with K-SMART "
+            "local-body alternative; excludes Mahe, Puducherry Union Territory"
+        ),
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Kerala grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/kl-state.json",
     ),
     "in-top50-routing": ResourceSpec(
         "in-top50-routing",
@@ -699,7 +739,7 @@ def _is_date(value: Any) -> bool:
 
 def _authority_snapshot(spec: ResourceSpec) -> list[dict[str, Any]]:
     state_code = spec.state_code
-    if state_code == "KA":
+    if spec.pack_id == "in-ka-routing":
         return []
     source = _read_json(AUTHORITIES_SOURCE)
     state = source.get(state_code) if isinstance(source, dict) else None
@@ -1433,6 +1473,122 @@ def _validate_telangana_state_payload(
     )
 
 
+def _validate_new_statewide_payload(
+    pack_id: str,
+    payload: Any,
+    *,
+    generated_at: str | None = None,
+    authorities: Any = None,
+) -> None:
+    pins = {
+        "in-ka-state-routing": {
+            "label": "Karnataka",
+            "region_id": "karnataka-state",
+            "authority_id": "ka-statewide-unverified",
+            "scope": "Full State of Karnataka",
+            "relation_id": 2_019_939,
+            "geometry_sha256": KARNATAKA_STATE_GEOMETRY_SHA256,
+            "routing_terms": ("Karnataka Janaspandana", "Exact KGIS", "does not identify"),
+            "authority": {
+                "id": "ka-statewide-unverified",
+                "name": "Karnataka authority (select in Janaspandana)",
+                "aliases": ["karnataka", "ಕರ್ನಾಟಕ"],
+                "handoff_name": "Karnataka Janaspandana",
+                "handoff_url": "https://ipgrs.karnataka.gov.in/",
+                "alternate_handoff_name": "Janahitha (urban areas outside Bengaluru)",
+                "alternate_handoff_url": "https://www.mrc.gov.in/janahita/login",
+                "helpline": "1902",
+            },
+        },
+        "in-kl-routing": {
+            "label": "Kerala",
+            "region_id": "kerala-state",
+            "authority_id": "kl-statewide-unverified",
+            "scope": "Full State of Kerala; excludes Mahe, Puducherry Union Territory",
+            "relation_id": 2_018_151,
+            "geometry_sha256": KERALA_STATE_GEOMETRY_SHA256,
+            "routing_terms": ("Kerala CMO", "K-SMART", "does not identify"),
+            "authority": {
+                "id": "kl-statewide-unverified",
+                "name": "Kerala authority (select in CMO grievance portal)",
+                "aliases": ["kerala", "കേരളം"],
+                "handoff_name": "Kerala CMO Grievance",
+                "handoff_url": "https://complaints.cmo.kerala.gov.in/cmoportal/login.htm?lang=en",
+                "alternate_handoff_name": "K-SMART (local-body issues)",
+                "alternate_handoff_url": "https://ksmart.lsgkerala.gov.in/ui/web-portal/services",
+                "helpline": "1076",
+            },
+        },
+    }
+    pin = pins.get(pack_id)
+    _expect(pin is not None, f"unsupported statewide payload validator: {pack_id}")
+    _expect(
+        isinstance(payload, dict) and set(payload) == {"version", "retrieved_at", "region"},
+        f"{pack_id} payload fields differ from the statewide contract",
+    )
+    _expect(type(payload.get("version")) is int and payload["version"] == 1,
+            f"{pack_id} payload version must be 1")
+    retrieved_at = payload.get("retrieved_at")
+    _expect(_is_date(retrieved_at), f"{pack_id} retrieved_at is invalid")
+    if generated_at is not None:
+        _expect(retrieved_at == generated_at, f"{pack_id} retrieved_at differs from pack date")
+
+    region = payload.get("region")
+    _expect(
+        isinstance(region, dict) and set(region) == PUNJAB_STATE_REGION_KEYS,
+        f"{pack_id} {pin['label']} region fields differ from the contract",
+    )
+    relation_id = pin["relation_id"]
+    expected = {
+        "id": pin["region_id"],
+        "authority_id": pin["authority_id"],
+        "name": pin["label"],
+        "scope": pin["scope"],
+        "osm_relation_id": relation_id,
+        "source_name": "OpenStreetMap contributors",
+        "source_home_url": f"https://www.openstreetmap.org/relation/{relation_id}",
+        "source_license": "Open Data Commons Open Database License (ODbL) 1.0",
+        "attribution": "© OpenStreetMap contributors",
+        "coordinate_precision": 7,
+        "geometry_sha256": pin["geometry_sha256"],
+    }
+    for field, value in expected.items():
+        _expect(region.get(field) == value,
+                f"{pack_id} {pin['label']} {field} differs from its reviewed pin")
+    _expect(
+        isinstance(region.get("source_url"), str)
+        and region["source_url"].startswith("https://nominatim.openstreetmap.org/lookup?")
+        and f"osm_ids=R{relation_id}" in region["source_url"],
+        f"{pack_id} {pin['label']} lookup URL is invalid",
+    )
+    _expect(
+        isinstance(region.get("routing_note"), str)
+        and all(term in region["routing_note"] for term in pin["routing_terms"]),
+        f"{pack_id} {pin['label']} routing note is invalid",
+    )
+    limitations = region.get("limitations")
+    _expect(
+        isinstance(limitations, list) and 1 <= len(limitations) <= 10
+        and all(isinstance(item, str) and item and len(item) <= 500 for item in limitations)
+        and any("user must select" in item for item in limitations)
+        and any("does not submit" in item for item in limitations),
+        f"{pack_id} {pin['label']} limitations are invalid",
+    )
+    if pack_id == "in-kl-routing":
+        _expect(any("Mahe" in item for item in limitations),
+                "in-kl-routing must explicitly exclude Mahe")
+    bounds = _validate_municipal_geometry(region.get("geometry"), f"{pack_id}.state")
+    _validate_municipal_envelope(region.get("bbox"), f"{pack_id}.state.bbox")
+    _expect(bounds == region["bbox"], f"{pack_id} geometry does not match its bounding box")
+    geometry_digest = hashlib.sha256(json.dumps(
+        region["geometry"], ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")).hexdigest()
+    _expect(geometry_digest == pin["geometry_sha256"],
+            f"{pack_id} geometry digest does not match")
+    _expect(authorities == [pin["authority"]],
+            f"{pack_id} authority registry differs from its reviewed pin")
+
+
 def _top50_alias_key(value: str) -> str:
     return " ".join(value.casefold().replace("-", " ").split())
 
@@ -1906,6 +2062,13 @@ def _validate_raw_payload(
             generated_at=generated_at,
             authorities=authorities,
         )
+    elif spec.pack_id in {"in-ka-state-routing", "in-kl-routing"}:
+        _validate_new_statewide_payload(
+            spec.pack_id,
+            payload,
+            generated_at=generated_at,
+            authorities=authorities,
+        )
     elif spec.pack_id == "in-top50-routing":
         _validate_top50_payload(
             payload,
@@ -2202,10 +2365,10 @@ def verify_all() -> None:
     """Fail unless the manifests and all referenced hosted packs match exactly."""
     manifest_bytes = STATIC_MANIFEST.read_bytes() if STATIC_MANIFEST.exists() else b""
     if not manifest_bytes:
-        raise PackError("missing bundled manifest: static/pack-manifest-v1.29.json")
-    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.29.json")
+        raise PackError("missing bundled manifest: static/pack-manifest-v1.30.json")
+    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.30.json")
     _expect(ANDROID_MANIFEST.read_bytes() == manifest_bytes, "static and Android pack manifests differ")
-    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.29.json")
+    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.30.json")
     _expect(PAGES_MANIFEST.read_bytes() == manifest_bytes, "static and Pages pack manifests differ")
     manifest = _read_json(STATIC_MANIFEST)
     _expect(isinstance(manifest, dict) and set(manifest) == MANIFEST_KEYS,

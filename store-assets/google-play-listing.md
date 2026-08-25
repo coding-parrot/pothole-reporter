@@ -1,6 +1,6 @@
 # Google Play listing copy
 
-Prepared 24 August 2026. Paste only the text inside each code block into Play Console.
+Prepared 25 August 2026. Paste only the text inside each code block into Play Console.
 
 ## App name (16/30 characters)
 
@@ -17,51 +17,38 @@ Report potholes, garbage and open manholes across supported Indian areas.
 ## Full description
 
 ```text
-Pothole Reporter is an independent Android app for documenting potholes, garbage, and open or damaged manholes. It saves editable complaint drafts on your phone; nothing is filed automatically.
+Pothole Reporter is an independent Android app for documenting potholes, garbage, and open or damaged manholes. It saves editable evidence and complaint drafts on your phone; nothing is filed automatically.
 
-Use Photo while safely stopped. For road damage, mount the phone and use foreground Drive while Maps or a call is on screen. AI assesses selected road images for cavities, failed patches, breakup, ruts, and depressions. Garbage and manhole reports are user-confirmed and do not use AI.
+Use Photo while safely stopped. For road damage, securely mount the phone and use foreground Drive while Maps or a call is on screen. AI assesses selected road images. Garbage and manhole reports are user-confirmed and do not use AI. Nearby observations are grouped, and a later live drive can mark a pothole Fixed only after a clear same-place repair comparison.
 
 Coverage
-• Mapped operational National Highways and National Expressways across India, with Rajmargyatra/1033 offered before municipal routing.
-• The full State of Maharashtra. Exact MMR and PMC routes are retained; other Maharashtra points use Aaple Sarkar, with MahaULB offered for urban areas.
-• The full State of West Bengal. The exact KMC route stays specific; all other West Bengal points use the neutral West Bengal PGRS handoff, with CMO Grievance as an alternate.
-• The full State of Punjab through Connect Punjab, with mSeva offered for urban areas. Chandigarh is outside the Punjab boundary.
-• Tamil Nadu statewide: the exact Greater Chennai Corporation route stays preferred; other confidently contained points use neutral Mudhalvarin Mugavari. Puducherry and Karaikal are excluded.
-• The full State of Andhra Pradesh through PGRS, with Puramithra offered for urban areas and helpline 1902. Yanam is excluded.
-• The full State of Telangana through neutral Prajavani, with Citizen Buddy offered for municipal areas outside Hyderabad. Verified Hyderabad CURE keeps My Cure; Secunderabad Cantonment is excluded from My Cure but can use neutral Prajavani.
-• All 50 largest Census 2011 population centres. Existing reviewed/statewide routes stay preferred; 31 routes require a conservative coordinate envelope and exact structured city/state data. Markers are not complete Urban Agglomeration boundaries.
-• Delhi NCT and a reviewed Ahmedabad 48-ward footprint.
-• Road-damage routing for supported Karnataka urban bodies. Garbage and manholes are enabled through Sahaaya 2.0 only in the five Bengaluru city corporations.
+• Mapped operational National Highways and Expressways across India; Rajmargyatra/1033 is checked before regional routing.
+• Full-state neutral handoffs in Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, and Telangana.
+• More-specific reviewed routes remain preferred for MMR, PMC, KMC, supported Karnataka urban bodies and Bengaluru, Greater Chennai, and verified Hyderabad CURE.
+• Karnataka uses Janaspandana, with Janahitha for urban issues and helpline 1902. Kerala uses the CMO grievance portal, with K-SMART for local-body issues; 1076 provides help/status but does not accept complaints by phone.
+• All 50 largest Census 2011 population centres, Delhi NCT, and a reviewed Ahmedabad 48-ward footprint. Twenty-four city routes require both a conservative coordinate envelope and exact structured city/state data.
 
-Locations outside these routes are saved locally but are not addressed to an authority.
+Chandigarh is outside Punjab coverage; Puducherry and Karaikal are outside Tamil Nadu; Yanam is outside Andhra Pradesh; and Mahe is outside Kerala. Locations outside supported routes are saved locally without a recipient.
 
-Reporting
-• Photo supports Pothole, Garbage, and Manhole. Reports include the category, photo, coordinates, time, editable wording, and suggested official route.
-• Garbage and manhole handoffs are enabled throughout Maharashtra, West Bengal, Punjab, Tamil Nadu, Andhra Pradesh, and Telangana and in all accepted top-50 city routes.
-• Nearby repeat observations are grouped into one draft.
-• On a precise later live drive, the app can compare the saved damage photo with current views. It marks Fixed automatically only when the same footprint and completed intact repair are both clear; probable or inconclusive results remain open for review.
-• The app can open a published app, portal, WhatsApp chat, dialler, share sheet, or email draft.
-• You must verify the issue, location, recipient, and wording, then complete submission in the external service.
+Every route is a suggestion. You must verify the issue, location, department, local body, road owner, recipient, and wording, then complete the complaint in the external app, portal, WhatsApp, dialler, share sheet, or email client. A boundary does not prove ownership, responsibility, category acceptance, warranty, or submission.
 
 Important limits and data use
-• AI can miss damage or produce false positives. Review the photo, wording, location, and recipient.
-• A boundary match suggests a route; it does not prove road ownership, responsibility, or warranty.
-• Karnataka contract suggestions exclude titles whose actual work is only a drain, footpath, sewer, pipeline, light, building, bridge, culvert, or other roadside asset. A retained match is still only probable.
-• Pothole AI and Drive require camera and foreground location permission, internet, and your own billed OpenAI API key. Garbage and manhole reporting does not require an OpenAI key.
-• Selected resized road-damage images and API requests go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; structured city/state data gate 31 city routes. Karnataka and exact Hyderabad CURE checks may query official GIS. Downloaded Maharashtra, West Bengal, Punjab, Tamil Nadu, Andhra Pradesh, and Telangana boundaries are checked on-device.
-• Routing and highway packs download from this project's GitHub Pages, are SHA-256 verified, and are cached locally. They contain no report, photo, or exact coordinates.
-• Choosing an external handoff transfers selected data or connection metadata under that provider's policy.
-• Drive recording is optional, visible through Android's foreground-service notification, and off by default.
+• AI can miss damage or produce false positives. Review every result.
+• Pothole AI and Drive require camera, foreground location, internet, and your own billed OpenAI API key. Garbage and manhole reporting does not require a key.
+• Selected resized road-damage images go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; Karnataka and exact Hyderabad checks may query official GIS.
+• Downloaded state, city, and highway packs are SHA-256 verified and checked on-device. Pack requests contain no report, photo, or exact coordinates.
+• Karnataka contract suggestions are optional and probable. Roadside-only drain, footpath, sewer, pipeline, lighting, building, bridge, and culvert work is excluded.
+• Drive recording is optional, off by default, and shown through Android's foreground-service notification.
 • The app is not affiliated with or endorsed by any government body.
 
 Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
 Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.29.0 / version code 47)
+## Release notes (1.30.0 / version code 48)
 
 ```text
-Drive can now verify a repaired pothole on a later pass using a strict saved-before/current-after comparison. Only a clear same-place view of completed intact repair becomes Fixed; probable or obscured views do not. Karnataka tender suggestions now exclude drain-, footpath-, sewer-, pipeline-, lighting-, building-, bridge-, culvert-, and other roadside-only contracts, even when their title mentions a road location. Physical Fixed status remains separate from official complaint status.
+Adds full-state Karnataka and Kerala complaint routing. Karnataka keeps verified local routes, then falls back to Janaspandana with Janahitha for urban issues. Kerala uses the CMO grievance portal with K-SMART for local-body issues. National Highways remain first, exact state boundaries fail closed, and nothing is submitted automatically.
 ```
 
 ## Play Console fields

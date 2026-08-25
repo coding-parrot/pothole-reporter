@@ -197,6 +197,34 @@
       }
     ]
   },
+  "KA": {
+    "authorities": [
+      {
+        "id": "ka-statewide-unverified",
+        "name": "Karnataka authority (select in Janaspandana)",
+        "aliases": ["karnataka", "ಕರ್ನಾಟಕ"],
+        "handoff_name": "Karnataka Janaspandana",
+        "handoff_url": "https://ipgrs.karnataka.gov.in/",
+        "alternate_handoff_name": "Janahitha (urban areas outside Bengaluru)",
+        "alternate_handoff_url": "https://www.mrc.gov.in/janahita/login",
+        "helpline": "1902"
+      }
+    ]
+  },
+  "KL": {
+    "authorities": [
+      {
+        "id": "kl-statewide-unverified",
+        "name": "Kerala authority (select in CMO grievance portal)",
+        "aliases": ["kerala", "കേരളം"],
+        "handoff_name": "Kerala CMO Grievance",
+        "handoff_url": "https://complaints.cmo.kerala.gov.in/cmoportal/login.htm?lang=en",
+        "alternate_handoff_name": "K-SMART (local-body issues)",
+        "alternate_handoff_url": "https://ksmart.lsgkerala.gov.in/ui/web-portal/services",
+        "helpline": "1076"
+      }
+    ]
+  },
   "AP": {
     "authorities": [
       {

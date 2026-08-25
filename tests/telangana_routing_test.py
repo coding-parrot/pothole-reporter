@@ -69,8 +69,8 @@ async ({inside, outside}) => {
   const pack = await P.loadStatePack("in-tg-state-routing");
   const legacyCities = await P.majorCityCoverage();
 
-  eq("pack: v1.29 keeps thirteen independently pinned resources",
-     Object.keys(manifest && manifest.resources || {}).length, 13);
+  eq("pack: v1.30 keeps fifteen independently pinned resources",
+     Object.keys(manifest && manifest.resources || {}).length, 15);
   ok("pack: statewide manifest entry exists", resource, manifest);
   eq("pack: statewide adapter is data-only", resource && resource.adapter,
      "statewide-general-v1");
@@ -106,7 +106,8 @@ async ({inside, outside}) => {
        && (region && region.limitations || []).some((item) => /user must select/i.test(item)),
      region && region.limitations);
 
-  eq("registry: Telangana statewide release is versioned", P.AUTHORITY_REGISTRY_VERSION, 13);
+  eq("registry: Karnataka and Kerala statewide release is versioned",
+     P.AUTHORITY_REGISTRY_VERSION, 14);
   eq("registry: stable statewide authority is installed",
      P.TELANGANA_STATE_AUTHORITY.id, "tg-statewide-unverified");
   eq("registry: primary Prajavani handoff", P.TELANGANA_STATE_AUTHORITY.handoff_url,

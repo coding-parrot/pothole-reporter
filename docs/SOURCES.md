@@ -10,17 +10,18 @@ photo, routing, and any probable contract match before sending a complaint.
 
 Large routing, contact, and procurement datasets are not embedded in the APK. The app
 ships a small manifest that pins each supported resource's version, HTTPS URL, byte
-length, and SHA-256 checksum. The v1.29 state-pack manifest contains 13 resources: twelve
-routing/contact packs covering Andhra Pradesh, Delhi, Gujarat, Karnataka, Maharashtra,
-Punjab, Tamil Nadu, Telangana, West Bengal, and the additional top-50 city routes, plus one
-optional Karnataka tender pack. Tamil Nadu and Telangana each use separate statewide and
-exact-city packs. Procurement data is
+length, and SHA-256 checksum. The v1.30 state-pack manifest contains 15 resources: fourteen
+routing/contact packs covering Andhra Pradesh, Delhi, Gujarat, Karnataka, Kerala,
+Maharashtra, Punjab, Tamil Nadu, Telangana, West Bengal, and the additional top-50 city
+routes, plus one optional Karnataka tender pack. Karnataka, Tamil Nadu, and Telangana each
+use separate statewide and more-specific routing packs. Procurement data is
 requested only for an eligible Karnataka contract match.
 The old unversioned ten-resource manifest remains unchanged for cached v1.25 clients, and
 the versioned v1.26 eleven-resource manifest remains unchanged for cached v1.26 clients.
-The versioned v1.27 twelve-resource and v1.28 thirteen-resource manifests also remain
-unchanged for their cached clients. v1.29 reads `pack-manifest-v1.29.json`, preventing a
-mixed-cache release from disabling otherwise valid routing. Its Karnataka tender resource
+The versioned v1.27 twelve-resource, v1.28 thirteen-resource, and v1.29 thirteen-resource
+manifests also remain unchanged for their cached clients. v1.30 reads
+`pack-manifest-v1.30.json`, preventing a mixed-cache release from disabling otherwise valid
+routing. Its Karnataka tender resource
 uses the carriageway-scope-filtered v2 adapter.
 The Gujarat pack contains a dissolved copy of the reviewed 48-ward AMC boundary.
 
@@ -316,6 +317,52 @@ TGRAC publishes no explicit redistribution licence for that layer, so it is vali
 evidence only; the project redistributes the independently licensed OpenStreetMap geometry.
 Contract matching is disabled throughout Telangana.
 
+## Karnataka statewide complaint handoff
+
+Every point whose complete GPS-accuracy circle is confidently inside
+[OpenStreetMap relation 2019939](https://www.openstreetmap.org/relation/2019939) is eligible
+for a neutral [Janaspandana iPGRS](https://ipgrs.karnataka.gov.in/) handoff after the
+National Highway and verified Karnataka urban-body checks. The ODbL state MultiPolygon was
+retrieved on 25 August 2026 at seven-decimal precision; the runtime pins geometry SHA-256
+`9d7fe3f01a80cb41712c09139efcd43e0e11a644849d5f3bffe125cc0bc1c5ad`.
+A GPS accuracy circle touching the state edge fails closed rather than inheriting a route
+from a geocoder label.
+
+Janaspandana is the Government of Karnataka's Integrated Public Grievance Redressal System.
+Its current official page says 41 departments and 270 line departments are onboarded and
+publishes helpline **1902**. [Janahitha](https://www.mrc.gov.in/janahita/login) is offered
+as an urban-local-body alternate; Karnataka district NIC pages identify it as a citizen
+service, but the user must select and verify the correct body and category. Existing
+verified municipal-recipient and Bengaluru civic routes remain more specific and take
+precedence over the statewide fallback.
+
+Neither state containment, a KGIS result, nor either grievance service establishes the
+department, local body, road owner, contractor, category acceptance, or successful
+submission. Pothole Reporter does not call a complaint-write API, log in, bypass OTP, or
+submit automatically. The neutral statewide route does not enable Karnataka contract
+matching; that remains limited to an otherwise eligible, verified municipal route.
+
+## Kerala statewide complaint handoff
+
+Every point whose complete GPS-accuracy circle is confidently inside
+[OpenStreetMap relation 2018151](https://www.openstreetmap.org/relation/2018151) is eligible
+for a neutral [Kerala CMO Public Grievance Redressal](https://cmo.kerala.gov.in/) handoff
+after the National Highway check. The ODbL state MultiPolygon was retrieved on 25 August
+2026 at seven-decimal precision; the runtime pins geometry SHA-256
+`51e226750b1d6c08a5030e6074e2641282e01c328f46d8aee741de664bef705c`.
+Mahe is part of Puducherry Union Territory and is outside the Kerala boundary. A GPS
+accuracy circle touching Mahe, the state edge, or a neighbouring state fails closed.
+
+The Government of Kerala portal accepts online grievances and provides docket-based status.
+Its toll-free **1076** line provides help and status information; the official FAQ says a
+complaint cannot be lodged by phone. The official Local Self Government Department's
+[K-SMART](https://ksmart.lsgkerala.gov.in/) service is offered as an alternate for
+local-body issues. The user must select and verify the department, local body, issue
+category, and road owner and complete the complaint externally. The app does not claim a
+public complaint-write API, automatic filing, ownership inference, or contract matching.
+The seven Kerala entries retained in the immutable top-50 pack are compatibility data only;
+current routing uses the exact state boundary instead of their old city-name envelopes.
+
 ## Census top-50 city routes
 
 The selection list is the 50 largest serial-numbered Urban Agglomeration/City entries by
@@ -326,14 +373,15 @@ Census 2011 is selection metadata, not current jurisdiction geometry. Historical
 aliases such as Bruhat Bangalore/Bengaluru, Ahmadabad/Ahmedabad,
 Allahabad/Prayagraj, and Aurangabad/Chhatrapati Sambhajinagar are retained separately.
 
-Nineteen entries already use a reviewed city, NCT, Karnataka-body, or statewide
-Maharashtra/West Bengal/Punjab/Tamil Nadu/Andhra Pradesh/Telangana route. The other 31 use a checksum-verified national
+Twenty-six entries already use a reviewed city, NCT, Karnataka-body, or statewide
+Maharashtra/West Bengal/Punjab/Karnataka/Kerala/Tamil Nadu/Andhra Pradesh/Telangana route. The other 24 use a checksum-verified national
 routing pack. A new route is offered only when all of these agree:
 
-For saved-report compatibility, that immutable pack still physically contains four entries
-now covered statewide: Coimbatore and Madurai in Tamil Nadu, and Visakhapatnam and Vijayawada
-in Andhra Pradesh. It keeps the v1.25 checksum. Current routing checks the exact state
-polygons first, so those four entries are not counted among the 31 active structured-city
+For saved-report compatibility, that immutable pack still physically contains eleven entries
+now covered statewide: Coimbatore and Madurai in Tamil Nadu; Visakhapatnam and Vijayawada
+in Andhra Pradesh; and Kochi, Kozhikode, Thrissur, Malappuram, Thiruvananthapuram, Kannur,
+and Kollam in Kerala. It keeps the v1.25 checksum. Current routing checks the exact state
+polygons first, so those entries are not counted among the 24 active structured-city
 routes and do not override statewide coverage.
 
 - GPS accuracy is 30 m or better and the point lies strictly inside the route's
@@ -342,17 +390,15 @@ routes and do not override statewide coverage.
   field and a matching state alias; and
 - the verified pack supplies the reviewed neutral official grievance handoff for that state.
 
-The 31 centres are Surat, Jaipur, Kanpur, Lucknow, Ghaziabad, Indore, Kochi,
-Patna, Kozhikode, Bhopal, Thrissur, Vadodara, Agra, Malappuram,
-Thiruvananthapuram, Kannur, Varanasi, Meerut, Faridabad, Rajkot,
-Jamshedpur, Jabalpur, Srinagar, Prayagraj, Dhanbad, Jodhpur, Ranchi, Raipur, Kollam,
-Gwalior, and Durg-Bhilai. National Highway routing still runs first.
+The 24 centres are Surat, Jaipur, Kanpur, Lucknow, Ghaziabad, Indore, Patna, Bhopal,
+Vadodara, Agra, Varanasi, Meerut, Faridabad, Rajkot, Jamshedpur, Jabalpur, Srinagar,
+Prayagraj, Dhanbad, Jodhpur, Ranchi, Raipur, Gwalior, and Durg-Bhilai. National Highway
+routing still runs first.
 
 Reviewed neutral handoffs are [Gujarat eNagar](https://enagar.gujarat.gov.in/enagar/login.jsp),
 [Rajasthan Sampark](https://sampark.rajasthan.gov.in/),
 [UP Jansunwai](https://www.jansunwai.up.nic.in/),
 [MP CM Helpline](https://www.cmhelpline.mp.gov.in/),
-[Kerala K-SMART](https://ksmart.lsgkerala.gov.in/ui/web-portal),
 [Bihar Lok Shikayat](https://lokshikayat.bihar.gov.in/),
 [Haryana Nagar Darshan](https://nagardarshan.ulbharyana.gov.in/Default/CitizenEntry),
 [Jharkhand Municipal Grievance](https://municipalservices.jharkhand.gov.in/public/grievance_new/login),
@@ -589,17 +635,18 @@ describes the unified platform, integrated agencies, and text/photo/video eviden
 Android package is
 [`com.nammabengaluruNew.org`](https://play.google.com/store/apps/details?id=com.nammabengaluruNew.org).
 Public pages do not enumerate every garbage/manhole subcategory, so this is labelled a
-general public-grievance handoff. Other Karnataka local bodies remain civic-unroutable
-unless a category-appropriate official channel is separately reviewed.
+general public-grievance handoff. Outside those verified Bengaluru routes, the exact
+state boundary can offer neutral Janaspandana, with Janahitha as an urban alternate; it
+does not assign a municipal recipient or guarantee category acceptance.
 
 ## Street address
 
 **Source: OpenStreetMap, via Nominatim.** It turns coordinates into a street name and
-pincode for the complaint. In Maharashtra, West Bengal, Punjab, Tamil Nadu, Andhra Pradesh,
-Telangana, Delhi, and Ahmedabad, address fields are display-only routing clues; only a
+pincode for the complaint. In Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil
+Nadu, Andhra Pradesh, Telangana, Delhi, and Ahmedabad, address fields are display-only routing clues; only a
 verified cached polygon selects statewide or local polygon coverage. Exact Hyderabad CURE
 coverage instead requires the live official TGRAC response described above. Free-form
-geocoder text is never used to expand any polygon route. The 31 additional top-50 routes
+geocoder text is never used to expand any polygon route. The 24 additional top-50 routes
 are the explicit exception: they require
 exact configured `city` or `municipality` and state fields inside a conservative coordinate
 envelope and never use free-form display text. The coordinates themselves
@@ -662,7 +709,14 @@ That wording is deliberate and should not be strengthened.
   official state layer. Prajavani is neutral, and Citizen Buddy is only an urban alternate
   outside Hyderabad; neither identifies a department, local body, road owner, category,
   contractor, or submission.
-- The 31 additional top-50 routes use conservative Nominatim search envelopes plus exact
+- Karnataka-wide coverage uses a pinned ODbL state boundary. Verified municipal and
+  Bengaluru routes remain preferred; other contained points use neutral Janaspandana,
+  with Janahitha offered only as an urban alternate. Neither service proves the responsible
+  department, local body, owner, category, contractor, or submission.
+- Kerala-wide coverage uses a pinned ODbL state boundary and excludes Mahe. The Kerala CMO
+  portal is neutral, and K-SMART is a local-body alternate; neither identifies the owner,
+  category, contractor, or submission.
+- The 24 additional top-50 routes use conservative Nominatim search envelopes plus exact
   structured city/municipality and state aliases. They are not municipal polygons or
   complete Census Urban Agglomeration boundaries; a missing, stale, ambiguous, or
   boundary-touching match fails closed.
@@ -690,8 +744,9 @@ That wording is deliberate and should not be strengthened.
   containment establishes who owns or maintains a road.
 - Delhi, Tamil Nadu (including Chennai), Andhra Pradesh, Telangana (including Hyderabad), and Ahmedabad contract matching is disabled; a coverage response
   is neither ownership nor a contract match.
-- 137 of Karnataka's 319 local bodies have no address in the file, because their district
-  pages publish none. Those reports refuse to route.
+- 137 of Karnataka's 319 local bodies have no address in the file because their district
+  pages publish none. Those points cannot receive a specific municipal recipient, but can
+  use neutral Janaspandana after exact state containment.
 - The full 42,283-row source has 41,159 records without a winning bidder. The filtered
   5,351-row pack has 4,825 without one and 526 with one.
 - Of the 18,972 DMA or legacy-BBMP source rows, 7,473 explicitly include carriageway work;
@@ -704,8 +759,8 @@ That wording is deliberate and should not be strengthened.
 - Contracts are a snapshot. Re-run `tools/pull-kppp.py` to refresh.
 - The public Nominatim endpoint is cached on an approximately 11 m grid and serialized
   below one request per second. National or municipal-scale deployment must switch the
-  endpoint to a policy-compliant managed or self-hosted service. The 31 additional city
+  endpoint to a policy-compliant managed or self-hosted service. The 24 additional city
   routes depend on exact Nominatim structured fields. Maharashtra, West Bengal, Punjab,
-  Tamil Nadu, Andhra Pradesh, Telangana, Delhi, and Ahmedabad boundary routing remains local and does not depend on a geocoder
+  Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Delhi, and Ahmedabad boundary routing remains local and does not depend on a geocoder
   response. Native Android Hyderabad routing sends the GPS-accuracy envelope to TGRAC's
   official CURE and Cantonment query services.
