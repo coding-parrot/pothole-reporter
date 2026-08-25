@@ -23,12 +23,13 @@ Use Photo while safely stopped. For road damage, securely mount the phone and us
 
 Coverage
 • Mapped operational National Highways and Expressways across India; Rajmargyatra/1033 is checked before regional routing.
-• Full-state neutral handoffs in Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, and Telangana.
+• Full-state neutral handoffs in Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, and Chhattisgarh.
 • More-specific reviewed routes remain preferred for MMR, PMC, KMC, supported Karnataka urban bodies and Bengaluru, Greater Chennai, and verified Hyderabad CURE.
 • Karnataka uses Janaspandana, with Janahitha for urban issues and helpline 1902. Kerala uses the CMO grievance portal, with K-SMART for local-body issues; 1076 provides help/status but does not accept complaints by phone.
-• All 50 largest Census 2011 population centres, Delhi NCT, and a reviewed Ahmedabad 48-ward footprint. Twenty-four city routes require both a conservative coordinate envelope and exact structured city/state data.
+• Uttar Pradesh uses Jansunwai–Samadhan and helpline 1076. Chhattisgarh uses the CM Helpline and helpline 1076, with NIDAAN 1100 only as an urban civic alternate.
+• All 50 largest Census 2011 population centres, Delhi NCT, and a reviewed Ahmedabad 48-ward footprint. Fifteen city routes require both a conservative coordinate envelope and exact structured city/state data.
 
-Chandigarh is outside Punjab coverage; Puducherry and Karaikal are outside Tamil Nadu; Yanam is outside Andhra Pradesh; and Mahe is outside Kerala. Locations outside supported routes are saved locally without a recipient.
+Chandigarh is outside Punjab coverage; Puducherry and Karaikal are outside Tamil Nadu; Yanam is outside Andhra Pradesh; Mahe is outside Kerala; and Delhi NCT is outside Uttar Pradesh and keeps its own route. Locations outside supported routes are saved locally without a recipient.
 
 Every route is a suggestion. You must verify the issue, location, department, local body, road owner, recipient, and wording, then complete the complaint in the external app, portal, WhatsApp, dialler, share sheet, or email client. A boundary does not prove ownership, responsibility, category acceptance, warranty, or submission.
 
@@ -45,10 +46,10 @@ Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
 Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.30.0 / version code 48)
+## Release notes (1.31.0 / version code 49)
 
 ```text
-Adds full-state Karnataka and Kerala complaint routing. Karnataka keeps verified local routes, then falls back to Janaspandana with Janahitha for urban issues. Kerala uses the CMO grievance portal with K-SMART for local-body issues. National Highways remain first, exact state boundaries fail closed, and nothing is submitted automatically.
+Adds full-state Uttar Pradesh and Chhattisgarh complaint routing. Uttar Pradesh uses Jansunwai–Samadhan; Chhattisgarh uses the CM Helpline with NIDAAN 1100 as an urban civic alternate. National Highways and exact Delhi routing remain first, state boundaries fail closed, and nothing is submitted automatically.
 ```
 
 ## Play Console fields

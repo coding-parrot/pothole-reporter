@@ -264,11 +264,11 @@ async ({fixtures}) => {
     }
   }
 
-  // Regression matrix for the two former coarse-envelope blockers. Delhi must fall
-  // through to Ghaziabad/Faridabad; West Bengal must fall through to Jharkhand.
+  // Regression matrix for former coarse-envelope blockers. Ghaziabad now uses exact
+  // Uttar Pradesh containment; Delhi must still fall through to it and Faridabad.
   for (const [name, geo, lat, lng, authority, region] of [
     ["Ghaziabad beside Delhi", {city:"Ghaziabad",state:"Uttar Pradesh",country_code:"in"},
-      28.6711527,77.4120356,"in-up-jansunwai","ghaziabad"],
+      28.6711527,77.4120356,"up-statewide-unverified","uttar-pradesh-state"],
     ["Faridabad beside Delhi", {city:"Faridabad",state:"Haryana",country_code:"in"},
       28.4031478,77.3105561,"in-hr-nagar-darshan","faridabad"],
     ["Jamshedpur beside West Bengal", {city:"Jamshedpur",state:"Jharkhand",country_code:"in"},
@@ -299,6 +299,24 @@ async ({fixtures}) => {
     eq(`supersession: ${fixture.id} uses exact Kerala state containment`,
        route && [route.authority_id, route.routing_pack_id, route.region],
        ["kl-statewide-unverified", "in-kl-routing", "kerala-state"]);
+  }
+
+  // Uttar Pradesh and Chhattisgarh likewise keep the immutable city pack only for
+  // saved-report compatibility. New reports use their exact state polygons.
+  for (const [stateCode, stateName, authority, packId, stateRegion] of [
+    ["UP", "Uttar Pradesh", "up-statewide-unverified", "in-up-routing",
+      "uttar-pradesh-state"],
+    ["CG", "Chhattisgarh", "cg-statewide-unverified", "in-cg-routing",
+      "chhattisgarh-state"],
+  ]) {
+    for (const fixture of fixtures.filter((item) => item.state_code === stateCode)) {
+      const route = await P.routeOfficer(
+        {city:fixture.name,state:stateName,country_code:"in"},
+        fixture.lat,fixture.lng,12,null,null,"garbage");
+      eq(`supersession: ${fixture.id} uses exact ${stateName} containment`,
+         route && [route.authority_id, route.routing_pack_id, route.region],
+         [authority, packId, stateRegion]);
+    }
   }
 
   // This coordinate is an exact checked-in NH-48 segment inside Surat's search

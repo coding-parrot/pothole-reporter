@@ -19,10 +19,10 @@ from tender_scope import is_road_surface_contract
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = PROJECT_ROOT / "docs"
-STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.30.json"
-ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.30.json"
-PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.30.json"
-PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.29.json"
+STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.31.json"
+ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.31.json"
+PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.31.json"
+PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.30.json"
 AUTHORITIES_SOURCE = PROJECT_ROOT / "data" / "state-authorities.json"
 PUBLIC_BASE_URL = "https://coding-parrot.github.io/pothole-reporter/"
 PACK_FORMAT = "pothole-pack-manifest"
@@ -69,6 +69,12 @@ KARNATAKA_STATE_GEOMETRY_SHA256 = (
 KERALA_STATE_GEOMETRY_SHA256 = (
     "51e226750b1d6c08a5030e6074e2641282e01c328f46d8aee741de664bef705c"
 )
+UTTAR_PRADESH_STATE_GEOMETRY_SHA256 = (
+    "2dbb5237cab5eb029f517c1d79451663c1fc49affe0e0789b11f0565180db015"
+)
+CHHATTISGARH_STATE_GEOMETRY_SHA256 = (
+    "827e89a598571ade84db77390bca5daf98c9f67fbae716b17193f4ccdc2876eb"
+)
 KMC_GEOMETRY_SHA256 = (
     "fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5"
 )
@@ -89,6 +95,8 @@ ANDHRA_PRADESH_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 TELANGANA_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 KARNATAKA_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 KERALA_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
+UTTAR_PRADESH_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
+CHHATTISGARH_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 KMC_REGION_KEYS = {
     "authority_id", "authority_name", "scope", "ulb_code", "mun_id",
     "retrieved_at",
@@ -239,6 +247,38 @@ SPECS = {
             "Official Kerala grievance sources: respective source terms",
         ),
         "data/metro-coverage/kl-state.json",
+    ),
+    "in-up-routing": ResourceSpec(
+        "in-up-routing",
+        "UP",
+        "routing",
+        "statewide-general-v1",
+        (
+            "Full State of Uttar Pradesh; neutral Jansunwai grievance handoff; "
+            "excludes Delhi National Capital Territory"
+        ),
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Uttar Pradesh grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/up-state.json",
+    ),
+    "in-cg-routing": ResourceSpec(
+        "in-cg-routing",
+        "CG",
+        "routing",
+        "statewide-general-v1",
+        (
+            "Full State of Chhattisgarh; neutral CM Helpline grievance handoff "
+            "with NIDAAN 1100 as an urban civic alternative"
+        ),
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Chhattisgarh grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/cg-state.json",
     ),
     "in-top50-routing": ResourceSpec(
         "in-top50-routing",
@@ -1519,6 +1559,43 @@ def _validate_new_statewide_payload(
                 "helpline": "1076",
             },
         },
+        "in-up-routing": {
+            "label": "Uttar Pradesh",
+            "region_id": "uttar-pradesh-state",
+            "authority_id": "up-statewide-unverified",
+            "scope": "Full State of Uttar Pradesh; excludes Delhi National Capital Territory",
+            "relation_id": 1_942_587,
+            "geometry_sha256": UTTAR_PRADESH_STATE_GEOMETRY_SHA256,
+            "routing_terms": ("Uttar Pradesh Jansunwai", "Delhi NCT", "does not identify"),
+            "authority": {
+                "id": "up-statewide-unverified",
+                "name": "Uttar Pradesh authority (select in Jansunwai)",
+                "aliases": ["uttar pradesh", "उत्तर प्रदेश"],
+                "handoff_name": "UP Jansunwai–Samadhan",
+                "handoff_url": "https://jansunwai.up.nic.in/?language=en_US",
+                "handoff_package": "in.nic.up.jansunwai.upjansunwai",
+                "helpline": "1076",
+            },
+        },
+        "in-cg-routing": {
+            "label": "Chhattisgarh",
+            "region_id": "chhattisgarh-state",
+            "authority_id": "cg-statewide-unverified",
+            "scope": "Full State of Chhattisgarh",
+            "relation_id": 1_972_004,
+            "geometry_sha256": CHHATTISGARH_STATE_GEOMETRY_SHA256,
+            "routing_terms": ("Chhattisgarh CM Helpline", "NIDAAN 1100", "does not identify"),
+            "authority": {
+                "id": "cg-statewide-unverified",
+                "name": "Chhattisgarh authority (select in CM Helpline)",
+                "aliases": ["chhattisgarh", "छत्तीसगढ़", "छत्तीसगढ़"],
+                "handoff_name": "Chhattisgarh CM Helpline",
+                "handoff_url": "https://cmhelpline.cg.gov.in/Home/VerifyOTPBeforeOnlineComplaint",
+                "alternate_handoff_name": "NIDAAN 1100 (urban civic issues)",
+                "alternate_handoff_url": "https://crm.nidaan.cg.gov.in/",
+                "helpline": "1076",
+            },
+        },
     }
     pin = pins.get(pack_id)
     _expect(pin is not None, f"unsupported statewide payload validator: {pack_id}")
@@ -2062,7 +2139,9 @@ def _validate_raw_payload(
             generated_at=generated_at,
             authorities=authorities,
         )
-    elif spec.pack_id in {"in-ka-state-routing", "in-kl-routing"}:
+    elif spec.pack_id in {
+        "in-ka-state-routing", "in-kl-routing", "in-up-routing", "in-cg-routing",
+    }:
         _validate_new_statewide_payload(
             spec.pack_id,
             payload,
@@ -2365,10 +2444,10 @@ def verify_all() -> None:
     """Fail unless the manifests and all referenced hosted packs match exactly."""
     manifest_bytes = STATIC_MANIFEST.read_bytes() if STATIC_MANIFEST.exists() else b""
     if not manifest_bytes:
-        raise PackError("missing bundled manifest: static/pack-manifest-v1.30.json")
-    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.30.json")
+        raise PackError("missing bundled manifest: static/pack-manifest-v1.31.json")
+    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.31.json")
     _expect(ANDROID_MANIFEST.read_bytes() == manifest_bytes, "static and Android pack manifests differ")
-    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.30.json")
+    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.31.json")
     _expect(PAGES_MANIFEST.read_bytes() == manifest_bytes, "static and Pages pack manifests differ")
     manifest = _read_json(STATIC_MANIFEST)
     _expect(isinstance(manifest, dict) and set(manifest) == MANIFEST_KEYS,

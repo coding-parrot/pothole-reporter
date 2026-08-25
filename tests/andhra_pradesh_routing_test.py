@@ -84,7 +84,7 @@ async ({inside, outside, legacySha}) => {
      region && region.limitations);
 
   eq("registry: Karnataka and Kerala release is versioned",
-     P.AUTHORITY_REGISTRY_VERSION, 14);
+     P.AUTHORITY_REGISTRY_VERSION, 15);
   eq("registry: stable statewide authority is installed",
      P.ANDHRA_PRADESH_STATE_AUTHORITY.id, "ap-statewide-unverified");
   eq("registry: primary official PGRS handoff",

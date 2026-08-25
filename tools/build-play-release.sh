@@ -14,11 +14,12 @@ AAB_PATH=$ANDROID_ROOT/app/build/outputs/bundle/release/app-release.aab
 BUNDLE_MANIFEST=$ANDROID_ROOT/app/build/intermediates/bundle_manifest/release/processApplicationManifestReleaseForBundle/AndroidManifest.xml
 WWW_ROOT=android-app/www
 PACKAGED_ASSETS_ROOT=$ANDROID_ROOT/app/src/main/assets/public
-PACK_MANIFEST=static/pack-manifest-v1.30.json
-PREVIOUS_PACK_MANIFEST=static/pack-manifest-v1.29.json
-OLDER_PACK_MANIFEST=static/pack-manifest-v1.28.json
-EARLIER_PACK_MANIFEST=static/pack-manifest-v1.27.json
-OLDEST_PACK_MANIFEST=static/pack-manifest-v1.26.json
+PACK_MANIFEST=static/pack-manifest-v1.31.json
+PREVIOUS_PACK_MANIFEST=static/pack-manifest-v1.30.json
+OLDER_PACK_MANIFEST=static/pack-manifest-v1.29.json
+EARLIER_PACK_MANIFEST=static/pack-manifest-v1.28.json
+OLDEST_PACK_MANIFEST=static/pack-manifest-v1.27.json
+INITIAL_PACK_MANIFEST=static/pack-manifest-v1.26.json
 LEGACY_PACK_MANIFEST=static/pack-manifest.json
 HIGHWAY_MANIFEST=static/highway-manifest.json
 FORBIDDEN_STATE_ASSETS=(
@@ -51,6 +52,7 @@ require_tool diff
 require_tool find
 require_tool grep
 require_tool jarsigner
+require_tool keytool
 require_tool python3
 require_tool sed
 require_tool shasum
@@ -66,11 +68,12 @@ echo "1/7 validating hosted data packs, municipal schemas and web-source mirrors
 python3 tools/build-state-packs.py --check
 python3 tools/build-national-highways.py --check
 python3 tests/state_pack_validation_test.py
-same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.30.json" "v1.30 pack manifest mirror"
-same_file "$PREVIOUS_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.29.json" "v1.29 pack manifest mirror"
-same_file "$OLDER_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.28.json" "v1.28 pack manifest mirror"
-same_file "$EARLIER_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.27.json" "v1.27 pack manifest mirror"
-same_file "$OLDEST_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.26.json" "v1.26 pack manifest mirror"
+same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.31.json" "v1.31 pack manifest mirror"
+same_file "$PREVIOUS_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.30.json" "v1.30 pack manifest mirror"
+same_file "$OLDER_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.29.json" "v1.29 pack manifest mirror"
+same_file "$EARLIER_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.28.json" "v1.28 pack manifest mirror"
+same_file "$OLDEST_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.27.json" "v1.27 pack manifest mirror"
+same_file "$INITIAL_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.26.json" "v1.26 pack manifest mirror"
 same_file "$LEGACY_PACK_MANIFEST" "$WWW_ROOT/pack-manifest.json" "legacy pack manifest mirror"
 same_file "$HIGHWAY_MANIFEST" "$WWW_ROOT/highway-manifest.json" "highway manifest mirror"
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
@@ -104,8 +107,8 @@ rm -f "$AAB_PATH"
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="dev.aiengg.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="48"' "$BUNDLE_MANIFEST" || fail "expected versionCode 48"
-grep -Fq 'android:versionName="1.30.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.30.0"
+grep -Fq 'android:versionCode="49"' "$BUNDLE_MANIFEST" || fail "expected versionCode 49"
+grep -Fq 'android:versionName="1.31.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.31.0"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"
@@ -121,6 +124,7 @@ grep -Fq 'com.nammabengaluruNew.org' "$BUNDLE_MANIFEST" || fail "official Sahaay
 grep -Fq 'com.esri.ugms_bmc' "$BUNDLE_MANIFEST" || fail "official BMC MARG app package query is missing"
 grep -Fq 'in.gov.pmc.pmccare' "$BUNDLE_MANIFEST" || fail "official PMC CARE app package query is missing"
 grep -Fq 'com.nic.dl.delhijanmitra' "$BUNDLE_MANIFEST" || fail "official Delhi JanSunwai app package query is missing"
+grep -Fq 'in.nic.up.jansunwai.upjansunwai' "$BUNDLE_MANIFEST" || fail "official UP Jansunwai app package query is missing"
 grep -Fq 'com.google.android.apps.maps' "$BUNDLE_MANIFEST" || fail "Google Maps package query is missing"
 grep -Fq 'dev.aiengg.potholereporter.drive.DriveForegroundService' "$BUNDLE_MANIFEST" || fail "native Drive foreground service is missing"
 grep -Fq 'android:foregroundServiceType="camera|location"' "$BUNDLE_MANIFEST" || fail "Drive foreground service types are wrong"
@@ -153,6 +157,12 @@ if grep -Fqi 'CN=Android Debug' <<<"$certificate_report"; then
 fi
 if grep -Eqi 'unsigned entries|certificate (has expired|is not yet valid)|disabled algorithm' <<<"$certificate_report"; then
   fail "AAB signature has unsigned entries, an invalid validity period, or a disabled algorithm"
+fi
+expected_upload_cert_sha256='29:6F:94:7F:84:12:AC:A3:92:5C:F5:16:9C:19:5A:E0:97:C6:85:6D:57:51:EE:DD:78:9D:D4:BF:BA:7B:AC:8C'
+actual_upload_cert_sha256=$(keytool -printcert -jarfile "$AAB_PATH" 2>/dev/null \
+  | sed -n 's/^[[:space:]]*SHA256: //p' | head -n 1)
+if [ "$actual_upload_cert_sha256" != "$expected_upload_cert_sha256" ]; then
+  fail "AAB signer does not match the registered Pothole Reporter upload certificate"
 fi
 
 echo "5/7 verifying bundled web assets"

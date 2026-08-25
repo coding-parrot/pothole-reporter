@@ -151,8 +151,8 @@
       "state_code": "UP",
       "population": 2920496,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-up-routing"
     },
     {
       "rank": 12,
@@ -163,8 +163,8 @@
       "state_code": "UP",
       "population": 2902920,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-up-routing"
     },
     {
       "rank": 13,
@@ -187,8 +187,8 @@
       "state_code": "UP",
       "population": 2375820,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-up-routing"
     },
     {
       "rank": 15,
@@ -295,8 +295,8 @@
       "state_code": "UP",
       "population": 1760285,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-up-routing"
     },
     {
       "rank": 24,
@@ -403,8 +403,8 @@
       "state_code": "UP",
       "population": 1432280,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-up-routing"
     },
     {
       "rank": 33,
@@ -415,8 +415,8 @@
       "state_code": "UP",
       "population": 1420902,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-up-routing"
     },
     {
       "rank": 34,
@@ -511,8 +511,8 @@
       "state_code": "UP",
       "population": 1212395,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-up-routing"
     },
     {
       "rank": 42,
@@ -583,8 +583,8 @@
       "state_code": "CG",
       "population": 1123558,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-cg-routing"
     },
     {
       "rank": 48,
@@ -619,8 +619,8 @@
       "state_code": "CG",
       "population": 1064222,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-cg-routing"
     }
   ]
 }

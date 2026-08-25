@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="320" height="720" viewBox="0 0 320 720" role="img" aria-labelledby="title description">
   <title id="title">Pothole Reporter top-50 coverage overview</title>
-  <desc id="description">Schematic map of 50 available routes for the population centres ranked in Census of India 2011 table A-04 (I). Twenty-four markers use conservative structured city-name routes; these markers identify population centres and do not represent complete urban-agglomeration boundaries. Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, and Telangana have statewide neutral grievance handoffs. Chandigarh is excluded from Punjab; Puducherry and Karaikal are excluded from Tamil Nadu; Yanam is excluded from Andhra Pradesh; Mahe is excluded from Kerala. Mapped National Highways and Expressways use a separate pothole route across India.</desc>
+  <desc id="description">Schematic map of 50 available routes for the population centres ranked in Census of India 2011 table A-04 (I). Fifteen markers use conservative structured city-name routes; these markers identify population centres and do not represent complete urban-agglomeration boundaries. Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, and Chhattisgarh have statewide neutral grievance handoffs. Chandigarh UT is outside Punjab coverage. Puducherry/Karaikal and Yanam stay outside their state routes. Mahe UT is outside Kerala coverage. Delhi NCT is outside Uttar Pradesh coverage. Mapped National Highways and Expressways use a separate pothole route across India.</desc>
   <defs>
     <linearGradient id="state-card" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#3a2416"/>
@@ -41,7 +41,7 @@
   </g>
 
   <text x="20" y="88" class="section">CENSUS 2011 A-04 (I) · POPULATION RANKING</text>
-  <text x="20" y="104" class="small">24 use city-name matching; markers are not complete UA boundaries.</text>
+  <text x="20" y="104" class="small">15 use city-name matching; markers are not complete UA boundaries.</text>
 
   <!-- This outline and the marker positions are intentionally schematic. -->
   <g aria-label="Schematic map of India" transform="translate(0 40)">
@@ -58,10 +58,10 @@
     <g class="marker available" data-city-rank="8" data-city-id="pune" transform="translate(94 282)"><title>8. Pune — Maharashtra — available reviewed-specific route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="9" data-city-id="surat" transform="translate(86 253)"><title>9. Surat — Gujarat — available conservative structured city-name route</title><circle r="3.4"/></g>
     <g class="marker available" data-city-rank="10" data-city-id="jaipur" transform="translate(104 188)"><title>10. Jaipur — Rajasthan — available conservative structured city-name route</title><circle r="3.4"/></g>
-    <g class="marker available" data-city-rank="11" data-city-id="kanpur" transform="translate(136 194)"><title>11. Kanpur — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
-    <g class="marker available" data-city-rank="12" data-city-id="lucknow" transform="translate(143 188)"><title>12. Lucknow — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="11" data-city-id="kanpur" transform="translate(136 194)"><title>11. Kanpur — Uttar Pradesh — available statewide-neutral route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="12" data-city-id="lucknow" transform="translate(143 188)"><title>12. Lucknow — Uttar Pradesh — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="13" data-city-id="nagpur" transform="translate(128 253)"><title>13. Nagpur — Maharashtra — available statewide-neutral route</title><circle r="3.6"/></g>
-    <g class="marker available" data-city-rank="14" data-city-id="ghaziabad" transform="translate(121 168)"><title>14. Ghaziabad — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="14" data-city-id="ghaziabad" transform="translate(121 168)"><title>14. Ghaziabad — Uttar Pradesh — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="15" data-city-id="indore" transform="translate(106 235)"><title>15. Indore — Madhya Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
     <g class="marker available" data-city-rank="16" data-city-id="coimbatore" transform="translate(114 366)"><title>16. Coimbatore — Tamil Nadu — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="17" data-city-id="kochi" transform="translate(109 382)"><title>17. Kochi — Kerala — available statewide-neutral route</title><circle r="3.6"/></g>
@@ -70,7 +70,7 @@
     <g class="marker available" data-city-rank="20" data-city-id="bhopal" transform="translate(117 228)"><title>20. Bhopal — Madhya Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
     <g class="marker available" data-city-rank="21" data-city-id="thrissur" transform="translate(108 373)"><title>21. Thrissur — Kerala — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="22" data-city-id="vadodara" transform="translate(90 240)"><title>22. Vadodara — Gujarat — available conservative structured city-name route</title><circle r="3.4"/></g>
-    <g class="marker available" data-city-rank="23" data-city-id="agra" transform="translate(124 183)"><title>23. Agra — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="23" data-city-id="agra" transform="translate(124 183)"><title>23. Agra — Uttar Pradesh — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="24" data-city-id="visakhapatnam" transform="translate(155 291)"><title>24. Visakhapatnam — Andhra Pradesh — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="25" data-city-id="malappuram" transform="translate(102 367)"><title>25. Malappuram — Kerala — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="26" data-city-id="thiruvananthapuram" transform="translate(114 400)"><title>26. Thiruvananthapuram — Kerala — available statewide-neutral route</title><circle r="3.6"/></g>
@@ -79,8 +79,8 @@
     <g class="marker available" data-city-rank="29" data-city-id="nashik" transform="translate(94 266)"><title>29. Nashik — Maharashtra — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="30" data-city-id="vijayawada" transform="translate(139 305)"><title>30. Vijayawada — Andhra Pradesh — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="31" data-city-id="madurai" transform="translate(122 378)"><title>31. Madurai — Tamil Nadu — available statewide-neutral route</title><circle r="3.6"/></g>
-    <g class="marker available" data-city-rank="32" data-city-id="varanasi" transform="translate(153 207)"><title>32. Varanasi — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
-    <g class="marker available" data-city-rank="33" data-city-id="meerut" transform="translate(119 160)"><title>33. Meerut — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="32" data-city-id="varanasi" transform="translate(153 207)"><title>32. Varanasi — Uttar Pradesh — available statewide-neutral route</title><circle r="3.6"/></g>
+    <g class="marker available" data-city-rank="33" data-city-id="meerut" transform="translate(119 160)"><title>33. Meerut — Uttar Pradesh — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="34" data-city-id="faridabad" transform="translate(117 177)"><title>34. Faridabad — Haryana — available conservative structured city-name route</title><circle r="3.4"/></g>
     <g class="marker available" data-city-rank="35" data-city-id="rajkot" transform="translate(71 240)"><title>35. Rajkot — Gujarat — available conservative structured city-name route</title><circle r="3.4"/></g>
     <g class="marker available" data-city-rank="36" data-city-id="jamshedpur" transform="translate(174 236)"><title>36. Jamshedpur — Jharkhand — available conservative structured city-name route</title><circle r="3.4"/></g>
@@ -88,16 +88,16 @@
     <g class="marker available" data-city-rank="38" data-city-id="srinagar" transform="translate(99 107)"><title>38. Srinagar — Jammu and Kashmir — available conservative structured city-name route</title><circle r="3.4"/></g>
     <g class="marker available" data-city-rank="39" data-city-id="asansol" transform="translate(181 224)"><title>39. Asansol — West Bengal — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="40" data-city-id="vasai-virar" transform="translate(81 270)"><title>40. Vasai-Virar — Maharashtra — available reviewed-specific route</title><circle r="3.6"/></g>
-    <g class="marker available" data-city-rank="41" data-city-id="prayagraj" transform="translate(145 202)"><title>41. Prayagraj, Census name Allahabad — Uttar Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="41" data-city-id="prayagraj" transform="translate(145 202)"><title>41. Prayagraj, Census name Allahabad — Uttar Pradesh — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="42" data-city-id="dhanbad" transform="translate(175 220)"><title>42. Dhanbad — Jharkhand — available conservative structured city-name route</title><circle r="3.4"/></g>
     <g class="marker available" data-city-rank="43" data-city-id="chhatrapati-sambhajinagar" transform="translate(104 267)"><title>43. Chhatrapati Sambhajinagar, Census name Aurangabad — Maharashtra — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="44" data-city-id="amritsar" transform="translate(100 134)"><title>44. Amritsar — Punjab — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="45" data-city-id="jodhpur" transform="translate(87 197)"><title>45. Jodhpur — Rajasthan — available conservative structured city-name route</title><circle r="3.4"/></g>
     <g class="marker available" data-city-rank="46" data-city-id="ranchi" transform="translate(166 229)"><title>46. Ranchi — Jharkhand — available conservative structured city-name route</title><circle r="3.4"/></g>
-    <g class="marker available" data-city-rank="47" data-city-id="raipur" transform="translate(146 253)"><title>47. Raipur — Chhattisgarh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="47" data-city-id="raipur" transform="translate(146 253)"><title>47. Raipur — Chhattisgarh — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="48" data-city-id="kollam" transform="translate(108 391)"><title>48. Kollam — Kerala — available statewide-neutral route</title><circle r="3.6"/></g>
     <g class="marker available" data-city-rank="49" data-city-id="gwalior" transform="translate(123 196)"><title>49. Gwalior — Madhya Pradesh — available conservative structured city-name route</title><circle r="3.4"/></g>
-    <g class="marker available" data-city-rank="50" data-city-id="durg-bhilai" transform="translate(139 258)"><title>50. Durg-Bhilai — Chhattisgarh — available conservative structured city-name route</title><circle r="3.4"/></g>
+    <g class="marker available" data-city-rank="50" data-city-id="durg-bhilai" transform="translate(139 258)"><title>50. Durg-Bhilai — Chhattisgarh — available statewide-neutral route</title><circle r="3.6"/></g>
   </g>
 
   <g transform="translate(20 480)">
@@ -105,26 +105,26 @@
     <text x="14" y="8" class="legend">Available route · 50</text>
     <rect x="117" y="0" width="10" height="10" rx="3" fill="#2b1d14" stroke="#ff9b54"/>
     <text x="122" y="7.5" text-anchor="middle" fill="#ffb37d" font-size="6.5" font-weight="800">Aa</text>
-    <text x="132" y="8" class="legend">Structured city name · 24</text>
+    <text x="132" y="8" class="legend">Structured city name · 15</text>
   </g>
 
-  <rect x="20" y="504" width="280" height="96" rx="14" fill="url(#state-card)" stroke="#ff7a1a"/>
+  <rect x="20" y="504" width="280" height="104" rx="14" fill="url(#state-card)" stroke="#ff7a1a"/>
   <text x="36" y="523" fill="#ffb37d" font-size="8.5" font-weight="800" letter-spacing="1">STATEWIDE NEUTRAL HANDOFFS</text>
-  <text x="36" y="541" fill="#ffffff" font-size="11" font-weight="750">Maharashtra · West Bengal · Punjab</text>
-  <text x="36" y="553" fill="#ffffff" font-size="11" font-weight="750">Tamil Nadu · Karnataka · Kerala</text>
-  <text x="36" y="565" fill="#ffffff" font-size="11" font-weight="750">Andhra Pradesh · Telangana</text>
-  <text x="36" y="577" fill="#d8b499" font-size="7.7">Chandigarh UT is outside Punjab coverage</text>
-  <text x="36" y="585" fill="#d8b499" font-size="7.7">Puducherry/Karaikal and Yanam stay outside their state routes</text>
-  <text x="36" y="593" fill="#d8b499" font-size="7.7">Mahe UT is outside Kerala coverage</text>
+  <text x="36" y="539" fill="#ffffff" font-size="10.5" font-weight="750">Maharashtra · West Bengal · Punjab</text>
+  <text x="36" y="551" fill="#ffffff" font-size="10.5" font-weight="750">Karnataka · Kerala · Tamil Nadu</text>
+  <text x="36" y="563" fill="#ffffff" font-size="10.5" font-weight="750">Andhra Pradesh · Telangana</text>
+  <text x="36" y="575" fill="#ffffff" font-size="10.5" font-weight="750">Uttar Pradesh · Chhattisgarh</text>
+  <text x="36" y="588" fill="#d8b499" font-size="7.5">Chandigarh, Puducherry/Karaikal, Yanam and Mahe stay excluded</text>
+  <text x="36" y="599" fill="#d8b499" font-size="7.5">Delhi NCT is outside Uttar Pradesh and keeps its own route</text>
 
-  <rect x="20" y="612" width="280" height="62" rx="14" fill="url(#road-card)" stroke="#315e3e"/>
-  <g transform="translate(35 627)">
+  <rect x="20" y="616" width="280" height="58" rx="14" fill="url(#road-card)" stroke="#315e3e"/>
+  <g transform="translate(35 625)">
     <path d="M0 26 7 0h14l7 26Z" fill="#25392b" stroke="#3ecf6f"/>
     <path d="M14 3v6m0 5v7" stroke="#b4f3c8" stroke-width="2" stroke-linecap="round"/>
   </g>
-  <text x="76" y="635" fill="#7ce89f" font-size="9" font-weight="800" letter-spacing="0.9">ACROSS INDIA</text>
-  <text x="76" y="654" fill="#f2f2f4" font-size="14" font-weight="750">Mapped National Highways</text>
-  <text x="76" y="668" fill="#a9c7b2" font-size="9">Separate pothole route on NH / NE carriageways</text>
+  <text x="76" y="633" fill="#7ce89f" font-size="9" font-weight="800" letter-spacing="0.9">ACROSS INDIA</text>
+  <text x="76" y="651" fill="#f2f2f4" font-size="14" font-weight="750">Mapped National Highways</text>
+  <text x="76" y="665" fill="#a9c7b2" font-size="9">Separate pothole route on NH / NE carriageways</text>
 
   <line x1="20" y1="687" x2="300" y2="687" stroke="#2a2b30"/>
   <text x="160" y="702" text-anchor="middle" fill="#85868c" font-size="8.3">Schematic centres · operational boundaries and channels vary</text>

@@ -30,8 +30,8 @@ async () => {
   // envelope checks. This is the same lazy path production routing takes.
   const coverage = await P.delhiCoverage();
 
-  eq("registry: version includes statewide Karnataka and Kerala routing",
-     P.AUTHORITY_REGISTRY_VERSION, 14);
+  eq("registry: version includes the current statewide routing expansion",
+     P.AUTHORITY_REGISTRY_VERSION, 15);
   eq("registry: Delhi route has a stable ID", P.DELHI_PWD_AUTHORITY.id, "dl-pwd-sewa");
   eq("registry: primary route is PWD Sewa", P.DELHI_PWD_AUTHORITY.handoff_name, "PWD Sewa");
   ok("registry: primary complaint route is official HTTPS",
@@ -148,10 +148,18 @@ async () => {
     return originalFetch(url, ...args);
   };
   const noida = await P.routeOfficer(
-    {city: "Noida", state: "Uttar Pradesh", country_code: "in"}, 28.5355, 77.3910, 12);
+    {city: "Noida", state: "Uttar Pradesh", country_code: "in"},
+    28.5355, 77.3910, 12, null, null, "garbage");
+  const ghaziabad = await P.routeOfficer(
+    {city: "Ghaziabad", state: "Uttar Pradesh", country_code: "in"},
+    28.6692, 77.4538, 12, null, null, "garbage");
   window.fetch = originalFetch;
-  eq("state isolation: NCR outside Delhi stays outside", noida && noida.unrouted_reason,
-     "outside_area");
+  eq("state isolation: Noida routes through exact Uttar Pradesh containment",
+     noida && [noida.authority_id, noida.routing_pack_id, noida.region],
+     ["up-statewide-unverified", "in-up-routing", "uttar-pradesh-state"]);
+  eq("state isolation: Ghaziabad routes through exact Uttar Pradesh containment",
+     ghaziabad && [ghaziabad.authority_id, ghaziabad.routing_pack_id, ghaziabad.region],
+     ["up-statewide-unverified", "in-up-routing", "uttar-pradesh-state"]);
   eq("state isolation: Delhi/NCR envelope never calls Karnataka GIS", kgisCalls, 0);
 
   return checks;
@@ -212,6 +220,32 @@ def main():
                 failures.append(name)
                 print(f"  FAIL {name}\n         got  {got}\n         want {want}")
 
+        def check_failed_delhi_pack(page, label):
+            routed = page.evaluate("""async () => {
+              const P = StandaloneAPI.__pure;
+              const delhi = await P.routeOfficer(
+                {city:'Delhi',state:'Delhi',country_code:'in'},
+                28.6129,77.2295,12,null,null,'garbage');
+              const noida = await P.routeOfficer(
+                {city:'Noida',state:'Uttar Pradesh',country_code:'in'},
+                28.5355,77.3910,12,null,null,'garbage');
+              const ghaziabad = await P.routeOfficer(
+                {city:'Ghaziabad',state:'Uttar Pradesh',country_code:'in'},
+                28.6692,77.4538,12,null,null,'garbage');
+              return {delhi,noida,ghaziabad};
+            }""")
+            if routed["delhi"].get("unrouted_reason") != "jurisdiction_unavailable":
+                failures.append(
+                    f"{label} Delhi coverage did not fail closed: {routed['delhi']!r}"
+                )
+            for city in ("noida", "ghaziabad"):
+                route = routed[city]
+                if [route.get("authority_id"), route.get("routing_pack_id")] \
+                        != ["up-statewide-unverified", "in-up-routing"]:
+                    failures.append(
+                        f"{label} Delhi coverage blocked valid {city.title()}: {route!r}"
+                    )
+
         def malformed(route):
             route.fulfill(
                 status=200,
@@ -222,11 +256,7 @@ def main():
             )
 
         context, page = run_scenario(browser, malformed)
-        reason = page.evaluate(
-            "async () => (await StandaloneAPI.__pure.routeOfficer(null,28.6129,77.2295,12)).unrouted_reason"
-        )
-        if reason != "jurisdiction_unavailable":
-            failures.append(f"malformed coverage did not fail closed: {reason}")
+        check_failed_delhi_pack(page, "malformed")
         context.close()
 
         def wrong_but_valid(route):
@@ -240,21 +270,13 @@ def main():
             )
 
         context, page = run_scenario(browser, wrong_but_valid)
-        reason = page.evaluate(
-            "async () => (await StandaloneAPI.__pure.routeOfficer(null,28.6129,77.2295,12)).unrouted_reason"
-        )
-        if reason != "jurisdiction_unavailable":
-            failures.append(f"valid-shaped wrong coverage did not fail closed: {reason}")
+        check_failed_delhi_pack(page, "valid-shaped wrong")
         context.close()
 
         context, page = run_scenario(
             browser, lambda route: route.fulfill(status=404, body="missing")
         )
-        reason = page.evaluate(
-            "async () => (await StandaloneAPI.__pure.routeOfficer(null,28.6129,77.2295,12)).unrouted_reason"
-        )
-        if reason != "jurisdiction_unavailable":
-            failures.append(f"missing coverage did not fail closed: {reason}")
+        check_failed_delhi_pack(page, "missing")
         context.close()
         browser.close()
 

@@ -84,7 +84,11 @@ def rounded_geometry(raw: Any, label: str) -> dict[str, Any]:
         if isinstance(value, list) and value and isinstance(value[0], (int, float)):
             if len(value) < 2 or not all(math.isfinite(float(item)) for item in value[:2]):
                 raise BuildError(f"the {label} geometry contains an invalid coordinate")
-            return [round(float(value[0]), 7), round(float(value[1]), 7)]
+            # JSON.parse/JSON.stringify normalises an integral JSON number such as
+            # ``79.0`` to ``79``. Coerce those coordinates here so the build-time
+            # geometry digest is identical to the browser's runtime digest.
+            rounded = [round(float(value[0]), 7), round(float(value[1]), 7)]
+            return [int(item) if item.is_integer() else item for item in rounded]
         if isinstance(value, list):
             return [visit(child) for child in value]
         raise BuildError(f"the {label} geometry has an invalid coordinate structure")

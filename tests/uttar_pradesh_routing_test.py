@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Kerala routes by its exact state polygon before legacy city-name compatibility routes."""
+"""Uttar Pradesh uses exact statewide containment without swallowing Delhi or MP."""
 
 from __future__ import annotations
 
@@ -12,25 +12,25 @@ from state_pack_utils import read_pack, read_payload, resource_for, route_patter
 
 
 APP = "http://localhost:8765/"
-PACK_ID = "in-kl-routing"
+PACK_ID = "in-up-routing"
 EXPECTED_GEOMETRY_SHA256 = (
-    "51e226750b1d6c08a5030e6074e2641282e01c328f46d8aee741de664bef705c"
+    "2dbb5237cab5eb029f517c1d79451663c1fc49affe0e0789b11f0565180db015"
 )
 INSIDE = [
-    {"name": "Thiruvananthapuram", "lat": 8.5241, "lng": 76.9366},
-    {"name": "Kochi", "lat": 9.9312, "lng": 76.2673},
-    {"name": "Kozhikode", "lat": 11.2588, "lng": 75.7804},
-    {"name": "Kannur", "lat": 11.8745, "lng": 75.3704},
-    # Non-top-50 interior points prove that this is not a city-name expansion.
-    {"name": "rural Idukki", "lat": 9.8500, "lng": 77.0500},
-    {"name": "Wayanad", "lat": 11.6854, "lng": 76.1320},
+    {"name": "Lucknow", "lat": 26.8381, "lng": 80.9346},
+    {"name": "Kanpur", "lat": 26.4609, "lng": 80.3218},
+    {"name": "Varanasi", "lat": 25.3356, "lng": 83.0076},
+    {"name": "Agra", "lat": 27.1753, "lng": 78.0098},
+    {"name": "Ghaziabad", "lat": 28.6712, "lng": 77.4120},
+    {"name": "Noida", "lat": 28.5355, "lng": 77.3910},
+    # A non-top-50 point proves that this is a state polygon, not a city list.
+    {"name": "Gorakhpur", "lat": 26.7606, "lng": 83.3732},
 ]
 OUTSIDE = [
-    # Mahe is a Puducherry enclave and must not inherit Kerala from a stale geocoder.
-    {"name": "Mahe", "lat": 11.7006, "lng": 75.5360},
-    {"name": "Mangaluru", "lat": 12.9141, "lng": 74.8560},
-    {"name": "Kanyakumari", "lat": 8.0883, "lng": 77.5385},
-    {"name": "Lakshadweep", "lat": 10.5667, "lng": 72.6417},
+    {"name": "Delhi", "lat": 28.6129, "lng": 77.2295},
+    {"name": "Gwalior", "lat": 26.2037, "lng": 78.1574},
+    {"name": "Patna", "lat": 25.6093, "lng": 85.1235},
+    {"name": "Jaipur", "lat": 26.9155, "lng": 75.8190},
 ]
 
 
@@ -48,10 +48,10 @@ async ({inside, outside}) => {
     !Object.prototype.hasOwnProperty.call(value || {}, field));
 
   const manifest = await P.getStatePackManifest();
-  const resource = manifest && manifest.resources && manifest.resources["in-kl-routing"];
-  const coverage = await P.keralaCoverage();
+  const resource = manifest && manifest.resources && manifest.resources["in-up-routing"];
+  const coverage = await P.uttarPradeshCoverage();
   const region = coverage && coverage.region;
-  const pack = await P.loadStatePack("in-kl-routing");
+  const pack = await P.loadStatePack("in-up-routing");
   const legacyCities = await P.majorCityCoverage();
 
   eq("pack: v1.31 has seventeen independently pinned resources",
@@ -59,27 +59,27 @@ async ({inside, outside}) => {
   ok("pack: statewide manifest entry exists", resource, manifest);
   eq("pack: adapter is data-only", resource && resource.adapter,
      "statewide-general-v1");
-  eq("pack: state code is Kerala", resource && resource.state_code, "KL");
+  eq("pack: state code is Uttar Pradesh", resource && resource.state_code, "UP");
   eq("pack: full-state scope is explicit", resource && resource.statewide, true);
   ok("pack: content digest is pinned",
      resource && /^[0-9a-f]{64}$/.test(resource.sha256), resource);
   eq("pack: path is content-addressed", resource && resource.path,
-     resource && `packs/v1/states/kl/routing-${resource.sha256}.json`);
-  eq("pack: statewide rollout does not mutate the compatibility city inventory",
+     resource && `packs/v1/states/up/routing-${resource.sha256}.json`);
+  eq("pack: immutable compatibility inventory is retained",
      legacyCities && legacyCities.regions && legacyCities.regions.length, 35);
 
   ok("coverage: pinned payload loads", region, coverage);
-  eq("coverage: stable region ID", region && region.id, "kerala-state");
+  eq("coverage: stable region ID", region && region.id, "uttar-pradesh-state");
   eq("coverage: stable authority ID", region && region.authority_id,
-     "kl-statewide-unverified");
-  eq("coverage: relation ID is pinned", region && region.osm_relation_id, 2018151);
+     "up-statewide-unverified");
+  eq("coverage: relation ID is pinned", region && region.osm_relation_id, 1942587);
   eq("coverage: geometry digest is pinned", region && region.geometry_sha256,
-     P.KERALA_STATE_GEOMETRY_SHA256);
+     P.UTTAR_PRADESH_STATE_GEOMETRY_SHA256);
   ok("coverage: source attribution is explicit",
      /OpenStreetMap contributors/.test(region && region.source_name || "")
        && /ODbL/.test(region && region.source_license || ""), region);
-  ok("coverage: scope explicitly excludes Mahe",
-     /excludes Mahe, Puducherry Union Territory/i.test(region && region.scope || ""),
+  ok("coverage: Delhi exclusion is explicit",
+     /excludes Delhi National Capital Territory/i.test(region && region.scope || ""),
      region && region.scope);
   ok("coverage: limitations disclaim ownership and automatic submission",
      (region && region.limitations || []).some((item) => /ownership is not inferred/i.test(item))
@@ -88,27 +88,29 @@ async ({inside, outside}) => {
 
   eq("registry: statewide expansion is versioned", P.AUTHORITY_REGISTRY_VERSION, 15);
   eq("registry: stable statewide authority is installed",
-     P.KERALA_STATE_AUTHORITY.id, "kl-statewide-unverified");
-  eq("registry: primary CMO grievance handoff",
-     P.KERALA_STATE_AUTHORITY.handoff_url,
-     "https://complaints.cmo.kerala.gov.in/cmoportal/login.htm?lang=en");
-  eq("registry: K-SMART remains the local-body alternative",
-     P.KERALA_STATE_AUTHORITY.alternate_handoff_url,
-     "https://ksmart.lsgkerala.gov.in/ui/web-portal/services");
+     P.UTTAR_PRADESH_STATE_AUTHORITY.id, "up-statewide-unverified");
+  eq("registry: primary Jansunwai handoff",
+     P.UTTAR_PRADESH_STATE_AUTHORITY.handoff_url,
+     "https://jansunwai.up.nic.in/?language=en_US");
+  eq("registry: official Android package is retained",
+     P.UTTAR_PRADESH_STATE_AUTHORITY.handoff_package,
+     "in.nic.up.jansunwai.upjansunwai");
+  eq("registry: state helpline", P.UTTAR_PRADESH_STATE_AUTHORITY.helpline, "1076");
   ok("registry: installed official routes pass structural validation",
      P.validateOfficialHandoffRegistry(P.OFFICIAL_AUTHORITIES), null);
 
   let saved = null;
   for (const fixture of inside) {
-    const raw = await P.keralaRouteFromGeocode(null, fixture.lat, fixture.lng, 12);
+    const raw = await P.uttarPradeshRouteFromGeocode(
+      null, fixture.lat, fixture.lng, 12);
     ok(`${fixture.name}: coordinates route without a geocoder`, raw && raw.routed, raw);
-    eq(`${fixture.name}: neutral Kerala authority`, raw && raw.authority_id,
-       "kl-statewide-unverified");
+    eq(`${fixture.name}: neutral Uttar Pradesh authority`, raw && raw.authority_id,
+       "up-statewide-unverified");
     eq(`${fixture.name}: exact state-boundary evidence`, raw && [
       raw.routing_source, raw.routing_match_field, raw.routing_match_value, raw.region,
     ], [
-      "osm_kerala_state_boundary", "boundary",
-      "Kerala (OpenStreetMap relation 2018151)", "kerala-state",
+      "osm_uttar_pradesh_state_boundary", "boundary",
+      "Uttar Pradesh (OpenStreetMap relation 1942587)", "uttar-pradesh-state",
     ]);
     eq(`${fixture.name}: official handoff only`, raw && raw.delivery_channel,
        "official_handoff");
@@ -121,8 +123,8 @@ async ({inside, outside}) => {
       raw.routing_pack_id, raw.routing_pack_version, raw.routing_pack_sha256,
       raw.routing_pack_state_code,
     ], [
-      "in-kl-routing", resource && resource.pack_version,
-      resource && resource.sha256, "KL",
+      "in-up-routing", resource && resource.pack_version,
+      resource && resource.sha256, "UP",
     ]);
     ok(`${fixture.name}: routing never claims submission`, absent(raw, [
       "official_grievance_id", "submitted_at", "sent_at", "handoff_opened_at",
@@ -130,82 +132,99 @@ async ({inside, outside}) => {
     for (const issue of ["road_damage", "garbage", "open_manhole"]) {
       const typed = P.routeForIssue(raw, issue);
       eq(`${fixture.name}/${issue}: remains routable`, typed && typed.routed, true);
-      eq(`${fixture.name}/${issue}: keeps Kerala authority`,
-         typed && typed.authority_id, "kl-statewide-unverified");
+      eq(`${fixture.name}/${issue}: keeps statewide authority`,
+         typed && typed.authority_id, "up-statewide-unverified");
       eq(`${fixture.name}/${issue}: issue is explicit`, typed && typed.issue_type, issue);
       eq(`${fixture.name}/${issue}: never becomes tender-eligible`,
          typed && typed.tender_eligible, false);
     }
-    if (fixture.name === "rural Idukki") {
+    if (fixture.name === "Gorakhpur") {
       saved = {...raw, ...fixture, gps_accuracy: 12, issue_type: "road_damage"};
     }
   }
 
-  const staleKerala = {
-    city: "Kozhikode", state: "Kerala", country_code: "in",
-    full: "stale Kerala address",
+  const staleUttarPradesh = {
+    city: "Lucknow", state: "Uttar Pradesh", country_code: "in",
+    full: "stale Uttar Pradesh address",
   };
   for (const fixture of outside) {
-    const direct = await P.keralaRouteFromGeocode(
-      staleKerala, fixture.lat, fixture.lng, 12);
+    const direct = await P.uttarPradeshRouteFromGeocode(
+      staleUttarPradesh, fixture.lat, fixture.lng, 12);
     eq(`${fixture.name}: stale state label cannot cross the polygon`, direct, null);
   }
 
-  const atLimit = await P.keralaRouteFromGeocode(null, 9.85, 77.05, 30);
+  const atLimit = await P.uttarPradeshRouteFromGeocode(null, 26.7606, 83.3732, 30);
   eq("accuracy: 30 metres is accepted away from the state edge",
-     atLimit && atLimit.authority_id, "kl-statewide-unverified");
+     atLimit && atLimit.authority_id, "up-statewide-unverified");
   for (const [label, accuracy] of [
     ["31 metres", 31], ["negative", -1], ["not finite", Number.NaN],
   ]) {
-    const uncertain = await P.keralaRouteFromGeocode(null, 9.85, 77.05, accuracy);
+    const uncertain = await P.uttarPradeshRouteFromGeocode(
+      null, 26.7606, 83.3732, accuracy);
     eq(`accuracy: ${label} fails closed`,
        uncertain && uncertain.unrouted_reason, "location_uncertain");
   }
   const edgePoint = region.geometry.type === "Polygon"
     ? region.geometry.coordinates[0][0]
     : region.geometry.coordinates[0][0][0];
-  const edge = await P.keralaRouteFromGeocode(
-    staleKerala, edgePoint[1], edgePoint[0], 5);
+  const edge = await P.uttarPradeshRouteFromGeocode(
+    staleUttarPradesh, edgePoint[1], edgePoint[0], 5);
   eq("boundary: a five-metre circle touching the state edge fails closed",
      edge && edge.unrouted_reason, "location_uncertain");
 
-  // Exact checked-in NH-66 line vertex in Kochi.
+  // Exact checked-in NE-6 line vertex near Kanpur.
   const highway = await P.routeOfficer(
-    {state: "Kerala", country_code: "in"},
-    9.87727, 76.30379, 5, null, null, "road_damage");
-  eq("precedence: NH-66 beats the Kerala state handoff",
+    {state: "Uttar Pradesh", country_code: "in"},
+    26.46653, 80.44522, 5, null, null, "road_damage");
+  eq("precedence: NE-6 beats the Uttar Pradesh statewide handoff",
      highway && [highway.authority_id, highway.highway_ref],
-     ["in-national-highway", "NH-66"]);
+     ["in-national-highway", "NE-6"]);
 
-  const kochi = await P.routeOfficer(
-    {city: "Kochi", state: "Kerala", country_code: "in"},
-    9.9312, 76.2673, 12, null, null, "garbage");
-  eq("precedence: exact state geometry supersedes the legacy Kochi city route",
-     kochi && [kochi.authority_id, kochi.routing_pack_id],
-     ["kl-statewide-unverified", "in-kl-routing"]);
-  const kozhikode = await P.routeOfficer(
-    {city: "Kozhikode", state: "Kerala", country_code: "in"},
-    11.2588, 75.7804, 12, null, null, "open_manhole");
-  eq("precedence: exact state geometry supersedes the legacy Kozhikode city route",
-     kozhikode && [kozhikode.authority_id, kozhikode.routing_pack_id],
-     ["kl-statewide-unverified", "in-kl-routing"]);
+  const delhi = await P.routeOfficer(
+    {city: "Delhi", state: "Delhi", country_code: "in"},
+    28.6129, 77.2295, 12, null, null, "garbage");
+  eq("precedence: exact Delhi NCT remains on its Delhi route",
+     delhi && [delhi.authority_id, delhi.routing_pack_id],
+     ["dl-pwd-sewa", "in-dl-routing"]);
 
-  ok("saved binding: valid current Kerala record is accepted",
+  for (const [city, lat, lng] of [
+    ["Kanpur", 26.4609, 80.3218], ["Lucknow", 26.8381, 80.9346],
+    ["Ghaziabad", 28.6712, 77.4120], ["Agra", 27.1753, 78.0098],
+    ["Varanasi", 25.3356, 83.0076], ["Meerut", 28.9963, 77.7062],
+    ["Prayagraj", 25.4381, 81.8338],
+  ]) {
+    const current = await P.routeOfficer(
+      {city, state:"Uttar Pradesh", country_code:"in"},
+      lat, lng, 12, null, null, "garbage");
+    eq(`supersession: ${city} uses exact statewide containment`,
+       current && [current.authority_id, current.routing_pack_id, current.region],
+       ["up-statewide-unverified", "in-up-routing", "uttar-pradesh-state"]);
+  }
+
+  const gwalior = await P.routeOfficer(
+    {city:"Gwalior", state:"Madhya Pradesh", country_code:"in"},
+    26.2037247, 78.1573628, 12, null, null, "garbage");
+  eq("cross-state: Gwalior falls through the overlapping UP envelope",
+     gwalior && [gwalior.authority_id, gwalior.routing_pack_id, gwalior.region],
+     ["in-mp-cm-helpline", "in-top50-routing", "gwalior"]);
+
+  ok("saved binding: valid current Uttar Pradesh record is accepted",
      saved && await P.savedOfficialRouteBinding(
-       saved, "in-kl-routing", "kl-statewide-unverified", pack), saved);
+       saved, "in-up-routing", "up-statewide-unverified", pack), saved);
   const rejected = async (name, changes) => {
     const candidate = {...saved, ...changes};
     const binding = await P.savedOfficialRouteBinding(
-      candidate, "in-kl-routing", "kl-statewide-unverified", pack);
+      candidate, "in-up-routing", "up-statewide-unverified", pack);
     eq(name, binding, null);
   };
   await rejected("saved binding: cross-pack ID is rejected",
     {routing_pack_id: "in-top50-routing"});
   await rejected("saved binding: forged digest is rejected",
     {routing_pack_sha256: "0".repeat(64)});
-  await rejected("saved binding: cross-region binding is rejected", {region: "kochi"});
-  await rejected("saved binding: Mahe coordinates are rejected",
-    {lat: 11.7006, lng: 75.5360});
+  await rejected("saved binding: cross-region binding is rejected",
+    {region: "lucknow"});
+  await rejected("saved binding: outside coordinates are rejected",
+    {lat: 28.6129, lng: 77.2295});
   await rejected("saved binding: over-30m accuracy is rejected", {gps_accuracy: 31});
   await rejected("saved binding: changed source is rejected",
     {routing_source: "nominatim_structured_city"});
@@ -215,16 +234,18 @@ async ({inside, outside}) => {
 """
 
 
-def open_page(browser, override=None):
+def open_page(browser, *, override=None, delhi_override=None):
     context = browser.new_context(viewport={"width": 390, "height": 844})
     if override is not None:
         context.route(route_pattern(PACK_ID), override)
+    if delhi_override is not None:
+        context.route(route_pattern("in-dl-routing"), delhi_override)
     page = context.new_page()
     page.goto(APP)
     page.wait_for_load_state("networkidle")
     page.wait_for_function(
         "() => window.StandaloneAPI && StandaloneAPI.__pure "
-        "&& typeof StandaloneAPI.__pure.keralaRouteFromGeocode === 'function'",
+        "&& typeof StandaloneAPI.__pure.uttarPradeshRouteFromGeocode === 'function'",
         timeout=30_000,
     )
     return context, page
@@ -243,19 +264,19 @@ def main() -> None:
         ).encode("utf-8")
         actual_digest = hashlib.sha256(encoded_geometry).hexdigest()
         if pack.get("adapter") != "statewide-general-v1":
-            failures.append(f"unexpected Kerala adapter: {pack.get('adapter')!r}")
-        if pack.get("state_code") != "KL" or pack.get("pack_id") != PACK_ID:
-            failures.append("Kerala hosted pack identity is invalid")
+            failures.append(f"unexpected Uttar Pradesh adapter: {pack.get('adapter')!r}")
+        if pack.get("state_code") != "UP" or pack.get("pack_id") != PACK_ID:
+            failures.append("Uttar Pradesh hosted pack identity is invalid")
         if payload.get("retrieved_at") != "2026-08-25":
-            failures.append("Kerala retrieval date is not pinned")
+            failures.append("Uttar Pradesh retrieval date is not pinned")
         if actual_digest != EXPECTED_GEOMETRY_SHA256:
-            failures.append(f"Kerala geometry digest changed: {actual_digest}")
+            failures.append(f"Uttar Pradesh geometry digest changed: {actual_digest}")
         if region.get("geometry_sha256") != EXPECTED_GEOMETRY_SHA256:
-            failures.append("Kerala payload does not record the pinned geometry digest")
+            failures.append("Uttar Pradesh payload does not record the pinned geometry digest")
         if hashlib.sha256(raw).hexdigest() != resource_for(PACK_ID).get("sha256"):
-            failures.append("Kerala hosted pack digest changed after validation")
+            failures.append("Uttar Pradesh hosted pack digest changed after validation")
     except (AssertionError, KeyError, OSError, TypeError, ValueError) as error:
-        failures.append(f"Kerala routing pack pin is invalid: {error}")
+        failures.append(f"Uttar Pradesh routing pack pin is invalid: {error}")
 
     if not raw:
         print("FAIL")
@@ -273,6 +294,21 @@ def main() -> None:
                 failures.append(name)
                 print(f"  FAIL {name}\n         got  {got!r}\n         want {want!r}")
 
+        # Delhi's pack is an independent candidate. Its failure inside the broad NCR
+        # envelope must not block exact Uttar Pradesh containment in Ghaziabad.
+        context, page = open_page(
+            browser,
+            delhi_override=lambda route: route.fulfill(status=404, body="missing"),
+        )
+        ghaziabad = page.evaluate("""async () => StandaloneAPI.__pure.routeOfficer(
+          {city:'Ghaziabad',state:'Uttar Pradesh',country_code:'in'},
+          28.6711527,77.4120356,12,null,null,'garbage')""")
+        if [ghaziabad.get("authority_id"), ghaziabad.get("routing_pack_id")] \
+                != ["up-statewide-unverified", "in-up-routing"]:
+            failures.append(f"missing Delhi pack blocked valid Ghaziabad: {ghaziabad!r}")
+        extra_checks += 1
+        context.close()
+
         for label, responder in [
             ("missing", lambda route: route.fulfill(status=404, body="missing")),
             (
@@ -280,25 +316,36 @@ def main() -> None:
                 lambda route: route.fulfill(
                     status=200,
                     content_type="application/json",
-                    body=raw.replace(b"Kerala", b"Xerala", 1),
+                    body=raw.replace(b"Uttar Pradesh", b"Xttar Pradesh", 1),
                 ),
             ),
         ]:
-            context, page = open_page(browser, responder)
+            context, page = open_page(browser, override=responder)
             failed = page.evaluate("""async () => {
               const P = StandaloneAPI.__pure;
-              const direct = await P.keralaRouteFromGeocode(null,9.9312,76.2673,12);
+              const direct = await P.uttarPradeshRouteFromGeocode(
+                null,26.8381,80.9346,12);
               const orchestrated = await P.routeOfficer(
-                {city:'Kochi',state:'Kerala',country_code:'in'},
-                9.9312,76.2673,12,null,null,'garbage');
-              return {direct, orchestrated};
+                {city:'Lucknow',state:'Uttar Pradesh',country_code:'in'},
+                26.8381,80.9346,12,null,null,'garbage');
+              const unrelated = await P.routeOfficer(
+                {city:'Gwalior',state:'Madhya Pradesh',country_code:'in'},
+                26.2037247,78.1573628,12,null,null,'garbage');
+              return {direct, orchestrated, unrelated};
             }""")
-            for route_name, result in failed.items():
+            for route_name in ("direct", "orchestrated"):
+                result = failed[route_name]
                 if not isinstance(result, dict) or result.get("routed") is not False \
                         or result.get("unrouted_reason") != "jurisdiction_unavailable":
                     failures.append(
-                        f"{label} Kerala pack allowed {route_name} or old city fallback: {result!r}"
+                        f"{label} UP pack allowed {route_name} or old city fallback: {result!r}"
                     )
+            unrelated = failed["unrelated"]
+            if [unrelated.get("authority_id"), unrelated.get("routing_pack_id")] \
+                    != ["in-mp-cm-helpline", "in-top50-routing"]:
+                failures.append(
+                    f"{label} UP pack blocked unrelated Gwalior fallback: {unrelated!r}"
+                )
             extra_checks += len(failed)
             context.close()
         browser.close()
@@ -308,7 +355,7 @@ def main() -> None:
         for failure in failures:
             print("  -", failure)
         raise SystemExit(1)
-    print(f"KERALA STATEWIDE ROUTING TEST PASS ({len(results) + extra_checks + 5} checks)")
+    print(f"UTTAR PRADESH ROUTING TEST PASS ({len(results) + extra_checks + 5} checks)")
 
 
 if __name__ == "__main__":

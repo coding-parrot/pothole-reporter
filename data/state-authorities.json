@@ -225,6 +225,33 @@
       }
     ]
   },
+  "UP": {
+    "authorities": [
+      {
+        "id": "up-statewide-unverified",
+        "name": "Uttar Pradesh authority (select in Jansunwai)",
+        "aliases": ["uttar pradesh", "उत्तर प्रदेश"],
+        "handoff_name": "UP Jansunwai–Samadhan",
+        "handoff_url": "https://jansunwai.up.nic.in/?language=en_US",
+        "handoff_package": "in.nic.up.jansunwai.upjansunwai",
+        "helpline": "1076"
+      }
+    ]
+  },
+  "CG": {
+    "authorities": [
+      {
+        "id": "cg-statewide-unverified",
+        "name": "Chhattisgarh authority (select in CM Helpline)",
+        "aliases": ["chhattisgarh", "छत्तीसगढ़", "छत्तीसगढ़"],
+        "handoff_name": "Chhattisgarh CM Helpline",
+        "handoff_url": "https://cmhelpline.cg.gov.in/Home/VerifyOTPBeforeOnlineComplaint",
+        "alternate_handoff_name": "NIDAAN 1100 (urban civic issues)",
+        "alternate_handoff_url": "https://crm.nidaan.cg.gov.in/",
+        "helpline": "1076"
+      }
+    ]
+  },
   "AP": {
     "authorities": [
       {

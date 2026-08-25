@@ -10,17 +10,18 @@ photo, routing, and any probable contract match before sending a complaint.
 
 Large routing, contact, and procurement datasets are not embedded in the APK. The app
 ships a small manifest that pins each supported resource's version, HTTPS URL, byte
-length, and SHA-256 checksum. The v1.30 state-pack manifest contains 15 resources: fourteen
-routing/contact packs covering Andhra Pradesh, Delhi, Gujarat, Karnataka, Kerala,
-Maharashtra, Punjab, Tamil Nadu, Telangana, West Bengal, and the additional top-50 city
-routes, plus one optional Karnataka tender pack. Karnataka, Tamil Nadu, and Telangana each
+length, and SHA-256 checksum. The v1.31 state-pack manifest contains 17 resources: sixteen
+routing/contact packs covering Andhra Pradesh, Chhattisgarh, Delhi, Gujarat, Karnataka,
+Kerala, Maharashtra, Punjab, Tamil Nadu, Telangana, Uttar Pradesh, West Bengal, and the
+additional top-50 city routes, plus one optional Karnataka tender pack. Karnataka, Tamil Nadu, and Telangana each
 use separate statewide and more-specific routing packs. Procurement data is
 requested only for an eligible Karnataka contract match.
 The old unversioned ten-resource manifest remains unchanged for cached v1.25 clients, and
 the versioned v1.26 eleven-resource manifest remains unchanged for cached v1.26 clients.
 The versioned v1.27 twelve-resource, v1.28 thirteen-resource, and v1.29 thirteen-resource
-manifests also remain unchanged for their cached clients. v1.30 reads
-`pack-manifest-v1.30.json`, preventing a mixed-cache release from disabling otherwise valid
+manifests also remain unchanged for their cached clients. The v1.30 fifteen-resource
+manifest remains unchanged for its cached clients. v1.31 reads
+`pack-manifest-v1.31.json`, preventing a mixed-cache release from disabling otherwise valid
 routing. Its Karnataka tender resource
 uses the carriageway-scope-filtered v2 adapter.
 The Gujarat pack contains a dissolved copy of the reviewed 48-ward AMC boundary.
@@ -363,6 +364,48 @@ public complaint-write API, automatic filing, ownership inference, or contract m
 The seven Kerala entries retained in the immutable top-50 pack are compatibility data only;
 current routing uses the exact state boundary instead of their old city-name envelopes.
 
+## Uttar Pradesh statewide complaint handoff
+
+Every point whose complete GPS-accuracy circle is confidently inside
+[OpenStreetMap relation 1942587](https://www.openstreetmap.org/relation/1942587) is eligible
+for a neutral [UP Jansunwai–Samadhan](https://jansunwai.up.nic.in/?language=en_US) handoff
+after the National Highway and exact Delhi NCT checks. The ODbL state MultiPolygon was
+retrieved on 25 August 2026 at seven-decimal precision; the runtime pins geometry SHA-256
+`2dbb5237cab5eb029f517c1d79451663c1fc49affe0e0789b11f0565180db015`.
+Delhi NCT is outside the Uttar Pradesh boundary and retains its own route. A GPS accuracy
+circle touching Delhi, the state edge, or a neighbouring state fails closed.
+
+Jansunwai is a Government of Uttar Pradesh grievance service. Its official citizen Android
+package is
+[`in.nic.up.jansunwai.upjansunwai`](https://play.google.com/store/apps/details?id=in.nic.up.jansunwai.upjansunwai),
+and the published Chief Minister Helpline is **1076**. The public complaint flow is
+interactive and can require mobile verification and CAPTCHA. The user must select and
+verify the district, department, local body, issue category, and road owner, then complete
+the grievance externally. State containment does not identify any of those details, and
+Pothole Reporter does not call a complaint-write API, log in, bypass verification, file
+automatically, read status, or enable contract matching. The seven Uttar Pradesh entries
+retained in the immutable top-50 pack are compatibility data only; current routing uses the
+exact state boundary.
+
+## Chhattisgarh statewide complaint handoff
+
+Every point whose complete GPS-accuracy circle is confidently inside
+[OpenStreetMap relation 1972004](https://www.openstreetmap.org/relation/1972004) is eligible
+for a neutral [Chhattisgarh CM Helpline](https://cmhelpline.cg.gov.in/Home/VerifyOTPBeforeOnlineComplaint)
+handoff after the National Highway check. The ODbL state polygon was retrieved on
+25 August 2026 at seven-decimal precision; the runtime pins geometry SHA-256
+`827e89a598571ade84db77390bca5daf98c9f67fbae716b17193f4ccdc2876eb`.
+A GPS accuracy circle touching the state edge or a neighbouring state fails closed.
+
+The statewide service publishes helpline **1076**. [NIDAAN 1100](https://crm.nidaan.cg.gov.in/)
+is offered only as an urban civic-issue alternate, not as a rural or statewide substitute.
+The user must select and verify the district, department, local body, category, and road
+owner and complete the grievance externally. Neither containment nor either service proves
+responsibility, ownership, category acceptance, submission, or a contract. Pothole Reporter
+does not call a complaint-write API, log in, bypass OTP, file automatically, read status,
+or enable contract matching. The Raipur and Durg–Bhilai entries retained in the immutable
+top-50 pack are compatibility data only; current routing uses the exact state boundary.
+
 ## Census top-50 city routes
 
 The selection list is the 50 largest serial-numbered Urban Agglomeration/City entries by
@@ -373,15 +416,16 @@ Census 2011 is selection metadata, not current jurisdiction geometry. Historical
 aliases such as Bruhat Bangalore/Bengaluru, Ahmadabad/Ahmedabad,
 Allahabad/Prayagraj, and Aurangabad/Chhatrapati Sambhajinagar are retained separately.
 
-Twenty-six entries already use a reviewed city, NCT, Karnataka-body, or statewide
-Maharashtra/West Bengal/Punjab/Karnataka/Kerala/Tamil Nadu/Andhra Pradesh/Telangana route. The other 24 use a checksum-verified national
+Thirty-five entries already use a reviewed city, NCT, Karnataka-body, or statewide
+Maharashtra/West Bengal/Punjab/Karnataka/Kerala/Tamil Nadu/Andhra Pradesh/Telangana/Uttar Pradesh/Chhattisgarh route. The other 15 use a checksum-verified national
 routing pack. A new route is offered only when all of these agree:
 
-For saved-report compatibility, that immutable pack still physically contains eleven entries
+For saved-report compatibility, that immutable pack still physically contains twenty entries
 now covered statewide: Coimbatore and Madurai in Tamil Nadu; Visakhapatnam and Vijayawada
 in Andhra Pradesh; and Kochi, Kozhikode, Thrissur, Malappuram, Thiruvananthapuram, Kannur,
-and Kollam in Kerala. It keeps the v1.25 checksum. Current routing checks the exact state
-polygons first, so those entries are not counted among the 24 active structured-city
+and Kollam in Kerala; Kanpur, Lucknow, Ghaziabad, Agra, Varanasi, Meerut, and Prayagraj in
+Uttar Pradesh; and Raipur and Durg–Bhilai in Chhattisgarh. It keeps the v1.25 checksum.
+Current routing checks the exact state polygons first, so those entries are not counted among the 15 active structured-city
 routes and do not override statewide coverage.
 
 - GPS accuracy is 30 m or better and the point lies strictly inside the route's
@@ -390,20 +434,17 @@ routes and do not override statewide coverage.
   field and a matching state alias; and
 - the verified pack supplies the reviewed neutral official grievance handoff for that state.
 
-The 24 centres are Surat, Jaipur, Kanpur, Lucknow, Ghaziabad, Indore, Patna, Bhopal,
-Vadodara, Agra, Varanasi, Meerut, Faridabad, Rajkot, Jamshedpur, Jabalpur, Srinagar,
-Prayagraj, Dhanbad, Jodhpur, Ranchi, Raipur, Gwalior, and Durg-Bhilai. National Highway
+The 15 centres are Surat, Jaipur, Indore, Patna, Bhopal, Vadodara, Faridabad, Rajkot,
+Jamshedpur, Jabalpur, Srinagar, Dhanbad, Jodhpur, Ranchi, and Gwalior. National Highway
 routing still runs first.
 
 Reviewed neutral handoffs are [Gujarat eNagar](https://enagar.gujarat.gov.in/enagar/login.jsp),
 [Rajasthan Sampark](https://sampark.rajasthan.gov.in/),
-[UP Jansunwai](https://www.jansunwai.up.nic.in/),
 [MP CM Helpline](https://www.cmhelpline.mp.gov.in/),
 [Bihar Lok Shikayat](https://lokshikayat.bihar.gov.in/),
 [Haryana Nagar Darshan](https://nagardarshan.ulbharyana.gov.in/Default/CitizenEntry),
 [Jharkhand Municipal Grievance](https://municipalservices.jharkhand.gov.in/public/grievance_new/login),
-[JK Samadhan](https://samadhan.jk.gov.in/), and
-[Chhattisgarh NIDAAN](https://crm.nidaan.cg.gov.in/).
+[JK Samadhan](https://samadhan.jk.gov.in/).
 
 These relevance envelopes and map markers are not municipal polygons and do not claim
 the complete Census Urban Agglomeration. A stale state label, place text outside the
@@ -417,8 +458,9 @@ contract matching.
 
 Delhi-specific coverage is the full National Capital Territory, not the wider National
 Capital Region. Noida, Gurugram, Ghaziabad, Faridabad, and other NCR cities outside Delhi
-NCT cannot inherit the Delhi recipient. Ghaziabad and Faridabad can qualify separately
-through their conservative top-50 neutral routes. The Delhi routing pack contains the polygon for
+NCT cannot inherit the Delhi recipient. Noida and Ghaziabad can qualify separately through
+the exact Uttar Pradesh route, while Faridabad retains its conservative top-50 neutral
+route. The Delhi routing pack contains the polygon for
 [OpenStreetMap relation 1942586](https://www.openstreetmap.org/relation/1942586), retrieved
 through Nominatim on 21 August 2026 under the ODbL. Its measured area is 1,483.885 km²,
 consistent with Delhi's published 1,483 km² extent. The runtime pins SHA-256
@@ -643,10 +685,10 @@ does not assign a municipal recipient or guarantee category acceptance.
 
 **Source: OpenStreetMap, via Nominatim.** It turns coordinates into a street name and
 pincode for the complaint. In Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil
-Nadu, Andhra Pradesh, Telangana, Delhi, and Ahmedabad, address fields are display-only routing clues; only a
+Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh, Delhi, and Ahmedabad, address fields are display-only routing clues; only a
 verified cached polygon selects statewide or local polygon coverage. Exact Hyderabad CURE
 coverage instead requires the live official TGRAC response described above. Free-form
-geocoder text is never used to expand any polygon route. The 24 additional top-50 routes
+geocoder text is never used to expand any polygon route. The 15 additional top-50 routes
 are the explicit exception: they require
 exact configured `city` or `municipality` and state fields inside a conservative coordinate
 envelope and never use free-form display text. The coordinates themselves
@@ -716,13 +758,19 @@ That wording is deliberate and should not be strengthened.
 - Kerala-wide coverage uses a pinned ODbL state boundary and excludes Mahe. The Kerala CMO
   portal is neutral, and K-SMART is a local-body alternate; neither identifies the owner,
   category, contractor, or submission.
-- The 24 additional top-50 routes use conservative Nominatim search envelopes plus exact
+- Uttar Pradesh-wide coverage uses a pinned ODbL state boundary and excludes Delhi NCT.
+  Jansunwai–Samadhan is neutral; it does not identify the responsible department, local
+  body, road owner, category, contractor, or submission.
+- Chhattisgarh-wide coverage uses a pinned ODbL state boundary. The CM Helpline is neutral,
+  and NIDAAN 1100 is only an urban civic alternate; neither identifies the responsible
+  department, local body, road owner, category, contractor, or submission.
+- The 15 additional top-50 routes use conservative Nominatim search envelopes plus exact
   structured city/municipality and state aliases. They are not municipal polygons or
   complete Census Urban Agglomeration boundaries; a missing, stale, ambiguous, or
   boundary-touching match fails closed.
 - Delhi-specific coverage is the full NCT outline only. Other NCR points never inherit the
-  Delhi recipient; Ghaziabad and Faridabad may independently match their top-50 neutral
-  routes. Every accepted Delhi point uses a cross-agency grievance handoff because the
+  Delhi recipient; Noida and Ghaziabad may independently use the Uttar Pradesh route, while
+  Faridabad retains its top-50 neutral route. Every accepted Delhi point uses a cross-agency grievance handoff because the
   outline cannot establish whether PWD, MCD, NDMC, Cantonment, DDA, NHAI, or another
   agency maintains the road.
 - The Chennai-specific route is GCC only. Its ODbL polygon was checked against, but is not
@@ -742,7 +790,8 @@ That wording is deliberate and should not be strengthened.
   integrated statewide.
 - West Bengal contract matching is disabled for the same reason; neither state nor KMC
   containment establishes who owns or maintains a road.
-- Delhi, Tamil Nadu (including Chennai), Andhra Pradesh, Telangana (including Hyderabad), and Ahmedabad contract matching is disabled; a coverage response
+- Delhi, Tamil Nadu (including Chennai), Andhra Pradesh, Telangana (including Hyderabad),
+  Uttar Pradesh, Chhattisgarh, and Ahmedabad contract matching is disabled; a coverage response
   is neither ownership nor a contract match.
 - 137 of Karnataka's 319 local bodies have no address in the file because their district
   pages publish none. Those points cannot receive a specific municipal recipient, but can
@@ -759,8 +808,9 @@ That wording is deliberate and should not be strengthened.
 - Contracts are a snapshot. Re-run `tools/pull-kppp.py` to refresh.
 - The public Nominatim endpoint is cached on an approximately 11 m grid and serialized
   below one request per second. National or municipal-scale deployment must switch the
-  endpoint to a policy-compliant managed or self-hosted service. The 24 additional city
+  endpoint to a policy-compliant managed or self-hosted service. The 15 additional city
   routes depend on exact Nominatim structured fields. Maharashtra, West Bengal, Punjab,
-  Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Delhi, and Ahmedabad boundary routing remains local and does not depend on a geocoder
+  Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh,
+  Delhi, and Ahmedabad boundary routing remains local and does not depend on a geocoder
   response. Native Android Hyderabad routing sends the GPS-accuracy envelope to TGRAC's
   official CURE and Cantonment query services.

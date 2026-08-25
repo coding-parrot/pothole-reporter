@@ -34,6 +34,8 @@ VALIDATED_IDS = (
     "in-tg-state-routing",
     "in-ka-state-routing",
     "in-kl-routing",
+    "in-up-routing",
+    "in-cg-routing",
     "in-top50-routing",
 )
 
@@ -260,6 +262,35 @@ def main() -> int:
         ("in-kl-routing", "Mahe included in declared scope", lambda p, a: p[
             "region"
         ].update({"scope": "Full State of Kerala including Mahe"})),
+        ("in-up-routing", "wrong state relation", lambda p, a: p["region"].update(
+            {"osm_relation_id": 1}
+        )),
+        ("in-up-routing", "state geometry digest mismatch", lambda p, a: p[
+            "region"
+        ].update({"geometry_sha256": "0" * 64})),
+        ("in-up-routing", "missing statewide authority", lambda p, a: a.clear()),
+        ("in-up-routing", "unreviewed statewide grievance URL", lambda p, a: a[
+            0
+        ].update({"handoff_url": "https://example.invalid/unreviewed"})),
+        ("in-up-routing", "Delhi included in declared scope", lambda p, a: p[
+            "region"
+        ].update({"scope": "Full State of Uttar Pradesh including Delhi NCT"})),
+        ("in-up-routing", "wrong Jansunwai app package", lambda p, a: a[0].update(
+            {"handoff_package": "example.unreviewed.app"}
+        )),
+        ("in-cg-routing", "wrong state relation", lambda p, a: p["region"].update(
+            {"osm_relation_id": 1}
+        )),
+        ("in-cg-routing", "state geometry digest mismatch", lambda p, a: p[
+            "region"
+        ].update({"geometry_sha256": "0" * 64})),
+        ("in-cg-routing", "missing statewide authority", lambda p, a: a.clear()),
+        ("in-cg-routing", "unreviewed statewide grievance URL", lambda p, a: a[
+            0
+        ].update({"handoff_url": "https://example.invalid/unreviewed"})),
+        ("in-cg-routing", "changed reviewed scope", lambda p, a: p[
+            "region"
+        ].update({"scope": "Raipur only"})),
         ("in-top50-routing", "missing city region", lambda p, a: p["regions"].pop()),
         ("in-top50-routing", "changed Census rank", lambda p, a: p["regions"][0].update(
             {"rank": 8}

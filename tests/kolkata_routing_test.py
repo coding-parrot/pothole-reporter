@@ -29,7 +29,7 @@ async () => {
   const coverage = await P.kolkataCoverage();
 
   eq("registry: version includes statewide Karnataka and Kerala routing",
-     P.AUTHORITY_REGISTRY_VERSION, 14);
+     P.AUTHORITY_REGISTRY_VERSION, 15);
   eq("registry: KMC uses a stable ID", P.KMC_AUTHORITY.id, "wb-kmc");
   eq("registry: statewide fallback uses a stable ID",
      P.WEST_BENGAL_STATE_AUTHORITY.id, "wb-statewide-unverified");
