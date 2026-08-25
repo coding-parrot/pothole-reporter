@@ -40,7 +40,7 @@ Six services, and a demo venue's wifi can break any of them:
 - **Telangana's official TGRAC GIS** for the specific Hyderabad CURE and Cantonment checks.
   Android requires both live responses for My Cure and fails that specific route closed if
   either is unavailable; neutral statewide Prajavani can still be offered.
-- **OpenStreetMap Nominatim** for the street address and the 15 structured-city routes,
+- **OpenStreetMap Nominatim** for the street address and the 13 structured-city routes,
   which require exact city/municipality and state fields. Exact polygon routes do not depend
   on the returned place name; Ahmedabad uses the verified cached 48-ward AMC union.
 - **OpenStreetMap tiles** for the map on the dashboard. Without them the map renders
@@ -58,7 +58,7 @@ want on stage.
   source snapshot, not to the reduced pack.
 - **"Does it work outside Karnataka?"** Yes: the app covers the full States of Maharashtra,
   West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar
-  Pradesh, and Chhattisgarh; all 50 largest Census 2011 population centres; Delhi NCT;
+  Pradesh, Chhattisgarh, and Rajasthan; all 50 largest Census 2011 population centres; Delhi NCT;
   Android-verified official 2,053 km² Hyderabad CURE coverage; a reviewed 48-ward
   Ahmedabad footprint; and mapped National Highways across India.
   Maharashtra-wide coverage uses exact MMR/PMC routes where available and a neutral
@@ -66,7 +66,7 @@ want on stage.
   uses the neutral state PGRS elsewhere; neither state fallback identifies a road owner,
   district, department, or local body. Uttar Pradesh uses neutral Jansunwai–Samadhan and
   excludes Delhi NCT; Chhattisgarh uses the neutral CM Helpline, with NIDAAN 1100 only as
-  an urban civic alternate. Outside exact GCC limits, confidently contained Tamil Nadu points
+  an urban civic alternate; Rajasthan uses Rajasthan Sampark 2.0 and helpline 181. Outside exact GCC limits, confidently contained Tamil Nadu points
   use the neutral statewide route; Secunderabad Cantonment is excluded only from the specific
   My Cure route; and the wider AUDA area is excluded from Ahmedabad coverage. Contract
   matching remains Karnataka-only.
@@ -96,8 +96,8 @@ want on stage.
 - Not that statewide West Bengal coverage identifies a local body or road owner. Only the
   verified KMC polygon selects KMC; every other in-state point uses the neutral West Bengal
   PGRS handoff and requires the user to select and verify the district or department.
-- Not that Uttar Pradesh or Chhattisgarh containment identifies a local body, road owner,
-  complaint category, or department. Their statewide services are neutral external handoffs.
+- Not that Uttar Pradesh, Chhattisgarh, or Rajasthan containment identifies a local body,
+  road owner, complaint category, or department. Their statewide services are neutral external handoffs.
 - Not that the specific GCC route covers the whole Chennai metropolitan area: only the
   verified GCC polygon selects GCC; other confidently contained Tamil Nadu points use the
   neutral statewide handoff.

@@ -139,8 +139,8 @@
       "state_code": "RJ",
       "population": 3046163,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-rj-routing"
     },
     {
       "rank": 11,
@@ -559,8 +559,8 @@
       "state_code": "RJ",
       "population": 1138300,
       "coverage_status": "available",
-      "coverage_tier": "major-city-neutral",
-      "pack_id": "in-top50-routing"
+      "coverage_tier": "statewide-neutral",
+      "pack_id": "in-rj-routing"
     },
     {
       "rank": 46,

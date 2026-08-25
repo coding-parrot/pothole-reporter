@@ -57,7 +57,7 @@ with sync_playwright() as p:
     # Hyderabad's official TGRAC service is deliberately native-only. Simulate the
     # Capacitor shell while keeping immutable state packs local to the release fixture.
     context.add_init_script("window.Capacitor={isNativePlatform:()=>true,Plugins:{}};")
-    manifest = json.loads((ROOT / "static" / "pack-manifest-v1.31.json").read_text())
+    manifest = json.loads((ROOT / "static" / "pack-manifest-v1.33.json").read_text())
     local_packs = {
         resource["url"]: (ROOT / "docs" / resource["path"]).read_bytes()
         for resource in manifest["resources"].values()

@@ -280,6 +280,8 @@ def validate_catalog() -> None:
         if isinstance(item, dict) and item.get("pack_id") == "in-top50-routing"
     }
     compatibility_assignments = {
+        "jaipur": "in-rj-routing",
+        "jodhpur": "in-rj-routing",
         "kanpur": "in-up-routing",
         "lucknow": "in-up-routing",
         "ghaziabad": "in-up-routing",
@@ -302,7 +304,7 @@ def validate_catalog() -> None:
         "kollam": "in-kl-routing",
     }
     if routed_ids != expected_ids - set(compatibility_assignments):
-        raise BuildError("active top-50 inventory does not match the 15 reviewed centres")
+        raise BuildError("active top-50 inventory does not match the 13 reviewed centres")
     for city_id, pack_id in compatibility_assignments.items():
         item = by_id.get(city_id)
         if not isinstance(item, dict) or item.get("pack_id") != pack_id:

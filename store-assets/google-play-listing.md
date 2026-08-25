@@ -23,11 +23,11 @@ Use Photo while safely stopped. For road damage, securely mount the phone and us
 
 Coverage
 • Mapped operational National Highways and Expressways across India; Rajmargyatra/1033 is checked before regional routing.
-• Full-state neutral handoffs in Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, and Chhattisgarh.
+• Full-state neutral handoffs in Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh, and Rajasthan.
 • More-specific reviewed routes remain preferred for MMR, PMC, KMC, supported Karnataka urban bodies and Bengaluru, Greater Chennai, and verified Hyderabad CURE.
 • Karnataka uses Janaspandana, with Janahitha for urban issues and helpline 1902. Kerala uses the CMO grievance portal, with K-SMART for local-body issues; 1076 provides help/status but does not accept complaints by phone.
-• Uttar Pradesh uses Jansunwai–Samadhan and helpline 1076. Chhattisgarh uses the CM Helpline and helpline 1076, with NIDAAN 1100 only as an urban civic alternate.
-• All 50 largest Census 2011 population centres, Delhi NCT, and a reviewed Ahmedabad 48-ward footprint. Fifteen city routes require both a conservative coordinate envelope and exact structured city/state data.
+• Uttar Pradesh uses Jansunwai–Samadhan and helpline 1076. Chhattisgarh uses the CM Helpline and helpline 1076, with NIDAAN 1100 only as an urban civic alternate. Rajasthan uses Rajasthan Sampark 2.0 and helpline 181.
+• All 50 largest Census 2011 population centres, Delhi NCT, and a reviewed Ahmedabad 48-ward footprint. Thirteen city routes require both a conservative coordinate envelope and exact structured city/state data.
 
 Chandigarh is outside Punjab coverage; Puducherry and Karaikal are outside Tamil Nadu; Yanam is outside Andhra Pradesh; Mahe is outside Kerala; and Delhi NCT is outside Uttar Pradesh and keeps its own route. Locations outside supported routes are saved locally without a recipient.
 
@@ -46,10 +46,10 @@ Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
 Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.32.0 / version code 50)
+## Release notes (1.33.0 / version code 51)
 
 ```text
-Makes new and existing unsent complaint drafts shorter and clearer: authority and ward appear once, verification appears once at the end, and duplicate submission disclaimers are removed from shared evidence. Eligible Karnataka tender matches now show the tender number and work name with a clearly labelled warranty estimate.
+Adds full-state Rajasthan coverage through Rajasthan Sampark 2.0 and helpline 181. Jaipur and Jodhpur now use exact state-boundary routing, while National Highways continue to use Rajmargyatra/1033 first.
 ```
 
 ## Play Console fields

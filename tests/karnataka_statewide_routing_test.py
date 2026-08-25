@@ -54,8 +54,8 @@ async ({inside, outside}) => {
   const region = coverage && coverage.region;
   const pack = await P.loadStatePack("in-ka-state-routing");
 
-  eq("pack: v1.31 has seventeen independently pinned resources",
-     Object.keys(manifest && manifest.resources || {}).length, 17);
+  eq("pack: v1.33 has eighteen independently pinned resources",
+     Object.keys(manifest && manifest.resources || {}).length, 18);
   ok("pack: statewide manifest entry exists", resource, manifest);
   eq("pack: statewide adapter is data-only", resource && resource.adapter,
      "statewide-general-v1");
@@ -83,7 +83,7 @@ async ({inside, outside}) => {
        && (region && region.limitations || []).some((item) => /does not submit/i.test(item)),
      region && region.limitations);
 
-  eq("registry: statewide expansion is versioned", P.AUTHORITY_REGISTRY_VERSION, 15);
+  eq("registry: statewide expansion is versioned", P.AUTHORITY_REGISTRY_VERSION, 16);
   eq("registry: stable statewide authority is installed",
      P.KARNATAKA_STATE_AUTHORITY.id, "ka-statewide-unverified");
   eq("registry: primary Janaspandana handoff",

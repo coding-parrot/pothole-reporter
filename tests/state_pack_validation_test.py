@@ -36,6 +36,7 @@ VALIDATED_IDS = (
     "in-kl-routing",
     "in-up-routing",
     "in-cg-routing",
+    "in-rj-routing",
     "in-top50-routing",
 )
 
@@ -291,6 +292,22 @@ def main() -> int:
         ("in-cg-routing", "changed reviewed scope", lambda p, a: p[
             "region"
         ].update({"scope": "Raipur only"})),
+        ("in-rj-routing", "wrong state relation", lambda p, a: p["region"].update(
+            {"osm_relation_id": 1}
+        )),
+        ("in-rj-routing", "state geometry digest mismatch", lambda p, a: p[
+            "region"
+        ].update({"geometry_sha256": "0" * 64})),
+        ("in-rj-routing", "missing statewide authority", lambda p, a: a.clear()),
+        ("in-rj-routing", "unreviewed statewide grievance URL", lambda p, a: a[
+            0
+        ].update({"handoff_url": "https://example.invalid/unreviewed"})),
+        ("in-rj-routing", "changed reviewed scope", lambda p, a: p[
+            "region"
+        ].update({"scope": "Jaipur only"})),
+        ("in-rj-routing", "wrong Sampark app package", lambda p, a: a[0].update(
+            {"handoff_package": "example.unreviewed.app"}
+        )),
         ("in-top50-routing", "missing city region", lambda p, a: p["regions"].pop()),
         ("in-top50-routing", "changed Census rank", lambda p, a: p["regions"][0].update(
             {"rank": 8}

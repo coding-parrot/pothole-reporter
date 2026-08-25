@@ -47,15 +47,15 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
             "National Highways", "across India",
             "Maharashtra", "West Bengal", "Punjab", "Karnataka", "Kerala", "Mahe",
             "Tamil Nadu", "Andhra Pradesh", "Yanam", "Telangana",
-            "Uttar Pradesh", "Chhattisgarh", "Census top-50",
+            "Uttar Pradesh", "Chhattisgarh", "Rajasthan", "Census top-50",
             "Delhi NCT",
         )):
             fails.append(f"{name}: English out-of-coverage text omits a supported region")
-        if any(term not in coverage[1] for term in ("ಭಾರತದೆಲ್ಲೆಡೆ", "ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಗಳು", "ಸಂಪೂರ್ಣ ಮಹಾರಾಷ್ಟ್ರ", "ಪಶ್ಚಿಮ ಬಂಗಾಳ", "ಪಂಜಾಬ್", "ಕರ್ನಾಟಕ", "ಕೇರಳ", "ಮಾಹೆ", "ತಮಿಳುನಾಡು", "ಆಂಧ್ರ ಪ್ರದೇಶ", "ಯಾನಂ", "ತೆಲಂಗಾಣ", "ಉತ್ತರ ಪ್ರದೇಶ", "ಛತ್ತೀಸ್‌ಗಢ", "ಟಾಪ್-50", "ದೆಹಲಿ NCT")):
+        if any(term not in coverage[1] for term in ("ಭಾರತದೆಲ್ಲೆಡೆ", "ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿಗಳು", "ಸಂಪೂರ್ಣ ಮಹಾರಾಷ್ಟ್ರ", "ಪಶ್ಚಿಮ ಬಂಗಾಳ", "ಪಂಜಾಬ್", "ಕರ್ನಾಟಕ", "ಕೇರಳ", "ಮಾಹೆ", "ತಮಿಳುನಾಡು", "ಆಂಧ್ರ ಪ್ರದೇಶ", "ಯಾನಂ", "ತೆಲಂಗಾಣ", "ಉತ್ತರ ಪ್ರದೇಶ", "ಛತ್ತೀಸ್‌ಗಢ", "ರಾಜಸ್ಥಾನ", "ಟಾಪ್-50", "ದೆಹಲಿ NCT")):
             fails.append(f"{name}: Kannada out-of-coverage text omits a supported region")
-        if any(term not in coverage[2] for term in ("भारतभर", "राष्ट्रीय महामार्ग", "संपूर्ण महाराष्ट्र", "पश्चिम बंगाल", "पंजाब", "कर्नाटक", "केरळ", "माहे", "तामिळनाडू", "आंध्र प्रदेश", "यानम", "तेलंगणा", "उत्तर प्रदेश", "छत्तीसगड", "टॉप-50", "दिल्ली NCT")):
+        if any(term not in coverage[2] for term in ("भारतभर", "राष्ट्रीय महामार्ग", "संपूर्ण महाराष्ट्र", "पश्चिम बंगाल", "पंजाब", "कर्नाटक", "केरळ", "माहे", "तामिळनाडू", "आंध्र प्रदेश", "यानम", "तेलंगणा", "उत्तर प्रदेश", "छत्तीसगड", "राजस्थान", "टॉप-50", "दिल्ली NCT")):
             fails.append(f"{name}: Marathi out-of-coverage text omits a supported region")
-        if any(term not in coverage[3] for term in ("ভারতজুড়ে", "জাতীয় সড়ক", "সমগ্র মহারাষ্ট্র", "পশ্চিমবঙ্গ", "পাঞ্জাব", "কর্ণাটক", "কেরল", "মাহে", "তামিলনাড়ু", "অন্ধ্রপ্রদেশ", "ইয়ানাম", "তেলেঙ্গানা", "উত্তরপ্রদেশ", "ছত্তিশগড়", "শীর্ষ-৫০", "দিল্লি NCT")):
+        if any(term not in coverage[3] for term in ("ভারতজুড়ে", "জাতীয় সড়ক", "সমগ্র মহারাষ্ট্র", "পশ্চিমবঙ্গ", "পাঞ্জাব", "কর্ণাটক", "কেরল", "মাহে", "তামিলনাড়ু", "অন্ধ্রপ্রদেশ", "ইয়ানাম", "তেলেঙ্গানা", "উত্তরপ্রদেশ", "ছত্তিশগড়", "রাজস্থান", "শীর্ষ-৫০", "দিল্লি NCT")):
             fails.append(f"{name}: Bengali out-of-coverage text omits a supported region")
     else:
         fails.append(f"{name}: expected 4 outside_coverage_help strings, found {len(coverage)}")
@@ -160,7 +160,7 @@ road_outside_error = re.search(
 )
 if not road_outside_error or any(term not in road_outside_error.group(1) for term in (
     "Maharashtra", "West Bengal", "Punjab", "Karnataka", "Kerala", "Tamil Nadu",
-    "Andhra Pradesh", "Telangana", "Uttar Pradesh", "Chhattisgarh", "Delhi NCT",
+    "Andhra Pradesh", "Telangana", "Uttar Pradesh", "Chhattisgarh", "Rajasthan", "Delhi NCT",
 )):
     fails.append("standalone.js road out-of-coverage error omits a supported region")
 

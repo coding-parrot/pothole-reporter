@@ -19,10 +19,10 @@ from tender_scope import is_road_surface_contract
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = PROJECT_ROOT / "docs"
-STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.31.json"
-ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.31.json"
-PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.31.json"
-PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.30.json"
+STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.33.json"
+ANDROID_MANIFEST = PROJECT_ROOT / "android-app" / "www" / "pack-manifest-v1.33.json"
+PAGES_MANIFEST = DOCS_ROOT / "pack-manifest-v1.33.json"
+PREVIOUS_STATIC_MANIFEST = PROJECT_ROOT / "static" / "pack-manifest-v1.31.json"
 AUTHORITIES_SOURCE = PROJECT_ROOT / "data" / "state-authorities.json"
 PUBLIC_BASE_URL = "https://coding-parrot.github.io/pothole-reporter/"
 PACK_FORMAT = "pothole-pack-manifest"
@@ -75,6 +75,9 @@ UTTAR_PRADESH_STATE_GEOMETRY_SHA256 = (
 CHHATTISGARH_STATE_GEOMETRY_SHA256 = (
     "827e89a598571ade84db77390bca5daf98c9f67fbae716b17193f4ccdc2876eb"
 )
+RAJASTHAN_STATE_GEOMETRY_SHA256 = (
+    "dcde670675d0fc50e292c6b306b1f80d9d68a1323250c29d6eddc97992491a36"
+)
 KMC_GEOMETRY_SHA256 = (
     "fa9e157d8cdc8d918dd934a77a5dcde375d3108598412cb8ca3e19ca2d916bf5"
 )
@@ -97,6 +100,7 @@ KARNATAKA_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 KERALA_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 UTTAR_PRADESH_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 CHHATTISGARH_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
+RAJASTHAN_STATE_REGION_KEYS = set(PUNJAB_STATE_REGION_KEYS)
 KMC_REGION_KEYS = {
     "authority_id", "authority_name", "scope", "ulb_code", "mun_id",
     "retrieved_at",
@@ -279,6 +283,19 @@ SPECS = {
             "Official Chhattisgarh grievance sources: respective source terms",
         ),
         "data/metro-coverage/cg-state.json",
+    ),
+    "in-rj-routing": ResourceSpec(
+        "in-rj-routing",
+        "RJ",
+        "routing",
+        "statewide-general-v1",
+        "Full State of Rajasthan; neutral Rajasthan Sampark grievance handoff",
+        True,
+        (
+            "OpenStreetMap data: ODbL 1.0",
+            "Official Rajasthan grievance sources: respective source terms",
+        ),
+        "data/metro-coverage/rj-state.json",
     ),
     "in-top50-routing": ResourceSpec(
         "in-top50-routing",
@@ -1596,6 +1613,24 @@ def _validate_new_statewide_payload(
                 "helpline": "1076",
             },
         },
+        "in-rj-routing": {
+            "label": "Rajasthan",
+            "region_id": "rajasthan-state",
+            "authority_id": "rj-statewide-unverified",
+            "scope": "Full State of Rajasthan",
+            "relation_id": 1_942_920,
+            "geometry_sha256": RAJASTHAN_STATE_GEOMETRY_SHA256,
+            "routing_terms": ("Rajasthan Sampark", "National Highways", "does not identify"),
+            "authority": {
+                "id": "rj-statewide-unverified",
+                "name": "Rajasthan authority (select in Sampark)",
+                "aliases": ["rajasthan", "राजस्थान"],
+                "handoff_name": "Rajasthan Sampark 2.0",
+                "handoff_url": "https://sampark.rajasthan.gov.in/grievanceForm",
+                "handoff_package": "com.rajsampark.versiontwo",
+                "helpline": "181",
+            },
+        },
     }
     pin = pins.get(pack_id)
     _expect(pin is not None, f"unsupported statewide payload validator: {pack_id}")
@@ -2141,6 +2176,7 @@ def _validate_raw_payload(
         )
     elif spec.pack_id in {
         "in-ka-state-routing", "in-kl-routing", "in-up-routing", "in-cg-routing",
+        "in-rj-routing",
     }:
         _validate_new_statewide_payload(
             spec.pack_id,
@@ -2444,10 +2480,10 @@ def verify_all() -> None:
     """Fail unless the manifests and all referenced hosted packs match exactly."""
     manifest_bytes = STATIC_MANIFEST.read_bytes() if STATIC_MANIFEST.exists() else b""
     if not manifest_bytes:
-        raise PackError("missing bundled manifest: static/pack-manifest-v1.31.json")
-    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.31.json")
+        raise PackError("missing bundled manifest: static/pack-manifest-v1.33.json")
+    _expect(ANDROID_MANIFEST.exists(), "missing Android manifest mirror: android-app/www/pack-manifest-v1.33.json")
     _expect(ANDROID_MANIFEST.read_bytes() == manifest_bytes, "static and Android pack manifests differ")
-    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.31.json")
+    _expect(PAGES_MANIFEST.exists(), "missing Pages manifest mirror: docs/pack-manifest-v1.33.json")
     _expect(PAGES_MANIFEST.read_bytes() == manifest_bytes, "static and Pages pack manifests differ")
     manifest = _read_json(STATIC_MANIFEST)
     _expect(isinstance(manifest, dict) and set(manifest) == MANIFEST_KEYS,

@@ -266,6 +266,19 @@
       }
     ]
   },
+  "RJ": {
+    "authorities": [
+      {
+        "id": "rj-statewide-unverified",
+        "name": "Rajasthan authority (select in Sampark)",
+        "aliases": ["rajasthan", "राजस्थान"],
+        "handoff_name": "Rajasthan Sampark 2.0",
+        "handoff_url": "https://sampark.rajasthan.gov.in/grievanceForm",
+        "handoff_package": "com.rajsampark.versiontwo",
+        "helpline": "181"
+      }
+    ]
+  },
   "IN": {
     "authorities": [
       {
