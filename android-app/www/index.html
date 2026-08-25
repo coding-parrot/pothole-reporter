@@ -105,6 +105,18 @@
 
   <div id="detail" class="hidden"></div>
 
+  <div id="portalCopy" class="hidden">
+    <div class="card">
+      <div class="verdict" id="portalCopyTitle">Portal fields</div>
+      <div class="meta" id="portalCopyHint" style="margin-top:6px">Copy these verified-format fields into the official grievance portal. Review the suggested routing and contract candidate first.</div>
+      <textarea id="portalCopyText" readonly style="min-height:55vh;margin-top:12px"></textarea>
+      <div class="btn-row">
+        <button class="ghost" id="portalCopyBack">Back</button>
+        <button class="send" id="portalCopyAll">Copy all</button>
+      </div>
+    </div>
+  </div>
+
   <div id="drive" class="hidden">
     <div id="webDrivePanel" style="position:relative">
       <video id="driveVideo" autoplay playsinline muted style="width:100%;border-radius:14px;background:#000;min-height:340px"></video>
@@ -413,6 +425,12 @@ const I18N = {
     confirm_suggested_email: "Location suggests {authority}, but this does not prove road ownership. Open your email app with the complaint addressed to {to}?",
     open_official_btn: "Open {name}",
     share_evidence_btn: "Share evidence",
+    copy_whatsapp_btn: "Copy WhatsApp",
+    portal_fields_btn: "Portal fields",
+    portal_fields_title: "Portal fields",
+    portal_fields_hint: "Copy these fields into the official grievance portal. Review the suggested routing and contract candidate first.",
+    copy_all_btn: "Copy all",
+    copied_message: "Copied.",
     official_whatsapp_btn: "Official WhatsApp",
     official_call_btn: "Call {number}",
     confirm_whatsapp_share: "Open the official WhatsApp for {authority} with this report's text and exact location? Nothing is sent until you press Send in WhatsApp.",
@@ -602,6 +620,12 @@ const I18N = {
     confirm_send: "{to} ಗೆ ಉದ್ದೇಶಿಸಿದ ದೂರಿನೊಂದಿಗೆ ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ?",
     confirm_suggested_email: "ಸ್ಥಳವು {authority} ಅನ್ನು ಸೂಚಿಸುತ್ತದೆ, ಆದರೆ ಇದು ರಸ್ತೆ ಮಾಲೀಕತ್ವವನ್ನು ಸಾಬೀತುಪಡಿಸುವುದಿಲ್ಲ. {to} ಗೆ ಉದ್ದೇಶಿಸಿದ ದೂರಿನೊಂದಿಗೆ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಬೇಕೆ?",
     open_official_btn: "{name} ತೆರೆಯಿರಿ", share_evidence_btn: "ಸಾಕ್ಷ್ಯ ಹಂಚಿಕೊಳ್ಳಿ",
+    copy_whatsapp_btn: "WhatsApp ಪಠ್ಯ ನಕಲಿಸಿ",
+    portal_fields_btn: "ಪೋರ್ಟಲ್ ವಿವರಗಳು",
+    portal_fields_title: "ಪೋರ್ಟಲ್ ವಿವರಗಳು",
+    portal_fields_hint: "ಈ ವಿವರಗಳನ್ನು ಅಧಿಕೃತ ದೂರು ಪೋರ್ಟಲ್‌ಗೆ ನಕಲಿಸಿ. ಸೂಚಿಸಿದ ಮಾರ್ಗ ಮತ್ತು ಗುತ್ತಿಗೆ ಅಭ್ಯರ್ಥಿಯನ್ನು ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
+    copy_all_btn: "ಎಲ್ಲವನ್ನೂ ನಕಲಿಸಿ",
+    copied_message: "ನಕಲಿಸಲಾಗಿದೆ.",
     official_whatsapp_btn: "ಅಧಿಕೃತ WhatsApp", official_call_btn: "{number} ಗೆ ಕರೆ ಮಾಡಿ",
     confirm_whatsapp_share: "ಈ ವರದಿಯ ಪಠ್ಯ ಮತ್ತು ನಿಖರ ಸ್ಥಳದೊಂದಿಗೆ {authority} ಸಂಸ್ಥೆಯ ಅಧಿಕೃತ WhatsApp ತೆರೆಯಬೇಕೆ? WhatsApp ನಲ್ಲಿ Send ಒತ್ತುವವರೆಗೆ ಏನೂ ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ.",
     official_disclaimer: "ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: {authority}. ಇದು ರಸ್ತೆ ಮಾಲೀಕತ್ವದ ದೃಢೀಕರಣವಲ್ಲ. ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸಾಕ್ಷ್ಯವನ್ನು ಮಾತ್ರ ಸಿದ್ಧಪಡಿಸುತ್ತದೆ; {service} ನಲ್ಲಿ ನೀವೇ ದೂರು ಪೂರ್ಣಗೊಳಿಸಿ ಮತ್ತು ಅಧಿಕೃತ ಉಲ್ಲೇಖ ಸಂಖ್ಯೆಯನ್ನು ಉಳಿಸಿ.",
@@ -777,6 +801,12 @@ const I18N = {
     confirm_send: "{to} यांना उद्देशून तयार केलेली तक्रार तुमच्या ईमेल अॅपमध्ये उघडायची का?",
     confirm_suggested_email: "स्थानावरून {authority} ही संस्था सुचते, पण यावरून रस्त्याची मालकी सिद्ध होत नाही. {to} यांना उद्देशून तक्रार ईमेल अॅपमध्ये उघडायची का?",
     open_official_btn: "{name} उघडा", share_evidence_btn: "पुरावा शेअर करा",
+    copy_whatsapp_btn: "WhatsApp मजकूर कॉपी करा",
+    portal_fields_btn: "पोर्टल तपशील",
+    portal_fields_title: "पोर्टल तपशील",
+    portal_fields_hint: "हे तपशील अधिकृत तक्रार पोर्टलमध्ये कॉपी करा. सुचवलेले routing आणि कंत्राट उमेदवार आधी तपासा.",
+    copy_all_btn: "सर्व कॉपी करा",
+    copied_message: "कॉपी झाले.",
     official_whatsapp_btn: "अधिकृत WhatsApp", official_call_btn: "{number} वर कॉल करा",
     confirm_whatsapp_share: "या अहवालाचा मजकूर आणि अचूक स्थान घेऊन {authority} चे अधिकृत WhatsApp उघडायचे का? WhatsApp मध्ये Send दाबेपर्यंत काहीही पाठवले जाणार नाही.",
     official_disclaimer: "सुचवलेली नागरी संस्था: {authority}. यावरून त्या रस्त्याची मालकी सिद्ध होत नाही. हे स्वतंत्र अॅप फक्त पुरावा तयार करते; {service} मध्ये स्वतः तक्रार पूर्ण करा आणि अधिकृत संदर्भ क्रमांक जतन करा.",
@@ -958,6 +988,12 @@ const I18N = {
     confirm_send: "{to}-কে ঠিকানা দিয়ে অভিযোগটি ইমেল অ্যাপে খুলবেন?",
     confirm_suggested_email: "অবস্থান অনুযায়ী {authority} প্রস্তাবিত, কিন্তু এতে রাস্তার মালিকানা প্রমাণিত নয়। {to}-কে ঠিকানা দিয়ে অভিযোগটি ইমেল অ্যাপে খুলবেন?",
     open_official_btn: "{name} খুলুন", share_evidence_btn: "প্রমাণ শেয়ার করুন",
+    copy_whatsapp_btn: "WhatsApp বক্তব্য কপি করুন",
+    portal_fields_btn: "পোর্টালের তথ্য",
+    portal_fields_title: "পোর্টালের তথ্য",
+    portal_fields_hint: "এই তথ্য সরকারি অভিযোগ পোর্টালে কপি করুন। প্রস্তাবিত routing ও চুক্তির সম্ভাব্য মিল আগে যাচাই করুন।",
+    copy_all_btn: "সব কপি করুন",
+    copied_message: "কপি হয়েছে।",
     official_whatsapp_btn: "সরকারি WhatsApp", official_call_btn: "{number} নম্বরে কল করুন",
     confirm_whatsapp_share: "{authority}-এর সরকারি WhatsApp-এ এই রিপোর্টের বক্তব্য ও সঠিক অবস্থান খুলবেন? WhatsApp-এ Send না চাপা পর্যন্ত কিছুই পাঠানো হবে না।",
     official_disclaimer: "প্রস্তাবিত পৌর কর্তৃপক্ষ: {authority}। এতে রাস্তার মালিকানা প্রমাণিত হয় না। এই স্বাধীন অ্যাপটি কেবল প্রমাণ প্রস্তুত করে; {service}-এ নিজে অভিযোগ নথিভুক্ত করুন এবং সরকারি রেফারেন্স নম্বরটি সংরক্ষণ করুন।",
@@ -1031,7 +1067,7 @@ function show(screen) {
       (nativePreviewAttached || document.documentElement.classList.contains("native-preview-active"))) {
     stopNativePreview();
   }
-  for (const s of ["home", "issuePicker", "progress", "detail", "drive", "settings", "review", "dash", "dataConsent"]) {
+  for (const s of ["home", "issuePicker", "progress", "detail", "portalCopy", "drive", "settings", "review", "dash", "dataConsent"]) {
     $(s).classList.toggle("hidden", s !== screen);
   }
   window.scrollTo(0, 0);
@@ -1667,6 +1703,62 @@ function canRetryCivicRouting(r) {
     && ["jurisdiction_unavailable", "no_address_for_body"].includes(r.unrouted_reason);
 }
 
+async function copyTextValue(value) {
+  const text = String(value || "");
+  if (!text) throw new Error("Nothing to copy.");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const area = document.createElement("textarea");
+  area.value = text;
+  area.setAttribute("readonly", "");
+  area.style.position = "fixed";
+  area.style.opacity = "0";
+  document.body.appendChild(area);
+  area.select();
+  const copied = document.execCommand("copy");
+  area.remove();
+  if (!copied) throw new Error("Copy failed. Select the text manually.");
+}
+
+function roadComplaintOutputs(r) {
+  try {
+    return StandaloneAPI.__pure.complaintOutputsForRecord(r);
+  } catch (_) {
+    return r && (r.whatsapp_text || r.portal_copy_text) ? {
+      whatsapp_text: r.whatsapp_text || "",
+      portal_fields: r.portal_fields || {},
+      portal_copy_text: r.portal_copy_text || "",
+    } : null;
+  }
+}
+
+let portalReturnReport = null;
+function openPortalFields(r) {
+  const output = roadComplaintOutputs(r);
+  if (!output || !output.portal_copy_text) {
+    alert("Portal fields are unavailable for this saved report.");
+    return;
+  }
+  portalReturnReport = r;
+  $("portalCopyTitle").textContent = t("portal_fields_title");
+  $("portalCopyHint").textContent = t("portal_fields_hint");
+  $("portalCopyText").value = output.portal_copy_text;
+  $("portalCopyAll").textContent = t("copy_all_btn");
+  $("portalCopyBack").textContent = t("back");
+  show("portalCopy");
+}
+
+$("portalCopyBack").onclick = () => portalReturnReport ? openDetail(portalReturnReport) : show("home");
+$("portalCopyAll").onclick = async () => {
+  try {
+    await copyTextValue($("portalCopyText").value);
+    $("portalCopyAll").textContent = t("copied_message");
+    setTimeout(() => { $("portalCopyAll").textContent = t("copy_all_btn"); }, 1200);
+  } catch (e) { alert(e.message || e); }
+};
+
 function openDetail(r, list) {
   if (list) { detailList = list; detailIdx = list.findIndex((x) => x.id === r.id); }
   else if (!detailList.some((x) => x.id === r.id)) { detailList = [r]; detailIdx = 0; }
@@ -1729,6 +1821,11 @@ function openDetail(r, list) {
     const subjectLabel = handoff ? t("complaint_title_label") : t("email_subject_label");
     const bodyLabel = handoff ? t("complaint_body_label") : t("email_body_label");
     const showAuthorityWarning = handoff || !!r.ownership_unverified;
+    const roadCopyTools = isRoadReport(r) && !fixed ? `
+        <div class="btn-row">
+          <button class="ghost" id="copyWhatsAppBtn">${t("copy_whatsapp_btn")}</button>
+          <button class="ghost" id="portalFieldsBtn">${t("portal_fields_btn")}</button>
+        </div>` : "";
     const officialTools = showAuthorityWarning && !fixed ? `
         <div class="meta" style="margin-top:10px;color:#ffd9a8">${escapeHtml(handoff
           ? t(isRoadReport(r) ? "official_disclaimer" : "official_civic_disclaimer", { authority, service })
@@ -1767,6 +1864,7 @@ function openDetail(r, list) {
         ${r.tender_note ? `<div class="meta">&#128209; ${escapeHtml(r.tender_note)}</div>` : ""}
         ${repairEvidenceHtml(r)}
         ${officialTools}
+        ${roadCopyTools}
         <label>${subjectLabel}</label>
         <input type="text" id="subj" value="" ${locked ? "disabled" : ""}>
         <label>${bodyLabel}</label>
@@ -1785,6 +1883,17 @@ function openDetail(r, list) {
     if (share) share.onclick = () => shareEvidence(r);
     const whatsapp = $("officialWhatsAppBtn");
     if (whatsapp) whatsapp.onclick = () => openOfficialWhatsApp(r);
+    const copyWhatsapp = $("copyWhatsAppBtn");
+    if (copyWhatsapp) copyWhatsapp.onclick = async () => {
+      const output = roadComplaintOutputs(r);
+      try {
+        await copyTextValue(output && output.whatsapp_text);
+        copyWhatsapp.textContent = t("copied_message");
+        setTimeout(() => { copyWhatsapp.textContent = t("copy_whatsapp_btn"); }, 1200);
+      } catch (e) { alert(e.message || e); }
+    };
+    const portalFields = $("portalFieldsBtn");
+    if (portalFields) portalFields.onclick = () => openPortalFields(r);
     const call = $("officialCallBtn");
     if (call) call.onclick = () => openOfficialCall(r);
     const alternate = $("alternateHandoffBtn");
@@ -1915,7 +2024,10 @@ async function openOfficialWhatsApp(r) {
   if (!confirm(t("confirm_whatsapp_share", {
     authority: displayAuthorityName(verified || r),
   }))) return;
-  const text = `${verified.email_subject || `${tIssue(verified)} report`}\n\n${verified.email_body || ""}`.slice(0, 1800);
+  const output = roadComplaintOutputs(verified);
+  const text = (output && output.whatsapp_text
+    ? output.whatsapp_text
+    : `${verified.email_subject || `${tIssue(verified)} report`}\n\n${verified.email_body || ""}`).slice(0, 4000);
   const opened = await openExternalUrl(`${base}${base.includes("?") ? "&" : "?"}text=${encodeURIComponent(text)}`);
   if (!opened) alert("Could not open the official WhatsApp route. Try Share evidence or another official channel.");
 }
@@ -3966,6 +4078,10 @@ window.handleAppBack = () => {
   if (driveFinalizing) return true;
   if (!$("dataConsent").classList.contains("hidden")) { finishDataConsent(false); return true; }
   if (!$("viewer").classList.contains("hidden")) { closeViewer(); return true; }
+  if (!$("portalCopy").classList.contains("hidden")) {
+    if (portalReturnReport) openDetail(portalReturnReport); else show("home");
+    return true;
+  }
   for (const s of ["issuePicker", "detail", "settings", "progress", "drive", "review", "dash"]) {
     if (!$(s).classList.contains("hidden")) { show("home"); loadReports(); return true; }
   }

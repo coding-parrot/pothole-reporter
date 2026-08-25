@@ -48,10 +48,14 @@ WhatsApp, dialler, share sheet, or email client. Nothing is submitted automatica
 - A selectable 15/30/60/90-minute active-time battery limit stops Drive automatically; paused time does not count. The default is 30 minutes.
 - **Photo** offers **Pothole**, **Garbage**, or **Manhole**. Pothole photos use AI; the
   other two are explicit user reports and are not sent to OpenAI.
-- OpenAI vision returns only **Pothole: Yes/No**. A Yes requires a localized cavity,
-  broken rim, visible material loss, usable imagery, and consistent Drive views; ambiguous
-  surfaces and speed breakers are No. Accepted potholes receive an approximate
-  small/medium/large app size.
+- OpenAI vision returns only **Pothole: Yes/No**, never a user-facing confidence score.
+  A Yes requires a bituminous/asphalt, cement-concrete, mastic-asphalt, or paver-block
+  drivable surface, localized cavity, broken rim, visible material loss, usable imagery,
+  and consistent Drive views; ambiguous surfaces, unpaved damage, and speed breakers are No.
+- Each decision records the surface type and strict defect type. Accepted potholes may
+  receive a small/medium/large **app visual estimate**; physical dimensions remain unknown
+  without a field measurement, and the estimate is labelled with its provenance and low
+  measurement confidence. It is not an official municipal size classification.
 - Nearby repeat observations are grouped into one report; Debug mode retains each one.
 - On a later live drive, **Fixed** requires a separate before/after AI check that clearly
   sees the same footprint covered by completed, intact repair material. Probable,
@@ -62,6 +66,18 @@ WhatsApp, dialler, share sheet, or email client. Nothing is submitted automatica
 - Garbage and manhole handoffs are enabled throughout Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh, Rajasthan, Goa, Madhya Pradesh, Bihar, and Odisha,
   plus all accepted top-50 city routes. Road damage keeps its road-specific channel where one exists.
 - English, Kannada, Marathi, and Bengali are supported.
+
+### Complaint output
+
+- BMC and the Bengaluru Central, East, North, South, and West city corporations have
+  authority-specific intake profiles. BDA is used only when separate evidence explicitly
+  identifies BDA responsibility; location inside Bengaluru is not enough.
+- Complaint intake and road ownership are separate fields. A boundary can select where to
+  start a complaint without claiming that the same authority owns or maintains the road.
+- Email, short WhatsApp, and copyable portal fields always retain coordinates, map link,
+  routing, and a contract block. A Karnataka tender match remains a **candidate** until the
+  exact road segment, carriageway scope, awarded contractor, and DLP terms are verified.
+  Publication date is metadata only and never implies warranty or DLP.
 
 ### National Highway routing
 
@@ -106,7 +122,7 @@ state or an approximate 2° highway tile. See the
 2. For Pothole or Drive, enter your OpenAI API key. Garbage and Manhole do not need it.
    Allow camera and location access; Drive also needs notification access.
 3. Capture while safely stopped, or securely mount the phone before starting **Drive**.
-4. Review the image, location, authority, wording, and any probable contract match before
+4. Review the image, location, authority, wording, and any contract candidate before
    choosing an external complaint channel.
 
 ## Important limits
@@ -122,9 +138,10 @@ state or an approximate 2° highway tile. See the
   West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh, Rajasthan, Goa, Madhya Pradesh, Bihar, and Odisha containment is checked locally against downloaded ODbL state boundaries.
   The 8 structured-city routes require Nominatim's city/municipality and state fields;
   a broad envelope or stale place label alone cannot select a route.
-- Contract matching is optional and available only for eligible Karnataka routes. A match
-  is not proof that a contractor or warranty applies. Only explicit carriageway-work
-  scope can enter the matcher; mixed work must state the road work separately.
+- Contract matching is optional and available only for eligible Karnataka routes. Only
+  explicit carriageway work can enter the matcher; drain-, footpath-, sewer-, utility-, or
+  other roadside-only work is rejected. Every match stays a candidate unless road segment,
+  scope, award, and DLP are independently verified; publication date proves none of them.
 - National Highway coverage follows mapped NH/NE geometry, not the legal road register.
   Parallel roads, junctions, weak GPS, missing tiles, and altered data fail closed.
 - The project is not affiliated with or endorsed by a government body or data provider.

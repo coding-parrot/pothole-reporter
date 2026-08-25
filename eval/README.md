@@ -79,7 +79,7 @@ control cannot silently drift from what ships. Every `.txt` file in
 `eval/prompts/` becomes an additional arm named after the file.
 
 Everything below is a historical log for retired detector contracts. It explains past
-choices but is not directly comparable with the binary v5 result.
+choices but is not directly comparable with the binary v6 result.
 
 ## Results log
 

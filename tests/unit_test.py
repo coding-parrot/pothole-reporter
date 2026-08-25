@@ -107,10 +107,10 @@ CASES = r"""
      P.roadEventMatch({...laterDrive, size:"large"}, {...priorDrive, size:"small"}), null);
 
   // ---- streamed binary pothole contract ----
-  const accepted = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","on_drivable_surface":true,"has_localized_cavity":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"large","description":"localized cavity"}';
-  const rejected = '{"is_pothole":false,"looks_like_speed_breaker":false,"image_quality":"usable","on_drivable_surface":true,"has_localized_cavity":false,"has_broken_edge_or_rim":false,"has_depth_or_surface_loss":false,"temporal_consistency":"not_applicable","size":null,"description":"no cavity"}';
-  const speedBreaker = '{"is_pothole":true,"looks_like_speed_breaker":true,"image_quality":"usable","on_drivable_surface":true,"has_localized_cavity":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"painted transverse raised ridge"}';
-  const surfaceBreakup = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","on_drivable_surface":true,"has_localized_cavity":false,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"broad breakup"}';
+  const accepted = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"large","description":"localized cavity"}';
+  const rejected = '{"is_pothole":false,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":false,"has_broken_edge_or_rim":false,"has_depth_or_surface_loss":false,"temporal_consistency":"not_applicable","size":null,"description":"no cavity"}';
+  const speedBreaker = '{"is_pothole":true,"looks_like_speed_breaker":true,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"painted transverse raised ridge"}';
+  const surfaceBreakup = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":false,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"broad breakup"}';
   eq("peek: nothing yet", P.peekVerdict('{"is_pot'), null);
   eq("peek: YES cannot be announced before size",
      P.peekVerdict(accepted.slice(0, accepted.indexOf(',"size"'))), null);
@@ -139,12 +139,13 @@ CASES = r"""
   ok("rejectedVerdict: shape is complete",
      ["is_pothole","looks_like_speed_breaker","assessment","image_quality","damage_type",
       "on_drivable_surface","has_localized_cavity","has_broken_edge_or_rim",
-      "has_depth_or_surface_loss","temporal_consistency",
+      "has_depth_or_surface_loss","temporal_consistency","surface_type",
       "size","description"].every((k) => k in rv), Object.keys(rv));
 
   // ---- final semantic gate ----
   const good = { is_pothole:true, looks_like_speed_breaker:false,
-    image_quality:"usable", on_drivable_surface:true, has_localized_cavity:true,
+    image_quality:"usable", surface_type:"bituminous_asphalt",
+    on_drivable_surface:true, has_localized_cavity:true,
     has_broken_edge_or_rim:true, has_depth_or_surface_loss:true,
     temporal_consistency:"consistent", size:"medium" };
   for (const size of ["small","medium","large"]) {
@@ -167,6 +168,8 @@ CASES = r"""
   eq("decision: model NO rejects", P.decisionFor({...good, is_pothole:false}), "reject");
   eq("decision: unusable is NO", P.decisionFor({...good, image_quality:"unusable"}), "reject");
   eq("decision: off-road rejects", P.decisionFor({...good, on_drivable_surface:false}), "reject");
+  eq("decision: unknown surface fails closed", P.decisionFor({...good, surface_type:"unknown"}), "reject");
+  eq("decision: unpaved surface fails closed", P.decisionFor({...good, surface_type:"unpaved_or_nonroad"}), "reject");
   eq("decision: no localized cavity is NO",
      P.decisionFor({...good, has_localized_cavity:false}), "reject");
   eq("decision: missing broken rim is NO",
@@ -254,22 +257,14 @@ CASES = r"""
   eq("quality: ties keep earliest frame", bestBurstIndex([
     {quality:{score:7}}, {quality:{score:7}}, {quality:{score:3}}]), 0);
 
-  // ---- warrantyFor: decides a sentence in a letter naming a private company ----
-  const NOW = Date.UTC(2026, 7, 20);
-  eq("warranty: 6 months old is defect liability",
-     P.warrantyFor("20-02-2026", NOW), {warranty:"within the defect liability period", warranty_code:"dlp"});
-  eq("warranty: 2 years old is maintenance",
-     P.warrantyFor("20-08-2024", NOW), {warranty:"within the maintenance period", warranty_code:"maint"});
-  eq("warranty: 5 years old claims nothing",
-     P.warrantyFor("20-08-2021", NOW), {warranty:"recorded for this stretch", warranty_code:"record"});
-  eq("warranty: unparseable date claims nothing",
-     P.warrantyFor("not a date", NOW), {warranty:"recorded for this stretch", warranty_code:"record"});
-  eq("warranty: missing date claims nothing",
-     P.warrantyFor(null, NOW), {warranty:"recorded for this stretch", warranty_code:"record"});
-  eq("warranty: a future date claims nothing",
-     P.warrantyFor("20-08-2027", NOW), {warranty:"recorded for this stretch", warranty_code:"record"});
-  eq("warranty: month 13 is not a date",
-     P.warrantyFor("20-13-2025", NOW), {warranty:"recorded for this stretch", warranty_code:"record"});
+  // ---- contract truth: publication date never establishes award or DLP ----
+  const contract = P.contractVerificationFor({tender_number:"T/1", title:"Road resurfacing",
+    published:"20-02-2026"});
+  ok("contract: carriageway scope is explicit", contract.scope_verified === true, contract);
+  ok("contract: segment remains unverified", contract.segment_verified === false, contract);
+  ok("contract: award remains unverified", contract.award_verified === false, contract);
+  ok("contract: DLP remains unverified regardless of recent publication",
+     contract.dlp_status === "unverified" && contract.dlp_verified === false, contract);
 
   // ---- listDict: the list must never carry the full-size evidence photo ----
   const rec = {id:1, photo:"P", photo_full:"F", status:"draft"};

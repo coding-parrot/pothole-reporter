@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         FootageSegmentEntity::class,
         DriveKeyframeEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class PotholeDatabase : RoomDatabase() {
@@ -146,6 +146,18 @@ abstract class PotholeDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // v5 did not record the pavement material or measurement provenance.
+                // Fail-closed defaults ensure an old row can never acquire a v6
+                // pothole classification merely because it predates these fields.
+                db.execSQL("ALTER TABLE `reports` ADD COLUMN `surfaceType` TEXT NOT NULL DEFAULT 'unknown'")
+                db.execSQL("ALTER TABLE `reports` ADD COLUMN `defectType` TEXT NOT NULL DEFAULT 'not_pothole'")
+                db.execSQL("ALTER TABLE `reports` ADD COLUMN `measurementProvenance` TEXT NOT NULL DEFAULT 'not_applicable'")
+                db.execSQL("ALTER TABLE `reports` ADD COLUMN `measurementConfidence` TEXT NOT NULL DEFAULT 'not_applicable'")
+            }
+        }
+
         fun getDatabase(context: Context): PotholeDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -153,7 +165,8 @@ abstract class PotholeDatabase : RoomDatabase() {
                     PotholeDatabase::class.java,
                     "native_potholes.db"
                 ).addMigrations(
-                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
+                    MIGRATION_5_6
                 ).build()
                 INSTANCE = instance
                 instance

@@ -27,7 +27,7 @@ async () => {
   const enKeys = Object.keys(I18N.en).sort();
   const bnKeys = Object.keys(I18N.bn || {}).sort();
   eq("i18n: Bengali has exactly the English key set", bnKeys, enKeys);
-  eq("i18n: Bengali key count is pinned", bnKeys.length, 233);
+  eq("i18n: Bengali key count is pinned", bnKeys.length, 237);
   for (const key of enKeys) {
     eq(`i18n placeholder parity: ${key}`,
        placeholders(I18N.bn[key]), placeholders(I18N.en[key]));
@@ -46,7 +46,7 @@ async () => {
        && /ক্যামেরা/.test(document.getElementById("privacyBody").textContent),
      document.getElementById("privacyBody").textContent);
   ok("privacy: background-drive disclosure forces fresh consent",
-     /v12-civic-and-hyderabad-gis-disclosure$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
+     /v13-hybrid-drive-capture$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
 
   const P = StandaloneAPI.__pure;
   const complaintFooter = "Pothole Reporter একটি স্বাধীন অ্যাপ। প্রস্তাবিত কর্তৃপক্ষ, ওয়ার্ড, "
@@ -69,9 +69,11 @@ async () => {
   ok("draft: complaint removes the old no-submission sentence",
      !body.includes("অভিযোগ জমা দেয় না")
        && !/official (?:grievance )?submission/i.test(body), body);
-  ok("draft: KMC route never includes contract/warranty claims",
-     !/সম্ভাব্য টেন্ডার মিল|টেন্ডার নম্বর|কাজের নাম|ঠিকাদার|ওয়ারেন্টির অবস্থা|ত্রুটি-দায়|রক্ষণাবেক্ষণের মেয়াদ/.test(
-       complaintWithoutFooter), body);
+  ok("draft: KMC route keeps a truthful mandatory no-candidate contract block",
+     /CONTRACT CANDIDATE/.test(complaintWithoutFooter)
+       && /No eligible road-work contract candidate identified/.test(complaintWithoutFooter)
+       && /Tender number: Not identified/.test(complaintWithoutFooter)
+       && !/warranty is active|under warranty/i.test(complaintWithoutFooter), body);
 
   const report = {
     id: 72001, created_at: Date.now() / 1000, captured_at: Date.now() / 1000,

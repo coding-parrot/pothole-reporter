@@ -66,7 +66,7 @@
   <header>
     <p class="meta">Pothole Reporter</p>
     <h1>Data sources and limits</h1>
-    <p class="meta">Karnataka procurement snapshot: 19 August 2026 · Page updated: 25 August 2026</p>
+    <p class="meta">Karnataka procurement snapshot: 19 August 2026 · Page updated: 26 August 2026</p>
     <nav aria-label="Related pages">
       <a href="privacy.html">Privacy policy</a>
       <a href="https://github.com/coding-parrot/pothole-reporter/blob/main/docs/SOURCES.md">Detailed source notes</a>
@@ -78,8 +78,15 @@
     <h2>Provenance is not proof</h2>
     <div class="notice">
       <p>The app combines a user's camera and phone location with public reference data, local rules, and AI judgments. A cited record does not prove that a photographed defect is reportable, that a particular authority owns the road, or that a contractor or warranty applies.</p>
-      <p>Review the photo, recipient, wording, and any probable contract match before sending a complaint.</p>
+      <p>Review the photo, recipient, wording, and any contract candidate before sending a complaint.</p>
     </div>
+  </section>
+
+  <section>
+    <h2>Classification and complaint output</h2>
+    <p>Pothole detection is a strict binary decision: <strong>Yes</strong> or <strong>No</strong>. The app does not show a detection-confidence percentage. A Yes is limited to a paved drivable surface with a localized cavity, broken edge or rim, and visible depth or material loss; an ambiguous view, unpaved damage, or speed breaker is No.</p>
+    <p>Each result records a surface type—bituminous/asphalt, cement concrete, mastic asphalt, paver blocks, unpaved/non-road, or unknown—and a strict defect type. For an accepted pothole, small/medium/large is an app visual estimate only. Length, width, and depth remain unknown unless they were field-measured; the report records measurement provenance and confidence so a visual estimate cannot be mistaken for an official municipal measurement or size class.</p>
+    <p>Authority-specific templates prepare a concise email, a short WhatsApp version, and copyable portal fields. Coordinates, map link, intake routing, road-owner status, and a contract block are mandatory in every format. The tender number, exact work name, contractor, source, and routing are preserved when available; missing facts are shown as unknown rather than inferred.</p>
   </section>
 
   <section>
@@ -155,6 +162,8 @@
     <p>Delhi coverage uses <a href="https://www.openstreetmap.org/relation/1942586">OpenStreetMap relation 1942586</a> under the ODbL, checked against the <a href="https://stategisportal.nic.in/stategisportal/Home/Map/7">official Delhi State GIS scope</a>. The 21 August 2026 routing data measures 1,483.885 km² and the runtime pins geometry SHA-256 <code>3462ba68bdbbc1fdebc99403aa9e1f9db5e0b78e30ca138b2d25df7463506ab3</code>. Only the full Delhi NCT receives the Delhi route; Noida, Gurugram, Ghaziabad, and Faridabad cannot inherit it. Noida and Ghaziabad may qualify independently through the exact Uttar Pradesh route, while Faridabad retains its conservative top-50 neutral route. The NCT polygon cannot establish whether PWD, MCD, NDMC, Cantonment, DDA, NHAI, or another agency maintains a road.</p>
     <h3>External channels</h3>
     <p>The offered service depends on the issue and suggested route: an official app or portal, a published municipal email address, or a state grievance service. Mapped National Highways use Rajmargyatra, CPGRAMS, or 1033 before any municipal route. Greater Mumbai road damage can use <a href="https://play.google.com/store/apps/details?id=com.bmc.potholequickfix">BMC Pothole QuickFix</a>; garbage and manhole reports use BMC's <a href="https://marg.mcgm.gov.in/MARG/welcomePage.html">MyBMC MARG</a> grievance portal and <a href="https://play.google.com/store/apps/details?id=com.esri.ugms_bmc">official app</a>, with helpline <strong>1916</strong>. Kolkata uses <a href="https://kmc.wb.gov.in/citizen/language-selection">KMC Grievance 2.0</a>, with the <a href="https://play.google.com/store/apps/details?id=com.kmc.app">official KMC app</a> as an alternate, WhatsApp at <strong>+91 83359 88888</strong>, and helpline <strong>1800 345 3375</strong>; other West Bengal points use PGRS with CMO Grievance as an alternate. Karnataka uses Janaspandana statewide, with Janahitha for urban issues and verified local routes retained; Kerala uses the CMO grievance portal statewide, with K-SMART for local-body issues. Outside GCC, Tamil Nadu uses Mudhalvarin Mugavari. Andhra Pradesh uses PGRS, with Puramithra for urban areas and helpline 1902. Telangana uses neutral Prajavani statewide, Citizen Buddy as an urban alternate outside Hyderabad, and verified Hyderabad CURE keeps My Cure. Uttar Pradesh uses Jansunwai–Samadhan and helpline 1076. Chhattisgarh uses the CM Helpline and helpline 1076, with NIDAAN 1100 only as an urban civic alternate. Rajasthan uses Rajasthan Sampark 2.0/181; Goa uses CM Helpline Goa/1905; Madhya Pradesh uses CM Helpline/181; Bihar uses Lok Shikayat/1800 345 6284; and Odisha uses Jana Sunani, WhatsApp +91 63709 51930, and 155335. Delhi road damage uses <a href="https://www.pwddelhi.gov.in/sewa/complaint">PWD Sewa</a>; garbage and manhole reports use GNCTD/NIC's cross-department <a href="https://cmjansunwai.delhi.gov.in/">CM JanSunwai</a> and JanMitra app, with <a href="https://pgms.delhi.gov.in/">Delhi PGMS</a> as an alternate and helpline <strong>1902</strong>. The user must review and complete the complaint in the external service. Public pre-login pages do not expose every category taxonomy, so these are general civic handoffs, not guaranteed category acceptance.</p>
+    <h3>Authority profiles and ownership</h3>
+    <p>Specific intake profiles cover BMC and the Bengaluru Central, East, North, South, and West city corporations. These profiles select the recipient and complaint wording; they do not establish who owns or maintains the road. Intake authority and road owner are kept as separate fields, and an unknown owner stays unknown. The separate BDA profile is available only when cited responsibility evidence identifies Bangalore Development Authority for that road; a Bengaluru address, nearby BDA work, or municipal boundary match is not sufficient.</p>
     <h3>Bengaluru general civic handoff</h3>
     <p>Garbage and manhole reports inside any of the five configured Bengaluru city corporations use Namma Bengaluru (Sahaaya 2.0). The current <a href="https://gba.karnataka.gov.in/">Greater Bengaluru Authority site</a> lists all five corporations, Sahaaya 2.0 as a public-grievance service, Namma Bengaluru under mobile apps, and helpline <strong>1533</strong>. BBMP's official <a href="https://site.bbmp.gov.in/departmentwebsites/BBMPIT/mobileapps.html">app directory</a> says citizens can file complaints and check status; its <a href="https://bbmp.gov.in/ucc_file/KarnatakaAdministrativeReforms.pdf">administrative review</a> documents the unified platform and photo/video evidence. The exact Android package is <a href="https://play.google.com/store/apps/details?id=com.nammabengaluruNew.org"><code>com.nammabengaluruNew.org</code></a>. Outside those verified Bengaluru routes, exact state containment can offer neutral Janaspandana, with Janahitha as an urban alternate; neither assigns a municipal recipient or guarantees category acceptance.</p>
     <p>Contract matching is disabled for Punjab, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh, Rajasthan, Goa, Madhya Pradesh, Bihar, Odisha, and every route in this section, as it is for all routes outside eligible Karnataka coverage. The app has no authoritative, road-linked award and defect-liability feed for them.</p>
@@ -325,19 +334,19 @@
             <td>This is an intermediary snapshot rather than a fresh per-tender lookup. Most tender-pack rows have no bidder name, and the app must not invent one.</td>
           </tr>
           <tr>
-            <td>Probable contract match</td>
-            <td>For an eligible Karnataka route, a deterministic local ranking selects up to 25 carriageway-scope contracts indexed to the same supported body; an OpenAI model may then select one above the app's confidence threshold.</td>
-            <td>The match is generated and probabilistic. No route outside eligible Karnataka coverage enters this flow.</td>
+            <td>Contract candidate</td>
+            <td>For an eligible Karnataka route, a deterministic local ranking selects up to 25 carriageway-scope contracts indexed to the same supported body; an OpenAI model may then select one candidate.</td>
+            <td>The candidate is generated and probabilistic. No route outside eligible Karnataka coverage enters this flow.</td>
           </tr>
           <tr>
-            <td>Possible defect-liability or maintenance wording</td>
-            <td>For an eligible Karnataka match, a local rule uses the tender's publication date: up to one year is described as possibly within a defect-liability period and up to three years as possibly within maintenance.</td>
-            <td>The award-search row contains no actual warranty term. This is an inference and must never be presented as a contractual fact. It is generated only for an eligible Karnataka match.</td>
+            <td>Contract verification status</td>
+            <td>The output preserves the tender number, exact work name, available contractor, source, publication date, and routing as evidence for manual checking.</td>
+            <td>It remains a candidate unless the photographed road segment, carriageway scope, awarded contractor, and actual DLP or maintenance term are all verified from authoritative records. Publication date is metadata only and never implies a warranty, DLP, or maintenance period.</td>
           </tr>
           <tr>
             <td>Complaint text and signature</td>
-            <td>A local template combines the reviewed result, coordinates, supported recipient, optional probable contract reference, and the sender name entered in Settings.</td>
-            <td>The user must check and edit the draft. An eligible specific Karnataka municipal route opens an email composer; the statewide fallback and other supported routes offer a recorded official handoff. No path submits automatically.</td>
+            <td>Local authority profiles produce a concise email, short WhatsApp text, and copyable portal fields with the reviewed result, coordinates, map link, intake routing, road-owner status, contract block, and sender name entered in Settings.</td>
+            <td>The mandatory location, routing, and contract fields are retained even when a value is unknown. The user must check and complete the complaint externally; no path submits automatically.</td>
           </tr>
         </tbody>
       </table>
@@ -387,7 +396,7 @@
       <li>Use the photo and printed coordinates to check the event itself.</li>
       <li>For every supported region, verify the suggested route and road owner in the official service and keep any grievance/reference ID it returns.</li>
       <li>For Karnataka, follow the address and GIS sources above to check location and routing.</li>
-      <li>Search KPPP by tender number and read the tender documents before relying on a probable match, bidder name, or warranty statement.</li>
+      <li>Search KPPP by tender number and verify the exact segment, carriageway scope, award, contractor, and DLP terms before treating a contract candidate as applicable. Never infer DLP from publication date.</li>
       <li>Inspect the open-source build scripts and detailed provenance note for filtering and indexing logic.</li>
     </ol>
     <p>Found stale or incorrect source data? <a href="https://github.com/coding-parrot/pothole-reporter/issues/new">Open a GitHub issue</a> with a public source link. Do not include an API key, private personal data, or an unredacted road photo.</p>

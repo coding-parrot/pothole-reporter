@@ -17,18 +17,21 @@ DEFAULT_MODEL = "gpt-5-mini"
 ALLOWED_MODELS = {DEFAULT_MODEL, "gpt-5.6"}
 ALLOWED_DETAILS = {"high", "original"}
 ROAD_BAND = 0.60
-PROMPT_VERSION = "pothole-binary-v5"
-SCHEMA_VERSION = 5
+PROMPT_VERSION = "pothole-binary-v6"
+SCHEMA_VERSION = 6
 
 SCHEMA = {
     "type": "object", "additionalProperties": False,
-    "required": ["is_pothole", "looks_like_speed_breaker", "image_quality",
+    "required": ["is_pothole", "looks_like_speed_breaker", "image_quality", "surface_type",
                  "on_drivable_surface", "has_localized_cavity", "has_broken_edge_or_rim",
                  "has_depth_or_surface_loss", "temporal_consistency", "size", "description"],
     "properties": {
         "is_pothole": {"type": "boolean"},
         "looks_like_speed_breaker": {"type": "boolean"},
         "image_quality": {"type": "string", "enum": ["usable", "unusable"]},
+        "surface_type": {"type": "string", "enum": ["bituminous_asphalt",
+            "cement_concrete", "mastic_asphalt", "paver_blocks",
+            "unpaved_or_nonroad", "unknown"]},
         "on_drivable_surface": {"type": "boolean"},
         "has_localized_cavity": {"type": "boolean"},
         "has_broken_edge_or_rim": {"type": "boolean"},
@@ -180,7 +183,10 @@ def decision(result, mode="drive", source_view_count=3):
         return "reject"
     if result.get("looks_like_speed_breaker") is not False:
         return "reject"
-    if result.get("image_quality") != "usable" or result.get("on_drivable_surface") is not True:
+    if result.get("image_quality") != "usable" or result.get("surface_type") not in {
+            "bituminous_asphalt", "cement_concrete", "mastic_asphalt", "paver_blocks"}:
+        return "reject"
+    if result.get("on_drivable_surface") is not True:
         return "reject"
     if result.get("has_localized_cavity") is not True:
         return "reject"

@@ -28,6 +28,14 @@ data class ReportEntity(
     @ColumnInfo(defaultValue = "1")
     val looksLikeSpeedBreaker: Boolean = false,
     val damageType: String? = "pothole_cavity",
+    @ColumnInfo(defaultValue = "'unknown'")
+    val surfaceType: String = "unknown",
+    @ColumnInfo(defaultValue = "'not_pothole'")
+    val defectType: String = "not_pothole",
+    @ColumnInfo(defaultValue = "'not_applicable'")
+    val measurementProvenance: String = "not_applicable",
+    @ColumnInfo(defaultValue = "'not_applicable'")
+    val measurementConfidence: String = "not_applicable",
     val assessment: String? = "clear",
     val imageQuality: String? = "usable",
     val onDrivableSurface: Boolean = true,
@@ -44,8 +52,8 @@ data class ReportEntity(
     val status: String = "draft",
     val detectionModel: String? = "gpt-5-mini",
     val imageDetail: String? = "high",
-    val promptVersion: String? = "pothole-binary-v5",
-    val schemaVersion: Int = 5,
+    val promptVersion: String? = "pothole-binary-v6",
+    val schemaVersion: Int = 6,
     val evidenceCount: Int = 4,
     val unroutedReason: String? = null,
     val unroutedBody: String? = null,

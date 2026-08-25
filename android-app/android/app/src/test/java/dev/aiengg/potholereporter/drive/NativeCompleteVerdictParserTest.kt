@@ -9,6 +9,7 @@ class NativeCompleteVerdictParserTest {
         "is_pothole" to false,
         "looks_like_speed_breaker" to false,
         "image_quality" to "usable",
+        "surface_type" to "bituminous_asphalt",
         "on_drivable_surface" to true,
         "has_localized_cavity" to false,
         "has_broken_edge_or_rim" to false,
@@ -37,6 +38,10 @@ class NativeCompleteVerdictParserTest {
         assertEquals("absent", result?.assessment)
         assertEquals("usable", result?.imageQuality)
         assertEquals("none", result?.damageType)
+        assertEquals("bituminous_asphalt", result?.surfaceType)
+        assertEquals("not_pothole", result?.defectType)
+        assertEquals("not_applicable", result?.measurementProvenance)
+        assertEquals("not_applicable", result?.measurementConfidence)
         assertEquals("reject", result?.decision)
     }
 
@@ -47,6 +52,9 @@ class NativeCompleteVerdictParserTest {
         assertEquals(false, result?.looksLikeSpeedBreaker)
         assertEquals("accept", result?.decision)
         assertEquals("pothole_cavity", result?.damageType)
+        assertEquals("pothole", result?.defectType)
+        assertEquals("visual_estimate_no_scale", result?.measurementProvenance)
+        assertEquals("low", result?.measurementConfidence)
     }
 
     @Test
@@ -68,10 +76,37 @@ class NativeCompleteVerdictParserTest {
     }
 
     @Test
+    fun acceptsOnlyExplicitlySupportedPavedSurfaceTypes() {
+        for (surface in listOf(
+            "bituminous_asphalt", "cement_concrete", "mastic_asphalt", "paver_blocks"
+        )) {
+            val result = NativeCompleteVerdictParser.fromFields(
+                clearPothole + ("surface_type" to surface)
+            )
+            assertEquals(surface, result?.surfaceType)
+            assertEquals("accept", result?.decision)
+        }
+
+        val unknown = NativeCompleteVerdictParser.fromFields(
+            clearPothole + ("surface_type" to "unknown")
+        )
+        assertEquals("reject", unknown?.decision)
+        assertEquals("not_pothole", unknown?.defectType)
+        assertEquals("not_applicable", unknown?.measurementProvenance)
+        val unpaved = NativeCompleteVerdictParser.fromFields(
+            clearPothole + ("surface_type" to "unpaved_or_nonroad")
+        )
+        assertEquals("reject", unpaved?.decision)
+        assertEquals("not_pothole", unpaved?.defectType)
+    }
+
+    @Test
     fun allAmbiguousOrIncompletePhysicalEvidenceIsNo() {
         val cases = listOf(
             clearPothole + ("is_pothole" to false),
             clearPothole + ("image_quality" to "unusable"),
+            clearPothole + ("surface_type" to "unknown"),
+            clearPothole + ("surface_type" to "unpaved_or_nonroad"),
             clearPothole + ("on_drivable_surface" to false),
             clearPothole + ("has_localized_cavity" to false),
             clearPothole + ("has_broken_edge_or_rim" to false),
@@ -95,6 +130,7 @@ class NativeCompleteVerdictParserTest {
         assertNull(NativeCompleteVerdictParser.fromFields(clearAbsence - "description"))
         assertNull(NativeCompleteVerdictParser.fromFields(clearPothole - "is_pothole"))
         assertNull(NativeCompleteVerdictParser.fromFields(clearPothole - "has_localized_cavity"))
+        assertNull(NativeCompleteVerdictParser.fromFields(clearPothole - "surface_type"))
     }
 
     @Test
@@ -110,6 +146,9 @@ class NativeCompleteVerdictParserTest {
         ))
         assertNull(NativeCompleteVerdictParser.fromFields(
             clearPothole + ("temporal_consistency" to "single_view")
+        ))
+        assertNull(NativeCompleteVerdictParser.fromFields(
+            clearPothole + ("surface_type" to "gravel")
         ))
     }
 }

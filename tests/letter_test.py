@@ -1,173 +1,170 @@
 # -*- coding: utf-8 -*-
-"""The letter must be true for whoever receives it.
+"""The generated email is concise, complete, and does not overclaim.
 
-164 of the 182 addressable bodies are municipal councils or town panchayats, headed by a
-Chief Officer. Calling them "the city corporation" is wrong for nine recipients in ten, and
-a letter that gets the reader's own office wrong is easy to dismiss.
+The detector now has one accepted road-defect class: pothole. Contract rows are
+only candidates until the segment, award/work order and DLP have been verified.
 """
-import sys, pathlib
+import sys
+
 from playwright.sync_api import sync_playwright
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-fails = []
 
-EN_FOOTER = (
+FOOTER = (
     "Pothole Reporter is an independent app. Please verify any suggested authority, "
     "ward, road ownership, and tender details."
-)
-KN_FOOTER = (
-    "Pothole Reporter ಒಂದು ಸ್ವತಂತ್ರ ಆ್ಯಪ್. ಸೂಚಿಸಲಾದ ಸಂಸ್ಥೆ, ವಾರ್ಡ್, ರಸ್ತೆ ಮಾಲೀಕತ್ವ "
-    "ಮತ್ತು ಯಾವುದೇ ಟೆಂಡರ್ ವಿವರಗಳನ್ನು ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ."
 )
 
 JS = r"""
 (() => {
   const P = StandaloneAPI.__pure;
-  const a = { is_pothole: true, size: "medium", confidence: 0.8, description: "d" };
-  const unsignedTender = { tender_number: "DMA/1", contractor: "ACME", title: "Road work",
-                           published: "01-02-2026", warranty: "within the defect liability period",
-                           warranty_code: "dlp" };
+  const assessment = P.binaryAssessment({
+    is_pothole: true,
+    looks_like_speed_breaker: false,
+    image_quality: "usable",
+    surface_type: "bituminous_asphalt",
+    on_drivable_surface: true,
+    has_localized_cavity: true,
+    has_broken_edge_or_rim: true,
+    has_depth_or_surface_loss: true,
+    temporal_consistency: "single_view",
+    size: "medium",
+    description: "A localized cavity with material loss",
+  }, false, 1);
+  const route = {
+    routed: true,
+    authority_id: "ka-lgd-305852",
+    authority_name: "Bengaluru South City Corporation",
+    officer_name: "Commissioner, Bengaluru South City Corporation",
+    routing_source: "Karnataka GIS municipal boundary",
+    routing_match_field: "town_lgd_code",
+    routing_match_value: "305852",
+    handoff_name: "Namma Bengaluru (Sahaaya 2.0)",
+    tender_eligible: true,
+  };
   const tender = {
-    ...unsignedTender, tender_pack_id: "in-ka-tenders", tender_pack_version: 1,
-    tender_pack_sha256: "a".repeat(64), tender_pack_state_code: "KA",
+    tender_number: "BBMP/2025-26/RD/WORK-42",
+    title: "Resurfacing of 17th Main Road in HSR Layout",
+    contractor: "ACME Roads Pvt Ltd",
+    published: "01-02-2026",
+    source_name: "Karnataka Public Procurement Portal (KPPP) snapshot",
+    source_url: "https://kppp.karnataka.gov.in/",
+    tender_pack_id: "in-ka-tenders",
+    tender_pack_version: 1,
+    tender_pack_sha256: "a".repeat(64),
+    tender_pack_state_code: "KA",
   };
-  const eligibleRoute = {tender_eligible: true, ownership_unverified: false};
-  const out = {};
-  out.tenderGate = {
-    signed: !!P.normaliseTenderMatch(tender, eligibleRoute),
-    missingProvenance: P.normaliseTenderMatch(unsignedTender, eligibleRoute) === null,
-    missingRoute: P.normaliseTenderMatch(tender) === null,
-    nonRoadScope: P.normaliseTenderMatch({...tender, title: "Construction of drain and footpath"},
-                                         eligibleRoute) === null,
+  const evidence = {
+    captured_at: 1787625000,
+    gps_accuracy: 8,
+    photo_provenance: "Pothole Reporter camera evidence",
   };
-  const [, councilBody] = P.draftEmail(a, 12.9, 77.6, "Main Road, Channagiri, 577213",
-                                       "Chief Officer, Channagiri", tender, eligibleRoute);
-  const [, corpBody] = P.draftEmail(a, 12.9, 77.6, "17th Main, HSR Layout, Bengaluru",
-                                    "Commissioner, Bengaluru South City Corporation", tender,
-                                    eligibleRoute);
-  out.council = councilBody;
-  out.corporation = corpBody;
-  // and the no-contract case, which most complaints are
-  const [, noTender] = P.draftEmail(a, 12.9, 77.6, "Main Road, Channagiri, 577213",
-                                    "Chief Officer, Channagiri", null);
-  out.noTender = noTender;
-  const [, ineligibleTender] = P.draftEmail(a, 12.9, 77.6,
-    "Main Road, Channagiri, 577213", "Chief Officer, Channagiri", tender,
-    {tender_eligible: false, ownership_unverified: false});
-  out.ineligibleTender = ineligibleTender;
-  out.types = {};
-  for (const type of ["pothole_cavity", "failed_patch", "surface_breakup", "rut_or_depression"]) {
-    const [subject, body] = P.draftEmail({ damage_type:type, size:"medium", description:"d" },
-      12.9, 77.6, "Main Road, Channagiri, 577213", "Chief Officer, Channagiri", null);
-    out.types[type] = {subject, body};
-  }
-  localStorage.setItem("app_lang", "kn");
-  const [, kannadaBody] = P.draftEmail(a, 12.9, 77.6, "Main Road, Channagiri, 577213",
-                                       "Chief Officer, Channagiri", null);
-  out.kannada = kannadaBody;
-  localStorage.setItem("app_lang", "en");
-  return out;
+  return {
+    matched: P.buildComplaintOutputs(assessment, 12.912345, 77.612345,
+      "17th Main Road, HSR Layout, Bengaluru", route.officer_name, tender, route, evidence),
+    noCandidate: P.buildComplaintOutputs(assessment, 12.912345, 77.612345,
+      "17th Main Road, HSR Layout, Bengaluru", route.officer_name, null, route, evidence),
+    rejectedScope: P.normaliseTenderMatch({...tender,
+      tender_number: "BBMP/2023-24/OW/WORK_INDENT2505",
+      title: "Construction of drain and footpath"}, route),
+  };
 })()
 """
 
-with sync_playwright() as p:
-    b = p.chromium.launch(args=["--disable-web-security"])
-    pg = b.new_context(viewport={"width": 390, "height": 844}).new_page()
-    pg.goto("http://localhost:8765/"); pg.wait_for_load_state("networkidle")
-    pg.wait_for_function("typeof StandaloneAPI !== 'undefined' && StandaloneAPI.__pure", timeout=30000)
-    r = pg.evaluate(JS)
-    b.close()
 
-council = r["council"]
-print("  letter to a Chief Officer of a town municipal council:")
-for line in council.split("\n"):
-    if line.strip(): print(f"    | {line[:104]}")
+def require(failures, condition, message):
+    if not condition:
+        failures.append(message)
 
-if r["tenderGate"] != {
-    "signed": True,
-    "missingProvenance": True,
-    "missingRoute": True,
-    "nonRoadScope": True,
-}:
-    fails.append(f"tender validation gate accepted incomplete provenance: {r['tenderGate']}")
 
-for phrase in ("city corporation", "the city"):
-    if phrase in council:
-        fails.append(f'a letter to a Chief Officer says "{phrase}", but that body is not a corporation')
-if "Chief Officer, Channagiri" not in council:
-    fails.append("the greeting does not address the routed officer")
-if "probable" not in council.lower() and "may still be" not in council.lower():
-    fails.append("the contract claim lost its hedge")
-if "ACME" not in council:
-    fails.append("the contractor is not named when one is recorded")
-if "DMA/1" not in council:
-    fails.append("the validated tender number is missing from the letter")
-if "Work name: Road work" not in council:
-    fails.append("the validated tender title is missing from the letter")
+def main():
+    failures = []
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(args=["--disable-web-security"])
+        page = browser.new_context(viewport={"width": 390, "height": 844}).new_page()
+        page.goto("http://localhost:8765/")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_function(
+            "typeof StandaloneAPI !== 'undefined' && StandaloneAPI.__pure",
+            timeout=30000,
+        )
+        result = page.evaluate(JS)
+        browser.close()
 
-for label, body, footer in (
-    ("matched tender", council, EN_FOOTER),
-    ("corporation", r["corporation"], EN_FOOTER),
-    ("no tender", r["noTender"], EN_FOOTER),
-    ("ineligible tender", r["ineligibleTender"], EN_FOOTER),
-    ("Kannada", r["kannada"], KN_FOOTER),
-):
-    paragraphs = [paragraph.strip() for paragraph in body.strip().split("\n\n")]
-    if body.count(footer) != 1:
-        fails.append(f"{label} letter does not contain exactly one independent-app footer")
-    if not paragraphs or paragraphs[-1] != footer:
-        fails.append(f"{label} letter does not end with the independent-app verification footer")
+    matched = result["matched"]
+    body = matched["email_body"]
+    no_candidate = result["noCandidate"]["email_body"]
 
-legacy_submission_phrases = (
-    "does not submit a grievance",
-    "does not submit the grievance",
-    "no official grievance submission is confirmed",
-    "ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ",
-)
-for label, body in (
-    ("matched tender", council),
-    ("corporation", r["corporation"]),
-    ("no tender", r["noTender"]),
-    ("ineligible tender", r["ineligibleTender"]),
-    ("Kannada", r["kannada"]),
-):
-    lowered = body.lower()
-    for phrase in legacy_submission_phrases:
-        if phrase.lower() in lowered:
-            fails.append(f'{label} letter retains old submission wording: "{phrase}"')
+    print("  generated structured complaint:")
+    for line in body.splitlines():
+        if line.strip():
+            print(f"    | {line[:112]}")
 
-# The footer always tells the reader to verify any tender details. Ignore that generic
-# warning when checking that a report with no match contains no actual contract claim.
-no_tender_content = r["noTender"].rsplit("\n\n", 1)[0].lower()
-ineligible_tender_content = r["ineligibleTender"].rsplit("\n\n", 1)[0].lower()
-for phrase in (
-    "probable tender match", "tender number:", "work name:", "contractor:",
-    "warranty status:", "winning bidder", "defect liability", "maintenance period",
-    "DMA/1", "Road work", "ACME",
-):
-    if phrase.lower() in no_tender_content:
-        fails.append(f'a report with no tender match still contains "{phrase}"')
-    if phrase.lower() in ineligible_tender_content:
-        fails.append(f'an ineligible route still contains tender detail "{phrase}"')
+    require(failures, matched["email_subject"] == "Pothole complaint — 17th Main Road",
+            "subject is not the concise road-specific subject")
+    for heading in ("LOCATION", "CLASSIFICATION", "ROUTING", "CONTRACT CANDIDATE"):
+        require(failures, body.count(heading) == 1,
+                f"email must contain exactly one {heading} section")
+    for expected in (
+        "Address / landmark: 17th Main Road, HSR Layout, Bengaluru",
+        "Coordinates: 12.912345, 77.612345",
+        "Map: https://maps.google.com/?q=12.912345,77.612345",
+        "Defect decision: Pothole — YES",
+        "Surface: Bituminous / asphalt",
+        "App visual size class: medium",
+        "Physical dimensions (length / width / depth): Unknown / Unknown / Unknown",
+        "Measurement provenance: Visual estimate without a scale reference",
+        "Measurement confidence: Low",
+        "Geographic corporation/body: Bengaluru South City Corporation",
+        "Complaint intake authority: Bengaluru South City Corporation",
+        "Road owner/maintainer: Unknown — authority to inspect and transfer if required",
+        "Status: Candidate only — authority verification required",
+        "Tender number: BBMP/2025-26/RD/WORK-42",
+        "Exact work name: Resurfacing of 17th Main Road in HSR Layout",
+        "Listed contractor: ACME Roads Pvt Ltd",
+        "Source: Karnataka Public Procurement Portal (KPPP) snapshot — https://kppp.karnataka.gov.in/",
+        "Road-segment match: Unverified",
+        "Award/work-order status: Unverified",
+        "DLP status: Unverified — publication date is not DLP evidence",
+    ):
+        require(failures, expected in body, f'missing or altered email field: "{expected}"')
 
-types = r["types"]
-if "pothole" not in types["pothole_cavity"]["subject"].lower():
-    fails.append("a cavity complaint is no longer named as a pothole")
-for kind in ("failed_patch", "surface_breakup", "rut_or_depression"):
-    # The branded footer necessarily says "Pothole Reporter"; classify the complaint
-    # using its subject and substantive body, not the app name in that final footer.
-    substantive_body = types[kind]["body"].rsplit("\n\n", 1)[0]
-    combined = types[kind]["subject"] + " " + substantive_body
-    if "pothole" in combined.lower():
-        fails.append(f"{kind} is falsely described as a pothole")
-if "Broken road repair" not in types["failed_patch"]["subject"]:
-    fails.append("failed-patch subject does not distinguish a broken repair")
-if "Road surface failure" not in types["surface_breakup"]["subject"]:
-    fails.append("surface-breakup subject is not distinct")
-if "Road depression" not in types["rut_or_depression"]["subject"]:
-    fails.append("rut/depression subject is not distinct")
+    require(failures, body.count(FOOTER) == 1,
+            "email must contain exactly one independent-app disclaimer")
+    require(failures, body.rstrip().endswith(FOOTER),
+            "independent-app disclaimer must be the final email paragraph")
+    for forbidden in (
+        "within the defect liability period",
+        "within maintenance period",
+        "official size",
+        "official category",
+        "does not submit a grievance",
+        "no official grievance submission is confirmed",
+    ):
+        require(failures, forbidden not in body.lower(),
+                f'email retains an unsupported or noisy claim: "{forbidden}"')
 
-print()
-if fails:
-    print("FAIL"); [print("  -", f) for f in fails]; sys.exit(1)
-print("LETTER TEST PASS")
+    for expected in (
+        "Status: No eligible road-work contract candidate identified",
+        "Tender number: Not identified",
+        "Exact work name: Not identified",
+        "Listed contractor: Not identified",
+        "DLP status: Unverified",
+    ):
+        require(failures, expected in no_candidate,
+                f'no-candidate email does not state: "{expected}"')
+    require(failures, "BBMP/2025-26/RD/WORK-42" not in no_candidate,
+            "no-candidate email leaked a tender from another render")
+    require(failures, result["rejectedScope"] is None,
+            "drain-and-footpath-only WORK_INDENT2505 was accepted as road work")
+
+    print()
+    if failures:
+        print("FAIL")
+        for failure in failures:
+            print("  -", failure)
+        sys.exit(1)
+    print("LETTER TEST PASS")
+
+
+if __name__ == "__main__":
+    main()

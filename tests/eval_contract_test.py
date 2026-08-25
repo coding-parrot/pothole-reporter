@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline guard that the evaluator mirrors the pure client's binary v5 contract."""
+"""Offline guard that the evaluator mirrors the pure client's binary v6 contract."""
 import importlib.util, json, pathlib, sys, tempfile
 from PIL import Image
 
@@ -26,7 +26,7 @@ def check(name, condition):
         fails.append(name)
 
 
-check("schema version", 'const SCHEMA_VERSION = 5;' in client and road_eval.SCHEMA_VERSION == 5)
+check("schema version", 'const SCHEMA_VERSION = 6;' in client and road_eval.SCHEMA_VERSION == 6)
 check("prompt version", f'const PROMPT_VERSION = "{road_eval.PROMPT_VERSION}";' in client)
 check("native prompt version", f'PROMPT_VERSION = "{road_eval.PROMPT_VERSION}"' in native)
 check("road-band transform", 'const ROAD_BAND = 0.6;' in client and road_eval.ROAD_BAND == .60)
@@ -39,6 +39,7 @@ check("speed-breaker veto is required",
       "looks_like_speed_breaker" in road_eval.SCHEMA["required"])
 check("speed-breaker veto is boolean",
       road_eval.SCHEMA["properties"].get("looks_like_speed_breaker") == {"type": "boolean"})
+check("surface classification is required", "surface_type" in road_eval.SCHEMA["required"])
 check("prompt explicitly distinguishes speed breakers",
       "speed breaker" in road_eval.prompts()["baseline"].lower())
 check("prompt makes ambiguity a negative",
@@ -57,7 +58,11 @@ check("native persists and syncs every binary physical gate",
       all(term in entities for term in ("looksLikeSpeedBreaker", "hasLocalizedCavity"))
       and all(f'put("{term}"' in plugin for term in
               ("looks_like_speed_breaker", "has_localized_cavity"))
-      and "MIGRATION_4_5" in database and "version = 5" in database)
+      and all(term in entities for term in
+              ("surfaceType", "defectType", "measurementProvenance", "measurementConfidence"))
+      and all(f'put("{term}"' in plugin for term in
+              ("surface_type", "defect_type", "measurement_provenance", "measurement_confidence"))
+      and "MIGRATION_5_6" in database and "version = 6" in database)
 for field in road_eval.SCHEMA["required"]:
     check(f"required field {field}", f'"{field}"' in client)
 
@@ -74,7 +79,8 @@ check("mini rejects unsupported original detail",
       ["input"][0]["content"][0]["detail"] == "high")
 
 good = {"is_pothole": True, "looks_like_speed_breaker": False,
-        "image_quality": "usable", "on_drivable_surface": True,
+        "image_quality": "usable", "surface_type": "bituminous_asphalt",
+        "on_drivable_surface": True,
         "has_localized_cavity": True, "has_broken_edge_or_rim": True,
         "has_depth_or_surface_loss": True, "temporal_consistency": "consistent",
         "size": "medium"}
@@ -95,6 +101,9 @@ check("missing speed-breaker verdict fails closed",
 check("mistyped speed-breaker verdict fails closed",
       road_eval.decision({**good, "looks_like_speed_breaker": "false"}) == "reject")
 check("off-road rejected", road_eval.decision({**good, "on_drivable_surface": False}) == "reject")
+check("unknown surface rejected", road_eval.decision({**good, "surface_type": "unknown"}) == "reject")
+check("unpaved/non-road surface rejected",
+      road_eval.decision({**good, "surface_type": "unpaved_or_nonroad"}) == "reject")
 check("surface damage without a localized cavity is NO",
       road_eval.decision({**good, "has_localized_cavity": False}) == "reject")
 check("missing broken rim is NO",

@@ -48,9 +48,10 @@ check("sparse keyframes are durable and unique per drive capture",
       and "MIGRATION_3_4" in DATABASE
       and "index_drive_keyframes_sessionId_captureSeq" in DATABASE)
 check("binary detector evidence has a non-destructive Room migration",
-      "version = 5" in DATABASE and "MIGRATION_4_5" in DATABASE
+      "version = 6" in DATABASE and "MIGRATION_4_5" in DATABASE and "MIGRATION_5_6" in DATABASE
       and "ADD COLUMN `looksLikeSpeedBreaker` INTEGER NOT NULL DEFAULT 1" in DATABASE
-      and "ADD COLUMN `hasLocalizedCavity` INTEGER NOT NULL DEFAULT 0" in DATABASE)
+      and "ADD COLUMN `hasLocalizedCavity` INTEGER NOT NULL DEFAULT 0" in DATABASE
+      and "ADD COLUMN `surfaceType` TEXT NOT NULL DEFAULT 'unknown'" in DATABASE)
 check("native bridge exposes pending keyframe replay",
       all(f"fun {method}(" in PLUGIN for method in
           ("listKeyframes", "readKeyframe", "markKeyframeAnalyzed"))

@@ -33,7 +33,7 @@ def kotlin_trim_indent(value: str) -> str:
 def migration_sql(name: str) -> list[str]:
     match = re.search(
         rf"private val {re.escape(name)}\b(?P<body>[\s\S]*?)"
-        r"(?=\n\s*private val MIGRATION_|\n\s*fun getDatabase\()",
+        r"(?=\n\s*(?:private|internal) val MIGRATION_|\n\s*fun getDatabase\()",
         DATABASE,
     )
     require(match is not None, f"{name} was not found")

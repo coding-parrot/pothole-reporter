@@ -31,6 +31,10 @@ data class AssessmentResult(
     val assessment: String,
     val imageQuality: String,
     val damageType: String,
+    val surfaceType: String,
+    val defectType: String,
+    val measurementProvenance: String,
+    val measurementConfidence: String,
     val onDrivableSurface: Boolean,
     val hasLocalizedCavity: Boolean,
     val hasBrokenEdgeOrRim: Boolean,
@@ -47,6 +51,11 @@ internal object NativeCompleteVerdictParser {
     private val imageQualities = setOf("usable", "unusable")
     private val temporalValues = setOf("consistent", "inconsistent", "not_applicable")
     private val sizes = setOf("small", "medium", "large")
+    private val surfaceTypes = setOf(
+        "bituminous_asphalt", "cement_concrete", "mastic_asphalt", "paver_blocks",
+        "unpaved_or_nonroad", "unknown"
+    )
+    private val supportedPavedSurfaceTypes = surfaceTypes - setOf("unknown", "unpaved_or_nonroad")
 
     fun parse(text: String): AssessmentResult? {
         return try {
@@ -57,6 +66,7 @@ internal object NativeCompleteVerdictParser {
                     "is_pothole" to json.get("is_pothole"),
                     "looks_like_speed_breaker" to json.get("looks_like_speed_breaker"),
                     "image_quality" to json.get("image_quality"),
+                    "surface_type" to json.get("surface_type"),
                     "on_drivable_surface" to json.get("on_drivable_surface"),
                     "has_localized_cavity" to json.get("has_localized_cavity"),
                     "has_broken_edge_or_rim" to json.get("has_broken_edge_or_rim"),
@@ -73,7 +83,8 @@ internal object NativeCompleteVerdictParser {
 
     internal fun fromFields(fields: Map<String, Any?>): AssessmentResult? {
         val required = setOf(
-            "is_pothole", "looks_like_speed_breaker", "image_quality", "on_drivable_surface",
+            "is_pothole", "looks_like_speed_breaker", "image_quality", "surface_type",
+            "on_drivable_surface",
             "has_localized_cavity", "has_broken_edge_or_rim", "has_depth_or_surface_loss",
             "temporal_consistency", "size", "description"
         )
@@ -85,14 +96,16 @@ internal object NativeCompleteVerdictParser {
         val brokenEdge = fields["has_broken_edge_or_rim"] as? Boolean ?: return null
         val depth = fields["has_depth_or_surface_loss"] as? Boolean ?: return null
         val imageQuality = fields["image_quality"] as? String ?: return null
+        val surfaceType = fields["surface_type"] as? String ?: return null
         val temporal = fields["temporal_consistency"] as? String ?: return null
         val description = fields["description"] as? String ?: return null
-        if (imageQuality !in imageQualities || temporal !in temporalValues) return null
+        if (imageQuality !in imageQualities || surfaceType !in surfaceTypes ||
+            temporal !in temporalValues) return null
         val sizeValue = fields["size"]
         if (sizeValue != null && (sizeValue !is String || sizeValue !in sizes)) return null
         val size = sizeValue as? String
         val decision = decisionFor(
-            modelIsPothole, looksLikeSpeedBreaker, imageQuality, onRoad, localizedCavity,
+            modelIsPothole, looksLikeSpeedBreaker, imageQuality, surfaceType, onRoad, localizedCavity,
             brokenEdge, depth, temporal, size
         )
         val accepted = decision == "accept"
@@ -104,6 +117,10 @@ internal object NativeCompleteVerdictParser {
             assessment = if (accepted) "clear" else "absent",
             imageQuality = imageQuality,
             damageType = if (accepted) "pothole_cavity" else "none",
+            surfaceType = surfaceType,
+            defectType = if (accepted) "pothole" else "not_pothole",
+            measurementProvenance = if (accepted) "visual_estimate_no_scale" else "not_applicable",
+            measurementConfidence = if (accepted) "low" else "not_applicable",
             onDrivableSurface = onRoad,
             hasLocalizedCavity = localizedCavity,
             hasBrokenEdgeOrRim = brokenEdge,
@@ -119,6 +136,7 @@ internal object NativeCompleteVerdictParser {
         isPothole: Boolean,
         looksLikeSpeedBreaker: Boolean,
         imageQuality: String,
+        surfaceType: String,
         onDrivableSurface: Boolean,
         hasLocalizedCavity: Boolean,
         hasBrokenEdgeOrRim: Boolean,
@@ -127,6 +145,7 @@ internal object NativeCompleteVerdictParser {
         size: String?
     ): String {
         if (!isPothole || looksLikeSpeedBreaker) return "reject"
+        if (surfaceType !in supportedPavedSurfaceTypes) return "reject"
         if (imageQuality != "usable" || !onDrivableSurface || !hasLocalizedCavity) return "reject"
         if (!hasBrokenEdgeOrRim || !hasDepthOrSurfaceLoss) return "reject"
         // NativeInferenceEngine is Drive-only and always receives a chronological burst.
@@ -193,14 +212,15 @@ class NativeInferenceEngine(
     companion object {
         private const val OAI_URL = "https://api.openai.com/v1/responses"
         private const val NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
-        private const val PROMPT_VERSION = "pothole-binary-v5"
-        private const val SCHEMA_VERSION = 5
+        private const val PROMPT_VERSION = "pothole-binary-v6"
+        private const val SCHEMA_VERSION = 6
         const val REPAIR_PROMPT_VERSION = "road-repair-v1"
         const val REPAIR_SCHEMA_VERSION = 1
 
         private val IS_POTHOLE_RE = Pattern.compile("\"is_pothole\"\\s*:\\s*(true|false)")
         private val SPEED_BREAKER_RE = Pattern.compile("\"looks_like_speed_breaker\"\\s*:\\s*(true|false)")
         private val QUALITY_RE = Pattern.compile("\"image_quality\"\\s*:\\s*\"(usable|unusable)\"")
+        private val SURFACE_RE = Pattern.compile("\"surface_type\"\\s*:\\s*\"(bituminous_asphalt|cement_concrete|mastic_asphalt|paver_blocks|unpaved_or_nonroad|unknown)\"")
         private val ROAD_RE = Pattern.compile("\"on_drivable_surface\"\\s*:\\s*(true|false)")
         private val CAVITY_RE = Pattern.compile("\"has_localized_cavity\"\\s*:\\s*(true|false)")
         private val EDGE_RE = Pattern.compile("\"has_broken_edge_or_rim\"\\s*:\\s*(true|false)")
@@ -211,6 +231,7 @@ class NativeInferenceEngine(
         private const val DETECT_PROMPT =
             "You are a high-precision binary pothole detector inspecting chronologically ordered road views for a civic complaint app. Return one decision only: is_pothole true (YES) or false (NO). There is no confidence score, probability, probable result, review result, or general road-damage category. False positives are more harmful than false negatives, so any ambiguity must be NO. " +
             "A pothole is a localized concave open cavity in the drivable paved surface with pavement material visibly missing or disintegrated. YES requires the feature to be on the paved surface used by moving traffic, have a distinct broken edge or rim, have visible depth or material loss, and be geometrically consistent across supplied chronological views. " +
+            "Classify surface_type as bituminous_asphalt for conventional asphalt or blacktop, cement_concrete for a concrete slab, mastic_asphalt only when that pavement is visually identifiable, paver_blocks for interlocking paved blocks, unpaved_or_nonroad for an unpaved shoulder or non-road surface, or unknown whenever the material is uncertain. YES is permitted only for the four named paved surface types; unpaved_or_nonroad and unknown must be NO. " +
             "Return NO for a speed breaker, road hump, rumble strip, shadow, stain, water, glare, dust, loose debris, lane marking, intact patch, crack, broad surface breakup without a distinct cavity, rut or smooth depression, manhole, drain, expansion joint, road edge, or shoulder erosion. A failed patch is YES only when it now contains a distinct open cavity satisfying every pothole rule. " +
             "Set looks_like_speed_breaker true whenever the feature is or could reasonably be an intentional raised breaker, hump, or rumble strip. Painted rectangles or stripes, reflectors, a transverse ridge, parallel leading and trailing edges, camera pitch, and a vehicle jolt support NO. A separate cavity on or beside a breaker is YES only when visually unambiguous and distinct from the raised ridge. If raised-versus-concave geometry is uncertain, return NO. " +
             "Set image_quality unusable when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. Use temporal_consistency consistent only when the chronological views agree; otherwise use inconsistent. " +
@@ -305,6 +326,10 @@ class NativeInferenceEngine(
             isPothole = if (assessment.isPothole) 1 else 0,
             looksLikeSpeedBreaker = assessment.looksLikeSpeedBreaker,
             damageType = assessment.damageType,
+            surfaceType = assessment.surfaceType,
+            defectType = assessment.defectType,
+            measurementProvenance = assessment.measurementProvenance,
+            measurementConfidence = assessment.measurementConfidence,
             assessment = assessment.assessment,
             imageQuality = assessment.imageQuality,
             onDrivableSurface = assessment.onDrivableSurface,
@@ -581,11 +606,12 @@ class NativeInferenceEngine(
             {
               "type": "object",
               "additionalProperties": false,
-              "required": ["is_pothole", "looks_like_speed_breaker", "image_quality", "on_drivable_surface", "has_localized_cavity", "has_broken_edge_or_rim", "has_depth_or_surface_loss", "temporal_consistency", "size", "description"],
+              "required": ["is_pothole", "looks_like_speed_breaker", "image_quality", "surface_type", "on_drivable_surface", "has_localized_cavity", "has_broken_edge_or_rim", "has_depth_or_surface_loss", "temporal_consistency", "size", "description"],
               "properties": {
                 "is_pothole": { "type": "boolean" },
                 "looks_like_speed_breaker": { "type": "boolean" },
                 "image_quality": { "type": "string", "enum": ["usable", "unusable"] },
+                "surface_type": { "type": "string", "enum": ["bituminous_asphalt", "cement_concrete", "mastic_asphalt", "paver_blocks", "unpaved_or_nonroad", "unknown"] },
                 "on_drivable_surface": { "type": "boolean" },
                 "has_localized_cavity": { "type": "boolean" },
                 "has_broken_edge_or_rim": { "type": "boolean" },
@@ -711,6 +737,7 @@ class NativeInferenceEngine(
         val breakerFound = breakerMatcher.find()
         if (breakerFound && breakerMatcher.group(1) == "true") return true
         val qualMatcher = QUALITY_RE.matcher(text)
+        val surfaceMatcher = SURFACE_RE.matcher(text)
         val roadMatcher = ROAD_RE.matcher(text)
         val cavityMatcher = CAVITY_RE.matcher(text)
         val edgeMatcher = EDGE_RE.matcher(text)
@@ -718,7 +745,7 @@ class NativeInferenceEngine(
         val tempMatcher = TEMPORAL_RE.matcher(text)
         val sizeMatcher = SIZE_RE.matcher(text)
 
-        if (!breakerFound || !qualMatcher.find() || !roadMatcher.find() ||
+        if (!breakerFound || !qualMatcher.find() || !surfaceMatcher.find() || !roadMatcher.find() ||
             !cavityMatcher.find() || !edgeMatcher.find() || !depthMatcher.find() ||
             !tempMatcher.find() || !sizeMatcher.find()
         ) {
@@ -729,6 +756,7 @@ class NativeInferenceEngine(
             true,
             breakerMatcher.group(1) == "true",
             qualMatcher.group(1) ?: "unusable",
+            surfaceMatcher.group(1) ?: "unknown",
             roadMatcher.group(1) == "true",
             cavityMatcher.group(1) == "true",
             edgeMatcher.group(1) == "true",
@@ -743,6 +771,7 @@ class NativeInferenceEngine(
         isPothole: Boolean,
         looksLikeSpeedBreaker: Boolean,
         imageQuality: String,
+        surfaceType: String,
         onDrivableSurface: Boolean,
         hasLocalizedCavity: Boolean,
         hasBrokenEdgeOrRim: Boolean,
@@ -753,6 +782,7 @@ class NativeInferenceEngine(
         isPothole,
         looksLikeSpeedBreaker,
         imageQuality,
+        surfaceType,
         onDrivableSurface,
         hasLocalizedCavity,
         hasBrokenEdgeOrRim,
@@ -765,6 +795,7 @@ class NativeInferenceEngine(
         val verdictMatcher = IS_POTHOLE_RE.matcher(text)
         val breakerMatcher = SPEED_BREAKER_RE.matcher(text)
         val qualMatcher = QUALITY_RE.matcher(text)
+        val surfaceMatcher = SURFACE_RE.matcher(text)
         val roadMatcher = ROAD_RE.matcher(text)
         val cavityMatcher = CAVITY_RE.matcher(text)
         val edgeMatcher = EDGE_RE.matcher(text)
@@ -776,6 +807,7 @@ class NativeInferenceEngine(
         val modelSaidPothole = verdictMatcher.find() && verdictMatcher.group(1) == "true"
         val looksLikeSpeedBreaker = !breakerMatcher.find() || breakerMatcher.group(1) == "true"
         val imageQuality = if (qualMatcher.find()) qualMatcher.group(1)!! else "unusable"
+        val surfaceType = if (surfaceMatcher.find()) surfaceMatcher.group(1)!! else "unknown"
         val onRoad = roadMatcher.find() && roadMatcher.group(1) == "true"
         val hasCavity = cavityMatcher.find() && cavityMatcher.group(1) == "true"
         val hasEdge = edgeMatcher.find() && edgeMatcher.group(1) == "true"
@@ -789,6 +821,10 @@ class NativeInferenceEngine(
             assessment = "absent",
             imageQuality = imageQuality,
             damageType = "none",
+            surfaceType = surfaceType,
+            defectType = "not_pothole",
+            measurementProvenance = "not_applicable",
+            measurementConfidence = "not_applicable",
             onDrivableSurface = onRoad,
             hasLocalizedCavity = hasCavity,
             hasBrokenEdgeOrRim = hasEdge,
@@ -809,6 +845,10 @@ class NativeInferenceEngine(
             assessment = "absent",
             imageQuality = "unusable",
             damageType = "none",
+            surfaceType = "unknown",
+            defectType = "not_pothole",
+            measurementProvenance = "not_applicable",
+            measurementConfidence = "not_applicable",
             onDrivableSurface = false,
             hasLocalizedCavity = false,
             hasBrokenEdgeOrRim = false,

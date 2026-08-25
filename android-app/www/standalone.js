@@ -45,8 +45,8 @@
   const DEFAULT_MODEL = "gpt-5-mini";
   const ALLOWED_MODELS = new Set([DEFAULT_MODEL, "gpt-5.6"]);
   const ALLOWED_DETAILS = new Set(["high", "original"]);
-  const PROMPT_VERSION = "pothole-binary-v5";
-  const SCHEMA_VERSION = 5;
+  const PROMPT_VERSION = "pothole-binary-v6";
+  const SCHEMA_VERSION = 6;
   const REPAIR_PROMPT_VERSION = "road-repair-v1";
   const REPAIR_SCHEMA_VERSION = 1;
   const MAX_DETECTION_IMAGES = 4;
@@ -190,6 +190,85 @@
     whatsapp_url: null,
     helpline: "1533",
   });
+  // Complaint profiles shape the copy an authority receives; routing packs still decide
+  // only which geographic intake body contains the point. A municipal boundary is not
+  // evidence that the same body owns or maintains the road.
+  const AUTHORITY_COMPLAINT_PROFILES = Object.freeze({
+    "mh-bmc": Object.freeze({
+      profile_id: "mh-bmc", authority_name: "Brihanmumbai Municipal Corporation (BMC)",
+      portal_name: "BMC Pothole QuickFix / MARG", portal_url: "https://marg.mcgm.gov.in/MARG/welcomePage.html",
+      portal_category: "Pothole", request: "Please register this grievance, inspect and repair the defect, return the grievance number, and transfer it if another agency maintains the road.",
+      source_urls: ["https://play.google.com/store/apps/details?id=com.bmc.potholequickfix",
+        "https://marg.mcgm.gov.in/MARG/welcomePage.html"],
+    }),
+    "ka-lgd-305851": Object.freeze({ profile_id: "ka-bengaluru-central", authority_name: "Bengaluru Central City Corporation", boundary_body_code: "305851", portal_name: "Namma Bengaluru (Sahaaya 2.0)", portal_url: "https://nammabengaluru.org.in/login", portal_category: "Road Maintenance(Engg) / Pothole", recipient: "commissionerbccc@gmail.com" }),
+    "ka-lgd-305850": Object.freeze({ profile_id: "ka-bengaluru-east", authority_name: "Bengaluru East City Corporation", boundary_body_code: "305850", portal_name: "Namma Bengaluru (Sahaaya 2.0)", portal_url: "https://nammabengaluru.org.in/login", portal_category: "Road Maintenance(Engg) / Pothole", recipient: "commissioner.becc@gmail.com" }),
+    "ka-lgd-305853": Object.freeze({ profile_id: "ka-bengaluru-north", authority_name: "Bengaluru North City Corporation", boundary_body_code: "305853", portal_name: "Namma Bengaluru (Sahaaya 2.0)", portal_url: "https://nammabengaluru.org.in/login", portal_category: "Road Maintenance(Engg) / Pothole", recipient: "bengalurunorthcitycorporation@gmail.com" }),
+    "ka-lgd-305852": Object.freeze({ profile_id: "ka-bengaluru-south", authority_name: "Bengaluru South City Corporation", boundary_body_code: "305852", portal_name: "Namma Bengaluru (Sahaaya 2.0)", portal_url: "https://nammabengaluru.org.in/login", portal_category: "Road Maintenance(Engg) / Pothole", recipient: "comm.south.gba@gmail.com" }),
+    "ka-lgd-305854": Object.freeze({ profile_id: "ka-bengaluru-west", authority_name: "Bengaluru West City Corporation", boundary_body_code: "305854", portal_name: "Namma Bengaluru (Sahaaya 2.0)", portal_url: "https://nammabengaluru.org.in/login", portal_category: "Road Maintenance(Engg) / Pothole", recipient: "commissioner.bwcc@gmail.com" }),
+    "ka-bengaluru-bda": Object.freeze({
+      profile_id: "ka-bengaluru-bda", authority_name: "Bangalore Development Authority (BDA)",
+      portal_name: "Karnataka iPGRS", portal_url: "https://ipgrs.karnataka.gov.in/",
+      portal_category: "Road / Pothole", recipient: "com@bdabangalore.org",
+      ownership_evidence_required: true,
+    }),
+  });
+
+  function verifiedBdaResponsibility(route) {
+    const evidence = route && (route.bda_responsibility_evidence || route.road_owner_evidence);
+    return !!(route && (route.road_owner_id === "ka-bengaluru-bda"
+      || route.intake_authority_id === "ka-bengaluru-bda")
+      && evidence && evidence.verified === true
+      && String(evidence.segment_identity || "").trim()
+      && String(evidence.reference || evidence.document_id || "").trim()
+      && /^https:\/\//.test(String(evidence.source_url || "")));
+  }
+
+  function authorityComplaintProfile(route) {
+    if (verifiedBdaResponsibility(route)) return AUTHORITY_COMPLAINT_PROFILES["ka-bengaluru-bda"];
+    const id = route && (route.intake_authority_id || route.authority_id);
+    return AUTHORITY_COMPLAINT_PROFILES[id] || Object.freeze({
+      profile_id: id || "generic", authority_name: conciseRouteLabel(route && route.authority_name) || "Concerned road authority",
+      portal_name: route && route.handoff_name || null, portal_url: route && route.handoff_url || null,
+      portal_category: "Road / Pothole",
+    });
+  }
+
+  function separateRoadResponsibility(route) {
+    if (!route || !route.routed) return route;
+    const supplied = route.road_owner_evidence;
+    const evidenceVerified = !!(supplied && supplied.verified === true
+      && String(supplied.segment_identity || "").trim()
+      && String(supplied.reference || supplied.document_id || "").trim()
+      && /^https:\/\//.test(String(supplied.source_url || "")));
+    const bdaClaim = route.road_owner_id === "ka-bengaluru-bda";
+    const ownerVerified = evidenceVerified && (!bdaClaim || verifiedBdaResponsibility(route));
+    const useBdaIntake = ownerVerified && bdaClaim;
+    const bdaProfile = AUTHORITY_COMPLAINT_PROFILES["ka-bengaluru-bda"];
+    return {
+      ...route,
+      geographic_authority_id: route.geographic_authority_id || route.authority_id || null,
+      geographic_authority_name: route.geographic_authority_name || route.authority_name || null,
+      // When segment-level official evidence proves BDA maintenance, BDA becomes the
+      // intake route while the containing corporation remains geographic context.
+      authority_id: useBdaIntake ? bdaProfile.profile_id : route.authority_id,
+      authority_name: useBdaIntake ? bdaProfile.authority_name : route.authority_name,
+      officer_name: useBdaIntake ? `Commissioner, ${bdaProfile.authority_name}` : route.officer_name,
+      officer_email: useBdaIntake ? bdaProfile.recipient : route.officer_email,
+      delivery_channel: useBdaIntake ? "email" : route.delivery_channel,
+      handoff_name: useBdaIntake ? bdaProfile.portal_name : route.handoff_name,
+      handoff_url: useBdaIntake ? bdaProfile.portal_url : route.handoff_url,
+      intake_authority_id: useBdaIntake ? bdaProfile.profile_id
+        : (route.intake_authority_id || route.authority_id || null),
+      intake_authority_name: useBdaIntake ? bdaProfile.authority_name
+        : (route.intake_authority_name || route.authority_name || null),
+      road_owner_id: ownerVerified ? (route.road_owner_id || null) : null,
+      road_owner_name: ownerVerified ? (route.road_owner_name || null) : null,
+      road_owner_status: ownerVerified ? "verified" : "unverified",
+      road_owner_evidence: ownerVerified ? supplied : null,
+      ownership_unverified: !ownerVerified,
+    };
+  }
   // Only these reviewed general-grievance channels are allowed to inherit their base
   // route for garbage and manhole reports. Other municipal email/road routes fail
   // closed instead of assuming that a recipient accepts an unrelated category.
@@ -316,13 +395,15 @@ Speed-breaker rule:
 - Set looks_like_speed_breaker true whenever the feature is or could reasonably be an intentional raised speed breaker, hump, or rumble strip. Painted rectangles or stripes, reflectors, a transverse ridge across the lane, parallel leading/trailing edges, camera pitch, and a vehicle jolt support NO, not YES.
 - A separate cavity on or beside a breaker is YES only when it is visually unambiguous and distinct from the raised ridge. If raised-versus-concave geometry is uncertain, return NO.
 
+Classify surface_type as bituminous_asphalt, cement_concrete, mastic_asphalt, paver_blocks, unpaved_or_nonroad, or unknown. A YES is permitted only on one of the four paved surface types. If the surface cannot be distinguished from an unpaved shoulder, drain edge, footpath, or other non-road area, use unknown or unpaved_or_nonroad and return NO.
+
 Set image_quality unusable when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. For multiple views use temporal_consistency consistent only when they agree; use inconsistent when they do not. For a single user-framed image use single_view.
 
 Only after YES, classify approximate visual size using the app's simple bands:
 - small: maximum visible opening width below 30 cm;
 - medium: 30 to 60 cm;
 - large: above 60 cm or a connected cavity cluster.
-For NO, size must be null. These are app estimates, not municipal measurements.
+For NO, size must be null. These are app visual classes only, not measured dimensions and not BMC, BDA, GBA, or any other authority's official categories.
 
 description must be one or two factual sentences. For YES, name the visible cavity evidence, position, and road-user hazard. For NO, briefly name the disqualifying feature. Never output a confidence percentage.`;
 
@@ -330,13 +411,15 @@ description must be one or two factual sentences. For YES, name the visible cavi
   // can stop generation immediately; a YES is accepted only after every physical gate.
   const ASSESS_SCHEMA = {
     type: "object", additionalProperties: false,
-    required: ["is_pothole", "looks_like_speed_breaker", "image_quality", "on_drivable_surface",
+    required: ["is_pothole", "looks_like_speed_breaker", "image_quality", "surface_type", "on_drivable_surface",
       "has_localized_cavity", "has_broken_edge_or_rim", "has_depth_or_surface_loss",
       "temporal_consistency", "size", "description"],
     properties: {
       is_pothole: { type: "boolean" },
       looks_like_speed_breaker: { type: "boolean" },
       image_quality: { type: "string", enum: ["usable", "unusable"] },
+      surface_type: { type: "string", enum: ["bituminous_asphalt", "cement_concrete",
+        "mastic_asphalt", "paver_blocks", "unpaved_or_nonroad", "unknown"] },
       on_drivable_surface: { type: "boolean" },
       has_localized_cavity: { type: "boolean" },
       has_broken_edge_or_rim: { type: "boolean" },
@@ -483,6 +566,7 @@ This is a strict before/after verification, not ordinary pothole detection:
   const IS_POTHOLE_RE = /"is_pothole"\s*:\s*(true|false)/;
   const SPEED_BREAKER_RE = /"looks_like_speed_breaker"\s*:\s*(true|false)/;
   const QUALITY_RE = /"image_quality"\s*:\s*"(usable|unusable)"/;
+  const SURFACE_RE = /"surface_type"\s*:\s*"(bituminous_asphalt|cement_concrete|mastic_asphalt|paver_blocks|unpaved_or_nonroad|unknown)"/;
   const ROAD_RE = /"on_drivable_surface"\s*:\s*(true|false)/;
   const CAVITY_RE = /"has_localized_cavity"\s*:\s*(true|false)/;
   const EDGE_RE = /"has_broken_edge_or_rim"\s*:\s*(true|false)/;
@@ -490,12 +574,15 @@ This is a strict before/after verification, not ordinary pothole detection:
   const TEMPORAL_RE = /"temporal_consistency"\s*:\s*"(consistent|single_view|inconsistent|not_applicable)"/;
   const SIZE_RE = /"size"\s*:\s*(?:"(small|medium|large)"|null)/;
   const POTHOLE_SIZES = new Set(["small", "medium", "large"]);
+  const PAVED_SURFACES = new Set(["bituminous_asphalt", "cement_concrete",
+    "mastic_asphalt", "paver_blocks"]);
 
   function decisionFor(a, driveMode = false, sourceViewCount = null) {
     // The model supplies YES/NO, but YES still has to satisfy every physical invariant.
     // Anything missing, ambiguous, off-road, raised, or poorly visible becomes NO.
     if (!a || a.is_pothole !== true || a.looks_like_speed_breaker !== false) return "reject";
-    if (a.image_quality !== "usable" || a.on_drivable_surface !== true ||
+    if (a.image_quality !== "usable" || !PAVED_SURFACES.has(a.surface_type)
+        || a.on_drivable_surface !== true ||
         a.has_localized_cavity !== true) return "reject";
     if (a.has_broken_edge_or_rim !== true || a.has_depth_or_surface_loss !== true) return "reject";
     if (driveMode) {
@@ -518,6 +605,17 @@ This is a strict before/after verification, not ordinary pothole detection:
       reportable: accepted,
       assessment: accepted ? "clear" : "absent",
       damage_type: accepted ? "pothole_cavity" : "none",
+      defect_type: accepted ? "pothole" : "not_pothole",
+      surface_type: PAVED_SURFACES.has(a && a.surface_type)
+        || a && ["unpaved_or_nonroad", "unknown"].includes(a.surface_type)
+        ? a.surface_type : "unknown",
+      // No pixel-to-centimetre conversion is defensible without a scale reference.
+      // Keep the useful visual class, but make the absent physical measurements explicit.
+      measurement_provenance: accepted ? "visual_estimate_no_scale" : "not_applicable",
+      measurement_confidence: accepted ? "low" : "not_applicable",
+      measurement_length_cm: null,
+      measurement_width_cm: null,
+      measurement_depth_cm: null,
       size: accepted ? a.size : null,
     };
   }
@@ -546,18 +644,21 @@ This is a strict before/after verification, not ordinary pothole detection:
     if (!verdict) return null;
     if (verdict[1] === "false") return binaryAssessment({
       is_pothole: false, looks_like_speed_breaker: false, image_quality: "usable",
+      surface_type: "unknown",
       on_drivable_surface: false, has_localized_cavity: false, has_broken_edge_or_rim: false,
       has_depth_or_surface_loss: false, temporal_consistency: "not_applicable", size: null,
     });
     const breaker = SPEED_BREAKER_RE.exec(text), quality = QUALITY_RE.exec(text);
+    const surface = SURFACE_RE.exec(text);
     const road = ROAD_RE.exec(text), cavity = CAVITY_RE.exec(text);
     const edge = EDGE_RE.exec(text), depth = DEPTH_RE.exec(text);
     const temporal = TEMPORAL_RE.exec(text), size = SIZE_RE.exec(text);
-    if (!breaker || !quality || !road || !cavity || !edge || !depth || !temporal || !size) return null;
+    if (!breaker || !quality || !surface || !road || !cavity || !edge || !depth || !temporal || !size) return null;
     return {
       is_pothole: true,
       looks_like_speed_breaker: breaker[1] === "true",
       image_quality: quality[1],
+      surface_type: surface[1],
       on_drivable_surface: road[1] === "true",
       has_localized_cavity: cavity[1] === "true",
       has_broken_edge_or_rim: edge[1] === "true",
@@ -650,13 +751,15 @@ This is a strict before/after verification, not ordinary pothole detection:
   // remaining description. It deliberately has the complete new schema shape.
   function rejectedVerdict(text) {
     const verdict = IS_POTHOLE_RE.exec(text), breaker = SPEED_BREAKER_RE.exec(text);
-    const quality = QUALITY_RE.exec(text), road = ROAD_RE.exec(text), cavity = CAVITY_RE.exec(text);
+    const quality = QUALITY_RE.exec(text), surface = SURFACE_RE.exec(text);
+    const road = ROAD_RE.exec(text), cavity = CAVITY_RE.exec(text);
     const edge = EDGE_RE.exec(text);
     const depth = DEPTH_RE.exec(text), temporal = TEMPORAL_RE.exec(text), size = SIZE_RE.exec(text);
     return binaryAssessment({
       is_pothole: !!verdict && verdict[1] === "true",
       looks_like_speed_breaker: breaker ? breaker[1] === "true" : true,
       image_quality: quality ? quality[1] : "unusable",
+      surface_type: surface ? surface[1] : "unknown",
       on_drivable_surface: !!road && road[1] === "true",
       has_localized_cavity: !!cavity && cavity[1] === "true",
       has_broken_edge_or_rim: !!edge && edge[1] === "true",
@@ -3724,7 +3827,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     // Contract matching is meaningful only for detected road damage. A civic report must
     // never inherit a road tender merely because it shares the same municipal route.
     const base = {
-      ...route,
+      ...(issue === "road_damage" ? separateRoadResponsibility(route) : route),
       issue_type: issue,
       tender_eligible: issue === "road_damage" ? !!route.tender_eligible : false,
     };
@@ -4226,7 +4329,8 @@ This is a strict before/after verification, not ordinary pothole detection:
       routing_match_field: "lgd",
       routing_match_value: where.lgd,
       region: "karnataka",
-      ownership_unverified: false,
+      // KGIS proves the containing urban body, not which agency maintains this segment.
+      ownership_unverified: true,
       requires_official_reference: false,
       tender_eligible: true,
       ...statePackProvenance("in-ka-routing"),
@@ -4547,36 +4651,39 @@ This is a strict before/after verification, not ordinary pothole detection:
     }
     if (!lgd) return [];
     const own = _byBody.get(String(lgd)) || [];
-    // Bengaluru's five corporations replaced BBMP in 2025 and inherited its works, which
-    // the award records still file under BBMP zones. Zone to corporation is not
-    // published, so all five share that legacy pool.
+    // The procurement snapshot still indexes pre-reorganisation BBMP work as BLR. Make
+    // that pool searchable from each successor corporation, but only as candidates: the
+    // shortlist and complaint must not treat this lookup as ownership, segment, award or
+    // DLP evidence. Explicit non-carriageway work has already been removed by tenders().
     const legacy = BLR_BODIES.has(String(lgd)) ? (_byBody.get("BLR") || []) : [];
     return legacy.length ? own.concat(legacy) : own;
   }
 
 
-  // The five corporations that replaced BBMP in 2025 and share its legacy contract pool.
+  // The five corporations that replaced BBMP and may search its legacy candidate pool.
   const BLR_BODIES = new Set(["305850", "305851", "305852", "305853", "305854"]);
 
   const TENDER_STOP = new Set(["road", "roads", "street", "cross", "main", "layout", "bengaluru", "bangalore",
     "karnataka", "india", "ward", "city", "corporation", "south", "north", "east",
     "west", "central", "urban", "sector", "stage", "block", "phase"]);
 
-  // Award records carry no defect liability period, so it is inferred from how recent the
-  // tender is and must stay worded as a possibility. Pulled out of matchTender so it can be
-  // tested directly: it decides a sentence in a letter naming a private company.
-  function warrantyFor(published, now) {
-    const dm = /^(\d{2})-(\d{2})-(\d{4})$/.exec(String(published || "").trim());
-    if (!dm) return { warranty: "recorded for this stretch", warranty_code: "record" };
-    const when = Date.UTC(+dm[3], +dm[2] - 1, +dm[1]);
-    if (!isFinite(when) || +dm[2] < 1 || +dm[2] > 12 || +dm[1] < 1 || +dm[1] > 31) {
-      return { warranty: "recorded for this stretch", warranty_code: "record" };
-    }
-    const ageYears = ((now === undefined ? Date.now() : now) - when) / (365.25 * 24 * 3600 * 1000);
-    if (ageYears < 0) return { warranty: "recorded for this stretch", warranty_code: "record" };
-    if (ageYears <= 1) return { warranty: "within the defect liability period", warranty_code: "dlp" };
-    if (ageYears <= 3) return { warranty: "within the maintenance period", warranty_code: "maint" };
-    return { warranty: "recorded for this stretch", warranty_code: "record" };
+  // The compact procurement snapshot proves only what its row actually contains.
+  // Publication predates award, execution and completion and therefore proves no DLP.
+  function contractVerificationFor(record) {
+    const title = String(record && (record.title || record.t) || "").replace(/\s+/g, " ").trim();
+    const tenderNumber = String(record && (record.tender_number || record.tn) || "").trim();
+    return {
+      candidate_status: "candidate",
+      scope_status: tenderCoversCarriageway(title, tenderNumber)
+        ? "carriageway_scope_present" : "ineligible_scope",
+      scope_verified: tenderCoversCarriageway(title, tenderNumber),
+      segment_status: "unverified",
+      segment_verified: false,
+      award_status: "unverified",
+      award_verified: false,
+      dlp_status: "unverified",
+      dlp_verified: false,
+    };
   }
 
   // The ranked candidate list, split out from matchTender so it can be tested on its own.
@@ -4649,18 +4756,19 @@ This is a strict before/after verification, not ordinary pothole detection:
 
   async function matchTender(address, lgd) {
     if (!address || !S.key || !lgd) return null;
-    // Only this body's own contracts are candidates. That is what makes naming one safe:
-    // the officer receiving the letter awarded the work. It also rules out a contract from
-    // a different town whose road name happened to match, and state PWD, panchayat and
-    // irrigation contracts, which a municipal officer has no standing over.
+    // The pool is limited to this indexed body, plus legacy BBMP rows for Bengaluru's
+    // five successor corporations. That blocks cross-city records, but proves neither
+    // road ownership nor that a tender became an awarded contract.
     const ranked = await shortlistFor(address, lgd);
     if (!ranked.length) return null;
     const candidates = ranked.map((x) => x.t);
     const listing = candidates.map((t, i) =>
       `${i}: ${t.t.slice(0, 150)} | ${t.loc} | contractor: ${t.c || "not named"} | published: ${t.d}`).join("\n");
-    const prompt = `You match a reported road defect's location to road-work contracts awarded by the
-local body that owns this road. Every candidate below was awarded by that same body, so
-the town is already correct and your only job is whether the work covers this stretch.
+    const prompt = `You screen public procurement listings for a possible road-work contract candidate.
+The candidate pool is indexed to the containing civic body or, in Bengaluru, its legacy
+BBMP area. This does not prove road ownership, award, execution, completion, DLP, or that
+the photographed segment is covered. Your only job is whether the work description clearly
+covers this exact road stretch or immediate locality.
 The road defect's reverse-geocoded address is:
 ${address}
 
@@ -4691,14 +4799,17 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     if (!m || m.match_index === null || m.match_index < 0 || m.match_index >= candidates.length || m.confidence < 0.6) return null;
     const t = candidates[m.match_index];
     if (!tenderCoversCarriageway(t.t, t.tn)) return null;
-    const { warranty, warranty_code } = warrantyFor(t.d);
     // Records without a winner are common in this dataset. Naming nobody is correct;
     // a placeholder sentence read as a person's name in the Kannada draft.
     const contractor = t.c || null;
     const title = String(t.t || "").replace(/\s+/g, " ").trim();
     return {
-      tender_number: t.tn, contractor, title, published: t.d, warranty, warranty_code,
-      note: `Probable tender: ${t.tn} — ${title}`,
+      tender_number: t.tn, contractor, title, published: t.d,
+      source_name: "Karnataka Public Procurement Portal (KPPP) snapshot",
+      source_url: "https://kppp.karnataka.gov.in/",
+      match_confidence: m.confidence,
+      ...contractVerificationFor({ tender_number: t.tn, title }),
+      note: `Candidate contract record: ${t.tn} — ${title}`,
       ...statePackProvenance("in-ka-tenders", "tender"),
     };
   }
@@ -4736,7 +4847,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     return String(value || "").replace(/\s*\((?:verify|select)[^)]*\)/ig, "").trim();
   }
 
-  const COMPLAINT_TEMPLATE_VERSION = 2;
+  const COMPLAINT_TEMPLATE_VERSION = 3;
 
   function storedComplaintLanguage(body) {
     const text = String(body || "");
@@ -5004,206 +5115,314 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       ...tender,
       tender_number: String(tender.tender_number).trim(),
       title: String(tender.title).replace(/\s+/g, " ").trim(),
+      source_name: tender.source_name || "Karnataka Public Procurement Portal (KPPP) snapshot",
+      source_url: tender.source_url || "https://kppp.karnataka.gov.in/",
+      ...contractVerificationFor(tender),
     };
   }
 
-  function draftEmail(a, lat, lng, address, officerName, tender, route = null) {
-    const lang = LANG(), kn = lang === "kn", mr = lang === "mr", bn = lang === "bn";
-    const authority = conciseRouteLabel(route && route.authority_name);
-    const letterAuthority = bn && route && route.authority_id === "wb-kmc"
-      ? "কলকাতা পৌরসংস্থা (KMC)" : authority;
-    const officer = conciseRouteLabel(route && OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
-      ? letterAuthority : officerName);
-    const tenderMatch = normaliseTenderMatch(tender, route);
-    const sender = S.name === "A concerned citizen"
-      ? (kn ? "ಕಾಳಜಿಯುಳ್ಳ ನಾಗರಿಕ" : mr ? "एक जागरूक नागरिक" : bn ? "একজন সচেতন নাগরিক" : S.name)
-      : S.name;
-    const sizeNames = kn
-      ? { small: "ಸಣ್ಣ", medium: "ಮಧ್ಯಮ", large: "ದೊಡ್ಡ" }
-      : mr ? { small: "लहान", medium: "मध्यम", large: "मोठा" }
-        : bn ? { small: "ছোট", medium: "মাঝারি", large: "বড়" } : null;
-    const sizeName = (s) => (sizeNames && sizeNames[s]) || s;
-    const size = a.size ? sizeName(a.size)
-      : (kn ? "ಗಾತ್ರ ನಿರ್ಧರಿಸದ" : mr ? "आकार ठरलेला नाही" : bn ? "আকার নির্ধারণ করা যায়নি" : "unclassified");
-    const road = address ? address.split(",")[0].trim() : null;
-    const type = damageTypeOf(a);
-    const typeNames = kn ? {
-      pothole_cavity: "ರಸ್ತೆ ಗುಂಡಿ", failed_patch: "ವಿಫಲವಾದ ರಸ್ತೆ ದುರಸ್ತಿ",
-      surface_breakup: "ಹಾಳಾದ ರಸ್ತೆ ಮೇಲ್ಮೈ", rut_or_depression: "ರಸ್ತೆ ಕುಸಿತ",
-      other_road_damage: "ರಸ್ತೆ ಹಾನಿ", none: "ರಸ್ತೆ ಹಾನಿ",
-    } : mr ? {
-      pothole_cavity: "खड्डा", failed_patch: "निकामी झालेली रस्ता दुरुस्ती",
-      surface_breakup: "तुटलेला रस्त्याचा पृष्ठभाग", rut_or_depression: "रस्त्यातील खोलगट भाग",
-      other_road_damage: "रस्त्याचे नुकसान", none: "रस्त्याचे नुकसान",
-    } : bn ? {
-      pothole_cavity: "রাস্তার গর্ত", failed_patch: "ভেঙে যাওয়া রাস্তা মেরামত",
-      surface_breakup: "ভাঙা রাস্তার উপরিভাগ", rut_or_depression: "চাকার খাঁজ বা দেবে যাওয়া অংশ",
-      other_road_damage: "রাস্তার অন্যান্য ক্ষতি", none: "রাস্তার ক্ষতি",
+  const SURFACE_LABELS = Object.freeze({
+    bituminous_asphalt: "Bituminous / asphalt",
+    cement_concrete: "Cement concrete",
+    mastic_asphalt: "Mastic asphalt",
+    paver_blocks: "Paver blocks",
+    unpaved_or_nonroad: "Unpaved / non-road",
+    unknown: "Unknown",
+  });
+
+  function complaintRoutingBlock(route) {
+    const separated = separateRoadResponsibility(route);
+    const profile = authorityComplaintProfile(separated);
+    const bda = profile.profile_id === "ka-bengaluru-bda";
+    const intakeName = bda ? profile.authority_name
+      : conciseRouteLabel(separated.intake_authority_name || separated.authority_name);
+    const intakeId = bda ? profile.profile_id
+      : (separated.intake_authority_id || separated.authority_id || null);
+    const geographicName = conciseRouteLabel(separated.geographic_authority_name
+      || separated.authority_name) || "Unknown";
+    const ownerVerified = separated.road_owner_status === "verified";
+    const ownerName = ownerVerified && separated.road_owner_name
+      ? separated.road_owner_name : "Unknown — authority to inspect and transfer if required";
+    const clue = [separated.routing_source,
+      separated.routing_match_field && separated.routing_match_value
+        ? `${separated.routing_match_field}=${separated.routing_match_value}` : null]
+      .filter(Boolean).join("; ") || "Not recorded";
+    return { route: separated, profile, intakeName, intakeId, geographicName,
+      ownerVerified, ownerName, clue };
+  }
+
+  function assertComplaintInvariants(lat, lng, route) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)
+        || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      throw new Error("A road complaint requires valid coordinates.");
+    }
+    if (!route || route.routed !== true || !route.authority_id
+        || !route.authority_name || !route.routing_source) {
+      throw new Error("A road complaint requires a verified intake route.");
+    }
+  }
+
+  function buildComplaintOutputs(a, lat, lng, address, officerName, tender, route = null,
+                                  evidence = {}) {
+    void officerName; // Authority profiles, not honorifics, define the technical output.
+    assertComplaintInvariants(lat, lng, route);
+    const routing = complaintRoutingBlock(route);
+    const tenderMatch = normaliseTenderMatch(tender, routing.route);
+    const la = Number(lat).toFixed(6), ln = Number(lng).toFixed(6);
+    const coordinates = `${la}, ${ln}`;
+    const mapUrl = `https://maps.google.com/?q=${la},${ln}`;
+    const location = String(address || "Address unavailable; use coordinates").trim();
+    const road = address ? address.split(",")[0].trim() : "the reported location";
+    const size = POTHOLE_SIZES.has(a && a.size) ? a.size : "unknown";
+    const surface = SURFACE_LABELS[a && a.surface_type] || SURFACE_LABELS.unknown;
+    const measurementProvenance = a && a.measurement_provenance === "field_measured"
+      ? "Field measured" : "Visual estimate without a scale reference";
+    const measurementConfidence = a && a.measurement_confidence === "high" ? "High"
+      : a && a.measurement_confidence === "medium" ? "Medium" : "Low";
+    const ward = routing.route.ward_code || "Not identified";
+    const profileCategory = routing.profile.portal_category || "Road / Pothole";
+    const profileChannel = routing.profile.portal_name || routing.route.handoff_name
+      || (routing.route.delivery_channel === "email" ? "Email" : "Official grievance service");
+    const captured = Number.isFinite(evidence.captured_at)
+      ? new Date(evidence.captured_at * 1000).toISOString() : "Not recorded";
+    const gpsAccuracy = Number.isFinite(evidence.gps_accuracy)
+      ? `±${Math.round(evidence.gps_accuracy)} m` : "Not recorded";
+    const photoProvenance = evidence.photo_provenance || "Photo attached from Pothole Reporter";
+
+    const tenderFields = tenderMatch ? {
+      status: "Candidate only — authority verification required",
+      tender_number: tenderMatch.tender_number,
+      exact_work_name: tenderMatch.title,
+      listed_contractor: tenderMatch.contractor || "Not listed",
+      publication_date: tenderMatch.published || "Not listed",
+      source_name: tenderMatch.source_name,
+      source_url: tenderMatch.source_url,
+      scope: tenderMatch.scope_verified ? "Carriageway scope wording present" : "Ineligible",
+      segment_match: "Unverified",
+      award_status: "Unverified",
+      dlp_status: "Unverified — publication date is not DLP evidence",
     } : {
-      pothole_cavity: "pothole", failed_patch: "failed road repair",
-      surface_breakup: "broken road surface", rut_or_depression: "road rut or depression",
-      other_road_damage: "road damage", none: "road damage",
+      status: "No eligible road-work contract candidate identified",
+      tender_number: "Not identified",
+      exact_work_name: "Not identified",
+      listed_contractor: "Not identified",
+      publication_date: "Not applicable",
+      source_name: "Not applicable",
+      source_url: "Not applicable",
+      scope: "Not applicable",
+      segment_match: "Not applicable",
+      award_status: "Not applicable",
+      dlp_status: "Unverified",
     };
-    const typeName = typeNames[type] || typeNames.other_road_damage;
 
-    let locLines;
-    if (lat != null) {
-      const la = lat.toFixed(6), ln = lng.toFixed(6);
-      locLines = kn
-        ? `ಸ್ಥಳ: ${address || "ಕೆಳಗಿನ ನಿರ್ದೇಶಾಂಕ ನೋಡಿ"}\nನಿರ್ದೇಶಾಂಕಗಳು: ${la}, ${ln}\nನಕ್ಷೆ ಲಿಂಕ್: https://maps.google.com/?q=${la},${ln}`
-        : mr
-          ? `ठिकाण: ${address || "खालील निर्देशांक पहा"}\nनिर्देशांक: ${la}, ${ln}\nनकाशा: https://maps.google.com/?q=${la},${ln}`
-          : bn
-            ? `স্থান: ${address || "নীচের স্থানাঙ্ক দেখুন"}\nস্থানাঙ্ক: ${la}, ${ln}\nমানচিত্রের লিঙ্ক: https://maps.google.com/?q=${la},${ln}`
-          : `Location: ${address || "see coordinates below"}\nCoordinates: ${la}, ${ln}\nMap link: https://maps.google.com/?q=${la},${ln}`;
-    } else {
-      locLines = kn
-        ? "ಸ್ಥಳ: ಸ್ವಯಂಚಾಲಿತವಾಗಿ ನಿರ್ಧರಿಸಲಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಲಗತ್ತಿಸಿದ ಫೋಟೋ ನೋಡಿ."
-        : mr
-          ? "ठिकाण: आपोआप निश्चित करता आले नाही. कृपया जोडलेला फोटो पहा."
-          : bn
-            ? "স্থান: স্বয়ংক্রিয়ভাবে নির্ধারণ করা যায়নি। চেনার জন্য সংযুক্ত ছবিটি দেখুন।"
-          : "Location: could not be determined automatically. Please see the attached photo for landmarks.";
+    const classificationLines = [
+      "Defect decision: Pothole — YES",
+      `Surface: ${surface}`,
+      `App visual size class: ${size}`,
+      "Physical dimensions (length / width / depth): Unknown / Unknown / Unknown",
+      `Measurement provenance: ${measurementProvenance}`,
+      `Measurement confidence: ${measurementConfidence}`,
+    ];
+    const routingLines = [
+      `Geographic corporation/body: ${routing.geographicName}`,
+      `Complaint intake authority: ${routing.intakeName}`,
+      `Intake profile: ${routing.profile.profile_id}`,
+      `Suggested portal category: ${profileCategory}`,
+      `Suggested ward: ${ward}`,
+      `Road owner/maintainer: ${routing.ownerName}`,
+      `Routing basis: ${routing.clue}`,
+    ];
+    const tenderLines = [
+      `Status: ${tenderFields.status}`,
+      `Tender number: ${tenderFields.tender_number}`,
+      `Exact work name: ${tenderFields.exact_work_name}`,
+      `Listed contractor: ${tenderFields.listed_contractor}`,
+      `Publication date: ${tenderFields.publication_date}`,
+      `Source: ${tenderFields.source_name}${tenderFields.source_url !== "Not applicable" ? ` — ${tenderFields.source_url}` : ""}`,
+      `Carriageway scope: ${tenderFields.scope}`,
+      `Road-segment match: ${tenderFields.segment_match}`,
+      `Award/work-order status: ${tenderFields.award_status}`,
+      `DLP status: ${tenderFields.dlp_status}`,
+    ];
+    const request = routing.profile.request
+      || "Please register this grievance, inspect and repair the pothole, return the grievance number, and transfer it if another agency maintains the road.";
+    const outputLang = LANG();
+    const addressedAuthority = outputLang === "bn"
+      && routing.route.authority_id === "wb-kmc"
+      ? "কলকাতা পৌরসংস্থা (KMC)" : routing.intakeName;
+    const greeting = outputLang === "kn" ? `ಮಾನ್ಯ ${addressedAuthority} ಅವರಿಗೆ,`
+      : outputLang === "mr" ? `प्रति ${addressedAuthority},`
+        : outputLang === "bn" ? `মাননীয় ${addressedAuthority},`
+          : `Dear ${routing.intakeName},`;
+    const signoff = outputLang === "kn" ? `ವಂದನೆಗಳು,\n${S.name}`
+      : outputLang === "mr" ? `आपला/आपली,\n${S.name}`
+        : outputLang === "bn" ? `বিনীত,\n${S.name}`
+          : `Regards,\n${S.name}`;
+    const independentNote = complaintFooter(outputLang);
+    const subject = outputLang === "kn" ? `ರಸ್ತೆ ಗುಂಡಿ ದೂರು — ${road}`
+      : outputLang === "mr" ? `खड्ड्याची तक्रार — ${road}`
+        : outputLang === "bn" ? `রাস্তার গর্তের অভিযোগ — ${road}`
+          : `Pothole complaint — ${road}`;
+    const emailBody = [
+      greeting,
+      "Please register the following pothole grievance.",
+      `LOCATION\nAddress / landmark: ${location}\nCoordinates: ${coordinates}\nMap: ${mapUrl}\nGPS accuracy: ${gpsAccuracy}\nCaptured: ${captured}\nPhoto: ${photoProvenance}`,
+      `CLASSIFICATION\n${classificationLines.join("\n")}`,
+      `ROUTING\n${routingLines.join("\n")}`,
+      `CONTRACT CANDIDATE\n${tenderLines.join("\n")}`,
+      request,
+      signoff,
+      independentNote,
+    ].join("\n\n");
+    const whatsappText = [
+      `Pothole report: ${location}`,
+      `Coordinates: ${coordinates}`,
+      `Map: ${mapUrl}`,
+      `Classification: Pothole YES; ${surface}; app visual size ${size}; physical measurements unknown (${measurementProvenance.toLowerCase()}, ${measurementConfidence.toLowerCase()} confidence).`,
+      `Routing: geographic body ${routing.geographicName}; intake ${routing.intakeName}; road owner ${routing.ownerVerified ? routing.ownerName : "unverified"}; basis ${routing.clue}.`,
+      `Contract: ${tenderFields.status}; tender ${tenderFields.tender_number}; work ${tenderFields.exact_work_name}; contractor ${tenderFields.listed_contractor}; published ${tenderFields.publication_date}; source ${tenderFields.source_name}${tenderFields.source_url !== "Not applicable" ? ` ${tenderFields.source_url}` : ""}; DLP ${tenderFields.dlp_status}.`,
+      "Please inspect, repair, register the grievance and share its reference number.",
+      independentNote,
+    ].join("\n");
+    const portalFields = {
+      title: subject,
+      category: profileCategory,
+      address_landmark: location,
+      coordinates,
+      map_url: mapUrl,
+      gps_accuracy: gpsAccuracy,
+      captured_at: captured,
+      photo_provenance: photoProvenance,
+      defect_decision: "Pothole — YES",
+      surface,
+      app_visual_size_class: size,
+      physical_dimensions: "Unknown (no reference scale)",
+      measurement_provenance: measurementProvenance,
+      measurement_confidence: measurementConfidence,
+      geographic_body: routing.geographicName,
+      intake_authority: routing.intakeName,
+      intake_profile: routing.profile.profile_id,
+      intake_channel: profileChannel,
+      suggested_ward: ward,
+      road_owner_maintainer: routing.ownerName,
+      routing_basis: routing.clue,
+      contract_candidate_status: tenderFields.status,
+      tender_number: tenderFields.tender_number,
+      exact_work_name: tenderFields.exact_work_name,
+      listed_contractor: tenderFields.listed_contractor,
+      publication_date: tenderFields.publication_date,
+      contract_source_name: tenderFields.source_name,
+      contract_source_url: tenderFields.source_url,
+      carriageway_scope: tenderFields.scope,
+      road_segment_match: tenderFields.segment_match,
+      award_work_order_status: tenderFields.award_status,
+      dlp_status: tenderFields.dlp_status,
+      request,
+      independent_app_note: independentNote,
+    };
+    const portalCopyText = Object.entries(portalFields)
+      .map(([key, value]) => `${key.replace(/_/g, " ")}: ${value}`).join("\n");
+    return {
+      email_subject: subject, email_body: emailBody,
+      whatsapp_text: whatsappText, portal_fields: portalFields,
+      portal_copy_text: portalCopyText,
+      complaint_profile_id: routing.profile.profile_id,
+      intake_authority_id: routing.intakeId,
+      intake_authority_name: routing.intakeName,
+      geographic_authority_id: routing.route.geographic_authority_id || routing.route.authority_id,
+      geographic_authority_name: routing.geographicName,
+      road_owner_id: routing.route.road_owner_id || null,
+      road_owner_name: routing.route.road_owner_name || null,
+      road_owner_status: routing.route.road_owner_status,
+      road_owner_evidence: routing.route.road_owner_evidence || null,
+    };
+  }
+
+  function compatibleDraftRoute(route, officerName) {
+    const legacyBmc = !!(route && (route.delivery_channel === "bmc_quickfix"
+      || /brihanmumbai municipal corporation|\bbmc\b/i.test(route.authority_name || "")));
+    return {
+      ...(route || {}),
+      routed: true,
+      authority_id: route && route.authority_id || (legacyBmc ? "mh-bmc" : "legacy-direct-draft"),
+      authority_name: route && route.authority_name || conciseRouteLabel(officerName)
+        || "Concerned road authority",
+      routing_source: route && route.routing_source || (legacyBmc
+        ? "legacy_bmc_record" : "legacy_direct_draft"),
+      delivery_channel: route && route.delivery_channel || "email",
+      tender_eligible: !!(route && route.tender_eligible),
+    };
+  }
+
+  function complaintOutputsForRecord(rec) {
+    if (!rec || normaliseIssueType(rec.issue_type) !== "road_damage") return null;
+    if (rec.whatsapp_text && rec.portal_copy_text && rec.portal_fields) {
+      return {
+        email_subject: rec.email_subject || "",
+        email_body: rec.email_body || "",
+        whatsapp_text: rec.whatsapp_text,
+        portal_fields: rec.portal_fields,
+        portal_copy_text: rec.portal_copy_text,
+        complaint_profile_id: rec.complaint_profile_id || null,
+      };
     }
-
-    const subject = kn
-      ? `${typeName} ದೂರು` + (type === "pothole_cavity" ? `: ${size}` : "") + (road ? ` (${road})` : "")
-      : mr
-        ? `${typeName} तक्रार` + (type === "pothole_cavity" ? `: ${size}` : "") + (road ? ` (${road})` : "")
-      : bn
-        ? `${type === "pothole_cavity" ? `রাস্তার গর্ত মেরামতের অভিযোগ: ${size}`
-            : type === "failed_patch" ? "ভেঙে যাওয়া রাস্তা মেরামতের অভিযোগ"
-            : type === "surface_breakup" ? "ভাঙা রাস্তার উপরিভাগ মেরামতের অভিযোগ"
-            : type === "rut_or_depression" ? "রাস্তা দেবে যাওয়া বা চাকার খাঁজের অভিযোগ"
-            : "রাস্তার ক্ষতি মেরামতের অভিযোগ"}` + (road ? ` — ${road}` : "")
-      : `${type === "pothole_cavity" ? `Pothole complaint: ${size} pothole`
-          : type === "failed_patch" ? "Broken road repair complaint"
-          : type === "surface_breakup" ? "Road surface failure complaint"
-          : type === "rut_or_depression" ? "Road depression complaint"
-          : "Road damage complaint"}` + (road ? ` near ${road}` : "");
-
-    // The AI's own description of the photo used to be pasted in as a "Details:" line.
-    // The photo is attached and the officer can see it, so the sentence added length
-    // without adding information. Same reasoning for dropping the mention of filing on
-    // Sahaaya: an officer reading this does not need to be told about a parallel filing.
-    const paras = kn
-      ? [
-          `ಮಾನ್ಯ ${officer || "ಅಧಿಕಾರಿಗಳೇ"} ಅವರಿಗೆ,`,
-          `ದುರಸ್ತಿ ಅಗತ್ಯವಿರುವ ${typeName} ಬಗ್ಗೆ ದೂರು ಸಲ್ಲಿಸುತ್ತಿದ್ದೇನೆ.`,
-          `${locLines}\nಹಾನಿಯ ಪ್ರಕಾರ: ${typeName}${a.size ? `\nಅಂದಾಜು ಗಾತ್ರ: ${size}` : ""}`,
-          "ಫೋಟೋ ಲಗತ್ತಿಸಲಾಗಿದೆ. ಈ ರಸ್ತೆ ಹಾನಿ ದ್ವಿಚಕ್ರ ವಾಹನ ಸವಾರರಿಗೆ ಮತ್ತು ಇತರ ರಸ್ತೆ ಬಳಕೆದಾರರಿಗೆ ಅಪಾಯಕಾರಿ. ಇದನ್ನು ಶೀಘ್ರ ಪರಿಶೀಲಿಸಿ ದುರಸ್ತಿ ಮಾಡಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.",
-        ]
-      : mr
-        ? [
-            `प्रति ${officer || "संबंधित अधिकारी"},`,
-            `दुरुस्ती आवश्यक असलेला ${typeName} नोंदवत आहे.`,
-            `${locLines}\nनुकसानीचा प्रकार: ${typeName}${a.size ? `\nअंदाजे आकार: ${size}` : ""}`,
-            "फोटो जोडला आहे. या नुकसानीमुळे दुचाकीस्वार आणि इतर रस्ता वापरणाऱ्यांना धोका होऊ शकतो. कृपया तपासणी करून लवकरात लवकर दुरुस्ती करावी.",
-          ]
-      : bn
-        ? [
-            `মাননীয় ${officer || "সংশ্লিষ্ট আধিকারিক"},`,
-            `${typeName} মেরামতের জন্য এই অভিযোগ জানাচ্ছি।`,
-            `${locLines}\nক্ষতির ধরন: ${typeName}${a.size ? `\nআনুমানিক আকার: ${size}` : ""}`,
-            "ছবি সংযুক্ত করা হল। রাস্তার এই ক্ষতি বিশেষ করে দু’চাকার যানচালক ও অন্যান্য পথ ব্যবহারকারীর জন্য বিপজ্জনক। অনুগ্রহ করে দ্রুত স্থানটি পরিদর্শন করে মেরামতের ব্যবস্থা করুন।",
-          ]
-      : [
-          `Dear ${officer || "Sir or Madam"},`,
-          `I would like to report a ${typeName} that needs repair.`,
-          `${locLines}\nDamage type: ${typeName}${a.size ? `\nApproximate size: ${size}` : ""}`,
-          "PFA image. This road damage poses a danger to two-wheeler riders and other road users. I request your office to inspect and repair it at the earliest.",
-        ];
-
-    if (route && route.ownership_unverified) {
-      const ward = route.ward_code;
-      if (route.authority_id === "in-national-highway") {
-        const highway = route.highway_ref || "National Highway";
-        if (kn) {
-          paras.push(`ನಕ್ಷೆಯ ಪ್ರಕಾರ ರಸ್ತೆ ಉಲ್ಲೇಖ: ${highway}. ಸೂಚಿಸಿದ ದೂರು ಮಾರ್ಗ: ರಾಜಮಾರ್ಗಯಾತ್ರಾ ಅಥವಾ 1033.`);
-        } else if (mr) {
-          paras.push(`नकाशावरील रस्ता संदर्भ: ${highway}. सुचवलेला तक्रार मार्ग: राजमार्गयात्रा किंवा 1033.`);
-        } else if (bn) {
-          paras.push(`মানচিত্রে রাস্তার পরিচয়: ${highway}। প্রস্তাবিত অভিযোগের মাধ্যম: রাজমার্গযাত্রা বা ১০৩৩।`);
-        } else {
-          paras.push(`Mapped road reference: ${highway}. Suggested complaint channel: Rajmargyatra or 1033.`);
-        }
-      } else if (route.authority_id === "wb-statewide-unverified") {
-        if (bn) {
-          paras.push("প্রস্তাবিত অভিযোগের মাধ্যম: West Bengal PGRS; দায়িত্বপ্রাপ্ত জেলা বা দপ্তর চিহ্নিত করা হয়নি।");
-        } else if (kn) {
-          paras.push("ಸೂಚಿಸಿದ ದೂರು ಮಾರ್ಗ: West Bengal PGRS; ಜವಾಬ್ದಾರ ಜಿಲ್ಲೆ ಅಥವಾ ಇಲಾಖೆಯನ್ನು ಗುರುತಿಸಲಾಗಿಲ್ಲ.");
-        } else if (mr) {
-          paras.push("सुचवलेला तक्रार मार्ग: West Bengal PGRS; जबाबदार जिल्हा किंवा विभाग ओळखलेला नाही.");
-        } else {
-          paras.push("Suggested complaint channel: West Bengal PGRS; the responsible district or department has not been identified.");
-        }
-      } else if (kn) {
-        if (ward) paras.push(`ಸೂಚಿಸಿದ BMC ಆಡಳಿತ ವಾರ್ಡ್: ${ward}.`);
-        if (!officer || normaliseAuthorityValue(officer) !== normaliseAuthorityValue(authority)) {
-          paras.push(`ಸೂಚಿಸಿದ ನಾಗರಿಕ ಸಂಸ್ಥೆ: ${authority || "ತಿಳಿದಿಲ್ಲ"}.`);
-        }
-      } else if (mr) {
-        if (ward) paras.push(`सुचवलेला BMC प्रशासकीय विभाग: ${ward}.`);
-        if (!officer || normaliseAuthorityValue(officer) !== normaliseAuthorityValue(authority)) {
-          paras.push(`सुचवलेली नागरी संस्था: ${authority || "माहित नाही"}.`);
-        }
-      } else if (bn) {
-        const authorityName = route.authority_id === "wb-kmc"
-          ? "কলকাতা পৌরসংস্থা (KMC)"
-          : (authority || "অজানা");
-        if (ward) {
-          const wardAuthority = route.authority_id === "wb-kmc" ? "KMC" : "BMC";
-          paras.push(`প্রস্তাবিত ${wardAuthority} প্রশাসনিক ওয়ার্ড: ${ward}।`);
-        }
-        if (!officer || normaliseAuthorityValue(officer) !== normaliseAuthorityValue(authorityName)) {
-          paras.push(`প্রস্তাবিত পৌর কর্তৃপক্ষ: ${authorityName}।`);
-        }
-      } else {
-        if (ward) paras.push(`Suggested BMC administrative ward: ${ward}.`);
-        if (!officer || normaliseAuthorityValue(officer) !== normaliseAuthorityValue(authority)) {
-          paras.push(`Suggested civic authority: ${authority || "unknown"}.`);
-        }
-      }
+    const route = compatibleDraftRoute({
+      ...rec,
+      routed: true,
+      tender_eligible: !!rec.tender_number,
+    }, rec.officer_name);
+    const tender = rec.tender_number ? {
+      tender_number: rec.tender_number,
+      title: rec.tender_title,
+      contractor: rec.contractor,
+      published: rec.tender_published,
+      source_name: rec.tender_source_name,
+      source_url: rec.tender_source_url,
+      tender_pack_id: rec.tender_pack_id,
+      tender_pack_version: rec.tender_pack_version,
+      tender_pack_sha256: rec.tender_pack_sha256,
+      tender_pack_state_code: rec.tender_pack_state_code,
+    } : null;
+    const assessment = binaryAssessment({
+      is_pothole: true,
+      looks_like_speed_breaker: false,
+      image_quality: "usable",
+      surface_type: rec.surface_type || "unknown",
+      on_drivable_surface: true,
+      has_localized_cavity: true,
+      has_broken_edge_or_rim: true,
+      has_depth_or_surface_loss: true,
+      temporal_consistency: rec.temporal_consistency || "single_view",
+      size: POTHOLE_SIZES.has(rec.size) ? rec.size : "medium",
+      description: rec.description || "",
+    }, false, 1);
+    // Legacy v5 rows had no surface field. Preserve their accepted historical status
+    // while labelling the surface/measurement as unknown instead of reclassifying them.
+    if (!assessment.is_pothole) {
+      assessment.is_pothole = true;
+      assessment.reportable = true;
+      assessment.damage_type = "pothole_cavity";
+      assessment.defect_type = "pothole";
+      assessment.size = POTHOLE_SIZES.has(rec.size) ? rec.size : "unknown";
+      assessment.measurement_provenance = "legacy_unknown";
+      assessment.measurement_confidence = "low";
     }
+    const output = buildComplaintOutputs(assessment, Number(rec.lat), Number(rec.lng),
+      rec.address, rec.officer_name, tender, route, {
+        captured_at: rec.captured_at || rec.created_at,
+        gps_accuracy: Number(rec.gps_accuracy),
+        photo_provenance: rec.capture_source === "manual_import"
+          ? "User-selected/imported photo" : "Pothole Reporter camera evidence",
+      });
+    output.email_subject = rec.email_subject || output.email_subject;
+    output.email_body = rec.email_body || output.email_body;
+    return output;
+  }
 
-    if (tenderMatch) {
-      const warrantyKn = ({ dlp: "ದೋಷ ಹೊಣೆಗಾರಿಕೆ ಅವಧಿಯಲ್ಲಿ ಇನ್ನೂ ಇರುವ ಸಾಧ್ಯತೆ ಇದೆ",
-                            maint: "ನಿರ್ವಹಣಾ ಅವಧಿಯಲ್ಲಿ ಇನ್ನೂ ಇರುವ ಸಾಧ್ಯತೆ ಇದೆ",
-                            record: "ಈ ದಾಖಲೆಯಲ್ಲಿ ವಾರಂಟಿ ಅವಧಿ ಲಭ್ಯವಿಲ್ಲ" })[tenderMatch.warranty_code || "record"];
-      const title = tenderMatch.title;
-      // Two paragraphs, not one: the first states what the records say, the second makes
-      // the request. Published, never "awarded": the bundled field is the publication
-      // date, and this letter names a real company to a government officer.
-      if (kn) {
-        paras.push(`ಸಂಭಾವ್ಯ ಟೆಂಡರ್ ಹೊಂದಾಣಿಕೆ:\nಟೆಂಡರ್ ಸಂಖ್ಯೆ: ${tenderMatch.tender_number}\nಕೆಲಸದ ಹೆಸರು: ${title}\nಗುತ್ತಿಗೆದಾರ: ${tenderMatch.contractor || "ದಾಖಲಿಸಿಲ್ಲ"}\nಪ್ರಕಟಣೆ ದಿನಾಂಕ: ${tenderMatch.published || "ದಾಖಲಿಸಿಲ್ಲ"}\nವಾರಂಟಿ ಸ್ಥಿತಿ: ${warrantyKn}.`);
-        paras.push("ದೋಷ ಹೊಣೆಗಾರಿಕೆ ಅಥವಾ ನಿರ್ವಹಣಾ ಅವಧಿ ಜಾರಿಯಲ್ಲಿದ್ದರೆ, ಸಂಸ್ಥೆಗೆ ಹೆಚ್ಚುವರಿ ವೆಚ್ಚವಿಲ್ಲದೆ ಗುತ್ತಿಗೆದಾರರಿಂದಲೇ ದುರಸ್ತಿ ಮಾಡಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.");
-      } else if (mr) {
-        const warrantyMr = ({ dlp: "दोष दायित्व कालावधीत असण्याची शक्यता आहे",
-                              maint: "देखभाल कालावधीत असण्याची शक्यता आहे",
-                              record: "या नोंदीत हमी कालावधी उपलब्ध नाही" })[tenderMatch.warranty_code || "record"];
-        paras.push(`संभाव्य निविदा जुळणी:\nनिविदा क्रमांक: ${tenderMatch.tender_number}\nकामाचे नाव: ${title}\nकंत्राटदार: ${tenderMatch.contractor || "नोंद उपलब्ध नाही"}\nप्रकाशन दिनांक: ${tenderMatch.published || "नोंद उपलब्ध नाही"}\nहमी स्थिती: ${warrantyMr}.`);
-        paras.push("दोष दायित्व किंवा देखभाल कालावधी लागू असल्यास महानगरपालिकेला अतिरिक्त खर्च न लावता कंत्राटदाराकडून दुरुस्ती करून घ्यावी.");
-      } else if (bn) {
-        const warrantyBn = ({ dlp: "এখনও ত্রুটি-দায়ের মেয়াদের মধ্যে থাকতে পারে",
-                              maint: "এখনও রক্ষণাবেক্ষণের মেয়াদের মধ্যে থাকতে পারে",
-                              record: "এই নথিতে ওয়ারেন্টির মেয়াদ নেই" })[tenderMatch.warranty_code || "record"];
-        paras.push(`সম্ভাব্য টেন্ডার মিল:\nটেন্ডার নম্বর: ${tenderMatch.tender_number}\nকাজের নাম: ${title}\nঠিকাদার: ${tenderMatch.contractor || "নথিভুক্ত নেই"}\nপ্রকাশের তারিখ: ${tenderMatch.published || "নথিভুক্ত নেই"}\nওয়ারেন্টির অবস্থা: ${warrantyBn}।`);
-        paras.push("ত্রুটি-দায় বা রক্ষণাবেক্ষণের মেয়াদ চালু থাকলে পৌরসংস্থার অতিরিক্ত ব্যয় ছাড়াই ঠিকাদারের মাধ্যমে মেরামত করানোর অনুরোধ করছি।");
-      } else {
-        const warrantyEstimate = tenderMatch.warranty_code === "dlp"
-          ? "may be within the defect liability period (estimated from publication date)"
-          : tenderMatch.warranty_code === "maint"
-            ? "may be within the maintenance period (estimated from publication date)"
-            : "not available in the bundled record";
-        paras.push(`Probable tender match:\nTender number: ${tenderMatch.tender_number}\nWork name: ${title}\nContractor: ${tenderMatch.contractor || "Not listed"}\nPublished: ${tenderMatch.published || "Not listed"}\nWarranty estimate: ${warrantyEstimate}.`);
-        paras.push("If the defect liability or maintenance period is in force, I request that the contractor carry out the repair at no additional cost to the corporation.");
-      }
-    }
-
-    paras.push(kn ? "ನಿಮ್ಮ ಸೇವೆಗೆ ಧನ್ಯವಾದಗಳು." : mr ? "धन्यवाद." : bn ? "ধন্যবাদ।" : "Thank you for your service.");
-    paras.push(kn ? `ವಂದನೆಗಳು,\n${sender}` : mr ? `आपला/आपली,\n${sender}` : bn ? `বিনীত,\n${sender}` : `Regards,\n${sender}`);
-    paras.push(complaintFooter(lang));
-    return [subject, paras.join("\n\n")];
+  function draftEmail(a, lat, lng, address, officerName, tender, route = null) {
+    const output = buildComplaintOutputs(a, lat, lng, address, officerName, tender,
+      compatibleDraftRoute(route, officerName));
+    return [output.email_subject, output.email_body];
   }
 
   function civicIssueName(issueType, lang = "en") {
@@ -6083,9 +6302,14 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     if (accepted) progress(pmsg("write"));
     // No authority means no complaint. The photo, verdict and location are still kept,
     // so nothing is lost if coverage later extends to this place.
-    const [subject, body] = accepted && covered
-      ? draftEmail(a, lat, lng, address, route.officer_name, tender, route)
-      : [null, null];
+    const complaint = accepted && covered
+      ? buildComplaintOutputs(a, lat, lng, address, route.officer_name, tender, route, {
+          captured_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : null,
+          gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
+          photo_provenance: driveMode ? "Drive Mode camera frame" : "App camera photo",
+        }) : null;
+    const subject = complaint ? complaint.email_subject : null;
+    const body = complaint ? complaint.email_body : null;
     // The evidence copy: what the officer receives. Detection works on a small
     // frame for speed and token cost, but the complaint deserves the full capture,
     // unmodified. Only kept for reports that can be handed to a supported authority.
@@ -6100,6 +6324,13 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       is_pothole: a.damage_type === "pothole_cavity" ? 1 : 0,
       looks_like_speed_breaker: a.looks_like_speed_breaker === true,
       damage_type: a.damage_type, assessment: a.assessment, image_quality: a.image_quality,
+      defect_type: a.defect_type,
+      surface_type: a.surface_type,
+      measurement_provenance: a.measurement_provenance,
+      measurement_confidence: a.measurement_confidence,
+      measurement_length_cm: a.measurement_length_cm,
+      measurement_width_cm: a.measurement_width_cm,
+      measurement_depth_cm: a.measurement_depth_cm,
       on_drivable_surface: !!a.on_drivable_surface,
       has_localized_cavity: !!a.has_localized_cavity,
       has_broken_edge_or_rim: !!a.has_broken_edge_or_rim,
@@ -6108,6 +6339,10 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       size: a.size,
       decision,
       description: a.description, email_subject: subject, email_body: body,
+      whatsapp_text: complaint ? complaint.whatsapp_text : null,
+      portal_fields: complaint ? complaint.portal_fields : null,
+      portal_copy_text: complaint ? complaint.portal_copy_text : null,
+      complaint_profile_id: complaint ? complaint.complaint_profile_id : null,
       complaint_template_version: body ? COMPLAINT_TEMPLATE_VERSION : null,
       status: accepted ? (covered ? "draft" : "unrouted") : "rejected",
       condition_status: "open", condition_updated_at: null, condition_source: null,
@@ -6134,6 +6369,14 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       routing_pack_state_code: covered ? (route.routing_pack_state_code || null) : null,
       region: covered ? (route.region || null) : null,
       ownership_unverified: covered ? !!route.ownership_unverified : null,
+      geographic_authority_id: complaint ? complaint.geographic_authority_id : null,
+      geographic_authority_name: complaint ? complaint.geographic_authority_name : null,
+      intake_authority_id: complaint ? complaint.intake_authority_id : null,
+      intake_authority_name: complaint ? complaint.intake_authority_name : null,
+      road_owner_id: complaint ? complaint.road_owner_id : null,
+      road_owner_name: complaint ? complaint.road_owner_name : null,
+      road_owner_status: complaint ? complaint.road_owner_status : null,
+      road_owner_evidence: complaint ? complaint.road_owner_evidence : null,
       handoff_name: covered ? (route.handoff_name || null) : null,
       handoff_url: covered ? (route.handoff_url || null) : null,
       handoff_package: covered ? (route.handoff_package || null) : null,
@@ -6148,6 +6391,18 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       tender_title: tender ? tender.title : null,
       contractor: tender ? tender.contractor : null,
       tender_note: tender ? tender.note : null,
+      tender_published: tender ? tender.published : null,
+      tender_source_name: tender ? tender.source_name : null,
+      tender_source_url: tender ? tender.source_url : null,
+      tender_candidate_status: tender ? tender.candidate_status : null,
+      tender_scope_status: tender ? tender.scope_status : null,
+      tender_scope_verified: tender ? !!tender.scope_verified : false,
+      tender_segment_status: tender ? tender.segment_status : null,
+      tender_segment_verified: tender ? !!tender.segment_verified : false,
+      tender_award_status: tender ? tender.award_status : null,
+      tender_award_verified: tender ? !!tender.award_verified : false,
+      tender_dlp_status: tender ? tender.dlp_status : null,
+      tender_dlp_verified: tender ? !!tender.dlp_verified : false,
       tender_pack_id: tender ? (tender.tender_pack_id || null) : null,
       tender_pack_version: tender ? (tender.tender_pack_version || null) : null,
       tender_pack_sha256: tender ? (tender.tender_pack_sha256 || null) : null,
@@ -6396,17 +6651,18 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const nativeSchemaIsCurrent = native.prompt_version === PROMPT_VERSION
       && Number(native.schema_version) === SCHEMA_VERSION;
     const nativeSize = POTHOLE_SIZES.has(native.size) ? native.size : null;
+    const nativeSurface = PAVED_SURFACES.has(native.surface_type) ? native.surface_type : "unknown";
     const nativeTemporal = native.temporal_consistency;
     const nativePassedBinaryGate = nativeSchemaIsCurrent && native.decision === "accept"
       && nativeIsPothole && nativeIsReportable && native.damage_type === "pothole_cavity"
       && native.looks_like_speed_breaker === false
-      && native.image_quality === "usable" && native.on_drivable_surface === true
+      && native.image_quality === "usable" && PAVED_SURFACES.has(nativeSurface)
+      && native.on_drivable_surface === true
       && native.has_localized_cavity === true
       && native.has_broken_edge_or_rim === true && native.has_depth_or_surface_loss === true
       && nativeTemporal === "consistent" && Number(native.evidence_count) >= 3 && !!nativeSize;
-    // A pre-v5 native row may have been accepted as generic surface damage. Acknowledge
-    // and discard it instead of letting one obsolete verdict block the native sync queue
-    // or become a new pothole complaint after the binary policy takes effect.
+    // A pre-v6 native row lacks the strict pavement-surface evidence. Acknowledge and
+    // discard it instead of letting an obsolete verdict block sync or become a complaint.
     if (!nativePassedBinaryGate) {
       return { native_id: nativeId, ignored: true, reason: "obsolete_or_invalid_detector_contract" };
     }
@@ -6433,10 +6689,11 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       : null;
     const tender = normaliseTenderMatch(tenderCandidate, covered ? route : null);
     const assessment = binaryAssessment({
-      // Native v5 saved this row only after the same binary physical gate accepted it.
+      // Native v6 saved this row only after the same binary physical gate accepted it.
       is_pothole: true,
       looks_like_speed_breaker: false,
       image_quality: native.image_quality,
+      surface_type: nativeSurface,
       on_drivable_surface: true,
       has_localized_cavity: true,
       has_broken_edge_or_rim: true,
@@ -6445,9 +6702,14 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       size: nativeSize,
       description: native.description || "Pothole detected during Drive Mode.",
     }, true, Math.max(2, Number(native.evidence_count) - 1));
-    const [subject, body] = covered
-      ? draftEmail(assessment, lat, lng, address, route.officer_name, tender, route)
-      : [null, null];
+    const complaint = covered
+      ? buildComplaintOutputs(assessment, lat, lng, address, route.officer_name, tender, route, {
+          captured_at: Number.isFinite(Number(native.captured_at)) ? Number(native.captured_at) : null,
+          gps_accuracy: Number.isFinite(gpsAccuracy) ? gpsAccuracy : null,
+          photo_provenance: "Android Drive Mode camera frame",
+        }) : null;
+    const subject = complaint ? complaint.email_subject : null;
+    const body = complaint ? complaint.email_body : null;
     const capturedAt = Number(native.captured_at);
     const offset = Number(native.source_offset_s);
     const driveId = native.drive_id == null ? null : String(native.drive_id);
@@ -6464,6 +6726,13 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       looks_like_speed_breaker: false,
       damage_type: assessment.damage_type, assessment: assessment.assessment,
       image_quality: assessment.image_quality,
+      defect_type: assessment.defect_type,
+      surface_type: assessment.surface_type,
+      measurement_provenance: assessment.measurement_provenance,
+      measurement_confidence: assessment.measurement_confidence,
+      measurement_length_cm: assessment.measurement_length_cm,
+      measurement_width_cm: assessment.measurement_width_cm,
+      measurement_depth_cm: assessment.measurement_depth_cm,
       on_drivable_surface: assessment.on_drivable_surface,
       has_localized_cavity: assessment.has_localized_cavity,
       has_broken_edge_or_rim: assessment.has_broken_edge_or_rim,
@@ -6471,6 +6740,10 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       temporal_consistency: assessment.temporal_consistency,
       size: assessment.size, decision: native.decision || "accept",
       description: assessment.description, email_subject: subject, email_body: body,
+      whatsapp_text: complaint ? complaint.whatsapp_text : null,
+      portal_fields: complaint ? complaint.portal_fields : null,
+      portal_copy_text: complaint ? complaint.portal_copy_text : null,
+      complaint_profile_id: complaint ? complaint.complaint_profile_id : null,
       complaint_template_version: body ? COMPLAINT_TEMPLATE_VERSION : null,
       status: covered ? "draft" : "unrouted",
       condition_status: "open", condition_updated_at: null, condition_source: null,
@@ -6498,6 +6771,14 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       routing_pack_state_code: covered ? (route.routing_pack_state_code || null) : null,
       region: covered ? (route.region || null) : null,
       ownership_unverified: covered ? !!route.ownership_unverified : null,
+      geographic_authority_id: complaint ? complaint.geographic_authority_id : null,
+      geographic_authority_name: complaint ? complaint.geographic_authority_name : null,
+      intake_authority_id: complaint ? complaint.intake_authority_id : null,
+      intake_authority_name: complaint ? complaint.intake_authority_name : null,
+      road_owner_id: complaint ? complaint.road_owner_id : null,
+      road_owner_name: complaint ? complaint.road_owner_name : null,
+      road_owner_status: complaint ? complaint.road_owner_status : null,
+      road_owner_evidence: complaint ? complaint.road_owner_evidence : null,
       handoff_name: covered ? (route.handoff_name || null) : null,
       handoff_url: covered ? (route.handoff_url || null) : null,
       handoff_package: covered ? (route.handoff_package || null) : null,
@@ -6511,6 +6792,18 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       tender_title: tender ? tender.title : null,
       contractor: tender ? tender.contractor : null,
       tender_note: tender ? tender.note : null,
+      tender_published: tender ? tender.published : null,
+      tender_source_name: tender ? tender.source_name : null,
+      tender_source_url: tender ? tender.source_url : null,
+      tender_candidate_status: tender ? tender.candidate_status : null,
+      tender_scope_status: tender ? tender.scope_status : null,
+      tender_scope_verified: tender ? !!tender.scope_verified : false,
+      tender_segment_status: tender ? tender.segment_status : null,
+      tender_segment_verified: tender ? !!tender.segment_verified : false,
+      tender_award_status: tender ? tender.award_status : null,
+      tender_award_verified: tender ? !!tender.award_verified : false,
+      tender_dlp_status: tender ? tender.dlp_status : null,
+      tender_dlp_verified: tender ? !!tender.dlp_verified : false,
       tender_pack_id: tender ? (tender.tender_pack_id || null) : null,
       tender_pack_version: tender ? (tender.tender_pack_version || null) : null,
       tender_pack_sha256: tender ? (tender.tender_pack_sha256 || null) : null,
@@ -7144,6 +7437,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     "routing_pack_sha256", "routing_pack_state_code", "routing_match_field",
     "routing_match_value", "highway_ref",
     "ownership_unverified", "tender_eligible",
+    "geographic_authority_id", "geographic_authority_name",
+    "intake_authority_id", "intake_authority_name",
+    "road_owner_id", "road_owner_name", "road_owner_status", "road_owner_evidence",
   ];
 
   function applyVerifiedHandoff(rec, verified) {
@@ -7220,7 +7516,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       routing_source: "kgis",
       routing_match_field: "lgd",
       routing_match_value: match[1],
-      ownership_unverified: false,
+      ownership_unverified: true,
       requires_official_reference: false,
       tender_eligible: true,
       ...statePackProvenance("in-ka-routing"),
@@ -7444,6 +7740,13 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
           is_reportable: r.is_reportable == null ? !!r.is_pothole : !!r.is_reportable,
           damage_type: damageTypeOf(r), assessment: assessmentOf(r),
           image_quality: r.image_quality || null,
+          defect_type: r.defect_type || (r.is_pothole ? "pothole" : "not_pothole"),
+          surface_type: r.surface_type || "unknown",
+          measurement_provenance: r.measurement_provenance || null,
+          measurement_confidence: r.measurement_confidence || null,
+          measurement_length_cm: r.measurement_length_cm == null ? null : r.measurement_length_cm,
+          measurement_width_cm: r.measurement_width_cm == null ? null : r.measurement_width_cm,
+          measurement_depth_cm: r.measurement_depth_cm == null ? null : r.measurement_depth_cm,
           on_drivable_surface: r.on_drivable_surface == null ? null : !!r.on_drivable_surface,
           has_localized_cavity: r.has_localized_cavity == null ? null : !!r.has_localized_cavity,
           has_broken_edge_or_rim: r.has_broken_edge_or_rim == null ? null : !!r.has_broken_edge_or_rim,
@@ -7807,11 +8110,13 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    SCHEMA_VERSION, MAX_DETECTION_IMAGES, ROAD_BAND, averageLuminance,
                    distMeters, roadEventMatch, sameRoadEvent, repairTargetMatch,
                    findRepairCandidateFromReports, findDuplicateReport,
-                   draftEmail, normaliseTenderMatch, migrateLegacyComplaintRecord,
+                   draftEmail, buildComplaintOutputs, complaintOutputsForRecord,
+                   authorityComplaintProfile, separateRoadResponsibility,
+                   verifiedBdaResponsibility, normaliseTenderMatch, migrateLegacyComplaintRecord,
                    complaintBodyWithFooter,
                    COMPLAINT_TEMPLATE_VERSION, dataUrlToBlob, blobToDataUrl,
                    photoToBase64, toDict, listDict,
-                   warrantyFor, tenderCoversCarriageway, shortlistFor, matchTenderFor: matchTender,
+                   contractVerificationFor, tenderCoversCarriageway, shortlistFor, matchTenderFor: matchTender,
                    mumbaiWardFromName, mumbaiFromGeocode, evidenceForReport,
                    normaliseAuthorityValue, validateAuthorityRegistry,
                    validateOfficialHandoffRegistry,
