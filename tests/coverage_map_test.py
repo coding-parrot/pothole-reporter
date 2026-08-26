@@ -228,8 +228,12 @@ def main():
     check(root.get("role") == "img", "coverage map must expose role=img", errors)
     check(root.get("aria-labelledby") == "title description", "coverage map accessible labels changed", errors)
 
-    check(root.get("width") == "320" and root.get("height") == "430", "coverage map dimensions changed", errors)
-    check(root.get("viewBox") == "0 0 320 430", "coverage map viewBox changed", errors)
+    check(
+        root.get("width") == "320" and root.get("height") == "568",
+        "coverage map must match the 320x568 pothole thumbnail aspect ratio",
+        errors,
+    )
+    check(root.get("viewBox") == "0 0 320 568", "coverage map viewBox changed", errors)
 
     svg_title = root.find(SVG_NS + "title")
     svg_desc = root.find(SVG_NS + "desc")

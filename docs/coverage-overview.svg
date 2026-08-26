@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="320" height="430" viewBox="0 0 320 430" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="568" viewBox="0 0 320 568" role="img" aria-labelledby="title description">
   <title id="title">Pothole Reporter India coverage map</title>
   <desc id="description">Pothole Reporter covers all 28 states and 8 Union Territories. The CC0 boundary follows the Survey of India boundary standard and includes the mainland territorial outline, Lakshadweep, and the Andaman and Nicobar Islands. No government endorsement is implied.</desc>
   <metadata id="boundary-provenance">Boundary source: DataMeet India community, india-composite.geojson (CC0), commit 5ed214bf77788f99066e3542cccd4a52cb042896, input SHA-256 5e44c39b18aa8fe57267d8018fa4ad4a10eaa3aa4cb7cb7382a1813ef8eb8c53. Source: https://github.com/datameet/maps/blob/5ed214bf77788f99066e3542cccd4a52cb042896/Country/india-composite.geojson . The source states that it includes disputed territories in accordance with the official Survey of India boundary. Geometry was simplified to 0.025 degrees for this 320-pixel README display. Coverage shading and annotations: Pothole Reporter. No government endorsement is implied.</metadata>
@@ -9,10 +9,10 @@
       .island-outline { stroke-width: 1.1; }
     </style>
   </defs>
-  <rect width="320" height="430" rx="24" fill="#111214"/>
-  <rect x="1" y="1" width="318" height="428" rx="23" fill="none" stroke="#2a2b30" stroke-width="2"/>
+  <rect width="320" height="568" rx="24" fill="#111214"/>
+  <rect x="1" y="1" width="318" height="566" rx="23" fill="none" stroke="#2a2b30" stroke-width="2"/>
   <text x="160" y="42" text-anchor="middle" class="heading">Covers all states and UTs.</text>
-  <g aria-label="Map of India" transform="translate(0 -12)"
+  <g aria-label="Map of India" transform="translate(-24 18) scale(1.15)"
      data-boundary-source="DataMeet India community" data-boundary-license="CC0"
      data-boundary-standard="Survey of India">
     <g id="india-mainland-outline" aria-label="India mainland and claimed territorial outline">
