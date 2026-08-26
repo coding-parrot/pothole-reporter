@@ -11,6 +11,7 @@ cd "$(dirname "$0")/.."
 PROJECT_ROOT=$PWD
 ANDROID_ROOT=android-app/android
 AAB_PATH=$ANDROID_ROOT/app/build/outputs/bundle/release/app-release.aab
+R8_MAPPING_PATH=$ANDROID_ROOT/app/build/outputs/mapping/release/mapping.txt
 BUNDLE_MANIFEST=$ANDROID_ROOT/app/build/intermediates/bundle_manifest/release/processApplicationManifestReleaseForBundle/AndroidManifest.xml
 WWW_ROOT=android-app/www
 PACKAGED_ASSETS_ROOT=$ANDROID_ROOT/app/src/main/assets/public
@@ -107,7 +108,11 @@ echo "2/7 building signed release bundle"
 rm -f "$AAB_PATH"
 (cd "$ANDROID_ROOT" && ./gradlew --no-daemon --offline :app:bundleRelease -q)
 [ -s "$AAB_PATH" ] || fail "Gradle produced no non-empty AAB"
+[ -s "$R8_MAPPING_PATH" ] || fail "R8 mapping is missing; release code shrinking is not active"
 [ -f "$BUNDLE_MANIFEST" ] || fail "Gradle produced no release bundle manifest"
+if ! unzip -Z1 "$AAB_PATH" | grep -Fx 'BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map' >/dev/null; then
+  fail "AAB does not contain the R8 deobfuscation mapping"
+fi
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="dev.aiengg.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
