@@ -108,7 +108,7 @@
   <div id="portalCopy" class="hidden">
     <div class="card">
       <div class="verdict" id="portalCopyTitle">Portal fields</div>
-      <div class="meta" id="portalCopyHint" style="margin-top:6px">Copy these verified-format fields into the official grievance portal. Review the suggested routing and contract candidate first.</div>
+      <div class="meta" id="portalCopyHint" style="margin-top:6px">Copy these fields into the official grievance portal. Contract details appear only after exact-road responsibility is verified.</div>
       <textarea id="portalCopyText" readonly style="min-height:55vh;margin-top:12px"></textarea>
       <div class="btn-row">
         <button class="ghost" id="portalCopyBack">Back</button>
@@ -428,7 +428,7 @@ const I18N = {
     copy_whatsapp_btn: "Copy WhatsApp",
     portal_fields_btn: "Portal fields",
     portal_fields_title: "Portal fields",
-    portal_fields_hint: "Copy these fields into the official grievance portal. Review the suggested routing and contract candidate first.",
+    portal_fields_hint: "Copy these fields into the official grievance portal. Contract details appear only after exact-road responsibility is verified.",
     copy_all_btn: "Copy all",
     copied_message: "Copied.",
     official_whatsapp_btn: "Official WhatsApp",
@@ -623,7 +623,7 @@ const I18N = {
     copy_whatsapp_btn: "WhatsApp ಪಠ್ಯ ನಕಲಿಸಿ",
     portal_fields_btn: "ಪೋರ್ಟಲ್ ವಿವರಗಳು",
     portal_fields_title: "ಪೋರ್ಟಲ್ ವಿವರಗಳು",
-    portal_fields_hint: "ಈ ವಿವರಗಳನ್ನು ಅಧಿಕೃತ ದೂರು ಪೋರ್ಟಲ್‌ಗೆ ನಕಲಿಸಿ. ಸೂಚಿಸಿದ ಮಾರ್ಗ ಮತ್ತು ಗುತ್ತಿಗೆ ಅಭ್ಯರ್ಥಿಯನ್ನು ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
+    portal_fields_hint: "ಈ ವಿವರಗಳನ್ನು ಅಧಿಕೃತ ದೂರು ಪೋರ್ಟಲ್‌ಗೆ ನಕಲಿಸಿ. ನಿಖರ ರಸ್ತೆ ಜವಾಬ್ದಾರಿ ಪರಿಶೀಲನೆಯಾದಾಗ ಮಾತ್ರ ಗುತ್ತಿಗೆ ವಿವರಗಳು ಕಾಣಿಸುತ್ತವೆ.",
     copy_all_btn: "ಎಲ್ಲವನ್ನೂ ನಕಲಿಸಿ",
     copied_message: "ನಕಲಿಸಲಾಗಿದೆ.",
     official_whatsapp_btn: "ಅಧಿಕೃತ WhatsApp", official_call_btn: "{number} ಗೆ ಕರೆ ಮಾಡಿ",
@@ -804,7 +804,7 @@ const I18N = {
     copy_whatsapp_btn: "WhatsApp मजकूर कॉपी करा",
     portal_fields_btn: "पोर्टल तपशील",
     portal_fields_title: "पोर्टल तपशील",
-    portal_fields_hint: "हे तपशील अधिकृत तक्रार पोर्टलमध्ये कॉपी करा. सुचवलेले routing आणि कंत्राट उमेदवार आधी तपासा.",
+    portal_fields_hint: "हे तपशील अधिकृत तक्रार पोर्टलमध्ये कॉपी करा. अचूक रस्त्याची जबाबदारी पडताळल्यानंतरच कंत्राटाचे तपशील दिसतील.",
     copy_all_btn: "सर्व कॉपी करा",
     copied_message: "कॉपी झाले.",
     official_whatsapp_btn: "अधिकृत WhatsApp", official_call_btn: "{number} वर कॉल करा",
@@ -991,7 +991,7 @@ const I18N = {
     copy_whatsapp_btn: "WhatsApp বক্তব্য কপি করুন",
     portal_fields_btn: "পোর্টালের তথ্য",
     portal_fields_title: "পোর্টালের তথ্য",
-    portal_fields_hint: "এই তথ্য সরকারি অভিযোগ পোর্টালে কপি করুন। প্রস্তাবিত routing ও চুক্তির সম্ভাব্য মিল আগে যাচাই করুন।",
+    portal_fields_hint: "এই তথ্য সরকারি অভিযোগ পোর্টালে কপি করুন। নির্দিষ্ট রাস্তার দায়িত্ব যাচাই হলেই কেবল চুক্তির তথ্য দেখানো হবে।",
     copy_all_btn: "সব কপি করুন",
     copied_message: "কপি হয়েছে।",
     official_whatsapp_btn: "সরকারি WhatsApp", official_call_btn: "{number} নম্বরে কল করুন",
@@ -1726,11 +1726,10 @@ function roadComplaintOutputs(r) {
   try {
     return StandaloneAPI.__pure.complaintOutputsForRecord(r);
   } catch (_) {
-    return r && (r.whatsapp_text || r.portal_copy_text) ? {
-      whatsapp_text: r.whatsapp_text || "",
-      portal_fields: r.portal_fields || {},
-      portal_copy_text: r.portal_copy_text || "",
-    } : null;
+    // Stored text is not a safe fallback: an older draft may contain an unverified
+    // tender or contractor. If current code cannot validate/sanitise the record, expose
+    // no copyable output and ask the user to retry instead of reviving stale allegations.
+    return null;
   }
 }
 

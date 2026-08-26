@@ -19,6 +19,7 @@ ACCEPTED = {
     "is_pothole": True,
     "looks_like_speed_breaker": False,
     "image_quality": "usable",
+    "surface_type": "bituminous_asphalt",
     "on_drivable_surface": True,
     "has_localized_cavity": True,
     "has_broken_edge_or_rim": True,

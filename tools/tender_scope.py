@@ -35,21 +35,21 @@ _NON_CARRIAGEWAY_ASSETS = {
     "building", "buildings", "burial", "bus", "cable", "cables", "cattle", "cd",
     "camera", "cameras", "cctv", "center", "centre", "chamber", "chambers", "cistern",
     "college", "collage", "complex",
-    "compound", "culvert", "culverts", "deck", "dog", "dogsheltar", "drain", "drainage",
+    "compound", "court", "courts", "culvert", "culverts", "deck", "dog", "dogsheltar", "drain", "drainage",
     "drains", "electrical", "fence", "fencing", "footpath", "footpaths", "garden",
     "facility", "facilities", "floor", "floors", "gantry", "gateway", "gateways",
-    "graveyard", "hall", "hospital",
+    "graveyard", "hall", "helipad", "helipads", "hospital",
     "house", "houses",
     "kerb", "kerbs", "curb", "curbs",
-    "lake", "light", "lighting", "lights", "machinehole", "machineholes", "manhole",
+    "lake", "lawn", "lawns", "light", "lighting", "lights", "machinehole", "machineholes", "manhole",
     "manholes", "mast", "masts", "median", "mh", "mhc", "network", "nursery", "park",
-    "pedestrian", "pipeline", "pipelines", "pipe", "pipes", "playground", "pole", "poles",
+    "parking", "path", "paths", "pedestrian", "pipeline", "pipelines", "pipe", "pipes", "playground", "plaza", "pole", "poles",
     "pound",
-    "pumphouse", "pump", "quarters", "roof", "roofs", "room", "rooms", "school",
+    "pumphouse", "pump", "quarters", "roof", "roofs", "room", "rooms", "runway", "runways", "school",
     "sewer", "sewerage",
     "shed", "shelter", "shishuvihara", "sidewalk", "sidewalks", "sign", "signage",
     "signboard", "signboards", "slab", "sorting", "stand", "temple", "toilet", "toilets",
-    "transformer", "transformers", "tree", "trees", "ugd", "unit", "urinal", "urinals",
+    "track", "tracks", "transformer", "transformers", "tree", "trees", "ugd", "unit", "urinal", "urinals",
     "utility", "utilities",
     "valve", "valves", "vending", "walkway", "walkways", "wall", "walls", "water",
 }
@@ -71,21 +71,30 @@ _LOCATION_PREPOSITIONS = {
 # of the word "road".  They are deliberately narrower than the old ingestion regex,
 # which accepted drain, footpath, culvert, kerb and generic pavement work.
 _EXPLICIT_ROAD_DAMAGE_PATTERNS = tuple(re.compile(pattern) for pattern in (
-    r"\bpot\s*holes?\b|\bpotholes?\b",
+    r"\b(?:repair(?:ing|s)?|fill(?:ing)?|patch(?:ing)?)\s+(?:of\s+)?"
+    r"(?:pot\s*holes?|potholes?)\b",
+    r"\b(?:pot\s*holes?|potholes?)\s+"
+    r"(?:repair(?:s|ing)?|fill(?:ing)?|patch(?:ing)?|work|works)\b",
+    r"\battend(?:ing)?\b.{0,48}\b(?:pot\s*holes?|potholes?)\b",
     r"\b(?:road|carriageway)\s+(?:patch(?:ing|work)?|surface\s+repair)\b",
     r"\b(?:patch(?:ing|work)?|surface\s+repair)\s+(?:of\s+)?(?:the\s+)?(?:road|carriageway)\b",
 ))
 _SURFACE_TREATMENT_PATTERNS = tuple(re.compile(pattern) for pattern in (
     r"\b(?:asphalting|re[ -]?asphalting|black[ -]?topping|tarring)\b",
-    r"\b(?:resurfac(?:e|ed|ing)|re[ -]?carpet(?:ed|ing)|recarpetting)\b",
+    r"\b(?:resurfac(?:e|ing)|re[ -]?carpet(?:ing)?|recarpetting)\b",
     r"\b(?:dense\s+bituminous\s+macadam|bituminous\s+concrete|wet\s+mix\s+macadam)\b",
     r"\b(?:premix|pre\s*mix)\s+carpet\b|\bseal\s+coat\b",
 ))
 
 _NON_CARRIAGEWAY_TREATMENT_TARGET_RE = re.compile(
     r"\b(?:asphalting|re\s+asphalting|black\s+topping|tarring|resurfacing|re\s+carpeting|"
-    r"recarpeting|recarpetting)\b(?:\s+work)?\s+(?:(?:of|to|on|at|in|for)\s+)?(?:the\s+)?"
-    r"(?:bridge|culvert|drain|floor|footpath|park|playground|roof|sidewalk|walkway|wall)s?\b"
+    r"recarpeting|recarpetting|dense\s+bituminous\s+macadam|bituminous\s+concrete|"
+    r"wet\s+mix\s+macadam|(?:premix|pre\s*mix)\s+carpet|seal\s+coat|"
+    r"(?:pot\s*holes?|potholes?)\s+(?:repair(?:s|ing)?|filling|patching)?)\b"
+    r"(?:\s+work)?\s+(?:(?:of|to|on|at|in|for|with)\s+)?(?:the\s+)?"
+    r"(?:(?!roads?\b|carriageways?\b)[a-z0-9]+\s+){0,3}"
+    r"(?:bridge|court|culvert|drain|floor|footpath|garden|helipad|lawn|parking|path|"
+    r"playground|roof|runway|sidewalk|track|walkway|wall)s?\b"
 )
 
 _MATERIAL_PAVEMENT_RE = re.compile(
@@ -110,6 +119,7 @@ _NON_WORKS_SERVICE_PATTERNS = tuple(re.compile(pattern) for pattern in (
     r"\bsurvey\s+(?:and|&)\s+investigation\b",
     r"\bthird\s+party\s+(?:inspection|quality\s+(?:audit|monitoring))\b",
     r"\b(?:quality\s+control|proof\s+checking)\s+(?:consultancy|services?)\b",
+    r"\bsupply(?:ing)?\s+of\b.*\b(?:aggregate|asphalt|bitumen|cold\s+mix|stone\s+dust)\b",
 ))
 
 # Vegetation beside a road is not carriageway work. Keep this narrow enough that a
@@ -184,7 +194,17 @@ def is_road_surface_contract(title: object, tender_number: object = None) -> boo
     if any(pattern.search(text) for pattern in _ROADSIDE_VEGETATION_PATTERNS):
         return False
 
-    if any(pattern.search(text) for pattern in _EXPLICIT_ROAD_DAMAGE_PATTERNS):
+    tokens = text.split()
+    non_surface_assets = set(tokens) & _NON_CARRIAGEWAY_ASSETS
+
+    # A bare treatment word is not an asset classification. Real notices include
+    # "resurfacing tennis court", "asphalting garden path" and "pothole repairs to
+    # footpath". The old early return admitted those before seeing their actual object.
+    # Mixed work must independently make the road/carriageway an explicit object below.
+    if (
+        any(pattern.search(text) for pattern in _EXPLICIT_ROAD_DAMAGE_PATTERNS)
+        and not _NON_CARRIAGEWAY_TREATMENT_TARGET_RE.search(text)
+    ):
         return True
 
     if (
@@ -193,13 +213,13 @@ def is_road_surface_contract(title: object, tender_number: object = None) -> boo
     ):
         return True
 
-    tokens = text.split()
-    non_surface_assets = set(tokens) & _NON_CARRIAGEWAY_ASSETS
-
     # Material-qualified pavement is useful evidence only when the title does not say
     # that the actual asset is a footpath, drain, bridge, etc.  Explicit road work below
     # can still admit a genuine mixed road-and-drain contract.
-    if _MATERIAL_PAVEMENT_RE.search(text) and not non_surface_assets:
+    if (
+        _MATERIAL_PAVEMENT_RE.search(text)
+        and not _NON_CARRIAGEWAY_TREATMENT_TARGET_RE.search(text)
+    ):
         return True
 
     for road_index, token in enumerate(tokens):

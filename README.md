@@ -63,14 +63,11 @@ submitted automatically.
 - Complaint intake and road ownership are separate fields. A boundary can select where to
   start a complaint without claiming that the same authority owns or maintains the road.
 - Email, short WhatsApp, and copyable portal fields always retain coordinates, map link,
-  routing, and a contract block. Matches may come from the Karnataka snapshot, current
-  NHAI/MoRTH/NHIDCL project records, source-reported PMGSY road agreements, or an official
-  State/UT procurement notice. The app attempts these candidate layers nationwide, with
-  KPPP as a Karnataka supplement, but it cannot guarantee a tender for every road. Every
-  match remains a **candidate** until the exact road segment, award, contractor, and DLP
-  terms are evidenced. Reports preserve the official reference, work title, organisation,
-  status/dates, agreement/package/highway details, match basis, and source link whenever
-  published. An open notice is explicitly labelled as not being an award.
+  and routing. Karnataka, NHAI/MoRTH/NHIDCL, PMGSY, and State/UT procurement records may
+  produce a local **research lead**, but it is not included in complaint copy. Tender and
+  contractor details appear only when official evidence verifies the exact road segment,
+  carriageway scope, award, road owner, and active DLP/maintenance responsibility. If any
+  link is missing or ambiguous, both are omitted.
 
 ### National Highway routing
 
@@ -87,9 +84,9 @@ submitted automatically.
 The APK contains the app and small manifests, not the large reference datasets. When
 needed, it downloads a versioned state/UT pack or the relevant 2° National Highway tile
 from this project's GitHub Pages site. The 101 highway geometry tiles total about 18 MB,
-the 33 current National Highway candidate packs contain 1,859 records in 1,805,723 bytes,
+the 33 current National Highway research packs contain 1,859 records in 1,805,723 bytes,
 the 36 PMGSY State/UT packs contain 17,717 records in 3,075,718 bytes, and the 34 official
-State/UT notice packs contain 5,396 open notices in 4,296,746 bytes. Only the relevant files
+State/UT notice packs contain 5,310 open notices in 4,225,170 bytes. Only the relevant files
 are downloaded and cached. These remote packs do not enlarge the APK; the three manifests
 add only about 100 KB to a future build. The Play closed-test binary already submitted to
 Google remains unchanged. All inputs are filtered for explicit carriageway work, so
@@ -118,7 +115,7 @@ selected state or an approximate 2° highway tile. See the
 2. For Pothole or Drive, enter your OpenAI API key. Garbage and Manhole do not need it.
    Allow camera and location access; Drive also needs notification access.
 3. Capture while safely stopped, or securely mount the phone before starting **Drive**.
-4. Review the image, location, authority, wording, and any contract candidate before
+4. Review the image, location, authority, wording, and contract-verification status before
    choosing an external complaint channel.
 
 ## Important limits
@@ -142,13 +139,14 @@ selected state or an approximate 2° highway tile. See the
   source-reported **In Progress** agreements from 211,007 rows; agreement details are
   verified as source fields, but award, contractor, exact segment, and DLP are not.
   The official State/UT notice catalog scanned 69,754 rows from 35 public feeds, rejected
-  64,358 through fail-closed scope/current-record checks, and retained 5,396 notices in 34
+  64,444 through fail-closed scope/current-record checks, and retained 5,310 notices in 34
   jurisdiction packs. It combines GePNIC with dedicated Bihar, Chhattisgarh, Gujarat,
   Telangana, and Lakshadweep adapters. Andhra Pradesh remains blocked by undocumented
   client-encrypted listing state; KPPP remains a separate Karnataka supplement.
-- Every match is a reviewable candidate, never a guarantee that every public tender or
-  road is covered. Open notices are not awards. Exact segment, scope, award, contractor,
-  warranty, and DLP require authoritative evidence; publication date proves none.
+- Research leads never prove that every tender or road is covered. Open notices are not
+  awards. Exact segment, scope, award, contractor, owner, warranty, and active DLP require
+  authoritative evidence; publication date proves none. The current public packs contain
+  no record satisfying that complete chain, so complaints currently name no contractor.
 - National Highway coverage follows mapped NH/NE geometry, not the legal road register.
   Parallel roads, junctions, weak GPS, missing tiles, and altered data fail closed.
 - The project is not affiliated with or endorsed by a government body or data provider.

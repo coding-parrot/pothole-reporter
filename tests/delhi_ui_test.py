@@ -24,7 +24,7 @@ async () => {
   ok("privacy: background-drive disclosure forces fresh consent",
      /v13-hybrid-drive-capture$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
   for (const [lang, dictionary] of Object.entries(I18N)) {
-    ok(`scope: ${lang} names Delhi NCT`, /Delhi NCT|ದೆಹಲಿ NCT|दिल्ली NCT|দিল্লি NCT/.test(
+    ok(`scope: ${lang} describes India-wide State/UT coverage`, /India|ಭಾರತ|भारत|ভারত/.test(
       dictionary.outside_coverage_help), dictionary.outside_coverage_help);
     ok(`privacy: ${lang} discloses the state-pack host`,
        /GitHub Pages/.test(dictionary.privacy_government),
@@ -53,9 +53,9 @@ async () => {
        && !/does not submit (?:a|the) grievance|official (?:grievance )?submission/i.test(body),
      body);
   ok("draft: Delhi route keeps a truthful mandatory no-candidate contract block",
-     /CONTRACT CANDIDATE/.test(complaintWithoutFooter)
-       && /No eligible road-work contract candidate identified/.test(complaintWithoutFooter)
-       && /Tender number: Not identified/.test(complaintWithoutFooter)
+     /CONTRACT VERIFICATION/.test(complaintWithoutFooter)
+       && /No verified exact-road public contract found/.test(complaintWithoutFooter)
+       && !/Tender number:|Listed contractor:|Exact work name:/.test(complaintWithoutFooter)
        && !/warranty is active|under warranty/i.test(complaintWithoutFooter), body);
 
   const now = Date.now() / 1000;

@@ -58,6 +58,53 @@ def main() -> int:
     elif is_road_surface_contract(canonical_cited["t"], canonical_cited["tn"]):
         failures.append("the canonical cited BBMP drain/footpath tender passed the classifier")
 
+    # Check the manifest-selected runtime artifacts too.  A safe classifier is not
+    # enough if a stale generated pack can still publish an unsafe identity.
+    pack_manifest = json.loads(
+        (ROOT / "static" / "pack-manifest-v1.35.json").read_text(encoding="utf-8")
+    )
+    kppp_resource = pack_manifest["resources"]["in-ka-tenders"]
+    kppp_pack = json.loads(
+        (ROOT / "docs" / kppp_resource["path"]).read_text(encoding="utf-8")
+    )
+    kppp_rows = kppp_pack["tenders"]
+    if len(kppp_rows) != kppp_resource["records"]:
+        failures.append("current KPPP runtime pack count differs from its manifest")
+    unsafe_kppp_contractors = [
+        item for item in kppp_rows if str(item.get("c") or "").strip()
+    ]
+    if unsafe_kppp_contractors:
+        failures.append(
+            "current KPPP runtime pack publishes unverified contractor names: "
+            f"{unsafe_kppp_contractors[0].get('tn')}"
+        )
+    runtime_kppp_ids = {
+        str(item.get("tn") or "").strip().casefold() for item in kppp_rows
+    }
+    for unsafe_id in (
+        "BBMP/2024-25/RD/WORK_INDENT4233",
+        "BBMP/2023-24/OW/WORK_INDENT2505",
+    ):
+        if unsafe_id.casefold() in runtime_kppp_ids:
+            failures.append(f"unsafe KPPP record remains in the current runtime pack: {unsafe_id}")
+
+    notice_manifest = json.loads(
+        (ROOT / "static" / "road-notice-manifest-v1.36.json").read_text(encoding="utf-8")
+    )
+    goa_resource = notice_manifest["resources"]["in-road-notices-ga"]
+    goa_pack = json.loads(
+        (ROOT / "docs" / goa_resource["path"]).read_text(encoding="utf-8")
+    )
+    goa_rows = goa_pack["notices"]
+    if len(goa_rows) != goa_resource["records"]:
+        failures.append("current Goa road-notice pack count differs from its manifest")
+    if any(
+        str(item.get("tender_id") or "").strip().casefold()
+        == "2026_TSAG_30877_1".casefold()
+        for item in goa_rows
+    ):
+        failures.append("Goa tennis-court record remains in the current runtime pack")
+
     mixed = next(
         case for case in fixture["accept"] if case["tn"].endswith("WORK_INDENT46859/CALL-2")
     )

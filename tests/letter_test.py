@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """The generated email is concise, complete, and does not overclaim.
 
-The detector now has one accepted road-defect class: pothole. Contract rows are
-only candidates until the segment, award/work order and DLP have been verified.
+The detector has one accepted road-defect class: pothole. Candidate public records
+must never appear in outbound copy until every responsibility gate is verified.
 """
 import sys
 
@@ -104,7 +104,7 @@ def main():
 
     require(failures, matched["email_subject"] == "Pothole complaint — 17th Main Road",
             "subject is not the concise road-specific subject")
-    for heading in ("LOCATION", "CLASSIFICATION", "ROUTING", "CONTRACT CANDIDATE"):
+    for heading in ("LOCATION", "CLASSIFICATION", "ROUTING", "CONTRACT VERIFICATION"):
         require(failures, body.count(heading) == 1,
                 f"email must contain exactly one {heading} section")
     for expected in (
@@ -120,16 +120,15 @@ def main():
         "Geographic corporation/body: Bengaluru South City Corporation",
         "Complaint intake authority: Bengaluru South City Corporation",
         "Road owner/maintainer: Unknown — authority to inspect and transfer if required",
-        "Status: Candidate only — authority verification required",
-        "Tender number: BBMP/2025-26/RD/WORK-42",
-        "Exact work name: Resurfacing of 17th Main Road in HSR Layout",
-        "Listed contractor: ACME Roads Pvt Ltd",
-        "Source: Karnataka Public Procurement Portal (KPPP) snapshot — https://kppp.karnataka.gov.in/",
-        "Road-segment match: Unverified",
-        "Award/work-order status: Unverified",
-        "DLP status: Unverified — publication date is not DLP evidence",
+        "Status: No verified exact-road public contract found; tender and contractor omitted.",
     ):
         require(failures, expected in body, f'missing or altered email field: "{expected}"')
+    for leaked in (
+        "BBMP/2025-26/RD/WORK-42", "Resurfacing of 17th Main Road in HSR Layout",
+        "ACME Roads Pvt Ltd", "Karnataka Public Procurement Portal (KPPP) snapshot",
+    ):
+        require(failures, leaked not in body,
+                f'unverified contract identity leaked into the email: "{leaked}"')
 
     require(failures, body.count(FOOTER) == 1,
             "email must contain exactly one independent-app disclaimer")
@@ -146,15 +145,10 @@ def main():
         require(failures, forbidden not in body.lower(),
                 f'email retains an unsupported or noisy claim: "{forbidden}"')
 
-    for expected in (
-        "Status: No eligible road-work contract candidate identified",
-        "Tender number: Not identified",
-        "Exact work name: Not identified",
-        "Listed contractor: Not identified",
-        "DLP status: Unverified",
-    ):
-        require(failures, expected in no_candidate,
-                f'no-candidate email does not state: "{expected}"')
+    require(failures,
+            "Status: No verified exact-road public contract found; tender and contractor omitted."
+            in no_candidate,
+            "no-candidate email does not state the fail-closed attribution result")
     require(failures, "BBMP/2025-26/RD/WORK-42" not in no_candidate,
             "no-candidate email leaked a tender from another render")
     require(failures, result["rejectedScope"] is None,

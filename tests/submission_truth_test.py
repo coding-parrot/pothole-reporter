@@ -1112,24 +1112,24 @@ async ({pixel}) => {
   eq("suggested email route: cancelling confirmation leaves the report draft",
      councilAfterCancel.status, "draft");
 
-  // The browser/PWA path must open a real mailto composer instead of merely logging
-  // and claiming that an email handoff happened.
+  // A saved email inferred only from a town label predates coordinate-bound Karnataka
+  // routing. It must now fail closed rather than opening an old recipient.
   const originalAnchorClick = HTMLAnchorElement.prototype.click;
   const mailtoLaunches = [];
   HTMLAnchorElement.prototype.click = function () { mailtoLaunches.push(this.href); };
-  const councilPrepared = await StandaloneAPI.handle(
-    "/api/reports/71006/send", {method: "POST"});
+  const councilRouteError = await errorFrom(StandaloneAPI.handle(
+    "/api/reports/71006/send", {method: "POST"}));
   HTMLAnchorElement.prototype.click = originalAnchorClick;
-  ok("suggested email route: browser opens an addressed mailto composer",
-     mailtoLaunches.length === 1
-       && mailtoLaunches[0].startsWith("mailto:coud.ambernath%40maharashtra.gov.in?")
-       && mailtoLaunches[0].includes("subject=Pothole+complaint")
-       && mailtoLaunches[0].includes("body=Please+inspect+and+repair+this+pothole."),
-     mailtoLaunches);
-  eq("suggested email route: composer open is queued, not submitted",
-     councilPrepared.status, "queued");
-  eq("suggested email route: composer open stores no submission time",
-     councilPrepared.submitted_at, null);
+  ok("suggested email route: stale non-coordinate recipient is blocked",
+     /current coordinate-bound authority does not match/i.test(councilRouteError || ""),
+     councilRouteError);
+  eq("suggested email route: blocked recipient opens no mail composer",
+     mailtoLaunches.length, 0);
+  const councilAfterBlockedRoute = await byId(71006);
+  eq("suggested email route: blocked recipient remains draft",
+     councilAfterBlockedRoute.status, "draft");
+  eq("suggested email route: blocked recipient records no handoff time",
+     councilAfterBlockedRoute.handoff_opened_at, undefined);
 
   // Email also requires an explicit citizen confirmation, but unlike BMC it has no
   // official grievance ID to record.

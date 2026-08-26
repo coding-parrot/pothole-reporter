@@ -265,12 +265,16 @@ if result["migratedCustom"] != result["customBefore"]:
     fails.append("a custom draft without a known legacy marker was modified")
 
 karnataka_body = result["migratedKarnataka"]["email_body"]
-for detail in (
+for leaked in (
     "BBMP/2025-26/OW/WORK_INDENT9001",
     "Annual maintenance of carriageway roads in Ward 150",
+    "Example Roads Pvt Ltd",
+    "defect liability or maintenance period",
 ):
-    if detail not in karnataka_body:
-        fails.append(f'legacy eligible tender detail was lost: "{detail}"')
+    if leaked.lower() in karnataka_body.lower():
+        fails.append(f'legacy unverified contract attribution survived migration: "{leaked}"')
+if "No verified exact-road public contract found" not in karnataka_body:
+    fails.append("legacy contractor allegation was not replaced by a fail-closed status")
 if "This is a probable record match; kindly verify against the tender documents." in karnataka_body:
     fails.append("legacy tender-specific verification suffix was not removed")
 if karnataka_body.count(FOOTER) != 1:

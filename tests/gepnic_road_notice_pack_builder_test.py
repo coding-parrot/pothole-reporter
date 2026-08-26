@@ -336,7 +336,7 @@ class GePNICRoadNoticePackBuilderTest(unittest.TestCase):
                 BUILDER.verify_all(root)
             self.assertEqual(snapshot(root), before)
 
-    def test_rejects_non_carriageway_notice_before_writing(self) -> None:
+    def test_stricter_runtime_scope_removes_old_false_positive_without_rewriting_source(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             payload = source("in-as-gepnic", "AS", ["2026_ASPWD_1"])
@@ -344,10 +344,18 @@ class GePNICRoadNoticePackBuilderTest(unittest.TestCase):
                 "Construction of drain and footpath at MG Road"
             )
             write_sources(root, [payload])
-            before = snapshot(root)
-            with self.assertRaisesRegex(BUILDER.BuildError, "strict carriageway-work scope"):
-                BUILDER.build_all(root)
-            self.assertEqual(snapshot(root), before)
+            source_path = root / BUILDER.SOURCE_DIRECTORY / "in-as-gepnic.json"
+            source_before = source_path.read_bytes()
+            BUILDER.build_all(root)
+            self.assertEqual(source_path.read_bytes(), source_before)
+            manifest = json.loads((root / BUILDER.MANIFEST_PATHS[0]).read_bytes())
+            resource = manifest["resources"]["in-road-notices-as"]
+            pack = json.loads((root / "docs" / resource["path"]).read_bytes())
+            self.assertEqual(pack["notices"], [])
+            self.assertEqual(resource["records"], 0)
+            self.assertEqual(resource["rows_excluded_by_scope"], 2)
+            self.assertEqual(pack["sources"][0]["rows_excluded_by_scope"], 2)
+            BUILDER.verify_all(root)
 
     def test_rejects_contract_inference_schema_drift(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

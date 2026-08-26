@@ -11,7 +11,8 @@ APP = "http://localhost:8765/"
 ACCEPTED = {
     "is_pothole": True,
     "looks_like_speed_breaker": False,
-    "image_quality": "usable", "on_drivable_surface": True,
+    "image_quality": "usable", "surface_type": "bituminous_asphalt",
+    "on_drivable_surface": True,
     "has_localized_cavity": True,
     "has_broken_edge_or_rim": True, "has_depth_or_surface_loss": True,
     "temporal_consistency": "consistent", "size": "medium",
@@ -20,7 +21,8 @@ ACCEPTED = {
 ABSENT = {
     "is_pothole": False,
     "looks_like_speed_breaker": False,
-    "image_quality": "usable", "on_drivable_surface": True,
+    "image_quality": "usable", "surface_type": "bituminous_asphalt",
+    "on_drivable_surface": True,
     "has_localized_cavity": False,
     "has_broken_edge_or_rim": False, "has_depth_or_surface_loss": False,
     "temporal_consistency": "not_applicable", "size": None,

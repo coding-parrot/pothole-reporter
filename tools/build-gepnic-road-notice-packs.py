@@ -224,7 +224,7 @@ class SourceSnapshot:
 
 def _normalise_notice(
     value: Any, index: int, receipt: SourceReceipt
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     field = f"{receipt.source_id}.notices[{index}]"
     _expect(
         isinstance(value, dict) and set(value) == NOTICE_FIELDS,
@@ -240,10 +240,7 @@ def _normalise_notice(
     tender_reference = _text(
         value["tender_reference"], f"{field}.tender_reference", 300
     )
-    _expect(
-        is_road_surface_contract(title, tender_reference),
-        f"{field} fails strict carriageway-work scope",
-    )
+    runtime_scope_eligible = is_road_surface_contract(title, tender_reference)
     tender_id = _text(value["tender_id"], f"{field}.tender_id", 160)
     organisation_chain = _text(
         value["organisation_chain"], f"{field}.organisation_chain", 800
@@ -287,7 +284,7 @@ def _normalise_notice(
         not (set(record) & FORBIDDEN_INFERENCE_FIELDS),
         f"{field} contains a forbidden contract inference",
     )
-    return record
+    return record if runtime_scope_eligible else None
 
 
 def _gepnic_source_snapshot(path: Path) -> SourceSnapshot:
@@ -345,10 +342,11 @@ def _gepnic_source_snapshot(path: Path) -> SourceSnapshot:
         receipt.rows_excluded_by_scope + len(raw_notices) == receipt.rows_scanned,
         f"{field} row accounting is inconsistent",
     )
-    notices = tuple(
+    normalised = tuple(
         _normalise_notice(notice, index, receipt)
         for index, notice in enumerate(raw_notices)
     )
+    notices = tuple(notice for notice in normalised if notice is not None)
     return SourceSnapshot(receipt=receipt, notices=notices)
 
 
@@ -386,7 +384,7 @@ def _custom_organisation(value: dict[str, Any], field: str) -> str:
 
 def _custom_notice(
     value: Any, index: int, receipt: SourceReceipt
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     field = f"{receipt.source_id}.notices[{index}]"
     _expect(isinstance(value, dict), f"{field} must be an object")
     _expect(value.get("lifecycle") == LIFECYCLE, f"{field} must be a procurement notice")
@@ -401,10 +399,7 @@ def _custom_notice(
     tender_reference = _text(
         value.get("tender_reference"), f"{field}.tender_reference", 300
     )
-    _expect(
-        is_road_surface_contract(title, tender_reference),
-        f"{field} fails strict carriageway-work scope",
-    )
+    runtime_scope_eligible = is_road_surface_contract(title, tender_reference)
     tender_id = _text(value.get("tender_id"), f"{field}.tender_id", 160)
     organisation_chain = _custom_organisation(value, field)
 
@@ -444,7 +439,7 @@ def _custom_notice(
         not (set(record) & FORBIDDEN_INFERENCE_FIELDS),
         f"{field} contains a forbidden contract inference",
     )
-    return record
+    return record if runtime_scope_eligible else None
 
 
 def _custom_source_snapshot(path: Path) -> SourceSnapshot:
@@ -492,10 +487,11 @@ def _custom_source_snapshot(path: Path) -> SourceSnapshot:
         rows_scanned=rows_scanned,
         rows_excluded_by_scope=rows_excluded,
     )
-    notices = tuple(
+    normalised = tuple(
         _custom_notice(notice, index, receipt)
         for index, notice in enumerate(raw_notices)
     )
+    notices = tuple(notice for notice in normalised if notice is not None)
     return SourceSnapshot(receipt=receipt, notices=notices)
 
 
@@ -761,8 +757,25 @@ def _state_summaries(snapshots: Iterable[SourceSnapshot]) -> dict[str, dict[str,
         summary["sources"] += 1
         summary["rows_scanned"] += receipt.rows_scanned
         summary["rows_excluded_by_scope"] += receipt.rows_excluded_by_scope
-        summary["notices"] += len(snapshot.notices)
+        # The crawler-owned report records the scope policy used when the immutable
+        # source snapshot was acquired. Runtime builds may apply a newer, stricter
+        # classifier without rewriting that acquisition receipt.
+        summary["notices"] += receipt.rows_scanned - receipt.rows_excluded_by_scope
     return summaries
+
+
+def _runtime_receipt(snapshot: SourceSnapshot) -> SourceReceipt:
+    """Project a source receipt through today's stricter runtime scope gate."""
+    receipt = snapshot.receipt
+    return SourceReceipt(
+        source_id=receipt.source_id,
+        source_name=receipt.source_name,
+        source_url=receipt.source_url,
+        retrieved_at=receipt.retrieved_at,
+        state_code=receipt.state_code,
+        rows_scanned=receipt.rows_scanned,
+        rows_excluded_by_scope=receipt.rows_scanned - len(snapshot.notices),
+    )
 
 
 def plan_build(
@@ -795,7 +808,7 @@ def plan_build(
         state_sources = sorted(
             grouped[state_code], key=lambda item: item.receipt.source_id
         )
-        receipts = [snapshot.receipt for snapshot in state_sources]
+        receipts = [_runtime_receipt(snapshot) for snapshot in state_sources]
         notices = sorted(
             (notice for snapshot in state_sources for notice in snapshot.notices),
             key=lambda notice: (notice["tender_id"], notice["source_id"]),

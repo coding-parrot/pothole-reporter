@@ -77,6 +77,42 @@ JS = r"""
   const noCandidate = P.buildComplaintOutputs(accepted, 19.129443, 72.932773,
     "Kanjur Village Road, Kanjur West, Mumbai, 400042", bmcRoute.officer_name,
     null, bmcRoute, {gps_accuracy: 8, photo_provenance: "Pothole Reporter camera evidence"});
+  const verifiedRoute = {
+    ...southRoute,
+    road_owner_id: "ka-lgd-305852",
+    road_owner_name: "Bengaluru South City Corporation",
+    road_owner_evidence: {
+      verified: true,
+      segment_identity: "Official road segment KA-305852-17M-01",
+      reference: "Road register entry 17M-01",
+      source_url: "https://roads.karnataka.gov.in/register/17M-01",
+    },
+  };
+  const verifiedTender = {
+    ...tender,
+    segment_verified: true,
+    award_verified: true,
+    dlp_verified: true,
+    responsibility_active_verified: true,
+    responsibility_valid_from: "2026-01-01T00:00:00Z",
+    responsibility_valid_until: "2027-01-01T00:00:00Z",
+    responsible_authority_id: "ka-lgd-305852",
+    unambiguous: true,
+    verification_evidence: {
+      segment: {reference: "Contract schedule segment 17M-01",
+        source_url: "https://roads.karnataka.gov.in/contracts/42/segment"},
+      award: {reference: "Work order WO-42",
+        source_url: "https://roads.karnataka.gov.in/contracts/42/award"},
+      responsibility: {reference: "DLP schedule WO-42",
+        source_url: "https://roads.karnataka.gov.in/contracts/42/dlp"},
+    },
+  };
+  const verifiedOutputs = P.buildComplaintOutputs(accepted, 12.912345, 77.612345,
+    "17th Main Road, HSR Layout, Bengaluru, 560102", verifiedRoute.officer_name,
+    verifiedTender, verifiedRoute, {
+      captured_at: 1787625000, gps_accuracy: 8,
+      photo_provenance: "Pothole Reporter camera evidence",
+    });
 
   const uiReport = {
     id: 91001,
@@ -116,6 +152,14 @@ JS = r"""
     readOnly: document.getElementById("portalCopyText").readOnly,
     text: document.getElementById("portalCopyText").value,
   };
+  const originalComplaintOutputsForRecord = P.complaintOutputsForRecord;
+  P.complaintOutputsForRecord = () => { throw new Error("invalid stale draft"); };
+  const unsafeStoredFallback = roadComplaintOutputs({
+    whatsapp_text: "Contract: BAD-42; contractor Wrong Person",
+    portal_copy_text: "listed contractor: Wrong Person",
+    portal_fields: {listed_contractor: "Wrong Person"},
+  });
+  P.complaintOutputsForRecord = originalComplaintOutputsForRecord;
 
   const profileRoutes = [
     ["mh-bmc", "Brihanmumbai Municipal Corporation (BMC)"],
@@ -170,8 +214,10 @@ JS = r"""
     oldContract: P.contractVerificationFor({...tender, published: "01-01-2018"}),
     outputs,
     noCandidate,
+    verifiedOutputs,
     detailActions,
     portalUi,
+    unsafeStoredFallback,
   };
 })()
 """
@@ -277,18 +323,17 @@ def main():
         "https://maps.google.com/?q=12.912345,77.612345",
         "Bengaluru South City Corporation",
         "Karnataka GIS municipal boundary; town_lgd_code=305852",
-        "BBMP/2025-26/RD/WORK-42",
-        "Resurfacing of 17th Main Road in HSR Layout",
-        "ACME Roads Pvt Ltd",
-        "Karnataka Public Procurement Portal (KPPP) snapshot",
-        "https://kppp.karnataka.gov.in/",
     )
     for label, text in renderings.items():
         missing = [value for value in invariant_values if value not in text]
-        check(failures, f"{label} preserves location, routing and tender invariants",
+        check(failures, f"{label} preserves location and routing invariants",
               not missing, missing)
-        check(failures, f"{label} keeps DLP explicitly unverified",
-              "DLP" in text.upper() and "unverified" in text.lower(), text)
+        leaked = [value for value in (
+            "BBMP/2025-26/RD/WORK-42", "Resurfacing of 17th Main Road in HSR Layout",
+            "ACME Roads Pvt Ltd", "Karnataka Public Procurement Portal (KPPP) snapshot",
+        ) if value in text]
+        check(failures, f"{label} omits every unverified tender/contractor identity",
+              not leaked and "No verified exact-road public contract found" in text, leaked)
         check(failures, f"{label} has one final independent-app disclaimer",
               text.count(FOOTER) == 1 and text.rstrip().endswith(FOOTER),
               f"count={text.count(FOOTER)}, ending={text[-180:]}")
@@ -299,9 +344,20 @@ def main():
         "WhatsApp": no_candidate["whatsapp_text"],
         "portal": no_candidate["portal_copy_text"],
     }.items():
-        check(failures, f"{label} keeps an explicit no-candidate contract block",
-              "No eligible road-work contract candidate identified" in text
-              and "Not identified" in text and "Unverified" in text, text)
+        check(failures, f"{label} states that no exact-road contract was verified",
+              "No verified exact-road public contract found" in text
+              and "tender and contractor omitted" in text, text)
+
+    verified = result["verifiedOutputs"]
+    for label, text in {
+        "email": verified["email_body"],
+        "WhatsApp": verified["whatsapp_text"],
+        "portal": verified["portal_copy_text"],
+    }.items():
+        check(failures, f"{label} names a contractor only after every proof gate",
+              "Verified exact-road contract and active responsibility" in text
+              and "BBMP/2025-26/RD/WORK-42" in text
+              and "ACME Roads Pvt Ltd" in text, text)
 
     check(failures, "report detail exposes WhatsApp and portal-field actions",
           result["detailActions"] == {"copyWhatsApp": True, "portalFields": True},
@@ -312,6 +368,8 @@ def main():
           portal_ui)
     check(failures, "portal copy screen preserves the generated invariant block",
           portal_ui["text"] == outputs["portal_copy_text"], portal_ui["text"])
+    check(failures, "UI never revives stale contract text when validation fails",
+          result["unsafeStoredFallback"] is None, result["unsafeStoredFallback"])
 
     if failures:
         print(f"\n{len(failures)} complaint profile check(s) failed")

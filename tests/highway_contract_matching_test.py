@@ -37,6 +37,13 @@ async () => {
     [notice, wrongHighway, drain, current], "NH-48", "Pune Satara Highway, Pune, Maharashtra");
   const refOnly = P.highwayContractCandidates(
     [current], "NH-48", "Unrelated Place, Maharashtra");
+  const oneWordOnly = P.highwayContractCandidates(
+    [current], "NH-48", "Satara, Maharashtra");
+  const nearTie = P.highwayContractCandidates([
+    current,
+    {...current, record_id: "nhai:near-tie", reference_value: "ABC124",
+      title: "Maintenance of NH-48 from Pune to Satara km 111 to km 150"},
+  ], "NH-48", "Pune Satara Highway, Pune, Maharashtra");
   const route = {
     routed: true, tender_eligible: true, region: "national-highway",
     highway_ref: "NH-48", contract_state_code: "MH", routing_pack_state_code: "IN",
@@ -124,6 +131,9 @@ async () => {
     wrongIncluded: ranked.some((item) => item.record.record_id === "nhai:wrong"),
     drainIncluded: ranked.some((item) => item.record.record_id === "nhai:drain"),
     refOnlyCount: refOnly.length,
+    oneWordOnlyCount: oneWordOnly.length,
+    nearTieGap: nearTie.length > 1 ? nearTie[0].score - nearTie[1].score : null,
+    nearTieAccepted: P.candidateLeadIsUnambiguous(nearTie, 20),
     accepted: P.normaliseTenderMatch(candidate, route),
     complaintBody: complaint.email_body,
     portalFields: complaint.portal_fields,
@@ -186,25 +196,25 @@ def main() -> None:
         failures.append("A drain/footpath-only record entered the candidate pool")
     if result["refOnlyCount"] != 0:
         failures.append("same-State/NH-only record matched without independent locality evidence")
+    if result["oneWordOnlyCount"] != 0:
+        failures.append("a single locality word admitted a highway project")
+    if result["nearTieGap"] is None or abs(result["nearTieGap"]) >= 20:
+        failures.append(f"synthetic highway ambiguity fixture is ineffective: {result['nearTieGap']!r}")
+    if result["nearTieAccepted"]:
+        failures.append("a near-tied highway package was treated as unambiguous")
     accepted = result["accepted"]
     if not accepted or accepted.get("reference_label") != "UPC":
         failures.append(f"Valid highway candidate was rejected: {accepted!r}")
     elif accepted.get("segment_verified") is not False:
         failures.append(f"Unmapped chainage was marked verified: {accepted!r}")
     elif accepted.get("award_verified") is not True:
-        failures.append(f"Source-backed award was discarded: {accepted!r}")
+        failures.append(f"source project award metadata was not retained as a research candidate: {accepted!r}")
     complaint_body = result["complaintBody"]
-    for expected_detail in (
-        "Organisation / department: NHAI — PIU Pune",
-        "Project start: 01/01/2025",
-        "Likely completion: 01/01/2027",
-        "Package / project reference: ABC123",
-        "Highway reference: NH-48",
-        "Published package chainage (GPS point not verified): km 10–110",
-        "Candidate match basis:",
-    ):
-        if expected_detail not in complaint_body:
-            failures.append(f"highway complaint omitted tender detail: {expected_detail}")
+    if "No verified exact-road public contract found; tender and contractor omitted" not in complaint_body:
+        failures.append("highway complaint did not fail closed without GPS-to-chainage/DLP proof")
+    for leaked in ("ABC123", "Example Roads Limited", "NHAI — PIU Pune", "km 10–110"):
+        if leaked in complaint_body:
+            failures.append(f"unverified highway project identity leaked into complaint: {leaked}")
     if result["crossState"] is not None:
         failures.append("A cross-State contract pack was accepted")
     if result["exactStates"] != ["MH", None, None, None]:

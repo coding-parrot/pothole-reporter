@@ -5724,17 +5724,17 @@ This is a strict before/after verification, not ordinary pothole detection:
     "bhavan", "bhavana", "borewell", "bridge", "bridges", "building", "buildings", "burial",
     "bus", "cable", "cables", "cattle", "cd", "camera", "cameras", "cctv", "center",
     "centre", "chamber", "chambers", "cistern", "college", "collage", "complex", "compound",
-    "culvert", "culverts", "deck", "dog", "dogsheltar", "drain", "drainage", "drains",
+    "court", "courts", "culvert", "culverts", "deck", "dog", "dogsheltar", "drain", "drainage", "drains",
     "electrical", "fence", "fencing", "footpath", "footpaths", "garden", "facility",
     "facilities", "floor", "floors", "gantry", "gateway", "gateways", "graveyard", "hall",
-    "hospital", "house", "houses",
-    "kerb", "kerbs", "curb", "curbs", "lake", "light", "lighting", "lights", "machinehole",
+    "helipad", "helipads", "hospital", "house", "houses",
+    "kerb", "kerbs", "curb", "curbs", "lake", "lawn", "lawns", "light", "lighting", "lights", "machinehole",
     "machineholes", "manhole", "manholes", "mast", "masts", "median", "mh", "mhc",
-    "network", "nursery", "park", "pedestrian", "pipeline", "pipelines", "pipe", "pipes",
-    "playground", "pole", "poles", "pound", "pumphouse", "pump", "quarters", "roof", "roofs",
-    "room", "rooms", "school", "sewer", "sewerage", "shed", "shelter", "shishuvihara",
+    "network", "nursery", "park", "parking", "path", "paths", "pedestrian", "pipeline", "pipelines", "pipe", "pipes",
+    "playground", "plaza", "pole", "poles", "pound", "pumphouse", "pump", "quarters", "roof", "roofs",
+    "room", "rooms", "runway", "runways", "school", "sewer", "sewerage", "shed", "shelter", "shishuvihara",
     "sidewalk", "sidewalks", "sign", "signage", "signboard", "signboards", "slab", "sorting",
-    "stand", "temple", "toilet", "toilets", "transformer", "transformers", "tree", "trees",
+    "stand", "temple", "toilet", "toilets", "track", "tracks", "transformer", "transformers", "tree", "trees",
     "ugd", "unit", "urinal", "urinals", "utility", "utilities", "valve", "valves",
     "vending", "walkway", "walkways", "wall", "walls", "water"]);
   const NON_SURFACE_ROAD_MODIFIERS = new Set(["divider", "dividers", "furniture", "light",
@@ -5745,15 +5745,15 @@ This is a strict before/after verification, not ordinary pothole detection:
     "paver", "rigid"]);
   const LOCATION_PREPOSITIONS = new Set(["across", "along", "at", "behind", "beside", "in",
     "inside", "near", "on", "opposite", "within"]);
-  const explicitRoadDamageRe = /\b(?:pot\s*holes?|potholes?)\b|\b(?:road|carriageway)\s+(?:patch(?:ing|work)?|surface\s+repair)\b|\b(?:patch(?:ing|work)?|surface\s+repair)\s+(?:of\s+)?(?:the\s+)?(?:road|carriageway)\b/;
-  const surfaceTreatmentRe = /\b(?:asphalting|re\s+asphalting|black\s*topping|tarring|resurfac(?:e|ed|ing)|re\s+carpet(?:ed|ing)|recarpet(?:ed|ing)|recarpetting|dense\s+bituminous\s+macadam|bituminous\s+concrete|wet\s+mix\s+macadam|(?:premix|pre\s*mix)\s+carpet|seal\s+coat)\b/;
-  const nonCarriagewayTreatmentTargetRe = /\b(?:asphalting|re\s+asphalting|black\s*topping|tarring|resurfacing|re\s+carpeting|recarpeting|recarpetting)\b(?:\s+work)?\s+(?:(?:of|to|on|at|in|for)\s+)?(?:the\s+)?(?:bridge|culvert|drain|floor|footpath|park|playground|roof|sidewalk|walkway|wall)s?\b/;
+  const explicitRoadDamageRe = /\b(?:repair(?:ing|s)?|fill(?:ing)?|patch(?:ing)?)\s+(?:of\s+)?(?:pot\s*holes?|potholes?)\b|\b(?:pot\s*holes?|potholes?)\s+(?:repair(?:s|ing)?|fill(?:ing)?|patch(?:ing)?|work|works)\b|\battend(?:ing)?\b.{0,48}\b(?:pot\s*holes?|potholes?)\b|\b(?:road|carriageway)\s+(?:patch(?:ing|work)?|surface\s+repair)\b|\b(?:patch(?:ing|work)?|surface\s+repair)\s+(?:of\s+)?(?:the\s+)?(?:road|carriageway)\b/;
+  const surfaceTreatmentRe = /\b(?:asphalting|re\s+asphalting|black\s*topping|tarring|resurfac(?:e|ing)|re\s+carpet(?:ing)?|recarpet(?:ing)?|recarpetting|dense\s+bituminous\s+macadam|bituminous\s+concrete|wet\s+mix\s+macadam|(?:premix|pre\s*mix)\s+carpet|seal\s+coat)\b/;
+  const nonCarriagewayTreatmentTargetRe = /\b(?:asphalting|re\s+asphalting|black\s*topping|tarring|resurfacing|re\s+carpeting|recarpeting|recarpetting|dense\s+bituminous\s+macadam|bituminous\s+concrete|wet\s+mix\s+macadam|(?:premix|pre\s*mix)\s+carpet|seal\s+coat|(?:pot\s*holes?|potholes?)\s+(?:repair(?:s|ing)?|filling|patching)?)\b(?:\s+work)?\s+(?:(?:of|to|on|at|in|for|with)\s+)?(?:the\s+)?(?:(?!roads?\b|carriageways?\b)[a-z0-9]+\s+){0,3}(?:bridge|court|culvert|drain|floor|footpath|garden|helipad|lawn|parking|path|playground|roof|runway|sidewalk|track|walkway|wall)s?\b/;
   const materialPavementRe = /\b(?:asphalt(?:ic)?|bituminous|cement\s+concrete|concrete|flexible|rigid)\s+pavement\b/;
   // Advisory/design/inspection assignments can repeat the full physical road scope
   // without procuring the works. Keep this in lockstep with tools/tender_scope.py and
   // apply it before any positive road phrase. EPC/design-and-build is intentionally not
   // rejected unless the title explicitly describes one of these non-works services.
-  const nonWorksServiceRe = /\bconsult(?:ant|ancy|ants|ing)\b|\b(?:authority|independent)\s+engineer(?:ing)?\b|\bproject\s+management\s+(?:consult(?:ant|ancy|ing)|services?)\b|\b(?:preparation|prepare|preparing|revision|review)\s+of\s+(?:a\s+|the\s+)?(?:detailed\s+project\s+report|dpr)\b|\b(?:detailed\s+project\s+report|dpr)\s+(?:preparation|consultancy|services?)\b|\b(?:feasibility|traffic)\s+(?:study|studies|survey|surveys)\b|\bsurvey\s+(?:and|&)\s+investigation\b|\bthird\s+party\s+(?:inspection|quality\s+(?:audit|monitoring))\b|\b(?:quality\s+control|proof\s+checking)\s+(?:consultancy|services?)\b/;
+  const nonWorksServiceRe = /\bconsult(?:ant|ancy|ants|ing)\b|\b(?:authority|independent)\s+engineer(?:ing)?\b|\bproject\s+management\s+(?:consult(?:ant|ancy|ing)|services?)\b|\b(?:preparation|prepare|preparing|revision|review)\s+of\s+(?:a\s+|the\s+)?(?:detailed\s+project\s+report|dpr)\b|\b(?:detailed\s+project\s+report|dpr)\s+(?:preparation|consultancy|services?)\b|\b(?:feasibility|traffic)\s+(?:study|studies|survey|surveys)\b|\bsurvey\s+(?:and|&)\s+investigation\b|\bthird\s+party\s+(?:inspection|quality\s+(?:audit|monitoring))\b|\b(?:quality\s+control|proof\s+checking)\s+(?:consultancy|services?)\b|\bsupply(?:ing)?\s+of\b.*\b(?:aggregate|asphalt|bitumen|cold\s+mix|stone\s+dust)\b/;
   const roadsideVegetationRe = /\broad\s*side\s+(?:monsoon\s+)?plantations?\b|\broadside\s+(?:monsoon\s+)?plantations?\b|\bsocial\s+forestr(?:y|ies)\b|(?:\w*plantation\w*|\w*forestr\w*).*\broad\s+side\w*\b|\broad\s+side\w*\b.*(?:\w*plantation\w*|\w*forestr\w*)/;
 
   const tenderTokens = (value) => (String(value || "").toLowerCase().match(/[a-z0-9]+/g) || []);
@@ -5786,11 +5786,17 @@ This is a strict before/after verification, not ordinary pothole detection:
     if (!text) return false;
     if (nonWorksServiceRe.test(text)) return false;
     if (roadsideVegetationRe.test(text)) return false;
-    if (explicitRoadDamageRe.test(text)) return true;
-    if (surfaceTreatmentRe.test(text) && !nonCarriagewayTreatmentTargetRe.test(text)) return true;
     const tokens = text.split(" ");
     const hasNonRoadAsset = hasAny(tokens, NON_CARRIAGEWAY_ASSETS);
-    if (materialPavementRe.test(text) && !hasNonRoadAsset) return true;
+    // Treatment words alone do not identify the asset. Public notices include resurfaced
+    // tennis courts, asphalt garden paths and pothole repairs to footpaths. Do not let
+    // those phrases bypass the object/coordination checks below.
+    if (explicitRoadDamageRe.test(text)
+        && !nonCarriagewayTreatmentTargetRe.test(text)) return true;
+    if (surfaceTreatmentRe.test(text)
+        && !nonCarriagewayTreatmentTargetRe.test(text)) return true;
+    if (materialPavementRe.test(text)
+        && !nonCarriagewayTreatmentTargetRe.test(text)) return true;
     for (let roadIndex = 0; roadIndex < tokens.length; roadIndex++) {
       if (!ROAD_NOUNS.has(tokens[roadIndex]) || roadIsNonSurfaceModifier(tokens, roadIndex)) continue;
       const after = tokens.slice(roadIndex + 1, roadIndex + 4);
@@ -5912,7 +5918,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     // Scored on the work description alone. The location field is the body's own name,
     // identical in every one of its rows, so it cannot tell one of the body's roads from
     // another: including it only added the town's name to every candidate equally.
-    const hays = pool.map((t) => (t.t || "").toLowerCase());
+    const hays = pool.map((t) => new Set(tenderTokens(t.t)));
 
     // The body's own name is not evidence about which of its roads this is, and it turns
     // up in some work titles as well as in every location, so counting alone will not
@@ -5928,7 +5934,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     const idf = new Map();
     for (const tok of tokens) {
       let df = 0;
-      for (const hay of hays) if (hay.includes(tok)) df++;
+      for (const hay of hays) if (hay.has(tok)) df++;
       // A word in none of this body's contracts is no evidence, and a word in every one
       // of them cannot distinguish one road from another. The "more than half" cut only
       // means something once there are enough contracts to count: a town with three had
@@ -5943,8 +5949,13 @@ This is a strict before/after verification, not ordinary pothole detection:
     const scored = [];
     for (let i = 0; i < pool.length; i++) {
       let score = 0;
-      for (const [tok, w] of idf) if (hays[i].includes(tok)) score += w;
-      if (score > 0) scored.push({ score, t: pool[i] });
+      const matchTokens = [];
+      for (const [tok, w] of idf) {
+        if (!hays[i].has(tok)) continue;
+        score += w;
+        matchTokens.push(tok);
+      }
+      if (score > 0) scored.push({ score, match_tokens: matchTokens.sort(), t: pool[i] });
     }
     // Deterministic all the way down. Scores tie often, because a locality word may be the
     // only thing that matched and every ward contract for that locality then scores the
@@ -5958,7 +5969,9 @@ This is a strict before/after verification, not ordinary pothole detection:
     };
     scored.sort((a, b) =>
       (b.score - a.score) || (stamp(b.t) - stamp(a.t)) || String(a.t.tn).localeCompare(String(b.t.tn)));
-    return scored.slice(0, 25).map((x) => ({ score: x.score, tn: x.t.tn, t: x.t }));
+    return scored.slice(0, 25).map((x) => ({
+      score: x.score, match_tokens: x.match_tokens, tn: x.t.tn, t: x.t,
+    }));
   }
 
   async function matchTender(address, lgd) {
@@ -5970,7 +5983,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     if (!ranked.length) return null;
     const candidates = ranked.map((x) => x.t);
     const listing = candidates.map((t, i) =>
-      `${i}: ${t.t.slice(0, 150)} | ${t.loc} | contractor: ${t.c || "not named"} | published: ${t.d}`).join("\n");
+      `${i}: ${t.t.slice(0, 150)} | ${t.loc} | published: ${t.d}`).join("\n");
     const prompt = `You screen public procurement listings for a possible road-work contract candidate.
 The candidate pool is indexed to the containing civic body or, in Bengaluru, its legacy
 BBMP area. This does not prove road ownership, award, execution, completion, DLP, or that
@@ -5979,7 +5992,7 @@ covers this exact road stretch or immediate locality.
 The road defect's reverse-geocoded address is:
 ${address}
 
-Candidate contracts (index: work description | division | contractor | published):
+Candidate records (index: work description | division | published):
 ${listing}
 
 Pick the single contract whose work description covers this exact road stretch or
@@ -6003,12 +6016,20 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         text: fmt("tender_match", TENDER_SCHEMA),
       });
     } catch (e) { return null; }
-    if (!m || m.match_index === null || m.match_index < 0 || m.match_index >= candidates.length || m.confidence < 0.6) return null;
-    const t = candidates[m.match_index];
+    if (!m || m.match_index === null || m.match_index < 0
+        || m.match_index >= candidates.length || m.confidence < 0.6) return null;
+    // The model may veto the lexical leader, but it may not promote a weaker row. Require
+    // two independent address words and a clear lead over the runner-up. False negatives
+    // are safer than showing an unrelated public record as a road-contract candidate.
+    const selected = ranked[m.match_index], second = ranked[1];
+    if (m.match_index !== 0 || selected.match_tokens.length < 2
+        || (second && selected.score - second.score
+          < Math.max(0.75, selected.score * 0.15))) return null;
+    const t = selected.t;
     if (!tenderCoversCarriageway(t.t, t.tn)) return null;
-    // Records without a winner are common in this dataset. Naming nobody is correct;
-    // a placeholder sentence read as a person's name in the Kannada draft.
-    const contractor = t.c || null;
+    // The compact legacy snapshot's name field is not an official award/work-order
+    // receipt. Never attach it to a photographed road or carry it into complaint data.
+    const contractor = null;
     const title = String(t.t || "").replace(/\s+/g, " ").trim();
     return {
       tender_number: t.tn, contractor, title, published: t.d,
@@ -6030,7 +6051,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       source_url: "https://kppp.karnataka.gov.in/",
       match_confidence: m.confidence,
       ...contractVerificationFor({ tender_number: t.tn, title }),
-      note: `Candidate contract record: ${t.tn} — ${title}`,
+      note: `Unverified research lead (not included in the complaint): ${t.tn} — ${title}`,
       ...statePackProvenance("in-ka-tenders", "tender"),
     };
   }
@@ -6078,8 +6099,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       const uniqueLongHits = localityHits.filter((token) => token.length >= 6
         && frequencies.get(token) === 1);
       // An NH reference identifies a route, not which package covers this point; feeder
-      // roads also cite the NH they meet. Require independent title/address evidence.
-      if (!phraseHits.length && localityHits.length < 2 && !uniqueLongHits.length) continue;
+      // roads also cite the NH they meet. A single place word is never enough, even when
+      // unique in this snapshot: require a multi-word phrase or two address words.
+      if (!phraseHits.length && localityHits.length < 2) continue;
       let score = matchingRefs.length * 100 + localityHits.length * 8;
       score += phraseHits.length * 30 + uniqueLongHits.length * 16;
       if (record.lifecycle === "current_project") score += 30;
@@ -6096,6 +6118,12 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     return scored;
   }
 
+  function candidateLeadIsUnambiguous(ranked, minimumGap) {
+    if (!Array.isArray(ranked) || !ranked.length) return false;
+    return !ranked[1]
+      || Number(ranked[0].score) - Number(ranked[1].score) >= minimumGap;
+  }
+
   async function matchHighwayContract(address, route) {
     const stateCode = route && route.contract_state_code;
     if (!route || route.region !== "national-highway" || route.tender_eligible !== true
@@ -6103,14 +6131,21 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const pack = await loadHighwayContractPack(stateCode);
     const ranked = highwayContractCandidates(pack && pack.contracts, route.highway_ref, address);
     if (!ranked.length) return null;
-    const { record, matching_refs: matchingRefs, locality_hits: localityHits } = ranked[0];
+    const best = ranked[0];
+    // No authoritative geometry connects the phone's point to a published chainage.
+    // Suppress near-ties instead of presenting a deterministic but arbitrary package.
+    if (!candidateLeadIsUnambiguous(ranked, 20)) return null;
+    const { record, matching_refs: matchingRefs, locality_hits: localityHits } = best;
     const lifecycleNote = record.lifecycle === "procurement_notice"
       ? "Open procurement notice; no contractor or award is asserted"
       : `Official project lifecycle: ${record.lifecycle_status}`;
     return {
       tender_number: record.reference_value,
       reference_label: record.reference_label,
-      contractor: record.contractor,
+      // This source-reported project contractor is not attached to the GPS observation:
+      // published highway chainage is not mapped to an authoritative point geometry and
+      // active maintenance/DLP responsibility is absent.
+      contractor: null,
       title: record.title,
       published: record.published_at || record.start_date,
       organisation: [record.agency, record.division].filter(Boolean).join(" — ") || null,
@@ -6138,11 +6173,13 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       // no authoritative chainage origin. Do not claim this GPS point lies in that range.
       segment_status: "unverified_chainage",
       segment_verified: false,
-      award_status: record.award_verified ? "verified_by_source_record" : "unverified",
-      award_verified: record.award_verified,
+      award_status: record.award_verified
+        ? "source_project_award_not_attributed_to_gps_segment" : "unverified",
+      award_verified: false,
       dlp_status: "unverified",
       dlp_verified: false,
-      note: `${record.reference_label}: ${record.reference_value}. ${lifecycleNote}.`,
+      note: `Unverified research lead (not included in the complaint): `
+        + `${record.reference_label} ${record.reference_value}. ${lifecycleNote}.`,
       ...contractPackProvenance(stateCode),
     };
   }
@@ -6200,18 +6237,17 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       const tokenHits = [...addressTokens].filter((token) => tokens.has(token));
       const phraseHits = addressParts.filter((part) => {
         const phrase = part.join(" ");
-        return phrase.length >= 6
+        return part.length >= 2 && phrase.length >= 6
           && tenderTokens(record.title).join(" ").includes(phrase);
       });
       const rareHits = tokenHits.filter((token) => token.length >= 6
         && frequencies.get(token) > 0 && frequencies.get(token) <= 2);
       const noticeRefs = highwayRefsInNotice(`${record.title} ${record.tender_reference}`);
       const highwayHits = [...routeRefs].filter((ref) => noticeRefs.has(ref));
-      // One common locality word is too weak for a nationwide title index. Admit an
-      // ordinary-road candidate only for a phrase, two distinct address words, or one
-      // long word that occurs in at most two notices in this State/UT snapshot.
-      const locationEvidence = phraseHits.length > 0 || tokenHits.length >= 2
-        || rareHits.length > 0;
+      // One locality word is too weak for a statewide title index, even if it happens to
+      // be rare in today's snapshot. Require an exact multi-word phrase or two distinct
+      // address words; the rare-word signal may rank, but never admit, a record.
+      const locationEvidence = phraseHits.length > 0 || tokenHits.length >= 2;
       if (!locationEvidence) continue;
       const organisationTokens = new Set(tenderTokens(record.organisation_chain));
       const authorityHits = [...routeAuthorityTokens].filter(
@@ -6360,8 +6396,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       award_verified: false,
       dlp_status: "unverified_no_maintenance_dates",
       dlp_verified: false,
-      note: `PMGSY road-record candidate ${record.reference_value}${agreement}. `
-        + "No geometry, contractor assignment, completion, maintenance or DLP is asserted.",
+      note: `Unverified research lead (not included in the complaint): PMGSY road record `
+        + `${record.reference_value}${agreement}. No geometry, contractor assignment, `
+        + "completion, maintenance or DLP is asserted.",
       ...roadAgreementPackProvenance(stateCode),
     };
   }
@@ -6374,6 +6411,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const ranked = roadNoticeCandidates(pack && pack.notices, address, route);
     if (!ranked.length) return null;
     const best = ranked[0];
+    if (!candidateLeadIsUnambiguous(ranked, 12)) return null;
     const record = best.record;
     const source = (pack.sources || []).find((item) => item.source_id === record.source_id);
     const locationEvidence = [...new Set([...best.phrase_hits.map((part) => part.join(" ")),
@@ -6417,7 +6455,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       award_verified: false,
       dlp_status: "unverified",
       dlp_verified: false,
-      note: `Open procurement notice ${record.tender_id}; no award or contractor is asserted.`,
+      note: `Unverified research lead (not included in the complaint): open procurement `
+        + `notice ${record.tender_id}; no award or contractor is asserted.`,
       ...roadNoticePackProvenance(stateCode),
     };
   }
@@ -6519,7 +6558,19 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     return String(value || "").replace(/\s*\((?:verify|select)[^)]*\)/ig, "").trim();
   }
 
-  const COMPLAINT_TEMPLATE_VERSION = 3;
+  const COMPLAINT_TEMPLATE_VERSION = 4;
+  const OUTBOUND_CONTRACT_IDENTITY_FIELDS = Object.freeze([
+    "tender_number", "exact_work_name", "organisation_department", "listed_contractor",
+    "publication_date", "tender_project_status", "bid_closing", "bid_opening",
+    "project_start", "likely_completion", "agreement_number", "agreement_date",
+    "package_project_reference", "highway_reference", "published_package_chainage",
+    "road_from", "road_to", "candidate_match_basis", "contract_match_basis",
+    "contract_source_name", "contract_source_url", "official_tender_detail_url",
+    "carriageway_scope", "road_segment_match", "award_work_order_status", "dlp_status",
+    "contract_candidate_status",
+  ]);
+  const NO_VERIFIED_CONTRACT =
+    "No verified exact-road public contract found; tender and contractor omitted.";
 
   function storedComplaintLanguage(body) {
     const text = String(body || "");
@@ -6568,6 +6619,27 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       recognised = true;
       paragraphs[index] = after || "";
     };
+
+    // v3 printed title/locality candidates—and sometimes a third-party contractor name—
+    // into outward copy even while segment, award and DLP were unverified. IndexedDB
+    // survives app upgrades, so remove that entire generated allegation from every unsent
+    // draft. Candidate metadata may remain on the local report for research/audit.
+    const candidateBlock = paragraphs.findIndex((paragraph) =>
+      /^CONTRACT CANDIDATE(?:\n|$)/.test(paragraph));
+    if (candidateBlock >= 0) {
+      paragraphs[candidateBlock] = `CONTRACT VERIFICATION\nStatus: ${NO_VERIFIED_CONTRACT}`;
+      recognised = true;
+    }
+    const legacyTenderNumber = String(rec.tender_number || "").trim();
+    const legacyTenderTitle = String(rec.tender_title || "").trim();
+    if (legacyTenderNumber && legacyTenderTitle) {
+      const legacyTenderBlock = paragraphs.findIndex((paragraph) =>
+        paragraph.includes(legacyTenderNumber) && paragraph.includes(legacyTenderTitle));
+      if (legacyTenderBlock >= 0) {
+        paragraphs[legacyTenderBlock] = `CONTRACT VERIFICATION\nStatus: ${NO_VERIFIED_CONTRACT}`;
+        recognised = true;
+      }
+    }
 
     if (roadDamage) {
       const oldRequest = {
@@ -6670,13 +6742,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         bn: "ত্রুটি-দায় বা রক্ষণাবেক্ষণের মেয়াদ চালু থাকলে পৌরসংস্থার অতিরিক্ত ব্যয় ছাড়াই ঠিকাদারের মাধ্যমে মেরামত করানোর অনুরোধ করছি। এটি কেবল সম্ভাব্য নথি-মিল; মূল টেন্ডার নথির সঙ্গে যাচাই করুন।",
         en: "If the defect liability or maintenance period is in force, I request that the repair be carried out by the contractor at no additional cost to the corporation. This is a probable record match; kindly verify against the tender documents.",
       };
-      const newTenderRequest = {
-        kn: "ದೋಷ ಹೊಣೆಗಾರಿಕೆ ಅಥವಾ ನಿರ್ವಹಣಾ ಅವಧಿ ಜಾರಿಯಲ್ಲಿದ್ದರೆ, ಸಂಸ್ಥೆಗೆ ಹೆಚ್ಚುವರಿ ವೆಚ್ಚವಿಲ್ಲದೆ ಗುತ್ತಿಗೆದಾರರಿಂದಲೇ ದುರಸ್ತಿ ಮಾಡಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.",
-        mr: "दोष दायित्व किंवा देखभाल कालावधी लागू असल्यास महानगरपालिकेला अतिरिक्त खर्च न लावता कंत्राटदाराकडून दुरुस्ती करून घ्यावी.",
-        bn: "ত্রুটি-দায় বা রক্ষণাবেক্ষণের মেয়াদ চালু থাকলে পৌরসংস্থার অতিরিক্ত ব্যয় ছাড়াই ঠিকাদারের মাধ্যমে মেরামত করানোর অনুরোধ করছি।",
-        en: "If the defect liability or maintenance period is in force, I request that the contractor carry out the repair at no additional cost to the corporation.",
-      };
-      replaceExact(oldTenderRequest[lang], newTenderRequest[lang]);
+      replaceExact(oldTenderRequest[lang], "");
     } else {
       const civicRequest = paragraphs.find((paragraph) => ({
         kn: ["ಲಗತ್ತಿಸಿದ ಚಿತ್ರದಲ್ಲಿ ತೆರೆದ ಅಥವಾ ಹಾನಿಗೊಂಡ ಮ್ಯಾನ್‌ಹೋಲ್ ಇದೆ.", "ಲಗತ್ತಿಸಿದ ಚಿತ್ರದಲ್ಲಿ ಈ ಸ್ಥಳದಲ್ಲಿ ಸಂಗ್ರಹವಾದ ಅಥವಾ ತೆರವುಗೊಳಿಸದ ಕಸ ಇದೆ."],
@@ -6737,6 +6803,24 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       }
     }
 
+    const safeWhatsapp = String(rec.whatsapp_text || "").split("\n")
+      .filter((line) => !/^Contract:/.test(line));
+    if (safeWhatsapp.length !== String(rec.whatsapp_text || "").split("\n").length) {
+      const footerIndex = safeWhatsapp.findIndex((line) => /Pothole Reporter/.test(line));
+      safeWhatsapp.splice(footerIndex >= 0 ? footerIndex : safeWhatsapp.length, 0,
+        `Contract verification: ${NO_VERIFIED_CONTRACT}`);
+      recognised = true;
+    }
+    const safePortalFields = rec.portal_fields && typeof rec.portal_fields === "object"
+      ? { ...rec.portal_fields } : null;
+    if (safePortalFields) {
+      const hadContractIdentity = OUTBOUND_CONTRACT_IDENTITY_FIELDS.some((field) =>
+        Object.prototype.hasOwnProperty.call(safePortalFields, field));
+      for (const field of OUTBOUND_CONTRACT_IDENTITY_FIELDS) delete safePortalFields[field];
+      safePortalFields.contract_verification_status = NO_VERIFIED_CONTRACT;
+      if (hadContractIdentity) recognised = true;
+    }
+
     if (!recognised) return rec;
 
     // Older evidence exports appended a second disclaimer block after the signature.
@@ -6770,8 +6854,17 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       en: `Dear ${newOfficer || "Sir or Madam"},` })[lang];
     replaceExact(oldGreeting, newGreeting);
 
-    return { ...rec, email_body: complaintBodyWithFooter(paragraphs.join("\n\n"), rec.issue_type),
-             complaint_template_version: COMPLAINT_TEMPLATE_VERSION };
+    return {
+      ...rec,
+      email_body: complaintBodyWithFooter(paragraphs.join("\n\n"), rec.issue_type),
+      whatsapp_text: rec.whatsapp_text ? safeWhatsapp.join("\n") : rec.whatsapp_text,
+      portal_fields: safePortalFields || rec.portal_fields,
+      portal_copy_text: safePortalFields
+        ? Object.entries(safePortalFields)
+          .map(([key, value]) => `${key.replace(/_/g, " ")}: ${value}`).join("\n")
+        : rec.portal_copy_text,
+      complaint_template_version: COMPLAINT_TEMPLATE_VERSION,
+    };
   }
 
   function normaliseTenderMatch(tender, route = null) {
@@ -6833,6 +6926,53 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     };
   }
 
+  function officialIndianPublicRecordUrl(value) {
+    try {
+      const url = new URL(String(value || ""));
+      const host = url.hostname.toLowerCase();
+      return url.protocol === "https:"
+        && (host === "gov.in" || host.endsWith(".gov.in")
+          || host === "nic.in" || host.endsWith(".nic.in"));
+    } catch (_) { return false; }
+  }
+
+  // A title/locality candidate is useful research, but is not an allegation of legal
+  // responsibility. Outbound copy may name a contractor only when independent official
+  // evidence closes every link from this GPS point to an active obligation.
+  function verifiedContractForComplaint(tender, route = null, capturedAt = null) {
+    const match = normaliseTenderMatch(tender, route);
+    if (!match || match.scope_verified !== true || match.segment_verified !== true
+        || match.award_verified !== true || match.dlp_verified !== true
+        || match.responsibility_active_verified !== true || match.unambiguous !== true
+        || !String(match.contractor || "").trim()
+        || !officialIndianPublicRecordUrl(match.source_url)
+        || !Number.isInteger(match.tender_pack_version)
+        || !/^[0-9a-f]{64}$/.test(String(match.tender_pack_sha256 || ""))) return null;
+
+    const separated = separateRoadResponsibility(route);
+    const routeOwnerId = String(separated && separated.road_owner_id || "").trim();
+    const contractOwnerId = String(match.road_owner_id || match.responsible_authority_id || "").trim();
+    const ownerEvidence = separated && separated.road_owner_evidence;
+    if (!routeOwnerId || separated.road_owner_status !== "verified"
+        || contractOwnerId !== routeOwnerId || !ownerEvidence
+        || !officialIndianPublicRecordUrl(ownerEvidence.source_url)) return null;
+
+    const proof = match.verification_evidence;
+    const proofItem = (name) => {
+      const item = proof && proof[name];
+      return !!(item && String(item.reference || item.document_id || "").trim()
+        && officialIndianPublicRecordUrl(item.source_url));
+    };
+    if (!proofItem("segment") || !proofItem("award") || !proofItem("responsibility")) return null;
+
+    const observed = Number(capturedAt);
+    const validFrom = Date.parse(String(match.responsibility_valid_from || ""));
+    const validUntil = Date.parse(String(match.responsibility_valid_until || ""));
+    if (!Number.isFinite(observed) || !Number.isFinite(validFrom) || !Number.isFinite(validUntil)
+        || observed * 1000 < validFrom || observed * 1000 > validUntil) return null;
+    return match;
+  }
+
   const SURFACE_LABELS = Object.freeze({
     bituminous_asphalt: "Bituminous / asphalt",
     cement_concrete: "Cement concrete",
@@ -6879,7 +7019,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     void officerName; // Authority profiles, not honorifics, define the technical output.
     assertComplaintInvariants(lat, lng, route);
     const routing = complaintRoutingBlock(route);
-    const tenderMatch = normaliseTenderMatch(tender, routing.route);
+    const tenderMatch = verifiedContractForComplaint(
+      tender, routing.route, Number(evidence.captured_at));
     const la = Number(lat).toFixed(6), ln = Number(lng).toFixed(6);
     const coordinates = `${la}, ${ln}`;
     const mapUrl = `https://maps.google.com/?q=${la},${ln}`;
@@ -6902,11 +7043,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const photoProvenance = evidence.photo_provenance || "Photo attached from Pothole Reporter";
 
     const tenderFields = tenderMatch ? {
-      status: tenderMatch.lifecycle === "procurement_notice"
-        ? "Open procurement notice candidate — not an awarded contract"
-        : tenderMatch.lifecycle === "current_project"
-          ? "Current public project candidate — exact road segment requires verification"
-          : "Candidate only — authority verification required",
+      status: "Verified exact-road contract and active responsibility",
       reference_label: tenderMatch.reference_label || "Tender number",
       tender_number: tenderMatch.tender_number,
       exact_work_name: tenderMatch.title,
@@ -6929,40 +7066,11 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       source_name: tenderMatch.source_name,
       source_url: tenderMatch.source_url,
       detail_url: tenderMatch.detail_url || "Not listed",
-      scope: tenderMatch.scope_verified ? "Carriageway scope wording present" : "Ineligible",
-      segment_match: tenderMatch.segment_verified ? "Verified" : "Unverified",
-      award_status: tenderMatch.award_verified ? "Verified by cited source record" : "Unverified",
-      dlp_status: tenderMatch.dlp_verified
-        ? "Verified by cited source record" : "Unverified — publication date is not DLP evidence",
-    } : {
-      status: "No eligible road-work contract candidate identified",
-      reference_label: "Tender number",
-      tender_number: "Not identified",
-      exact_work_name: "Not identified",
-      organisation: "Not identified",
-      listed_contractor: "Not identified",
-      publication_date: "Not applicable",
-      lifecycle_status: "Not applicable",
-      bid_closing: "Not applicable",
-      bid_opening: "Not applicable",
-      project_start: "Not applicable",
-      project_completion: "Not applicable",
-      agreement_number: "Not applicable",
-      agreement_date: "Not applicable",
-      package_reference: "Not applicable",
-      highway_reference: "Not applicable",
-      published_chainage: "Not applicable",
-      road_from: "Not applicable",
-      road_to: "Not applicable",
-      match_basis: "Not applicable",
-      source_name: "Not applicable",
-      source_url: "Not applicable",
-      detail_url: "Not applicable",
-      scope: "Not applicable",
-      segment_match: "Not applicable",
-      award_status: "Not applicable",
-      dlp_status: "Unverified",
-    };
+      scope: "Verified carriageway work",
+      segment_match: "Verified exact GPS segment",
+      award_status: "Verified official award/work order",
+      dlp_status: "Verified active on capture date",
+    } : null;
 
     const classificationLines = [
       "Defect decision: Pothole — YES",
@@ -6981,7 +7089,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       `Road owner/maintainer: ${routing.ownerName}`,
       `Routing basis: ${routing.clue}`,
     ];
-    const tenderLines = [
+    const tenderLines = tenderFields ? [
       `Status: ${tenderFields.status}`,
       `${tenderFields.reference_label}: ${tenderFields.tender_number}`,
       `Exact work name: ${tenderFields.exact_work_name}`,
@@ -7022,7 +7130,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       `Road-segment match: ${tenderFields.segment_match}`,
       `Award/work-order status: ${tenderFields.award_status}`,
       `DLP status: ${tenderFields.dlp_status}`,
-    ].filter(Boolean);
+    ].filter(Boolean) : [
+      `Status: ${NO_VERIFIED_CONTRACT}`,
+    ];
     const request = routing.profile.request
       || "Please register this grievance, inspect and repair the pothole, return the grievance number, and transfer it if another agency maintains the road.";
     const outputLang = LANG();
@@ -7048,7 +7158,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       `LOCATION\nAddress / landmark: ${location}\nCoordinates: ${coordinates}\nMap: ${mapUrl}\nGPS accuracy: ${gpsAccuracy}\nCaptured: ${captured}\nPhoto: ${photoProvenance}`,
       `CLASSIFICATION\n${classificationLines.join("\n")}`,
       `ROUTING\n${routingLines.join("\n")}`,
-      `CONTRACT CANDIDATE\n${tenderLines.join("\n")}`,
+      `CONTRACT VERIFICATION\n${tenderLines.join("\n")}`,
       request,
       signoff,
       independentNote,
@@ -7059,7 +7169,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       `Map: ${mapUrl}`,
       `Classification: Pothole YES; ${surface}; app visual size ${size}; physical measurements unknown (${measurementProvenance.toLowerCase()}, ${measurementConfidence.toLowerCase()} confidence).`,
       `Routing: geographic body ${routing.geographicName}; intake ${routing.intakeName}; road owner ${routing.ownerVerified ? routing.ownerName : "unverified"}; basis ${routing.clue}.`,
-      `Contract: ${tenderFields.status}; ${tenderFields.reference_label.toLowerCase()} ${tenderFields.tender_number}; work ${tenderFields.exact_work_name}; organisation ${tenderFields.organisation}; contractor ${tenderFields.listed_contractor}; status ${tenderFields.lifecycle_status}; bid closes ${tenderFields.bid_closing}; source ${tenderFields.source_name}${tenderFields.source_url !== "Not applicable" ? ` ${tenderFields.source_url}` : ""}; DLP ${tenderFields.dlp_status}.`,
+      tenderFields
+        ? `Contract verification: ${tenderFields.status}; ${tenderFields.reference_label.toLowerCase()} ${tenderFields.tender_number}; work ${tenderFields.exact_work_name}; organisation ${tenderFields.organisation}; contractor ${tenderFields.listed_contractor}; source ${tenderFields.source_name} ${tenderFields.source_url}; DLP ${tenderFields.dlp_status}.`
+        : `Contract verification: ${NO_VERIFIED_CONTRACT}`,
       "Please inspect, repair, register the grievance and share its reference number.",
       independentNote,
     ].join("\n");
@@ -7085,32 +7197,34 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       suggested_ward: ward,
       road_owner_maintainer: routing.ownerName,
       routing_basis: routing.clue,
-      contract_candidate_status: tenderFields.status,
-      tender_number: tenderFields.tender_number,
-      exact_work_name: tenderFields.exact_work_name,
-      organisation_department: tenderFields.organisation,
-      listed_contractor: tenderFields.listed_contractor,
-      publication_date: tenderFields.publication_date,
-      tender_project_status: tenderFields.lifecycle_status,
-      bid_closing: tenderFields.bid_closing,
-      bid_opening: tenderFields.bid_opening,
-      project_start: tenderFields.project_start,
-      likely_completion: tenderFields.project_completion,
-      agreement_number: tenderFields.agreement_number,
-      agreement_date: tenderFields.agreement_date,
-      package_project_reference: tenderFields.package_reference,
-      highway_reference: tenderFields.highway_reference,
-      published_package_chainage: tenderFields.published_chainage,
-      road_from: tenderFields.road_from,
-      road_to: tenderFields.road_to,
-      candidate_match_basis: tenderFields.match_basis,
-      contract_source_name: tenderFields.source_name,
-      contract_source_url: tenderFields.source_url,
-      official_tender_detail_url: tenderFields.detail_url,
-      carriageway_scope: tenderFields.scope,
-      road_segment_match: tenderFields.segment_match,
-      award_work_order_status: tenderFields.award_status,
-      dlp_status: tenderFields.dlp_status,
+      contract_verification_status: tenderFields ? tenderFields.status : NO_VERIFIED_CONTRACT,
+      ...(tenderFields ? {
+        tender_number: tenderFields.tender_number,
+        exact_work_name: tenderFields.exact_work_name,
+        organisation_department: tenderFields.organisation,
+        listed_contractor: tenderFields.listed_contractor,
+        publication_date: tenderFields.publication_date,
+        tender_project_status: tenderFields.lifecycle_status,
+        bid_closing: tenderFields.bid_closing,
+        bid_opening: tenderFields.bid_opening,
+        project_start: tenderFields.project_start,
+        likely_completion: tenderFields.project_completion,
+        agreement_number: tenderFields.agreement_number,
+        agreement_date: tenderFields.agreement_date,
+        package_project_reference: tenderFields.package_reference,
+        highway_reference: tenderFields.highway_reference,
+        published_package_chainage: tenderFields.published_chainage,
+        road_from: tenderFields.road_from,
+        road_to: tenderFields.road_to,
+        contract_match_basis: tenderFields.match_basis,
+        contract_source_name: tenderFields.source_name,
+        contract_source_url: tenderFields.source_url,
+        official_tender_detail_url: tenderFields.detail_url,
+        carriageway_scope: tenderFields.scope,
+        road_segment_match: tenderFields.segment_match,
+        award_work_order_status: tenderFields.award_status,
+        dlp_status: tenderFields.dlp_status,
+      } : {}),
       request,
       independent_app_note: independentNote,
     };
@@ -7150,6 +7264,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
 
   function complaintOutputsForRecord(rec) {
     if (!rec || normaliseIssueType(rec.issue_type) !== "road_damage") return null;
+    rec = migrateLegacyComplaintRecord(rec);
     if (rec.whatsapp_text && rec.portal_copy_text && rec.portal_fields) {
       return {
         email_subject: rec.email_subject || "",
@@ -7195,6 +7310,13 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       award_verified: rec.tender_award_verified === true,
       dlp_status: rec.tender_dlp_status || null,
       dlp_verified: rec.tender_dlp_verified === true,
+      responsibility_active_verified: rec.tender_responsibility_active_verified === true,
+      responsibility_valid_from: rec.tender_responsibility_valid_from || null,
+      responsibility_valid_until: rec.tender_responsibility_valid_until || null,
+      responsible_authority_id: rec.tender_responsible_authority_id || null,
+      road_owner_id: rec.tender_road_owner_id || null,
+      verification_evidence: rec.tender_verification_evidence || null,
+      unambiguous: rec.tender_unambiguous === true,
       tender_pack_id: rec.tender_pack_id,
       tender_pack_version: rec.tender_pack_version,
       tender_pack_sha256: rec.tender_pack_sha256,
@@ -7472,8 +7594,10 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         if (!current) { abortWith(new Error("Report not found.")); return; }
         const migrated = migrateLegacyComplaintRecord(current);
         if (migrated !== current) {
-          current.email_body = migrated.email_body;
-          current.complaint_template_version = migrated.complaint_template_version;
+          for (const field of ["email_body", "whatsapp_text", "portal_fields",
+            "portal_copy_text", "complaint_template_version"]) {
+            current[field] = migrated[field];
+          }
         }
         try { mutate(current); } catch (error) { abortWith(error); return; }
         const write = store.put(current);
@@ -8238,6 +8362,14 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       tender_award_verified: tender ? !!tender.award_verified : false,
       tender_dlp_status: tender ? tender.dlp_status : null,
       tender_dlp_verified: tender ? !!tender.dlp_verified : false,
+      tender_responsibility_active_verified: tender
+        ? tender.responsibility_active_verified === true : false,
+      tender_responsibility_valid_from: tender ? (tender.responsibility_valid_from || null) : null,
+      tender_responsibility_valid_until: tender ? (tender.responsibility_valid_until || null) : null,
+      tender_responsible_authority_id: tender ? (tender.responsible_authority_id || null) : null,
+      tender_road_owner_id: tender ? (tender.road_owner_id || null) : null,
+      tender_verification_evidence: tender ? (tender.verification_evidence || null) : null,
+      tender_unambiguous: tender ? tender.unambiguous === true : false,
       tender_pack_id: tender ? (tender.tender_pack_id || null) : null,
       tender_pack_version: tender ? (tender.tender_pack_version || null) : null,
       tender_pack_sha256: tender ? (tender.tender_pack_sha256 || null) : null,
@@ -8655,6 +8787,14 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       tender_award_verified: tender ? !!tender.award_verified : false,
       tender_dlp_status: tender ? tender.dlp_status : null,
       tender_dlp_verified: tender ? !!tender.dlp_verified : false,
+      tender_responsibility_active_verified: tender
+        ? tender.responsibility_active_verified === true : false,
+      tender_responsibility_valid_from: tender ? (tender.responsibility_valid_from || null) : null,
+      tender_responsibility_valid_until: tender ? (tender.responsibility_valid_until || null) : null,
+      tender_responsible_authority_id: tender ? (tender.responsible_authority_id || null) : null,
+      tender_road_owner_id: tender ? (tender.road_owner_id || null) : null,
+      tender_verification_evidence: tender ? (tender.verification_evidence || null) : null,
+      tender_unambiguous: tender ? tender.unambiguous === true : false,
       tender_pack_id: tender ? (tender.tender_pack_id || null) : null,
       tender_pack_version: tender ? (tender.tender_pack_version || null) : null,
       tender_pack_sha256: tender ? (tender.tender_pack_sha256 || null) : null,
@@ -8686,6 +8826,31 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
   }
 
 
+  async function verifiedDirectEmailRoute(rec) {
+    if (!rec || normaliseIssueType(rec.issue_type) !== "road_damage"
+        || rec.delivery_channel !== "email" || !finiteCoord(rec.lat) || !finiteCoord(rec.lng)
+        || !Number.isFinite(rec.gps_accuracy) || rec.gps_accuracy < 0
+        || rec.gps_accuracy > 30) {
+      throw new Error("This saved email route cannot be verified from precise road coordinates.");
+    }
+    const current = await routeOfficer(
+      rec.address || null, rec.lat, rec.lng, rec.gps_accuracy, rec.heading, rec.speed_mps,
+      rec.issue_type);
+    if (!current || current.routed !== true || current.delivery_channel !== "email"
+        || current.authority_id !== rec.authority_id || !current.officer_email
+        || !/^ka-lgd-[0-9]+$/.test(String(current.authority_id || ""))
+        || current.routing_pack_id !== "in-ka-routing"
+        || current.routing_pack_state_code !== "KA"
+        || current.routing_source !== "kgis"
+        || current.routing_match_field !== "lgd") {
+      throw new Error(
+        "The current coordinate-bound authority does not match this saved email recipient. Review or recapture the report; the app will not address a guess."
+      );
+    }
+    return current;
+  }
+
+
   async function openInGmail(rec) {
     // Always the routed officer. The app never sends; the user does, in their email app.
     // No fallback recipient: an unrouted report must not borrow Bengaluru's address.
@@ -8694,16 +8859,35 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const attachment = NATIVE ? await photoToBase64(rec.photo_full || rec.photo) : null;
     const stored = await getReport(rec.id);
     if (!stored) throw new Error("Report not found.");
-    const current = migrateLegacyComplaintRecord(stored);
-    if (conditionStatus(current) === "fixed") {
+    const migrated = migrateLegacyComplaintRecord(stored);
+    if (conditionStatus(migrated) === "fixed") {
       throw new Error("This pothole was verified fixed on a later drive, so its old complaint cannot be sent.");
     }
-    if (current.status !== "draft" && current.status !== "queued") {
+    if (migrated.status !== "draft" && migrated.status !== "queued") {
       throw new Error("This report is not a sendable draft.");
     }
-    if (!current.officer_email) {
+    if (!migrated.officer_email) {
       throw new Error("No responsible authority is known for this location, so there is nobody to address.");
     }
+    const verifiedRoute = await verifiedDirectEmailRoute(migrated);
+    // Commit the migration and today's coordinate-bound recipient before launching. The
+    // atomic callback rechecks repair/status after the network work above, so a concurrent
+    // revisit cannot reopen a stale complaint.
+    const current = await mutateReportAtomically(migrated.id, (latest) => {
+      if (conditionStatus(latest) === "fixed") {
+        throw new Error("This pothole was verified fixed on a later drive, so its old complaint cannot be sent.");
+      }
+      if (latest.status !== "draft" && latest.status !== "queued") {
+        throw new Error("This report is not a sendable draft.");
+      }
+      for (const field of ["officer_name", "officer_email", "authority_id", "authority_name",
+        "authority_registry_version", "routing_source", "routing_match_field",
+        "routing_match_value", "routing_pack_id", "routing_pack_version",
+        "routing_pack_sha256", "routing_pack_state_code", "region"]) {
+        latest[field] = verifiedRoute[field] === undefined ? null : verifiedRoute[field];
+      }
+      latest.direct_email_verified_at = Date.now() / 1000;
+    });
     const to = current.officer_email;
     progress(pmsg("email"));
     if (NATIVE) {
@@ -9989,12 +10173,14 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    findRepairCandidateFromReports, findDuplicateReport,
                    draftEmail, buildComplaintOutputs, complaintOutputsForRecord,
                    authorityComplaintProfile, separateRoadResponsibility,
-                   verifiedBdaResponsibility, normaliseTenderMatch, migrateLegacyComplaintRecord,
+                   verifiedBdaResponsibility, normaliseTenderMatch, verifiedContractForComplaint,
+                   officialIndianPublicRecordUrl, migrateLegacyComplaintRecord,
                    complaintBodyWithFooter,
                    COMPLAINT_TEMPLATE_VERSION, dataUrlToBlob, blobToDataUrl,
                    photoToBase64, toDict, listDict,
                    contractVerificationFor, tenderCoversCarriageway, shortlistFor, matchTenderFor: matchTender,
-                   highwayContractCandidates, matchHighwayContract, matchTenderForRoute,
+                   highwayContractCandidates, candidateLeadIsUnambiguous,
+                   matchHighwayContract, matchTenderForRoute,
                    roadNoticeCandidates, matchRoadNotice, canSearchTenderCatalog,
                    roadAgreementCandidates, matchRoadAgreement,
                    matchTenderAt, stateCodeForGeocode, exactPinnedContractStateCode,

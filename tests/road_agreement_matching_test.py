@@ -171,14 +171,12 @@ def main() -> None:
     elif actual.get("road_to") != result["sourceRoadTo"]:
         failures.append(f"PMGSY candidate lost road-to detail: {actual!r}")
     complaint_body = result["complaintBody"] or ""
-    for expected_detail in (
-        f"Agreement: {result['sourceAgreementNumber']} dated {result['sourceAgreementDate']}",
-        f"Package / project reference: {result['sourcePackage']}",
-        "Organisation / department:",
-        "Candidate match basis:",
-    ):
-        if expected_detail not in complaint_body:
-            failures.append(f"PMGSY complaint omitted tender detail: {expected_detail}")
+    if "No verified exact-road public contract found; tender and contractor omitted" not in complaint_body:
+        failures.append("PMGSY complaint did not fail closed without segment/contractor/DLP proof")
+    for leaked in (result["sourceAgreementNumber"], result["sourcePackage"],
+                   result["actual"].get("organisation") if result["actual"] else None):
+        if leaked and leaked in complaint_body:
+            failures.append(f"unverified PMGSY identity leaked into complaint: {leaked}")
     if not result["normalised"]:
         failures.append("valid PMGSY road record was rejected by normalisation")
     if result["crossState"] is not None:

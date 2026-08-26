@@ -70,9 +70,9 @@ async () => {
      !body.includes("অভিযোগ জমা দেয় না")
        && !/official (?:grievance )?submission/i.test(body), body);
   ok("draft: KMC route keeps a truthful mandatory no-candidate contract block",
-     /CONTRACT CANDIDATE/.test(complaintWithoutFooter)
-       && /No eligible road-work contract candidate identified/.test(complaintWithoutFooter)
-       && /Tender number: Not identified/.test(complaintWithoutFooter)
+     /CONTRACT VERIFICATION/.test(complaintWithoutFooter)
+       && /No verified exact-road public contract found/.test(complaintWithoutFooter)
+       && !/Tender number:|Listed contractor:|Exact work name:/.test(complaintWithoutFooter)
        && !/warranty is active|under warranty/i.test(complaintWithoutFooter), body);
 
   const report = {

@@ -88,17 +88,17 @@ published, available dates, and source link. Missing fields stay null; no award,
 road segment, warranty, or DLP is inferred. Andhra Pradesh remains explicitly blocked
 because its complete table requires undocumented client-encrypted state and it exposes no
 stable record link; KPPP remains a separate Karnataka supplement.
-Together these 35 public feeds scanned 69,754 rows, rejected 64,358 through strict
-scope/current-record checks, and published 5,396 notices in 34 jurisdiction packs
-(4,296,746 bytes).
+Together these 35 public feeds scanned 69,754 rows, rejected 64,444 through strict
+scope/current-record checks, and published 5,310 notices in 34 jurisdiction packs
+(4,225,170 bytes).
 
 Runtime matching attempts National Highway, Karnataka KPPP, PMGSY, and official State/UT
-notice candidates
-where the required same-jurisdiction road/location evidence is present. This improves
-nationwide candidate coverage but does not guarantee every public tender or every road.
-An open procurement notice is not an award or active maintenance contract. Every result
-remains a candidate unless authoritative road-segment, work-scope, award, contractor, and
-DLP evidence is separately present. Publication date never establishes warranty.
+research leads where strict same-jurisdiction road/location evidence is present. A single
+locality word and a near-tied result both fail closed. This does not guarantee every public
+tender or every road. An open procurement notice is not an award or active maintenance
+contract. Lead identity stays out of complaint copy unless authoritative evidence proves
+the exact segment, carriageway scope, award, contractor, road owner, and active DLP or
+maintenance responsibility. Publication date never establishes warranty.
 
 ## National Highway geometry and handoff
 
@@ -825,7 +825,7 @@ segment, warranty, or DLP.
 
 The current downloadable municipal pack remains the separately reviewed 21 August source:
 **42,283** broad source rows, of which **13,577** are indexed to a supported
-municipal body, only **5,351** pass that same classifier and enter the downloadable pack.
+municipal body and **5,362** pass the current classifier and enter the downloadable pack.
 Drain, footpath, UGD/sewer, pipeline, lighting, building, bridge, culvert, and similar
 roadside-only work is excluded when a road name merely describes its location. Mixed work
 is retained only when work on the road surface is explicit.
@@ -833,25 +833,23 @@ is retained only when work on the road surface is explicit.
 **Verification done on 19 Aug 2026:** of the 1,000 rows on the portal's first page,
 **341 appear in the full 42,283-row source snapshot, byte-identical on title, publication
 date and location**. This check predates the supported-body and carriageway-scope
-reductions and is not a claim that all 341 appear in the current 5,351-row downloadable
+reductions and is not a claim that all 341 appear in the current 5,362-row downloadable
 pack.
 
 Fields taken: `tenderNumber`, `description` (the work title), `locationName`,
 `publishedDate`. Nothing is edited beyond truncating long titles.
 
-## Contractor names
+## Contractor-name safety
 
 **Source: the public-domain snapshot at
 <https://bengaluru-road-contracts.pages.dev>, whose own source is KPPP.**
 
-The portal's *search* results do not include the winning bidder; only the per-tender full
-view does. Contractor names therefore come from that pre-existing Bengaluru snapshot.
-The full 42,283-row source has a bidder recorded on **1,124** rows, covering **993**
-distinct names; the filtered
-downloadable pack has a bidder recorded on **526** rows, covering **492** distinct names.
-Its other **4,825** rows have no bidder name. Outside Bengaluru
-the complaint names the tender and states plainly that no winning bidder is recorded. It
-never guesses a company name.
+The portal's public *search* results do not include the winning bidder; only the per-tender
+full view can establish one. The pre-existing Bengaluru mirror therefore remains research
+input, not official award evidence. Its name field is stripped from every runtime row:
+all **5,362** downloadable records have an empty contractor field. No tender, company, or
+person from this layer is copied into a complaint. A future name may appear only with an
+official award/work order plus exact-segment, owner, and active-responsibility evidence.
 
 ## Which officer receives the complaint (182 local bodies)
 
@@ -924,12 +922,15 @@ model looking at the photograph, and the app says so. They are a judgement about
 photograph, not a record, which is why the photograph is always attached: the officer can
 disagree by looking.
 
-A candidate match is a judgment layered over a procurement/project record. An eligible
+A research lead is a judgment layered over a procurement/project record. An eligible
 Karnataka route uses a deterministic local shortlist and an AI adjudication against the
 same civic-body pool. National Highway, PMGSY, and official State/UT notice candidates use deterministic
 same-State NH/NE or road/immediate-locality evidence. A PMGSY source-reported agreement is
 not treated as a verified award. None of these transforms a title match into proof of
-segment responsibility.
+segment responsibility. Research-lead identity is not copied into email, WhatsApp, or
+portal fields. A tender and contractor can appear there only when official evidence proves
+the exact segment, carriageway scope, award, road owner, and active DLP/maintenance period;
+ambiguous or incomplete records fail closed.
 
 Warranty or DLP is never inferred from publication date. It remains unverified unless an
 authoritative cited record explicitly supplies the relevant segment and period.
@@ -1027,18 +1028,18 @@ authoritative cited record explicitly supplies the relevant segment and period.
 - There is no automatic filing, status sync, or cross-user report database for any route.
   Evidence remains local until the citizen deliberately opens an external handoff.
 - No State/UT boundary establishes a contract, road owner, or maintaining agency. The
-  nationwide candidate layers do not guarantee every tender or road. PMGSY rows verify
+  nationwide research layers do not guarantee every tender or road. PMGSY rows verify
   only source-reported agreement fields; official procurement notices remain unawarded
-  candidates; and Andhra Pradesh remains a documented portal-access gap. Exact segment,
-  award, contractor, warranty, and DLP stay unknown
-  without authoritative evidence.
+  leads; and Andhra Pradesh remains a documented portal-access gap. Exact segment, award,
+  contractor, road owner, warranty, and active DLP stay unknown without authoritative
+  evidence and are omitted from complaint copy.
 - 137 of Karnataka's 319 local bodies have no address in the file because their district
   pages publish none. Those points cannot receive a specific municipal recipient, but can
   use neutral Janaspandana after exact state containment.
-- The full 42,283-row source has 41,159 records without a winning bidder. The filtered
-  5,351-row pack has 4,825 without one and 526 with one.
-- Of the 18,972 DMA or legacy-BBMP source rows, 7,473 explicitly include carriageway work;
-  5,351 are indexed to a supported body and enter the pack, while 2,122 are unresolved or
+- The full 42,283-row research source has 1,124 mirror-supplied names, but none is treated
+  as an official award and all are stripped from the runtime pack.
+- Of the 18,972 DMA or legacy-BBMP source rows, 7,475 explicitly include carriageway work;
+  5,362 are indexed to a supported body and enter the pack, while 2,113 are unresolved or
   belong to bodies without a published address. The 23,311 non-municipal source rows are
   not candidates for a municipal complaint.
 - Scope classification is deliberately fail-closed and title-based. It may omit a genuine

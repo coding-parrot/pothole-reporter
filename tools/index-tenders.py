@@ -93,7 +93,10 @@ with (ROOT / "data/tenders-karnataka.json").open("w", encoding="utf-8") as outpu
     output.write("\n")
 body_rows = [row for row in rows if row.get("b")]
 published_rows = [
-    row for row in body_rows
+    # The legacy mirror's `c` value is not an official KPPP award record. Keep it in the
+    # canonical research snapshot, but never ship a person's/company's name to the app as
+    # though it were verified contractor responsibility.
+    {**row, "c": ""} for row in body_rows
     if is_road_surface_contract(row.get("t"), row.get("tn"))
 ]
 _, pack_output = publish_resource(

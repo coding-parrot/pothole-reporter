@@ -65,6 +65,50 @@
       "title": "Asphalting of footpath at MG Road"
     },
     {
+      "tn": "TEST/NONROAD/BITUMINOUS_FOOTPATH",
+      "title": "Providing bituminous concrete on footpath at MG Road"
+    },
+    {
+      "tn": "TEST/NONROAD/PARK_WALKWAY",
+      "title": "Providing dense bituminous macadam on park walkway near MG Road"
+    },
+    {
+      "tn": "TEST/NONROAD/GARDEN_RESURFACED_ROAD",
+      "title": "Maintenance of garden adjoining newly resurfaced MG Road"
+    },
+    {
+      "tn": "TEST/NONROAD/GARDEN_WALL_POTHOLE_ROAD",
+      "title": "Repair of garden wall along pothole road"
+    },
+    {
+      "tn": "TEST/NONROAD/BRIDGE_DECK",
+      "title": "Providing seal coat to bridge deck at NH 48"
+    },
+    {
+      "tn": "TEST/NONROAD/PLAYGROUND_WALKWAY",
+      "title": "Providing wet mix macadam for playground walkway"
+    },
+    {
+      "tn": "2026_TSAG_30877_1",
+      "title": "Resurfacing of Lawn Tennis courts with 3 layer Acrylic system at Fatorda, Goa"
+    },
+    {
+      "tn": "BBMP/2024-25/RD/WORK_INDENT4233",
+      "title": "Providing Asphalting to CKC garden and surrounding areas in Ward No 160 Dharmarayaswamy Temple"
+    },
+    {
+      "tn": "TEST/NONROAD/POTHOLE_FOOTPATH",
+      "title": "Pothole repairs to footpath on MG Road"
+    },
+    {
+      "tn": "TEST/NONROAD/PARK_PATH",
+      "title": "Asphalting of internal paths in Cubbon Park"
+    },
+    {
+      "tn": "TEST/NONROAD/PARKING",
+      "title": "Tarring of parking area near Church Road"
+    },
+    {
       "tn": "TEST/NONWORKS/PMC",
       "title": "Project Management Consultancy Services for construction and strengthening of roads in Mumbai"
     },
@@ -94,6 +138,10 @@
     }
   ],
   "accept": [
+    {
+      "tn": "TEST/ROAD/ATTENDING_POTHOLES",
+      "title": "Attending BT and CC potholes and patchworks at various road locations"
+    },
     {
       "tn": "BBMP/2024-25/OW/WORK_INDENT4796/CALL-2",
       "title": "Improvements to roads and drains in Byrasandra surroundings in Ward no -112 New Thippasnadra"

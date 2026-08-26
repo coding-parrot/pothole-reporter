@@ -104,6 +104,16 @@ async () => {
     title: "Maintenance of road side plantations in Social Forestry Range"};
   const plantationRanked = P.roadNoticeCandidates([plantation],
     "Social Forestry Range Road, Chhattisgarh", testRoute);
+  const oneWord = {...drain, record_id: "one-word", tender_id: "ONE-WORD-1",
+    tender_reference: "ONE-WORD-1", title: "Resurfacing Kanjur road"};
+  const oneWordRanked = P.roadNoticeCandidates([oneWord],
+    "Kanjur, Mumbai", testRoute);
+  const ambiguous = P.roadNoticeCandidates([
+    {...drain, record_id: "tie-a", tender_id: "TIE-A", tender_reference: "TIE-A",
+      title: "Resurfacing Zoravia Merlanti Road phase one"},
+    {...drain, record_id: "tie-b", tender_id: "TIE-B", tender_reference: "TIE-B",
+      title: "Resurfacing Zoravia Merlanti Road phase two"},
+  ], "Zoravia Merlanti Road, Mumbai", testRoute);
   return {
     resourceCount: resources.length,
     expectedTotal: resources.reduce((sum, resource) => sum + resource.records, 0),
@@ -128,6 +138,9 @@ async () => {
     drainCount: drainRanked.length,
     nhRefOnlyCount: nhRefOnly.length,
     plantationCount: plantationRanked.length,
+    oneWordCount: oneWordRanked.length,
+    ambiguousGap: ambiguous.length > 1 ? ambiguous[0].score - ambiguous[1].score : null,
+    ambiguousAccepted: P.candidateLeadIsUnambiguous(ambiguous, 12),
   };
 }
 """
@@ -181,26 +194,18 @@ def main() -> None:
     if not result["normalised"]:
         failures.append("same-State road-notice candidate was rejected")
     complaint_body = result["complaintBody"]
-    if (result["seedId"] not in complaint_body
-            or result["seedTitle"] not in complaint_body):
-        failures.append("complaint lost the official tender identity or exact work name")
-    if "Open procurement notice candidate — not an awarded contract" not in complaint_body:
-        failures.append("complaint did not distinguish a procurement notice from an award")
-    if "Listed contractor: Not listed" not in complaint_body:
-        failures.append("complaint invented or omitted the notice's unknown-contractor truth")
-    for expected_detail in (
-        f"Organisation / department: {result['seedOrganisation']}",
-        f"Bid closing: {result['seedClosing']}",
-        f"Bid opening: {result['seedOpening']}",
-        "Candidate match basis:",
-    ):
-        if expected_detail not in complaint_body:
-            failures.append(f"complaint omitted tender detail: {expected_detail}")
+    if "No verified exact-road public contract found; tender and contractor omitted" not in complaint_body:
+        failures.append("complaint did not fail closed on an open procurement notice")
+    # The synthetic address deliberately repeats the notice title, so title text may
+    # legitimately occur in the Location line. Identifiers/organisation must not escape.
+    for leaked in (result["seedId"], result["seedOrganisation"]):
+        if leaked and leaked in complaint_body:
+            failures.append(f"unverified procurement identity leaked into complaint: {leaked}")
     portal_fields = result["portalFields"]
-    for field in ("organisation_department", "bid_closing", "bid_opening",
-                  "candidate_match_basis", "official_tender_detail_url"):
-        if not portal_fields.get(field):
-            failures.append(f"portal copy omitted tender field: {field}")
+    for field in ("tender_number", "exact_work_name", "organisation_department",
+                  "listed_contractor", "official_tender_detail_url"):
+        if field in portal_fields:
+            failures.append(f"unverified procurement field leaked into portal copy: {field}")
     if result["crossState"] is not None:
         failures.append("cross-State road-notice candidate was accepted")
     if result["civic"] is not None:
@@ -211,6 +216,12 @@ def main() -> None:
         failures.append("NH-reference-only feeder notice matched without locality evidence")
     if result["plantationCount"] != 0:
         failures.append("roadside plantation notice entered the road candidate pool")
+    if result["oneWordCount"] != 0:
+        failures.append("a single locality word admitted a procurement notice")
+    if result["ambiguousGap"] is None or abs(result["ambiguousGap"]) >= 12:
+        failures.append(f"synthetic notice ambiguity fixture is ineffective: {result['ambiguousGap']!r}")
+    if result["ambiguousAccepted"]:
+        failures.append("near-tied procurement notices were treated as unambiguous")
 
     if failures:
         print("FAIL: State/UT road-notice matching")

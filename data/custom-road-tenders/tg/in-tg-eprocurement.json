@@ -51,7 +51,6 @@
     "PRED - TELANGANA-SE PR Circle Suryapet",
     "PRED - TELANGANA-SE PRED PR KHAMMAM",
     "PRED - TELANGANA-Superintending Engineer P.R. Circle, Peddapally",
-    "R&B - Telangana-EE OFFICE-ASSEMBLY BUILDINGS DIVISION",
     "R&B - Telangana-EE OFFICE-KARIMNAGAR",
     "R&B - Telangana-EE OFFICE-NIZAMABAD",
     "R&B - Telangana-SE (R&B) Circle Office JS Bhupalpally",
@@ -72,10 +71,10 @@
     "cyberabad municipal corporation-the superintending engineer HQ STSQM"
   ],
   "rows_scanned": 2094,
-  "rows_excluded_by_scope": 1958,
+  "rows_excluded_by_scope": 1962,
   "rows_excluded_by_deadline": 0,
   "rows_excluded_invalid": 0,
-  "records_kept": 136,
+  "records_kept": 132,
   "notices": [
     {
       "bid_submission_start_at": "2026-08-19T13:30:00Z",
@@ -114,44 +113,6 @@
       "tender_id": "726930",
       "tender_reference": "20/EE/CIR-45/SLPZ/CMC/1-8/2026-27",
       "title": "Recarpeting of Badly Damaged BT Road from Premier Hospital to Honda service center at Kokapet Main Road,125, Narsingi Circle, SLP Zone, CMC. (ITEM NO.06)"
-    },
-    {
-      "bid_submission_start_at": "2026-08-25T13:30:00Z",
-      "closing_at": "2026-08-27T05:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "R&B - Telangana-EE OFFICE-ASSEMBLY BUILDINGS DIVISION",
-      "organisation_path": [
-        "R&B - Telangana-EE OFFICE-ASSEMBLY BUILDINGS DIVISION"
-      ],
-      "official_fields": {
-        "department_name": "R&B - Telangana-EE OFFICE-ASSEMBLY  BUILDINGS DIVISION",
-        "tender_id": "728716",
-        "tender_reference": "NIT No.48/2026-27/ABD/DB/NIT/         dated:25/08/2026",
-        "tender_category": "WORKS",
-        "title": "Providing CC flooring near MLA entrance, Ministers entrance beside Telephone exchange portico allround renovated Council Building and patch works for Road cuttings potholes in the premises of Telephone Legislative Assembly, Hyderabad.",
-        "estimated_contract_value": "512726.00",
-        "published_date_time": "25/08/2026 06:32 PM",
-        "bid_submission_start_date_time": "25/08/2026 07:00 PM",
-        "bid_submission_closing_date_time": "27/08/2026 10:30 AM",
-        "detail_action_arguments": [
-          663715,
-          101,
-          663705
-        ]
-      },
-      "published_at": "2026-08-25T13:02:00Z",
-      "retrieved_at": "2026-08-26T06:34:28Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "728716",
-      "tender_reference": "NIT No.48/2026-27/ABD/DB/NIT/ dated:25/08/2026",
-      "title": "Providing CC flooring near MLA entrance, Ministers entrance beside Telephone exchange portico allround renovated Council Building and patch works for Road cuttings potholes in the premises of Telephone Legislative Assembly, Hyderabad."
     },
     {
       "bid_submission_start_at": "2026-08-24T07:45:00Z",
@@ -850,44 +811,6 @@
       ],
       "official_fields": {
         "department_name": "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagarapanchayat Peddapalli  Karimnagarr",
-        "tender_id": "726220",
-        "tender_reference": "E1/05/PDPL/2026-27/04",
-        "tender_category": "WORKS",
-        "title": "Supply and Spreading of Stone Dust for filling at Cheruvu Katta, Road ways, Footpaths, Potholes in various localities of all wards in Peddapalli town on occasion of Vinayaka Nimajjanam under Municipal General Funds",
-        "estimated_contract_value": "134239.00",
-        "published_date_time": "19/08/2026 10:49 PM",
-        "bid_submission_start_date_time": "20/08/2026 11:00 AM",
-        "bid_submission_closing_date_time": "27/08/2026 04:00 PM",
-        "detail_action_arguments": [
-          661220,
-          101,
-          661210
-        ]
-      },
-      "published_at": "2026-08-19T17:19:00Z",
-      "retrieved_at": "2026-08-26T06:34:28Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "726220",
-      "tender_reference": "E1/05/PDPL/2026-27/04",
-      "title": "Supply and Spreading of Stone Dust for filling at Cheruvu Katta, Road ways, Footpaths, Potholes in various localities of all wards in Peddapalli town on occasion of Vinayaka Nimajjanam under Municipal General Funds"
-    },
-    {
-      "bid_submission_start_at": "2026-08-20T05:30:00Z",
-      "closing_at": "2026-08-27T10:30:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagarapanchayat Peddapalli Karimnagarr",
-      "organisation_path": [
-        "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagarapanchayat Peddapalli Karimnagarr"
-      ],
-      "official_fields": {
-        "department_name": "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagarapanchayat Peddapalli  Karimnagarr",
         "tender_id": "726224",
         "tender_reference": "E1/05/PDPL/2026-27/05",
         "tender_category": "WORKS",
@@ -1444,82 +1367,6 @@
       "tender_id": "728383",
       "tender_reference": "17/07/EE/CIR-50/KPZ/CMC/2026-27 Dt:011.08.2026",
       "title": "Recarpeting of BT road at Delloitte road from Meenakshi Bamboos to Meenakshi signal in Madhapur circle-50, KP ZOne, CMC (2nd recall)"
-    },
-    {
-      "bid_submission_start_at": "2026-08-25T08:00:00Z",
-      "closing_at": "2026-08-28T05:30:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "Malkajgiri Municipal Corporation-OFFICE OF MALKAJGIRI",
-      "organisation_path": [
-        "Malkajgiri Municipal Corporation-OFFICE OF MALKAJGIRI"
-      ],
-      "official_fields": {
-        "department_name": "Malkajgiri Municipal Corporation-OFFICE OF MALKAJGIRI",
-        "tender_id": "728503",
-        "tender_reference": "54/EE-I/MKJ ZONE/MMC/2026-27, Date:24-08-2026",
-        "tender_category": "WORKS",
-        "title": "Supply of Shelmac Bags, Bitumen Emulsion Drums, Wet mix and Aggregates for attending BT potholes during monsoon season for Neredment-188, Kakatiya nagar ward-187 in Moula-Ali Circle, Malkajgiri Zone (4th recall)(Item 2)",
-        "estimated_contract_value": "249288.00",
-        "published_date_time": "25/08/2026 01:17 PM",
-        "bid_submission_start_date_time": "25/08/2026 01:30 PM",
-        "bid_submission_closing_date_time": "28/08/2026 11:00 AM",
-        "detail_action_arguments": [
-          663502,
-          101,
-          663492
-        ]
-      },
-      "published_at": "2026-08-25T07:47:00Z",
-      "retrieved_at": "2026-08-26T06:34:28Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "728503",
-      "tender_reference": "54/EE-I/MKJ ZONE/MMC/2026-27, Date:24-08-2026",
-      "title": "Supply of Shelmac Bags, Bitumen Emulsion Drums, Wet mix and Aggregates for attending BT potholes during monsoon season for Neredment-188, Kakatiya nagar ward-187 in Moula-Ali Circle, Malkajgiri Zone (4th recall)(Item 2)"
-    },
-    {
-      "bid_submission_start_at": "2026-08-25T08:00:00Z",
-      "closing_at": "2026-08-28T05:30:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "Malkajgiri Municipal Corporation-OFFICE OF MALKAJGIRI",
-      "organisation_path": [
-        "Malkajgiri Municipal Corporation-OFFICE OF MALKAJGIRI"
-      ],
-      "official_fields": {
-        "department_name": "Malkajgiri Municipal Corporation-OFFICE OF MALKAJGIRI",
-        "tender_id": "728508",
-        "tender_reference": "54/EE-I/MKJ ZONE/MMC/2026-27, Date:24-08-2026",
-        "tender_category": "WORKS",
-        "title": "Supply of Shelmac Bags, Bitumen Emulsion Drums, Wet mix and Aggregates for attending BT potholes during monsoon season 2026 in Malkajgiri Circle 05, MMC(4th   recall) (Item 03)",
-        "estimated_contract_value": "403259.00",
-        "published_date_time": "25/08/2026 01:23 PM",
-        "bid_submission_start_date_time": "25/08/2026 01:30 PM",
-        "bid_submission_closing_date_time": "28/08/2026 11:00 AM",
-        "detail_action_arguments": [
-          663507,
-          101,
-          663497
-        ]
-      },
-      "published_at": "2026-08-25T07:53:00Z",
-      "retrieved_at": "2026-08-26T06:34:28Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "728508",
-      "tender_reference": "54/EE-I/MKJ ZONE/MMC/2026-27, Date:24-08-2026",
-      "title": "Supply of Shelmac Bags, Bitumen Emulsion Drums, Wet mix and Aggregates for attending BT potholes during monsoon season 2026 in Malkajgiri Circle 05, MMC(4th recall) (Item 03)"
     },
     {
       "bid_submission_start_at": "2026-08-25T07:00:00Z",
