@@ -99,6 +99,11 @@ async () => {
     tender_reference: "FEEDER-1", title: "Resurfacing feeder road from Rampur to NH-48"};
   const nhRefOnly = P.roadNoticeCandidates([feeder],
     "Unrelated Place, Maharashtra", {...testRoute, highway_ref: "NH-48"});
+  const plantation = {...drain, record_id: "plantation", tender_id: "PLANT-1",
+    tender_reference: "PLANT-1",
+    title: "Maintenance of road side plantations in Social Forestry Range"};
+  const plantationRanked = P.roadNoticeCandidates([plantation],
+    "Social Forestry Range Road, Chhattisgarh", testRoute);
   return {
     resourceCount: resources.length,
     expectedTotal: resources.reduce((sum, resource) => sum + resource.records, 0),
@@ -107,16 +112,22 @@ async () => {
     testPackError,
     seedId: seed && seed.tender_id,
     seedTitle: seed && seed.title,
+    seedOrganisation: seed && seed.organisation_chain,
+    seedClosing: seed && seed.closing_at,
+    seedOpening: seed && seed.opening_at,
+    seedDetailUrl: seed && seed.source_url,
     seedSourceRoot: seedSource && seedSource.source_url,
     rankedFirst: ranked[0] && ranked[0].record.tender_id,
     actual,
     absent,
     normalised,
     complaintBody: complaint.email_body,
+    portalFields: complaint.portal_fields,
     crossState,
     civic,
     drainCount: drainRanked.length,
     nhRefOnlyCount: nhRefOnly.length,
+    plantationCount: plantationRanked.length,
   };
 }
 """
@@ -135,8 +146,8 @@ def main() -> None:
         result = page.evaluate(SCENARIO)
         browser.close()
 
-    if result["resourceCount"] != 29:
-        failures.append(f"expected 29 public GePNIC jurisdiction packs: {result['resourceCount']}")
+    if result["resourceCount"] < 29:
+        failures.append(f"expected at least 29 public official jurisdiction packs: {result['resourceCount']}")
     if result["expectedTotal"] <= 0 or result["actualTotal"] != result["expectedTotal"]:
         failures.append(
             f"notice total differs (manifest/runtime): "
@@ -157,6 +168,14 @@ def main() -> None:
         failures.append(f"session-shaped GePNIC detail URL escaped into complaint: {actual!r}")
     elif actual.get("source_url") != result["seedSourceRoot"]:
         failures.append(f"notice did not cite the stable official portal: {actual!r}")
+    elif actual.get("organisation") != result["seedOrganisation"]:
+        failures.append(f"notice lost its official organisation chain: {actual!r}")
+    elif actual.get("bid_closing") != result["seedClosing"]:
+        failures.append(f"notice lost its bid-closing timestamp: {actual!r}")
+    elif actual.get("bid_opening") != result["seedOpening"]:
+        failures.append(f"notice lost its bid-opening timestamp: {actual!r}")
+    elif actual.get("detail_url") != result["seedDetailUrl"]:
+        failures.append(f"notice lost its captured official detail link: {actual!r}")
     if result["absent"] is not None:
         failures.append(f"unlisted synthetic road received a false notice: {result['absent']!r}")
     if not result["normalised"]:
@@ -169,6 +188,19 @@ def main() -> None:
         failures.append("complaint did not distinguish a procurement notice from an award")
     if "Listed contractor: Not listed" not in complaint_body:
         failures.append("complaint invented or omitted the notice's unknown-contractor truth")
+    for expected_detail in (
+        f"Organisation / department: {result['seedOrganisation']}",
+        f"Bid closing: {result['seedClosing']}",
+        f"Bid opening: {result['seedOpening']}",
+        "Candidate match basis:",
+    ):
+        if expected_detail not in complaint_body:
+            failures.append(f"complaint omitted tender detail: {expected_detail}")
+    portal_fields = result["portalFields"]
+    for field in ("organisation_department", "bid_closing", "bid_opening",
+                  "candidate_match_basis", "official_tender_detail_url"):
+        if not portal_fields.get(field):
+            failures.append(f"portal copy omitted tender field: {field}")
     if result["crossState"] is not None:
         failures.append("cross-State road-notice candidate was accepted")
     if result["civic"] is not None:
@@ -177,13 +209,18 @@ def main() -> None:
         failures.append("drain/footpath-only notice entered the road candidate pool")
     if result["nhRefOnlyCount"] != 0:
         failures.append("NH-reference-only feeder notice matched without locality evidence")
+    if result["plantationCount"] != 0:
+        failures.append("roadside plantation notice entered the road candidate pool")
 
     if failures:
         print("FAIL: State/UT road-notice matching")
         for failure in failures:
             print(f"  - {failure}")
         raise SystemExit(1)
-    print("ok: 29 public catalogs load; same-State title evidence and notice-only truth hold")
+    print(
+        f"ok: {result['resourceCount']} public catalogs load; "
+        "same-State title evidence and notice-only truth hold"
+    )
 
 
 if __name__ == "__main__":

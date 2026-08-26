@@ -26,6 +26,10 @@ async () => {
     ? `${first.title}, ${first.road_from || ""}, ${first.district_name || ""}` : "";
   const actual = first ? await P.matchRoadAgreement(address, route) : null;
   const normalised = actual ? P.normaliseTenderMatch(actual, route) : null;
+  const complaint = actual ? P.buildComplaintOutputs({
+    size: "medium", surface_type: "bituminous_asphalt",
+    measurement_provenance: "visual_estimate", measurement_confidence: "low",
+  }, 25.5941, 85.1376, address, route.officer_name, actual, route, {}) : null;
   const crossState = actual ? P.normaliseTenderMatch(actual,
     {...route, contract_state_code: route.contract_state_code === "MH" ? "GJ" : "MH"}) : null;
 
@@ -94,6 +98,14 @@ async () => {
     expectedRecords: populated && populated.records,
     loadedRecords: pack && pack.agreements && pack.agreements.length,
     actual, normalised, crossState,
+    complaintBody: complaint && complaint.email_body,
+    portalFields: complaint && complaint.portal_fields,
+    sourceAgreementNumber: first && first.agreement_number,
+    sourceAgreementDate: first && first.agreement_date,
+    sourcePackage: first && first.package_number,
+    sourceDistrict: first && first.district_name,
+    sourceRoadFrom: first && first.road_from,
+    sourceRoadTo: first && first.road_to,
     strongCount: strong.length, weakCount: weak.length, districtOnlyCount: districtOnly.length,
     multiWordDistrictOnlyCount: multiWordDistrictOnly.length,
     sharedLocalityCount: sharedLocality.length,
@@ -146,6 +158,27 @@ def main() -> None:
         failures.append(f"PMGSY title match invented segment/DLP proof: {actual!r}")
     elif actual.get("source_url") != "https://pmgsy.dord.gov.in/dbweb":
         failures.append(f"PMGSY candidate did not cite the stable official dashboard: {actual!r}")
+    elif actual.get("agreement_number") != result["sourceAgreementNumber"]:
+        failures.append(f"PMGSY candidate lost agreement number: {actual!r}")
+    elif actual.get("agreement_date") != result["sourceAgreementDate"]:
+        failures.append(f"PMGSY candidate lost agreement date: {actual!r}")
+    elif actual.get("package_reference") != result["sourcePackage"]:
+        failures.append(f"PMGSY candidate lost package reference: {actual!r}")
+    elif result["sourceDistrict"] not in (actual.get("organisation") or ""):
+        failures.append(f"PMGSY candidate lost district/organisation: {actual!r}")
+    elif actual.get("road_from") != result["sourceRoadFrom"]:
+        failures.append(f"PMGSY candidate lost road-from detail: {actual!r}")
+    elif actual.get("road_to") != result["sourceRoadTo"]:
+        failures.append(f"PMGSY candidate lost road-to detail: {actual!r}")
+    complaint_body = result["complaintBody"] or ""
+    for expected_detail in (
+        f"Agreement: {result['sourceAgreementNumber']} dated {result['sourceAgreementDate']}",
+        f"Package / project reference: {result['sourcePackage']}",
+        "Organisation / department:",
+        "Candidate match basis:",
+    ):
+        if expected_detail not in complaint_body:
+            failures.append(f"PMGSY complaint omitted tender detail: {expected_detail}")
     if not result["normalised"]:
         failures.append("valid PMGSY road record was rejected by normalisation")
     if result["crossState"] is not None:

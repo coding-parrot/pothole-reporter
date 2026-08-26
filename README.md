@@ -64,11 +64,13 @@ submitted automatically.
   start a complaint without claiming that the same authority owns or maintains the road.
 - Email, short WhatsApp, and copyable portal fields always retain coordinates, map link,
   routing, and a contract block. Matches may come from the Karnataka snapshot, current
-  NHAI/MoRTH/NHIDCL project records, source-reported PMGSY road agreements, or a State/UT
-  GePNIC procurement notice. The app attempts these candidate layers nationwide, with
+  NHAI/MoRTH/NHIDCL project records, source-reported PMGSY road agreements, or an official
+  State/UT procurement notice. The app attempts these candidate layers nationwide, with
   KPPP as a Karnataka supplement, but it cannot guarantee a tender for every road. Every
   match remains a **candidate** until the exact road segment, award, contractor, and DLP
-  terms are evidenced. An open notice is explicitly labelled as not being an award.
+  terms are evidenced. Reports preserve the official reference, work title, organisation,
+  status/dates, agreement/package/highway details, match basis, and source link whenever
+  published. An open notice is explicitly labelled as not being an award.
 
 ### National Highway routing
 
@@ -86,12 +88,12 @@ The APK contains the app and small manifests, not the large reference datasets. 
 needed, it downloads a versioned state/UT pack or the relevant 2° National Highway tile
 from this project's GitHub Pages site. The 101 highway geometry tiles total about 18 MB,
 the 33 current National Highway candidate packs contain 1,859 records in 1,805,723 bytes,
-the 36 PMGSY State/UT packs contain 17,717 records in 3,075,718 bytes, and the 29 GePNIC
-jurisdiction packs contain 4,949 open notices in 4,001,112 bytes. Only the relevant files
+the 36 PMGSY State/UT packs contain 17,717 records in 3,075,718 bytes, and the 34 official
+State/UT notice packs contain 5,396 open notices in 4,296,746 bytes. Only the relevant files
 are downloaded and cached. These remote packs do not enlarge the APK; the three manifests
 add only about 100 KB to a future build. The Play closed-test binary already submitted to
 Google remains unchanged. All inputs are filtered for explicit carriageway work, so
-drain-, footpath-, sewer-, utility-, consultancy-, and roadside-only work is excluded even
+drain-, footpath-, sewer-, utility-, consultancy-, and roadside-plantation-only work is excluded even
 when its title contains a road name.
 
 Every downloaded pack is checked byte-for-byte against a checksum pinned in the app before
@@ -139,10 +141,11 @@ selected state or an approximate 2° highway tile. See the
   17,717 recent,
   source-reported **In Progress** agreements from 211,007 rows; agreement details are
   verified as source fields, but award, contractor, exact segment, and DLP are not.
-  GePNIC scanned 62,524 rows from 30 zero-failure official feeds across 29 jurisdictions,
-  rejected 57,575 by strict scope, and retained 4,949 open road notices. DH, MN, MZ, NL,
-  and SK currently have zero eligible notices; AP, BR, CG, GJ, KA, TG, and LD use custom
-  portal families outside this GePNIC catalog. KPPP remains a Karnataka supplement.
+  The official State/UT notice catalog scanned 69,754 rows from 35 public feeds, rejected
+  64,358 through fail-closed scope/current-record checks, and retained 5,396 notices in 34
+  jurisdiction packs. It combines GePNIC with dedicated Bihar, Chhattisgarh, Gujarat,
+  Telangana, and Lakshadweep adapters. Andhra Pradesh remains blocked by undocumented
+  client-encrypted listing state; KPPP remains a separate Karnataka supplement.
 - Every match is a reviewable candidate, never a guarantee that every public tender or
   road is covered. Open notices are not awards. Exact segment, scope, award, contractor,
   warranty, and DLP require authoritative evidence; publication date proves none.

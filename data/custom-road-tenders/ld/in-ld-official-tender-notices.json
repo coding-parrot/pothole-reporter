@@ -1,0 +1,13 @@
+{
+  "format": "official-road-surface-procurement-notices",
+  "schema_version": 1,
+  "source_id": "in-ld-official-tender-notices",
+  "source_name": "UT Administration of Lakshadweep tender notices",
+  "source_url": "https://lakshadweep.gov.in/notice_category/tenders/",
+  "state_code": "LD",
+  "retrieved_at": "2026-08-26T07:00:00Z",
+  "lifecycle": "procurement_notice",
+  "rows_scanned": 11,
+  "rows_excluded_by_scope": 11,
+  "notices": []
+}

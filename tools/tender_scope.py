@@ -112,6 +112,16 @@ _NON_WORKS_SERVICE_PATTERNS = tuple(re.compile(pattern) for pattern in (
     r"\b(?:quality\s+control|proof\s+checking)\s+(?:consultancy|services?)\b",
 ))
 
+# Vegetation beside a road is not carriageway work. Keep this narrow enough that a
+# genuine mixed contract such as "construction of CC road with plantation" still passes.
+_ROADSIDE_VEGETATION_PATTERNS = tuple(re.compile(pattern) for pattern in (
+    r"\broad\s*side\s+(?:monsoon\s+)?plantations?\b",
+    r"\broadside\s+(?:monsoon\s+)?plantations?\b",
+    r"\bsocial\s+forestr(?:y|ies)\b",
+    r"(?:\w*plantation\w*|\w*forestr\w*).*\broad\s+side\w*\b",
+    r"\broad\s+side\w*\b.*(?:\w*plantation\w*|\w*forestr\w*)",
+))
+
 
 def _normalise(value: object) -> str:
     return " ".join(_TOKEN_RE.findall(str(value or "").lower()))
@@ -169,6 +179,9 @@ def is_road_surface_contract(title: object, tender_number: object = None) -> boo
         return False
 
     if any(pattern.search(text) for pattern in _NON_WORKS_SERVICE_PATTERNS):
+        return False
+
+    if any(pattern.search(text) for pattern in _ROADSIDE_VEGETATION_PATTERNS):
         return False
 
     if any(pattern.search(text) for pattern in _EXPLICIT_ROAD_DAMAGE_PATTERNS):

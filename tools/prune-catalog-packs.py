@@ -41,6 +41,11 @@ class Family:
     manifest_path_prefix: str
     filename_prefix: str
     pack_format: str
+    legacy_pack_formats: tuple[str, ...] = ()
+
+    @property
+    def allowed_pack_formats(self) -> tuple[str, ...]:
+        return (self.pack_format, *self.legacy_pack_formats)
 
     @property
     def path_pattern(self) -> re.Pattern[str]:
@@ -66,7 +71,8 @@ FAMILIES = (
         pack_root_relative_path=Path("docs/packs/v1/road-notices"),
         manifest_path_prefix="packs/v1/road-notices",
         filename_prefix="notices",
-        pack_format="pothole-gepnic-road-notice-pack",
+        pack_format="pothole-official-road-notice-pack",
+        legacy_pack_formats=("pothole-gepnic-road-notice-pack",),
     ),
     Family(
         name="road-agreements",
@@ -261,7 +267,10 @@ def _validate_pack_content(path: Path, family: Family, expected_digest: str, sta
         payload = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise _error(f"invalid UTF-8 JSON catalog pack {path}: {exc}") from exc
-    if not isinstance(payload, dict) or payload.get("format") != family.pack_format:
+    if (
+        not isinstance(payload, dict)
+        or payload.get("format") not in family.allowed_pack_formats
+    ):
         raise _error(f"catalog pack has the wrong family format: {path}")
     if payload.get("state_code") != state.upper():
         raise _error(f"catalog pack state_code does not match its path: {path}")

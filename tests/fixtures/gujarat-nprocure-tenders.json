@@ -1,0 +1,127 @@
+{
+  "rows": [
+    {
+      "tender_id": "338986",
+      "tender_reference": "Thara/NP/2026/Aug/04",
+      "title": "Construction work of CC Road with Trimix at Ward 4, Thara, Banaskantha",
+      "organisation": "NAGARPALIKA-Thara Nagar Seva Sadan",
+      "closing_at_text": "08-09-2026 18:00:00",
+      "estimated_value_text": "1016193.00"
+    },
+    {
+      "tender_id": "338900",
+      "tender_reference": "04/DRAIN/2026",
+      "title": "Construction of RCC drain and footpath near Station Road",
+      "organisation": "Example Nagar Palika",
+      "closing_at_text": "10-09-2026 18:00:00",
+      "estimated_value_text": "500000.00"
+    },
+    {
+      "tender_id": "338901",
+      "tender_reference": "05/DPR/2026",
+      "title": "Consultancy for preparation of DPR for strengthening State Highway 8",
+      "organisation": "Roads and Buildings Department",
+      "closing_at_text": "10-09-2026 18:00:00",
+      "estimated_value_text": "800000.00"
+    },
+    {
+      "tender_id": "338700",
+      "tender_reference": "03/ROAD/2026",
+      "title": "Pothole patch repair work on municipal roads",
+      "organisation": "Example Municipal Corporation",
+      "closing_at_text": "25-08-2026 18:00:00",
+      "estimated_value_text": "900000.00"
+    },
+    {
+      "tender_id": "324145",
+      "tender_reference": "PLATFORM/2026",
+      "title": "Annual Maintenance Contract for Pothole Repairs and Dewatering of Platform Areas",
+      "organisation": "Example Public Body",
+      "closing_at_text": "10-09-2026 18:00:00"
+    },
+    {
+      "tender_id": "335449",
+      "tender_reference": "SAFETY/2026",
+      "title": "Repairs to Vadpada Karanjveri Road Km 38/4 to 45/00 (Providing and Fixing W-type Safety Barrier Bump & Sign Board)",
+      "organisation": "Roads and Buildings Department",
+      "closing_at_text": "10-09-2026 18:00:00"
+    },
+    {
+      "tender_id": "335232",
+      "tender_reference": "GUTTER/2026",
+      "title": "Construction of Modasa Nadiad Road Ch. 105/600 To 107/750 For Under Ground Gutter Line Repairing Work",
+      "organisation": "Example Nagar Palika",
+      "closing_at_text": "10-09-2026 18:00:00"
+    },
+    {
+      "tender_id": "336678",
+      "tender_reference": "ANGANWADI/2026",
+      "title": "Construction of Anganwadi Cinema Road, Opp. A P M C at Kalavad Nagarpalika",
+      "organisation": "Example Nagar Palika",
+      "closing_at_text": "10-09-2026 18:00:00"
+    },
+    {
+      "tender_id": "337800",
+      "tender_reference": "PIPE/2026",
+      "title": "Shifting of 200mm PVC Pipeline Due to Road Widening From Adalaj Cross Road to Mehsana City",
+      "organisation": "Example Water Authority",
+      "closing_at_text": "10-09-2026 18:00:00"
+    },
+    {
+      "tender_id": "337599",
+      "tender_reference": "RAILING/2026",
+      "title": "Construction of Railling Work for Divider from Miyagam Cross Road to Lilagari Society",
+      "organisation": "Example Nagar Palika",
+      "closing_at_text": "10-09-2026 18:00:00"
+    },
+    {
+      "tender_id": "338638",
+      "tender_reference": "CLEANING/2026",
+      "title": "Maintenance and Cleaning of Different Roads in Different Locations",
+      "organisation": "Example Nagar Palika",
+      "closing_at_text": "10-09-2026 18:00:00"
+    },
+    {
+      "tender_id": "337048",
+      "tender_reference": "BEAUTY/2026",
+      "title": "Rate Contract for Beautification and maintenance work of new road central verge / traffic junctions",
+      "organisation": "Example Municipal Corporation",
+      "closing_at_text": "10-09-2026 18:00:00"
+    },
+    {
+      "tender_id": "335196",
+      "tender_reference": "METRO/2026",
+      "title": "Construction of Elevated Viaduct from Koteshwar Road including stations and twin cut and cover tunnel for Metro Rail Project",
+      "organisation": "Example Metro Rail Corporation",
+      "closing_at_text": "10-09-2026 18:00:00"
+    },
+    {
+      "tender_id": "335798",
+      "tender_reference": "PLANT/2026",
+      "title": "Construction of Cement Concrete pavement around the cooling tower at Bhavnagar Lignite Thermal Power Station",
+      "organisation": "Example Power Corporation",
+      "closing_at_text": "10-09-2026 18:00:00"
+    },
+    {
+      "tender_id": "335052",
+      "tender_reference": "RESURFACE-DRAIN/2026",
+      "title": "Road resurfacing work for roads damaged during underground drainage house connections",
+      "organisation": "Example Municipal Corporation",
+      "closing_at_text": "10-09-2026 18:00:00"
+    },
+    {
+      "tender_id": "337960",
+      "tender_reference": "MMGSY-ROAD/2026",
+      "title": "Construction of Jogbari Anganwadi Towards Road km 0/0 to 1/000 under MMGSY",
+      "organisation": "Roads and Buildings Department",
+      "closing_at_text": "10-09-2026 18:00:00"
+    },
+    {
+      "tender_id": "316613",
+      "tender_reference": "ROAD-LAYERS/2026",
+      "title": "Construction of bitumen road layers from sub grade to wearing course on various roads including repair of footpath and divider",
+      "organisation": "Example Municipal Corporation",
+      "closing_at_text": "10-09-2026 18:00:00"
+    }
+  ]
+}

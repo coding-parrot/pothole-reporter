@@ -1,0 +1,24 @@
+{
+  "format": "official-road-tender-source-blocker",
+  "schema_version": 1,
+  "source_id": "in-ap-eprocurement",
+  "source_name": "Government of Andhra Pradesh eProcurement public tenders",
+  "source_url": "https://tender.apeprocurement.gov.in/login.html",
+  "listing_url": "https://tender.apeprocurement.gov.in/TenderDetailsHome.html",
+  "detail_endpoint": "https://tender.apeprocurement.gov.in/ViewTender.html",
+  "checked_at": "2026-08-26T06:32:37Z",
+  "state_code": "AP",
+  "status": "blocked_without_bypassing_portal_controls",
+  "public_access_verified": true,
+  "captcha_encountered": false,
+  "records_published": 0,
+  "observations": [
+    "The anonymous home page exposes current tender IDs, references, titles and closing dates.",
+    "The full current-tender page exposes department, tender ID, notice number, category, work title, estimated value, Start Date & Time, Closing Date & Time and a session-bound action.",
+    "A public tender detail opened through the portal UI confirmed that Start Date & Time is the tender/bid download start; the listing and detail did not expose a publication timestamp.",
+    "The complete table JSON returned no rows unless the portal's undocumented client-side encrypted form state was generated.",
+    "Tender detail is a session-bound POST and the portal does not publish a stable per-record detail URL."
+  ],
+  "reason": "No reliable anonymous adapter can reproduce the complete feed without automating or reimplementing the portal's client-side encrypted integrity flow. No publication timestamp is exposed for the canonical notice record. The app must not fabricate either field or bypass this portal control.",
+  "required_resolution": "Obtain a documented public export/API or written permission and a supported machine-readable access contract from Andhra Pradesh eProcurement."
+}

@@ -91,6 +91,19 @@ def main() -> int:
     # stays out, while genuine mixed /OW/ rows stay in based on their stated scope.
     if is_road_surface_contract("Construction of storm water drain at Ward 5", "DMA/2026-27/RD/1"):
         failures.append("trusted /RD/ tender-number metadata over the stated drain-only scope")
+    if is_road_surface_contract(
+        "Maintenance of road side plantations in Social Forestry Range", "KPPP/2026/RD/7"
+    ):
+        failures.append("treated roadside plantation as road-surface work")
+    if is_road_surface_contract(
+        "oldPlantation work at Road sideof HunsurSocial Forestry range", "KPPP/2026/RD/9"
+    ):
+        failures.append("malformed roadside plantation text bypassed the scope filter")
+    if not is_road_surface_contract(
+        "Construction of a cement concrete road with plantation from A Road to B Village",
+        "PWD/2026/RD/8",
+    ):
+        failures.append("rejected genuine mixed road construction with ancillary plantation")
     if not is_road_surface_contract(
         "Improvements to roads and drains in Ward 5", "BBMP/2026-27/OW/2"
     ):

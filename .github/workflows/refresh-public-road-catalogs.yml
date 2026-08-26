@@ -37,6 +37,12 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install browser for the public Gujarat tender table
+        run: |
+          set -euo pipefail
+          python3 -m pip install "playwright>=1.40,<2"
+          python3 -m playwright install --with-deps chromium
+
       - name: Run offline parser and schema preflight
         run: |
           set -euo pipefail
@@ -46,6 +52,12 @@ jobs:
           python3 tests/gepnic_tender_crawler_test.py
           python3 tests/gepnic_road_notice_pack_builder_test.py
           python3 tests/bihar_road_tender_puller_test.py
+          python3 tests/chhattisgarh_chips_road_tender_puller_test.py
+          python3 tests/gujarat_nprocure_road_tender_puller_test.py
+          python3 tests/lakshadweep_road_tender_puller_test.py
+          python3 tests/telangana_road_tender_puller_test.py
+          python3 tests/andhra_pradesh_road_tender_source_test.py
+          python3 tests/kppp_road_award_puller_test.py
           python3 tests/emarg_road_contract_puller_test.py
           python3 tests/pmgsy_road_agreement_puller_test.py
           python3 tests/pmgsy_road_agreement_pack_builder_test.py
@@ -63,6 +75,11 @@ jobs:
           mkdir -p \
             data/gepnic-road-notices/sources \
             data/gepnic-road-notices/states \
+            data/custom-road-tenders/br \
+            data/custom-road-tenders/cg \
+            data/custom-road-tenders/gj \
+            data/custom-road-tenders/ld \
+            data/custom-road-tenders/tg \
             data/pmgsy-road-agreements/sources
           find data/gepnic-road-notices/sources -type f -name '*.json' -delete
           find data/gepnic-road-notices/states -type f -name '*.json' -delete
@@ -74,6 +91,27 @@ jobs:
           # Source receipts plus the crawl report are the canonical inputs. The per-State
           # files duplicate every retained notice and are not used by the pack builder.
           find data/gepnic-road-notices/states -type f -name '*.json' -delete
+
+          python3 tools/pull-bihar-road-tenders.py \
+            --output data/custom-road-tenders/br/in-br-eproc2.json \
+            --as-of "$catalog_retrieved_at" \
+            --timeout 120
+          python3 tools/pull-chhattisgarh-chips-road-tenders.py \
+            --output data/custom-road-tenders/cg/in-ct-chips.json \
+            --as-of "$catalog_retrieved_at" \
+            --timeout 120
+          python3 tools/pull-gujarat-nprocure-road-tenders.py \
+            --output data/custom-road-tenders/gj/in-gj-nprocure.json \
+            --as-of "$catalog_retrieved_at" \
+            --timeout 120
+          python3 tools/pull-lakshadweep-road-tenders.py \
+            --output data/custom-road-tenders/ld/in-ld-official-tender-notices.json \
+            --as-of "$catalog_retrieved_at" \
+            --timeout 120
+          python3 tools/pull-telangana-road-tenders.py \
+            --output data/custom-road-tenders/tg/in-tg-eprocurement.json \
+            --as-of "$catalog_retrieved_at" \
+            --timeout 120
 
           find data/pmgsy-road-agreements/sources -type f -name '*.json.gz' -delete
           python3 tools/pull-pmgsy-road-agreements.py \
@@ -117,6 +155,7 @@ jobs:
             case "$catalog_path" in
               data/tenders-national-highways.json|\
               data/gepnic-road-notices/*|\
+              data/custom-road-tenders/*|\
               data/pmgsy-road-agreements/*|\
               docs/packs/v1/contracts/*|\
               docs/packs/v1/road-notices/*|\
@@ -160,6 +199,7 @@ jobs:
           git add -- \
             data/tenders-national-highways.json \
             data/gepnic-road-notices \
+            data/custom-road-tenders \
             data/pmgsy-road-agreements \
             docs/packs/v1/contracts \
             docs/packs/v1/road-notices \
@@ -191,7 +231,7 @@ jobs:
             --base main \
             --head "$CATALOG_BRANCH" \
             --title "Refresh public road catalogs" \
-            --body "Automated refresh from the official NHAI/MoRTH, NHIDCL, State/UT GePNIC, and PMGSY public feeds.
+            --body "Automated refresh from the official NHAI/MoRTH, NHIDCL, State/UT procurement, and PMGSY public feeds.
 
           The workflow rebuilt and schema-checked the content-addressed highway-contract, road-notice, and road-agreement packs. Review the source receipts, record-count changes, and manifest diffs before merging.
 

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Build or verify content-addressed State/UT GePNIC road-notice packs.
+"""Build or verify content-addressed official State/UT road-notice packs.
 
 These packs contain procurement-notice candidates, not awarded or active contracts.
 They preserve the official notice identity, work title, organisation chain, dates and
 source URL while explicitly keeping segment, award and DLP verification false.  No
-contractor field exists in the runtime schema.
+contractor field exists in the runtime schema.  The canonical GePNIC crawl and the
+strictly validated snapshots from other official State portals share one runtime
+format; portal-private fields are deliberately not shipped to clients.
 """
 
 from __future__ import annotations
@@ -29,6 +31,7 @@ from tender_scope import is_road_surface_contract
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = Path("data/tender-sources-india.json")
 SOURCE_DIRECTORY = Path("data/gepnic-road-notices/sources")
+CUSTOM_SOURCE_DIRECTORY = Path("data/custom-road-tenders")
 CRAWL_REPORT_PATH = Path("data/gepnic-road-notices/crawl-report.json")
 PACK_ROOT = Path("docs/packs/v1/road-notices")
 MANIFEST_PATHS = (
@@ -37,10 +40,11 @@ MANIFEST_PATHS = (
     Path("android-app/www/road-notice-manifest-v1.36.json"),
 )
 
-PACK_FORMAT = "pothole-gepnic-road-notice-pack"
+PACK_FORMAT = "pothole-official-road-notice-pack"
 MANIFEST_FORMAT = "pothole-road-notice-manifest"
 SOURCE_FORMAT = "gepnic-road-surface-procurement-notices"
-ADAPTER = "gepnic-road-notices-v1"
+CUSTOM_SOURCE_FORMAT = "official-road-surface-procurement-notices"
+ADAPTER = "official-road-notices-v2"
 LIFECYCLE = "procurement_notice"
 SCOPE = "road_surface"
 PUBLIC_BASE_URL = "https://coding-parrot.github.io/pothole-reporter/"
@@ -64,7 +68,8 @@ INFERENCE_POLICY = {
 }
 
 STATE_RE = re.compile(r"^[A-Z]{2}$")
-SOURCE_ID_RE = re.compile(r"^in-[a-z]{2}-gepnic(?:-[a-z0-9-]+)?$")
+SOURCE_ID_RE = re.compile(r"^in-[a-z]{2}-[a-z0-9][a-z0-9-]*$")
+GEPNIC_SOURCE_ID_RE = re.compile(r"^in-[a-z]{2}-gepnic(?:-[a-z0-9-]+)?$")
 TIMESTAMP_RE = re.compile(
     r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$"
 )
@@ -114,7 +119,7 @@ def _read_json(path: Path) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as error:
-        raise BuildError(f"missing GePNIC source: {path}") from error
+        raise BuildError(f"missing JSON source: {path}") from error
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise BuildError(f"invalid UTF-8 JSON in {path}: {error}") from error
 
@@ -285,7 +290,7 @@ def _normalise_notice(
     return record
 
 
-def _source_snapshot(path: Path) -> SourceSnapshot:
+def _gepnic_source_snapshot(path: Path) -> SourceSnapshot:
     value = _read_json(path)
     field = path.name
     _expect(
@@ -297,7 +302,10 @@ def _source_snapshot(path: Path) -> SourceSnapshot:
     _expect(value["lifecycle"] == LIFECYCLE, f"{field} must contain procurement notices")
 
     source_id = _text(value["source_id"], f"{field}.source_id", 100)
-    _expect(SOURCE_ID_RE.fullmatch(source_id) is not None, f"{field}.source_id is invalid")
+    _expect(
+        GEPNIC_SOURCE_ID_RE.fullmatch(source_id) is not None,
+        f"{field}.source_id is invalid",
+    )
     _expect(path.stem == source_id, f"{field} filename must equal source_id")
     state_code = _text(value["state_code"], f"{field}.state_code", 2)
     _expect(STATE_RE.fullmatch(state_code) is not None, f"{field}.state_code is invalid")
@@ -344,14 +352,161 @@ def _source_snapshot(path: Path) -> SourceSnapshot:
     return SourceSnapshot(receipt=receipt, notices=notices)
 
 
-def _expected_gepnic_sources(project_root: Path) -> dict[str, str]:
+def _optional_text(value: Any, field: str, maximum: int) -> str | None:
+    if value is None:
+        return None
+    return _text(value, field, maximum)
+
+
+def _optional_timestamp(value: Any, field: str) -> str | None:
+    if value is None:
+        return None
+    return _timestamp(value, field)
+
+
+def _custom_organisation(value: dict[str, Any], field: str) -> str:
+    chain = _optional_text(value.get("organisation_chain"), f"{field}.organisation_chain", 800)
+    if chain:
+        return chain
+    path = value.get("organisation_path")
+    if isinstance(path, list) and path:
+        parts = [_text(item, f"{field}.organisation_path", 300) for item in path]
+        return "||".join(parts)
+    identifiers: list[str] = []
+    for key, label in (("organisation_id", "Organisation ID"), ("department_id", "Department ID")):
+        identifier = value.get(key)
+        if isinstance(identifier, (str, int)) and not isinstance(identifier, bool):
+            rendered = str(identifier).strip()
+            if rendered:
+                identifiers.append(f"{label} {rendered}")
+    if identifiers:
+        return "||".join(identifiers)
+    return "Organisation not named in public listing"
+
+
+def _custom_notice(
+    value: Any, index: int, receipt: SourceReceipt
+) -> dict[str, Any]:
+    field = f"{receipt.source_id}.notices[{index}]"
+    _expect(isinstance(value, dict), f"{field} must be an object")
+    _expect(value.get("lifecycle") == LIFECYCLE, f"{field} must be a procurement notice")
+    _expect(value.get("scope") == SCOPE, f"{field} must have road_surface scope")
+    _expect(value.get("state_code") == receipt.state_code, f"{field} state_code mismatch")
+    if value.get("source_name") is not None:
+        _expect(value.get("source_name") == receipt.source_name, f"{field} source_name mismatch")
+    if value.get("retrieved_at") is not None:
+        _expect(value.get("retrieved_at") == receipt.retrieved_at, f"{field} retrieved_at mismatch")
+
+    title = _text(value.get("title"), f"{field}.title", 1_200)
+    tender_reference = _text(
+        value.get("tender_reference"), f"{field}.tender_reference", 300
+    )
+    _expect(
+        is_road_surface_contract(title, tender_reference),
+        f"{field} fails strict carriageway-work scope",
+    )
+    tender_id = _text(value.get("tender_id"), f"{field}.tender_id", 160)
+    organisation_chain = _custom_organisation(value, field)
+
+    listing_url_value = value.get("listing_url") or value.get("source_url")
+    listing_url = _https_url(listing_url_value, f"{field}.listing_url")
+    detail_url_value = value.get("detail_url") or listing_url
+    detail_url = _https_url(detail_url_value, f"{field}.detail_url")
+    _expect(
+        _same_origin(receipt.source_url, listing_url)
+        and _same_origin(receipt.source_url, detail_url),
+        f"{field} source links must stay on the source portal",
+    )
+
+    record = {
+        "record_id": f"{receipt.source_id}:{tender_id}",
+        "tender_id": tender_id,
+        "tender_reference": tender_reference,
+        "title": title,
+        "organisation_chain": organisation_chain,
+        "published_at": _optional_timestamp(
+            value.get("published_at"), f"{field}.published_at"
+        ),
+        "closing_at": _timestamp(value.get("closing_at"), f"{field}.closing_at"),
+        "opening_at": _optional_timestamp(
+            value.get("opening_at"), f"{field}.opening_at"
+        ),
+        "source_id": receipt.source_id,
+        "source_url": detail_url,
+        "lifecycle": LIFECYCLE,
+        "scope": SCOPE,
+        "segment_verified": False,
+        "award_verified": False,
+        "dlp_verified": False,
+    }
+    _expect(set(record) == RUNTIME_NOTICE_FIELDS, f"{field} runtime projection drifted")
+    _expect(
+        not (set(record) & FORBIDDEN_INFERENCE_FIELDS),
+        f"{field} contains a forbidden contract inference",
+    )
+    return record
+
+
+def _custom_source_snapshot(path: Path) -> SourceSnapshot:
+    value = _read_json(path)
+    field = path.relative_to(path.parents[2]).as_posix() if len(path.parents) > 2 else path.name
+    _expect(isinstance(value, dict), f"{field} must be an object")
+    _expect(value.get("format") == CUSTOM_SOURCE_FORMAT, f"{field} has unsupported format")
+    _expect(value.get("schema_version") == SCHEMA_VERSION, f"{field} schema_version must be 1")
+    _expect(value.get("lifecycle") == LIFECYCLE, f"{field} must contain procurement notices")
+
+    source_id = _text(value.get("source_id"), f"{field}.source_id", 100)
+    _expect(SOURCE_ID_RE.fullmatch(source_id) is not None, f"{field}.source_id is invalid")
+    _expect(path.stem == source_id, f"{field} filename must equal source_id")
+    state_code = _text(value.get("state_code"), f"{field}.state_code", 2)
+    _expect(STATE_RE.fullmatch(state_code) is not None, f"{field}.state_code is invalid")
+    raw_notices = value.get("notices")
+    _expect(isinstance(raw_notices, list), f"{field}.notices must be an array")
+    rows_scanned = value.get("rows_scanned")
+    rows_excluded = value.get("rows_excluded_by_scope")
+    _expect(
+        type(rows_scanned) is int and rows_scanned >= 0,
+        f"{field}.rows_scanned must be a non-negative integer",
+    )
+    _expect(
+        type(rows_excluded) is int and 0 <= rows_excluded <= rows_scanned,
+        f"{field}.rows_excluded_by_scope is invalid",
+    )
+    _expect(
+        rows_excluded + len(raw_notices) == rows_scanned,
+        f"{field} row accounting is inconsistent",
+    )
+    if value.get("records_kept") is not None:
+        _expect(
+            value.get("records_kept") == len(raw_notices),
+            f"{field}.records_kept differs from notices",
+        )
+    receipt = SourceReceipt(
+        source_id=source_id,
+        source_name=_text(value.get("source_name"), f"{field}.source_name", 300),
+        source_url=_https_url(value.get("source_url"), f"{field}.source_url"),
+        retrieved_at=_timestamp(
+            value.get("retrieved_at"), f"{field}.retrieved_at", require_utc=True
+        ),
+        state_code=state_code,
+        rows_scanned=rows_scanned,
+        rows_excluded_by_scope=rows_excluded,
+    )
+    notices = tuple(
+        _custom_notice(notice, index, receipt)
+        for index, notice in enumerate(raw_notices)
+    )
+    return SourceSnapshot(receipt=receipt, notices=notices)
+
+
+def _registry_sources(project_root: Path) -> dict[str, tuple[str, str]]:
     registry_path = project_root / REGISTRY_PATH
     registry = _read_json(registry_path)
     _expect(
         isinstance(registry, dict) and isinstance(registry.get("jurisdictions"), list),
         f"{REGISTRY_PATH} has no jurisdictions array",
     )
-    expected: dict[str, str] = {}
+    declared: dict[str, tuple[str, str]] = {}
     for index, jurisdiction in enumerate(registry["jurisdictions"]):
         field = f"{REGISTRY_PATH}.jurisdictions[{index}]"
         _expect(isinstance(jurisdiction, dict), f"{field} must be an object")
@@ -366,15 +521,26 @@ def _expected_gepnic_sources(project_root: Path) -> dict[str, str]:
         for source_index, source in enumerate(sources):
             source_field = f"{field}.sources[{source_index}]"
             _expect(isinstance(source, dict), f"{source_field} must be an object")
-            if source.get("portal_family") != "nic_gepnic":
-                continue
             source_id = _text(source.get("id"), f"{source_field}.id", 100)
+            portal_family = _text(
+                source.get("portal_family"), f"{source_field}.portal_family", 100
+            )
             _expect(
                 SOURCE_ID_RE.fullmatch(source_id) is not None,
-                f"{source_field}.id is not a State/UT GePNIC source ID",
+                f"{source_field}.id is not a valid official source ID",
             )
-            _expect(source_id not in expected, f"duplicate registry source ID: {source_id}")
-            expected[source_id] = runtime_state_code
+            _expect(source_id not in declared, f"duplicate registry source ID: {source_id}")
+            declared[source_id] = (runtime_state_code, portal_family)
+    _expect(bool(declared), f"{REGISTRY_PATH} declares no official tender sources")
+    return declared
+
+
+def _expected_gepnic_sources(project_root: Path) -> dict[str, str]:
+    expected = {
+        source_id: state_code
+        for source_id, (state_code, portal_family) in _registry_sources(project_root).items()
+        if portal_family == "nic_gepnic"
+    }
     _expect(bool(expected), f"{REGISTRY_PATH} declares no State/UT GePNIC sources")
     return expected
 
@@ -398,6 +564,33 @@ def _source_files(project_root: Path, expected: dict[str, str]) -> list[Path]:
         + ", ".join(unexpected),
     )
     return paths
+
+
+def _custom_source_files(
+    project_root: Path, declarations: dict[str, tuple[str, str]]
+) -> list[Path]:
+    directory = project_root / CUSTOM_SOURCE_DIRECTORY
+    if not directory.exists():
+        return []
+    try:
+        paths = sorted(directory.rglob("*.json"), key=lambda path: path.as_posix())
+    except OSError as error:
+        raise BuildError(f"cannot list custom official sources: {directory}: {error}") from error
+    expected_ids = {
+        source_id for source_id, (_state_code, portal_family) in declarations.items()
+        if portal_family != "nic_gepnic"
+    }
+    selected: list[Path] = []
+    for path in paths:
+        if path.stem in expected_ids:
+            selected.append(path)
+            continue
+        value = _read_json(path)
+        _expect(
+            not (isinstance(value, dict) and value.get("format") == CUSTOM_SOURCE_FORMAT),
+            f"unexpected official notice snapshot not declared by registry: {path}",
+        )
+    return selected
 
 
 def _snapshot_date(timestamp: str) -> str:
@@ -427,14 +620,33 @@ def _pack_envelope(
 
 def _load_sources(
     project_root: Path,
-) -> tuple[list[SourceSnapshot], dict[str, str]]:
+) -> tuple[list[SourceSnapshot], list[SourceSnapshot], dict[str, str]]:
+    declarations = _registry_sources(project_root)
     expected = _expected_gepnic_sources(project_root)
-    snapshots = [
-        _source_snapshot(path) for path in _source_files(project_root, expected)
+    gepnic_snapshots = [
+        _gepnic_source_snapshot(path) for path in _source_files(project_root, expected)
     ]
+    custom_snapshots = [
+        _custom_source_snapshot(path)
+        for path in _custom_source_files(project_root, declarations)
+    ]
+    for snapshot in custom_snapshots:
+        source_id = snapshot.receipt.source_id
+        _expect(source_id in declarations, f"{source_id} is not declared by {REGISTRY_PATH}")
+        expected_state_code, portal_family = declarations[source_id]
+        _expect(
+            portal_family != "nic_gepnic",
+            f"{source_id} must use the canonical GePNIC snapshot directory",
+        )
+        _expect(
+            snapshot.receipt.state_code == expected_state_code,
+            f"{source_id} state_code must be {expected_state_code} as declared by the "
+            "tender-source registry",
+        )
+    snapshots = gepnic_snapshots + custom_snapshots
     source_ids = [snapshot.receipt.source_id for snapshot in snapshots]
-    _expect(len(source_ids) == len(set(source_ids)), "duplicate GePNIC source_id values")
-    for snapshot in snapshots:
+    _expect(len(source_ids) == len(set(source_ids)), "duplicate official source_id values")
+    for snapshot in gepnic_snapshots:
         expected_state_code = expected[snapshot.receipt.source_id]
         _expect(
             snapshot.receipt.state_code == expected_state_code,
@@ -444,8 +656,8 @@ def _load_sources(
     record_ids = [
         notice["record_id"] for snapshot in snapshots for notice in snapshot.notices
     ]
-    _expect(len(record_ids) == len(set(record_ids)), "duplicate GePNIC runtime record_id values")
-    return snapshots, expected
+    _expect(len(record_ids) == len(set(record_ids)), "duplicate official runtime record_id values")
+    return snapshots, gepnic_snapshots, expected
 
 
 def _validated_crawl_report(
@@ -538,12 +750,27 @@ def _validated_crawl_report(
     return report_bytes
 
 
+def _state_summaries(snapshots: Iterable[SourceSnapshot]) -> dict[str, dict[str, int]]:
+    summaries: dict[str, dict[str, int]] = {}
+    for snapshot in snapshots:
+        receipt = snapshot.receipt
+        summary = summaries.setdefault(
+            receipt.state_code,
+            {"sources": 0, "rows_scanned": 0, "rows_excluded_by_scope": 0, "notices": 0},
+        )
+        summary["sources"] += 1
+        summary["rows_scanned"] += receipt.rows_scanned
+        summary["rows_excluded_by_scope"] += receipt.rows_excluded_by_scope
+        summary["notices"] += len(snapshot.notices)
+    return summaries
+
+
 def plan_build(
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[dict[Path, bytes], bytes, bytes]:
     """Return expected packs, manifest and canonical all-source crawl report."""
     project_root = Path(project_root)
-    snapshots, expected_sources = _load_sources(project_root)
+    snapshots, gepnic_snapshots, expected_sources = _load_sources(project_root)
     grouped: dict[str, list[SourceSnapshot]] = defaultdict(list)
     for snapshot in snapshots:
         grouped[snapshot.receipt.state_code].append(snapshot)
@@ -555,7 +782,7 @@ def plan_build(
     ]
     manifest_date = max(all_dates)
     retrieved_timestamps = {
-        snapshot.receipt.retrieved_at for snapshot in snapshots
+        snapshot.receipt.retrieved_at for snapshot in gepnic_snapshots
     }
     _expect(
         len(retrieved_timestamps) == 1,
@@ -634,9 +861,9 @@ def plan_build(
     report_bytes = _validated_crawl_report(
         project_root,
         expected_sources,
-        snapshots,
+        gepnic_snapshots,
         canonical_retrieved_at,
-        state_summaries,
+        _state_summaries(gepnic_snapshots),
     )
     return packs, _manifest_json(manifest), report_bytes
 
@@ -686,7 +913,7 @@ def verify_all(project_root: Path = PROJECT_ROOT) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Build immutable State/UT GePNIC road-notice packs and manifests."
+        description="Build immutable official State/UT road-notice packs and manifests."
     )
     parser.add_argument(
         "--check", action="store_true", help="verify only; never mutate the checkout"
@@ -695,11 +922,11 @@ def main() -> None:
     try:
         if args.check:
             verify_all()
-            print("GePNIC road-notice packs OK")
+            print("Official road-notice packs OK")
         else:
             for output in build_all():
                 print(output.relative_to(PROJECT_ROOT))
-            print("GePNIC road-notice packs and manifest mirrors updated")
+            print("Official road-notice packs and manifest mirrors updated")
     except BuildError as error:
         print(f"FAIL: {error}", file=sys.stderr)
         raise SystemExit(1) from error

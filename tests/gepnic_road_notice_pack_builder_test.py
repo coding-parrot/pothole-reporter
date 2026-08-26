@@ -110,6 +110,20 @@ def write_registry(root: Path, values: list[dict]) -> None:
     path.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
 
 
+def add_custom_registry_source(
+    root: Path, source_id: str, state_code: str, portal_family: str
+) -> None:
+    path = root / BUILDER.REGISTRY_PATH
+    registry = json.loads(path.read_text(encoding="utf-8"))
+    jurisdiction = next(
+        item for item in registry["jurisdictions"] if item["code"] == f"IN-{state_code}"
+    )
+    jurisdiction["sources"].append(
+        {"id": source_id, "portal_family": portal_family}
+    )
+    path.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
+
+
 def state_summaries(values: list[dict]) -> dict[str, dict[str, int]]:
     summaries: dict[str, dict[str, int]] = {}
     for value in values:
@@ -170,6 +184,66 @@ def snapshot(root: Path) -> dict[str, bytes]:
 
 
 class GePNICRoadNoticePackBuilderTest(unittest.TestCase):
+    def test_merges_declared_custom_portal_notice_without_inventing_organisation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            values = [source("in-br-gepnic", "BR", ["GEP-1"])]
+            write_sources(root, values)
+            add_custom_registry_source(root, "in-br-eproc2", "BR", "bihar_eproc2")
+            custom = {
+                "format": "official-road-surface-procurement-notices",
+                "schema_version": 1,
+                "source_id": "in-br-eproc2",
+                "source_name": "Bihar eProc2.0 public active tenders",
+                "source_url": "https://eproc2.bihar.gov.in/EPSV2Web/",
+                "retrieved_at": "2026-08-26T06:20:18Z",
+                "state_code": "BR",
+                "lifecycle": "procurement_notice",
+                "rows_scanned": 2,
+                "rows_excluded_by_scope": 1,
+                "records_kept": 1,
+                "notices": [{
+                    "tender_id": "138319",
+                    "tender_reference": "NIT-15/BIADA/2026-27",
+                    "title": "Construction of flexible pavement at MGC Udakishanganj",
+                    "organisation_chain": None,
+                    "organisation_path": [],
+                    "organisation_id": 538,
+                    "department_id": 1874,
+                    "published_at": None,
+                    "closing_at": "2026-08-26T11:30:00Z",
+                    "opening_at": None,
+                    "detail_url": None,
+                    "listing_url": "https://eproc2.bihar.gov.in/EPSV2Web/openarea/tenderListingPage.action",
+                    "retrieved_at": "2026-08-26T06:20:18Z",
+                    "state_code": "BR",
+                    "lifecycle": "procurement_notice",
+                    "scope": "road_surface",
+                }],
+            }
+            custom_path = root / BUILDER.CUSTOM_SOURCE_DIRECTORY / "br" / "in-br-eproc2.json"
+            custom_path.parent.mkdir(parents=True, exist_ok=True)
+            custom_path.write_text(json.dumps(custom, indent=2) + "\n", encoding="utf-8")
+
+            BUILDER.build_all(root)
+            manifest = json.loads((root / BUILDER.MANIFEST_PATHS[0]).read_text())
+            resource = manifest["resources"]["in-road-notices-br"]
+            pack = json.loads((root / "docs" / resource["path"]).read_text())
+            self.assertEqual(resource["sources"], 2)
+            row = next(item for item in pack["notices"] if item["tender_id"] == "138319")
+            self.assertEqual(
+                row["organisation_chain"], "Organisation ID 538||Department ID 1874"
+            )
+            self.assertEqual(
+                row["source_url"],
+                "https://eproc2.bihar.gov.in/EPSV2Web/openarea/tenderListingPage.action",
+            )
+            self.assertIsNone(row["published_at"])
+            self.assertIsNone(row["opening_at"])
+            report = json.loads((root / BUILDER.CRAWL_REPORT_PATH).read_text())
+            self.assertEqual(report["source_count_succeeded"], 1)
+            self.assertEqual(report["states"]["BR"]["sources"], 1)
+
     def test_builds_compact_notice_only_packs_manifests_and_full_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -204,7 +278,7 @@ class GePNICRoadNoticePackBuilderTest(unittest.TestCase):
             for pack_id, resource in manifest["resources"].items():
                 self.assertEqual(resource["lifecycle"], "procurement_notice")
                 self.assertTrue(resource["candidate_only"])
-                self.assertEqual(resource["adapter"], "gepnic-road-notices-v1")
+                self.assertEqual(resource["adapter"], "official-road-notices-v2")
                 self.assertEqual(resource["url"], BUILDER.PUBLIC_BASE_URL + resource["path"])
                 pack_path = root / "docs" / resource["path"]
                 content = pack_path.read_bytes()

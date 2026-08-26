@@ -45,13 +45,26 @@ async () => {
     tender_number: "ABC123", reference_label: "UPC", title: current.title,
     contractor: current.contractor, lifecycle: current.lifecycle,
     lifecycle_status: current.lifecycle_status, source_name: current.source_name,
-    source_url: current.source_url, scope_verified: true, segment_verified: false,
+    source_url: current.source_url, detail_url: current.source_url,
+    organisation: "NHAI — PIU Pune", project_start: current.start_date,
+    project_completion: current.likely_completion_date,
+    package_reference: current.reference_value, highway_reference: "NH-48",
+    published_chainage: "km 10–110", match_basis: "State/UT MH; mapped NH-48; title/address Pune, Satara",
+    bid_closing: null, bid_opening: null, agreement_number: null, agreement_date: null,
+    scope_verified: true, segment_verified: false,
     award_verified: true, dlp_verified: false,
     tender_pack_id: "in-nh-contracts-mh", tender_pack_version: 1,
     tender_pack_sha256: "a".repeat(64), tender_pack_state_code: "MH",
   };
   const manifest = await P.getContractPackManifest();
   const mhPack = await P.loadHighwayContractPack("MH");
+  const complaint = P.buildComplaintOutputs({
+    size: "medium", surface_type: "bituminous_asphalt",
+    measurement_provenance: "visual_estimate", measurement_confidence: "low",
+  }, 18.5204, 73.8567, "Pune Satara Highway, Pune, Maharashtra",
+  "National Highway Authority", candidate,
+  {...route, authority_id:"in-national-highway", authority_name:"National Highway",
+   officer_name:"National Highway Authority", routing_source:"osm_national_highway"}, {});
   const exactStates = await Promise.all([
     P.exactPinnedContractStateCode("MH", 18.5204, 73.8567, 8),
     P.exactPinnedContractStateCode("MH", 23.0225, 72.5714, 8),
@@ -112,6 +125,8 @@ async () => {
     drainIncluded: ranked.some((item) => item.record.record_id === "nhai:drain"),
     refOnlyCount: refOnly.length,
     accepted: P.normaliseTenderMatch(candidate, route),
+    complaintBody: complaint.email_body,
+    portalFields: complaint.portal_fields,
     crossState: P.normaliseTenderMatch({...candidate,
       tender_pack_id:"in-nh-contracts-gj", tender_pack_state_code:"GJ"}, route),
     exactStates,
@@ -178,6 +193,18 @@ def main() -> None:
         failures.append(f"Unmapped chainage was marked verified: {accepted!r}")
     elif accepted.get("award_verified") is not True:
         failures.append(f"Source-backed award was discarded: {accepted!r}")
+    complaint_body = result["complaintBody"]
+    for expected_detail in (
+        "Organisation / department: NHAI — PIU Pune",
+        "Project start: 01/01/2025",
+        "Likely completion: 01/01/2027",
+        "Package / project reference: ABC123",
+        "Highway reference: NH-48",
+        "Published package chainage (GPS point not verified): km 10–110",
+        "Candidate match basis:",
+    ):
+        if expected_detail not in complaint_body:
+            failures.append(f"highway complaint omitted tender detail: {expected_detail}")
     if result["crossState"] is not None:
         failures.append("A cross-State contract pack was accepted")
     if result["exactStates"] != ["MH", None, None, None]:

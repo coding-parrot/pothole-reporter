@@ -1,0 +1,52 @@
+{
+  "rows": [
+    [
+      "R&B - TELANGANA-SE R&B HYDERABAD",
+      "728100",
+      "NIT No.42/SE/R&B/HYD/2026-27",
+      "WORKS",
+      "Special repairs and resurfacing of BT road from Km 4/0 to Km 9/2 in Hyderabad District",
+      "18500000.00",
+      "20/08/2026 06:53 PM",
+      "21/08/2026 11:00 AM",
+      "05/09/2026 05:00 PM",
+      "<a href='#' onclick=\"viewBtn(663100,101,663090);\">View</a>"
+    ],
+    [
+      "GHMC - TELANGANA",
+      "728101",
+      "NIT No.43/GHMC/2026-27",
+      "WORKS",
+      "Construction of drain and footpath at Jubilee Hills Road No 36",
+      "9500000.00",
+      "20/08/2026 07:00 PM",
+      "21/08/2026 11:00 AM",
+      "05/09/2026 05:00 PM",
+      "<a href='#' onclick=\"viewBtn(663101,101,663091);\">View</a>"
+    ],
+    [
+      "R&B - TELANGANA",
+      "728102",
+      "NIT No.44/R&B/2026-27",
+      "SERVICES",
+      "Consultancy services for DPR preparation for strengthening of NH 163",
+      "1500000.00",
+      "20/08/2026 07:05 PM",
+      "21/08/2026 11:00 AM",
+      "05/09/2026 05:00 PM",
+      "<a href='#' onclick=\"viewBtn(663102,101,663092);\">View</a>"
+    ],
+    [
+      "R&B - TELANGANA",
+      "728103",
+      "NIT No.45/R&B/2026-27",
+      "WORKS",
+      "Road work",
+      "800000.00",
+      "20/08/2026 07:10 PM",
+      "21/08/2026 11:00 AM",
+      "25/08/2026 05:00 PM",
+      "<a href='#' onclick=\"viewBtn(663103,101,663093);\">View</a>"
+    ]
+  ]
+}

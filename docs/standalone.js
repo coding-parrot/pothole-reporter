@@ -2821,7 +2821,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     _contractPackPromises.clear();
   }
 
-  // Current State/UT GePNIC listings are procurement notices, not awards. They use a
+  // Current official State/UT portal listings are procurement notices, not awards. They use a
   // separate catalog and schema so a notice can never acquire contractor, segment or
   // warranty fields merely by passing through the National Highway contract loader.
   const ROAD_NOTICE_MANIFEST_FILE = "road-notice-manifest-v1.36.json";
@@ -2868,7 +2868,7 @@ This is a strict before/after verification, not ordinary pothole detection:
           || packId !== `in-road-notices-${state.toLowerCase()}`
           || resource.pack_id !== packId || !/^[A-Z]{2}$/.test(state)
           || resource.kind !== "road_procurement_notices"
-          || resource.adapter !== "gepnic-road-notices-v1"
+          || resource.adapter !== "official-road-notices-v2"
           || resource.lifecycle !== "procurement_notice"
           || resource.candidate_only !== true
           || resource.pack_version !== 1 || resource.schema_version !== 1
@@ -2913,7 +2913,7 @@ This is a strict before/after verification, not ordinary pothole detection:
   function validateRoadNoticePack(resource, pack) {
     if (!exactObjectKeys(pack, ["adapter", "format", "generated_at", "inference_policy",
       "notices", "pack_id", "pack_version", "schema_version", "sources", "state_code"])
-        || pack.format !== "pothole-gepnic-road-notice-pack"
+        || pack.format !== "pothole-official-road-notice-pack"
         || pack.schema_version !== 1 || pack.pack_version !== 1
         || pack.pack_id !== resource.pack_id || pack.state_code !== resource.state_code
         || pack.adapter !== resource.adapter || pack.generated_at !== resource.source_retrieved_at
@@ -2927,7 +2927,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     const sourceIds = new Set();
     for (const source of pack.sources) {
       if (!exactObjectKeys(source, sourceFields)
-          || !/^in-[a-z]{2}-gepnic(?:-[a-z0-9-]+)?$/.test(String(source.source_id || ""))
+          || !/^in-[a-z]{2}-[a-z0-9][a-z0-9-]*$/.test(String(source.source_id || ""))
           || typeof source.source_name !== "string" || !source.source_name
           || source.source_name.length > 300
           || !/^https:\/\//.test(String(source.source_url || ""))
@@ -2956,8 +2956,10 @@ This is a strict before/after verification, not ordinary pothole detection:
           || typeof row.title !== "string" || !row.title || row.title.length > 1200
           || typeof row.organisation_chain !== "string" || !row.organisation_chain
           || row.organisation_chain.length > 800
-          || ![row.published_at, row.closing_at, row.opening_at]
-            .every((value) => ROAD_NOTICE_TIMESTAMP_RE.test(String(value || "")))
+          || !ROAD_NOTICE_TIMESTAMP_RE.test(String(row.closing_at || ""))
+          || ![row.published_at, row.opening_at]
+            .every((value) => value === null
+              || ROAD_NOTICE_TIMESTAMP_RE.test(String(value || "")))
           || !sourceIds.has(row.source_id)
           || !/^https:\/\//.test(String(row.source_url || ""))
           || row.lifecycle !== "procurement_notice" || row.scope !== "road_surface"
@@ -5752,6 +5754,7 @@ This is a strict before/after verification, not ordinary pothole detection:
   // apply it before any positive road phrase. EPC/design-and-build is intentionally not
   // rejected unless the title explicitly describes one of these non-works services.
   const nonWorksServiceRe = /\bconsult(?:ant|ancy|ants|ing)\b|\b(?:authority|independent)\s+engineer(?:ing)?\b|\bproject\s+management\s+(?:consult(?:ant|ancy|ing)|services?)\b|\b(?:preparation|prepare|preparing|revision|review)\s+of\s+(?:a\s+|the\s+)?(?:detailed\s+project\s+report|dpr)\b|\b(?:detailed\s+project\s+report|dpr)\s+(?:preparation|consultancy|services?)\b|\b(?:feasibility|traffic)\s+(?:study|studies|survey|surveys)\b|\bsurvey\s+(?:and|&)\s+investigation\b|\bthird\s+party\s+(?:inspection|quality\s+(?:audit|monitoring))\b|\b(?:quality\s+control|proof\s+checking)\s+(?:consultancy|services?)\b/;
+  const roadsideVegetationRe = /\broad\s*side\s+(?:monsoon\s+)?plantations?\b|\broadside\s+(?:monsoon\s+)?plantations?\b|\bsocial\s+forestr(?:y|ies)\b|(?:\w*plantation\w*|\w*forestr\w*).*\broad\s+side\w*\b|\broad\s+side\w*\b.*(?:\w*plantation\w*|\w*forestr\w*)/;
 
   const tenderTokens = (value) => (String(value || "").toLowerCase().match(/[a-z0-9]+/g) || []);
   const hasAny = (tokens, values) => tokens.some((token) => values.has(token));
@@ -5782,6 +5785,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     const text = tenderTokens(title).join(" ");
     if (!text) return false;
     if (nonWorksServiceRe.test(text)) return false;
+    if (roadsideVegetationRe.test(text)) return false;
     if (explicitRoadDamageRe.test(text)) return true;
     if (surfaceTreatmentRe.test(text) && !nonCarriagewayTreatmentTargetRe.test(text)) return true;
     const tokens = text.split(" ");
@@ -6008,6 +6012,20 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const title = String(t.t || "").replace(/\s+/g, " ").trim();
     return {
       tender_number: t.tn, contractor, title, published: t.d,
+      organisation: t.loc || "Karnataka procuring body not listed",
+      detail_url: "https://kppp.karnataka.gov.in/",
+      bid_closing: null,
+      bid_opening: null,
+      project_start: null,
+      project_completion: null,
+      agreement_number: null,
+      agreement_date: null,
+      package_reference: null,
+      highway_reference: null,
+      published_chainage: null,
+      lifecycle: "procurement_record",
+      lifecycle_status: "Published procurement record; award/work-order status unverified",
+      match_basis: `Containing civic body ${lgd}; model-selected exact road/locality wording`,
       source_name: "Karnataka Public Procurement Portal (KPPP) snapshot",
       source_url: "https://kppp.karnataka.gov.in/",
       match_confidence: m.confidence,
@@ -6095,6 +6113,18 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       contractor: record.contractor,
       title: record.title,
       published: record.published_at || record.start_date,
+      organisation: [record.agency, record.division].filter(Boolean).join(" — ") || null,
+      detail_url: record.source_url,
+      bid_closing: null,
+      bid_opening: null,
+      project_start: record.start_date,
+      project_completion: record.likely_completion_date,
+      agreement_number: null,
+      agreement_date: null,
+      package_reference: record.reference_value,
+      highway_reference: (record.highway_refs || []).join(" / ") || null,
+      published_chainage: (record.chainages || []).map((range) =>
+        `km ${range.start_km}–${range.end_km}`).join("; ") || null,
       source_name: record.source_name,
       source_url: record.source_url,
       lifecycle: record.lifecycle,
@@ -6300,6 +6330,19 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       contractor: null,
       title: record.title,
       published: null,
+      organisation: [record.agency, record.district_name].filter(Boolean).join(" — ") || null,
+      detail_url: record.source_url,
+      bid_closing: null,
+      bid_opening: null,
+      project_start: null,
+      project_completion: null,
+      agreement_number: record.agreement_number || null,
+      agreement_date: record.agreement_date || null,
+      package_reference: record.package_number || record.reference_value,
+      highway_reference: null,
+      published_chainage: null,
+      road_from: record.road_from || null,
+      road_to: record.road_to || null,
       source_name: record.source_name,
       source_url: record.source_url,
       lifecycle: "current_project",
@@ -6344,10 +6387,21 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       contractor: null,
       title: record.title,
       published: record.published_at,
+      organisation: record.organisation_chain,
+      detail_url: record.source_url,
+      bid_closing: record.closing_at,
+      bid_opening: record.opening_at,
+      project_start: null,
+      project_completion: null,
+      agreement_number: null,
+      agreement_date: null,
+      package_reference: null,
+      highway_reference: best.highway_hits.length ? best.highway_hits.join(" / ") : null,
+      published_chainage: null,
       source_name: source ? source.source_name : "Official State/UT e-Procurement portal",
-      // GePNIC detail links contain session-shaped tokens and can expire. Cite the
-      // stable official portal root plus the tender reference/ID above; keep the exact
-      // captured detail URL inside the immutable pack for audit and fresh-link lookup.
+      // Some official portal detail links contain session-shaped tokens and can expire.
+      // Cite the stable official portal root plus the tender reference/ID above; keep
+      // the exact captured detail URL inside the immutable pack for audit/fresh lookup.
       source_url: source ? source.source_url : record.source_url,
       lifecycle: "procurement_notice",
       lifecycle_status: `Open procurement notice; bid closing ${record.closing_at}`,
@@ -6856,10 +6910,25 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       reference_label: tenderMatch.reference_label || "Tender number",
       tender_number: tenderMatch.tender_number,
       exact_work_name: tenderMatch.title,
+      organisation: tenderMatch.organisation || "Not listed",
       listed_contractor: tenderMatch.contractor || "Not listed",
       publication_date: tenderMatch.published || "Not listed",
+      lifecycle_status: tenderMatch.lifecycle_status || "Not listed",
+      bid_closing: tenderMatch.bid_closing || "Not listed",
+      bid_opening: tenderMatch.bid_opening || "Not listed",
+      project_start: tenderMatch.project_start || "Not listed",
+      project_completion: tenderMatch.project_completion || "Not listed",
+      agreement_number: tenderMatch.agreement_number || "Not listed",
+      agreement_date: tenderMatch.agreement_date || "Not listed",
+      package_reference: tenderMatch.package_reference || "Not listed",
+      highway_reference: tenderMatch.highway_reference || "Not listed",
+      published_chainage: tenderMatch.published_chainage || "Not listed",
+      road_from: tenderMatch.road_from || "Not listed",
+      road_to: tenderMatch.road_to || "Not listed",
+      match_basis: tenderMatch.match_basis || "Not listed",
       source_name: tenderMatch.source_name,
       source_url: tenderMatch.source_url,
+      detail_url: tenderMatch.detail_url || "Not listed",
       scope: tenderMatch.scope_verified ? "Carriageway scope wording present" : "Ineligible",
       segment_match: tenderMatch.segment_verified ? "Verified" : "Unverified",
       award_status: tenderMatch.award_verified ? "Verified by cited source record" : "Unverified",
@@ -6870,10 +6939,25 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       reference_label: "Tender number",
       tender_number: "Not identified",
       exact_work_name: "Not identified",
+      organisation: "Not identified",
       listed_contractor: "Not identified",
       publication_date: "Not applicable",
+      lifecycle_status: "Not applicable",
+      bid_closing: "Not applicable",
+      bid_opening: "Not applicable",
+      project_start: "Not applicable",
+      project_completion: "Not applicable",
+      agreement_number: "Not applicable",
+      agreement_date: "Not applicable",
+      package_reference: "Not applicable",
+      highway_reference: "Not applicable",
+      published_chainage: "Not applicable",
+      road_from: "Not applicable",
+      road_to: "Not applicable",
+      match_basis: "Not applicable",
       source_name: "Not applicable",
       source_url: "Not applicable",
+      detail_url: "Not applicable",
       scope: "Not applicable",
       segment_match: "Not applicable",
       award_status: "Not applicable",
@@ -6901,14 +6985,44 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       `Status: ${tenderFields.status}`,
       `${tenderFields.reference_label}: ${tenderFields.tender_number}`,
       `Exact work name: ${tenderFields.exact_work_name}`,
+      `Organisation / department: ${tenderFields.organisation}`,
       `Listed contractor: ${tenderFields.listed_contractor}`,
       `Publication date: ${tenderFields.publication_date}`,
+      !["Not listed", "Not applicable"].includes(tenderFields.lifecycle_status)
+        ? `Tender / project status: ${tenderFields.lifecycle_status}` : null,
+      !["Not listed", "Not applicable"].includes(tenderFields.bid_closing)
+        ? `Bid closing: ${tenderFields.bid_closing}` : null,
+      !["Not listed", "Not applicable"].includes(tenderFields.bid_opening)
+        ? `Bid opening: ${tenderFields.bid_opening}` : null,
+      !["Not listed", "Not applicable"].includes(tenderFields.project_start)
+        ? `Project start: ${tenderFields.project_start}` : null,
+      !["Not listed", "Not applicable"].includes(tenderFields.project_completion)
+        ? `Likely completion: ${tenderFields.project_completion}` : null,
+      !["Not listed", "Not applicable"].includes(tenderFields.agreement_number)
+        ? `Agreement: ${tenderFields.agreement_number}`
+          + (!["Not listed", "Not applicable"].includes(tenderFields.agreement_date)
+            ? ` dated ${tenderFields.agreement_date}` : "") : null,
+      !["Not listed", "Not applicable"].includes(tenderFields.package_reference)
+        ? `Package / project reference: ${tenderFields.package_reference}` : null,
+      !["Not listed", "Not applicable"].includes(tenderFields.highway_reference)
+        ? `Highway reference: ${tenderFields.highway_reference}` : null,
+      !["Not listed", "Not applicable"].includes(tenderFields.published_chainage)
+        ? `Published package chainage (GPS point not verified): ${tenderFields.published_chainage}` : null,
+      !["Not listed", "Not applicable"].includes(tenderFields.road_from)
+        ? `Road from: ${tenderFields.road_from}` : null,
+      !["Not listed", "Not applicable"].includes(tenderFields.road_to)
+        ? `Road to: ${tenderFields.road_to}` : null,
+      !["Not listed", "Not applicable"].includes(tenderFields.match_basis)
+        ? `Candidate match basis: ${tenderFields.match_basis}` : null,
       `Source: ${tenderFields.source_name}${tenderFields.source_url !== "Not applicable" ? ` — ${tenderFields.source_url}` : ""}`,
+      !["Not listed", "Not applicable"].includes(tenderFields.detail_url)
+        && tenderFields.detail_url !== tenderFields.source_url
+        ? `Official tender detail link (may expire): ${tenderFields.detail_url}` : null,
       `Carriageway scope: ${tenderFields.scope}`,
       `Road-segment match: ${tenderFields.segment_match}`,
       `Award/work-order status: ${tenderFields.award_status}`,
       `DLP status: ${tenderFields.dlp_status}`,
-    ];
+    ].filter(Boolean);
     const request = routing.profile.request
       || "Please register this grievance, inspect and repair the pothole, return the grievance number, and transfer it if another agency maintains the road.";
     const outputLang = LANG();
@@ -6945,7 +7059,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       `Map: ${mapUrl}`,
       `Classification: Pothole YES; ${surface}; app visual size ${size}; physical measurements unknown (${measurementProvenance.toLowerCase()}, ${measurementConfidence.toLowerCase()} confidence).`,
       `Routing: geographic body ${routing.geographicName}; intake ${routing.intakeName}; road owner ${routing.ownerVerified ? routing.ownerName : "unverified"}; basis ${routing.clue}.`,
-      `Contract: ${tenderFields.status}; ${tenderFields.reference_label.toLowerCase()} ${tenderFields.tender_number}; work ${tenderFields.exact_work_name}; contractor ${tenderFields.listed_contractor}; published ${tenderFields.publication_date}; source ${tenderFields.source_name}${tenderFields.source_url !== "Not applicable" ? ` ${tenderFields.source_url}` : ""}; DLP ${tenderFields.dlp_status}.`,
+      `Contract: ${tenderFields.status}; ${tenderFields.reference_label.toLowerCase()} ${tenderFields.tender_number}; work ${tenderFields.exact_work_name}; organisation ${tenderFields.organisation}; contractor ${tenderFields.listed_contractor}; status ${tenderFields.lifecycle_status}; bid closes ${tenderFields.bid_closing}; source ${tenderFields.source_name}${tenderFields.source_url !== "Not applicable" ? ` ${tenderFields.source_url}` : ""}; DLP ${tenderFields.dlp_status}.`,
       "Please inspect, repair, register the grievance and share its reference number.",
       independentNote,
     ].join("\n");
@@ -6974,10 +7088,25 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       contract_candidate_status: tenderFields.status,
       tender_number: tenderFields.tender_number,
       exact_work_name: tenderFields.exact_work_name,
+      organisation_department: tenderFields.organisation,
       listed_contractor: tenderFields.listed_contractor,
       publication_date: tenderFields.publication_date,
+      tender_project_status: tenderFields.lifecycle_status,
+      bid_closing: tenderFields.bid_closing,
+      bid_opening: tenderFields.bid_opening,
+      project_start: tenderFields.project_start,
+      likely_completion: tenderFields.project_completion,
+      agreement_number: tenderFields.agreement_number,
+      agreement_date: tenderFields.agreement_date,
+      package_project_reference: tenderFields.package_reference,
+      highway_reference: tenderFields.highway_reference,
+      published_package_chainage: tenderFields.published_chainage,
+      road_from: tenderFields.road_from,
+      road_to: tenderFields.road_to,
+      candidate_match_basis: tenderFields.match_basis,
       contract_source_name: tenderFields.source_name,
       contract_source_url: tenderFields.source_url,
+      official_tender_detail_url: tenderFields.detail_url,
       carriageway_scope: tenderFields.scope,
       road_segment_match: tenderFields.segment_match,
       award_work_order_status: tenderFields.award_status,
@@ -7042,6 +7171,19 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       title: rec.tender_title,
       contractor: rec.contractor,
       published: rec.tender_published,
+      organisation: rec.tender_organisation || null,
+      detail_url: rec.tender_detail_url || null,
+      bid_closing: rec.tender_bid_closing || null,
+      bid_opening: rec.tender_bid_opening || null,
+      project_start: rec.tender_project_start || null,
+      project_completion: rec.tender_project_completion || null,
+      agreement_number: rec.tender_agreement_number || null,
+      agreement_date: rec.tender_agreement_date || null,
+      package_reference: rec.tender_package_reference || null,
+      highway_reference: rec.tender_highway_reference || null,
+      published_chainage: rec.tender_published_chainage || null,
+      road_from: rec.tender_road_from || null,
+      road_to: rec.tender_road_to || null,
       source_name: rec.tender_source_name,
       source_url: rec.tender_source_url,
       lifecycle: rec.tender_lifecycle || null,
@@ -8069,6 +8211,19 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       contractor: tender ? tender.contractor : null,
       tender_note: tender ? tender.note : null,
       tender_published: tender ? tender.published : null,
+      tender_organisation: tender ? (tender.organisation || null) : null,
+      tender_detail_url: tender ? (tender.detail_url || null) : null,
+      tender_bid_closing: tender ? (tender.bid_closing || null) : null,
+      tender_bid_opening: tender ? (tender.bid_opening || null) : null,
+      tender_project_start: tender ? (tender.project_start || null) : null,
+      tender_project_completion: tender ? (tender.project_completion || null) : null,
+      tender_agreement_number: tender ? (tender.agreement_number || null) : null,
+      tender_agreement_date: tender ? (tender.agreement_date || null) : null,
+      tender_package_reference: tender ? (tender.package_reference || null) : null,
+      tender_highway_reference: tender ? (tender.highway_reference || null) : null,
+      tender_published_chainage: tender ? (tender.published_chainage || null) : null,
+      tender_road_from: tender ? (tender.road_from || null) : null,
+      tender_road_to: tender ? (tender.road_to || null) : null,
       tender_source_name: tender ? tender.source_name : null,
       tender_source_url: tender ? tender.source_url : null,
       tender_lifecycle: tender ? (tender.lifecycle || null) : null,
@@ -8473,6 +8628,19 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       contractor: tender ? tender.contractor : null,
       tender_note: tender ? tender.note : null,
       tender_published: tender ? tender.published : null,
+      tender_organisation: tender ? (tender.organisation || null) : null,
+      tender_detail_url: tender ? (tender.detail_url || null) : null,
+      tender_bid_closing: tender ? (tender.bid_closing || null) : null,
+      tender_bid_opening: tender ? (tender.bid_opening || null) : null,
+      tender_project_start: tender ? (tender.project_start || null) : null,
+      tender_project_completion: tender ? (tender.project_completion || null) : null,
+      tender_agreement_number: tender ? (tender.agreement_number || null) : null,
+      tender_agreement_date: tender ? (tender.agreement_date || null) : null,
+      tender_package_reference: tender ? (tender.package_reference || null) : null,
+      tender_highway_reference: tender ? (tender.highway_reference || null) : null,
+      tender_published_chainage: tender ? (tender.published_chainage || null) : null,
+      tender_road_from: tender ? (tender.road_from || null) : null,
+      tender_road_to: tender ? (tender.road_to || null) : null,
       tender_source_name: tender ? tender.source_name : null,
       tender_source_url: tender ? tender.source_url : null,
       tender_lifecycle: tender ? (tender.lifecycle || null) : null,

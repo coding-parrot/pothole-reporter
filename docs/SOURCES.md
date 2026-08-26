@@ -34,7 +34,8 @@ manifests pin each resource's version, HTTPS URL, byte length, and SHA-256 check
 v1.35 state-pack manifest contains 42 resources: forty-one routing/contact packs covering
 all 28 states and all 8 Union Territories, plus the optional Karnataka tender pack.
 Separate v1.36 catalogs contain 33 State/UT National Highway project packs, 36 PMGSY
-State/UT road-agreement packs, and 29 State/UT GePNIC road-notice packs. Karnataka, Tamil
+State/UT road-agreement packs, and 34 official State/UT road-notice packs assembled from
+GePNIC and dedicated public-portal adapters. Karnataka, Tamil
 Nadu, and Telangana retain separate statewide and more-specific routing packs.
 The old unversioned ten-resource manifest remains unchanged for cached v1.25 clients, and
 the versioned v1.26 eleven-resource manifest remains unchanged for cached v1.26 clients.
@@ -80,14 +81,19 @@ verify that the source reports an agreement, but this layer never claims an awar
 contractor, exact segment, warranty, or DLP.
 
 The GePNIC crawl completed 30 official feeds across 29 jurisdictions with zero source
-failures. Of 62,524 rows, strict carriageway scope rejected 57,575 and retained 4,949 open
-road-work notices in 29 jurisdiction packs (4,001,112 bytes). DH, MN, MZ, NL, and SK have
-zero retained notices. AP, BR, CG, GJ, KA, TG, and LD use custom portal families and remain
-explicit gaps in this GePNIC layer; KPPP remains a separate Karnataka supplement. Each
-notice preserves its official portal root and tender identifiers; session-shaped direct
-links are only best-effort conveniences, not the durable citation.
+failures. Dedicated, fail-closed adapters also read the public Bihar eProc2, Chhattisgarh
+CHiPS, Gujarat nProcure, Telangana eProcurement, and Lakshadweep notice indexes. Every
+published notice retains its exact official ID/reference, work title, organisation where
+published, available dates, and source link. Missing fields stay null; no award, contractor,
+road segment, warranty, or DLP is inferred. Andhra Pradesh remains explicitly blocked
+because its complete table requires undocumented client-encrypted state and it exposes no
+stable record link; KPPP remains a separate Karnataka supplement.
+Together these 35 public feeds scanned 69,754 rows, rejected 64,358 through strict
+scope/current-record checks, and published 5,396 notices in 34 jurisdiction packs
+(4,296,746 bytes).
 
-Runtime matching attempts National Highway, Karnataka KPPP, PMGSY, and GePNIC candidates
+Runtime matching attempts National Highway, Karnataka KPPP, PMGSY, and official State/UT
+notice candidates
 where the required same-jurisdiction road/location evidence is present. This improves
 nationwide candidate coverage but does not guarantee every public tender or every road.
 An open procurement notice is not an award or active maintenance contract. Every result
@@ -325,8 +331,10 @@ PGRS is the primary neutral handoff for road damage, garbage, and open or damage
 alternate, and the published grievance helpline is **1902**. The user must select and verify
 the district, department, local body, issue category, and road owner, then complete the
 complaint externally. The app does not call a complaint-write API, file automatically,
-or infer ownership. Andhra Pradesh's custom state portal remains an explicit gap in the
-GePNIC layer; National Highway and PMGSY candidates remain separately available.
+or infer ownership. The public Andhra Pradesh tender list was verified, but a complete
+machine-readable pull requires undocumented client-encrypted state and exposes no stable
+record link. The app therefore publishes no AP state-notice pack rather than bypassing the
+portal or fabricating fields; National Highway and PMGSY candidates remain available.
 
 The outline was cross-checked against the Government of Andhra Pradesh
 [APSAC administrative-boundary services](https://apsac.ap.gov.in/?page_id=1075) and the
@@ -371,8 +379,10 @@ The ODbL outline was cross-checked against TGRAC's official
 [`State Boundary` layer 29](https://tgrac.telangana.gov.in/arcgis/rest/services/AdministrativeInfoSystem_Folder/Administrative_Information_System/MapServer/29).
 TGRAC publishes no explicit redistribution licence for that layer, so it is validation
 evidence only; the project redistributes the independently licensed OpenStreetMap geometry.
-Telangana's custom state portal remains an explicit gap in the GePNIC layer; National
-Highway and PMGSY candidates remain separately available.
+The dedicated Telangana adapter reads the anonymous official live-tender table and retains
+strict road-surface notices with their ID/reference, exact work title, department,
+published/bid-start/closing dates, and official source. Bid opening, contractor, segment,
+award, warranty, and DLP remain unknown when the public listing omits them.
 
 ## Karnataka statewide complaint handoff
 
@@ -461,8 +471,10 @@ The user must select and verify the district, department, local body, category, 
 owner and complete the grievance externally. Neither containment nor either service proves
 responsibility, ownership, category acceptance, submission, or a contract. Pothole Reporter
 does not call a complaint-write API, log in, bypass OTP, file automatically, or read status.
-Chhattisgarh's custom state portal remains an explicit gap in the GePNIC layer; National
-Highway and PMGSY candidates remain separately available. The Raipur and Durg–Bhilai entries retained in the immutable
+The dedicated Chhattisgarh adapter reads the anonymous CHiPS open-tender table and public
+detail pages, preserving exact NIT references, opening dates, organisation hierarchy and
+official POST locator. It asserts no contractor, award, segment, warranty, or DLP. The
+Raipur and Durg–Bhilai entries retained in the immutable
 top-50 pack are compatibility data only; current routing uses the exact state boundary.
 
 ## Rajasthan statewide complaint handoff
@@ -754,8 +766,7 @@ point, so the app makes no such attribution. It offers the shared
 whose current listing expressly includes pothole grievances, plus its
 [web flow](https://igs.ghmc.gov.in/operator/send_otp_mobile). Opening either service is not
 submission; the OTP-bound web flow is not a public complaint-write API. Telangana's
-custom state portal remains an explicit gap in the GePNIC layer; National Highway and
-PMGSY candidates remain separately available.
+dedicated official tender feed is described in the statewide section above.
 
 ## Ahmedabad AMC boundary and complaint handoff
 
@@ -783,9 +794,10 @@ The current citizen Android package is
 [`com.amplvb.ccrs`](https://play.google.com/store/apps/details?id=com.amplvb.ccrs).
 AMC's [channel instructions](https://www.amccrs.com/AMCPortal/View/ComplainRegistrationMobile.aspx)
 also publish WhatsApp **+91 75678 55303**, helpline **155303**, and
-`ccrs@ahmedabadcity.gov.in`. The user must finish the complaint in CCRS. Gujarat's
-custom state portal remains an explicit gap in the GePNIC layer; National Highway and
-PMGSY candidates remain separately available.
+`ccrs@ahmedabadcity.gov.in`. The user must finish the complaint in CCRS. The dedicated
+Gujarat adapter reads nProcure's anonymous public tenders-in-progress table through its
+normal browser flow and preserves official references, titles, organisations, deadlines,
+values, and POST locators. It asserts no contractor, award, segment, warranty, or DLP.
 
 ## Karnataka road-contract data
 
@@ -804,10 +816,15 @@ curl -s -X POST "https://kppp.karnataka.gov.in/supplier-registration-service/v1/
   -d '{"category":"WORKS","status":"AWARDED"}' -D - -o page0.json | grep -i x-total-count
 ```
 
-That header reports the total the portal holds: **98,009 awarded works** at the time of
-writing. The checked-in source snapshot contains **42,283** title-matched candidates from
-the earlier broad pull. The current fail-closed scope classifier retains **21,092** titles
-that explicitly include carriageway work. Of the **13,577** rows indexed to a supported
+The 26 August 2026 live audit read **98,499** official `AWARDED` works across 99 pages.
+Strict carriageway scope retained **21,924** procurement records and rejected **76,575**;
+zero rows were structurally invalid. The 47,306,026-byte audit output is deliberately not
+committed or shipped. A small receipt preserves its SHA-256 and exact accounting. `AWARDED`
+is only the portal's search status: it does not prove current execution, contractor, exact
+segment, warranty, or DLP.
+
+The current downloadable municipal pack remains the separately reviewed 21 August source:
+**42,283** broad source rows, of which **13,577** are indexed to a supported
 municipal body, only **5,351** pass that same classifier and enter the downloadable pack.
 Drain, footpath, UGD/sewer, pipeline, lighting, building, bridge, culvert, and similar
 roadside-only work is excluded when a road name merely describes its location. Mixed work
@@ -909,7 +926,7 @@ disagree by looking.
 
 A candidate match is a judgment layered over a procurement/project record. An eligible
 Karnataka route uses a deterministic local shortlist and an AI adjudication against the
-same civic-body pool. National Highway, PMGSY, and GePNIC candidates use deterministic
+same civic-body pool. National Highway, PMGSY, and official State/UT notice candidates use deterministic
 same-State NH/NE or road/immediate-locality evidence. A PMGSY source-reported agreement is
 not treated as a verified award. None of these transforms a title match into proof of
 segment responsibility.
@@ -1011,9 +1028,9 @@ authoritative cited record explicitly supplies the relevant segment and period.
   Evidence remains local until the citizen deliberately opens an external handoff.
 - No State/UT boundary establishes a contract, road owner, or maintaining agency. The
   nationwide candidate layers do not guarantee every tender or road. PMGSY rows verify
-  only source-reported agreement fields; GePNIC notices remain unawarded candidates; and
-  the seven custom portal families remain gaps in the GePNIC layer until dedicated
-  adapters are verified. Exact segment, award, contractor, warranty, and DLP stay unknown
+  only source-reported agreement fields; official procurement notices remain unawarded
+  candidates; and Andhra Pradesh remains a documented portal-access gap. Exact segment,
+  award, contractor, warranty, and DLP stay unknown
   without authoritative evidence.
 - 137 of Karnataka's 319 local bodies have no address in the file because their district
   pages publish none. Those points cannot receive a specific municipal recipient, but can

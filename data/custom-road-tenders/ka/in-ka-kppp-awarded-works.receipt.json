@@ -1,0 +1,31 @@
+{
+  "format": "official-road-surface-procurement-record-receipt",
+  "schema_version": 1,
+  "source_id": "in-ka-kppp-awarded-works",
+  "source_name": "Karnataka Public Procurement Portal (KPPP) public awarded works",
+  "source_url": "https://kppp.karnataka.gov.in/supplier-registration-service/v1/api/portal-service/works/search-eproc-tenders",
+  "retrieved_at": "2026-08-26T06:36:33Z",
+  "state_code": "KA",
+  "query": {
+    "category": "WORKS",
+    "status": "AWARDED"
+  },
+  "anonymous_access": true,
+  "pages_fetched": 99,
+  "total_reported": 98499,
+  "rows_received": 98499,
+  "rows_excluded_by_scope": 76575,
+  "rows_excluded_invalid": 0,
+  "records_kept": 21924,
+  "published_at_min": "2023-05-24T13:49:41+05:30",
+  "published_at_max": "2026-07-31T14:05:24+05:30",
+  "generated_snapshot_bytes": 47306026,
+  "generated_snapshot_sha256": "98773332de0302bda55d5b5665a068d9928be3d6432c7f7a52f7fea7d7e3bc77",
+  "runtime_published": false,
+  "limitations": [
+    "AWARDED is the source search status, not proof of current execution or DLP",
+    "public search rows do not name the winning bidder or award date",
+    "no road-segment geometry or maintenance/warranty dates are published here",
+    "the full generated audit snapshot is intentionally not committed or shipped to clients"
+  ]
+}
