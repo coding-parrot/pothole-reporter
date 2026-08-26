@@ -6,6 +6,27 @@ local matching rules, and AI-generated judgments. A source record is not proof t
 particular defect, authority, or contract match is correct. The user must review the
 photo, routing, and any probable contract match before sending a complaint.
 
+## README India map
+
+The README coverage illustration uses DataMeet India community's
+[`india-composite.geojson`](https://github.com/datameet/maps/blob/5ed214bf77788f99066e3542cccd4a52cb042896/Country/india-composite.geojson)
+at commit `5ed214bf77788f99066e3542cccd4a52cb042896`. The source's SHA-256 is
+`5e44c39b18aa8fe57267d8018fa4ad4a10eaa3aa4cb7cb7382a1813ef8eb8c53`.
+Its dataset note assigns **CC0** and says the composite includes disputed territories in
+accordance with the official Survey of India boundary. The project simplifies that
+geometry to 0.025 degrees for a 320-pixel SVG while retaining the mainland territorial
+outline, Lakshadweep, and the Andaman and Nicobar Islands.
+
+The Government of India's
+[Geospatial Guidelines](https://onlinemaps.surveyofindia.gov.in/GeospatialGuidelines.aspx)
+make Survey of India boundaries the standard for political maps and permit compliant
+publication. The README does not copy Survey of India's political-map artwork, logo, or
+emblem; its [website copyright policy](https://surveyofindia.gov.in/pages/copyright-policy)
+separately requires permission to reproduce website material. Coverage colour, city dots,
+and annotations are Pothole Reporter content and imply no government endorsement. This is
+a README illustration only; runtime routing continues to use the independently versioned,
+checksum-pinned packs documented below.
+
 ## Versioned data packs
 
 Large routing, contact, and procurement datasets are not embedded in the APK. The app

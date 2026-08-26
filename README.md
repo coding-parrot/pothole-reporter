@@ -12,7 +12,7 @@ Current release: [v1.35.0](https://github.com/coding-parrot/pothole-reporter/rel
   <a href="docs/coverage-overview.svg"><img src="docs/coverage-overview.svg" width="280" alt="Pothole Reporter nationwide India coverage overview"></a>
 </p>
 
-<sub>Example detection and current coverage summary. Select either image to enlarge it.</sub>
+<sub>Example detection and current coverage. Map boundary: [DataMeet India community, CC0](https://github.com/datameet/maps/blob/5ed214bf77788f99066e3542cccd4a52cb042896/Country/india-composite.geojson), following the Survey of India standard; no government endorsement. Select either image to enlarge.</sub>
 
 ## Coverage
 

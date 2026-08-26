@@ -258,6 +258,32 @@ def main():
         "coverage map description must preserve ownership and submission disclaimers",
         errors,
     )
+    check(
+        "DataMeet India community" in description
+        and "CC0" in description
+        and "Survey of India boundary standard" in description,
+        "coverage map description must identify the reusable boundary and official standard",
+        errors,
+    )
+    check("No government endorsement is implied" in description, "coverage map must disclaim endorsement", errors)
+
+    metadata = root.find(SVG_NS + "metadata")
+    metadata_text = "" if metadata is None else " ".join("".join(metadata.itertext()).split())
+    check("5ed214bf77788f99066e3542cccd4a52cb042896" in metadata_text, "boundary commit is not pinned", errors)
+    check(
+        "5e44c39b18aa8fe57267d8018fa4ad4a10eaa3aa4cb7cb7382a1813ef8eb8c53" in metadata_text,
+        "boundary input checksum is not pinned",
+        errors,
+    )
+    check("simplified to 0.025 degrees" in metadata_text, "boundary display transform is undocumented", errors)
+
+    element_ids = {element.get("id") for element in root.iter() if element.get("id")}
+    for geometry_id in (
+        "india-mainland-outline",
+        "lakshadweep-outline",
+        "andaman-nicobar-outline",
+    ):
+        check(geometry_id in element_ids, f"coverage map lost {geometry_id}", errors)
 
     markers = [element for element in root.iter(SVG_NS + "g") if element.get("data-city-rank")]
     check(len(markers) == 50, f"coverage map has {len(markers)} ranked markers instead of 50", errors)
