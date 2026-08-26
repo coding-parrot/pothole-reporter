@@ -228,40 +228,24 @@ def main():
     check(root.get("role") == "img", "coverage map must expose role=img", errors)
     check(root.get("aria-labelledby") == "title description", "coverage map accessible labels changed", errors)
 
+    check(root.get("width") == "320" and root.get("height") == "430", "coverage map dimensions changed", errors)
+    check(root.get("viewBox") == "0 0 320 430", "coverage map viewBox changed", errors)
+
     svg_title = root.find(SVG_NS + "title")
     svg_desc = root.find(SVG_NS + "desc")
-    check(svg_title is not None and "nationwide India" in (svg_title.text or ""), "coverage map title missing", errors)
+    check(
+        svg_title is not None and (svg_title.text or "") == "Pothole Reporter India coverage map",
+        "coverage map title missing",
+        errors,
+    )
     description = "" if svg_desc is None else " ".join("".join(svg_desc.itertext()).split())
-    check("50 available routes" in description, "coverage map description must say 50 routes are available", errors)
     check(
-        "conservative structured city-name routes" in description,
-        "coverage map description must identify conservative city-name routing",
-        errors,
-    )
-    check(
-        "do not represent complete urban-agglomeration boundaries" in description,
-        "coverage map description must disclaim complete UA boundaries",
-        errors,
-    )
-    check(
-        "All 28 states and 8 Union Territories" in description,
+        "all 28 states and 8 Union Territories" in description,
         "coverage map description must claim exactly 28 states and 8 Union Territories",
         errors,
     )
     check(
-        "exact city or authority routes retain precedence" in description,
-        "coverage map description must preserve exact-route precedence",
-        errors,
-    )
-    check(
-        "does not prove road ownership" in description and "nothing is submitted automatically" in description,
-        "coverage map description must preserve ownership and submission disclaimers",
-        errors,
-    )
-    check(
-        "DataMeet India community" in description
-        and "CC0" in description
-        and "Survey of India boundary standard" in description,
+        "CC0 boundary follows the Survey of India boundary standard" in description,
         "coverage map description must identify the reusable boundary and official standard",
         errors,
     )
@@ -285,46 +269,14 @@ def main():
     ):
         check(geometry_id in element_ids, f"coverage map lost {geometry_id}", errors)
 
-    markers = [element for element in root.iter(SVG_NS + "g") if element.get("data-city-rank")]
-    check(len(markers) == 50, f"coverage map has {len(markers)} ranked markers instead of 50", errors)
-    marker_pairs = [(int(marker.get("data-city-rank")), marker.get("data-city-id")) for marker in markers]
-    expected_pairs = [(row[0], row[1]) for row in EXPECTED]
-    check(marker_pairs == expected_pairs, "SVG marker rank/id order does not match the catalog", errors)
-
-    cities_by_id = {city["id"]: city for city in cities}
-    for marker in markers:
-        city_id = marker.get("data-city-id")
-        classes = set(marker.get("class", "").split())
-        check({"marker", "available"}.issubset(classes), f"{city_id}: marker is not available", errors)
-        check("pending" not in classes, f"{city_id}: marker still has pending status", errors)
-        title = marker.find(SVG_NS + "title")
-        title_text = "" if title is None else (title.text or "")
-        city = cities_by_id.get(city_id)
-        if city:
-            check(f"{city['rank']}." in title_text, f"{city_id}: marker title rank missing", errors)
-            check(city["current_name"] in title_text, f"{city_id}: current name missing from marker title", errors)
-            check("available" in title_text, f"{city_id}: marker title does not say available", errors)
-            if city["coverage_tier"] == "major-city-neutral":
-                check(
-                    "conservative structured city-name route" in title_text,
-                    f"{city_id}: marker title must identify conservative city-name routing",
-                    errors,
-                )
-
-    all_svg_text = " ".join("".join(root.itertext()).split())
-    check("Available route · 50" in all_svg_text, "coverage map legend must show 50 available", errors)
-    check("Structured city name · 8" in all_svg_text, "coverage map legend must show 8 city-name routes", errors)
-    check("28 states · 8 Union Territories" in all_svg_text, "coverage map must show nationwide civic coverage", errors)
-    check("National Highway and exact city/authority routes stay first" in all_svg_text, "coverage map must show route precedence", errors)
-    check("No ownership proof · nothing is submitted automatically" in all_svg_text, "coverage map must show handoff limits", errors)
-    check("Pending reviewed pack" not in all_svg_text, "coverage map still contains a pending legend", errors)
-    for required_text in (
-        "NATIONWIDE CIVIC HANDOFFS",
-        "Coordinate-pinned boundary containment",
-        "Fallback opens a conservative official grievance channel",
-        "Mapped National Highways",
-    ):
-        check(required_text in all_svg_text, f"coverage map lost: {required_text}", errors)
+    visible_text = [" ".join("".join(element.itertext()).split()) for element in root.iter(SVG_NS + "text")]
+    check(visible_text == ["Covers all states and UTs."], "coverage image must contain only its one-line heading", errors)
+    check(not list(root.iter(SVG_NS + "circle")), "coverage image must not contain city dots", errors)
+    check(
+        not any(element.get("data-city-rank") for element in root.iter()),
+        "coverage image must not contain city marker metadata",
+        errors,
+    )
 
     if errors:
         print("COVERAGE MAP TEST FAIL")
@@ -332,7 +284,7 @@ def main():
             print(f"- {error}")
         return 1
 
-    print("COVERAGE MAP TEST PASS (50 available routes; catalog/SVG parity exact)")
+    print("COVERAGE MAP TEST PASS (single heading, India outline, no dots)")
     return 0
 
 
