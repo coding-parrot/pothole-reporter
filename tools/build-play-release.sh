@@ -70,6 +70,9 @@ echo "1/7 validating hosted data packs, municipal schemas and web-source mirrors
 [ -x "$ANDROID_ROOT/gradlew" ] || fail "Gradle wrapper is missing or not executable"
 python3 tools/build-state-packs.py --check
 python3 tools/build-national-highways.py --check
+python3 tools/build-highway-contract-packs.py --check
+python3 tools/build-gepnic-road-notice-packs.py --check
+python3 tools/build-pmgsy-road-agreement-packs.py --check
 python3 tests/state_pack_validation_test.py
 same_file "$PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.35.json" "v1.35 pack manifest mirror"
 same_file "$PREVIOUS_PACK_MANIFEST" "$WWW_ROOT/pack-manifest-v1.33.json" "v1.33 pack manifest mirror"
@@ -202,6 +205,9 @@ for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
 done
 if unzip -Z1 "$AAB_PATH" | grep -Eq '^base/assets/public/packs/v1/highways/'; then
   fail "National Highway geometry tiles are bundled in the AAB"
+fi
+if unzip -Z1 "$AAB_PATH" | grep -Eq '^base/assets/public/packs/v1/(contracts|road-notices|road-agreements)/'; then
+  fail "contract/tender data packs are bundled in the AAB"
 fi
 
 echo "7/7 release bundle accepted"

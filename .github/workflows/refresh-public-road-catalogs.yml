@@ -1,0 +1,198 @@
+name: Refresh public road catalogs
+
+on:
+  schedule:
+    # Monday and Thursday at 02:17 UTC (07:47 IST).
+    - cron: "17 2 * * 1,4"
+  workflow_dispatch:
+
+concurrency:
+  group: public-road-catalog-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    name: Refresh, validate, and open a PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      LC_ALL: C.UTF-8
+      PYTHONDONTWRITEBYTECODE: "1"
+      TZ: UTC
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+
+      - name: Run offline parser and schema preflight
+        run: |
+          set -euo pipefail
+          python3 tests/tender_source_registry_test.py
+          python3 tests/tender_scope_test.py
+          python3 tests/national_highway_contracts_test.py
+          python3 tests/gepnic_tender_crawler_test.py
+          python3 tests/gepnic_road_notice_pack_builder_test.py
+          python3 tests/bihar_road_tender_puller_test.py
+          python3 tests/emarg_road_contract_puller_test.py
+          python3 tests/pmgsy_road_agreement_puller_test.py
+          python3 tests/pmgsy_road_agreement_pack_builder_test.py
+          python3 tests/catalog_pack_pruner_test.py
+
+      - name: Refresh official source snapshots
+        run: |
+          set -euo pipefail
+          catalog_retrieved_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          python3 tools/pull-national-highway-contracts.py \
+            --retrieved-at "$catalog_retrieved_at" \
+            --pretty
+
+          mkdir -p \
+            data/gepnic-road-notices/sources \
+            data/gepnic-road-notices/states \
+            data/pmgsy-road-agreements/sources
+          find data/gepnic-road-notices/sources -type f -name '*.json' -delete
+          find data/gepnic-road-notices/states -type f -name '*.json' -delete
+          python3 tools/pull-india-gepnic.py \
+            --output-dir data/gepnic-road-notices \
+            --retrieved-at "$catalog_retrieved_at" \
+            --timeout 45 \
+            --request-delay 0.20
+          # Source receipts plus the crawl report are the canonical inputs. The per-State
+          # files duplicate every retained notice and are not used by the pack builder.
+          find data/gepnic-road-notices/states -type f -name '*.json' -delete
+
+          find data/pmgsy-road-agreements/sources -type f -name '*.json.gz' -delete
+          python3 tools/pull-pmgsy-road-agreements.py \
+            --all-states \
+            --output-dir data/pmgsy-road-agreements/sources \
+            --as-of "$catalog_retrieved_at" \
+            --timeout 120
+
+      - name: Rebuild immutable runtime packs and manifests
+        run: |
+          set -euo pipefail
+          python3 tools/build-highway-contract-packs.py
+          python3 tools/build-gepnic-road-notice-packs.py
+          python3 tools/build-pmgsy-road-agreement-packs.py
+          python3 tools/prune-catalog-packs.py --apply
+
+      - name: Verify generated catalogs without a browser
+        run: |
+          set -euo pipefail
+          python3 tools/build-highway-contract-packs.py --check
+          python3 tools/build-gepnic-road-notice-packs.py --check
+          python3 tools/build-pmgsy-road-agreement-packs.py --check
+          python3 tools/prune-catalog-packs.py --check
+          python3 tests/tender_contract_pack_builder_test.py
+          python3 tests/gepnic_road_notice_pack_builder_test.py
+          python3 tests/pmgsy_road_agreement_pack_builder_test.py
+
+      - name: Enforce catalog-only changes
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t catalog_changed_paths < <(
+            {
+              git diff --name-only
+              git ls-files --others --exclude-standard
+            } | sort -u
+          )
+
+          for catalog_path in "${catalog_changed_paths[@]}"; do
+            case "$catalog_path" in
+              data/tenders-national-highways.json|\
+              data/gepnic-road-notices/*|\
+              data/pmgsy-road-agreements/*|\
+              docs/packs/v1/contracts/*|\
+              docs/packs/v1/road-notices/*|\
+              docs/packs/v1/road-agreements/*|\
+              static/contract-manifest-v1.36.json|\
+              docs/contract-manifest-v1.36.json|\
+              android-app/www/contract-manifest-v1.36.json|\
+              static/road-notice-manifest-v1.36.json|\
+              docs/road-notice-manifest-v1.36.json|\
+              android-app/www/road-notice-manifest-v1.36.json|\
+              static/road-agreement-manifest-v1.36.json|\
+              docs/road-agreement-manifest-v1.36.json|\
+              android-app/www/road-agreement-manifest-v1.36.json)
+                ;;
+              *)
+                echo "Refusing to publish non-catalog change: $catalog_path" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          if ((${#catalog_changed_paths[@]} == 0)); then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Official catalogs are already current."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            printf 'Catalog files changed:\n'
+            printf '  %s\n' "${catalog_changed_paths[@]}"
+          fi
+
+      - name: Commit to a unique automation branch
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          CATALOG_BRANCH: automation/public-road-catalogs-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          git switch -c "$CATALOG_BRANCH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -- \
+            data/tenders-national-highways.json \
+            data/gepnic-road-notices \
+            data/pmgsy-road-agreements \
+            docs/packs/v1/contracts \
+            docs/packs/v1/road-notices \
+            docs/packs/v1/road-agreements \
+            static/contract-manifest-v1.36.json \
+            docs/contract-manifest-v1.36.json \
+            android-app/www/contract-manifest-v1.36.json \
+            static/road-notice-manifest-v1.36.json \
+            docs/road-notice-manifest-v1.36.json \
+            android-app/www/road-notice-manifest-v1.36.json \
+            static/road-agreement-manifest-v1.36.json \
+            docs/road-agreement-manifest-v1.36.json \
+            android-app/www/road-agreement-manifest-v1.36.json
+
+          git diff --quiet
+          test -z "$(git ls-files --others --exclude-standard)"
+          git diff --cached --check
+          git commit -m "Refresh public road catalogs"
+          git push --set-upstream origin "$CATALOG_BRANCH"
+
+      - name: Open review PR
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          CATALOG_BRANCH: automation/public-road-catalogs-${{ github.run_id }}-${{ github.run_attempt }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh pr create \
+            --base main \
+            --head "$CATALOG_BRANCH" \
+            --title "Refresh public road catalogs" \
+            --body "Automated refresh from the official NHAI/MoRTH, NHIDCL, State/UT GePNIC, and PMGSY public feeds.
+
+          The workflow rebuilt and schema-checked the content-addressed highway-contract, road-notice, and road-agreement packs. Review the source receipts, record-count changes, and manifest diffs before merging.
+
+          This automation never pushes to or merges main."

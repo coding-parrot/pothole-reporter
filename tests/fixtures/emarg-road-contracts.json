@@ -1,0 +1,83 @@
+{
+  "states": [
+    {
+      "stateId": 5,
+      "encStateId": "oCtj8KImYso",
+      "stateName": "Bihar"
+    }
+  ],
+  "districts_by_state": {
+    "oCtj8KImYso": [
+      {
+        "districtId": 26,
+        "encDistrictId": "dj_f5fpuUIU",
+        "districtName": "Araria"
+      }
+    ]
+  },
+  "blocks_by_district": {
+    "dj_f5fpuUIU": [
+      {
+        "blockId": 225,
+        "encBlockId": "3J8rzru7OQU",
+        "blockName": "Araria"
+      }
+    ]
+  },
+  "roads_by_district_block": {
+    "dj_f5fpuUIU|3J8rzru7OQU": [
+      {
+        "roadDetailsId": 92692,
+        "encRoadDetailsId": "nIehGclYQ-g",
+        "roadName": "MRL03-PMGSY ROAD TO FULL KUMAR TOLA"
+      },
+      {
+        "roadDetailsId": 12718,
+        "encRoadDetailsId": "IcptzYdHtrM",
+        "roadName": "L023-PWD ROAD T02 TO KHARHAR (VR23)"
+      }
+    ]
+  },
+  "details_by_road": {
+    "nIehGclYQ-g": {
+      "roadDetailsId": 92692,
+      "encRoadDetailsId": "nIehGclYQ-g",
+      "roadName": "MRL03-PMGSY ROAD TO FULL KUMAR TOLA",
+      "contractorName": "V.B. BUILDCON",
+      "agreementNo": null,
+      "strMaintenanceStartDate": "29-08-2023",
+      "strStipulatedDateOfCompletion": "28-08-2028",
+      "actualLength": 8.12,
+      "btLength": 6.22,
+      "ccLength": 1.9,
+      "carriageWayWidth": 3.75,
+      "averageMarks": "Satisfactory",
+      "packageDetail": {
+        "packageId": 70677,
+        "packageIdEnc": "wIuwQEn6c90",
+        "packageNo": "BR01P3R04",
+        "workOrderNo": null
+      }
+    },
+    "IcptzYdHtrM": {
+      "roadDetailsId": 12718,
+      "encRoadDetailsId": "IcptzYdHtrM",
+      "roadName": "L023-PWD ROAD T02 TO KHARHAR (VR23)",
+      "contractorName": "KOMAL CONSTRUCTION",
+      "agreementNo": null,
+      "strMaintenanceStartDate": "01-07-2016",
+      "strStipulatedDateOfCompletion": "30-06-2021",
+      "actualLength": 1.519,
+      "btLength": 1.019,
+      "ccLength": 0.5,
+      "carriageWayWidth": 3.75,
+      "averageMarks": "Unsatisfactory",
+      "packageDetail": {
+        "packageId": 9072,
+        "packageIdEnc": "lcj6fkLttUQ",
+        "packageNo": "BR1R061",
+        "workOrderNo": null
+      }
+    }
+  }
+}

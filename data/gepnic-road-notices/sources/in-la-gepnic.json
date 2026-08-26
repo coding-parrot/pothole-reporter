@@ -1,0 +1,138 @@
+{
+  "format": "gepnic-road-surface-procurement-notices",
+  "lifecycle": "procurement_notice",
+  "notices": [
+    {
+      "closing_at": "2026-09-12T16:00:00+05:30",
+      "detail_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SS2t0GgG9l4GpuvNTSQGRMg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SX%2FB7iPqLtlwRMXTHkbwNyQ%3D%3D",
+      "opening_at": "2026-09-14T12:00:00+05:30",
+      "organisation_chain": "Public Works Department||Chief Engineer PW(R and B) - Ladakh||PWD Department - Leh||Construction Division - Leh",
+      "organisation_path": [
+        "Public Works Department",
+        "Chief Engineer PW(R and B) - Ladakh",
+        "PWD Department - Leh",
+        "Construction Division - Leh"
+      ],
+      "published_at": "2026-08-21T17:00:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Ladakh e-Procurement Portal",
+      "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SS2t0GgG9l4GpuvNTSQGRMg%3D%3D",
+      "state_code": "LA",
+      "tender_id": "2026_PWD_19414_1",
+      "tender_reference": "CDL 65 of Leh of 2025-26",
+      "title": "Construction of upper link road from Naro Photang to Moman at Shey"
+    },
+    {
+      "closing_at": "2026-09-08T16:00:00+05:30",
+      "detail_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SEQmpZvA6vALqppczfDjmdg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SX%2FB7iPqLtlwRMXTHkbwNyQ%3D%3D",
+      "opening_at": "2026-09-10T11:00:00+05:30",
+      "organisation_chain": "Public Works Department||Chief Engineer PW(R and B) - Ladakh||PWD Department - Leh||SSD Khaltsi",
+      "organisation_path": [
+        "Public Works Department",
+        "Chief Engineer PW(R and B) - Ladakh",
+        "PWD Department - Leh",
+        "SSD Khaltsi"
+      ],
+      "published_at": "2026-08-18T17:00:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Ladakh e-Procurement Portal",
+      "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SEQmpZvA6vALqppczfDjmdg%3D%3D",
+      "state_code": "LA",
+      "tender_id": "2026_PWD_19382_1",
+      "tender_reference": "19 of R and B Khaltsi of 2026-27",
+      "title": "Construction of link road from Lamayuru to chagatsay Pams (by way of construction of 2Nos 2Mtr span RCC culvert). Under Distt. Plan"
+    },
+    {
+      "closing_at": "2026-08-29T16:00:00+05:30",
+      "detail_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGKLZhQA7cfJySL8xsWW%2FDw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SX%2FB7iPqLtlwRMXTHkbwNyQ%3D%3D",
+      "opening_at": "2026-08-31T14:00:00+05:30",
+      "organisation_chain": "Public Works Department||Chief Engineer PW(R and B) - Ladakh||PWD Department - Leh||R and B Leh",
+      "organisation_path": [
+        "Public Works Department",
+        "Chief Engineer PW(R and B) - Ladakh",
+        "PWD Department - Leh",
+        "R and B Leh"
+      ],
+      "published_at": "2026-08-17T18:00:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Ladakh e-Procurement Portal",
+      "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGKLZhQA7cfJySL8xsWW%2FDw%3D%3D",
+      "state_code": "LA",
+      "tender_id": "2026_PWD_19372_1",
+      "tender_reference": "E Tender 60 of R and B Division Leh",
+      "title": "Construction of link road from Naga to Rantak by way of RR masonary (Under BADP)"
+    },
+    {
+      "closing_at": "2026-09-03T14:00:00+05:30",
+      "detail_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SlUrgvQ4nb30VniQafMQgjQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SX%2FB7iPqLtlwRMXTHkbwNyQ%3D%3D",
+      "opening_at": "2026-09-04T11:00:00+05:30",
+      "organisation_chain": "Public Works Department||Chief Engineer PW(R and B) - Ladakh||PWD Department - Leh||SSD Nubra",
+      "organisation_path": [
+        "Public Works Department",
+        "Chief Engineer PW(R and B) - Ladakh",
+        "PWD Department - Leh",
+        "SSD Nubra"
+      ],
+      "published_at": "2026-08-14T15:00:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Ladakh e-Procurement Portal",
+      "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SlUrgvQ4nb30VniQafMQgjQ%3D%3D",
+      "state_code": "LA",
+      "tender_id": "2026_PWD_19363_1",
+      "tender_reference": "22 of PWD RnB Nubra 2026-27",
+      "title": "Construction of Circular Road Chutang Bogdang. (Under BADP)"
+    },
+    {
+      "closing_at": "2026-08-29T14:00:00+05:30",
+      "detail_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sl5M8QQ6rmmJTKmH63nwVPw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
+      "opening_at": "2026-08-31T11:00:00+05:30",
+      "organisation_chain": "Rural Development and Panchayati Raj||Directorate of RDD||Rural Development Department - Leh",
+      "organisation_path": [
+        "Rural Development and Panchayati Raj",
+        "Directorate of RDD",
+        "Rural Development Department - Leh"
+      ],
+      "published_at": "2026-08-24T17:00:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Ladakh e-Procurement Portal",
+      "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sl5M8QQ6rmmJTKmH63nwVPw%3D%3D",
+      "state_code": "LA",
+      "tender_id": "2026_RDD_19423_1",
+      "tender_reference": "35- UTL REW Leh of 2026-27",
+      "title": "Construction of Link Road From Paljor House to Amchi House at Chuchot Shamma"
+    }
+  ],
+  "organisations": [
+    "Forest Ecology and Environment",
+    "Housing and Urban Development",
+    "LAHDC - Kargil",
+    "LAHDC - Leh",
+    "Power Development and Non-Renewable Energy",
+    "Public Works Department",
+    "Rural Development and Panchayati Raj",
+    "Toursim and Culture"
+  ],
+  "retrieved_at": "2026-08-26T05:22:39Z",
+  "rows_excluded_by_scope": 87,
+  "rows_scanned": 92,
+  "schema_version": 1,
+  "source_id": "in-la-gepnic",
+  "source_name": "Ladakh e-Procurement Portal",
+  "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=clear&page=FrontEndTendersByOrganisation&service=direct",
+  "state_code": "LA"
+}

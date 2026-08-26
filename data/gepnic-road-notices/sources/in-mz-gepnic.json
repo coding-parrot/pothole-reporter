@@ -1,0 +1,16 @@
+{
+  "format": "gepnic-road-surface-procurement-notices",
+  "lifecycle": "procurement_notice",
+  "notices": [],
+  "organisations": [
+    "Office of the Deputy Commissioner Serchhip"
+  ],
+  "retrieved_at": "2026-08-26T05:22:39Z",
+  "rows_excluded_by_scope": 1,
+  "rows_scanned": 1,
+  "schema_version": 1,
+  "source_id": "in-mz-gepnic",
+  "source_name": "Mizoram e-Procurement Portal",
+  "source_url": "https://mizoramtenders.gov.in/nicgep/app?component=clear&page=FrontEndTendersByOrganisation&service=direct",
+  "state_code": "MZ"
+}

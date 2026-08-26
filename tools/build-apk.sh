@@ -17,7 +17,7 @@ FORBIDDEN_STATE_ASSETS=(
 )
 
 echo "1/5 mirroring static/ into www/"
-for f in standalone.js index.html pack-manifest.json pack-manifest-v1.26.json pack-manifest-v1.27.json pack-manifest-v1.28.json pack-manifest-v1.29.json pack-manifest-v1.30.json pack-manifest-v1.31.json pack-manifest-v1.33.json pack-manifest-v1.34.json pack-manifest-v1.35.json highway-manifest.json; do cp "static/$f" "android-app/www/$f"; done
+for f in standalone.js index.html pack-manifest.json pack-manifest-v1.26.json pack-manifest-v1.27.json pack-manifest-v1.28.json pack-manifest-v1.29.json pack-manifest-v1.30.json pack-manifest-v1.31.json pack-manifest-v1.33.json pack-manifest-v1.34.json pack-manifest-v1.35.json highway-manifest.json contract-manifest-v1.36.json road-notice-manifest-v1.36.json road-agreement-manifest-v1.36.json; do cp "static/$f" "android-app/www/$f"; done
 
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
   [ ! -e "static/$asset" ] || { echo "FAIL: state data must not be bundled in static/: $asset"; exit 1; }
@@ -27,6 +27,9 @@ done
 echo "2/5 validating hosted data packs"
 python3 tools/build-state-packs.py --check
 python3 tools/build-national-highways.py --check
+python3 tools/build-highway-contract-packs.py --check
+python3 tools/build-gepnic-road-notice-packs.py --check
+python3 tools/build-pmgsy-road-agreement-packs.py --check
 
 echo "3/5 syncing www into the android assets gradle actually packages"
 (cd android-app && npx cap copy android >/dev/null)
@@ -58,6 +61,9 @@ same pack-manifest-v1.33.json
 same pack-manifest-v1.34.json
 same pack-manifest-v1.35.json
 same highway-manifest.json
+same contract-manifest-v1.36.json
+same road-notice-manifest-v1.36.json
+same road-agreement-manifest-v1.36.json
 
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
   if unzip -Z1 "$APK" | grep -Fx "assets/public/$asset" >/dev/null; then
@@ -71,6 +77,12 @@ if unzip -Z1 "$APK" | grep -Eq '^assets/public/packs/v1/highways/'; then
   echo "  FAIL National Highway geometry tiles are bundled in the APK"; fail=1
 else
   echo "  ok   National Highway geometry tiles are not bundled"
+fi
+
+if unzip -Z1 "$APK" | grep -Eq '^assets/public/packs/v1/(contracts|road-notices|road-agreements)/'; then
+  echo "  FAIL remote contract/catalog packs are bundled in the APK"; fail=1
+else
+  echo "  ok   remote contract/catalog packs are not bundled"
 fi
 
 n=$(unzip -p "$APK" assets/public/standalone.js | grep -c 'sk-proj\|sk-[A-Za-z0-9]\{20\}' || true)

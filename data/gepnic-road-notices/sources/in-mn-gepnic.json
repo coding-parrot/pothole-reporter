@@ -1,0 +1,23 @@
+{
+  "format": "gepnic-road-surface-procurement-notices",
+  "lifecycle": "procurement_notice",
+  "notices": [],
+  "organisations": [
+    "Department of Education(S)",
+    "Department of Science and Technology",
+    "Directorate of Tribal Affairs and Hills",
+    "General Administrative Department",
+    "Medical Directorate",
+    "Ministry of Information Technology",
+    "National Health Mission - Manipur",
+    "Water Resource Department"
+  ],
+  "retrieved_at": "2026-08-26T05:22:39Z",
+  "rows_excluded_by_scope": 10,
+  "rows_scanned": 10,
+  "schema_version": 1,
+  "source_id": "in-mn-gepnic",
+  "source_name": "Manipur e-Procurement Portal",
+  "source_url": "https://manipurtenders.gov.in/nicgep/app?component=clear&page=FrontEndTendersByOrganisation&service=direct",
+  "state_code": "MN"
+}

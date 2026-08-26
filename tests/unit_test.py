@@ -225,6 +225,22 @@ CASES = r"""
      P.tenderCoversCarriageway("Construction of cc drain and cc road at ward no 4"));
   ok("tender scope: road used as a pipeline location is excluded",
      !P.tenderCoversCarriageway("Providing and laying water supply HDPE pipeline at burial ground road"));
+  ok("tender scope: project-management consultancy is not physical road work",
+     !P.tenderCoversCarriageway("Project Management Consultancy Services for construction and strengthening of roads in Mumbai"));
+  ok("tender scope: DPR consultancy is not physical road work",
+     !P.tenderCoversCarriageway("Consultancy services for preparation of detailed project report DPR for widening of NH 66"));
+  ok("tender scope: authority engineer is not physical road work",
+     !P.tenderCoversCarriageway("Appointment of Authority Engineer for supervision of rehabilitation and upgradation of NH 48"));
+  ok("tender scope: survey and investigation is not physical road work",
+     !P.tenderCoversCarriageway("Survey and investigation for construction of concrete road from Rampur to Sitapur"));
+  ok("tender scope: third-party quality monitoring is not physical road work",
+     !P.tenderCoversCarriageway("Third party quality monitoring of PMGSY road maintenance works"));
+  ok("tender scope: commercial facility beside an NH is not road work",
+     !P.tenderCoversCarriageway("Development of commercial facility at Auhar on NH 154 under PPP mode"));
+  ok("tender scope: utility shifting for widening is not the widening work",
+     !P.tenderCoversCarriageway("Utility shifting work as part of widening and strengthening of a route connecting NH123"));
+  ok("tender scope: EPC road works are not mistaken for consultancy",
+     P.tenderCoversCarriageway("Engineering procurement and construction for widening and strengthening of NH 48"));
 
   // ---- multimodal request builder and capability-safe settings ----
   const req = P.buildDetectionRequest(["a","b",null,"c","d","e"], "PROMPT", "gpt-5.6", "original");

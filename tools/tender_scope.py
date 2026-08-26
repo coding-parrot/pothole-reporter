@@ -37,7 +37,8 @@ _NON_CARRIAGEWAY_ASSETS = {
     "college", "collage", "complex",
     "compound", "culvert", "culverts", "deck", "dog", "dogsheltar", "drain", "drainage",
     "drains", "electrical", "fence", "fencing", "footpath", "footpaths", "garden",
-    "floor", "floors", "gantry", "gateway", "gateways", "graveyard", "hall", "hospital",
+    "facility", "facilities", "floor", "floors", "gantry", "gateway", "gateways",
+    "graveyard", "hall", "hospital",
     "house", "houses",
     "kerb", "kerbs", "curb", "curbs",
     "lake", "light", "lighting", "lights", "machinehole", "machineholes", "manhole",
@@ -49,6 +50,7 @@ _NON_CARRIAGEWAY_ASSETS = {
     "shed", "shelter", "shishuvihara", "sidewalk", "sidewalks", "sign", "signage",
     "signboard", "signboards", "slab", "sorting", "stand", "temple", "toilet", "toilets",
     "transformer", "transformers", "tree", "trees", "ugd", "unit", "urinal", "urinals",
+    "utility", "utilities",
     "valve", "valves", "vending", "walkway", "walkways", "wall", "walls", "water",
 }
 _ROAD_MODIFIERS_THAT_ARE_NOT_SURFACE = {
@@ -90,6 +92,25 @@ _MATERIAL_PAVEMENT_RE = re.compile(
     r"\b(?:asphalt(?:ic)?|bituminous|cement\s+concrete|concrete|flexible|rigid)\s+pavement\b"
 )
 _HIGHWAY_ROUTE_RE = re.compile(r"^(?:nh|sh|mdr|odr)\d+$")
+
+# A consultancy can describe construction, strengthening or resurfacing in full detail
+# without procuring any physical road work.  Those titles are particularly dangerous for
+# this app because their road wording otherwise looks stronger than a genuine maintenance
+# notice.  Reject explicit design/advisory/inspection assignments before considering the
+# carriageway phrases below.  The patterns stay narrow so EPC/design-and-build works are
+# not rejected merely because the contractor must also design the road.
+_NON_WORKS_SERVICE_PATTERNS = tuple(re.compile(pattern) for pattern in (
+    r"\bconsult(?:ant|ancy|ants|ing)\b",
+    r"\b(?:authority|independent)\s+engineer(?:ing)?\b",
+    r"\bproject\s+management\s+(?:consult(?:ant|ancy|ing)|services?)\b",
+    r"\b(?:preparation|prepare|preparing|revision|review)\s+of\s+(?:a\s+|the\s+)?"
+    r"(?:detailed\s+project\s+report|dpr)\b",
+    r"\b(?:detailed\s+project\s+report|dpr)\s+(?:preparation|consultancy|services?)\b",
+    r"\b(?:feasibility|traffic)\s+(?:study|studies|survey|surveys)\b",
+    r"\bsurvey\s+(?:and|&)\s+investigation\b",
+    r"\bthird\s+party\s+(?:inspection|quality\s+(?:audit|monitoring))\b",
+    r"\b(?:quality\s+control|proof\s+checking)\s+(?:consultancy|services?)\b",
+))
 
 
 def _normalise(value: object) -> str:
@@ -145,6 +166,9 @@ def is_road_surface_contract(title: object, tender_number: object = None) -> boo
     del tender_number
     text = _normalise(title)
     if not text:
+        return False
+
+    if any(pattern.search(text) for pattern in _NON_WORKS_SERVICE_PATTERNS):
         return False
 
     if any(pattern.search(text) for pattern in _EXPLICIT_ROAD_DAMAGE_PATTERNS):

@@ -1,0 +1,37 @@
+{
+  "rows": [
+    {
+      "currenttenderid": 138319,
+      "currentOrgTenderId": 138124,
+      "currenttenderrefno": "NIT-15/BIADA/2026-27",
+      "currentdeptid": 1874,
+      "currentdescription": "CONSTRUCTION OF FLEXIBLE PAVEMENT AT MGC UDAKISHANGANJ",
+      "currentTenderPublishDate": 1786977692000,
+      "currentbidStartDate": 1786980600000,
+      "currentbidEndDate": 1787743800000,
+      "currentbidOpenDate": 1787824800000
+    },
+    {
+      "currenttenderid": 138459,
+      "currentOrgTenderId": 138264,
+      "currenttenderrefno": "RE-NIT-03/2026-27/NNM GR_01",
+      "currentdeptid": 800,
+      "currentdescription": "Construction of RCC Drain from SUB POST OFFICE TO R.C.D MAIN ROAD VIA C.J.M HOUSE MAIN GATE",
+      "currentTenderPublishDate": 1787298802000,
+      "currentbidStartDate": 1787304600000,
+      "currentbidEndDate": 1787823036000,
+      "currentbidOpenDate": 1787896836000
+    },
+    {
+      "currenttenderid": 135001,
+      "currentOrgTenderId": 134806,
+      "currenttenderrefno": "NIT-EXPIRED-ROAD",
+      "currentdeptid": 800,
+      "currentdescription": "Resurfacing and pothole patching of the existing municipal road",
+      "currentTenderPublishDate": 1786800000000,
+      "currentbidStartDate": 1786900000000,
+      "currentbidEndDate": 1787644800000,
+      "currentbidOpenDate": 1787652000000
+    }
+  ]
+}

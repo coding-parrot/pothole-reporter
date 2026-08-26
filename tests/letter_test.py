@@ -39,6 +39,9 @@ JS = r"""
     routing_match_field: "town_lgd_code",
     routing_match_value: "305852",
     handoff_name: "Namma Bengaluru (Sahaaya 2.0)",
+    region: "karnataka",
+    routing_pack_state_code: "KA",
+    contract_state_code: "KA",
     tender_eligible: true,
   };
   const tender = {

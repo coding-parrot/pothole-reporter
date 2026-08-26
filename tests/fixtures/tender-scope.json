@@ -63,6 +63,34 @@
     {
       "tn": "TEST/NONROAD/ASPHALT_FOOTPATH",
       "title": "Asphalting of footpath at MG Road"
+    },
+    {
+      "tn": "TEST/NONWORKS/PMC",
+      "title": "Project Management Consultancy Services for construction and strengthening of roads in Mumbai"
+    },
+    {
+      "tn": "TEST/NONWORKS/DPR",
+      "title": "Consultancy services for preparation of detailed project report DPR for widening of NH 66"
+    },
+    {
+      "tn": "TEST/NONWORKS/AE",
+      "title": "Appointment of Authority Engineer for supervision of rehabilitation and upgradation of NH 48"
+    },
+    {
+      "tn": "TEST/NONWORKS/SURVEY",
+      "title": "Survey and investigation for construction of concrete road from Rampur to Sitapur"
+    },
+    {
+      "tn": "TEST/NONWORKS/QUALITY",
+      "title": "Third party quality monitoring of PMGSY road maintenance works"
+    },
+    {
+      "tn": "2026_HIMUD_142002_1",
+      "title": "Development of commercial facility at Auhar on NH 154 under PPP mode"
+    },
+    {
+      "tn": "2026_CEEMP_1178884_1",
+      "title": "Utility shifting work as part of widening and strengthening of a route connecting NH123"
     }
   ],
   "accept": [
@@ -101,6 +129,10 @@
     {
       "tn": "BBMP/2025-26/RD/WORK_INDENT9000",
       "title": "Pothole filling and road patching in Ward No 12"
+    },
+    {
+      "tn": "TEST/WORKS/EPC",
+      "title": "Engineering procurement and construction for widening and strengthening of NH 48"
     }
   ]
 }

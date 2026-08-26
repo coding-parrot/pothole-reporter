@@ -1,0 +1,1085 @@
+{
+  "registry_id": "india-road-civil-tender-sources",
+  "schema_version": 1,
+  "as_of": "2026-08-26",
+  "scope": "Primary official procurement sources for road and civil works in all 28 Indian states, all 8 union territories, and selected central road agencies.",
+  "coverage_warning": "A statewide procurement portal is not proof that every municipal body, development authority, state PSU, or road-owning agency publishes there. Agency-specific portals and official work-management systems may still be required.",
+  "field_status_values": {
+    "structured": "A labelled portal field or stable table column.",
+    "semi_structured": "A labelled field whose values are not normalized across publishers.",
+    "unstructured_text": "Normally present only in a title or free-text description.",
+    "unstructured_document": "Must be extracted from an official tender, AOC, agreement, work-order, or maintenance document.",
+    "conditional_aoc": "Available only when the purchasing authority publishes and completes an AOC or award record.",
+    "conditional_document": "Available only when the authority uploads the relevant official document.",
+    "not_available": "The reviewed public source does not expose this field.",
+    "not_applicable": "The source is not intended to hold this field."
+  },
+  "match_semantics": {
+    "tender_candidate": {
+      "status": "candidate",
+      "meaning": "An official tender may concern the area and a road-relevant scope, but responsibility for the reported road point has not been proved.",
+      "minimum_evidence": [
+        "official source URL",
+        "tender ID or reference",
+        "verbatim work title",
+        "road-relevant scope after excluding drain-only, footpath-only, utility-only, and unrelated civil works"
+      ],
+      "must_not_claim": [
+        "that the tender covers the exact road segment",
+        "that a named bidder won without an official award or work order",
+        "that a warranty or DLP is active",
+        "that publication date proves contractor responsibility"
+      ]
+    },
+    "verified_contract_match": {
+      "status": "verified",
+      "meaning": "The official evidence links the reported road point, qualifying road-work scope, awarded contractor, and active responsibility period.",
+      "required_evidence": [
+        "official tender ID or reference and immutable source document or URL",
+        "road name, road identifier, chainage, package geometry, or other evidence placing the report coordinate inside the contracted segment",
+        "scope includes carriageway, pavement, resurfacing, repair, rehabilitation, or road maintenance rather than only drain, footpath, utility, landscaping, or unrelated civil work",
+        "official AOC, LoA, agreement, or work order identifies the awarded contractor",
+        "contract commencement, completion, maintenance, or DLP evidence proves responsibility was active on the report date",
+        "road owner or responsible authority is consistent with the contract"
+      ]
+    },
+    "publication_date_rule": "Tender or award publication dates alone must never be used to infer an active DLP, warranty, road ownership, or present contractor responsibility."
+  },
+  "portal_families": {
+    "nic_gepnic": {
+      "maintainer": "National Informatics Centre",
+      "listing_access": {
+        "public": true,
+        "authentication_required": false,
+        "captcha": "Advanced Search generally requires CAPTCHA; home-page and category listings can be browsed without it.",
+        "bulk_export": "No documented tender-level public bulk export was found.",
+        "documented_api": false
+      },
+      "award_access": {
+        "availability": "conditional",
+        "authentication_required": false,
+        "captcha": "Results of Tenders/AOC search requires CAPTCHA.",
+        "publication_dependency": "Contractor and award data exist only when the purchasing authority publishes the AOC or award document."
+      },
+      "supported_fields": {
+        "tender_id": "structured",
+        "tender_reference": "structured",
+        "organisation": "structured",
+        "title": "structured",
+        "work_description": "semi_structured",
+        "location": "semi_structured",
+        "road_segment_or_chainage": "unstructured_text",
+        "source_documents": "structured",
+        "contractor": "conditional_aoc",
+        "award": "conditional_aoc",
+        "work_order_or_agreement": "conditional_document",
+        "dlp_or_warranty": "unstructured_document"
+      },
+      "ingestion_limits": [
+        "No documented public API.",
+        "Do not automate or bypass CAPTCHA.",
+        "Tender detail and document links can be opaque or session-shaped and should be resolved from a fresh official listing.",
+        "Road segment and DLP are not standardized fields and require official-document extraction.",
+        "AOC publication is department-dependent."
+      ]
+    },
+    "ap_eprocurement": {
+      "maintainer": "Government of Andhra Pradesh eProcurement",
+      "listing_access": {
+        "public": true,
+        "authentication_required": "varies_by_document_or_action",
+        "captcha": "Portal flow is application-driven; public automation constraints require live verification.",
+        "bulk_export": "No documented public bulk export was found.",
+        "documented_api": false
+      },
+      "award_access": {
+        "availability": "conditional",
+        "authentication_required": "unknown_for_all_records",
+        "captcha": "unknown",
+        "publication_dependency": "No complete public statewide award feed was confirmed."
+      },
+      "supported_fields": {
+        "tender_id": "structured",
+        "tender_reference": "structured",
+        "organisation": "structured",
+        "title": "structured",
+        "work_description": "semi_structured",
+        "location": "semi_structured",
+        "road_segment_or_chainage": "unstructured_text",
+        "source_documents": "conditional_document",
+        "contractor": "conditional_document",
+        "award": "conditional_document",
+        "work_order_or_agreement": "conditional_document",
+        "dlp_or_warranty": "unstructured_document"
+      },
+      "ingestion_limits": [
+        "Heavy application and login-dependent flows.",
+        "No documented public API or statewide award export was found.",
+        "Agency-specific award registers do not provide statewide coverage."
+      ]
+    },
+    "bihar_eproc2": {
+      "maintainer": "Government of Bihar eProcurement",
+      "listing_access": {
+        "public": true,
+        "authentication_required": false,
+        "captcha": "Public flow requires live verification.",
+        "bulk_export": "No documented public bulk export was found.",
+        "documented_api": false
+      },
+      "award_access": {
+        "availability": "not_confirmed",
+        "authentication_required": "unknown",
+        "captcha": "unknown",
+        "publication_dependency": "No complete public statewide award or work-order feed was confirmed."
+      },
+      "supported_fields": {
+        "tender_id": "structured",
+        "tender_reference": "structured",
+        "organisation": "semi_structured",
+        "title": "structured",
+        "work_description": "semi_structured",
+        "location": "semi_structured",
+        "road_segment_or_chainage": "unstructured_text",
+        "source_documents": "conditional_document",
+        "contractor": "conditional_document",
+        "award": "conditional_document",
+        "work_order_or_agreement": "conditional_document",
+        "dlp_or_warranty": "unstructured_document"
+      },
+      "ingestion_limits": [
+        "Supplier-oriented application and intermittent availability.",
+        "No documented public API or complete public award feed was found."
+      ]
+    },
+    "chhattisgarh_chips": {
+      "maintainer": "Chhattisgarh Infotech Promotion Society",
+      "listing_access": {
+        "public": true,
+        "authentication_required": "varies_by_action",
+        "captcha": "Public flow requires live verification.",
+        "bulk_export": "No documented public bulk export was found.",
+        "documented_api": false
+      },
+      "award_access": {
+        "availability": "not_confirmed",
+        "authentication_required": "unknown",
+        "captcha": "unknown",
+        "publication_dependency": "Public statewide award and work-order coverage was not confirmed."
+      },
+      "supported_fields": {
+        "tender_id": "structured",
+        "tender_reference": "structured",
+        "organisation": "structured",
+        "title": "structured",
+        "work_description": "semi_structured",
+        "location": "semi_structured",
+        "road_segment_or_chainage": "unstructured_text",
+        "source_documents": "conditional_document",
+        "contractor": "conditional_document",
+        "award": "conditional_document",
+        "work_order_or_agreement": "conditional_document",
+        "dlp_or_warranty": "unstructured_document"
+      },
+      "ingestion_limits": [
+        "Heavy JavaScript application.",
+        "No documented public API or complete public award feed was found."
+      ]
+    },
+    "gujarat_nprocure": {
+      "maintainer": "Government of Gujarat through Gujarat Informatics Limited and nCode Solutions",
+      "listing_access": {
+        "public": true,
+        "authentication_required": "varies_by_document_or_action",
+        "captcha": "Public flow requires live verification.",
+        "bulk_export": "No documented public bulk export was found.",
+        "documented_api": false
+      },
+      "award_access": {
+        "availability": "conditional",
+        "authentication_required": "unknown_for_all_records",
+        "captcha": "unknown",
+        "publication_dependency": "End-to-end award functionality does not guarantee a public award feed."
+      },
+      "supported_fields": {
+        "tender_id": "structured",
+        "tender_reference": "structured",
+        "organisation": "structured",
+        "title": "structured",
+        "work_description": "semi_structured",
+        "location": "semi_structured",
+        "road_segment_or_chainage": "unstructured_text",
+        "source_documents": "conditional_document",
+        "contractor": "conditional_document",
+        "award": "conditional_document",
+        "work_order_or_agreement": "conditional_document",
+        "dlp_or_warranty": "unstructured_document"
+      },
+      "ingestion_limits": [
+        "Third-party-operated official portal with application and login-dependent flows.",
+        "No documented public API or verified statewide award export was found."
+      ]
+    },
+    "karnataka_kppp": {
+      "maintainer": "Government of Karnataka",
+      "listing_access": {
+        "public": true,
+        "authentication_required": false,
+        "captcha": "No universal CAPTCHA observed on public discovery; flows can change.",
+        "bulk_export": "No documented supported public bulk export was found.",
+        "documented_api": false
+      },
+      "award_access": {
+        "availability": "conditional",
+        "authentication_required": "varies_by_record",
+        "captcha": "none_observed_on_public_discovery",
+        "publication_dependency": "Award, agreement, and contractor visibility depend on buyer publication and workflow stage."
+      },
+      "supported_fields": {
+        "tender_id": "structured",
+        "tender_reference": "structured",
+        "organisation": "structured",
+        "title": "structured",
+        "work_description": "semi_structured",
+        "location": "semi_structured",
+        "road_segment_or_chainage": "unstructured_text",
+        "source_documents": "structured",
+        "contractor": "conditional_document",
+        "award": "conditional_document",
+        "work_order_or_agreement": "conditional_document",
+        "dlp_or_warranty": "unstructured_document"
+      },
+      "ingestion_limits": [
+        "Public SPA endpoints are undocumented and are not a supported API contract.",
+        "Frontend changes can break extraction.",
+        "Road segment and DLP require document parsing and independent verification."
+      ]
+    },
+    "telangana_eprocurement": {
+      "maintainer": "Government of Telangana",
+      "listing_access": {
+        "public": true,
+        "authentication_required": "varies_by_document_or_action",
+        "captcha": "Public flow requires live verification.",
+        "bulk_export": "No documented public bulk export was found.",
+        "documented_api": false
+      },
+      "award_access": {
+        "availability": "conditional",
+        "authentication_required": "varies_by_record",
+        "captcha": "unknown",
+        "publication_dependency": "The workflow supports Award Contract/PO, but complete public access was not confirmed."
+      },
+      "supported_fields": {
+        "tender_id": "structured",
+        "tender_reference": "structured",
+        "organisation": "structured",
+        "title": "structured",
+        "work_description": "semi_structured",
+        "location": "semi_structured",
+        "road_segment_or_chainage": "unstructured_text",
+        "source_documents": "conditional_document",
+        "contractor": "conditional_document",
+        "award": "conditional_document",
+        "work_order_or_agreement": "conditional_document",
+        "dlp_or_warranty": "unstructured_document"
+      },
+      "ingestion_limits": [
+        "Heavy application with registration, login, or payment restrictions for some documents.",
+        "No documented public API or complete public award export was found."
+      ]
+    },
+    "official_notice_index": {
+      "maintainer": "Respective official government authority",
+      "listing_access": {
+        "public": true,
+        "authentication_required": false,
+        "captcha": "none_observed",
+        "bulk_export": "varies_by_site",
+        "documented_api": false
+      },
+      "award_access": {
+        "availability": "not_guaranteed",
+        "authentication_required": false,
+        "captcha": "none_observed",
+        "publication_dependency": "Only records explicitly published by the authority are available."
+      },
+      "supported_fields": {
+        "tender_id": "semi_structured",
+        "tender_reference": "semi_structured",
+        "organisation": "semi_structured",
+        "title": "structured",
+        "work_description": "unstructured_text",
+        "location": "unstructured_text",
+        "road_segment_or_chainage": "unstructured_text",
+        "source_documents": "conditional_document",
+        "contractor": "conditional_document",
+        "award": "conditional_document",
+        "work_order_or_agreement": "conditional_document",
+        "dlp_or_warranty": "unstructured_document"
+      },
+      "ingestion_limits": [
+        "Not a normalized procurement database.",
+        "Coverage and retention depend on manual authority publication.",
+        "No documented public API."
+      ]
+    },
+    "nhidcl_website": {
+      "maintainer": "National Highways and Infrastructure Development Corporation Limited",
+      "listing_access": {
+        "public": true,
+        "authentication_required": false,
+        "captcha": "none_observed",
+        "bulk_export": "Current and archive listings expose CSV download.",
+        "documented_api": false
+      },
+      "award_access": {
+        "availability": "partial",
+        "authentication_required": false,
+        "captcha": "none_observed",
+        "publication_dependency": "Tender evaluation result documents are public, but a final contractor/LoA is not guaranteed for every record."
+      },
+      "supported_fields": {
+        "tender_id": "structured",
+        "tender_reference": "semi_structured",
+        "organisation": "structured",
+        "title": "structured",
+        "work_description": "structured",
+        "location": "structured",
+        "road_segment_or_chainage": "unstructured_text",
+        "source_documents": "structured",
+        "contractor": "conditional_document",
+        "award": "conditional_document",
+        "work_order_or_agreement": "conditional_document",
+        "dlp_or_warranty": "unstructured_document"
+      },
+      "ingestion_limits": [
+        "CSV is a listing aid, not proof of award or live DLP.",
+        "Final contractor and responsibility dates require official award/agreement documents.",
+        "No documented public API."
+      ]
+    },
+    "pmgsy_ommas": {
+      "maintainer": "National Rural Infrastructure Development Agency, Ministry of Rural Development",
+      "listing_access": {
+        "public": true,
+        "authentication_required": false,
+        "captcha": "varies_by_report",
+        "bulk_export": "Public reports exist; no stable tender-level bulk contract was documented.",
+        "documented_api": false
+      },
+      "award_access": {
+        "availability": "program_record_dependent",
+        "authentication_required": false,
+        "captcha": "varies_by_report",
+        "publication_dependency": "State units enter proposal, agreement, contractor, progress, and maintenance information."
+      },
+      "supported_fields": {
+        "tender_id": "semi_structured",
+        "tender_reference": "semi_structured",
+        "organisation": "structured",
+        "title": "structured",
+        "work_description": "semi_structured",
+        "location": "structured",
+        "road_segment_or_chainage": "semi_structured",
+        "source_documents": "conditional_document",
+        "contractor": "structured",
+        "award": "structured",
+        "work_order_or_agreement": "structured",
+        "dlp_or_warranty": "semi_structured"
+      },
+      "ingestion_limits": [
+        "Covers PMGSY rural roads, not all roads.",
+        "Legacy report UI and no documented public API.",
+        "Public report availability varies; source timestamps must be retained."
+      ]
+    },
+    "pmgsy_emarg": {
+      "maintainer": "National Rural Infrastructure Development Agency and National Informatics Centre",
+      "listing_access": {
+        "public": true,
+        "authentication_required": false,
+        "captcha": "none_observed_on_public_map_and_analytics",
+        "bulk_export": "No documented road-level public bulk export was found.",
+        "documented_api": false
+      },
+      "award_access": {
+        "availability": "maintenance_record_dependent",
+        "authentication_required": false,
+        "captcha": "none_observed_on_public_map_and_analytics",
+        "publication_dependency": "Designed for PMGSY DLP and post-DLP maintenance rather than tender discovery."
+      },
+      "supported_fields": {
+        "tender_id": "not_applicable",
+        "tender_reference": "not_applicable",
+        "organisation": "structured",
+        "title": "structured",
+        "work_description": "semi_structured",
+        "location": "structured",
+        "road_segment_or_chainage": "structured",
+        "source_documents": "conditional_document",
+        "contractor": "semi_structured",
+        "award": "not_applicable",
+        "work_order_or_agreement": "semi_structured",
+        "dlp_or_warranty": "structured"
+      },
+      "ingestion_limits": [
+        "Covers PMGSY rural-road maintenance only.",
+        "No documented public API or bulk road export.",
+        "Map/report data must be joined to OMMAS package and agreement records."
+      ]
+    }
+  },
+  "jurisdictions": [
+    {
+      "code": "IN-AP",
+      "name": "Andhra Pradesh",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-ap-eprocurement",
+          "official": true,
+          "portal_family": "ap_eprocurement",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://tender.apeprocurement.gov.in/",
+          "award_url": null,
+          "provenance_url": "https://apeprocurement.gov.in/"
+        },
+        {
+          "id": "in-ap-apcrda-awarded-works",
+          "official": true,
+          "portal_family": "official_notice_index",
+          "scope": ["apcrda_only", "awarded_works"],
+          "listing_url": "https://crda.ap.gov.in/Apcrdav2/views/NotificationsView.aspx",
+          "award_url": "https://crda.ap.gov.in/Apcrdav2/views/NotificationsView.aspx",
+          "notes": ["Agency-only supplement; not statewide coverage."]
+        }
+      ]
+    },
+    {
+      "code": "IN-AR",
+      "name": "Arunachal Pradesh",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-ar-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://arunachaltenders.gov.in/nicgep/app",
+          "award_url": "https://arunachaltenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-AS",
+      "name": "Assam",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-as-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://assamtenders.gov.in/nicgep/app",
+          "award_url": "https://assamtenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        },
+        {
+          "id": "in-as-sppp",
+          "official": true,
+          "portal_family": "official_notice_index",
+          "scope": ["state_procurement_discovery_index"],
+          "listing_url": "https://sppp.assam.gov.in/",
+          "award_url": null,
+          "notes": ["Use for discovery; use GePNIC tender documents and AOC as canonical evidence."]
+        }
+      ]
+    },
+    {
+      "code": "IN-BR",
+      "name": "Bihar",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-br-eproc2",
+          "official": true,
+          "portal_family": "bihar_eproc2",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://eproc2.bihar.gov.in/EPSV2Web/",
+          "award_url": null
+        }
+      ]
+    },
+    {
+      "code": "IN-CT",
+      "name": "Chhattisgarh",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-ct-chips",
+          "official": true,
+          "portal_family": "chhattisgarh_chips",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://eproc.cgstate.gov.in/",
+          "award_url": null
+        }
+      ]
+    },
+    {
+      "code": "IN-GA",
+      "name": "Goa",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-ga-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://eprocure.goa.gov.in/nicgep/app",
+          "award_url": "https://eprocure.goa.gov.in/nicgep/app?page=ResultOfTenders&service=page",
+          "additional_urls": ["https://eprocure.goa.gov.in/nicgep/app?page=WebAwards&service=page"]
+        }
+      ]
+    },
+    {
+      "code": "IN-GJ",
+      "name": "Gujarat",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-gj-nprocure",
+          "official": true,
+          "portal_family": "gujarat_nprocure",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://tender.nprocure.com/",
+          "award_url": null,
+          "provenance_url": "https://gil.gujarat.gov.in/eprocurement"
+        }
+      ]
+    },
+    {
+      "code": "IN-HR",
+      "name": "Haryana",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-hr-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://etenders.hry.nic.in/nicgep/app",
+          "award_url": "https://etenders.hry.nic.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-HP",
+      "name": "Himachal Pradesh",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-hp-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://hptenders.gov.in/nicgep/app",
+          "award_url": "https://hptenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-JH",
+      "name": "Jharkhand",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-jh-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://jharkhandtenders.gov.in/nicgep/app",
+          "award_url": "https://jharkhandtenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-KA",
+      "name": "Karnataka",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-ka-kppp",
+          "official": true,
+          "portal_family": "karnataka_kppp",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://kppp.karnataka.gov.in/",
+          "award_url": "https://kppp.karnataka.gov.in/"
+        }
+      ]
+    },
+    {
+      "code": "IN-KL",
+      "name": "Kerala",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-kl-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://etenders.kerala.gov.in/nicgep/app",
+          "award_url": "https://etenders.kerala.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-MP",
+      "name": "Madhya Pradesh",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-mp-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://mptenders.gov.in/nicgep/app",
+          "award_url": "https://mptenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-MH",
+      "name": "Maharashtra",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-mh-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://mahatenders.gov.in/nicgep/app",
+          "award_url": "https://mahatenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-MN",
+      "name": "Manipur",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-mn-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://manipurtenders.gov.in/nicgep/app",
+          "award_url": "https://manipurtenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-ML",
+      "name": "Meghalaya",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-ml-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://meghalayatenders.gov.in/nicgep/app",
+          "award_url": "https://meghalayatenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-MZ",
+      "name": "Mizoram",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-mz-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://mizoramtenders.gov.in/nicgep/app",
+          "award_url": "https://mizoramtenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-NL",
+      "name": "Nagaland",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-nl-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://nagalandtenders.gov.in/nicgep/app",
+          "award_url": "https://nagalandtenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-OD",
+      "name": "Odisha",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-od-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://tendersodisha.gov.in/nicgep/app",
+          "award_url": "https://tendersodisha.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        },
+        {
+          "id": "in-od-official-tender-notices",
+          "official": true,
+          "portal_family": "official_notice_index",
+          "scope": ["state_tender_notices"],
+          "listing_url": "https://www.odisha.gov.in/en/state-tenders-advertisement",
+          "award_url": null,
+          "notes": ["Discovery supplement; use the issuing authority's procurement record as canonical evidence."]
+        }
+      ]
+    },
+    {
+      "code": "IN-PB",
+      "name": "Punjab",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-pb-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://eproc.punjab.gov.in/nicgep/app",
+          "award_url": "https://eproc.punjab.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-RJ",
+      "name": "Rajasthan",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-rj-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://eproc.rajasthan.gov.in/nicgep/app",
+          "award_url": "https://eproc.rajasthan.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-SK",
+      "name": "Sikkim",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-sk-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://sikkimtender.gov.in/nicgep/app",
+          "award_url": "https://sikkimtender.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-TN",
+      "name": "Tamil Nadu",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-tn-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://tntenders.gov.in/nicgep/app",
+          "award_url": "https://tntenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-TG",
+      "name": "Telangana",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-tg-eprocurement",
+          "official": true,
+          "portal_family": "telangana_eprocurement",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://tender.telangana.gov.in/",
+          "award_url": "https://tender.telangana.gov.in/",
+          "provenance_url": "https://eprocurement.telangana.gov.in/"
+        }
+      ]
+    },
+    {
+      "code": "IN-TR",
+      "name": "Tripura",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-tr-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://tripuratenders.gov.in/nicgep/app",
+          "award_url": "https://tripuratenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-UP",
+      "name": "Uttar Pradesh",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-up-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://etender.up.nic.in/nicgep/app",
+          "award_url": "https://etender.up.nic.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-UT",
+      "name": "Uttarakhand",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-ut-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://uktenders.gov.in/nicgep/app",
+          "award_url": "https://uktenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-WB",
+      "name": "West Bengal",
+      "type": "state",
+      "sources": [
+        {
+          "id": "in-wb-gepnic-current",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["statewide_general_procurement", "road_and_civil_works", "fresh_tenders_from_2026-08-17"],
+          "listing_url": "https://tenders.wb.gov.in/nicgep/app",
+          "award_url": "https://tenders.wb.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        },
+        {
+          "id": "in-wb-gepnic-legacy",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["legacy_and_historical_tenders", "historical_awards"],
+          "listing_url": "https://wbtenders.gov.in/nicgep/app",
+          "award_url": "https://wbtenders.gov.in/nicgep/app?page=ResultOfTenders&service=page",
+          "notes": ["Retain during migration for historical tenders and AOCs."]
+        }
+      ]
+    },
+    {
+      "code": "IN-AN",
+      "name": "Andaman and Nicobar Islands",
+      "type": "union_territory",
+      "sources": [
+        {
+          "id": "in-an-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["ut_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://eprocure.andamannicobar.gov.in/nicgep/app",
+          "award_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-CH",
+      "name": "Chandigarh",
+      "type": "union_territory",
+      "sources": [
+        {
+          "id": "in-ch-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["ut_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://etenders.chd.nic.in/nicgep/app",
+          "award_url": "https://etenders.chd.nic.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-DH",
+      "name": "Dadra and Nagar Haveli and Daman and Diu",
+      "type": "union_territory",
+      "sources": [
+        {
+          "id": "in-dh-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["ut_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://ddtenders.gov.in/nicgep/app",
+          "award_url": "https://ddtenders.gov.in/nicgep/app?page=ResultOfTenders&service=page",
+          "notes": ["The portal may retain legacy Daman and Diu branding while serving the merged UT."]
+        }
+      ]
+    },
+    {
+      "code": "IN-DL",
+      "name": "National Capital Territory of Delhi",
+      "type": "union_territory",
+      "sources": [
+        {
+          "id": "in-dl-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["ut_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://govtprocurement.delhi.gov.in/nicgep/app",
+          "award_url": "https://govtprocurement.delhi.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-JK",
+      "name": "Jammu and Kashmir",
+      "type": "union_territory",
+      "sources": [
+        {
+          "id": "in-jk-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["ut_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://jktenders.gov.in/nicgep/app",
+          "award_url": "https://jktenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-LA",
+      "name": "Ladakh",
+      "type": "union_territory",
+      "sources": [
+        {
+          "id": "in-la-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["ut_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://tenders.ladakh.gov.in/nicgep/app",
+          "award_url": "https://tenders.ladakh.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    },
+    {
+      "code": "IN-LD",
+      "name": "Lakshadweep",
+      "type": "union_territory",
+      "sources": [
+        {
+          "id": "in-ld-official-tender-notices",
+          "official": true,
+          "portal_family": "official_notice_index",
+          "scope": ["ut_tender_notices", "road_and_civil_works"],
+          "listing_url": "https://lakshadweep.gov.in/notice_category/tenders/",
+          "award_url": null,
+          "notes": ["Split coverage: also query the central CPPP source for ALHW and other central works."]
+        }
+      ],
+      "central_source_refs": ["cppp-gepnic"]
+    },
+    {
+      "code": "IN-PY",
+      "name": "Puducherry",
+      "type": "union_territory",
+      "sources": [
+        {
+          "id": "in-py-gepnic",
+          "official": true,
+          "portal_family": "nic_gepnic",
+          "scope": ["ut_general_procurement", "road_and_civil_works"],
+          "listing_url": "https://pudutenders.gov.in/nicgep/app",
+          "award_url": "https://pudutenders.gov.in/nicgep/app?page=ResultOfTenders&service=page"
+        }
+      ]
+    }
+  ],
+  "central_sources": [
+    {
+      "id": "cppp-gepnic",
+      "name": "Central Public Procurement Portal eProcurement",
+      "official": true,
+      "owner": "Government of India and National Informatics Centre",
+      "portal_family": "nic_gepnic",
+      "scope": ["central_ministries", "central_public_sector_entities", "works_goods_services"],
+      "listing_url": "https://eprocure.gov.in/eprocure/app",
+      "award_url": "https://eprocure.gov.in/eprocure/app?page=ResultOfTenders&service=page"
+    },
+    {
+      "id": "nhai-etenders",
+      "name": "National Highways Authority of India eTenders",
+      "official": true,
+      "owner": "National Highways Authority of India",
+      "portal_family": "nic_gepnic",
+      "scope": ["national_highways", "nhai", "road_construction_and_maintenance"],
+      "organisation_filter": "National Highways Authority of India",
+      "listing_url": "https://etenders.gov.in/eprocure/app",
+      "award_url": "https://etenders.gov.in/eprocure/app?page=ResultOfTenders&service=page",
+      "additional_urls": ["https://nhai.gov.in/#/tenders"]
+    },
+    {
+      "id": "nhidcl-tenders",
+      "name": "NHIDCL Current and Archived Tenders",
+      "official": true,
+      "owner": "National Highways and Infrastructure Development Corporation Limited",
+      "portal_family": "nhidcl_website",
+      "scope": ["national_highways", "nhidcl", "road_construction_and_maintenance"],
+      "listing_url": "https://www.nhidcl.com/index.php/en/tender",
+      "award_url": "https://www.nhidcl.com/en/tender-evaluation-result",
+      "additional_urls": ["https://www.nhidcl.com/archive-tenders"]
+    },
+    {
+      "id": "pmgsy-ommas",
+      "name": "PMGSY Online Monitoring, Management and Accounting System",
+      "official": true,
+      "owner": "National Rural Infrastructure Development Agency, Ministry of Rural Development",
+      "portal_family": "pmgsy_ommas",
+      "scope": ["pmgsy_rural_roads", "packages", "agreements", "contractors", "progress"],
+      "listing_url": "https://www.omms.nic.in/",
+      "award_url": "https://www.omms.nic.in/"
+    },
+    {
+      "id": "pmgsy-emarg",
+      "name": "PMGSY eMARG",
+      "official": true,
+      "owner": "National Rural Infrastructure Development Agency and National Informatics Centre",
+      "portal_family": "pmgsy_emarg",
+      "scope": ["pmgsy_rural_roads", "mapped_roads", "dlp", "post_dlp", "maintenance_inspections"],
+      "listing_url": "https://emarg.gov.in/public/roadviewonmap.htm",
+      "award_url": null,
+      "additional_urls": ["https://emarg.gov.in/"]
+    },
+    {
+      "id": "pmgsy-data-portal",
+      "name": "NRIDA PMGSY Data Portal",
+      "official": true,
+      "owner": "National Rural Infrastructure Development Agency, Ministry of Rural Development",
+      "portal_family": "official_notice_index",
+      "scope": ["pmgsy_program_data_and_documentation"],
+      "listing_url": "https://pmgsy.nic.in/data-portal",
+      "award_url": null,
+      "additional_urls": ["https://pmgsy.nic.in/omms"]
+    }
+  ]
+}

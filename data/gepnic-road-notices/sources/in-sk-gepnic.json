@@ -1,0 +1,18 @@
+{
+  "format": "gepnic-road-surface-procurement-notices",
+  "lifecycle": "procurement_notice",
+  "notices": [],
+  "organisations": [
+    "Buildings and Housing Department",
+    "Energy and Power Department- Government of Sikkim",
+    "Tourism and Civil Aviation Department-Govt Sikkim"
+  ],
+  "retrieved_at": "2026-08-26T05:22:39Z",
+  "rows_excluded_by_scope": 3,
+  "rows_scanned": 3,
+  "schema_version": 1,
+  "source_id": "in-sk-gepnic",
+  "source_name": "Sikkim e-Procurement Portal",
+  "source_url": "https://sikkimtender.gov.in/nicgep/app?component=clear&page=FrontEndTendersByOrganisation&service=direct",
+  "state_code": "SK"
+}

@@ -13,18 +13,23 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
 APP_ROOT = (ROOT / "android-app" / "www").resolve()
+WEB_ROOT = (ROOT / "static").resolve()
 PACK_ROOT = (ROOT / "docs" / "packs" / "v1").resolve()
 PACK_PREFIX = "/packs/v1/"
+WEB_PREFIX = "/web-app/"
 
 
 class AppHandler(SimpleHTTPRequestHandler):
-    """Map app URLs to Android assets and pack URLs to the Pages tree."""
+    """Map Android, current-web and immutable-pack URLs to explicit roots."""
 
     def translate_path(self, path: str) -> str:
         request_path = unquote(urlsplit(path).path)
         if request_path.startswith(PACK_PREFIX):
             base = PACK_ROOT
             relative = request_path[len(PACK_PREFIX) :]
+        elif request_path.startswith(WEB_PREFIX):
+            base = WEB_ROOT
+            relative = request_path[len(WEB_PREFIX) :] or "index.html"
         else:
             base = APP_ROOT
             relative = request_path.lstrip("/") or "index.html"

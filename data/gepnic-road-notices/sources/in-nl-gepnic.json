@@ -1,0 +1,17 @@
+{
+  "format": "gepnic-road-surface-procurement-notices",
+  "lifecycle": "procurement_notice",
+  "notices": [],
+  "organisations": [
+    "Nagaland Urban Infrastructure Development Project (NUIDP)-PMU-ADB",
+    "Principal Director - Directorate of School Education - Nagaland - WBT"
+  ],
+  "retrieved_at": "2026-08-26T05:22:39Z",
+  "rows_excluded_by_scope": 3,
+  "rows_scanned": 3,
+  "schema_version": 1,
+  "source_id": "in-nl-gepnic",
+  "source_name": "Nagaland e-Procurement Portal",
+  "source_url": "https://nagalandtenders.gov.in/nicgep/app?component=clear&page=FrontEndTendersByOrganisation&service=direct",
+  "state_code": "NL"
+}

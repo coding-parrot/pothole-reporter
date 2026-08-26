@@ -1,0 +1,639 @@
+{
+  "cache": {
+    "max_bytes": 67108864,
+    "max_unused_days": 30
+  },
+  "catalog_version": 1,
+  "format": "pothole-contract-manifest",
+  "generated_at": "2026-08-26",
+  "resources": {
+    "in-nh-contracts-ap": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 120023,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to AP",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-ap",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/ap/highways-bd23f677c5a25666a04e03575009d059a2f8b53c66756ec0b0f0189bd187772d.json",
+      "records": 124,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "bd23f677c5a25666a04e03575009d059a2f8b53c66756ec0b0f0189bd187772d",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "AP",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/ap/highways-bd23f677c5a25666a04e03575009d059a2f8b53c66756ec0b0f0189bd187772d.json"
+    },
+    "in-nh-contracts-ar": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 51869,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to AR",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-ar",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/ar/highways-9748a69d85ca61527f1271e7999394a1b8e8b89ef92b6d8fe56ecd7cf08d8f24.json",
+      "records": 54,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "9748a69d85ca61527f1271e7999394a1b8e8b89ef92b6d8fe56ecd7cf08d8f24",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "AR",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/ar/highways-9748a69d85ca61527f1271e7999394a1b8e8b89ef92b6d8fe56ecd7cf08d8f24.json"
+    },
+    "in-nh-contracts-as": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 57957,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to AS",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-as",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/as/highways-627c32e124cc47374412d8f5ce1b1dd59d00b17438cca79fb1e87ef6cd05f692.json",
+      "records": 58,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "627c32e124cc47374412d8f5ce1b1dd59d00b17438cca79fb1e87ef6cd05f692",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "AS",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/as/highways-627c32e124cc47374412d8f5ce1b1dd59d00b17438cca79fb1e87ef6cd05f692.json"
+    },
+    "in-nh-contracts-br": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 69846,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to BR",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-br",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/br/highways-8ffa7e4e71be93a4f6f0f1f49ed111131e69bd7502065635d745e54653d8042b.json",
+      "records": 77,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "8ffa7e4e71be93a4f6f0f1f49ed111131e69bd7502065635d745e54653d8042b",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "BR",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/br/highways-8ffa7e4e71be93a4f6f0f1f49ed111131e69bd7502065635d745e54653d8042b.json"
+    },
+    "in-nh-contracts-cg": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 66757,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to CG",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-cg",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/cg/highways-92d066fc3de7ad7c93b3f4e96543162708aac9c471c5f6c1b6ffede65e3dde5b.json",
+      "records": 70,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "92d066fc3de7ad7c93b3f4e96543162708aac9c471c5f6c1b6ffede65e3dde5b",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "CG",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/cg/highways-92d066fc3de7ad7c93b3f4e96543162708aac9c471c5f6c1b6ffede65e3dde5b.json"
+    },
+    "in-nh-contracts-ch": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 1271,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to CH",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-ch",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/ch/highways-0ca1a4555127d8d27c8babaf6bc17181312d9242030c2015b7d698591dd16258.json",
+      "records": 1,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "0ca1a4555127d8d27c8babaf6bc17181312d9242030c2015b7d698591dd16258",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "CH",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/ch/highways-0ca1a4555127d8d27c8babaf6bc17181312d9242030c2015b7d698591dd16258.json"
+    },
+    "in-nh-contracts-dh": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 2132,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to DH",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-dh",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/dh/highways-5a70b2123c9cce6de04c88595381bc87b291fd0107e570d9366ef0d0aa4b7292.json",
+      "records": 2,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "5a70b2123c9cce6de04c88595381bc87b291fd0107e570d9366ef0d0aa4b7292",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "DH",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/dh/highways-5a70b2123c9cce6de04c88595381bc87b291fd0107e570d9366ef0d0aa4b7292.json"
+    },
+    "in-nh-contracts-ga": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 15574,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to GA",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-ga",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/ga/highways-b84f82d3c3be9e39c9a0ae2bee9cb3833a919823c2151972b54bb9609a3e9a0e.json",
+      "records": 17,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "b84f82d3c3be9e39c9a0ae2bee9cb3833a919823c2151972b54bb9609a3e9a0e",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "GA",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/ga/highways-b84f82d3c3be9e39c9a0ae2bee9cb3833a919823c2151972b54bb9609a3e9a0e.json"
+    },
+    "in-nh-contracts-gj": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 52136,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to GJ",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-gj",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/gj/highways-d991b6ee50354c78ad18a6e6b310c864a4b6c0c9931bafcfc661743caacd8857.json",
+      "records": 55,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "d991b6ee50354c78ad18a6e6b310c864a4b6c0c9931bafcfc661743caacd8857",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "GJ",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/gj/highways-d991b6ee50354c78ad18a6e6b310c864a4b6c0c9931bafcfc661743caacd8857.json"
+    },
+    "in-nh-contracts-hp": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 47870,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to HP",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-hp",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/hp/highways-232308058ef71ffde74f98d445f7f9e801906a6b066cb6b691ed1cd41fa2be86.json",
+      "records": 50,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "232308058ef71ffde74f98d445f7f9e801906a6b066cb6b691ed1cd41fa2be86",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "HP",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/hp/highways-232308058ef71ffde74f98d445f7f9e801906a6b066cb6b691ed1cd41fa2be86.json"
+    },
+    "in-nh-contracts-hr": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 16394,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to HR",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-hr",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/hr/highways-cd68196bf9e99342b1a62267f092fc7a401d3b54068316d5aac31508a7b9ab14.json",
+      "records": 17,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "cd68196bf9e99342b1a62267f092fc7a401d3b54068316d5aac31508a7b9ab14",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "HR",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/hr/highways-cd68196bf9e99342b1a62267f092fc7a401d3b54068316d5aac31508a7b9ab14.json"
+    },
+    "in-nh-contracts-jh": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 41397,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to JH",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-jh",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/jh/highways-afff3ac853ca58d3083f0cfb9ec13c07e658744477cbe0acd10285f2c6791c04.json",
+      "records": 46,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "afff3ac853ca58d3083f0cfb9ec13c07e658744477cbe0acd10285f2c6791c04",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "JH",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/jh/highways-afff3ac853ca58d3083f0cfb9ec13c07e658744477cbe0acd10285f2c6791c04.json"
+    },
+    "in-nh-contracts-jk": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 30470,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to JK",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-jk",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/jk/highways-ab1169d8ce9d492f184c4774856ecebe8d2bd9e312f8b8d9a713f1786cda74a7.json",
+      "records": 29,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "ab1169d8ce9d492f184c4774856ecebe8d2bd9e312f8b8d9a713f1786cda74a7",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "JK",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/jk/highways-ab1169d8ce9d492f184c4774856ecebe8d2bd9e312f8b8d9a713f1786cda74a7.json"
+    },
+    "in-nh-contracts-ka": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 99612,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to KA",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-ka",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/ka/highways-1381dc1ec6b746e9df4a177d08cc1b62059e6160c192301c7c30b9e6dcd126d1.json",
+      "records": 100,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "1381dc1ec6b746e9df4a177d08cc1b62059e6160c192301c7c30b9e6dcd126d1",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "KA",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/ka/highways-1381dc1ec6b746e9df4a177d08cc1b62059e6160c192301c7c30b9e6dcd126d1.json"
+    },
+    "in-nh-contracts-kl": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 19800,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to KL",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-kl",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/kl/highways-7e5942ad166730cd97bf2bab283f62bc1b31cf07da3090c89911d45e74bf5f59.json",
+      "records": 21,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "7e5942ad166730cd97bf2bab283f62bc1b31cf07da3090c89911d45e74bf5f59",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "KL",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/kl/highways-7e5942ad166730cd97bf2bab283f62bc1b31cf07da3090c89911d45e74bf5f59.json"
+    },
+    "in-nh-contracts-la": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 3156,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to LA",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-la",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/la/highways-876086337515ed0ac817e76bdc00d0279b4745a2c90a4f5a5882e0ed8e017505.json",
+      "records": 3,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "876086337515ed0ac817e76bdc00d0279b4745a2c90a4f5a5882e0ed8e017505",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "LA",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/la/highways-876086337515ed0ac817e76bdc00d0279b4745a2c90a4f5a5882e0ed8e017505.json"
+    },
+    "in-nh-contracts-mh": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 188248,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to MH",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-mh",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/mh/highways-98294f36c57d803afbbe23efb88102383e8d2812136ee43547bb20cddfe98310.json",
+      "records": 187,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "98294f36c57d803afbbe23efb88102383e8d2812136ee43547bb20cddfe98310",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "MH",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/mh/highways-98294f36c57d803afbbe23efb88102383e8d2812136ee43547bb20cddfe98310.json"
+    },
+    "in-nh-contracts-ml": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 9806,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to ML",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-ml",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/ml/highways-2a43e81e600af5d84ee787418f562077436be9b768286d42b2b529360a1c4071.json",
+      "records": 10,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "2a43e81e600af5d84ee787418f562077436be9b768286d42b2b529360a1c4071",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "ML",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/ml/highways-2a43e81e600af5d84ee787418f562077436be9b768286d42b2b529360a1c4071.json"
+    },
+    "in-nh-contracts-mn": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 6820,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to MN",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-mn",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/mn/highways-d56e1ae9fc61b8505fe5d1f7142d142be29cfe621308ee1ac43d1ff69022cb7c.json",
+      "records": 7,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "d56e1ae9fc61b8505fe5d1f7142d142be29cfe621308ee1ac43d1ff69022cb7c",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "MN",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/mn/highways-d56e1ae9fc61b8505fe5d1f7142d142be29cfe621308ee1ac43d1ff69022cb7c.json"
+    },
+    "in-nh-contracts-mp": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 137222,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to MP",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-mp",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/mp/highways-80e366a8d0df3f41988de609d1e59404e7f32c2372c3ef1beeb80a019be22fa1.json",
+      "records": 145,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "80e366a8d0df3f41988de609d1e59404e7f32c2372c3ef1beeb80a019be22fa1",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "MP",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/mp/highways-80e366a8d0df3f41988de609d1e59404e7f32c2372c3ef1beeb80a019be22fa1.json"
+    },
+    "in-nh-contracts-mz": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 8555,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to MZ",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-mz",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/mz/highways-6c9a2c255d2aece04d1541600bcbd900904359153121b1e164bfbf38a7e11336.json",
+      "records": 9,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "6c9a2c255d2aece04d1541600bcbd900904359153121b1e164bfbf38a7e11336",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "MZ",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/mz/highways-6c9a2c255d2aece04d1541600bcbd900904359153121b1e164bfbf38a7e11336.json"
+    },
+    "in-nh-contracts-nl": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 29011,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to NL",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-nl",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/nl/highways-8374c497479ef591135ab8668dea328d2de56ae1389b7bef95a7bf6a0d4a21f5.json",
+      "records": 32,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "8374c497479ef591135ab8668dea328d2de56ae1389b7bef95a7bf6a0d4a21f5",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "NL",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/nl/highways-8374c497479ef591135ab8668dea328d2de56ae1389b7bef95a7bf6a0d4a21f5.json"
+    },
+    "in-nh-contracts-od": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 80942,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to OD",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-od",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/od/highways-c4ddafc8d0788a763bcba09850237a813b84bf77221ebb04877c647e7b76916f.json",
+      "records": 87,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "c4ddafc8d0788a763bcba09850237a813b84bf77221ebb04877c647e7b76916f",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "OD",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/od/highways-c4ddafc8d0788a763bcba09850237a813b84bf77221ebb04877c647e7b76916f.json"
+    },
+    "in-nh-contracts-pb": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 43951,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to PB",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-pb",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/pb/highways-296a71951f8c2efdccfb5c010f3af4ee3d1c33e5cc7631380edd93145e3395ec.json",
+      "records": 46,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "296a71951f8c2efdccfb5c010f3af4ee3d1c33e5cc7631380edd93145e3395ec",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "PB",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/pb/highways-296a71951f8c2efdccfb5c010f3af4ee3d1c33e5cc7631380edd93145e3395ec.json"
+    },
+    "in-nh-contracts-py": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 2166,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to PY",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-py",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/py/highways-826af6f48d3802bfaacd624c448d79b555f128a8d6807ea5cc242e7ab480c748.json",
+      "records": 2,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "826af6f48d3802bfaacd624c448d79b555f128a8d6807ea5cc242e7ab480c748",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "PY",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/py/highways-826af6f48d3802bfaacd624c448d79b555f128a8d6807ea5cc242e7ab480c748.json"
+    },
+    "in-nh-contracts-rj": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 65483,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to RJ",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-rj",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/rj/highways-7988af65a18cef1781b86c26c25bb88495e2ed3ec599b50fa5bb52e8ebc3f8bc.json",
+      "records": 68,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "7988af65a18cef1781b86c26c25bb88495e2ed3ec599b50fa5bb52e8ebc3f8bc",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "RJ",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/rj/highways-7988af65a18cef1781b86c26c25bb88495e2ed3ec599b50fa5bb52e8ebc3f8bc.json"
+    },
+    "in-nh-contracts-sk": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 7903,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to SK",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-sk",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/sk/highways-7dc02434f954f44a90490709fd93ead28f4d069fd84745261cee3e7b51b31f43.json",
+      "records": 8,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "7dc02434f954f44a90490709fd93ead28f4d069fd84745261cee3e7b51b31f43",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "SK",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/sk/highways-7dc02434f954f44a90490709fd93ead28f4d069fd84745261cee3e7b51b31f43.json"
+    },
+    "in-nh-contracts-tg": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 84931,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to TG",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-tg",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/tg/highways-b4c57cf4f0bb9bd75be25a6c684eab77bcddf062bc99fbeec2ec74d91dda3d4f.json",
+      "records": 88,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "b4c57cf4f0bb9bd75be25a6c684eab77bcddf062bc99fbeec2ec74d91dda3d4f",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "TG",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/tg/highways-b4c57cf4f0bb9bd75be25a6c684eab77bcddf062bc99fbeec2ec74d91dda3d4f.json"
+    },
+    "in-nh-contracts-tn": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 108646,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to TN",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-tn",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/tn/highways-f42851a50a17e560d239eaa8394acdfa975df9a356e01b64901a58e9e314748c.json",
+      "records": 106,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "f42851a50a17e560d239eaa8394acdfa975df9a356e01b64901a58e9e314748c",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "TN",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/tn/highways-f42851a50a17e560d239eaa8394acdfa975df9a356e01b64901a58e9e314748c.json"
+    },
+    "in-nh-contracts-tr": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 1138,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to TR",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-tr",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/tr/highways-d148ba64393320cff07f79cc4e8b6b28bc7a5aa395e08d490af42c03552cd896.json",
+      "records": 1,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "d148ba64393320cff07f79cc4e8b6b28bc7a5aa395e08d490af42c03552cd896",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "TR",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/tr/highways-d148ba64393320cff07f79cc4e8b6b28bc7a5aa395e08d490af42c03552cd896.json"
+    },
+    "in-nh-contracts-uk": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 97422,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to UK",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-uk",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/uk/highways-dc71471ad736a75323ebb5c00323d31316c871cb45b69bc19a8e3749605dfe23.json",
+      "records": 103,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "dc71471ad736a75323ebb5c00323d31316c871cb45b69bc19a8e3749605dfe23",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "UK",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/uk/highways-dc71471ad736a75323ebb5c00323d31316c871cb45b69bc19a8e3749605dfe23.json"
+    },
+    "in-nh-contracts-up": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 112100,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to UP",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-up",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/up/highways-57cdfbd8c11401fc0cb6776a69012e05a6451f946d33b859e30d8963d078df87.json",
+      "records": 120,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "57cdfbd8c11401fc0cb6776a69012e05a6451f946d33b859e30d8963d078df87",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "UP",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/up/highways-57cdfbd8c11401fc0cb6776a69012e05a6451f946d33b859e30d8963d078df87.json"
+    },
+    "in-nh-contracts-wb": {
+      "adapter": "nhai-nhidcl-public-projects-v1",
+      "bytes": 125115,
+      "coverage_scope": "Official NHAI, MoRTH and NHIDCL public project and procurement records assigned to WB",
+      "kind": "highway_contracts",
+      "licenses": [
+        "Official Government of India public information; respective source terms apply"
+      ],
+      "pack_id": "in-nh-contracts-wb",
+      "pack_version": 1,
+      "path": "packs/v1/contracts/wb/highways-47bb390a5b1a3982bceafe4314a11fd6577c58b69f558f52b5bf9f4dfcddd064.json",
+      "records": 116,
+      "review_after": "2026-09-25",
+      "schema_version": 1,
+      "sha256": "47bb390a5b1a3982bceafe4314a11fd6577c58b69f558f52b5bf9f4dfcddd064",
+      "source_retrieved_at": "2026-08-26",
+      "state_code": "WB",
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/contracts/wb/highways-47bb390a5b1a3982bceafe4314a11fd6577c58b69f558f52b5bf9f4dfcddd064.json"
+    }
+  },
+  "schema_version": 1
+}

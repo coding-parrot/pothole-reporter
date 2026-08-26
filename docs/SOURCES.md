@@ -29,14 +29,13 @@ checksum-pinned packs documented below.
 
 ## Versioned data packs
 
-Large routing, contact, and procurement datasets are not embedded in the APK. The app
-ships a small manifest that pins each supported resource's version, HTTPS URL, byte
-length, and SHA-256 checksum. The v1.35 state-pack manifest contains 42 resources: forty-one
-routing/contact packs covering all 28 states and all 8 Union Territories, including the
-additional top-50 city routes, plus one optional Karnataka tender pack. Karnataka, Tamil
-Nadu, and Telangana each
-use separate statewide and more-specific routing packs. Procurement data is
-requested only for an eligible Karnataka contract match.
+Large routing, contact, and procurement datasets are not embedded in the APK. Small
+manifests pin each resource's version, HTTPS URL, byte length, and SHA-256 checksum. The
+v1.35 state-pack manifest contains 42 resources: forty-one routing/contact packs covering
+all 28 states and all 8 Union Territories, plus the optional Karnataka tender pack.
+Separate v1.36 catalogs contain 33 State/UT National Highway project packs, 36 PMGSY
+State/UT road-agreement packs, and 29 State/UT GePNIC road-notice packs. Karnataka, Tamil
+Nadu, and Telangana retain separate statewide and more-specific routing packs.
 The old unversioned ten-resource manifest remains unchanged for cached v1.25 clients, and
 the versioned v1.26 eleven-resource manifest remains unchanged for cached v1.26 clients.
 The versioned v1.27 twelve-resource, v1.28 thirteen-resource, and v1.29 thirteen-resource
@@ -55,15 +54,45 @@ It downloads a pack or relevant tile from this project's GitHub Pages site, veri
 response against the manifest before parsing it, and caches only verified bytes on the
 device. Missing, malformed, truncated, or checksum-mismatched required routing/contact
 data makes the affected route fail closed. A geocoder place name is not a fallback for a
-polygon route. Failure of the optional Karnataka
-tender pack does not block the report—it continues without contract context. A verified
+polygon route. Failure of any optional project/agreement/notice pack does not block the report—it
+continues without contract context. A verified
 pack can be read locally after its first
 successful download. On a subsequent pack use, caches past their unused limits are pruned
 automatically, and **Delete all app data** removes the entire cache immediately.
 
-The URL names a state or 2° highway tile, so GitHub Pages can receive the device's IP
-address, standard connection metadata, and that coarse location indication. No report,
-road photo, or exact coordinates are included. Hosted packs keep the core APK small.
+The URL names the selected state or a 2° highway tile, so GitHub Pages can receive the
+device's IP address, standard connection metadata, and that coarse location indication.
+No report, road photo, or exact coordinates are included. Hosted packs keep the core APK
+small. The three catalog manifests add about 100 KB to a future build; the remote packs do
+not enter the APK, and the already-submitted Play closed-test binary is unchanged.
+
+### Contract and procurement-notice semantics
+
+The 26 August 2026 National Highway scan read 3,258 MoRTH and 529 NHIDCL rows. Strict
+lifecycle and road-scope rules normalized 1,950 current/open records (1,939 MoRTH plus 11
+NHIDCL); 91 had no mapped NH/NE reference, leaving 1,859 candidates in 33 packs
+(1,805,723 bytes).
+
+The official PMGSY scan read 211,007 rows and retained 17,717 recent records whose source
+status says **In Progress**. They are published in 36 State/UT packs (3,075,718 bytes);
+CH, DH, DL, GA, and LD currently have zero retained records. An agreement number/date can
+verify that the source reports an agreement, but this layer never claims an award,
+contractor, exact segment, warranty, or DLP.
+
+The GePNIC crawl completed 30 official feeds across 29 jurisdictions with zero source
+failures. Of 62,524 rows, strict carriageway scope rejected 57,575 and retained 4,949 open
+road-work notices in 29 jurisdiction packs (4,001,112 bytes). DH, MN, MZ, NL, and SK have
+zero retained notices. AP, BR, CG, GJ, KA, TG, and LD use custom portal families and remain
+explicit gaps in this GePNIC layer; KPPP remains a separate Karnataka supplement. Each
+notice preserves its official portal root and tender identifiers; session-shaped direct
+links are only best-effort conveniences, not the durable citation.
+
+Runtime matching attempts National Highway, Karnataka KPPP, PMGSY, and GePNIC candidates
+where the required same-jurisdiction road/location evidence is present. This improves
+nationwide candidate coverage but does not guarantee every public tender or every road.
+An open procurement notice is not an award or active maintenance contract. Every result
+remains a candidate unless authoritative road-segment, work-scope, award, contractor, and
+DLP evidence is separately present. Publication date never establishes warranty.
 
 ## National Highway geometry and handoff
 
@@ -184,9 +213,9 @@ chooses the action. BMC's website policy at
 `https://portal.mcgm.gov.in/irj/portal/anonymous/privacy?guest_user=english` is why the app
 does not frame BMC pages, copy BMC marks, or claim affiliation.
 
-Maharashtra contract matching is disabled. The project has no current, authoritative,
-road-linked award and defect-liability feed covering the state, so it does not guess
-a contractor, warranty, or road owner from general tender notices.
+Maharashtra has no authoritative statewide road-linked award and defect-liability feed.
+The optional GePNIC catalog can show a same-State open-notice candidate, but it never
+guesses a contractor, warranty, road owner, or awarded responsibility from that notice.
 
 ## West Bengal statewide and Kolkata complaint handoffs
 
@@ -236,9 +265,9 @@ alternate. KMC also publishes WhatsApp at **+91 83359 88888** and the civic help
 Opening any channel is not submission. The user must complete the complaint externally
 and enter the KMC grievance/reference ID before marking the local report submitted.
 
-Contract matching is disabled throughout West Bengal. The app has no authoritative,
-road-linked statewide or KMC award, maintenance, or defect-liability feed and does not
-infer that KMC or another body owns a road from boundary containment.
+West Bengal has no authoritative road-linked statewide or KMC award, maintenance, or
+defect-liability feed. The optional GePNIC catalog can show a same-State open-notice
+candidate, but boundary containment never implies that KMC or another body owns the road.
 
 ## Punjab statewide complaint handoff
 
@@ -255,7 +284,8 @@ Punjab boundary. A GPS accuracy circle touching the state edge fails closed.
 State containment does not identify a municipality, PWD, panchayat, NHAI, contractor,
 road owner, or guaranteed complaint category. The user must select and verify the
 responsible department or local body, complete the complaint externally, and retain the
-official reference. Contract matching is disabled.
+official reference. Only optional open-notice candidates are available; awarded
+responsibility is not inferred.
 
 ## Tamil Nadu statewide complaint handoff
 
@@ -275,8 +305,8 @@ and its published helpline is **1100**. The statewide route deliberately does no
 secondary municipal portal. Neither the state outline nor the grievance handoff establishes the
 responsible department, local body, road owner, complaint category, contractor, or
 submission. The user must verify those details and complete the complaint externally.
-There is no complaint-write API integration or automatic filing, and contract matching is
-disabled.
+There is no complaint-write API integration or automatic filing. A same-State public
+notice may appear as an unawarded candidate; it is not responsibility evidence.
 
 ## Andhra Pradesh statewide complaint handoff
 
@@ -295,7 +325,8 @@ PGRS is the primary neutral handoff for road damage, garbage, and open or damage
 alternate, and the published grievance helpline is **1902**. The user must select and verify
 the district, department, local body, issue category, and road owner, then complete the
 complaint externally. The app does not call a complaint-write API, file automatically,
-infer ownership, or enable contract matching for Andhra Pradesh.
+or infer ownership. Andhra Pradesh's custom state portal remains an explicit gap in the
+GePNIC layer; National Highway and PMGSY candidates remain separately available.
 
 The outline was cross-checked against the Government of Andhra Pradesh
 [APSAC administrative-boundary services](https://apsac.ap.gov.in/?page_id=1075) and the
@@ -340,7 +371,8 @@ The ODbL outline was cross-checked against TGRAC's official
 [`State Boundary` layer 29](https://tgrac.telangana.gov.in/arcgis/rest/services/AdministrativeInfoSystem_Folder/Administrative_Information_System/MapServer/29).
 TGRAC publishes no explicit redistribution licence for that layer, so it is validation
 evidence only; the project redistributes the independently licensed OpenStreetMap geometry.
-Contract matching is disabled throughout Telangana.
+Telangana's custom state portal remains an explicit gap in the GePNIC layer; National
+Highway and PMGSY candidates remain separately available.
 
 ## Karnataka statewide complaint handoff
 
@@ -384,7 +416,8 @@ complaint cannot be lodged by phone. The official Local Self Government Departme
 [K-SMART](https://ksmart.lsgkerala.gov.in/) service is offered as an alternate for
 local-body issues. The user must select and verify the department, local body, issue
 category, and road owner and complete the complaint externally. The app does not claim a
-public complaint-write API, automatic filing, ownership inference, or contract matching.
+public complaint-write API, automatic filing, or ownership inference. A same-State open
+procurement notice can appear only as an unawarded candidate.
 The seven Kerala entries retained in the immutable top-50 pack are compatibility data only;
 current routing uses the exact state boundary instead of their old city-name envelopes.
 
@@ -407,7 +440,8 @@ interactive and can require mobile verification and CAPTCHA. The user must selec
 verify the district, department, local body, issue category, and road owner, then complete
 the grievance externally. State containment does not identify any of those details, and
 Pothole Reporter does not call a complaint-write API, log in, bypass verification, file
-automatically, read status, or enable contract matching. The seven Uttar Pradesh entries
+automatically or read status. A same-State open procurement notice can appear only as an
+unawarded candidate. The seven Uttar Pradesh entries
 retained in the immutable top-50 pack are compatibility data only; current routing uses the
 exact state boundary.
 
@@ -426,8 +460,9 @@ is offered only as an urban civic-issue alternate, not as a rural or statewide s
 The user must select and verify the district, department, local body, category, and road
 owner and complete the grievance externally. Neither containment nor either service proves
 responsibility, ownership, category acceptance, submission, or a contract. Pothole Reporter
-does not call a complaint-write API, log in, bypass OTP, file automatically, read status,
-or enable contract matching. The Raipur and Durg–Bhilai entries retained in the immutable
+does not call a complaint-write API, log in, bypass OTP, file automatically, or read status.
+Chhattisgarh's custom state portal remains an explicit gap in the GePNIC layer; National
+Highway and PMGSY candidates remain separately available. The Raipur and Durg–Bhilai entries retained in the immutable
 top-50 pack are compatibility data only; current routing uses the exact state boundary.
 
 ## Rajasthan statewide complaint handoff
@@ -447,7 +482,8 @@ package is
 The user must select and verify the district, department, local body, category, and road
 owner and complete the grievance externally. State containment does not prove any of
 those details. Pothole Reporter does not call a complaint-write API, log in, bypass OTP,
-file automatically, read status, or enable contract matching. Jaipur and Jodhpur remain
+file automatically or read status. A same-State open procurement notice can appear only
+as an unawarded candidate. Jaipur and Jodhpur remain
 in the immutable top-50 pack only for saved-report compatibility; current routing uses
 the exact state boundary.
 
@@ -469,7 +505,8 @@ The official citizen Android package is
 [`in.gov.dpg.cmhelpline`](https://play.google.com/store/apps/details?id=in.gov.dpg.cmhelpline).
 The user must complete the mobile-OTP flow and verify the department, local body, category,
 and road owner. There is no documented public complaint-write API integration, automatic
-filing, ownership inference, or contract matching.
+filing or ownership inference. A same-State open procurement notice can appear only as an
+unawarded candidate.
 
 ## Madhya Pradesh statewide complaint handoff
 
@@ -528,7 +565,8 @@ the WhatsApp chatbot is **+91 63709 51930**, and the Government of Odisha publis
 helpline **155335**. Even the skip-login form requires mobile OTP and interactive locality
 and recipient choices. The user must verify those choices and complete the grievance
 externally; there is no documented public complaint-write API integration, automatic filing,
-ownership inference, or contract matching.
+ownership inference. A same-State open procurement notice can appear only as an unawarded
+candidate.
 
 ## Nationwide completion boundaries and complaint handoffs
 
@@ -615,8 +653,8 @@ the complete Census Urban Agglomeration. A stale state label, place text outside
 envelope, missing geocode, boundary-touching accuracy circle, pack failure, or ambiguous
 match fails closed. Accepted routes remain neutral: the user must select and verify the
 district, department, local body, issue category, and road owner in the external service.
-No route proves ownership, guarantees category acceptance, files automatically, or enables
-contract matching.
+No route proves ownership, guarantees category acceptance, or files automatically. A
+separate optional catalog may add an unawarded notice candidate under the rules above.
 
 ## Delhi NCT boundary and complaint handoffs
 
@@ -658,8 +696,8 @@ Android app; its [app privacy page](https://cmjansunwai.delhi.gov.in/PrivacyPoli
 confirms the Government of NCT of Delhi service. This route does not identify a municipal
 owner or guarantee a category outcome.
 
-Contract matching is disabled for Delhi because the project has no authoritative,
-road-linked award, maintenance, and defect-liability feed for all Delhi road agencies.
+Delhi has no authoritative road-linked award, maintenance, and defect-liability feed for
+all road agencies. Its public GePNIC pack can add a same-State open-notice candidate only.
 
 ## Greater Chennai Corporation boundary and complaint handoffs
 
@@ -683,7 +721,8 @@ handoff is [GCC Public Grievance](https://erp.chennaicorporation.gov.in/pgr/citi
 the published Android package is
 [`com.ceedeev.grivenancev2`](https://play.google.com/store/apps/details?id=com.ceedeev.grivenancev2).
 The app also offers GCC's published WhatsApp number **+91 94450 61913** and helpline
-**1913**. Opening any channel is not submission, and contract matching is disabled.
+**1913**. Opening any channel is not submission. A same-State open-notice candidate is
+not evidence that GCC owns or awarded work on the road.
 
 ## Hyderabad CURE official point query and shared complaint handoff
 
@@ -714,8 +753,9 @@ point, so the app makes no such attribution. It offers the shared
 [My Cure](https://play.google.com/store/apps/details?id=cgg.gov.ghmc) civic-grievance handoff,
 whose current listing expressly includes pothole grievances, plus its
 [web flow](https://igs.ghmc.gov.in/operator/send_otp_mobile). Opening either service is not
-submission; the OTP-bound web flow is not a public complaint-write API, and contract matching
-is disabled.
+submission; the OTP-bound web flow is not a public complaint-write API. Telangana's
+custom state portal remains an explicit gap in the GePNIC layer; National Highway and
+PMGSY candidates remain separately available.
 
 ## Ahmedabad AMC boundary and complaint handoff
 
@@ -743,8 +783,9 @@ The current citizen Android package is
 [`com.amplvb.ccrs`](https://play.google.com/store/apps/details?id=com.amplvb.ccrs).
 AMC's [channel instructions](https://www.amccrs.com/AMCPortal/View/ComplainRegistrationMobile.aspx)
 also publish WhatsApp **+91 75678 55303**, helpline **155303**, and
-`ccrs@ahmedabadcity.gov.in`. The user must finish the complaint in CCRS; contract matching
-is disabled.
+`ccrs@ahmedabadcity.gov.in`. The user must finish the complaint in CCRS. Gujarat's
+custom state portal remains an explicit gap in the GePNIC layer; National Highway and
+PMGSY candidates remain separately available.
 
 ## Karnataka road-contract data
 
@@ -866,17 +907,15 @@ model looking at the photograph, and the app says so. They are a judgement about
 photograph, not a record, which is why the photograph is always attached: the officer can
 disagree by looking.
 
-A probable contract match is also a judgment, not a procurement record. For an eligible
-Karnataka route only, the app first builds a deterministic local shortlist from address
-words and carriageway-scope contracts indexed to the same local body, then asks an AI model whether one
-candidate clearly covers that road or locality. A confidence threshold can reject weak
-matches, but it cannot turn an accepted match into proof. Contract matching is disabled
-for every route outside eligible Karnataka coverage.
+A candidate match is a judgment layered over a procurement/project record. An eligible
+Karnataka route uses a deterministic local shortlist and an AI adjudication against the
+same civic-body pool. National Highway, PMGSY, and GePNIC candidates use deterministic
+same-State NH/NE or road/immediate-locality evidence. A PMGSY source-reported agreement is
+not treated as a verified award. None of these transforms a title match into proof of
+segment responsibility.
 
-For an eligible Karnataka match, warranty status is **inferred** from how recently the
-tender was published because award records carry no defect liability period. The complaint
-states it as a possibility and asks the officer to verify against the tender documents.
-That wording is deliberate and should not be strengthened.
+Warranty or DLP is never inferred from publication date. It remains unverified unless an
+authoritative cited record explicitly supplies the relevant segment and period.
 
 ## Known limits
 
@@ -970,14 +1009,12 @@ That wording is deliberate and should not be strengthened.
   proven. The wider AUDA area is excluded.
 - There is no automatic filing, status sync, or cross-user report database for any route.
   Evidence remains local until the citizen deliberately opens an external handoff.
-- Maharashtra contract matching is disabled because no authoritative road-linked feed is
-  integrated statewide.
-- West Bengal contract matching is disabled for the same reason; neither state nor KMC
-  containment establishes who owns or maintains a road.
-- Delhi, Tamil Nadu (including Chennai), Andhra Pradesh, Telangana (including Hyderabad),
-  Uttar Pradesh, Chhattisgarh, Rajasthan, Goa, Madhya Pradesh, Bihar, Odisha, and Ahmedabad
-  contract matching is disabled; a coverage response
-  is neither ownership nor a contract match.
+- No State/UT boundary establishes a contract, road owner, or maintaining agency. The
+  nationwide candidate layers do not guarantee every tender or road. PMGSY rows verify
+  only source-reported agreement fields; GePNIC notices remain unawarded candidates; and
+  the seven custom portal families remain gaps in the GePNIC layer until dedicated
+  adapters are verified. Exact segment, award, contractor, warranty, and DLP stay unknown
+  without authoritative evidence.
 - 137 of Karnataka's 319 local bodies have no address in the file because their district
   pages publish none. Those points cannot receive a specific municipal recipient, but can
   use neutral Janaspandana after exact state containment.

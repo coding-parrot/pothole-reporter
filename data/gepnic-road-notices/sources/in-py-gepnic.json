@@ -1,0 +1,47 @@
+{
+  "format": "gepnic-road-surface-procurement-notices",
+  "lifecycle": "procurement_notice",
+  "notices": [
+    {
+      "closing_at": "2026-09-02T11:00:00+05:30",
+      "detail_url": "https://pudutenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sah%2BAlL2Mc%2BM%2B2uyjq9aW4Q%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://pudutenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SVgTzR1yl%2BXqa4xOIVccX5g%3D%3D",
+      "opening_at": "2026-09-02T11:30:00+05:30",
+      "organisation_chain": "Department of Local Administration||Karaikal Municipality-DLA",
+      "organisation_path": [
+        "Department of Local Administration",
+        "Karaikal Municipality-DLA"
+      ],
+      "published_at": "2026-08-25T17:00:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Puducherry e-Procurement Portal",
+      "source_url": "https://pudutenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sah%2BAlL2Mc%2BM%2B2uyjq9aW4Q%3D%3D",
+      "state_code": "PY",
+      "tender_id": "2026_DLA_22756_1",
+      "tender_reference": "01/KM/e-tenders/2026-27",
+      "title": "Reconstruction of Cremation shed and improvements to the road at Oduthurai Village South Constituency"
+    }
+  ],
+  "organisations": [
+    "Co-Operative Department",
+    "Department of Health and Family Welfare Services",
+    "Department of Labour",
+    "Department of Local Administration",
+    "Department of Tourism - Puducherry",
+    "Electricity Department",
+    "Jail Department",
+    "Public Works Department",
+    "Puducherry Industrial Promotion Development and Investment Corporation Limited",
+    "SE-II (Cable Construction and Building),POWER"
+  ],
+  "retrieved_at": "2026-08-26T05:22:39Z",
+  "rows_excluded_by_scope": 54,
+  "rows_scanned": 55,
+  "schema_version": 1,
+  "source_id": "in-py-gepnic",
+  "source_name": "Puducherry e-Procurement Portal",
+  "source_url": "https://pudutenders.gov.in/nicgep/app?component=clear&page=FrontEndTendersByOrganisation&service=direct",
+  "state_code": "PY"
+}

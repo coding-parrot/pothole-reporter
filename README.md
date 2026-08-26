@@ -63,9 +63,12 @@ submitted automatically.
 - Complaint intake and road ownership are separate fields. A boundary can select where to
   start a complaint without claiming that the same authority owns or maintains the road.
 - Email, short WhatsApp, and copyable portal fields always retain coordinates, map link,
-  routing, and a contract block. A Karnataka tender match remains a **candidate** until the
-  exact road segment, carriageway scope, awarded contractor, and DLP terms are verified.
-  Publication date is metadata only and never implies warranty or DLP.
+  routing, and a contract block. Matches may come from the Karnataka snapshot, current
+  NHAI/MoRTH/NHIDCL project records, source-reported PMGSY road agreements, or a State/UT
+  GePNIC procurement notice. The app attempts these candidate layers nationwide, with
+  KPPP as a Karnataka supplement, but it cannot guarantee a tender for every road. Every
+  match remains a **candidate** until the exact road segment, award, contractor, and DLP
+  terms are evidenced. An open notice is explicitly labelled as not being an award.
 
 ### National Highway routing
 
@@ -80,27 +83,30 @@ submitted automatically.
 ## Downloaded data packs
 
 The APK contains the app and small manifests, not the large reference datasets. When
-needed, it downloads a versioned state/UT pack or the relevant 2° National Highway tile from
-this project's GitHub Pages site. Highway matching runs before municipal routing. The
-101 highway tiles total about 18 MB, but only the relevant tile is downloaded and cached;
-they do not enlarge the APK. The optional Karnataka tender pack is downloaded only for
-eligible contract matching. It contains only titles with explicit carriageway work;
-drain-, footpath-, sewer-, and other roadside-only contracts are excluded even when a
-road name appears as their location.
+needed, it downloads a versioned state/UT pack or the relevant 2° National Highway tile
+from this project's GitHub Pages site. The 101 highway geometry tiles total about 18 MB,
+the 33 current National Highway candidate packs contain 1,859 records in 1,805,723 bytes,
+the 36 PMGSY State/UT packs contain 17,717 records in 3,075,718 bytes, and the 29 GePNIC
+jurisdiction packs contain 4,949 open notices in 4,001,112 bytes. Only the relevant files
+are downloaded and cached. These remote packs do not enlarge the APK; the three manifests
+add only about 100 KB to a future build. The Play closed-test binary already submitted to
+Google remains unchanged. All inputs are filtered for explicit carriageway work, so
+drain-, footpath-, sewer-, utility-, consultancy-, and roadside-only work is excluded even
+when its title contains a road name.
 
 Every downloaded pack is checked byte-for-byte against a checksum pinned in the app before
 it is used, then cached locally. Missing, malformed, or altered required routing, contact,
 or highway data makes authority routing fail closed—the app does not guess or reuse
 unverified data.
-If the optional Karnataka tender pack is unavailable, the report continues without a
-contract match. A verified cached pack is available after its first successful download,
-although detection, geocoding, and Karnataka GIS still need their respective network
+If an optional contract or procurement pack is unavailable, the report continues without
+a candidate. A verified cached pack is available after its first successful download,
+although detection, geocoding, and relevant GIS checks still need their respective network
 services. On a subsequent pack use, caches past their unused limits are pruned
 automatically; **Delete all app data** removes the entire pack cache immediately.
 
 A pack request contains no report, photo, or exact coordinates. GitHub Pages can receive
-the device's IP address, connection metadata, and requested pack URL; the URL reveals a
-state or an approximate 2° highway tile. See the
+the device's IP address, connection metadata, and requested pack URL; the URL reveals the
+selected state or an approximate 2° highway tile. See the
 [privacy policy](https://coding-parrot.github.io/pothole-reporter/privacy.html).
 
 ## Install
@@ -127,10 +133,19 @@ state or an approximate 2° highway tile. See the
   boundaries for all 28 states and 8 Union Territories.
   The 8 structured-city routes require Nominatim's city/municipality and state fields;
   a broad envelope or stale place label alone cannot select a route.
-- Contract matching is optional and available only for eligible Karnataka routes. Only
-  explicit carriageway work can enter the matcher; drain-, footpath-, sewer-, utility-, or
-  other roadside-only work is rejected. Every match stays a candidate unless road segment,
-  scope, award, and DLP are independently verified; publication date proves none of them.
+- Contract matching is optional and incomplete. The 26 August 2026 National Highway scan
+  read 3,258 MoRTH and 529 NHIDCL rows, normalized 1,950 current/open records
+  (1,939 + 11), and published the 1,859 with a mapped NH/NE reference. PMGSY retained
+  17,717 recent,
+  source-reported **In Progress** agreements from 211,007 rows; agreement details are
+  verified as source fields, but award, contractor, exact segment, and DLP are not.
+  GePNIC scanned 62,524 rows from 30 zero-failure official feeds across 29 jurisdictions,
+  rejected 57,575 by strict scope, and retained 4,949 open road notices. DH, MN, MZ, NL,
+  and SK currently have zero eligible notices; AP, BR, CG, GJ, KA, TG, and LD use custom
+  portal families outside this GePNIC catalog. KPPP remains a Karnataka supplement.
+- Every match is a reviewable candidate, never a guarantee that every public tender or
+  road is covered. Open notices are not awards. Exact segment, scope, award, contractor,
+  warranty, and DLP require authoritative evidence; publication date proves none.
 - National Highway coverage follows mapped NH/NE geometry, not the legal road register.
   Parallel roads, junctions, weak GPS, missing tiles, and altered data fail closed.
 - The project is not affiliated with or endorsed by a government body or data provider.

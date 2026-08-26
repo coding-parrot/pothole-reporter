@@ -1,0 +1,202 @@
+{
+  "format": "gepnic-road-surface-procurement-notices",
+  "lifecycle": "procurement_notice",
+  "notices": [
+    {
+      "closing_at": "2026-09-03T15:00:00+05:30",
+      "detail_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2tgO9GiUe7rs7xQ9XCOF9g%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
+      "opening_at": "2026-09-03T15:30:00+05:30",
+      "organisation_chain": "Chief Engineer Andaman Public Works Department (APWD)||EE (CD-III - APWD - Prothrapur)",
+      "organisation_path": [
+        "Chief Engineer Andaman Public Works Department (APWD)",
+        "EE (CD-III - APWD - Prothrapur)"
+      ],
+      "published_at": "2026-08-25T15:00:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
+      "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2tgO9GiUe7rs7xQ9XCOF9g%3D%3D",
+      "state_code": "AN",
+      "tender_id": "2026_APWD_24416_1",
+      "tender_reference": "NIT No. 08/EE/CD-III/2026-27",
+      "title": "Annual repair and maintenance of rural road under SD III, CD III during the year 2026 27"
+    },
+    {
+      "closing_at": "2026-08-31T15:00:00+05:30",
+      "detail_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SAkJPbARrAnOwiNZJWIo63A%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
+      "opening_at": "2026-08-31T15:30:00+05:30",
+      "organisation_chain": "Chief Engineer Andaman Public Works Department (APWD)||EE - CD - APWD - Kamorta",
+      "organisation_path": [
+        "Chief Engineer Andaman Public Works Department (APWD)",
+        "EE - CD - APWD - Kamorta"
+      ],
+      "published_at": "2026-08-20T16:00:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
+      "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SAkJPbARrAnOwiNZJWIo63A%3D%3D",
+      "state_code": "AN",
+      "tender_id": "2026_APWD_24313_1",
+      "tender_reference": "43/NIT/DB/CD/KMT/2025-26",
+      "title": "Construction of earthen gravel path from main road to graveyard and pump house in kalasi village for length of 1.45 km at teressa island in lieu of reconstruction of CC Road and footpath at Kalasi Teressa island"
+    },
+    {
+      "closing_at": "2026-08-27T15:00:00+05:30",
+      "detail_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sla%2B7S%2FWsMPKboGzUGBDG3A%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
+      "opening_at": "2026-08-28T10:30:00+05:30",
+      "organisation_chain": "Chief Engineer Andaman Public Works Department (APWD)||EE (SAD - APWD - Port Blair)",
+      "organisation_path": [
+        "Chief Engineer Andaman Public Works Department (APWD)",
+        "EE (SAD - APWD - Port Blair)"
+      ],
+      "published_at": "2026-08-19T17:15:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
+      "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sla%2B7S%2FWsMPKboGzUGBDG3A%3D%3D",
+      "state_code": "AN",
+      "tender_id": "2026_APWD_24305_1",
+      "tender_reference": "DB/e-Q/SAD/APWD/2026-27/1957",
+      "title": "Resurfacing and Improvement of road from Ganesh Temple Aberdeen Bazar to Babulane Tourist Cottage SW Providing and supplying of structural Design and drawing of sea wall"
+    },
+    {
+      "closing_at": "2026-08-27T15:00:00+05:30",
+      "detail_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SW5oO6cxLdYtEBHUP%2FlQwyQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
+      "opening_at": "2026-08-28T10:30:00+05:30",
+      "organisation_chain": "Chief Engineer Andaman Public Works Department (APWD)||EE (SAD - APWD - Port Blair)",
+      "organisation_path": [
+        "Chief Engineer Andaman Public Works Department (APWD)",
+        "EE (SAD - APWD - Port Blair)"
+      ],
+      "published_at": "2026-08-19T16:00:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
+      "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SW5oO6cxLdYtEBHUP%2FlQwyQ%3D%3D",
+      "state_code": "AN",
+      "tender_id": "2026_APWD_24299_1",
+      "tender_reference": "DB/e-Q/SAD/APWD/2026-27/1953",
+      "title": "Resurfacing and Improvement of road from Ganesh Temple Aberdeen Bazar to Babulane Tourist Cottage SW Conduct of Total Station Survey for planning of suitable sea wall along the sea side opposite to Megapode Junction etc"
+    },
+    {
+      "closing_at": "2026-09-04T15:00:00+05:30",
+      "detail_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SzMw0507UfEGlAWWceVWQmg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
+      "opening_at": "2026-09-04T15:30:00+05:30",
+      "organisation_chain": "Chief Engineer Andaman Public Works Department (APWD)||EE - MID - APWD - Hut Bay",
+      "organisation_path": [
+        "Chief Engineer Andaman Public Works Department (APWD)",
+        "EE - MID - APWD - Hut Bay"
+      ],
+      "published_at": "2026-08-11T16:00:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
+      "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SzMw0507UfEGlAWWceVWQmg%3D%3D",
+      "state_code": "AN",
+      "tender_id": "2026_APWD_24169_1",
+      "tender_reference": "NIT No.07/DB/MID/2025-26",
+      "title": "Repair and maintenance of Blacktop road from Main road to baby Hira"
+    },
+    {
+      "closing_at": "2026-09-04T15:00:00+05:30",
+      "detail_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZKUgM%2BF2RQGGSqffnQSbxQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
+      "opening_at": "2026-09-04T15:30:00+05:30",
+      "organisation_chain": "Chief Engineer Andaman Public Works Department (APWD)||EE - MID - APWD - Hut Bay",
+      "organisation_path": [
+        "Chief Engineer Andaman Public Works Department (APWD)",
+        "EE - MID - APWD - Hut Bay"
+      ],
+      "published_at": "2026-08-10T17:30:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
+      "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZKUgM%2BF2RQGGSqffnQSbxQ%3D%3D",
+      "state_code": "AN",
+      "tender_id": "2026_APWD_24156_1",
+      "tender_reference": "NIT No. 06/DB/MID/2025-26",
+      "title": "Repair and maintenance of Blacktop road from LATR to Provash Mondal at R.K.Pur"
+    },
+    {
+      "closing_at": "2026-08-31T15:00:00+05:30",
+      "detail_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SeIiPpsz8t6ivxMIxrCwLfg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SGTcD%2BRUO7BhBfui0B%2FOiww%3D%3D",
+      "opening_at": "2026-08-31T16:00:00+05:30",
+      "organisation_chain": "Port Blair Municipal Council||EE - I",
+      "organisation_path": [
+        "Port Blair Municipal Council",
+        "EE - I"
+      ],
+      "published_at": "2026-08-21T15:00:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
+      "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SeIiPpsz8t6ivxMIxrCwLfg%3D%3D",
+      "state_code": "AN",
+      "tender_id": "2026_PMBC_23457_3",
+      "tender_reference": "70/EE/Wks-I/R/MC/2026-27",
+      "title": "Construction of road from Sohan house to GMS Bar main road from Anarkali in Ward no.03"
+    },
+    {
+      "closing_at": "2026-08-28T10:00:00+05:30",
+      "detail_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDYsZRQC%2ByAnJ4EP6%2FLPC7w%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SSrJAswtAP6cZSazMEKxlyg%3D%3D",
+      "opening_at": "2026-08-31T10:00:00+05:30",
+      "organisation_chain": "Zilla Parishad South Andaman||Office of Executive Engineer Port Blair",
+      "organisation_path": [
+        "Zilla Parishad South Andaman",
+        "Office of Executive Engineer Port Blair"
+      ],
+      "published_at": "2026-08-20T17:00:00+05:30",
+      "retrieved_at": "2026-08-26T05:22:39Z",
+      "scope": "road_surface",
+      "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
+      "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDYsZRQC%2ByAnJ4EP6%2FLPC7w%3D%3D",
+      "state_code": "AN",
+      "tender_id": "2026_OEEPB_24291_1",
+      "tender_reference": "EE/ZP/SA/2026-2027/07",
+      "title": "repair and maintenance of rural road from main road near power house via late suren roy house to bharatpur beach at shaheed dweep by zilla parishad south andaman"
+    }
+  ],
+  "organisations": [
+    "Andaman and Nicobar AIDS Control Society",
+    "Andaman and Nicobar Islands Institute of Medical Sciences (ANIIMS)",
+    "Andaman and Nicobar Islands Integrated Development Corporation Limited (ANIIDCO)",
+    "Andaman and Nicobar Police",
+    "Chief Engineer Andaman Public Works Department (APWD)",
+    "Department of Agriculture",
+    "Department of Environment and Forests",
+    "Directorate of Animal Husbandry and Veterinary Services",
+    "Directorate of Health Services",
+    "Directorate of Information Publicity and Tourism",
+    "DIRECTORATE OF RD PRIS and ULBS",
+    "Directorate of Shipping Services",
+    "Dr.B.R.Ambedkar Institute of Technology (DBRAIT)",
+    "Electricity Department",
+    "Port Blair Municipal Council",
+    "Port Management Board",
+    "Society for Promotion of Vocational and Technical Education (SOVTECH)",
+    "Zilla Parishad South Andaman"
+  ],
+  "retrieved_at": "2026-08-26T05:22:39Z",
+  "rows_excluded_by_scope": 209,
+  "rows_scanned": 217,
+  "schema_version": 1,
+  "source_id": "in-an-gepnic",
+  "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
+  "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=clear&page=FrontEndTendersByOrganisation&service=direct",
+  "state_code": "AN"
+}

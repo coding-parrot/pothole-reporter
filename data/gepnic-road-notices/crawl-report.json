@@ -1,0 +1,185 @@
+{
+  "failures": [],
+  "format": "india-gepnic-road-surface-crawl-report",
+  "retrieved_at": "2026-08-26T05:22:39Z",
+  "schema_version": 1,
+  "source_count_failed": 0,
+  "source_count_requested": 30,
+  "source_count_succeeded": 30,
+  "states": {
+    "AN": {
+      "notices": 8,
+      "rows_excluded_by_scope": 209,
+      "rows_scanned": 217,
+      "sources": 1
+    },
+    "AR": {
+      "notices": 1,
+      "rows_excluded_by_scope": 8,
+      "rows_scanned": 9,
+      "sources": 1
+    },
+    "AS": {
+      "notices": 21,
+      "rows_excluded_by_scope": 259,
+      "rows_scanned": 280,
+      "sources": 1
+    },
+    "CH": {
+      "notices": 8,
+      "rows_excluded_by_scope": 246,
+      "rows_scanned": 254,
+      "sources": 1
+    },
+    "DH": {
+      "notices": 0,
+      "rows_excluded_by_scope": 12,
+      "rows_scanned": 12,
+      "sources": 1
+    },
+    "DL": {
+      "notices": 10,
+      "rows_excluded_by_scope": 723,
+      "rows_scanned": 733,
+      "sources": 1
+    },
+    "GA": {
+      "notices": 18,
+      "rows_excluded_by_scope": 235,
+      "rows_scanned": 253,
+      "sources": 1
+    },
+    "HP": {
+      "notices": 43,
+      "rows_excluded_by_scope": 826,
+      "rows_scanned": 869,
+      "sources": 1
+    },
+    "HR": {
+      "notices": 139,
+      "rows_excluded_by_scope": 2297,
+      "rows_scanned": 2436,
+      "sources": 1
+    },
+    "JH": {
+      "notices": 108,
+      "rows_excluded_by_scope": 604,
+      "rows_scanned": 712,
+      "sources": 1
+    },
+    "JK": {
+      "notices": 785,
+      "rows_excluded_by_scope": 10915,
+      "rows_scanned": 11700,
+      "sources": 1
+    },
+    "KL": {
+      "notices": 266,
+      "rows_excluded_by_scope": 2199,
+      "rows_scanned": 2465,
+      "sources": 1
+    },
+    "LA": {
+      "notices": 5,
+      "rows_excluded_by_scope": 87,
+      "rows_scanned": 92,
+      "sources": 1
+    },
+    "MH": {
+      "notices": 379,
+      "rows_excluded_by_scope": 4147,
+      "rows_scanned": 4526,
+      "sources": 1
+    },
+    "ML": {
+      "notices": 2,
+      "rows_excluded_by_scope": 13,
+      "rows_scanned": 15,
+      "sources": 1
+    },
+    "MN": {
+      "notices": 0,
+      "rows_excluded_by_scope": 10,
+      "rows_scanned": 10,
+      "sources": 1
+    },
+    "MP": {
+      "notices": 677,
+      "rows_excluded_by_scope": 4885,
+      "rows_scanned": 5562,
+      "sources": 1
+    },
+    "MZ": {
+      "notices": 0,
+      "rows_excluded_by_scope": 1,
+      "rows_scanned": 1,
+      "sources": 1
+    },
+    "NL": {
+      "notices": 0,
+      "rows_excluded_by_scope": 3,
+      "rows_scanned": 3,
+      "sources": 1
+    },
+    "OD": {
+      "notices": 280,
+      "rows_excluded_by_scope": 1096,
+      "rows_scanned": 1376,
+      "sources": 1
+    },
+    "PB": {
+      "notices": 52,
+      "rows_excluded_by_scope": 2472,
+      "rows_scanned": 2524,
+      "sources": 1
+    },
+    "PY": {
+      "notices": 1,
+      "rows_excluded_by_scope": 54,
+      "rows_scanned": 55,
+      "sources": 1
+    },
+    "RJ": {
+      "notices": 528,
+      "rows_excluded_by_scope": 5017,
+      "rows_scanned": 5545,
+      "sources": 1
+    },
+    "SK": {
+      "notices": 0,
+      "rows_excluded_by_scope": 3,
+      "rows_scanned": 3,
+      "sources": 1
+    },
+    "TN": {
+      "notices": 93,
+      "rows_excluded_by_scope": 5634,
+      "rows_scanned": 5727,
+      "sources": 1
+    },
+    "TR": {
+      "notices": 120,
+      "rows_excluded_by_scope": 251,
+      "rows_scanned": 371,
+      "sources": 1
+    },
+    "UK": {
+      "notices": 66,
+      "rows_excluded_by_scope": 544,
+      "rows_scanned": 610,
+      "sources": 1
+    },
+    "UP": {
+      "notices": 832,
+      "rows_excluded_by_scope": 6830,
+      "rows_scanned": 7662,
+      "sources": 1
+    },
+    "WB": {
+      "notices": 507,
+      "rows_excluded_by_scope": 7995,
+      "rows_scanned": 8502,
+      "sources": 2
+    }
+  }
+}

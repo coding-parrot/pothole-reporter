@@ -1549,6 +1549,10 @@ This is a strict before/after verification, not ordinary pothole detection:
   });
   const STATE_PACK_MAX_BYTES = 16 * 1024 * 1024;
   const STATE_PACK_FETCH_TIMEOUT_MS = 30000;
+  // Contract context is optional and must never make an accepted report feel stuck.
+  // The required routing packs retain their longer timeout; these catalogs get a short
+  // network deadline and the matcher also bounds the complete lookup below.
+  const OPTIONAL_CATALOG_TIMEOUT_MS = 5000;
   let _statePackManifest = null, _statePackManifestPromise = null;
   const _statePackMemory = new Map(), _statePackPromises = new Map();
 
@@ -2405,21 +2409,32 @@ This is a strict before/after verification, not ordinary pothole detection:
   }
 
   async function pruneStatePacks(activePackId = null) {
-    const [manifest, highwayManifest] = await Promise.all([
-      getStatePackManifest(), getHighwayPackManifest(),
+    const [manifest, highwayManifest, contractManifest, roadNoticeManifest,
+      roadAgreementManifest] = await Promise.all([
+      getStatePackManifest(), getHighwayPackManifest(), getContractPackManifest(),
+      getRoadNoticeManifest(), getRoadAgreementManifest(),
     ]);
-    if (!manifest && !highwayManifest) return { removed: 0, bytes: 0 };
+    if (!manifest && !highwayManifest && !contractManifest && !roadNoticeManifest
+        && !roadAgreementManifest) {
+      return { removed: 0, bytes: 0 };
+    }
     let records;
     try { records = await allStatePacks(); } catch (e) { return { removed: 0, bytes: 0 }; }
     const resources = [
       ...Object.values((manifest && manifest.resources) || {}),
       ...Object.values((highwayManifest && highwayManifest.tiles) || {}),
+      ...Object.values((contractManifest && contractManifest.resources) || {}),
+      ...Object.values((roadNoticeManifest && roadNoticeManifest.resources) || {}),
+      ...Object.values((roadAgreementManifest && roadAgreementManifest.resources) || {}),
     ];
     const currentByKey = new Map(resources
       .map((resource) => [statePackCacheKey(resource), resource]));
     const protectedIds = new Set([
       activePackId, ..._statePackPromises.keys(),
       ...[..._highwayTilePromises.keys()].map((id) => `in-nh-${id}`),
+      ..._contractPackPromises.keys(),
+      ..._roadNoticePackPromises.keys(),
+      ..._roadAgreementPackPromises.keys(),
     ]
       .filter(Boolean));
     const now = Date.now(), toDelete = [], kept = [];
@@ -2433,8 +2448,14 @@ This is a strict before/after verification, not ordinary pothole detection:
         / (24 * 60 * 60 * 1000);
       const unusedLimit = resource.kind === "highways"
         ? highwayManifest.cache.max_unused_days
-        : resource.kind === "tenders"
-          ? manifest.cache.tender_max_unused_days : manifest.cache.routing_max_unused_days;
+        : resource.kind === "highway_contracts"
+          ? contractManifest.cache.max_unused_days
+          : resource.kind === "road_procurement_notices"
+            ? roadNoticeManifest.cache.max_unused_days
+          : resource.kind === "road_current_agreements"
+            ? roadAgreementManifest.cache.max_unused_days
+          : resource.kind === "tenders"
+            ? manifest.cache.tender_max_unused_days : manifest.cache.routing_max_unused_days;
       if (ageDays > unusedLimit && !protectedIds.has(resource.pack_id)) {
         toDelete.push(record); continue;
       }
@@ -2448,7 +2469,10 @@ This is a strict before/after verification, not ordinary pothole detection:
     });
     const maxBytes = Math.min(
       manifest ? manifest.cache.max_bytes : Infinity,
-      highwayManifest ? highwayManifest.cache.max_bytes : Infinity);
+      highwayManifest ? highwayManifest.cache.max_bytes : Infinity,
+      contractManifest ? contractManifest.cache.max_bytes : Infinity,
+      roadNoticeManifest ? roadNoticeManifest.cache.max_bytes : Infinity,
+      roadAgreementManifest ? roadAgreementManifest.cache.max_bytes : Infinity);
     for (const item of kept) {
       if (total <= maxBytes) break;
       if (protectedIds.has(item.resource.pack_id)) continue;
@@ -2549,11 +2573,839 @@ This is a strict before/after verification, not ordinary pothole detection:
     };
   }
 
+  // Current/open catalogs are evidence only while their builder-declared review window
+  // remains current. A frozen manifest must fail closed instead of turning an old portal
+  // status into a claim about today's project or bid state.
+  function catalogResourceWithinReview(resource, now = Date.now()) {
+    if (!resource || !/^\d{4}-\d{2}-\d{2}$/.test(String(resource.review_after || ""))) {
+      return false;
+    }
+    const deadline = Date.parse(`${resource.review_after}T23:59:59.999Z`);
+    return Number.isFinite(deadline) && Number.isFinite(now) && now <= deadline;
+  }
+
+  async function fetchOptionalCatalogManifest(filename, validate) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), OPTIONAL_CATALOG_TIMEOUT_MS);
+    try {
+      const response = await fetch(filename, {
+        cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer",
+        signal: controller.signal,
+      });
+      if (!response.ok) return null;
+      const text = await response.text();
+      if (!text || text.length > 128 * 1024) return null;
+      return validate(JSON.parse(text));
+    } catch (e) { return null; }
+    finally { clearTimeout(timer); }
+  }
+
+  // Contract data has a separate, append-only catalog. Keeping it out of the v1.35
+  // routing catalog preserves the immutable Play closed-test bundle while allowing the
+  // web app and a later Android release to fetch only the nearby State/UT highway pack.
+  const CONTRACT_MANIFEST_FILE = "contract-manifest-v1.36.json";
+  const CONTRACT_PACK_MAX_BYTES = 8 * 1024 * 1024;
+  let _contractPackManifest = null, _contractPackManifestPromise = null;
+  const _contractPackMemory = new Map(), _contractPackPromises = new Map();
+
+  function validateContractPackManifest(manifest) {
+    if (!exactObjectKeys(manifest,
+      ["format", "schema_version", "catalog_version", "generated_at", "cache", "resources"])
+        || manifest.format !== "pothole-contract-manifest"
+        || manifest.schema_version !== 1 || manifest.catalog_version !== 1
+        || !/^\d{4}-\d{2}-\d{2}$/.test(manifest.generated_at)
+        || !exactObjectKeys(manifest.cache, ["max_bytes", "max_unused_days"])
+        || !Number.isInteger(manifest.cache.max_bytes)
+        || manifest.cache.max_bytes < 1024 * 1024 || manifest.cache.max_bytes > 128 * 1024 * 1024
+        || !Number.isInteger(manifest.cache.max_unused_days)
+        || manifest.cache.max_unused_days < 1 || manifest.cache.max_unused_days > 90
+        || !manifest.resources || typeof manifest.resources !== "object"
+        || Array.isArray(manifest.resources)) {
+      throw new Error("Invalid contract-pack manifest.");
+    }
+    for (const [packId, resource] of Object.entries(manifest.resources)) {
+      const fields = ["pack_id", "state_code", "kind", "pack_version", "schema_version",
+        "adapter", "path", "url", "bytes", "sha256", "records", "coverage_scope",
+        "source_retrieved_at", "review_after", "licenses"];
+      const state = String(resource && resource.state_code || "");
+      const pathMatch = resource && typeof resource.path === "string"
+        ? resource.path.match(/^packs\/v1\/contracts\/([a-z]{2})\/highways-([0-9a-f]{64})\.json$/)
+        : null;
+      if (!exactObjectKeys(resource, fields)
+          || packId !== `in-nh-contracts-${state.toLowerCase()}`
+          || resource.pack_id !== packId || !/^[A-Z]{2}$/.test(state)
+          || resource.kind !== "highway_contracts"
+          || resource.adapter !== "nhai-nhidcl-public-projects-v1"
+          || resource.pack_version !== 1 || resource.schema_version !== 1
+          || !pathMatch || pathMatch[1] !== state.toLowerCase()
+          || pathMatch[2] !== resource.sha256
+          || resource.url !== PACK_SITE_ROOT + resource.path
+          || !Number.isInteger(resource.bytes) || resource.bytes <= 0
+          || resource.bytes > CONTRACT_PACK_MAX_BYTES
+          || !/^[0-9a-f]{64}$/.test(resource.sha256)
+          || !Number.isInteger(resource.records) || resource.records <= 0
+          || resource.records > 10000
+          || typeof resource.coverage_scope !== "string" || !resource.coverage_scope
+          || !/^\d{4}-\d{2}-\d{2}$/.test(resource.source_retrieved_at)
+          || !/^\d{4}-\d{2}-\d{2}$/.test(resource.review_after)
+          || !Array.isArray(resource.licenses) || !resource.licenses.length
+          || resource.licenses.some((item) => typeof item !== "string" || !item)) {
+        throw new Error(`Invalid contract-pack resource: ${packId}`);
+      }
+    }
+    return manifest;
+  }
+
+  async function getContractPackManifest() {
+    if (_contractPackManifest) return _contractPackManifest;
+    if (_contractPackManifestPromise) return _contractPackManifestPromise;
+    _contractPackManifestPromise = fetchOptionalCatalogManifest(
+      CONTRACT_MANIFEST_FILE, validateContractPackManifest).then((manifest) => {
+      _contractPackManifest = manifest;
+      return manifest;
+    });
+    const result = await _contractPackManifestPromise;
+    _contractPackManifestPromise = null;
+    return result;
+  }
+
+  const validContractDate = (value) => value === null
+    || (typeof value === "string" && value.length <= 40);
+
+  function validateHighwayContractPack(resource, pack) {
+    if (!exactObjectKeys(pack, ["format", "schema_version", "pack_id", "pack_version",
+      "state_code", "adapter", "generated_at", "contracts"])
+        || pack.format !== "pothole-highway-contract-pack"
+        || pack.schema_version !== 1 || pack.pack_version !== 1
+        || pack.pack_id !== resource.pack_id || pack.state_code !== resource.state_code
+        || pack.adapter !== resource.adapter || pack.generated_at !== resource.source_retrieved_at
+        || !Array.isArray(pack.contracts) || pack.contracts.length !== resource.records) {
+      throw new Error("Highway contract-pack envelope is invalid.");
+    }
+    const fields = new Set(["record_id", "reference_label", "reference_value", "state_code",
+      "agency", "lifecycle", "lifecycle_status", "title", "highway_refs", "chainages",
+      "contractor", "published_at", "start_date", "likely_completion_date", "division",
+      "source_name", "source_url", "retrieved_at", "scope_verified", "segment_verified",
+      "award_verified", "dlp_verified"]);
+    const seen = new Set();
+    for (const row of pack.contracts) {
+      if (!exactObjectKeys(row, fields)
+          || typeof row.record_id !== "string" || !row.record_id || row.record_id.length > 160
+          || !["UPC", "Tender ID", "NHIDCL notice"].includes(row.reference_label)
+          || typeof row.reference_value !== "string" || !row.reference_value
+          || row.reference_value.length > 200 || row.state_code !== resource.state_code
+          || !["NHAI", "MoRTH", "NHIDCL"].includes(row.agency)
+          || !["current_project", "procurement_notice"].includes(row.lifecycle)
+          || typeof row.lifecycle_status !== "string" || !row.lifecycle_status
+          || row.lifecycle_status.length > 160
+          || typeof row.title !== "string" || !row.title || row.title.length > 1200
+          || !Array.isArray(row.highway_refs) || !row.highway_refs.length
+          || row.highway_refs.length > 12
+          || row.highway_refs.some((ref) => typeof ref !== "string" || !HIGHWAY_REF_RE.test(ref))
+          || !Array.isArray(row.chainages) || row.chainages.length > 16
+          || row.chainages.some((range) => !exactObjectKeys(range, ["start_km", "end_km"])
+            || !Number.isFinite(range.start_km) || !Number.isFinite(range.end_km)
+            || range.start_km < 0 || range.end_km < range.start_km || range.end_km > 10000)
+          || !(row.contractor === null || (typeof row.contractor === "string"
+            && row.contractor.length > 0 && row.contractor.length <= 300))
+          || ![row.published_at, row.start_date, row.likely_completion_date].every(validContractDate)
+          || !(row.division === null || (typeof row.division === "string" && row.division.length <= 300))
+          || typeof row.source_name !== "string" || !row.source_name
+          || !/^https:\/\//.test(String(row.source_url || ""))
+          || !/^\d{4}-\d{2}-\d{2}$/.test(String(row.retrieved_at || ""))
+          || row.scope_verified !== true || row.segment_verified !== false
+          || typeof row.award_verified !== "boolean" || row.dlp_verified !== false
+          || (row.lifecycle === "procurement_notice"
+            && (row.contractor !== null || row.award_verified !== false))) {
+        throw new Error("Highway contract pack contains an invalid record.");
+      }
+      if (seen.has(row.record_id)) throw new Error("Highway contract pack contains a duplicate.");
+      seen.add(row.record_id);
+    }
+    return pack;
+  }
+
+  async function validateDecodedContractPack(resource, bytes) {
+    if (!(bytes instanceof ArrayBuffer) || bytes.byteLength !== resource.bytes) {
+      throw new Error("Contract-pack byte length does not match its manifest.");
+    }
+    const digest = await sha256Bytes(bytes);
+    if (!digest || digest !== resource.sha256 || !window.TextDecoder) {
+      throw new Error("Contract-pack checksum does not match its manifest.");
+    }
+    const pack = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    return validateHighwayContractPack(resource, pack);
+  }
+
+  async function fetchContractPack(resource) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), OPTIONAL_CATALOG_TIMEOUT_MS);
+    try {
+      const response = await fetch(resolvePackUrl(resource), {
+        cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer",
+        signal: controller.signal,
+      });
+      if (!response.ok) return null;
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType && !/json/i.test(contentType)) return null;
+      const bytes = await response.arrayBuffer();
+      return { pack: await validateDecodedContractPack(resource, bytes), bytes };
+    } catch (e) { return null; }
+    finally { clearTimeout(timer); }
+  }
+
+  async function loadHighwayContractPack(stateCode) {
+    if (!/^[A-Z]{2}$/.test(String(stateCode || ""))) return null;
+    const packId = `in-nh-contracts-${stateCode.toLowerCase()}`;
+    if (_contractPackPromises.has(packId)) return _contractPackPromises.get(packId);
+    const task = (async () => {
+      const manifest = await getContractPackManifest();
+      const resource = manifest && manifest.resources[packId];
+      if (!resource || !catalogResourceWithinReview(resource)) return null;
+      const cacheKey = statePackCacheKey(resource);
+      const memory = _contractPackMemory.get(packId);
+      if (memory && memory.cache_key === cacheKey) return memory.pack;
+      let cached = null;
+      try { cached = await getCachedStatePack(cacheKey); } catch (e) { /* download below */ }
+      if (cached) {
+        try {
+          const pack = await validateDecodedContractPack(resource, await cachedPackBytes(cached));
+          _contractPackMemory.set(packId, { cache_key: cacheKey, pack, resource });
+          touchStatePack(cached);
+          pruneStatePacks(packId);
+          return pack;
+        } catch (e) {
+          try { await deleteCachedStatePack(cacheKey); } catch (_) {}
+        }
+      }
+      const downloaded = await fetchContractPack(resource);
+      if (!downloaded) return null;
+      const now = Date.now();
+      const record = {
+        cache_key: cacheKey, pack_id: resource.pack_id, pack_version: resource.pack_version,
+        state_code: resource.state_code, kind: resource.kind, sha256: resource.sha256,
+        bytes: resource.bytes, installed_at: now, last_used_at: now,
+        blob: new Blob([downloaded.bytes], { type: "application/json" }),
+      };
+      try { await putCachedStatePack(record); }
+      catch (e) {
+        await pruneStatePacks(packId);
+        try { await putCachedStatePack(record); } catch (_) { /* valid for this session */ }
+      }
+      _contractPackMemory.set(packId, { cache_key: cacheKey, pack: downloaded.pack, resource });
+      pruneStatePacks(packId);
+      return downloaded.pack;
+    })();
+    _contractPackPromises.set(packId, task);
+    try { return await task; }
+    finally { _contractPackPromises.delete(packId); }
+  }
+
+  function contractPackProvenance(stateCode) {
+    const packId = `in-nh-contracts-${String(stateCode || "").toLowerCase()}`;
+    const item = _contractPackMemory.get(packId);
+    const resource = item && item.resource;
+    if (!resource) return {};
+    return {
+      tender_pack_id: resource.pack_id,
+      tender_pack_version: resource.pack_version,
+      tender_pack_sha256: resource.sha256,
+      tender_pack_state_code: resource.state_code,
+    };
+  }
+
+  function resetContractPackMemory() {
+    _contractPackManifest = null;
+    _contractPackManifestPromise = null;
+    _contractPackMemory.clear();
+    _contractPackPromises.clear();
+  }
+
+  // Current State/UT GePNIC listings are procurement notices, not awards. They use a
+  // separate catalog and schema so a notice can never acquire contractor, segment or
+  // warranty fields merely by passing through the National Highway contract loader.
+  const ROAD_NOTICE_MANIFEST_FILE = "road-notice-manifest-v1.36.json";
+  const ROAD_NOTICE_PACK_MAX_BYTES = 8 * 1024 * 1024;
+  let _roadNoticeManifest = null, _roadNoticeManifestPromise = null;
+  const _roadNoticePackMemory = new Map(), _roadNoticePackPromises = new Map();
+
+  function validRoadNoticePolicy(policy) {
+    return exactObjectKeys(policy, ["award_verified", "candidate_only", "dlp_verified",
+      "lifecycle", "scope", "segment_verified"])
+      && policy.candidate_only === true && policy.lifecycle === "procurement_notice"
+      && policy.scope === "road_surface" && policy.segment_verified === false
+      && policy.award_verified === false && policy.dlp_verified === false;
+  }
+
+  function validateRoadNoticeManifest(manifest) {
+    if (!exactObjectKeys(manifest, ["format", "schema_version", "catalog_version",
+      "generated_at", "cache", "inference_policy", "resources"])
+        || manifest.format !== "pothole-road-notice-manifest"
+        || manifest.schema_version !== 1 || manifest.catalog_version !== 1
+        || !/^\d{4}-\d{2}-\d{2}$/.test(String(manifest.generated_at || ""))
+        || !exactObjectKeys(manifest.cache, ["max_bytes", "max_unused_days"])
+        || !Number.isInteger(manifest.cache.max_bytes)
+        || manifest.cache.max_bytes < 1024 * 1024
+        || manifest.cache.max_bytes > 128 * 1024 * 1024
+        || !Number.isInteger(manifest.cache.max_unused_days)
+        || manifest.cache.max_unused_days < 1 || manifest.cache.max_unused_days > 90
+        || !validRoadNoticePolicy(manifest.inference_policy)
+        || !manifest.resources || typeof manifest.resources !== "object"
+        || Array.isArray(manifest.resources)) {
+      throw new Error("Invalid road-notice manifest.");
+    }
+    for (const [packId, resource] of Object.entries(manifest.resources)) {
+      const fields = ["adapter", "bytes", "candidate_only", "kind", "licenses",
+        "lifecycle", "pack_id", "pack_version", "path", "records", "review_after",
+        "rows_excluded_by_scope", "rows_scanned", "schema_version", "sha256",
+        "source_retrieved_at", "sources", "state_code", "url"];
+      const state = String(resource && resource.state_code || "");
+      const pathMatch = resource && typeof resource.path === "string"
+        ? resource.path.match(
+          /^packs\/v1\/road-notices\/([a-z]{2})\/notices-([0-9a-f]{64})\.json$/)
+        : null;
+      if (!exactObjectKeys(resource, fields)
+          || packId !== `in-road-notices-${state.toLowerCase()}`
+          || resource.pack_id !== packId || !/^[A-Z]{2}$/.test(state)
+          || resource.kind !== "road_procurement_notices"
+          || resource.adapter !== "gepnic-road-notices-v1"
+          || resource.lifecycle !== "procurement_notice"
+          || resource.candidate_only !== true
+          || resource.pack_version !== 1 || resource.schema_version !== 1
+          || !pathMatch || pathMatch[1] !== state.toLowerCase()
+          || pathMatch[2] !== resource.sha256
+          || resource.url !== PACK_SITE_ROOT + resource.path
+          || !Number.isInteger(resource.bytes) || resource.bytes <= 0
+          || resource.bytes > ROAD_NOTICE_PACK_MAX_BYTES
+          || !/^[0-9a-f]{64}$/.test(String(resource.sha256 || ""))
+          || !Number.isInteger(resource.records) || resource.records < 0
+          || resource.records > 20000
+          || !Number.isInteger(resource.sources) || resource.sources < 1
+          || !Number.isInteger(resource.rows_scanned) || resource.rows_scanned < 0
+          || !Number.isInteger(resource.rows_excluded_by_scope)
+          || resource.rows_excluded_by_scope < 0
+          || resource.rows_excluded_by_scope + resource.records !== resource.rows_scanned
+          || !/^\d{4}-\d{2}-\d{2}$/.test(String(resource.source_retrieved_at || ""))
+          || !/^\d{4}-\d{2}-\d{2}$/.test(String(resource.review_after || ""))
+          || !Array.isArray(resource.licenses) || !resource.licenses.length
+          || resource.licenses.some((item) => typeof item !== "string" || !item)) {
+        throw new Error(`Invalid road-notice resource: ${packId}`);
+      }
+    }
+    return manifest;
+  }
+
+  async function getRoadNoticeManifest() {
+    if (_roadNoticeManifest) return _roadNoticeManifest;
+    if (_roadNoticeManifestPromise) return _roadNoticeManifestPromise;
+    _roadNoticeManifestPromise = fetchOptionalCatalogManifest(
+      ROAD_NOTICE_MANIFEST_FILE, validateRoadNoticeManifest).then((manifest) => {
+      _roadNoticeManifest = manifest;
+      return manifest;
+    });
+    const result = await _roadNoticeManifestPromise;
+    _roadNoticeManifestPromise = null;
+    return result;
+  }
+
+  const ROAD_NOTICE_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})$/;
+
+  function validateRoadNoticePack(resource, pack) {
+    if (!exactObjectKeys(pack, ["adapter", "format", "generated_at", "inference_policy",
+      "notices", "pack_id", "pack_version", "schema_version", "sources", "state_code"])
+        || pack.format !== "pothole-gepnic-road-notice-pack"
+        || pack.schema_version !== 1 || pack.pack_version !== 1
+        || pack.pack_id !== resource.pack_id || pack.state_code !== resource.state_code
+        || pack.adapter !== resource.adapter || pack.generated_at !== resource.source_retrieved_at
+        || !validRoadNoticePolicy(pack.inference_policy)
+        || !Array.isArray(pack.sources) || pack.sources.length !== resource.sources
+        || !Array.isArray(pack.notices) || pack.notices.length !== resource.records) {
+      throw new Error("Road-notice pack envelope is invalid.");
+    }
+    const sourceFields = ["retrieved_at", "rows_excluded_by_scope", "rows_scanned",
+      "source_id", "source_name", "source_url"];
+    const sourceIds = new Set();
+    for (const source of pack.sources) {
+      if (!exactObjectKeys(source, sourceFields)
+          || !/^in-[a-z]{2}-gepnic(?:-[a-z0-9-]+)?$/.test(String(source.source_id || ""))
+          || typeof source.source_name !== "string" || !source.source_name
+          || source.source_name.length > 300
+          || !/^https:\/\//.test(String(source.source_url || ""))
+          || !ROAD_NOTICE_TIMESTAMP_RE.test(String(source.retrieved_at || ""))
+          || !Number.isInteger(source.rows_scanned) || source.rows_scanned < 0
+          || !Number.isInteger(source.rows_excluded_by_scope)
+          || source.rows_excluded_by_scope < 0
+          || source.rows_excluded_by_scope > source.rows_scanned
+          || sourceIds.has(source.source_id)) {
+        throw new Error("Road-notice pack source receipt is invalid.");
+      }
+      sourceIds.add(source.source_id);
+    }
+    const noticeFields = ["award_verified", "closing_at", "dlp_verified", "lifecycle",
+      "opening_at", "organisation_chain", "published_at", "record_id", "scope",
+      "segment_verified", "source_id", "source_url", "tender_id", "tender_reference", "title"];
+    const seen = new Set();
+    for (const row of pack.notices) {
+      if (!exactObjectKeys(row, noticeFields)
+          || typeof row.record_id !== "string" || !row.record_id
+          || row.record_id.length > 280 || seen.has(row.record_id)
+          || typeof row.tender_id !== "string" || !row.tender_id
+          || row.tender_id.length > 160
+          || typeof row.tender_reference !== "string" || !row.tender_reference
+          || row.tender_reference.length > 300
+          || typeof row.title !== "string" || !row.title || row.title.length > 1200
+          || typeof row.organisation_chain !== "string" || !row.organisation_chain
+          || row.organisation_chain.length > 800
+          || ![row.published_at, row.closing_at, row.opening_at]
+            .every((value) => ROAD_NOTICE_TIMESTAMP_RE.test(String(value || "")))
+          || !sourceIds.has(row.source_id)
+          || !/^https:\/\//.test(String(row.source_url || ""))
+          || row.lifecycle !== "procurement_notice" || row.scope !== "road_surface"
+          || row.segment_verified !== false || row.award_verified !== false
+          || row.dlp_verified !== false
+          || !tenderCoversCarriageway(row.title, row.tender_reference)) {
+        throw new Error("Road-notice pack contains an invalid record.");
+      }
+      seen.add(row.record_id);
+    }
+    const scanned = pack.sources.reduce((sum, source) => sum + source.rows_scanned, 0);
+    const excluded = pack.sources.reduce(
+      (sum, source) => sum + source.rows_excluded_by_scope, 0);
+    if (scanned !== resource.rows_scanned || excluded !== resource.rows_excluded_by_scope
+        || excluded + pack.notices.length !== scanned) {
+      throw new Error("Road-notice pack source accounting is invalid.");
+    }
+    return pack;
+  }
+
+  async function validateDecodedRoadNoticePack(resource, bytes) {
+    if (!(bytes instanceof ArrayBuffer) || bytes.byteLength !== resource.bytes) {
+      throw new Error("Road-notice pack byte length does not match its manifest.");
+    }
+    const digest = await sha256Bytes(bytes);
+    if (!digest || digest !== resource.sha256 || !window.TextDecoder) {
+      throw new Error("Road-notice pack checksum does not match its manifest.");
+    }
+    const pack = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    return validateRoadNoticePack(resource, pack);
+  }
+
+  async function fetchRoadNoticePack(resource) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), OPTIONAL_CATALOG_TIMEOUT_MS);
+    try {
+      const response = await fetch(resolvePackUrl(resource), {
+        cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer",
+        signal: controller.signal,
+      });
+      if (!response.ok) return null;
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType && !/json/i.test(contentType)) return null;
+      const bytes = await response.arrayBuffer();
+      return { pack: await validateDecodedRoadNoticePack(resource, bytes), bytes };
+    } catch (e) { return null; }
+    finally { clearTimeout(timer); }
+  }
+
+  async function loadRoadNoticePack(stateCode) {
+    if (!/^[A-Z]{2}$/.test(String(stateCode || ""))) return null;
+    const packId = `in-road-notices-${stateCode.toLowerCase()}`;
+    if (_roadNoticePackPromises.has(packId)) return _roadNoticePackPromises.get(packId);
+    const task = (async () => {
+      const manifest = await getRoadNoticeManifest();
+      const resource = manifest && manifest.resources[packId];
+      if (!resource || !catalogResourceWithinReview(resource)) return null;
+      const cacheKey = statePackCacheKey(resource);
+      const memory = _roadNoticePackMemory.get(packId);
+      if (memory && memory.cache_key === cacheKey) return memory.pack;
+      let cached = null;
+      try { cached = await getCachedStatePack(cacheKey); } catch (e) { /* download below */ }
+      if (cached) {
+        try {
+          const pack = await validateDecodedRoadNoticePack(resource, await cachedPackBytes(cached));
+          _roadNoticePackMemory.set(packId, { cache_key: cacheKey, pack, resource });
+          touchStatePack(cached);
+          pruneStatePacks(packId);
+          return pack;
+        } catch (e) {
+          try { await deleteCachedStatePack(cacheKey); } catch (_) {}
+        }
+      }
+      const downloaded = await fetchRoadNoticePack(resource);
+      if (!downloaded) return null;
+      const now = Date.now();
+      const record = {
+        cache_key: cacheKey, pack_id: resource.pack_id, pack_version: resource.pack_version,
+        state_code: resource.state_code, kind: resource.kind, sha256: resource.sha256,
+        bytes: resource.bytes, installed_at: now, last_used_at: now,
+        blob: new Blob([downloaded.bytes], { type: "application/json" }),
+      };
+      try { await putCachedStatePack(record); }
+      catch (e) {
+        await pruneStatePacks(packId);
+        try { await putCachedStatePack(record); } catch (_) { /* valid for this session */ }
+      }
+      _roadNoticePackMemory.set(packId,
+        { cache_key: cacheKey, pack: downloaded.pack, resource });
+      pruneStatePacks(packId);
+      return downloaded.pack;
+    })();
+    _roadNoticePackPromises.set(packId, task);
+    try { return await task; }
+    finally { _roadNoticePackPromises.delete(packId); }
+  }
+
+  function roadNoticePackProvenance(stateCode) {
+    const packId = `in-road-notices-${String(stateCode || "").toLowerCase()}`;
+    const item = _roadNoticePackMemory.get(packId);
+    const resource = item && item.resource;
+    if (!resource) return {};
+    return {
+      tender_pack_id: resource.pack_id,
+      tender_pack_version: resource.pack_version,
+      tender_pack_sha256: resource.sha256,
+      tender_pack_state_code: resource.state_code,
+    };
+  }
+
+  function resetRoadNoticePackMemory() {
+    _roadNoticeManifest = null;
+    _roadNoticeManifestPromise = null;
+    _roadNoticePackMemory.clear();
+    _roadNoticePackPromises.clear();
+  }
+
+  // PMGSY/OMMAS publishes road and agreement identifiers for source-reported
+  // "In Progress" projects. This is stronger location evidence than a procurement
+  // notice, but it still supplies no road geometry, named contractor, completion /
+  // maintenance dates or DLP. A separate schema keeps those absences enforceable.
+  const ROAD_AGREEMENT_MANIFEST_FILE = "road-agreement-manifest-v1.36.json";
+  const ROAD_AGREEMENT_PACK_MAX_BYTES = 8 * 1024 * 1024;
+  let _roadAgreementManifest = null, _roadAgreementManifestPromise = null;
+  const _roadAgreementPackMemory = new Map(), _roadAgreementPackPromises = new Map();
+
+  function validRoadAgreementPolicy(policy) {
+    return exactObjectKeys(policy, ["agreement_verified", "award_verified", "candidate_only",
+      "contractor_assignment_verified", "dlp_verified", "freshness_window_years", "lifecycle",
+      "scope_verified", "segment_verified", "source_status"])
+      && policy.candidate_only === true && policy.lifecycle === "current_project"
+      && policy.source_status === "In Progress" && policy.segment_verified === false
+      && policy.freshness_window_years === 5 && policy.scope_verified === true
+      && policy.agreement_verified === true && policy.award_verified === false
+      && policy.contractor_assignment_verified === false && policy.dlp_verified === false;
+  }
+
+  function validateRoadAgreementManifest(manifest) {
+    if (!exactObjectKeys(manifest, ["format", "schema_version", "catalog_version",
+      "generated_at", "cache", "inference_policy", "resources"])
+        || manifest.format !== "pothole-road-agreement-manifest"
+        || manifest.schema_version !== 1 || manifest.catalog_version !== 1
+        || !/^\d{4}-\d{2}-\d{2}$/.test(String(manifest.generated_at || ""))
+        || !exactObjectKeys(manifest.cache, ["max_bytes", "max_unused_days"])
+        || !Number.isInteger(manifest.cache.max_bytes)
+        || manifest.cache.max_bytes < 1024 * 1024
+        || manifest.cache.max_bytes > 256 * 1024 * 1024
+        || !Number.isInteger(manifest.cache.max_unused_days)
+        || manifest.cache.max_unused_days < 1 || manifest.cache.max_unused_days > 90
+        || !validRoadAgreementPolicy(manifest.inference_policy)
+        || !manifest.resources || typeof manifest.resources !== "object"
+        || Array.isArray(manifest.resources)) {
+      throw new Error("Invalid road-agreement manifest.");
+    }
+    for (const [packId, resource] of Object.entries(manifest.resources)) {
+      const fields = ["adapter", "bytes", "candidate_only", "kind", "licenses",
+        "lifecycle", "pack_id", "pack_version", "path", "records", "review_after",
+        "rows_excluded_by_freshness", "rows_excluded_by_status", "rows_excluded_invalid", "rows_scanned",
+        "schema_version", "sha256", "source_retrieved_at", "sources", "state_code", "url"];
+      const state = String(resource && resource.state_code || "");
+      const pathMatch = resource && typeof resource.path === "string"
+        ? resource.path.match(
+          /^packs\/v1\/road-agreements\/([a-z]{2})\/agreements-([0-9a-f]{64})\.json$/)
+        : null;
+      if (!exactObjectKeys(resource, fields)
+          || packId !== `in-road-agreements-${state.toLowerCase()}`
+          || resource.pack_id !== packId || !/^[A-Z]{2}$/.test(state)
+          || resource.kind !== "road_current_agreements"
+          || resource.adapter !== "pmgsy-ommas-in-progress-v1"
+          || resource.lifecycle !== "current_project" || resource.candidate_only !== true
+          || resource.pack_version !== 1 || resource.schema_version !== 1
+          || !pathMatch || pathMatch[1] !== state.toLowerCase()
+          || pathMatch[2] !== resource.sha256
+          || resource.url !== PACK_SITE_ROOT + resource.path
+          || !Number.isInteger(resource.bytes) || resource.bytes <= 0
+          || resource.bytes > ROAD_AGREEMENT_PACK_MAX_BYTES
+          || !/^[0-9a-f]{64}$/.test(String(resource.sha256 || ""))
+          || !Number.isInteger(resource.records) || resource.records < 0
+          || resource.records > 50000
+          || !Number.isInteger(resource.sources) || resource.sources < 1
+          || !Number.isInteger(resource.rows_scanned) || resource.rows_scanned < 0
+          || !Number.isInteger(resource.rows_excluded_by_status)
+          || resource.rows_excluded_by_status < 0
+          || !Number.isInteger(resource.rows_excluded_by_freshness)
+          || resource.rows_excluded_by_freshness < 0
+          || !Number.isInteger(resource.rows_excluded_invalid)
+          || resource.rows_excluded_invalid < 0
+          || resource.rows_excluded_by_status + resource.rows_excluded_by_freshness
+            + resource.rows_excluded_invalid
+            + resource.records !== resource.rows_scanned
+          || !/^\d{4}-\d{2}-\d{2}$/.test(String(resource.source_retrieved_at || ""))
+          || !/^\d{4}-\d{2}-\d{2}$/.test(String(resource.review_after || ""))
+          || !Array.isArray(resource.licenses) || !resource.licenses.length
+          || resource.licenses.some((item) => typeof item !== "string" || !item)) {
+        throw new Error(`Invalid road-agreement resource: ${packId}`);
+      }
+    }
+    return manifest;
+  }
+
+  async function getRoadAgreementManifest() {
+    if (_roadAgreementManifest) return _roadAgreementManifest;
+    if (_roadAgreementManifestPromise) return _roadAgreementManifestPromise;
+    _roadAgreementManifestPromise = fetchOptionalCatalogManifest(
+      ROAD_AGREEMENT_MANIFEST_FILE, validateRoadAgreementManifest).then((manifest) => {
+      _roadAgreementManifest = manifest;
+      return manifest;
+    });
+    const result = await _roadAgreementManifestPromise;
+    _roadAgreementManifestPromise = null;
+    return result;
+  }
+
+  const nullableRoadAgreementText = (value, max = 400) => value === null
+    || (typeof value === "string" && value.length > 0 && value.length <= max);
+
+  function validateRoadAgreementPack(resource, pack) {
+    if (!exactObjectKeys(pack, ["adapter", "agreement_fields", "agreements", "format",
+      "generated_at", "inference_policy", "pack_id", "pack_version", "schema_version",
+      "sources", "state_code"])
+        || pack.format !== "pothole-pmgsy-road-agreement-pack"
+        || pack.schema_version !== 1 || pack.pack_version !== 1
+        || pack.pack_id !== resource.pack_id || pack.state_code !== resource.state_code
+        || pack.adapter !== resource.adapter || pack.generated_at !== resource.source_retrieved_at
+        || !validRoadAgreementPolicy(pack.inference_policy)
+        || JSON.stringify(pack.agreement_fields) !== JSON.stringify(["record_id", "reference_value",
+          "title", "road_id", "district_name", "road_from", "road_to", "agreement_number",
+          "agreement_date"])
+        || !Array.isArray(pack.sources) || pack.sources.length !== resource.sources
+        || !Array.isArray(pack.agreements) || pack.agreements.length !== resource.records) {
+      throw new Error("Road-agreement pack envelope is invalid.");
+    }
+    const sourceFields = ["endpoint", "freshness_window_years", "records_kept", "retrieved_at",
+      "rows_excluded_by_freshness", "rows_excluded_by_status", "rows_excluded_invalid",
+      "rows_scanned", "source_id", "source_name", "source_state_id", "source_state_name",
+      "source_url"];
+    const sourceIds = new Set();
+    for (const source of pack.sources) {
+      if (!exactObjectKeys(source, sourceFields)
+          || typeof source.source_id !== "string" || !source.source_id
+          || source.source_id.length > 160 || sourceIds.has(source.source_id)
+          || typeof source.source_name !== "string" || !source.source_name
+          || source.source_name.length > 300
+          || !/^https:\/\//.test(String(source.source_url || ""))
+          || !/^https:\/\//.test(String(source.endpoint || ""))
+          || !Number.isInteger(source.source_state_id) || source.source_state_id < 1
+          || typeof source.source_state_name !== "string" || !source.source_state_name
+          || source.source_state_name.length > 160
+          || !ROAD_NOTICE_TIMESTAMP_RE.test(String(source.retrieved_at || ""))
+          || !Number.isInteger(source.rows_scanned) || source.rows_scanned < 0
+          || !Number.isInteger(source.rows_excluded_by_status)
+          || source.rows_excluded_by_status < 0
+          || source.freshness_window_years !== 5
+          || !Number.isInteger(source.rows_excluded_by_freshness)
+          || source.rows_excluded_by_freshness < 0
+          || !Number.isInteger(source.rows_excluded_invalid)
+          || source.rows_excluded_invalid < 0
+          || !Number.isInteger(source.records_kept) || source.records_kept < 0
+          || source.rows_excluded_by_status + source.rows_excluded_by_freshness
+            + source.rows_excluded_invalid
+            + source.records_kept !== source.rows_scanned) {
+        throw new Error("Road-agreement pack source receipt is invalid.");
+      }
+      sourceIds.add(source.source_id);
+    }
+    const agreementFields = pack.agreement_fields;
+    const seen = new Set();
+    const decoded = [];
+    const firstSource = pack.sources[0];
+    const retrievedAt = resource.source_retrieved_at;
+    const latestAgreementDate = Date.parse(`${retrievedAt}T23:59:59.999Z`);
+    const earliestDateObject = new Date(`${retrievedAt}T00:00:00Z`);
+    earliestDateObject.setUTCFullYear(earliestDateObject.getUTCFullYear()
+      - pack.inference_policy.freshness_window_years);
+    const earliestAgreementDate = earliestDateObject.getTime();
+    for (const values of pack.agreements) {
+      if (!Array.isArray(values) || values.length !== agreementFields.length) {
+        throw new Error("Road-agreement pack contains an invalid record.");
+      }
+      const row = Object.fromEntries(agreementFields.map((field, index) => [field, values[index]]));
+      const agreementTime = Date.parse(`${row.agreement_date}T00:00:00Z`);
+      if (typeof row.record_id !== "string" || !row.record_id
+          || row.record_id.length > 240 || seen.has(row.record_id)
+          || typeof row.reference_value !== "string" || !row.reference_value
+          || row.reference_value.length > 200
+          || typeof row.title !== "string" || !row.title || row.title.length > 1200
+          || !(Number.isInteger(row.road_id) || (typeof row.road_id === "string"
+            && row.road_id.length > 0 && row.road_id.length <= 160))
+          || !nullableRoadAgreementText(row.district_name, 240)
+          || !nullableRoadAgreementText(row.road_from, 400)
+          || !nullableRoadAgreementText(row.road_to, 400)
+          || typeof row.agreement_number !== "string" || !row.agreement_number
+          || row.agreement_number.length > 300
+          || !/^\d{4}-\d{2}-\d{2}$/.test(String(row.agreement_date || ""))
+          || !Number.isFinite(agreementTime) || agreementTime < earliestAgreementDate
+          || agreementTime > latestAgreementDate) {
+        throw new Error("Road-agreement pack contains an invalid record.");
+      }
+      seen.add(row.record_id);
+      decoded.push({
+        ...row,
+        reference_label: "PMGSY package",
+        state_code: resource.state_code,
+        agency: "NRIDA / OMMAS",
+        lifecycle: "current_project",
+        lifecycle_status: "In Progress",
+        lifecycle_basis: "source-reported WORK_STATUS; agreement date within five-year snapshot window",
+        package_number: row.reference_value,
+        contractor: null,
+        scope_verified: true,
+        segment_verified: false,
+        agreement_verified: true,
+        award_verified: false,
+        contractor_assignment_verified: false,
+        dlp_verified: false,
+        source_name: firstSource.source_name,
+        // The JSON endpoint is POST-only and not a useful citation when opened by an
+        // officer. Link the official dashboard root; package/agreement IDs remain in
+        // the complaint and the endpoint stays pinned inside the source receipt.
+        source_url: firstSource.source_url,
+        retrieved_at: retrievedAt,
+      });
+    }
+    const scanned = pack.sources.reduce((sum, source) => sum + source.rows_scanned, 0);
+    const excludedStatus = pack.sources.reduce(
+      (sum, source) => sum + source.rows_excluded_by_status, 0);
+    const excludedFreshness = pack.sources.reduce(
+      (sum, source) => sum + source.rows_excluded_by_freshness, 0);
+    const excludedInvalid = pack.sources.reduce(
+      (sum, source) => sum + source.rows_excluded_invalid, 0);
+    const kept = pack.sources.reduce((sum, source) => sum + source.records_kept, 0);
+    if (scanned !== resource.rows_scanned
+        || excludedStatus !== resource.rows_excluded_by_status
+        || excludedFreshness !== resource.rows_excluded_by_freshness
+        || excludedInvalid !== resource.rows_excluded_invalid
+        || kept !== resource.records || kept !== pack.agreements.length) {
+      throw new Error("Road-agreement pack source accounting is invalid.");
+    }
+    // Keep the downloaded representation compact; only decoded, validated objects enter
+    // the in-memory matcher and IndexedDB continues storing the original immutable bytes.
+    pack.agreements = decoded;
+    return pack;
+  }
+
+  async function validateDecodedRoadAgreementPack(resource, bytes) {
+    if (!(bytes instanceof ArrayBuffer) || bytes.byteLength !== resource.bytes) {
+      throw new Error("Road-agreement pack byte length does not match its manifest.");
+    }
+    const digest = await sha256Bytes(bytes);
+    if (!digest || digest !== resource.sha256 || !window.TextDecoder) {
+      throw new Error("Road-agreement pack checksum does not match its manifest.");
+    }
+    const pack = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    return validateRoadAgreementPack(resource, pack);
+  }
+
+  async function fetchRoadAgreementPack(resource) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), OPTIONAL_CATALOG_TIMEOUT_MS);
+    try {
+      const response = await fetch(resolvePackUrl(resource), {
+        cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer",
+        signal: controller.signal,
+      });
+      if (!response.ok) return null;
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType && !/json/i.test(contentType)) return null;
+      const bytes = await response.arrayBuffer();
+      return { pack: await validateDecodedRoadAgreementPack(resource, bytes), bytes };
+    } catch (e) { return null; }
+    finally { clearTimeout(timer); }
+  }
+
+  async function loadRoadAgreementPack(stateCode) {
+    if (!/^[A-Z]{2}$/.test(String(stateCode || ""))) return null;
+    const packId = `in-road-agreements-${stateCode.toLowerCase()}`;
+    if (_roadAgreementPackPromises.has(packId)) return _roadAgreementPackPromises.get(packId);
+    const task = (async () => {
+      const manifest = await getRoadAgreementManifest();
+      const resource = manifest && manifest.resources[packId];
+      if (!resource || !catalogResourceWithinReview(resource)) return null;
+      const cacheKey = statePackCacheKey(resource);
+      const memory = _roadAgreementPackMemory.get(packId);
+      if (memory && memory.cache_key === cacheKey) return memory.pack;
+      let cached = null;
+      try { cached = await getCachedStatePack(cacheKey); } catch (e) { /* download below */ }
+      if (cached) {
+        try {
+          const pack = await validateDecodedRoadAgreementPack(
+            resource, await cachedPackBytes(cached));
+          _roadAgreementPackMemory.set(packId, { cache_key: cacheKey, pack, resource });
+          touchStatePack(cached);
+          pruneStatePacks(packId);
+          return pack;
+        } catch (e) {
+          try { await deleteCachedStatePack(cacheKey); } catch (_) {}
+        }
+      }
+      const downloaded = await fetchRoadAgreementPack(resource);
+      if (!downloaded) return null;
+      const now = Date.now();
+      const record = {
+        cache_key: cacheKey, pack_id: resource.pack_id, pack_version: resource.pack_version,
+        state_code: resource.state_code, kind: resource.kind, sha256: resource.sha256,
+        bytes: resource.bytes, installed_at: now, last_used_at: now,
+        blob: new Blob([downloaded.bytes], { type: "application/json" }),
+      };
+      try { await putCachedStatePack(record); }
+      catch (e) {
+        await pruneStatePacks(packId);
+        try { await putCachedStatePack(record); } catch (_) { /* valid for this session */ }
+      }
+      _roadAgreementPackMemory.set(packId,
+        { cache_key: cacheKey, pack: downloaded.pack, resource });
+      pruneStatePacks(packId);
+      return downloaded.pack;
+    })();
+    _roadAgreementPackPromises.set(packId, task);
+    try { return await task; }
+    finally { _roadAgreementPackPromises.delete(packId); }
+  }
+
+  function roadAgreementPackProvenance(stateCode) {
+    const packId = `in-road-agreements-${String(stateCode || "").toLowerCase()}`;
+    const item = _roadAgreementPackMemory.get(packId);
+    const resource = item && item.resource;
+    if (!resource) return {};
+    return {
+      tender_pack_id: resource.pack_id,
+      tender_pack_version: resource.pack_version,
+      tender_pack_sha256: resource.sha256,
+      tender_pack_state_code: resource.state_code,
+    };
+  }
+
+  function resetRoadAgreementPackMemory() {
+    _roadAgreementManifest = null;
+    _roadAgreementManifestPromise = null;
+    _roadAgreementPackMemory.clear();
+    _roadAgreementPackPromises.clear();
+  }
+
   function resetStatePackMemory() {
     _statePackManifest = null;
     _statePackManifestPromise = null;
     _statePackMemory.clear();
     _statePackPromises.clear();
+    resetContractPackMemory();
     municipalCityCoverageCache.clear();
     municipalCityCoveragePromises.clear();
     _punjabCoverage = null;
@@ -2571,6 +3423,8 @@ This is a strict before/after verification, not ordinary pothole detection:
     _tenders = null;
     _byBody = null;
     resetHighwayPackMemory();
+    resetRoadNoticePackMemory();
+    resetRoadAgreementPackMemory();
   }
 
   // ---------- nationwide National Highway tiles ----------
@@ -4289,19 +5143,104 @@ This is a strict before/after verification, not ordinary pothole detection:
     return _jurP;
   }
 
-  async function routeOfficer(geoOrAddress, lat, lng, gpsAccuracy, heading, speed, requestedIssueType) {
+  // NHAI's public project inventory is partitioned by the State/UT named in each
+  // official record. A highway route is resolved before the containing civic route,
+  // so preserve the reverse-geocoder's State/UT only as a download key; the mapped NH
+  // geometry still decides that this is a national highway. Unknown labels fail closed
+  // instead of searching another jurisdiction's contracts.
+  const INDIA_STATE_CODE_BY_NAME = new Map(Object.entries({
+    "andaman and nicobar islands": "AN", "andaman nicobar islands": "AN",
+    "andhra pradesh": "AP", "arunachal pradesh": "AR", assam: "AS", bihar: "BR",
+    chhattisgarh: "CG", chattisgarh: "CG", chandigarh: "CH",
+    "dadra and nagar haveli and daman and diu": "DH",
+    "dadra nagar haveli daman diu": "DH", delhi: "DL",
+    "national capital territory of delhi": "DL", "nct of delhi": "DL",
+    goa: "GA", gujarat: "GJ", haryana: "HR", "himachal pradesh": "HP",
+    jharkhand: "JH", "jammu and kashmir": "JK", karnataka: "KA", kerala: "KL",
+    ladakh: "LA", lakshadweep: "LD", maharashtra: "MH", manipur: "MN",
+    meghalaya: "ML", mizoram: "MZ", nagaland: "NL", odisha: "OD", orissa: "OD",
+    puducherry: "PY", pondicherry: "PY", punjab: "PB", rajasthan: "RJ",
+    sikkim: "SK", "tamil nadu": "TN", telangana: "TG", tripura: "TR",
+    "uttar pradesh": "UP", uttarakhand: "UK", uttaranchal: "UK",
+    "west bengal": "WB",
+  }));
+
+  const stateCodeForGeocode = (geo) => {
+    if (!geo || String(geo.country_code || "").toLowerCase() !== "in") return null;
+    return INDIA_STATE_CODE_BY_NAME.get(normaliseAuthorityValue(geo.state)) || null;
+  };
+
+  // A reverse-geocoder State label is only a hint near a border. National Highway routing
+  // happens before the civic route, so independently verify that hint against the same
+  // checksum-pinned outer State/UT boundary used by nationwide routing before it can select
+  // a State-partitioned contract catalog.
+  const CONTRACT_STATE_BOUNDARY_PACKS = Object.freeze({
+    MH: "in-mh-routing", WB: "in-wb-routing", DL: "in-dl-routing",
+    PB: "in-pb-routing", TN: "in-tn-state-routing", AP: "in-ap-routing",
+    TG: "in-tg-state-routing", KA: "in-ka-state-routing", KL: "in-kl-routing",
+    UP: "in-up-routing", CG: "in-cg-routing", RJ: "in-rj-routing",
+    GA: "in-ga-routing", MP: "in-mp-routing", BR: "in-br-routing",
+    OD: "in-od-routing",
+    ...Object.fromEntries(Object.entries(REMAINING_STATE_ROUTE_CONFIGS)
+      .map(([packId, config]) => [config.state_code, packId])),
+  });
+
+  function outerStateBoundaryGeometry(pack, stateCode) {
+    if (!pack || pack.state_code !== stateCode || !pack.payload) return null;
+    if (stateCode === "MH") {
+      return pack.payload.regions && pack.payload.regions.maharashtra
+        ? pack.payload.regions.maharashtra.geometry : null;
+    }
+    if (stateCode === "WB") {
+      return pack.payload.regions && pack.payload.regions.west_bengal
+        ? pack.payload.regions.west_bengal.geometry : null;
+    }
+    return pack.payload.region ? pack.payload.region.geometry : null;
+  }
+
+  async function exactPinnedContractStateCode(stateCode, lat, lng, gpsAccuracy) {
+    const code = String(stateCode || "");
+    const packId = CONTRACT_STATE_BOUNDARY_PACKS[code];
+    if (!packId || !Number.isFinite(lat) || !Number.isFinite(lng)
+        || !Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 30) return null;
+    try {
+      const pack = await loadStatePack(packId);
+      const geometry = outerStateBoundaryGeometry(pack, code);
+      if (!hasCoverageGeometry(geometry) || !pointInGeometry(lng, lat, geometry)
+          || geometryBoundaryDistanceMeters(lng, lat, geometry) <= gpsAccuracy) return null;
+      return code;
+    } catch (e) { return null; }
+  }
+
+  async function routeOfficerCore(geoOrAddress, lat, lng, gpsAccuracy, heading, speed,
+                                   requestedIssueType) {
     const issueType = normaliseIssueType(requestedIssueType);
     if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) {
       return routeForIssue(unroutedRoute("no_location"), issueType);
     }
 
     const geo = geoOrAddress && typeof geoOrAddress === "object" ? geoOrAddress : null;
+    const geocodeStateCode = stateCodeForGeocode(geo);
+    const exactContractStateP = issueType === "road_damage" && geocodeStateCode
+      ? optionalCatalogResult(
+          exactPinnedContractStateCode(geocodeStateCode, lat, lng, gpsAccuracy))
+      : Promise.resolve(null);
     // Road class outranks the containing city. Without this first check, a pothole on an
     // NH passing through Delhi, Kolkata, Chennai, Hyderabad, Ahmedabad, MMR or Pune can
     // be addressed to the municipal body even though the highway has another maintainer.
     const highway = issueType === "road_damage"
       ? await nationalHighwayRoute(lat, lng, gpsAccuracy, heading, speed) : null;
-    if (highway) return routeForIssue(highway, issueType);
+    if (highway) {
+      const contractStateCode = await exactContractStateP;
+      return routeForIssue({
+        ...highway,
+        contract_state_code: contractStateCode,
+        // A pack is loaded only when an official project source has records for this
+        // jurisdiction. Eligibility means "candidate search allowed", never that this
+        // point has already been assigned to a contract.
+        tender_eligible: !!contractStateCode,
+      }, issueType);
+    }
 
     // Coarse download envelopes overlap neighbouring jurisdictions. Preserve a pack
     // failure as the eventual answer, but keep evaluating independent exact polygons.
@@ -4563,6 +5502,41 @@ This is a strict before/after verification, not ordinary pothole detection:
     return exactKarnataka;
   }
 
+  async function routeOfficer(geoOrAddress, lat, lng, gpsAccuracy, heading, speed,
+                              requestedIssueType) {
+    const route = await routeOfficerCore(
+      geoOrAddress, lat, lng, gpsAccuracy, heading, speed, requestedIssueType);
+    const issueType = normaliseIssueType(requestedIssueType);
+    const stateCode = stateCodeForGeocode(
+      geoOrAddress && typeof geoOrAddress === "object" ? geoOrAddress : null);
+    const contractStateCode = trustedContractStateCode(route, stateCode);
+    // A State/UT routing pack is stronger jurisdiction evidence than reverse geocoding
+    // near a border. The geocoder may key nationwide/NH routes, but a State pack must
+    // agree exactly; disagreement disables contract lookup instead of crossing borders.
+    if (!route || !route.routed || issueType !== "road_damage") return route;
+    const updated = { ...route, contract_state_code: contractStateCode };
+    if (!contractStateCode && route.region === "national-highway") {
+      updated.tender_eligible = false;
+    }
+    return updated;
+  }
+
+  function trustedContractStateCode(route, geocodeStateCode) {
+    if (!route || route.routed !== true
+        || !/^[A-Z]{2}$/.test(String(geocodeStateCode || ""))) return null;
+    const packState = String(route.routing_pack_state_code || "");
+    if (["IN", "NH"].includes(packState)) {
+      if (route.region === "national-highway") {
+        return route.contract_state_code === geocodeStateCode ? geocodeStateCode : null;
+      }
+      return geocodeStateCode;
+    }
+    if (/^[A-Z]{2}$/.test(packState)) {
+      return packState === geocodeStateCode ? packState : null;
+    }
+    return null;
+  }
+
   function distMeters(lat1, lng1, lat2, lng2) {
     const rad = Math.PI / 180;
     const dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
@@ -4749,8 +5723,9 @@ This is a strict before/after verification, not ordinary pothole detection:
     "bus", "cable", "cables", "cattle", "cd", "camera", "cameras", "cctv", "center",
     "centre", "chamber", "chambers", "cistern", "college", "collage", "complex", "compound",
     "culvert", "culverts", "deck", "dog", "dogsheltar", "drain", "drainage", "drains",
-    "electrical", "fence", "fencing", "footpath", "footpaths", "garden", "floor", "floors",
-    "gantry", "gateway", "gateways", "graveyard", "hall", "hospital", "house", "houses",
+    "electrical", "fence", "fencing", "footpath", "footpaths", "garden", "facility",
+    "facilities", "floor", "floors", "gantry", "gateway", "gateways", "graveyard", "hall",
+    "hospital", "house", "houses",
     "kerb", "kerbs", "curb", "curbs", "lake", "light", "lighting", "lights", "machinehole",
     "machineholes", "manhole", "manholes", "mast", "masts", "median", "mh", "mhc",
     "network", "nursery", "park", "pedestrian", "pipeline", "pipelines", "pipe", "pipes",
@@ -4758,8 +5733,8 @@ This is a strict before/after verification, not ordinary pothole detection:
     "room", "rooms", "school", "sewer", "sewerage", "shed", "shelter", "shishuvihara",
     "sidewalk", "sidewalks", "sign", "signage", "signboard", "signboards", "slab", "sorting",
     "stand", "temple", "toilet", "toilets", "transformer", "transformers", "tree", "trees",
-    "ugd", "unit", "urinal", "urinals", "valve", "valves", "vending", "walkway", "walkways",
-    "wall", "walls", "water"]);
+    "ugd", "unit", "urinal", "urinals", "utility", "utilities", "valve", "valves",
+    "vending", "walkway", "walkways", "wall", "walls", "water"]);
   const NON_SURFACE_ROAD_MODIFIERS = new Set(["divider", "dividers", "furniture", "light",
     "lighting", "lights", "marking", "markings", "median", "medians", "shoulder", "shoulders",
     "sign", "signage", "signboard", "signboards"]);
@@ -4769,9 +5744,14 @@ This is a strict before/after verification, not ordinary pothole detection:
   const LOCATION_PREPOSITIONS = new Set(["across", "along", "at", "behind", "beside", "in",
     "inside", "near", "on", "opposite", "within"]);
   const explicitRoadDamageRe = /\b(?:pot\s*holes?|potholes?)\b|\b(?:road|carriageway)\s+(?:patch(?:ing|work)?|surface\s+repair)\b|\b(?:patch(?:ing|work)?|surface\s+repair)\s+(?:of\s+)?(?:the\s+)?(?:road|carriageway)\b/;
-  const surfaceTreatmentRe = /\b(?:asphalting|re\s+asphalting|black\s+topping|tarring|resurfac(?:e|ed|ing)|re\s+carpet(?:ed|ing)|recarpet(?:ed|ing)|recarpetting|dense\s+bituminous\s+macadam|bituminous\s+concrete|wet\s+mix\s+macadam|(?:premix|pre\s*mix)\s+carpet|seal\s+coat)\b/;
-  const nonCarriagewayTreatmentTargetRe = /\b(?:asphalting|re\s+asphalting|black\s+topping|tarring|resurfacing|re\s+carpeting|recarpeting|recarpetting)\b(?:\s+work)?\s+(?:(?:of|to|on|at|in|for)\s+)?(?:the\s+)?(?:bridge|culvert|drain|floor|footpath|park|playground|roof|sidewalk|walkway|wall)s?\b/;
+  const surfaceTreatmentRe = /\b(?:asphalting|re\s+asphalting|black\s*topping|tarring|resurfac(?:e|ed|ing)|re\s+carpet(?:ed|ing)|recarpet(?:ed|ing)|recarpetting|dense\s+bituminous\s+macadam|bituminous\s+concrete|wet\s+mix\s+macadam|(?:premix|pre\s*mix)\s+carpet|seal\s+coat)\b/;
+  const nonCarriagewayTreatmentTargetRe = /\b(?:asphalting|re\s+asphalting|black\s*topping|tarring|resurfacing|re\s+carpeting|recarpeting|recarpetting)\b(?:\s+work)?\s+(?:(?:of|to|on|at|in|for)\s+)?(?:the\s+)?(?:bridge|culvert|drain|floor|footpath|park|playground|roof|sidewalk|walkway|wall)s?\b/;
   const materialPavementRe = /\b(?:asphalt(?:ic)?|bituminous|cement\s+concrete|concrete|flexible|rigid)\s+pavement\b/;
+  // Advisory/design/inspection assignments can repeat the full physical road scope
+  // without procuring the works. Keep this in lockstep with tools/tender_scope.py and
+  // apply it before any positive road phrase. EPC/design-and-build is intentionally not
+  // rejected unless the title explicitly describes one of these non-works services.
+  const nonWorksServiceRe = /\bconsult(?:ant|ancy|ants|ing)\b|\b(?:authority|independent)\s+engineer(?:ing)?\b|\bproject\s+management\s+(?:consult(?:ant|ancy|ing)|services?)\b|\b(?:preparation|prepare|preparing|revision|review)\s+of\s+(?:a\s+|the\s+)?(?:detailed\s+project\s+report|dpr)\b|\b(?:detailed\s+project\s+report|dpr)\s+(?:preparation|consultancy|services?)\b|\b(?:feasibility|traffic)\s+(?:study|studies|survey|surveys)\b|\bsurvey\s+(?:and|&)\s+investigation\b|\bthird\s+party\s+(?:inspection|quality\s+(?:audit|monitoring))\b|\b(?:quality\s+control|proof\s+checking)\s+(?:consultancy|services?)\b/;
 
   const tenderTokens = (value) => (String(value || "").toLowerCase().match(/[a-z0-9]+/g) || []);
   const hasAny = (tokens, values) => tokens.some((token) => values.has(token));
@@ -4801,6 +5781,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     void tenderNumber; // category fragments such as /RD/ are not scope evidence.
     const text = tenderTokens(title).join(" ");
     if (!text) return false;
+    if (nonWorksServiceRe.test(text)) return false;
     if (explicitRoadDamageRe.test(text)) return true;
     if (surfaceTreatmentRe.test(text) && !nonCarriagewayTreatmentTargetRe.test(text)) return true;
     const tokens = text.split(" ");
@@ -5034,6 +6015,421 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       note: `Candidate contract record: ${t.tn} — ${title}`,
       ...statePackProvenance("in-ka-tenders", "tender"),
     };
+  }
+
+  const highwayRefsOf = (value) => String(value || "").split(" / ")
+    .map((ref) => ref.trim().toUpperCase()).filter((ref) => HIGHWAY_REF_RE.test(ref));
+
+  const HIGHWAY_CONTRACT_LOCATION_STOP = new Set([
+    ...TENDER_STOP,
+    ...[...INDIA_STATE_CODE_BY_NAME.keys()].flatMap((name) => tenderTokens(name)),
+    "area", "at", "district", "from", "highway", "junction", "near", "number", "route",
+    "state", "towards", "via",
+  ]);
+
+  function highwayContractCandidates(records, highwayRef, address = "") {
+    const routeRefs = new Set(highwayRefsOf(highwayRef));
+    if (!routeRefs.size || !Array.isArray(records)) return [];
+    const addressParts = String(address || "").split(",").slice(0, 3).map((part) =>
+      tenderTokens(part).filter((token) => token.length > 2
+        && !HIGHWAY_CONTRACT_LOCATION_STOP.has(token))).filter((part) => part.length);
+    const addressTokens = new Set(addressParts.flat());
+    if (!addressTokens.size) return [];
+    const eligible = [];
+    for (const record of records) {
+      if (!record || record.scope_verified !== true
+          || !tenderCoversCarriageway(record.title, record.reference_value)) continue;
+      const matchingRefs = (record.highway_refs || []).filter((ref) => routeRefs.has(ref));
+      if (matchingRefs.length) eligible.push({ record, matching_refs: matchingRefs });
+    }
+    const titleTokensByRecord = eligible.map(({ record }) =>
+      new Set(tenderTokens(record.title)));
+    const frequencies = new Map();
+    for (const token of addressTokens) {
+      frequencies.set(token, titleTokensByRecord.reduce(
+        (count, tokens) => count + (tokens.has(token) ? 1 : 0), 0));
+    }
+    const scored = [];
+    for (let index = 0; index < eligible.length; index++) {
+      const { record, matching_refs: matchingRefs } = eligible[index];
+      const titleTokens = titleTokensByRecord[index];
+      const localityHits = [...addressTokens].filter((token) => titleTokens.has(token));
+      const normalisedTitle = tenderTokens(record.title).join(" ");
+      const phraseHits = addressParts.filter((part) => part.length >= 2
+        && normalisedTitle.includes(part.join(" ")));
+      const uniqueLongHits = localityHits.filter((token) => token.length >= 6
+        && frequencies.get(token) === 1);
+      // An NH reference identifies a route, not which package covers this point; feeder
+      // roads also cite the NH they meet. Require independent title/address evidence.
+      if (!phraseHits.length && localityHits.length < 2 && !uniqueLongHits.length) continue;
+      let score = matchingRefs.length * 100 + localityHits.length * 8;
+      score += phraseHits.length * 30 + uniqueLongHits.length * 16;
+      if (record.lifecycle === "current_project") score += 30;
+      if (record.award_verified && record.contractor) score += 15;
+      if (/maintenance|o\s*&\s*m|under construction/i.test(record.lifecycle_status)) score += 8;
+      if (record.chainages && record.chainages.length) score += 2;
+      scored.push({ record, matching_refs: matchingRefs, locality_hits: localityHits,
+        phrase_hits: phraseHits, unique_long_hits: uniqueLongHits, score });
+    }
+    scored.sort((left, right) => (right.score - left.score)
+      || (right.phrase_hits.length - left.phrase_hits.length)
+      || (right.locality_hits.length - left.locality_hits.length)
+      || String(left.record.record_id).localeCompare(String(right.record.record_id)));
+    return scored;
+  }
+
+  async function matchHighwayContract(address, route) {
+    const stateCode = route && route.contract_state_code;
+    if (!route || route.region !== "national-highway" || route.tender_eligible !== true
+        || !stateCode || !route.highway_ref) return null;
+    const pack = await loadHighwayContractPack(stateCode);
+    const ranked = highwayContractCandidates(pack && pack.contracts, route.highway_ref, address);
+    if (!ranked.length) return null;
+    const { record, matching_refs: matchingRefs, locality_hits: localityHits } = ranked[0];
+    const lifecycleNote = record.lifecycle === "procurement_notice"
+      ? "Open procurement notice; no contractor or award is asserted"
+      : `Official project lifecycle: ${record.lifecycle_status}`;
+    return {
+      tender_number: record.reference_value,
+      reference_label: record.reference_label,
+      contractor: record.contractor,
+      title: record.title,
+      published: record.published_at || record.start_date,
+      source_name: record.source_name,
+      source_url: record.source_url,
+      lifecycle: record.lifecycle,
+      lifecycle_status: record.lifecycle_status,
+      match_basis: `State/UT ${stateCode}; mapped ${matchingRefs.join(" / ")}`
+        + (localityHits.length ? `; title/address ${localityHits.join(", ")}` : ""),
+      candidate_status: "candidate",
+      scope_status: "carriageway_scope_present",
+      scope_verified: true,
+      // The source publishes a highway/package chainage, but the OSM route geometry has
+      // no authoritative chainage origin. Do not claim this GPS point lies in that range.
+      segment_status: "unverified_chainage",
+      segment_verified: false,
+      award_status: record.award_verified ? "verified_by_source_record" : "unverified",
+      award_verified: record.award_verified,
+      dlp_status: "unverified",
+      dlp_verified: false,
+      note: `${record.reference_label}: ${record.reference_value}. ${lifecycleNote}.`,
+      ...contractPackProvenance(stateCode),
+    };
+  }
+
+  const ROAD_NOTICE_STOP = new Set([...TENDER_STOP,
+    "area", "avenue", "bazaar", "bazar", "bridge", "chowk", "circle", "colony",
+    "district", "extension", "galli", "lane", "locality", "market", "municipal",
+    "municipality", "nagar", "near", "number", "path", "place", "sector", "state",
+    "village", "zone"]);
+
+  function highwayRefsInNotice(value) {
+    const refs = new Set();
+    const pattern = /\bN([HE])\s*[-:]?\s*([0-9]{1,4}[A-Z]{0,3})\b/gi;
+    for (const match of String(value || "").matchAll(pattern)) {
+      refs.add(`N${match[1].toUpperCase()}-${match[2].toUpperCase()}`);
+    }
+    return refs;
+  }
+
+  function roadNoticeAddressParts(address) {
+    // Nominatim's compact address ends with the city. A city name is shared by hundreds
+    // of unrelated notices and once made Kanjur, Mumbai select a Pune road whose title
+    // merely contained "old Mumbai-Pune". Road plus immediate locality are the evidence.
+    return String(address || "").split(",").slice(0, 2).map((part) =>
+      tenderTokens(part).filter((token) => token.length >= 3
+        && !/^\d{5,6}$/.test(token) && !ROAD_NOTICE_STOP.has(token)))
+      .filter((tokens) => tokens.length);
+  }
+
+  function roadNoticeCandidates(records, address, route = null, now = Date.now()) {
+    if (!Array.isArray(records) || !records.length) return [];
+    const addressParts = roadNoticeAddressParts(address);
+    const addressTokens = new Set(addressParts.flat());
+    const routeRefs = new Set(highwayRefsOf(route && route.highway_ref));
+    if (!addressTokens.size && !routeRefs.size) return [];
+
+    const titleTokens = records.map((record) => new Set(tenderTokens(record && record.title)));
+    const frequencies = new Map();
+    for (const token of addressTokens) {
+      frequencies.set(token, titleTokens.reduce(
+        (count, tokens) => count + (tokens.has(token) ? 1 : 0), 0));
+    }
+    const routeAuthorityTokens = new Set(tenderTokens(route && route.authority_name)
+      .filter((token) => token.length >= 4 && !ROAD_NOTICE_STOP.has(token)));
+    const scored = [];
+    for (let index = 0; index < records.length; index++) {
+      const record = records[index];
+      if (!record || record.lifecycle !== "procurement_notice" || record.scope !== "road_surface"
+          || record.segment_verified !== false || record.award_verified !== false
+          || record.dlp_verified !== false
+          || !Number.isFinite(Date.parse(String(record.closing_at || "")))
+          || Date.parse(record.closing_at) < now
+          || !tenderCoversCarriageway(record.title, record.tender_reference)) continue;
+      const tokens = titleTokens[index];
+      const tokenHits = [...addressTokens].filter((token) => tokens.has(token));
+      const phraseHits = addressParts.filter((part) => {
+        const phrase = part.join(" ");
+        return phrase.length >= 6
+          && tenderTokens(record.title).join(" ").includes(phrase);
+      });
+      const rareHits = tokenHits.filter((token) => token.length >= 6
+        && frequencies.get(token) > 0 && frequencies.get(token) <= 2);
+      const noticeRefs = highwayRefsInNotice(`${record.title} ${record.tender_reference}`);
+      const highwayHits = [...routeRefs].filter((ref) => noticeRefs.has(ref));
+      // One common locality word is too weak for a nationwide title index. Admit an
+      // ordinary-road candidate only for a phrase, two distinct address words, or one
+      // long word that occurs in at most two notices in this State/UT snapshot.
+      const locationEvidence = phraseHits.length > 0 || tokenHits.length >= 2
+        || rareHits.length > 0;
+      if (!locationEvidence) continue;
+      const organisationTokens = new Set(tenderTokens(record.organisation_chain));
+      const authorityHits = [...routeAuthorityTokens].filter(
+        (token) => organisationTokens.has(token));
+      const rarity = tokenHits.reduce((sum, token) => {
+        const frequency = frequencies.get(token) || records.length;
+        return sum + Math.log((records.length + 1) / (frequency + 0.5));
+      }, 0);
+      const score = highwayHits.length * 100 + phraseHits.length * 30
+        + rareHits.length * 16 + tokenHits.length * 8 + rarity + authorityHits.length * 3;
+      scored.push({ record, score, token_hits: tokenHits, phrase_hits: phraseHits,
+        rare_hits: rareHits, highway_hits: highwayHits, authority_hits: authorityHits });
+    }
+    scored.sort((left, right) => (right.score - left.score)
+      || (right.phrase_hits.length - left.phrase_hits.length)
+      || (right.token_hits.length - left.token_hits.length)
+      || String(left.record.record_id).localeCompare(String(right.record.record_id)));
+    return scored;
+  }
+
+  function roadAgreementAddressParts(address) {
+    return String(address || "").split(",").slice(0, 4).map((part) =>
+      tenderTokens(part).filter((token) => token.length >= 3
+        && !/^\d{5,6}$/.test(token) && !ROAD_NOTICE_STOP.has(token)))
+      .filter((tokens) => tokens.length);
+  }
+
+  function roadAgreementCandidates(records, address) {
+    if (!Array.isArray(records) || !records.length) return [];
+    const addressParts = roadAgreementAddressParts(address);
+    const addressTokens = new Set(addressParts.flat());
+    if (!addressTokens.size) return [];
+    const districtTokensByRecord = records.map((record) => new Set(
+      tenderTokens(record && record.district_name)
+        .filter((token) => token.length >= 3 && !ROAD_NOTICE_STOP.has(token))));
+    const roadTokensByRecord = records.map((record, index) => new Set(tenderTokens([
+      record && record.title, record && record.road_from, record && record.road_to,
+    ].filter(Boolean).join(" ")).filter((token) => token.length >= 3
+      && !ROAD_NOTICE_STOP.has(token) && !districtTokensByRecord[index].has(token))));
+    const frequencies = new Map();
+    for (const token of addressTokens) {
+      frequencies.set(token, roadTokensByRecord.reduce(
+        (count, tokens) => count + (tokens.has(token) ? 1 : 0), 0));
+    }
+    const scored = [];
+    for (let index = 0; index < records.length; index++) {
+      const record = records[index];
+      if (!record || record.lifecycle !== "current_project"
+          || record.lifecycle_status !== "In Progress" || record.scope_verified !== true
+          || record.segment_verified !== false || record.contractor !== null
+          || record.contractor_assignment_verified !== false || record.dlp_verified !== false) {
+        continue;
+      }
+      const roadTokens = roadTokensByRecord[index];
+      const roadHits = [...addressTokens].filter((token) => roadTokens.has(token));
+      const districtTokens = districtTokensByRecord[index];
+      const districtHits = [...addressTokens].filter((token) => districtTokens.has(token));
+      const normalisedRoad = tenderTokens([
+        record.title, record.road_from, record.road_to,
+      ].filter(Boolean).join(" ")).join(" ");
+      const phraseHits = addressParts.filter((part) => {
+        const phrase = part.join(" ");
+        return part.some((token) => !districtTokens.has(token))
+          && phrase.length >= 6 && normalisedRoad.includes(phrase);
+      });
+      const multiTokenPhrase = phraseHits.some((part) => part.length >= 2);
+      const uniqueLongHits = roadHits.filter((token) => token.length >= 6
+        && frequencies.get(token) === 1);
+      // The source has no geometry. A State match or district name alone is never enough:
+      // require an exact multi-word road phrase, two road-name words, or a unique long
+      // road word corroborated by the district in the reverse-geocoded address.
+      const strongLocationEvidence = multiTokenPhrase || roadHits.length >= 2
+        || (uniqueLongHits.length > 0 && districtHits.length > 0);
+      if (!strongLocationEvidence) continue;
+      const rarity = roadHits.reduce((sum, token) => {
+        const frequency = frequencies.get(token) || records.length;
+        return sum + Math.log((records.length + 1) / (frequency + 0.5));
+      }, 0);
+      const score = (multiTokenPhrase ? 80 : 0) + phraseHits.length * 20
+        + roadHits.length * 16 + uniqueLongHits.length * 12
+        + districtHits.length * 10 + rarity;
+      scored.push({ record, score, road_hits: roadHits, district_hits: districtHits,
+        phrase_hits: phraseHits, unique_long_hits: uniqueLongHits });
+    }
+    scored.sort((left, right) => (right.score - left.score)
+      || (right.phrase_hits.length - left.phrase_hits.length)
+      || (right.road_hits.length - left.road_hits.length)
+      || String(left.record.record_id).localeCompare(String(right.record.record_id)));
+    return scored;
+  }
+
+  async function matchRoadAgreement(address, route) {
+    const stateCode = route && route.contract_state_code;
+    if (!route || route.routed !== true || !stateCode
+        || (route.issue_type && route.issue_type !== "road_damage")) return null;
+    const pack = await loadRoadAgreementPack(stateCode);
+    const ranked = roadAgreementCandidates(pack && pack.agreements, address);
+    if (!ranked.length) return null;
+    const best = ranked[0], second = ranked[1];
+    // Two equally supported road records cannot be disambiguated without geometry.
+    if (second && Math.abs(best.score - second.score) < 8
+        && best.phrase_hits.length === second.phrase_hits.length
+        && best.road_hits.length === second.road_hits.length
+        && best.district_hits.length === second.district_hits.length) return null;
+    const record = best.record;
+    const agreement = record.agreement_verified && record.agreement_number
+      && record.agreement_date
+      ? `; agreement ${record.agreement_number} dated ${record.agreement_date}` : "";
+    const evidence = [...new Set([
+      ...best.phrase_hits.map((part) => part.join(" ")),
+      ...best.road_hits, ...best.district_hits,
+    ])];
+    return {
+      tender_number: `${record.reference_value}${agreement}`,
+      reference_label: agreement ? "PMGSY package / agreement" : record.reference_label,
+      contractor: null,
+      title: record.title,
+      published: null,
+      source_name: record.source_name,
+      source_url: record.source_url,
+      lifecycle: "current_project",
+      lifecycle_status: `Source-reported In Progress as retrieved ${record.retrieved_at}; `
+        + "not independently freshness-verified",
+      match_basis: `State/UT ${stateCode}; title/from/to/district evidence ${evidence.join(", ")}`,
+      candidate_status: "candidate",
+      scope_status: "official_road_record",
+      scope_verified: true,
+      segment_status: "unverified_title_match_no_geometry",
+      segment_verified: false,
+      // An agreement number/date does not identify a contractor assignment in this feed.
+      agreement_verified: record.agreement_verified === true,
+      award_status: "unverified_contractor_assignment",
+      award_verified: false,
+      dlp_status: "unverified_no_maintenance_dates",
+      dlp_verified: false,
+      note: `PMGSY road-record candidate ${record.reference_value}${agreement}. `
+        + "No geometry, contractor assignment, completion, maintenance or DLP is asserted.",
+      ...roadAgreementPackProvenance(stateCode),
+    };
+  }
+
+  async function matchRoadNotice(address, route) {
+    const stateCode = route && route.contract_state_code;
+    if (!route || route.routed !== true || !stateCode
+        || (route.issue_type && route.issue_type !== "road_damage")) return null;
+    const pack = await loadRoadNoticePack(stateCode);
+    const ranked = roadNoticeCandidates(pack && pack.notices, address, route);
+    if (!ranked.length) return null;
+    const best = ranked[0];
+    const record = best.record;
+    const source = (pack.sources || []).find((item) => item.source_id === record.source_id);
+    const locationEvidence = [...new Set([...best.phrase_hits.map((part) => part.join(" ")),
+      ...best.token_hits])];
+    const reference = record.tender_reference === record.tender_id
+      ? record.tender_id : `${record.tender_reference} [${record.tender_id}]`;
+    return {
+      tender_number: reference,
+      reference_label: record.tender_reference === record.tender_id
+        ? "Tender ID" : "Tender reference / ID",
+      contractor: null,
+      title: record.title,
+      published: record.published_at,
+      source_name: source ? source.source_name : "Official State/UT e-Procurement portal",
+      // GePNIC detail links contain session-shaped tokens and can expire. Cite the
+      // stable official portal root plus the tender reference/ID above; keep the exact
+      // captured detail URL inside the immutable pack for audit and fresh-link lookup.
+      source_url: source ? source.source_url : record.source_url,
+      lifecycle: "procurement_notice",
+      lifecycle_status: `Open procurement notice; bid closing ${record.closing_at}`,
+      match_basis: `State/UT ${stateCode}`
+        + (best.highway_hits.length ? `; mapped ${best.highway_hits.join(" / ")}` : "")
+        + (locationEvidence.length ? `; title/address ${locationEvidence.join(", ")}` : ""),
+      candidate_status: "candidate",
+      scope_status: "carriageway_scope_present",
+      scope_verified: true,
+      segment_status: "unverified_title_match",
+      segment_verified: false,
+      award_status: "unverified_procurement_notice",
+      award_verified: false,
+      dlp_status: "unverified",
+      dlp_verified: false,
+      note: `Open procurement notice ${record.tender_id}; no award or contractor is asserted.`,
+      ...roadNoticePackProvenance(stateCode),
+    };
+  }
+
+  function canSearchTenderCatalog(route) {
+    if (!route || route.routed !== true
+        || (route.issue_type && route.issue_type !== "road_damage")) return false;
+    return route.tender_eligible === true
+      || /^[A-Z]{2}$/.test(String(route.contract_state_code || ""));
+  }
+
+  function optionalCatalogResult(promise) {
+    let timer = null;
+    const timeout = new Promise((resolve) => {
+      timer = setTimeout(() => resolve(null), OPTIONAL_CATALOG_TIMEOUT_MS);
+    });
+    return Promise.race([Promise.resolve(promise).catch(() => null), timeout])
+      .finally(() => clearTimeout(timer));
+  }
+
+  function startLowerCatalogMatches(address, route) {
+    // Start both downloads immediately. Awaiting the preferred PMGSY answer first keeps
+    // deterministic result priority without paying two serial network deadlines.
+    return {
+      agreement: optionalCatalogResult(matchRoadAgreement(address, route)),
+      notice: optionalCatalogResult(matchRoadNotice(address, route)),
+    };
+  }
+
+  async function preferredLowerCatalogMatch(matches) {
+    const agreement = await matches.agreement;
+    return agreement || await matches.notice;
+  }
+
+  async function matchTenderForRoute(address, route, lgd = null) {
+    if (!canSearchTenderCatalog(route)) return null;
+    const lower = startLowerCatalogMatches(address, route);
+    const highwayP = route.region === "national-highway"
+      ? optionalCatalogResult(matchHighwayContract(address, route)) : Promise.resolve(null);
+    const karnatakaP = lgd
+      && (route.routing_pack_state_code === "KA" || route.contract_state_code === "KA")
+      ? optionalCatalogResult(matchTender(address, lgd)) : Promise.resolve(null);
+    const highway = await highwayP;
+    if (highway) return highway;
+    const karnataka = await karnatakaP;
+    if (karnataka) return karnataka;
+    return preferredLowerCatalogMatch(lower);
+  }
+
+  async function matchTenderAt(address, route, lat, lng, provisional = null) {
+    if (!canSearchTenderCatalog(route)) return null;
+    const lower = startLowerCatalogMatches(address, route);
+    const highwayP = route.region === "national-highway"
+      ? optionalCatalogResult(matchHighwayContract(address, route)) : Promise.resolve(null);
+    const karnatakaP = provisional ? optionalCatalogResult(provisional)
+      : (route.routing_pack_state_code === "KA" || route.contract_state_code === "KA")
+        ? optionalCatalogResult((async () => {
+        const where = await jurisdictionOf(lat, lng);
+        return where && where.kind === "town" && where.lgd
+          ? matchTender(address, where.lgd) : null;
+      })()) : Promise.resolve(null);
+    const highway = await highwayP;
+    if (highway) return highway;
+    const karnataka = await karnatakaP;
+    if (karnataka) return karnataka;
+    return preferredLowerCatalogMatch(lower);
   }
 
   // ---------- drafting (English / Kannada / Marathi / Bengali) ----------
@@ -5327,19 +6723,59 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
   function normaliseTenderMatch(tender, route = null) {
     if (!tender || !String(tender.tender_number || "").trim()
         || !String(tender.title || "").trim()) return null;
-    if (!route || route.tender_eligible !== true
-        || tender.tender_pack_id !== "in-ka-tenders"
-        || tender.tender_pack_state_code !== "KA"
+    const karnataka = tender.tender_pack_id === "in-ka-tenders"
+      && tender.tender_pack_state_code === "KA"
+      && route && route.routing_pack_state_code === "KA";
+    const highway = /^in-nh-contracts-[a-z]{2}$/.test(String(tender.tender_pack_id || ""))
+      && route && route.region === "national-highway"
+      && tender.tender_pack_state_code === route.contract_state_code;
+    const roadNotice = /^in-road-notices-[a-z]{2}$/.test(String(tender.tender_pack_id || ""))
+      && route && route.routed === true
+      && (!route.issue_type || route.issue_type === "road_damage")
+      && tender.tender_pack_state_code === route.contract_state_code;
+    const roadAgreement = /^in-road-agreements-[a-z]{2}$/.test(
+      String(tender.tender_pack_id || ""))
+      && route && route.routed === true
+      && (!route.issue_type || route.issue_type === "road_damage")
+      && tender.tender_pack_state_code === route.contract_state_code;
+    const allowedRoute = (roadNotice || roadAgreement)
+      ? canSearchTenderCatalog(route) : route && route.tender_eligible === true;
+    const scopeEligible = roadAgreement
+      ? tender.scope_verified === true : tenderCoversCarriageway(tender.title, tender.tender_number);
+    if (!route || !allowedRoute || (!karnataka && !highway && !roadNotice && !roadAgreement)
         || !Number.isInteger(tender.tender_pack_version)
         || !/^[0-9a-f]{64}$/.test(String(tender.tender_pack_sha256 || ""))
-        || !tenderCoversCarriageway(tender.title, tender.tender_number)) return null;
+        || !scopeEligible) return null;
+    const compact = roadAgreement ? {
+      candidate_status: "candidate",
+      scope_status: tender.scope_status || "official_road_record",
+      scope_verified: true,
+      segment_status: tender.segment_status || "unverified_title_match_no_geometry",
+      segment_verified: false,
+      award_status: "unverified_contractor_assignment",
+      award_verified: false,
+      dlp_status: "unverified_no_maintenance_dates",
+      dlp_verified: false,
+    } : contractVerificationFor(tender);
     return {
       ...tender,
       tender_number: String(tender.tender_number).trim(),
+      reference_label: tender.reference_label || "Tender number",
       title: String(tender.title).replace(/\s+/g, " ").trim(),
-      source_name: tender.source_name || "Karnataka Public Procurement Portal (KPPP) snapshot",
-      source_url: tender.source_url || "https://kppp.karnataka.gov.in/",
-      ...contractVerificationFor(tender),
+      source_name: tender.source_name || (karnataka
+        ? "Karnataka Public Procurement Portal (KPPP) snapshot"
+        : roadNotice ? "Official State/UT e-Procurement portal"
+          : roadAgreement ? "PMGSY dashboard road tender/agreement details"
+            : "Official highway project source"),
+      source_url: tender.source_url || (karnataka ? "https://kppp.karnataka.gov.in/" : null),
+      ...compact,
+      segment_status: tender.segment_verified === true ? "verified" : (tender.segment_status || "unverified"),
+      segment_verified: tender.segment_verified === true,
+      award_status: tender.award_verified === true && tender.contractor
+        ? (tender.award_status || "verified_by_source_record") : "unverified",
+      award_verified: tender.award_verified === true && !!tender.contractor,
+      dlp_status: tender.dlp_verified === true ? (tender.dlp_status || "verified") : "unverified",
+      dlp_verified: tender.dlp_verified === true,
     };
   }
 
@@ -5412,7 +6848,12 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const photoProvenance = evidence.photo_provenance || "Photo attached from Pothole Reporter";
 
     const tenderFields = tenderMatch ? {
-      status: "Candidate only — authority verification required",
+      status: tenderMatch.lifecycle === "procurement_notice"
+        ? "Open procurement notice candidate — not an awarded contract"
+        : tenderMatch.lifecycle === "current_project"
+          ? "Current public project candidate — exact road segment requires verification"
+          : "Candidate only — authority verification required",
+      reference_label: tenderMatch.reference_label || "Tender number",
       tender_number: tenderMatch.tender_number,
       exact_work_name: tenderMatch.title,
       listed_contractor: tenderMatch.contractor || "Not listed",
@@ -5420,11 +6861,13 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       source_name: tenderMatch.source_name,
       source_url: tenderMatch.source_url,
       scope: tenderMatch.scope_verified ? "Carriageway scope wording present" : "Ineligible",
-      segment_match: "Unverified",
-      award_status: "Unverified",
-      dlp_status: "Unverified — publication date is not DLP evidence",
+      segment_match: tenderMatch.segment_verified ? "Verified" : "Unverified",
+      award_status: tenderMatch.award_verified ? "Verified by cited source record" : "Unverified",
+      dlp_status: tenderMatch.dlp_verified
+        ? "Verified by cited source record" : "Unverified — publication date is not DLP evidence",
     } : {
       status: "No eligible road-work contract candidate identified",
+      reference_label: "Tender number",
       tender_number: "Not identified",
       exact_work_name: "Not identified",
       listed_contractor: "Not identified",
@@ -5456,7 +6899,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     ];
     const tenderLines = [
       `Status: ${tenderFields.status}`,
-      `Tender number: ${tenderFields.tender_number}`,
+      `${tenderFields.reference_label}: ${tenderFields.tender_number}`,
       `Exact work name: ${tenderFields.exact_work_name}`,
       `Listed contractor: ${tenderFields.listed_contractor}`,
       `Publication date: ${tenderFields.publication_date}`,
@@ -5502,7 +6945,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       `Map: ${mapUrl}`,
       `Classification: Pothole YES; ${surface}; app visual size ${size}; physical measurements unknown (${measurementProvenance.toLowerCase()}, ${measurementConfidence.toLowerCase()} confidence).`,
       `Routing: geographic body ${routing.geographicName}; intake ${routing.intakeName}; road owner ${routing.ownerVerified ? routing.ownerName : "unverified"}; basis ${routing.clue}.`,
-      `Contract: ${tenderFields.status}; tender ${tenderFields.tender_number}; work ${tenderFields.exact_work_name}; contractor ${tenderFields.listed_contractor}; published ${tenderFields.publication_date}; source ${tenderFields.source_name}${tenderFields.source_url !== "Not applicable" ? ` ${tenderFields.source_url}` : ""}; DLP ${tenderFields.dlp_status}.`,
+      `Contract: ${tenderFields.status}; ${tenderFields.reference_label.toLowerCase()} ${tenderFields.tender_number}; work ${tenderFields.exact_work_name}; contractor ${tenderFields.listed_contractor}; published ${tenderFields.publication_date}; source ${tenderFields.source_name}${tenderFields.source_url !== "Not applicable" ? ` ${tenderFields.source_url}` : ""}; DLP ${tenderFields.dlp_status}.`,
       "Please inspect, repair, register the grievance and share its reference number.",
       independentNote,
     ].join("\n");
@@ -5595,11 +7038,21 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     }, rec.officer_name);
     const tender = rec.tender_number ? {
       tender_number: rec.tender_number,
+      reference_label: rec.tender_reference_label || "Tender number",
       title: rec.tender_title,
       contractor: rec.contractor,
       published: rec.tender_published,
       source_name: rec.tender_source_name,
       source_url: rec.tender_source_url,
+      lifecycle: rec.tender_lifecycle || null,
+      lifecycle_status: rec.tender_lifecycle_status || null,
+      match_basis: rec.tender_match_basis || null,
+      segment_status: rec.tender_segment_status || null,
+      segment_verified: rec.tender_segment_verified === true,
+      award_status: rec.tender_award_status || null,
+      award_verified: rec.tender_award_verified === true,
+      dlp_status: rec.tender_dlp_status || null,
+      dlp_verified: rec.tender_dlp_verified === true,
       tender_pack_id: rec.tender_pack_id,
       tender_pack_version: rec.tender_pack_version,
       tender_pack_sha256: rec.tender_pack_sha256,
@@ -6432,9 +7885,11 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     // photo is being analysed, so it costs nothing on the clock. routeOfficer shares
     // this same answer instead of asking again.
     const coordCoverage = (lat != null && lng != null) ? inCoverage(lat, lng, null) : null;
-    const tenderP = (driveMode || coordCoverage === false) ? null
-      : Promise.all([geoP, jurisdictionOf(lat, lng)])
-          .then(([g, w]) => (w && w.kind === "town" && w.lgd ? matchTender(shortOf(g), w.lgd) : null))
+    const tenderP = (driveMode || coordCoverage === false || !geoP) ? null
+      : geoP.then((g) => stateCodeForGeocode(g) === "KA"
+          ? jurisdictionOf(lat, lng).then((w) =>
+            (w && w.kind === "town" && w.lgd ? matchTender(shortOf(g), w.lgd) : null))
+          : null)
           .catch(() => null);
     const sequenceNote = driveMode
       ? `\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. Images 2-${imageInputs.length} are lower-road crops in chronological order; the sharpest crop is chronological frame ${primaryIndex + 1}.`
@@ -6515,10 +7970,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     // frames are rejected), so an accepted drive pothole matches its contract here, once
     // it is known to be worth a complaint. The GIS answer is already memoised, so this
     // costs no extra network call.
-    const tenderCandidate = accepted && covered && route.tender_eligible === true
-      ? await (tenderP || jurisdictionOf(lat, lng)
-          .then((w) => (w && w.kind === "town" && w.lgd ? matchTender(address, w.lgd) : null))
-          .catch(() => null))
+    const tenderCandidate = accepted && covered && canSearchTenderCatalog(route)
+      ? await matchTenderAt(address, route, lat, lng, tenderP).catch(() => null)
       : null;
     const tender = normaliseTenderMatch(tenderCandidate, covered ? route : null);
     if (accepted) progress(pmsg("write"));
@@ -6585,6 +8038,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       routing_match_field: covered ? (route.routing_match_field || null) : null,
       routing_match_value: covered ? (route.routing_match_value || null) : null,
       highway_ref: covered ? (route.highway_ref || null) : null,
+      contract_state_code: covered ? (route.contract_state_code || null) : null,
       routing_pack_id: covered ? (route.routing_pack_id || null) : null,
       routing_pack_version: covered ? (route.routing_pack_version || null) : null,
       routing_pack_sha256: covered ? (route.routing_pack_sha256 || null) : null,
@@ -6610,12 +8064,16 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       official_grievance_id: null,
       submitted_at: null,
       tender_number: tender ? tender.tender_number : null,
+      tender_reference_label: tender ? (tender.reference_label || "Tender number") : null,
       tender_title: tender ? tender.title : null,
       contractor: tender ? tender.contractor : null,
       tender_note: tender ? tender.note : null,
       tender_published: tender ? tender.published : null,
       tender_source_name: tender ? tender.source_name : null,
       tender_source_url: tender ? tender.source_url : null,
+      tender_lifecycle: tender ? (tender.lifecycle || null) : null,
+      tender_lifecycle_status: tender ? (tender.lifecycle_status || null) : null,
+      tender_match_basis: tender ? (tender.match_basis || null) : null,
       tender_candidate_status: tender ? tender.candidate_status : null,
       tender_scope_status: tender ? tender.scope_status : null,
       tender_scope_verified: tender ? !!tender.scope_verified : false,
@@ -6904,10 +8362,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       Number.isFinite(speed) ? speed : null
     );
     const covered = !!route.routed;
-    const tenderCandidate = covered && route.tender_eligible === true
-      ? await jurisdictionOf(lat, lng)
-          .then((w) => w && w.kind === "town" && w.lgd ? matchTender(address, w.lgd) : null)
-          .catch(() => null)
+    const tenderCandidate = covered && canSearchTenderCatalog(route)
+      ? await matchTenderAt(address, route, lat, lng).catch(() => null)
       : null;
     const tender = normaliseTenderMatch(tenderCandidate, covered ? route : null);
     const assessment = binaryAssessment({
@@ -6987,6 +8443,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       routing_match_field: covered ? (route.routing_match_field || null) : null,
       routing_match_value: covered ? (route.routing_match_value || null) : null,
       highway_ref: covered ? (route.highway_ref || null) : null,
+      contract_state_code: covered ? (route.contract_state_code || null) : null,
       routing_pack_id: covered ? (route.routing_pack_id || null) : null,
       routing_pack_version: covered ? (route.routing_pack_version || null) : null,
       routing_pack_sha256: covered ? (route.routing_pack_sha256 || null) : null,
@@ -7011,12 +8468,16 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       requires_official_reference: covered ? !!route.requires_official_reference : false,
       official_grievance_id: null, submitted_at: null,
       tender_number: tender ? tender.tender_number : null,
+      tender_reference_label: tender ? (tender.reference_label || "Tender number") : null,
       tender_title: tender ? tender.title : null,
       contractor: tender ? tender.contractor : null,
       tender_note: tender ? tender.note : null,
       tender_published: tender ? tender.published : null,
       tender_source_name: tender ? tender.source_name : null,
       tender_source_url: tender ? tender.source_url : null,
+      tender_lifecycle: tender ? (tender.lifecycle || null) : null,
+      tender_lifecycle_status: tender ? (tender.lifecycle_status || null) : null,
+      tender_match_basis: tender ? (tender.match_basis || null) : null,
       tender_candidate_status: tender ? tender.candidate_status : null,
       tender_scope_status: tender ? tender.scope_status : null,
       tender_scope_verified: tender ? !!tender.scope_verified : false,
@@ -7679,7 +9140,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     "alternate_handoff_name", "alternate_handoff_url", "whatsapp_url", "helpline",
     "requires_official_reference", "routing_pack_id", "routing_pack_version",
     "routing_pack_sha256", "routing_pack_state_code", "routing_match_field",
-    "routing_match_value", "highway_ref",
+    "routing_match_value", "highway_ref", "contract_state_code",
     "ownership_unverified", "tender_eligible",
     "geographic_authority_id", "geographic_authority_name",
     "intake_authority_id", "intake_authority_name",
@@ -7719,7 +9180,11 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     if (oldRefs.size && !currentRefs.some((ref) => oldRefs.has(ref))) {
       throw new Error("This saved report's highway reference changed; review the location again.");
     }
-    return { ...toDict(rec), ...current };
+    return {
+      ...toDict(rec), ...current,
+      contract_state_code: rec.contract_state_code || null,
+      tender_eligible: !!rec.contract_state_code,
+    };
   }
 
   async function openBengaluruHandoff(rec) {
@@ -8361,6 +9826,13 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    COMPLAINT_TEMPLATE_VERSION, dataUrlToBlob, blobToDataUrl,
                    photoToBase64, toDict, listDict,
                    contractVerificationFor, tenderCoversCarriageway, shortlistFor, matchTenderFor: matchTender,
+                   highwayContractCandidates, matchHighwayContract, matchTenderForRoute,
+                   roadNoticeCandidates, matchRoadNotice, canSearchTenderCatalog,
+                   roadAgreementCandidates, matchRoadAgreement,
+                   matchTenderAt, stateCodeForGeocode, exactPinnedContractStateCode,
+                   outerStateBoundaryGeometry, trustedContractStateCode,
+                   optionalCatalogResult, startLowerCatalogMatches,
+                   preferredLowerCatalogMatch, OPTIONAL_CATALOG_TIMEOUT_MS,
                    mumbaiWardFromName, mumbaiFromGeocode, evidenceForReport,
                    normaliseAuthorityValue, validateAuthorityRegistry,
                    validateOfficialHandoffRegistry,
@@ -8370,6 +9842,16 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    validateStatePackManifest, getStatePackManifest, resolvePackUrl,
                    loadStatePack, pruneStatePacks, resetStatePackMemory,
                    sha256Bytes, statePackProvenance,
+                   validateContractPackManifest, getContractPackManifest,
+                   validateHighwayContractPack, loadHighwayContractPack,
+                   contractPackProvenance, resetContractPackMemory,
+                   validateRoadNoticeManifest, getRoadNoticeManifest,
+                   validateRoadNoticePack, loadRoadNoticePack,
+                   roadNoticePackProvenance, resetRoadNoticePackMemory,
+                   validateRoadAgreementManifest, getRoadAgreementManifest,
+                   validateRoadAgreementPack, loadRoadAgreementPack,
+                   roadAgreementPackProvenance, resetRoadAgreementPackMemory,
+                   catalogResourceWithinReview,
                    validateHighwayManifest, getHighwayPackManifest, loadHighwayTile,
                    validateHighwayTile, highwayTileIdFor, matchHighwayTile,
                    nationalHighwayRoute, highwayPackProvenance, openNationalHighwayHandoff,
