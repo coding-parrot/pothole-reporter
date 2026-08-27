@@ -5,7 +5,7 @@ phone shows Maps or a call; one tap on **Photo** opens the camera for a pothole 
 prepares evidence for an official complaint channel. Reports remain on the phone, and
 nothing is filed automatically. There is no project-operated backend or account system.
 
-Current release: [v1.36.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.36.0)
+Current release: [v1.36.1](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.36.1)
 
 <p>
   <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>

@@ -38,6 +38,14 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
             if "2°" not in note:
                 fails.append(f"{name}: {language} settings note omits highway-tile granularity")
 
+    name_placeholders = re.findall(r'^\s{4}name_placeholder: "([^"]+)"', s, re.MULTILINE)
+    if len(name_placeholders) != 4:
+        fails.append(f"{name}: expected 4 localized email-name placeholders, found {len(name_placeholders)}")
+    if "Gaurav Sen" in s:
+        fails.append(f"{name}: Settings still contains the maintainer's personal-name placeholder")
+    if '$("setName").placeholder = t("name_placeholder")' not in s:
+        fails.append(f"{name}: Settings does not apply the localized email-name placeholder")
+
     # Scope: localized refusals must describe all supported geographies.
     coverage = re.findall(r'^\s{4}outside_coverage_help: "([^"]+)"', s, re.MULTILINE)
     if len(coverage) == 4:

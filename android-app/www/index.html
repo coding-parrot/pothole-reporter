@@ -179,8 +179,8 @@
       </select>
       <label id="keyLabel">OpenAI API key (stored only on this device)</label>
       <input type="password" id="setKey" placeholder="sk-...">
-      <label id="nameLabel">Your name (signs the complaints)</label>
-      <input type="text" id="setName" placeholder="Gaurav Sen">
+      <label id="nameLabel">Your name (used in complaint emails)</label>
+      <input type="text" id="setName" placeholder="Username for emails">
       <label id="modelLabel">Detection model</label>
       <select id="setModel">
         <option value="gpt-5-mini">gpt-5-mini — current baseline</option>
@@ -292,7 +292,8 @@ const I18N = {
     banner_setup: "Add an OpenAI API key to use Photo and Drive.",
     settings_title: "Settings",
     key_label: "OpenAI API key (saved here; sent to OpenAI as the credential)",
-    name_label: "Your name (signs the complaints)",
+    name_label: "Your name (used in complaint emails)",
+    name_placeholder: "Username for emails",
     model_label: "Detection model",
     detail_label: "Image detail",
     accuracy_note: "gpt-5-mini/high remains the baseline. gpt-5.6/original is an experiment until your held-out drive benchmark proves it better.",
@@ -490,7 +491,8 @@ const I18N = {
     banner_setup: "ಫೋಟೋ ಮತ್ತು ಡ್ರೈವ್ ಬಳಸಲು OpenAI API ಕೀ ಸೇರಿಸಿ.",
     settings_title: "ಸೆಟ್ಟಿಂಗ್ಸ್",
     key_label: "OpenAI API ಕೀ (ಈ ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ; OpenAI ಗೆ ಪ್ರಮಾಣಪತ್ರವಾಗಿ ಹೋಗುತ್ತದೆ)",
-    name_label: "ನಿಮ್ಮ ಹೆಸರು (ದೂರುಗಳಿಗೆ ಸಹಿ)",
+    name_label: "ನಿಮ್ಮ ಹೆಸರು (ದೂರು ಇಮೇಲ್‌ಗಳಲ್ಲಿ ಬಳಸಲಾಗುತ್ತದೆ)",
+    name_placeholder: "ಇಮೇಲ್‌ಗಳಿಗೆ ಬಳಸುವ ಹೆಸರು",
     model_label: "ಪತ್ತೆ ಮಾದರಿ",
     detail_label: "ಚಿತ್ರದ ವಿವರ",
     accuracy_note: "gpt-5-mini/high ಪ್ರಸ್ತುತ ಮೂಲಮಟ್ಟ. ನಿಮ್ಮ ಪ್ರತ್ಯೇಕ ಡ್ರೈವ್ ಪರೀಕ್ಷೆ ಉತ್ತಮವೆಂದು ಸಾಬೀತುಪಡಿಸುವವರೆಗೆ gpt-5.6/original ಪ್ರಯೋಗವಾಗಿದೆ.",
@@ -681,7 +683,8 @@ const I18N = {
     banner_setup: "फोटो आणि ड्राइव्ह वापरण्यासाठी OpenAI API की जोडा.",
     settings_title: "सेटिंग्ज",
     key_label: "OpenAI API की (येथे जतन होते; विनंतीचे प्रमाणीकरण करण्यासाठी OpenAI कडे पाठवली जाते)",
-    name_label: "तुमचे नाव (तक्रारींवर स्वाक्षरीसाठी)",
+    name_label: "तुमचे नाव (तक्रारीच्या ईमेलमध्ये वापरले जाईल)",
+    name_placeholder: "ईमेलसाठी वापरायचे नाव",
     model_label: "शोध मॉडेल",
     detail_label: "चित्राचा तपशील",
     accuracy_note: "gpt-5-mini/high हा सध्याचा आधार आहे. स्वतंत्र चाचणीत अधिक चांगला ठरेपर्यंत gpt-5.6/original हा प्रयोग आहे.",
@@ -863,7 +866,8 @@ const I18N = {
     banner_setup: "ছবি ও ড্রাইভ ব্যবহার করতে OpenAI API key যোগ করুন।",
     settings_title: "সেটিংস",
     key_label: "OpenAI API key (এখানে সংরক্ষিত; অনুমোদনের পরিচয় হিসেবে OpenAI-তে পাঠানো হয়)",
-    name_label: "আপনার নাম (অভিযোগে স্বাক্ষর হিসেবে ব্যবহৃত হবে)",
+    name_label: "আপনার নাম (অভিযোগের ইমেলে ব্যবহৃত হবে)",
+    name_placeholder: "ইমেলের জন্য ব্যবহৃত নাম",
     model_label: "শনাক্তকরণ মডেল",
     detail_label: "ছবির বিশদতা",
     accuracy_note: "gpt-5-mini/high বর্তমান ভিত্তিমাত্রা। আলাদা রাখা ড্রাইভ বেঞ্চমার্কে উন্নতি প্রমাণিত না হওয়া পর্যন্ত gpt-5.6/original পরীক্ষামূলক।",
@@ -1139,6 +1143,7 @@ function applyLang() {
   $("settingsTitle").textContent = t("settings_title");
   $("keyLabel").textContent = t("key_label");
   $("nameLabel").textContent = t("name_label");
+  $("setName").placeholder = t("name_placeholder");
   $("modelLabel").textContent = t("model_label");
   $("detailLabel").textContent = t("detail_label");
   $("accuracyNote").textContent = t("accuracy_note");
