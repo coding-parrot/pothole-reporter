@@ -2,7 +2,7 @@
   "appId": "dev.aiengg.potholereporter",
   "appName": "Pothole Reporter",
   "webDir": "www",
-  "appendUserAgent": "PotholeReporter/1.35.0 (+https://coding-parrot.github.io/pothole-reporter/; contact: contact@aiengg.dev)",
+  "appendUserAgent": "PotholeReporter/1.36.0 (+https://coding-parrot.github.io/pothole-reporter/; contact: contact@aiengg.dev)",
   "server": {
     "androidScheme": "https"
   },
