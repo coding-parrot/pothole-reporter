@@ -197,7 +197,7 @@ with sync_playwright() as playwright:
         failures.append(f"Drive re-entry started a duplicate native session: {reentered}")
 
     # The opt-in is explicit, and every visible label must follow native recording
-    # truth: low-res video is opt-in, while sparse evidence frames are always saved.
+    # truth: video is opt-in, while sparse evidence frames are always saved.
     page.locator("#nativeRecordBtn").click()
     page.wait_for_function("__nativeDriveProbe.status.isRecording === true")
     video_on = page.evaluate("""() => ({
@@ -209,7 +209,7 @@ with sync_playwright() as playwright:
       saved: localStorage.getItem('record_video'),
     })""")
     if (video_on["calls"] != 1 or not video_on["enabled"] or not video_on["recording"]
-            or video_on["button"] != "Video: Low" or "RECORDING LOW-RES VIDEO" not in video_on["badge"]
+            or video_on["button"] != "Video: On" or "RECORDING VIDEO" not in video_on["badge"]
             or video_on["saved"] != "1"):
         failures.append(f"video-on UI diverged from native recording truth: {video_on}")
 

@@ -8,18 +8,18 @@ Prepared 25 August 2026. Paste only the text inside each code block into Play Co
 Pothole Reporter
 ```
 
-## Short description (73/80 characters)
+## Short description (66/80 characters)
 
 ```text
-Report potholes, garbage and open manholes across supported Indian areas.
+Detect potholes and prepare reports across supported Indian roads.
 ```
 
 ## Full description
 
 ```text
-Pothole Reporter is an independent Android app for documenting potholes, garbage, and open or damaged manholes. It saves editable evidence and complaint drafts on your phone; nothing is filed automatically.
+Pothole Reporter is an independent Android app for documenting potholes. It saves editable evidence and complaint drafts on your phone; nothing is filed automatically.
 
-Use Photo while safely stopped. For road damage, securely mount the phone and use foreground Drive while Maps or a call is on screen. AI assesses selected road images. Garbage and manhole reports are user-confirmed and do not use AI. Nearby observations are grouped, and a later live drive can mark a pothole Fixed only after a clear same-place repair comparison.
+On first launch, Settings appears before the main actions. Use one-tap Photo while safely stopped, or securely mount the phone and use foreground Drive while Maps or a call is on screen. AI assesses selected road images for potholes only. Nearby observations are grouped, and a later live drive can mark a pothole Fixed only after a clear same-place repair comparison.
 
 Coverage
 • Mapped operational National Highways and Expressways across India; Rajmargyatra/1033 is checked before regional routing.
@@ -36,11 +36,11 @@ Every route is a suggestion. You must verify the issue, location, department, lo
 
 Important limits and data use
 • AI can miss damage or produce false positives. Review every result.
-• Pothole AI and Drive require camera, foreground location, internet, and your own billed OpenAI API key. Garbage and manhole reporting does not require a key.
+• Photo and Drive require camera, foreground location, internet, and your own billed OpenAI API key.
 • Selected resized road-damage images go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; Karnataka and exact Hyderabad checks may query official GIS.
 • Downloaded state, city, and highway packs are SHA-256 verified and checked on-device. Pack requests contain no report, photo, or exact coordinates.
 • Karnataka contract suggestions are optional and probable. Roadside-only drain, footpath, sewer, pipeline, lighting, building, bridge, and culvert work is excluded.
-• Drive recording is optional and off by default. When enabled, it stores low-resolution silent video plus a 720p evidence frame at most every two seconds locally; saved-frame retry uses nearby before/after video context. The persistent notification and live screen show camera/recording status.
+• Drive recording is optional and off by default. When enabled, it stores silent local video plus a 720p evidence frame at most every two seconds; saved-frame retry uses nearby before/after context. The persistent notification and live screen show camera/recording status.
 • Drive automatically stops at the selected 15/30/60/90-minute active-time battery limit (30 minutes by default); paused time does not count.
 • The app is not affiliated with or endorsed by any government body.
 
@@ -51,7 +51,7 @@ Government-information source directory and exact limits, with direct official l
 ## Release notes (1.35.0 / version code 54)
 
 ```text
-Faster, safer Drive Mode: low-resolution local video, sparse 720p evidence frames for post-drive retry, bounded camera memory, quicker startup and Stop, plus a 30-minute default battery limit.
+Faster, safer Drive Mode: optional local video, sparse 720p evidence frames for post-drive retry, bounded camera memory, quicker startup and Stop, plus a 30-minute default battery limit.
 ```
 
 ## Play Console fields

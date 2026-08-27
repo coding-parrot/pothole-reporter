@@ -16,8 +16,7 @@ checklist, not a substitute for the current Play Console tasks shown for the pub
 - [x] **In-app privacy link:** link that exact hosted page from the release build. Creating
   the page alone does not satisfy the in-app-link requirement.
 - [ ] **Support email:** enter and monitor `contact@aiengg.dev` in Play Console.
-- [ ] **Reviewer access:** Pothole and Drive require an OpenAI key; Garbage and Manhole do
-  not. Give Play reviewers
+- [ ] **Reviewer access:** Photo and Drive require an OpenAI key. Give Play reviewers
   reusable English instructions and a dedicated revocable, spend-limited credential that
   unlocks every reviewable feature. Do not expose a personal production key.
 - [ ] **Data Safety and App content:** complete and submit the declarations below; do not
@@ -69,7 +68,7 @@ Do not submit to production until every applicable item above is complete.
   a rural district, the state edge, Yanam, and neighbouring states. Confirm National
   Highways run first; only the checksum-verified state polygon offers PGRS, Puramithra as
   an urban alternate, and helpline 1902; the complete GPS-accuracy circle must be inside;
-  and Yanam stays excluded. Repeat Pothole, Garbage, and Manhole, and confirm no local body,
+  and Yanam stays excluded. Repeat pothole Photo and Drive, and confirm no local body,
   road owner, category acceptance, contract, complaint-write API, or submission is inferred.
 - [ ] Test Telangana fixtures in Hyderabad, Warangal, Nizamabad, Adilabad, Khammam,
   Mahabubnagar, Bhadrachalam, rural districts, the state edge, and neighbouring states.
@@ -114,7 +113,7 @@ Do not submit to production until every applicable item above is complete.
   Confirm exact state polygons and neutral official handoffs, NH-first road-damage routing,
   civic bypass of NH, user-completed OTP/category/recipient selection, and no ownership,
   complaint-write API, contract, or submission claim.
-- [ ] Test all 8 additional top-50 city centres for Pothole, Garbage, and Manhole, plus
+- [ ] Test all 8 additional top-50 city centres with pothole Photo and Drive, plus
   one outside-envelope, wrong-state, stale-city, missing-geocode, and boundary-touching
   fixture per state group. Confirm the coordinate envelope and exact structured
   city/municipality plus state fields are all required, National Highways remain first,
@@ -138,11 +137,9 @@ Do not submit to production until every applicable item above is complete.
   app does not claim current outer AMC or wider AUDA completeness and never falls back to
   an Ahmedabad place-name guess.
 - [ ] Across Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh, Rajasthan, Goa, Madhya Pradesh, Bihar, Odisha, the accepted top-50 routes, Delhi, all five
-  Bengaluru city corporations, Chennai, Hyderabad, and Ahmedabad, create Pothole, Garbage,
-  and Manhole reports. Confirm road damage keeps
-  its road-specific route, the other categories use only reviewed general-civic channels,
-  and unverified categories fail closed. Simulate a routing-pack/network failure, keep the
-  full civic photo and original timestamp, then confirm Retry routing uses the saved point.
+  Bengaluru city corporations, Chennai, Hyderabad, and Ahmedabad, create pothole reports.
+  Confirm road damage keeps its road-specific route. Simulate a routing-pack/network
+  failure, keep the full photo and original timestamp, then confirm Retry routing uses the saved point.
 - [ ] Test Maharashtra handoffs in English and Marathi, including email, portal, installed
   and uninstalled official apps, Share, BMC WhatsApp at +91 89992 28999, 1916, cancellation,
   and back navigation.
@@ -252,8 +249,7 @@ Official references: [target API schedule](https://support.google.com/googleplay
   release behavior agree exactly.
 - [ ] Treat off-device transmission as collection even when processing is short-lived.
   Audit at least:
-  - selected road-damage photos and Drive/VOD image frames sent to OpenAI; user-confirmed
-    Garbage and Manhole photos are not sent to OpenAI;
+  - selected pothole photos and Drive/VOD image frames sent to OpenAI;
   - precise coordinates sent to Nominatim (including structured city/state fields used by
     the 8 additional city routes), to Karnataka GIS for Karnataka points, and with
     the GPS-accuracy envelope to official Telangana GIS for exact Hyderabad CURE routing;

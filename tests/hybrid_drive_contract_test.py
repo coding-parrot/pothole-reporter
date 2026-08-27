@@ -133,7 +133,7 @@ check("UI wires timer and idempotent saved-frame analysis",
       and analysis.index('await api("/api/frame"')
           < analysis.index("await plugin.markKeyframeAnalyzed"))
 check("hybrid status is explicit and all shipped web copies match",
-      "RECORDING LOW-RES VIDEO" in WEB and '"Video: Low"' in WEB
+      "RECORDING VIDEO" in WEB and '"Video: On"' in WEB
       and "SAVING FRAMES" in WEB and "saved frame" in WEB and "min left" in WEB
       and (ROOT / "android-app/www/index.html").read_bytes()
           == (ROOT / "static/index.html").read_bytes()

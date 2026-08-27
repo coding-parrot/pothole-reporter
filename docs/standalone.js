@@ -46,6 +46,7 @@
   const ALLOWED_MODELS = new Set([DEFAULT_MODEL, "gpt-5.6"]);
   const ALLOWED_DETAILS = new Set(["high", "original"]);
   const PROMPT_VERSION = "pothole-binary-v6";
+  const PHOTO_PROMPT_VERSION = "pothole-photo-only-v1";
   const SCHEMA_VERSION = 6;
   const REPAIR_PROMPT_VERSION = "road-repair-v1";
   const REPAIR_SCHEMA_VERSION = 1;
@@ -414,6 +415,10 @@ Only after YES, classify approximate visual size using the app's simple bands:
 For NO, size must be null. These are app visual classes only, not measured dimensions and not BMC, BDA, GBA, or any other authority's official categories.
 
 description must be one or two factual sentences. For YES, name the visible cavity evidence, position, and road-user hazard. For NO, briefly name the disqualifying feature. Never output a confidence percentage.`;
+
+  const PHOTO_ONLY_PROMPT_SUFFIX = `
+
+Photo feature scope: detect potholes only. Garbage, litter, dumped waste, open or damaged manholes, drains, footpaths, and every other civic issue are not reportable in this feature and must return is_pothole false (NO). Never reinterpret them as another complaint category.`;
 
   // Key order is the streaming order. The binary decision arrives first so a clear NO
   // can stop generation immediately; a YES is accepted only after every physical gate.
@@ -8263,7 +8268,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const sequenceNote = driveMode
       ? `\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. Images 2-${imageInputs.length} are lower-road crops in chronological order; the sharpest crop is chronological frame ${primaryIndex + 1}.`
       : "\n- Capture layout: one user-framed full image.";
-    const detectPrompt = DETECT_PROMPT + sequenceNote + (LANG() === "kn"
+    const promptVersion = driveMode ? PROMPT_VERSION : PHOTO_PROMPT_VERSION;
+    const detectPrompt = DETECT_PROMPT + (driveMode ? "" : PHOTO_ONLY_PROMPT_SUFFIX)
+      + sequenceNote + (LANG() === "kn"
       ? "\n- Write the description field in formal Kannada (ಕನ್ನಡ ಭಾಷೆಯಲ್ಲಿ ಬರೆಯಿರಿ)."
       : LANG() === "mr"
         ? "\n- Write the description field in clear formal Marathi (मराठी भाषेत लिहा)."
@@ -8283,7 +8290,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const a = binaryAssessment(modelAssessment, driveMode, photos.length);
     const decision = decisionFor(a, driveMode, photos.length);
     const accepted = decision === "accept";
-    const detector = { model: detectionModel, detail: detectionDetail, prompt_version: PROMPT_VERSION,
+    const detector = { model: detectionModel, detail: detectionDetail, prompt_version: promptVersion,
                        schema_version: SCHEMA_VERSION, evidence_count: imageInputs.length };
     if (driveMode && !accepted) {
       // Ordinary non-detection is only the gate. Fixed requires a separate model call
@@ -8390,7 +8397,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       complaint_template_version: body ? COMPLAINT_TEMPLATE_VERSION : null,
       status: accepted ? (covered ? "draft" : "unrouted") : "rejected",
       condition_status: "open", condition_updated_at: null, condition_source: null,
-      detection_model: detectionModel, image_detail: detectionDetail, prompt_version: PROMPT_VERSION,
+      detection_model: detectionModel, image_detail: detectionDetail, prompt_version: promptVersion,
       schema_version: SCHEMA_VERSION, evidence_count: imageInputs.length,
       // Distinguishes "we know where this is and do not cover it" from "we never got a
       // fix", which are the same status but very different things to tell someone.
@@ -10273,6 +10280,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    damageTypeOf, assessmentOf, normaliseModel, normaliseDetail,
                    normaliseIssueType, civicIssueName, issueFileStem,
                    buildDetectionRequest, ASSESS_SCHEMA, DETECT_PROMPT, PROMPT_VERSION,
+                   PHOTO_ONLY_PROMPT_SUFFIX, PHOTO_PROMPT_VERSION,
                    REPAIR_SCHEMA, REPAIR_PROMPT, REPAIR_PROMPT_VERSION,
                    REPAIR_SCHEMA_VERSION, clearAbsenceForRepair, repairConditionFor,
                    SCHEMA_VERSION, MAX_DETECTION_IMAGES, ROAD_BAND, averageLuminance,

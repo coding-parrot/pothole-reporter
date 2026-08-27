@@ -77,24 +77,13 @@
   </div>
   <div id="banner" class="banner"></div>
 
-  <div id="home">
+  <div id="home" class="hidden">
     <button class="primary" id="driveBtn">&#128663; &nbsp;Drive</button>
     <button class="ghost" id="captureBtn" style="width:100%;margin-bottom:10px">&#128247; &nbsp;Photo</button>
     <button class="ghost" id="dashBtn" style="width:100%;margin-bottom:14px">&#128506;&#65039; &nbsp;Contribution</button>
     <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden">
     <h2 id="reportsTitle">Your reports</h2>
     <div id="list"><div class="empty">No reports yet.</div></div>
-  </div>
-
-  <div id="issuePicker" class="hidden">
-    <div class="card">
-      <div class="verdict" id="issuePickerTitle">Report</div>
-      <div class="meta" id="issuePickerHint" style="font-size:13px;line-height:1.45;margin:6px 0 12px">Choose the issue, then take a clear photo while safely stopped.</div>
-      <button class="send" id="issueRoad" style="width:100%;margin-bottom:10px">Pothole</button>
-      <button class="ghost" id="issueGarbage" style="width:100%;margin-bottom:10px">Garbage</button>
-      <button class="ghost" id="issueManhole" style="width:100%;margin-bottom:10px">Manhole</button>
-      <button class="ghost" id="issueBack" style="width:100%">Back</button>
-    </div>
   </div>
 
   <div id="progress" class="hidden">
@@ -268,6 +257,23 @@
 <script src="standalone.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
+const INITIAL_SETUP_KEY = "initial_setup_complete";
+const LEGACY_SETTINGS_KEYS = [
+  "openai_key", "sender_name", "detection_model", "image_detail", "debug_mode",
+  "keep_frames", "record_video", "drive_limit_minutes", "app_lang", "data_notice_version",
+];
+function needsInitialSettings() {
+  if (localStorage.getItem(INITIAL_SETUP_KEY) === "1") return false;
+  // Existing installs already saved at least one of these values. Migrate them silently
+  // so an update never turns the new-install screen into an upgrade roadblock.
+  if (LEGACY_SETTINGS_KEYS.some((key) => localStorage.getItem(key) !== null)) {
+    localStorage.setItem(INITIAL_SETUP_KEY, "1");
+    return false;
+  }
+  return true;
+}
+let initialSettingsRequired = needsInitialSettings();
+let initialSettingsActive = false;
 
 // ---------- i18n (English / Kannada / Marathi) ----------
 const I18N = {
@@ -283,7 +289,7 @@ const I18N = {
     drive_btn: "&#128663; &nbsp;Drive",
     your_reports: "Your reports",
     no_reports: "No reports yet.",
-    banner_setup: "Add an OpenAI API key for Pothole and Drive. Garbage and Manhole reporting works without it.",
+    banner_setup: "Add an OpenAI API key to use Photo and Drive.",
     settings_title: "Settings",
     key_label: "OpenAI API key (saved here; sent to OpenAI as the credential)",
     name_label: "Your name (signs the complaints)",
@@ -291,16 +297,17 @@ const I18N = {
     detail_label: "Image detail",
     accuracy_note: "gpt-5-mini/high remains the baseline. gpt-5.6/original is an experiment until your held-out drive benchmark proves it better.",
     debug_label: "Debug mode: keep the drive video after analysing it",
-    settings_note: "Road-damage photos and video-derived frames are sent to OpenAI for detection and can contain number plates or faces. User-confirmed garbage and manhole photos are not sent to OpenAI. Exact location is sent to OpenStreetMap/Nominatim; Karnataka points use Karnataka GIS and Hyderabad points use Telangana GIS. A verified state pack or 2° National Highway tile is downloaded from GitHub Pages and cached here; that request reveals the state or approximate tile and ordinary connection metadata, not exact coordinates. Your API key is sent only to OpenAI. The app never submits automatically.",
+    settings_note: "Pothole photos and video-derived frames are sent to OpenAI for detection and can contain number plates or faces. Exact location is sent to OpenStreetMap/Nominatim; Karnataka points use Karnataka GIS and Hyderabad points use Telangana GIS. A verified state pack or 2° National Highway tile is downloaded from GitHub Pages and cached here; that request reveals the state or approximate tile and ordinary connection metadata, not exact coordinates. Your API key is sent only to OpenAI. The app never submits automatically.",
     independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
     privacy_title: "Before camera and location access",
-    privacy_body: "If you continue, the app will ask for camera and precise foreground location. Road-damage photos—or sampled frames from Drive Mode—are sent with your API key to OpenAI for detection. On a precise later live-drive revisit, the saved earlier damage photo and current views may be sent together for repair verification. User-confirmed garbage and manhole photos are not sent to OpenAI. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports query Karnataka GIS and Hyderabad reports query Telangana GIS. The required state routing pack is downloaded from GitHub Pages. Processing can occur outside India.",
-    privacy_local: "Drive Mode uses no audio. While Drive Mode is active, Android uses the camera and location in the background—even when this app is not visible and Google Maps or a phone call is on screen. A visible persistent foreground-service notification always shows this use; pause or stop it from the app or notification. Drive periodically stores sparse 720p evidence frames in app-private storage before attempting live analysis, so interrupted or offline work can be analysed after the drive. Video and saved frames share a 4 GB cap and stop writing before free storage falls below 500 MB. Optional low-resolution silent video recording is off by default. Drive stops after the selected active-time battery limit; paused time does not count. Reports, photos, repair evidence, footage, sampled frames, location tracks, settings, verified state packs and highway tiles remain on this device until deleted. Physical road condition is tracked separately from official complaint status.",
+    privacy_body: "If you continue, the app will ask for camera and precise foreground location. Pothole photos—or sampled frames from Drive Mode—are sent with your API key to OpenAI for detection. On a precise later live-drive revisit, the saved earlier damage photo and current views may be sent together for repair verification. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports query Karnataka GIS and Hyderabad reports query Telangana GIS. The required state routing pack is downloaded from GitHub Pages. Processing can occur outside India.",
+    privacy_local: "Drive Mode uses no audio. While Drive Mode is active, Android uses the camera and location in the background—even when this app is not visible and Google Maps or a phone call is on screen. A visible persistent foreground-service notification always shows this use; pause or stop it from the app or notification. Drive periodically stores sparse 720p evidence frames in app-private storage before attempting live analysis, so interrupted or offline work can be analysed after the drive. Video and saved frames share a 4 GB cap and stop writing before free storage falls below 500 MB. Optional silent video recording is off by default. Drive stops after the selected active-time battery limit; paused time does not count. Reports, photos, repair evidence, footage, sampled frames, location tracks, settings, verified state packs and highway tiles remain on this device until deleted. Physical road condition is tracked separately from official complaint status.",
     privacy_government: "This independent app is not a government service and never submits automatically. GitHub Pages receives your IP address, time, user agent and the requested state-pack or 2° highway-tile path, which reveals a state or approximate tile but not exact coordinates, photos or report content. Location may be sent to a government GIS for jurisdiction checks as disclosed above. Complaint text and photos reach a complaint service only when you deliberately open or complete a handoff. Review the destination and content.",
     privacy_link: "Privacy policy", sources_link: "Data sources and limits",
     privacy_accept: "Continue", privacy_decline: "Not now",
     wipe_btn: "Delete all app data",
-    welcome_hint: "Add your OpenAI API key to use Pothole and Drive. Garbage and Manhole work without it. The key is saved on this device and sent to OpenAI only as the request credential.",
+    welcome_hint: "Add your OpenAI API key to use Photo and Drive. The key is saved on this device and sent to OpenAI only as the request credential.",
+    key_required: "Add an OpenAI API key to continue.",
     back: "Back", save: "Save", discard: "Discard", del: "Delete", email_btn: "Email", stop: "&#9632; Stop", working: "Working...",
     chip_draft: "Draft", chip_sent: "Marked submitted", chip_queued: "Opened in email", chip_queued_bmc: "BMC handoff opened", chip_rejected: "Pothole: NO", chip_review: "Needs review",
     chip_unrouted: "Not routed",
@@ -349,6 +356,7 @@ const I18N = {
     stat_found: "reports saved", stat_reported: "confirmed submissions", stat_frames: "pothole checks",
     stat_drives: "drives", stat_footage: "MB of footage", stat_km: "km of road covered",
     by_type: "By report type", by_size: "By pothole size", by_area: "By corporation", map_pins: "{n} pinned",
+    map_empty: "No mapped potholes yet.",
     map_offline: "Map tiles need a connection. Points are still plotted below.",
     zoom_hint: "Pinch to zoom · drag to pan · double tap to reset",
     rec_suffix: "· recording {mb} MB", rec_failed: "· not recording",
@@ -479,7 +487,7 @@ const I18N = {
     drive_btn: "&#128663; &nbsp;ಡ್ರೈವ್",
     your_reports: "ನಿಮ್ಮ ವರದಿಗಳು",
     no_reports: "ಇನ್ನೂ ವರದಿಗಳಿಲ್ಲ. ಗುಂಡಿ ಹುಡುಕಲು ಹೊರಡಿ.",
-    banner_setup: "ಗುಂಡಿ ಮತ್ತು ಡ್ರೈವ್‌ಗಾಗಿ OpenAI API ಕೀ ಸೇರಿಸಿ. ಕಸ ಮತ್ತು ಮ್ಯಾನ್‌ಹೋಲ್ ವರದಿ ಕೀ ಇಲ್ಲದೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ.",
+    banner_setup: "ಫೋಟೋ ಮತ್ತು ಡ್ರೈವ್ ಬಳಸಲು OpenAI API ಕೀ ಸೇರಿಸಿ.",
     settings_title: "ಸೆಟ್ಟಿಂಗ್ಸ್",
     key_label: "OpenAI API ಕೀ (ಈ ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ; OpenAI ಗೆ ಪ್ರಮಾಣಪತ್ರವಾಗಿ ಹೋಗುತ್ತದೆ)",
     name_label: "ನಿಮ್ಮ ಹೆಸರು (ದೂರುಗಳಿಗೆ ಸಹಿ)",
@@ -487,16 +495,17 @@ const I18N = {
     detail_label: "ಚಿತ್ರದ ವಿವರ",
     accuracy_note: "gpt-5-mini/high ಪ್ರಸ್ತುತ ಮೂಲಮಟ್ಟ. ನಿಮ್ಮ ಪ್ರತ್ಯೇಕ ಡ್ರೈವ್ ಪರೀಕ್ಷೆ ಉತ್ತಮವೆಂದು ಸಾಬೀತುಪಡಿಸುವವರೆಗೆ gpt-5.6/original ಪ್ರಯೋಗವಾಗಿದೆ.",
     debug_label: "ಡೀಬಗ್ ಮೋಡ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ಡ್ರೈವ್ ವಿಡಿಯೋ ಉಳಿಸಿ",
-    settings_note: "ರಸ್ತೆ ಹಾನಿಯ ಫೋಟೋಗಳು ಮತ್ತು ವಿಡಿಯೋ ಫ್ರೇಮ್‌ಗಳನ್ನು ಮಾತ್ರ ಪತ್ತೆಗಾಗಿ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಅವುಗಳಲ್ಲಿ ವಾಹನ ಸಂಖ್ಯೆ ಅಥವಾ ಮುಖಗಳು ಇರಬಹುದು. ಬಳಕೆದಾರರು ದೃಢಪಡಿಸಿದ ಕಸ ಮತ್ತು ಮ್ಯಾನ್‌ಹೋಲ್ ಫೋಟೋಗಳನ್ನು OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ಸ್ಥಳಗಳಿಗೆ Karnataka GIS ಮತ್ತು ಹೈದರಾಬಾದ್ ಸ್ಥಳಗಳಿಗೆ Telangana GIS ಬಳಸಲಾಗುತ್ತದೆ. ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್ ಅಥವಾ 2° ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿ ಟೈಲ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗಿ ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ; ಆ ವಿನಂತಿ ರಾಜ್ಯ ಅಥವಾ ಅಂದಾಜು ಟೈಲ್ ಮತ್ತು ಸಾಮಾನ್ಯ ಸಂಪರ್ಕ ಮಾಹಿತಿಯನ್ನು ತೋರಿಸುತ್ತದೆ, ನಿಖರ ಸ್ಥಳವನ್ನಲ್ಲ. API ಕೀ OpenAI ಗೆ ಮಾತ್ರ ಹೋಗುತ್ತದೆ. ಆ್ಯಪ್ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ.",
+    settings_note: "ಗುಂಡಿಯ ಫೋಟೋಗಳು ಮತ್ತು ವಿಡಿಯೋ ಫ್ರೇಮ್‌ಗಳನ್ನು ಪತ್ತೆಗಾಗಿ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಅವುಗಳಲ್ಲಿ ವಾಹನ ಸಂಖ್ಯೆ ಅಥವಾ ಮುಖಗಳು ಇರಬಹುದು. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ಸ್ಥಳಗಳಿಗೆ Karnataka GIS ಮತ್ತು ಹೈದರಾಬಾದ್ ಸ್ಥಳಗಳಿಗೆ Telangana GIS ಬಳಸಲಾಗುತ್ತದೆ. ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್ ಅಥವಾ 2° ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿ ಟೈಲ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗಿ ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ; ಆ ವಿನಂತಿ ರಾಜ್ಯ ಅಥವಾ ಅಂದಾಜು ಟೈಲ್ ಮತ್ತು ಸಾಮಾನ್ಯ ಸಂಪರ್ಕ ಮಾಹಿತಿಯನ್ನು ತೋರಿಸುತ್ತದೆ, ನಿಖರ ಸ್ಥಳವನ್ನಲ್ಲ. API ಕೀ OpenAI ಗೆ ಮಾತ್ರ ಹೋಗುತ್ತದೆ. ಆ್ಯಪ್ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ.",
     independent_note: "ಇದು ಸ್ವತಂತ್ರ, ಅನಧಿಕೃತ ಆ್ಯಪ್. ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯೊಂದಿಗೆ ಸಂಬಂಧ ಅಥವಾ ಅನುಮೋದನೆ ಇಲ್ಲ. ಕಚೇರಿ ಸೂಚನೆ ಅತ್ಯುತ್ತಮ ಪ್ರಯತ್ನ ಮಾತ್ರ; ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
     privacy_title: "ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳ ಅನುಮತಿಯ ಮೊದಲು",
-    privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಮುಂಭಾಗದ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ರಸ್ತೆ ಹಾನಿಯ ಫೋಟೋಗಳು ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು ಮಾತ್ರ API ಕೀಯೊಂದಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ನಂತರದ ನಿಖರ ಲೈವ್-ಡ್ರೈವ್ ಮರುಭೇಟಿಯಲ್ಲಿ, ಉಳಿಸಿದ ಹಿಂದಿನ ಹಾನಿಯ ಫೋಟೋ ಮತ್ತು ಪ್ರಸ್ತುತ ದೃಶ್ಯಗಳನ್ನು ದುರಸ್ತಿ ಪರಿಶೀಲನೆಗಾಗಿ ಒಟ್ಟಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಬಹುದು. ಬಳಕೆದಾರರು ದೃಢಪಡಿಸಿದ ಕಸ ಮತ್ತು ಮ್ಯಾನ್‌ಹೋಲ್ ಫೋಟೋಗಳನ್ನು ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ವರದಿಗಳು Karnataka GIS ಮತ್ತು ಹೈದರಾಬಾದ್ ವರದಿಗಳು Telangana GIS ಬಳಸುತ್ತವೆ. ಅಗತ್ಯ ರಾಜ್ಯ ರೂಟಿಂಗ್ ಪ್ಯಾಕ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
-    privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ. ಡ್ರೈವ್ ಮೋಡ್ ಸಕ್ರಿಯವಾಗಿರುವಾಗ, ಈ ಆ್ಯಪ್ ಕಾಣಿಸದಿದ್ದರೂ ಅಥವಾ ನೀವು ಅದನ್ನು ಬಳಸದೇ Google Maps ಅಥವಾ ಕರೆ ಪರದೆಯಲ್ಲಿ ಇದ್ದರೂ Android ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳವನ್ನು ಹಿನ್ನಲೆಯಲ್ಲಿ ಬಳಸುತ್ತದೆ. ಕಾಣುವ ನಿರಂತರ foreground-service ಅಧಿಸೂಚನೆ ಈ ಬಳಕೆಯನ್ನು ಯಾವಾಗಲೂ ತೋರಿಸುತ್ತದೆ; ಆ್ಯಪ್ ಅಥವಾ ಅಧಿಸೂಚನೆಯಿಂದ ವಿರಾಮಗೊಳಿಸಿ ಅಥವಾ ನಿಲ್ಲಿಸಿ. ಡ್ರೈವ್ ಮೋಡ್ ಲೈವ್ ವಿಶ್ಲೇಷಣೆಗೆ ಮೊದಲು ವಿರಳವಾದ 720p ಸಾಕ್ಷ್ಯ ಫ್ರೇಮ್‌ಗಳನ್ನು ಆ್ಯಪ್‌ನ ಖಾಸಗಿ ಸಂಗ್ರಹದಲ್ಲಿ ಸ್ವತಂತ್ರವಾಗಿ ಉಳಿಸುತ್ತದೆ, ಆದ್ದರಿಂದ ಅಡಚಣೆಯಾದ ಅಥವಾ ಆಫ್‌ಲೈನ್ ಕೆಲಸವನ್ನು ಡ್ರೈವ್ ನಂತರ ವಿಶ್ಲೇಷಿಸಬಹುದು. ಐಚ್ಛಿಕ ಕಡಿಮೆ-ರೆಸಲ್ಯೂಶನ್ ಮೌನ ವಿಡಿಯೋ ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್ ಆಗಿರುತ್ತದೆ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ದುರಸ್ತಿ ಸಾಕ್ಷ್ಯ, ಭೌತಿಕ ರಸ್ತೆ ಸ್ಥಿತಿ, ವಿಡಿಯೋ, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್, ಸೆಟ್ಟಿಂಗ್ಸ್, ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್‌ಗಳು ಮತ್ತು ಹೆದ್ದಾರಿ ಟೈಲ್‌ಗಳು ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲಿರುತ್ತವೆ. ಭೌತಿಕ ರಸ್ತೆ ಸ್ಥಿತಿಯನ್ನು ಅಧಿಕೃತ ದೂರು ಸ್ಥಿತಿಯಿಂದ ಪ್ರತ್ಯೇಕವಾಗಿ ದಾಖಲಿಸಲಾಗುತ್ತದೆ.",
+    privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಮುಂಭಾಗದ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ಗುಂಡಿಯ ಫೋಟೋಗಳು ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು API ಕೀಯೊಂದಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ನಂತರದ ನಿಖರ ಲೈವ್-ಡ್ರೈವ್ ಮರುಭೇಟಿಯಲ್ಲಿ, ಉಳಿಸಿದ ಹಿಂದಿನ ಹಾನಿಯ ಫೋಟೋ ಮತ್ತು ಪ್ರಸ್ತುತ ದೃಶ್ಯಗಳನ್ನು ದುರಸ್ತಿ ಪರಿಶೀಲನೆಗಾಗಿ ಒಟ್ಟಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಬಹುದು. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ವರದಿಗಳು Karnataka GIS ಮತ್ತು ಹೈದರಾಬಾದ್ ವರದಿಗಳು Telangana GIS ಬಳಸುತ್ತವೆ. ಅಗತ್ಯ ರಾಜ್ಯ ರೂಟಿಂಗ್ ಪ್ಯಾಕ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
+    privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ. ಡ್ರೈವ್ ಮೋಡ್ ಸಕ್ರಿಯವಾಗಿರುವಾಗ, ಈ ಆ್ಯಪ್ ಕಾಣಿಸದಿದ್ದರೂ ಅಥವಾ ನೀವು ಅದನ್ನು ಬಳಸದೇ Google Maps ಅಥವಾ ಕರೆ ಪರದೆಯಲ್ಲಿ ಇದ್ದರೂ Android ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳವನ್ನು ಹಿನ್ನಲೆಯಲ್ಲಿ ಬಳಸುತ್ತದೆ. ಕಾಣುವ ನಿರಂತರ foreground-service ಅಧಿಸೂಚನೆ ಈ ಬಳಕೆಯನ್ನು ಯಾವಾಗಲೂ ತೋರಿಸುತ್ತದೆ; ಆ್ಯಪ್ ಅಥವಾ ಅಧಿಸೂಚನೆಯಿಂದ ವಿರಾಮಗೊಳಿಸಿ ಅಥವಾ ನಿಲ್ಲಿಸಿ. ಡ್ರೈವ್ ಮೋಡ್ ಲೈವ್ ವಿಶ್ಲೇಷಣೆಗೆ ಮೊದಲು ವಿರಳವಾದ 720p ಸಾಕ್ಷ್ಯ ಫ್ರೇಮ್‌ಗಳನ್ನು ಆ್ಯಪ್‌ನ ಖಾಸಗಿ ಸಂಗ್ರಹದಲ್ಲಿ ಸ್ವತಂತ್ರವಾಗಿ ಉಳಿಸುತ್ತದೆ, ಆದ್ದರಿಂದ ಅಡಚಣೆಯಾದ ಅಥವಾ ಆಫ್‌ಲೈನ್ ಕೆಲಸವನ್ನು ಡ್ರೈವ್ ನಂತರ ವಿಶ್ಲೇಷಿಸಬಹುದು. ಐಚ್ಛಿಕ ಮೌನ ವಿಡಿಯೋ ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್ ಆಗಿರುತ್ತದೆ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ದುರಸ್ತಿ ಸಾಕ್ಷ್ಯ, ಭೌತಿಕ ರಸ್ತೆ ಸ್ಥಿತಿ, ವಿಡಿಯೋ, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್, ಸೆಟ್ಟಿಂಗ್ಸ್, ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್‌ಗಳು ಮತ್ತು ಹೆದ್ದಾರಿ ಟೈಲ್‌ಗಳು ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲಿರುತ್ತವೆ. ಭೌತಿಕ ರಸ್ತೆ ಸ್ಥಿತಿಯನ್ನು ಅಧಿಕೃತ ದೂರು ಸ್ಥಿತಿಯಿಂದ ಪ್ರತ್ಯೇಕವಾಗಿ ದಾಖಲಿಸಲಾಗುತ್ತದೆ.",
     privacy_government: "ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸರ್ಕಾರಿ ಸೇವೆಯಲ್ಲ ಮತ್ತು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. GitHub Pages ನಿಮ್ಮ IP, ಸಮಯ, user agent ಮತ್ತು ಕೇಳಿದ ರಾಜ್ಯ-ಪ್ಯಾಕ್ ಅಥವಾ 2° ಹೆದ್ದಾರಿ-ಟೈಲ್ ಮಾರ್ಗವನ್ನು ಪಡೆಯುತ್ತದೆ; ಇದರಿಂದ ರಾಜ್ಯ ಅಥವಾ ಅಂದಾಜು ಟೈಲ್ ತಿಳಿಯಬಹುದು, ನಿಖರ ಸ್ಥಳ, ಫೋಟೋ ಅಥವಾ ವರದಿ ವಿಷಯವಲ್ಲ. ಮೇಲಿನ ವಿವರದಂತೆ ಅಧಿಕಾರ ವ್ಯಾಪ್ತಿ ಪರಿಶೀಲಿಸಲು ಸ್ಥಳವನ್ನು ಸರ್ಕಾರಿ GIS ಗೆ ಕಳುಹಿಸಬಹುದು. ನೀವು ಉದ್ದೇಶಪೂರ್ವಕವಾಗಿ ಹಸ್ತಾಂತರವನ್ನು ತೆರೆಯುವ ಅಥವಾ ಪೂರ್ಣಗೊಳಿಸುವಾಗ ಮಾತ್ರ ದೂರಿನ ಪಠ್ಯ ಮತ್ತು ಫೋಟೋ ಅಧಿಕೃತ ದೂರು ಸೇವೆಗೆ ಹೋಗುತ್ತದೆ.",
     privacy_link: "ಗೌಪ್ಯತಾ ನೀತಿ", sources_link: "ಡೇಟಾ ಮೂಲಗಳು ಮತ್ತು ಮಿತಿಗಳು",
     privacy_accept: "ಮುಂದುವರಿಸಿ", privacy_decline: "ಈಗ ಬೇಡ",
     wipe_btn: "ಎಲ್ಲಾ ಆ್ಯಪ್ ಡೇಟಾ ಅಳಿಸಿ",
-    welcome_hint: "ಗುಂಡಿ ಮತ್ತು ಡ್ರೈವ್ ಬಳಸಲು OpenAI API ಕೀ ಸೇರಿಸಿ. ಕಸ ಮತ್ತು ಮ್ಯಾನ್‌ಹೋಲ್ ಕೀ ಇಲ್ಲದೆ ಕೆಲಸ ಮಾಡುತ್ತವೆ. ಕೀ ಸಾಧನದಲ್ಲಿ ಉಳಿದು OpenAI ಗೆ ಪ್ರಮಾಣಪತ್ರವಾಗಿ ಮಾತ್ರ ಹೋಗುತ್ತದೆ.",
+    welcome_hint: "ಫೋಟೋ ಮತ್ತು ಡ್ರೈವ್ ಬಳಸಲು OpenAI API ಕೀ ಸೇರಿಸಿ. ಕೀ ಸಾಧನದಲ್ಲಿ ಉಳಿದು OpenAI ಗೆ ಪ್ರಮಾಣಪತ್ರವಾಗಿ ಮಾತ್ರ ಹೋಗುತ್ತದೆ.",
+    key_required: "ಮುಂದುವರಿಸಲು OpenAI API ಕೀ ಸೇರಿಸಿ.",
     back: "ಹಿಂದೆ", save: "ಉಳಿಸಿ", discard: "ತ್ಯಜಿಸಿ", del: "ಅಳಿಸಿ", email_btn: "ಇಮೇಲ್", stop: "&#9632; ನಿಲ್ಲಿಸಿ", working: "ನಡೆಯುತ್ತಿದೆ...",
     chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಸಲ್ಲಿಸಲಾಗಿದೆ ಎಂದು ಗುರುತಿಸಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_queued_bmc: "BMC ಹಸ್ತಾಂತರ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ಗುಂಡಿ: ಇಲ್ಲ", chip_review: "ಪರಿಶೀಲನೆ ಬೇಕು",
     chip_unrouted: "ಮಾರ್ಗ ನಿಗದಿಯಾಗಿಲ್ಲ",
@@ -545,6 +554,7 @@ const I18N = {
     stat_found: "ಉಳಿಸಿದ ವರದಿಗಳು", stat_reported: "ದೃಢೀಕರಿಸಿದ ಸಲ್ಲಿಕೆಗಳು", stat_frames: "ಗುಂಡಿ ಪರಿಶೀಲನೆಗಳು",
     stat_drives: "ಡ್ರೈವ್‌ಗಳು", stat_footage: "MB ವಿಡಿಯೋ", stat_km: "ಕಿಮೀ ರಸ್ತೆ",
     by_type: "ವರದಿ ಪ್ರಕಾರ", by_size: "ಗುಂಡಿಯ ಗಾತ್ರ", by_area: "ಪಾಲಿಕೆ ಪ್ರಕಾರ", map_pins: "{n} ಗುರುತಿಸಲಾಗಿದೆ",
+    map_empty: "ನಕ್ಷೆಯಲ್ಲಿ ಇನ್ನೂ ಗುಂಡಿಗಳಿಲ್ಲ.",
     map_offline: "ನಕ್ಷೆಗೆ ಇಂಟರ್ನೆಟ್ ಬೇಕು. ಬಿಂದುಗಳು ಕೆಳಗೆ ತೋರಿಸಲಾಗಿದೆ.",
     zoom_hint: "ಜೂಮ್‌ಗೆ ಪಿಂಚ್ · ಸರಿಸಲು ಎಳೆಯಿರಿ · ಮರುಹೊಂದಿಸಲು ಡಬಲ್ ಟ್ಯಾಪ್",
     rec_suffix: "· {mb} MB ರೆಕಾರ್ಡ್", rec_failed: "· ರೆಕಾರ್ಡ್ ಆಗುತ್ತಿಲ್ಲ",
@@ -668,7 +678,7 @@ const I18N = {
     drive_btn: "&#128663; &nbsp;ड्राइव्ह",
     your_reports: "तुमचे अहवाल",
     no_reports: "अजून कोणतेही अहवाल नाहीत.",
-    banner_setup: "खड्डे आणि ड्राइव्हसाठी OpenAI API की जोडा. कचरा व मॅनहोल रिपोर्टिंग कीशिवाय चालते.",
+    banner_setup: "फोटो आणि ड्राइव्ह वापरण्यासाठी OpenAI API की जोडा.",
     settings_title: "सेटिंग्ज",
     key_label: "OpenAI API की (येथे जतन होते; विनंतीचे प्रमाणीकरण करण्यासाठी OpenAI कडे पाठवली जाते)",
     name_label: "तुमचे नाव (तक्रारींवर स्वाक्षरीसाठी)",
@@ -676,16 +686,17 @@ const I18N = {
     detail_label: "चित्राचा तपशील",
     accuracy_note: "gpt-5-mini/high हा सध्याचा आधार आहे. स्वतंत्र चाचणीत अधिक चांगला ठरेपर्यंत gpt-5.6/original हा प्रयोग आहे.",
     debug_label: "डीबग मोड: विश्लेषणानंतरही ड्राइव्हचा व्हिडिओ जतन करा",
-    settings_note: "फक्त रस्त्याच्या नुकसानीचे फोटो आणि व्हिडिओतील फ्रेम्स तपासणीसाठी OpenAI कडे पाठवल्या जातात; त्यात वाहन क्रमांक किंवा चेहरे असू शकतात. वापरकर्त्याने निवडलेले कचरा आणि मॅनहोलचे फोटो OpenAI कडे पाठवले जात नाहीत. अचूक स्थान OpenStreetMap/Nominatim कडे पाठवले जाते; कर्नाटकासाठी Karnataka GIS आणि हैदराबादसाठी Telangana GIS वापरले जाते. पडताळलेला राज्य pack किंवा 2° राष्ट्रीय महामार्ग tile GitHub Pages वरून डाउनलोड होऊन या साधनावर जतन होतो; त्या विनंतीत राज्य किंवा अंदाजे tile व सामान्य कनेक्शन माहिती दिसते, अचूक स्थान नाही. API की फक्त OpenAI कडे जाते. अॅप तक्रार आपोआप सादर करत नाही.",
+    settings_note: "खड्ड्यांचे फोटो आणि व्हिडिओतील फ्रेम्स तपासणीसाठी OpenAI कडे पाठवल्या जातात; त्यात वाहन क्रमांक किंवा चेहरे असू शकतात. अचूक स्थान OpenStreetMap/Nominatim कडे पाठवले जाते; कर्नाटकासाठी Karnataka GIS आणि हैदराबादसाठी Telangana GIS वापरले जाते. पडताळलेला राज्य pack किंवा 2° राष्ट्रीय महामार्ग tile GitHub Pages वरून डाउनलोड होऊन या साधनावर जतन होतो; त्या विनंतीत राज्य किंवा अंदाजे tile व सामान्य कनेक्शन माहिती दिसते, अचूक स्थान नाही. API की फक्त OpenAI कडे जाते. अॅप तक्रार आपोआप सादर करत नाही.",
     independent_note: "हे स्वतंत्र, अनधिकृत अॅप आहे. कोणत्याही सरकारी संस्थेशी संलग्न नाही किंवा तिची मान्यता नाही. सुचवलेले कार्यालय पाठवण्यापूर्वी तपासा.",
     privacy_title: "कॅमेरा आणि स्थान वापरण्यापूर्वी",
-    privacy_body: "पुढे गेल्यास अॅप कॅमेरा आणि वापराच्या वेळी अचूक स्थान वापरण्याची परवानगी मागेल. फक्त रस्त्याच्या नुकसानीचे फोटो किंवा ड्राइव्ह मोडमधील निवडक फ्रेम्स API कीसह OpenAI कडे पाठवल्या जातात. नंतरच्या अचूक लाइव्ह-ड्राइव्ह पुनर्भेटीत, जतन केलेला जुना नुकसान फोटो आणि सध्याची दृश्ये दुरुस्ती पडताळणीसाठी OpenAI कडे एकत्र पाठवली जाऊ शकतात. वापरकर्त्याने निवडलेले कचरा आणि मॅनहोलचे फोटो पाठवले जात नाहीत. अचूक स्थान OpenStreetMap/Nominatim कडे जाते; कर्नाटकासाठी Karnataka GIS आणि हैदराबादसाठी Telangana GIS वापरले जाते. आवश्यक राज्य routing pack GitHub Pages वरून डाउनलोड होतो. प्रक्रिया भारताबाहेर होऊ शकते.",
-    privacy_local: "ड्राइव्ह मोडमध्ये ऑडिओ वापरला जात नाही. ड्राइव्ह मोड सक्रिय असताना, हे अॅप दिसत नसताना किंवा तुम्ही ते वापरत नसतानाही—Google Maps किंवा कॉल स्क्रीन समोर असली तरी—Android कॅमेरा आणि स्थान पार्श्वभूमीत वापरते. दिसणारी कायमची foreground-service सूचना हा वापर नेहमी दाखवते; अॅप किंवा सूचनेतून विराम द्या किंवा थांबवा. ड्राइव्ह मोड लाइव्ह विश्लेषणापूर्वी विरळ 720p पुरावा फ्रेम्स स्वतंत्रपणे अॅपच्या खाजगी साठवणीत ठेवतो, त्यामुळे खंडित किंवा ऑफलाइन कामाचे ड्राइव्हनंतर विश्लेषण करता येते. ऐच्छिक कमी-रेझोल्यूशन मूक व्हिडिओ डीफॉल्टने बंद असतो. अहवाल, फोटो, दुरुस्ती पुरावा, प्रत्यक्ष रस्त्याची स्थिती, व्हिडिओ, स्थान मार्ग, सेटिंग्ज, पडताळलेले राज्य packs आणि महामार्ग tiles हटवेपर्यंत साधनावर राहतात. प्रत्यक्ष रस्त्याची स्थिती अधिकृत तक्रार स्थितीपासून स्वतंत्रपणे नोंदवली जाते.",
+    privacy_body: "पुढे गेल्यास अॅप कॅमेरा आणि वापराच्या वेळी अचूक स्थान वापरण्याची परवानगी मागेल. खड्ड्यांचे फोटो किंवा ड्राइव्ह मोडमधील निवडक फ्रेम्स API कीसह OpenAI कडे पाठवल्या जातात. नंतरच्या अचूक लाइव्ह-ड्राइव्ह पुनर्भेटीत, जतन केलेला जुना नुकसान फोटो आणि सध्याची दृश्ये दुरुस्ती पडताळणीसाठी OpenAI कडे एकत्र पाठवली जाऊ शकतात. अचूक स्थान OpenStreetMap/Nominatim कडे जाते; कर्नाटकासाठी Karnataka GIS आणि हैदराबादसाठी Telangana GIS वापरले जाते. आवश्यक राज्य routing pack GitHub Pages वरून डाउनलोड होतो. प्रक्रिया भारताबाहेर होऊ शकते.",
+    privacy_local: "ड्राइव्ह मोडमध्ये ऑडिओ वापरला जात नाही. ड्राइव्ह मोड सक्रिय असताना, हे अॅप दिसत नसताना किंवा तुम्ही ते वापरत नसतानाही—Google Maps किंवा कॉल स्क्रीन समोर असली तरी—Android कॅमेरा आणि स्थान पार्श्वभूमीत वापरते. दिसणारी कायमची foreground-service सूचना हा वापर नेहमी दाखवते; अॅप किंवा सूचनेतून विराम द्या किंवा थांबवा. ड्राइव्ह मोड लाइव्ह विश्लेषणापूर्वी विरळ 720p पुरावा फ्रेम्स स्वतंत्रपणे अॅपच्या खाजगी साठवणीत ठेवतो, त्यामुळे खंडित किंवा ऑफलाइन कामाचे ड्राइव्हनंतर विश्लेषण करता येते. ऐच्छिक मूक व्हिडिओ डीफॉल्टने बंद असतो. अहवाल, फोटो, दुरुस्ती पुरावा, प्रत्यक्ष रस्त्याची स्थिती, व्हिडिओ, स्थान मार्ग, सेटिंग्ज, पडताळलेले राज्य packs आणि महामार्ग tiles हटवेपर्यंत साधनावर राहतात. प्रत्यक्ष रस्त्याची स्थिती अधिकृत तक्रार स्थितीपासून स्वतंत्रपणे नोंदवली जाते.",
     privacy_government: "हे स्वतंत्र अॅप सरकारी सेवा नाही आणि तक्रार आपोआप सादर करत नाही. GitHub Pages ला तुमचा IP, वेळ, user agent आणि मागितलेला राज्य-pack किंवा 2° महामार्ग-tile मार्ग मिळतो; त्यामुळे राज्य किंवा अंदाजे tile समजू शकते, अचूक स्थान, फोटो किंवा अहवालाचा मजकूर नाही. वर सांगितल्याप्रमाणे कार्यक्षेत्र तपासण्यासाठी स्थान सरकारी GIS कडे जाऊ शकते. तुम्ही जाणीवपूर्वक handoff उघडता किंवा पूर्ण करता तेव्हाच तक्रारीचा मजकूर आणि फोटो अधिकृत तक्रार सेवेकडे जातात.",
     privacy_link: "गोपनीयता धोरण", sources_link: "डेटा स्रोत आणि मर्यादा",
     privacy_accept: "पुढे जा", privacy_decline: "आत्ता नको",
     wipe_btn: "अॅपचा सर्व डेटा हटवा",
-    welcome_hint: "खड्डे आणि ड्राइव्हसाठी OpenAI API की जोडा. कचरा व मॅनहोल कीशिवाय चालतात. की या साधनावर जतन होते आणि फक्त विनंतीच्या प्रमाणीकरणासाठी OpenAI कडे जाते.",
+    welcome_hint: "फोटो आणि ड्राइव्ह वापरण्यासाठी OpenAI API की जोडा. की या साधनावर जतन होते आणि फक्त विनंतीच्या प्रमाणीकरणासाठी OpenAI कडे जाते.",
+    key_required: "पुढे जाण्यासाठी OpenAI API की जोडा.",
     back: "मागे", save: "जतन करा", discard: "रद्द करा", del: "हटवा", email_btn: "ईमेल",
     stop: "&#9632; थांबवा", working: "प्रक्रिया सुरू आहे...",
     chip_draft: "मसुदा", chip_sent: "सादर केल्याची नोंद", chip_queued: "ईमेलमध्ये उघडले",
@@ -736,7 +747,8 @@ const I18N = {
     stat_found: "जतन केलेल्या तक्रारी", stat_reported: "पुष्टी केलेल्या नोंदी", stat_frames: "खड्ड्यांच्या तपासण्या",
     stat_drives: "ड्राइव्ह", stat_footage: "MB व्हिडिओ", stat_km: "किमी तपासलेला रस्ता",
     by_type: "तक्रारीच्या प्रकारानुसार", by_size: "खड्ड्याच्या आकारानुसार", by_area: "महानगरपालिकेनुसार",
-    map_pins: "{n} ठिकाणे", map_offline: "नकाशासाठी इंटरनेट आवश्यक आहे. ठिकाणे तरीही खाली दाखवली आहेत.",
+    map_pins: "{n} ठिकाणे", map_empty: "नकाशावर अजून खड्डे नाहीत.",
+    map_offline: "नकाशासाठी इंटरनेट आवश्यक आहे. ठिकाणे तरीही खाली दाखवली आहेत.",
     zoom_hint: "झूमसाठी पिंच करा · हलवण्यासाठी ओढा · रीसेटसाठी दोनदा टॅप करा",
     rec_suffix: "· रेकॉर्डिंग {mb} MB", rec_failed: "· रेकॉर्डिंग होत नाही",
     net_trouble: "नेटवर्कची अडचण आहे; स्कॅन सुरू आहे ({n} फ्रेम्स प्रतीक्षेत)",
@@ -848,7 +860,7 @@ const I18N = {
     drive_btn: "&#128663; &nbsp;ড্রাইভ",
     your_reports: "আপনার রিপোর্ট",
     no_reports: "এখনও কোনও রিপোর্ট নেই।",
-    banner_setup: "গর্ত ও ড্রাইভের জন্য OpenAI API key যোগ করুন। আবর্জনা ও ম্যানহোল রিপোর্ট key ছাড়াই চলে।",
+    banner_setup: "ছবি ও ড্রাইভ ব্যবহার করতে OpenAI API key যোগ করুন।",
     settings_title: "সেটিংস",
     key_label: "OpenAI API key (এখানে সংরক্ষিত; অনুমোদনের পরিচয় হিসেবে OpenAI-তে পাঠানো হয়)",
     name_label: "আপনার নাম (অভিযোগে স্বাক্ষর হিসেবে ব্যবহৃত হবে)",
@@ -856,16 +868,17 @@ const I18N = {
     detail_label: "ছবির বিশদতা",
     accuracy_note: "gpt-5-mini/high বর্তমান ভিত্তিমাত্রা। আলাদা রাখা ড্রাইভ বেঞ্চমার্কে উন্নতি প্রমাণিত না হওয়া পর্যন্ত gpt-5.6/original পরীক্ষামূলক।",
     debug_label: "ডিবাগ মোড: বিশ্লেষণের পরেও ড্রাইভের ভিডিও রাখুন",
-    settings_note: "শুধু রাস্তার ক্ষতির ছবি ও ভিডিওর ফ্রেম শনাক্তকরণের জন্য OpenAI-তে পাঠানো হয়; তাতে নম্বরপ্লেট বা মুখ থাকতে পারে। ব্যবহারকারী-নিশ্চিত আবর্জনা ও ম্যানহোলের ছবি OpenAI-তে পাঠানো হয় না। সঠিক অবস্থান OpenStreetMap/Nominatim-এ পাঠানো হয়; কর্ণাটকের জন্য Karnataka GIS এবং হায়দরাবাদের জন্য Telangana GIS ব্যবহার করা হয়। যাচাই-করা রাজ্য pack বা 2° জাতীয় সড়ক tile GitHub Pages থেকে ডাউনলোড হয়ে ডিভাইসে থাকে; অনুরোধটি রাজ্য বা আনুমানিক tile ও সাধারণ সংযোগের তথ্য প্রকাশ করে, সঠিক অবস্থান নয়। API key কেবল OpenAI-তে যায়। অ্যাপ নিজে থেকে অভিযোগ জমা দেয় না।",
+    settings_note: "রাস্তার গর্তের ছবি ও ভিডিওর ফ্রেম শনাক্তকরণের জন্য OpenAI-তে পাঠানো হয়; তাতে নম্বরপ্লেট বা মুখ থাকতে পারে। সঠিক অবস্থান OpenStreetMap/Nominatim-এ পাঠানো হয়; কর্ণাটকের জন্য Karnataka GIS এবং হায়দরাবাদের জন্য Telangana GIS ব্যবহার করা হয়। যাচাই-করা রাজ্য pack বা 2° জাতীয় সড়ক tile GitHub Pages থেকে ডাউনলোড হয়ে ডিভাইসে থাকে; অনুরোধটি রাজ্য বা আনুমানিক tile ও সাধারণ সংযোগের তথ্য প্রকাশ করে, সঠিক অবস্থান নয়। API key কেবল OpenAI-তে যায়। অ্যাপ নিজে থেকে অভিযোগ জমা দেয় না।",
     independent_note: "এটি একটি স্বাধীন, বেসরকারি অ্যাপ। কোনও সরকারি সংস্থার সঙ্গে এর সম্পর্ক নেই এবং কোনও সরকারি সংস্থা এটি অনুমোদন করেনি। প্রাপক নির্বাচন সর্বোত্তম প্রচেষ্টার ভিত্তিতে; পাঠানোর আগে যাচাই করুন।",
     privacy_title: "ক্যামেরা ও অবস্থান ব্যবহারের আগে",
-    privacy_body: "এগিয়ে গেলে অ্যাপটি ক্যামেরা ও সামনে খোলা থাকাকালীন সঠিক অবস্থানের অনুমতি চাইবে। শুধু রাস্তার ক্ষতির ছবি বা ড্রাইভ মোডের নির্বাচিত ফ্রেম API key-সহ OpenAI-তে পাঠানো হয়। পরবর্তী নির্ভুল লাইভ-ড্রাইভ পুনরায় যাওয়ার সময়, সংরক্ষিত আগের ক্ষতির ছবি এবং বর্তমান দৃশ্য মেরামত যাচাইয়ের জন্য একসঙ্গে OpenAI-তে পাঠানো হতে পারে। ব্যবহারকারী-নিশ্চিত আবর্জনা ও ম্যানহোলের ছবি পাঠানো হয় না। সঠিক স্থানাঙ্ক OpenStreetMap/Nominatim-এ যায়; কর্ণাটকের জন্য Karnataka GIS এবং হায়দরাবাদের জন্য Telangana GIS ব্যবহার করা হয়। প্রয়োজনীয় রাজ্য routing pack GitHub Pages থেকে ডাউনলোড হয়। তথ্য ভারতের বাইরেও প্রক্রিয়াকৃত হতে পারে।",
-    privacy_local: "ড্রাইভ মোডে অডিও ব্যবহার হয় না। ড্রাইভ মোড সক্রিয় থাকলে, এই অ্যাপটি দৃশ্যমান না থাকলেও বা আপনি ব্যবহার না করলেও—Google Maps বা কল স্ক্রিন সামনে থাকলেও—Android ক্যামেরা ও অবস্থান ব্যাকগ্রাউন্ডে ব্যবহার করে। দৃশ্যমান স্থায়ী foreground-service বিজ্ঞপ্তি এই ব্যবহার সব সময় দেখায়; অ্যাপ বা বিজ্ঞপ্তি থেকে বিরতি দিন বা বন্ধ করুন। ড্রাইভ মোড লাইভ বিশ্লেষণের আগে বিরল 720p প্রমাণ ফ্রেম আলাদাভাবে অ্যাপের ব্যক্তিগত স্টোরেজে রাখে, তাই বাধাগ্রস্ত বা অফলাইন কাজ ড্রাইভের পরে বিশ্লেষণ করা যায়। ঐচ্ছিক কম-রেজোলিউশনের নীরব ভিডিও ডিফল্টভাবে বন্ধ থাকে। রিপোর্ট, ছবি, মেরামতের প্রমাণ, রাস্তার বাস্তব অবস্থা, ভিডিও, অবস্থানের ট্র্যাক, সেটিংস, যাচাই-করা রাজ্য pack ও জাতীয় সড়ক tile মুছে না ফেলা পর্যন্ত থাকে। রাস্তার বাস্তব অবস্থা সরকারি অভিযোগের অবস্থা থেকে আলাদাভাবে রাখা হয়।",
+    privacy_body: "এগিয়ে গেলে অ্যাপটি ক্যামেরা ও সামনে খোলা থাকাকালীন সঠিক অবস্থানের অনুমতি চাইবে। রাস্তার গর্তের ছবি বা ড্রাইভ মোডের নির্বাচিত ফ্রেম API key-সহ OpenAI-তে পাঠানো হয়। পরবর্তী নির্ভুল লাইভ-ড্রাইভ পুনরায় যাওয়ার সময়, সংরক্ষিত আগের ক্ষতির ছবি এবং বর্তমান দৃশ্য মেরামত যাচাইয়ের জন্য একসঙ্গে OpenAI-তে পাঠানো হতে পারে। সঠিক স্থানাঙ্ক OpenStreetMap/Nominatim-এ যায়; কর্ণাটকের জন্য Karnataka GIS এবং হায়দরাবাদের জন্য Telangana GIS ব্যবহার করা হয়। প্রয়োজনীয় রাজ্য routing pack GitHub Pages থেকে ডাউনলোড হয়। তথ্য ভারতের বাইরেও প্রক্রিয়াকৃত হতে পারে।",
+    privacy_local: "ড্রাইভ মোডে অডিও ব্যবহার হয় না। ড্রাইভ মোড সক্রিয় থাকলে, এই অ্যাপটি দৃশ্যমান না থাকলেও বা আপনি ব্যবহার না করলেও—Google Maps বা কল স্ক্রিন সামনে থাকলেও—Android ক্যামেরা ও অবস্থান ব্যাকগ্রাউন্ডে ব্যবহার করে। দৃশ্যমান স্থায়ী foreground-service বিজ্ঞপ্তি এই ব্যবহার সব সময় দেখায়; অ্যাপ বা বিজ্ঞপ্তি থেকে বিরতি দিন বা বন্ধ করুন। ড্রাইভ মোড লাইভ বিশ্লেষণের আগে বিরল 720p প্রমাণ ফ্রেম আলাদাভাবে অ্যাপের ব্যক্তিগত স্টোরেজে রাখে, তাই বাধাগ্রস্ত বা অফলাইন কাজ ড্রাইভের পরে বিশ্লেষণ করা যায়। ঐচ্ছিক নীরব ভিডিও ডিফল্টভাবে বন্ধ থাকে। রিপোর্ট, ছবি, মেরামতের প্রমাণ, রাস্তার বাস্তব অবস্থা, ভিডিও, অবস্থানের ট্র্যাক, সেটিংস, যাচাই-করা রাজ্য pack ও জাতীয় সড়ক tile মুছে না ফেলা পর্যন্ত থাকে। রাস্তার বাস্তব অবস্থা সরকারি অভিযোগের অবস্থা থেকে আলাদাভাবে রাখা হয়।",
     privacy_government: "এই স্বাধীন অ্যাপটি সরকারি পরিষেবা নয় এবং নিজে থেকে অভিযোগ জমা দেয় না। GitHub Pages আপনার IP, সময়, user agent ও চাওয়া রাজ্য-pack বা 2° জাতীয় সড়ক-tile পথ পায়; এতে রাজ্য বা আনুমানিক tile বোঝা যায়, সঠিক স্থানাঙ্ক, ছবি বা রিপোর্টের বিষয় নয়। উপরে জানানো নিয়মে এলাকা যাচাই করতে অবস্থান সরকারি GIS-এ পাঠানো হতে পারে। আপনি ইচ্ছাকৃতভাবে handoff খুললে বা সম্পূর্ণ করলেই অভিযোগের লেখা ও ছবি সরকারি অভিযোগ পরিষেবায় যায়।",
     privacy_link: "গোপনীয়তা নীতি", sources_link: "তথ্যের উৎস ও সীমাবদ্ধতা",
     privacy_accept: "এগিয়ে যান", privacy_decline: "এখন নয়",
     wipe_btn: "অ্যাপের সব তথ্য মুছুন",
-    welcome_hint: "গর্ত ও ড্রাইভের জন্য OpenAI API key যোগ করুন। আবর্জনা ও ম্যানহোল key ছাড়াই চলে। key এই ডিভাইসে থাকে এবং শুধু অনুরোধের অনুমোদন হিসেবে OpenAI-তে যায়।",
+    welcome_hint: "ছবি ও ড্রাইভ ব্যবহার করতে OpenAI API key যোগ করুন। key এই ডিভাইসে থাকে এবং শুধু অনুরোধের অনুমোদন হিসেবে OpenAI-তে যায়।",
+    key_required: "এগিয়ে যেতে OpenAI API key যোগ করুন।",
     back: "ফিরে যান", save: "সংরক্ষণ করুন", discard: "বাদ দিন", del: "মুছুন", email_btn: "ইমেল", stop: "&#9632; থামান", working: "কাজ চলছে...",
     chip_draft: "খসড়া", chip_sent: "জমা হয়েছে বলে চিহ্নিত", chip_queued: "ইমেলে খোলা হয়েছে", chip_queued_bmc: "BMC পরিষেবা খোলা হয়েছে", chip_rejected: "রাস্তার গর্ত: না", chip_review: "যাচাই প্রয়োজন",
     chip_unrouted: "প্রাপক নির্ধারিত নয়",
@@ -914,6 +927,7 @@ const I18N = {
     stat_found: "সংরক্ষিত রিপোর্ট", stat_reported: "নিশ্চিতভাবে জমা দেওয়া অভিযোগ", stat_frames: "রাস্তার গর্ত পরীক্ষা",
     stat_drives: "ড্রাইভ", stat_footage: "MB ভিডিও ফুটেজ", stat_km: "কিমি রাস্তা পর্যবেক্ষণ",
     by_type: "রিপোর্টের ধরন অনুযায়ী", by_size: "রাস্তার গর্তের আকার অনুযায়ী", by_area: "পৌরসংস্থা অনুযায়ী", map_pins: "{n}টি পিন",
+    map_empty: "মানচিত্রে এখনও কোনও গর্ত নেই।",
     map_offline: "মানচিত্রের টাইল দেখাতে ইন্টারনেট প্রয়োজন। অবস্থানগুলি নীচে তবুও দেখানো হচ্ছে।",
     zoom_hint: "জুম করতে আঙুল ছড়ান · সরাতে টানুন · রিসেট করতে দু’বার ট্যাপ করুন",
     rec_suffix: "· রেকর্ড হচ্ছে {mb} MB", rec_failed: "· রেকর্ড হচ্ছে না",
@@ -1067,7 +1081,7 @@ function show(screen) {
       (nativePreviewAttached || document.documentElement.classList.contains("native-preview-active"))) {
     stopNativePreview();
   }
-  for (const s of ["home", "issuePicker", "progress", "detail", "portalCopy", "drive", "settings", "review", "dash", "dataConsent"]) {
+  for (const s of ["home", "progress", "detail", "portalCopy", "drive", "settings", "review", "dash", "dataConsent"]) {
     $(s).classList.toggle("hidden", s !== screen);
   }
   window.scrollTo(0, 0);
@@ -1118,12 +1132,6 @@ function conditionChip(report) {
 function applyLang() {
   $("subTitle").textContent = t("sub");
   $("captureBtn").innerHTML = t("report_btn");
-  $("issuePickerTitle").textContent = t("issue_picker_title");
-  $("issuePickerHint").textContent = t("issue_picker_hint");
-  $("issueRoad").textContent = t("issue_road");
-  $("issueGarbage").textContent = t("issue_garbage");
-  $("issueManhole").textContent = t("issue_open_manhole");
-  $("issueBack").textContent = t("back");
   $("driveBtn").innerHTML = t("drive_btn");
   $("reportsTitle").textContent = t("your_reports");
   $("settingsTitle").textContent = t("settings_title");
@@ -1533,9 +1541,7 @@ function getPosition() {
   });
 }
 
-let pendingIssueType = "road_damage";
-
-async function handleFile(file, selectedIssue = "road_damage", captureMeta = {}) {
+async function handleFile(file, captureMeta = {}) {
   if (!file) return;
   const captureSource = captureMeta.captureSource === "manual_camera"
     ? "manual_camera" : "manual_import";
@@ -1554,7 +1560,7 @@ async function handleFile(file, selectedIssue = "road_damage", captureMeta = {})
   $("progressText").textContent = t("working");
   const fd = new FormData();
   fd.append("photo", file);
-  fd.append("issue_type", selectedIssue);
+  fd.append("issue_type", "road_damage");
   fd.append("capture_source", captureSource);
   if (capturedAtMs != null) fd.append("captured_at_ms", String(capturedAtMs));
   if (pos) {
@@ -1566,8 +1572,7 @@ async function handleFile(file, selectedIssue = "road_damage", captureMeta = {})
     if (pos.heading != null) fd.append("heading", String(pos.heading));
   }
   try {
-    const endpoint = selectedIssue === "road_damage" ? "/api/report" : "/api/civic-report";
-    const report = await api(endpoint, { method: "POST", body: fd });
+    const report = await api("/api/report", { method: "POST", body: fd });
     await loadReports();
     openDetail(report);
   } catch (e) {
@@ -2173,7 +2178,7 @@ function setDrivePanels(native) {
   $("webDrivePanel").classList.toggle("hidden", native);
   $("nativeDrivePanel").classList.toggle("hidden", !native);
   $("driveTip").textContent = native
-    ? "The live view is visible here. Maps and calls may cover it; the notification always shows camera and low-resolution recording status."
+    ? "The live view is visible here. Maps and calls may cover it; the notification always shows camera and recording status."
     : "Mount the phone facing the road. Frames are checked continuously while you move (about every 10 meters).";
 }
 
@@ -2249,7 +2254,7 @@ function updateNativeDriveHud(status) {
   $("nativeDriveStatus").textContent = statusMessage
     + (queued ? ` · ${queued} queued` : "") + (dropped ? ` · ${dropped} skipped` : "")
     + (keyframes ? ` · ${keyframes} saved frame${keyframes === 1 ? "" : "s"}` : "")
-    + (segments ? ` · ${segments} low-res clip${segments === 1 ? "" : "s"} (${savedMb.toFixed(0)} MB)` : "")
+    + (segments ? ` · ${segments} video clip${segments === 1 ? "" : "s"} (${savedMb.toFixed(0)} MB)` : "")
     + (minutesLeft && !status.isStopping ? ` · ${minutesLeft} min left` : "");
   $("nativePauseBtn").textContent = status.isPaused ? "Resume" : "Pause";
   const badge = $("nativeCameraBadge");
@@ -2270,7 +2275,7 @@ function updateNativeDriveHud(status) {
     badge.innerHTML = starting ? "CAMERA STARTING" : "CAMERA INTERRUPTED · RETRYING";
     badge.style.background = "rgba(130,70,0,.88)";
   } else if (status.recordingEnabled && status.isRecording) {
-    badge.innerHTML = "&#9679; RECORDING LOW-RES VIDEO";
+    badge.innerHTML = "&#9679; RECORDING VIDEO";
     badge.style.background = "rgba(150,0,0,.88)";
   } else if (status.recordingEnabled && status.recordingIssue) {
     badge.innerHTML = "CAMERA ACTIVE · VIDEO NOT RECORDING";
@@ -2285,7 +2290,7 @@ function updateNativeDriveHud(status) {
     badge.innerHTML = "&#9679; CAMERA ACTIVE · SAVING FRAMES";
     badge.style.background = "rgba(130,70,0,.88)";
   }
-  $("nativeRecordBtn").textContent = status.recordingEnabled ? "Video: Low" : "Video: Off";
+  $("nativeRecordBtn").textContent = status.recordingEnabled ? "Video: On" : "Video: Off";
   $("nativeRecordBtn").disabled = Boolean(status.isStopping || status.isPausing) ||
     (status.videoSupported === false && !status.recordingEnabled);
   $("nativePauseBtn").disabled = Boolean(status.isStopping || status.isPausing);
@@ -2598,7 +2603,7 @@ async function startDrive() {
   }
   if (drive || driveStarting || driveFinalizing || nativeFinishPromise) return;
   if (!(localStorage.getItem("openai_key") || "").trim()) {
-    openSettings(true);
+    openSettings(true, false);
     return;
   }
   driveStarting = true;
@@ -3139,19 +3144,25 @@ async function restoreNativeDrive(options = {}) {
 
 // Opening the camera is the cue that a call is coming: warm the connection now
 // so the photo does not also pay for a TLS handshake.
+let photoCaptureStarting = false;
 $("captureBtn").onclick = async () => {
-  if (!(await ensureDataConsent())) return;
-  show("issuePicker");
-};
-
-async function beginIssueCapture(type) {
-  if (type === "road_damage" && !(localStorage.getItem("openai_key") || "").trim()) {
-    openSettings(true);
+  if (photoCaptureStarting) return;
+  if (!(localStorage.getItem("openai_key") || "").trim()) {
+    openSettings(true, false);
     return;
   }
-  pendingIssueType = type;
+  photoCaptureStarting = true;
+  try {
+    if (!(await ensureDataConsent())) return;
+    await beginPotholeCapture();
+  } finally {
+    photoCaptureStarting = false;
+  }
+};
+
+async function beginPotholeCapture() {
   await requestNativeCapturePermissions();
-  if (type === "road_damage") StandaloneAPI.prewarm();
+  StandaloneAPI.prewarm();
   const native = window.Capacitor && Capacitor.isNativePlatform
     && Capacitor.isNativePlatform();
   const camera = native && Capacitor.Plugins && Capacitor.Plugins.Camera;
@@ -3178,24 +3189,20 @@ async function beginIssueCapture(type) {
         type: blob.type || `image/${format}`,
         lastModified: capturedAtMs,
       });
-      pendingIssueType = "road_damage";
-      await handleFile(file, type, { captureSource: "manual_camera", capturedAtMs });
+      await handleFile(file, { captureSource: "manual_camera", capturedAtMs });
       return;
     } catch (e) {
       const cancelled = e && (e.code === "OS-PLUG-CAMR-0006"
         || /cancel/i.test(String(e.message || e)));
       if (cancelled) return;
-      // The file input is the compatibility path for older WebViews or a temporarily
-      // unavailable native plugin. It is always recorded as selected/imported because
-      // browsers cannot prove whether it came from the live camera or the gallery.
+      alert(t("camera_failed") + (e && (e.message || e)));
+      return;
     }
   }
+  // Browser/PWA compatibility: capture=environment asks for the rear camera where the
+  // browser supports it, but the resulting file is conservatively marked as imported.
   $("fileInput").click();
 }
-$("issueRoad").onclick = () => beginIssueCapture("road_damage");
-$("issueGarbage").onclick = () => beginIssueCapture("garbage");
-$("issueManhole").onclick = () => beginIssueCapture("open_manhole");
-$("issueBack").onclick = () => show("home");
 
 // ---------- labelling ----------
 // A human label is the only thing that can measure the detector. The model's own
@@ -3982,6 +3989,8 @@ async function analyseFootage(driveId, driveRec) {
 // network and ships nothing it does not carry itself. Tiles do need a connection, so
 // when they cannot load the points are still plotted on a plain scatter.
 let mapObj = null;
+let mapFallbackTimer = null;
+let mapDrawGeneration = 0;
 
 async function openDash() {
   const [reports, drives, footage] = await Promise.all([
@@ -4036,7 +4045,10 @@ async function openDash() {
     + bars(t("by_size"), bySize) + `<div style="height:14px"></div>` + bars(t("by_area"), byArea);
 
   show("dash");
-  drawMap(holes.filter((r) => r.lat != null && r.lng != null));
+  drawMap(holes.map((report) => ({
+    ...report, lat: Number(report.lat), lng: Number(report.lng),
+  })).filter((report) => Number.isFinite(report.lat) && Number.isFinite(report.lng)
+    && Math.abs(report.lat) <= 90 && Math.abs(report.lng) <= 180));
 }
 
 function trackKm(track) {
@@ -4049,25 +4061,53 @@ function trackKm(track) {
 
 function drawMap(pins) {
   const host = $("map");
+  const generation = ++mapDrawGeneration;
   $("mapNote").innerHTML = t("map_pins", { n: pins.length });
+  if (mapFallbackTimer) { clearTimeout(mapFallbackTimer); mapFallbackTimer = null; }
   if (mapObj) { mapObj.remove(); mapObj = null; }
   host.innerHTML = "";
-  if (!pins.length) return;
-  if (typeof L === "undefined") return scatter(host, pins);
+  if (!pins.length) {
+    host.innerHTML = `<div class="empty" style="height:100%;display:grid;place-items:center;padding:20px">${escapeHtml(t("map_empty"))}</div>`;
+    return;
+  }
+  if (typeof L === "undefined" || navigator.onLine === false) return scatter(host, pins);
   try {
-    mapObj = L.map(host, { attributionControl: true });
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" }).addTo(mapObj);
+    const currentMap = L.map(host, { attributionControl: true });
+    mapObj = currentMap;
+    let loadedTiles = 0;
+    const useOfflinePlot = () => {
+      if (generation !== mapDrawGeneration || mapObj !== currentMap || loadedTiles) return;
+      if (mapFallbackTimer) { clearTimeout(mapFallbackTimer); mapFallbackTimer = null; }
+      currentMap.remove();
+      mapObj = null;
+      scatter(host, pins);
+    };
+    const tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" });
+    tiles.on("tileload", () => {
+      loadedTiles += 1;
+      if (mapFallbackTimer) { clearTimeout(mapFallbackTimer); mapFallbackTimer = null; }
+    });
+    // Leaflet tile failures are asynchronous, so a surrounding try/catch cannot see
+    // them. Its load event fires after the initial success/error batch settles.
+    tiles.on("load", () => { if (!loadedTiles) useOfflinePlot(); });
+    tiles.addTo(currentMap);
     const group = L.featureGroup(pins.map((r) => {
       const color = physicalCondition(r) === "fixed" ? "#3ecf6f" : "#ff7a1a";
       const m = L.circleMarker([r.lat, r.lng], { radius: 7, color, weight: 2,
         fillColor: color, fillOpacity: .75 });
       m.on("click", () => openReportDetail(r, pins));
       return m;
-    })).addTo(mapObj);
-    mapObj.fitBounds(group.getBounds().pad(0.25));
-    setTimeout(() => mapObj && mapObj.invalidateSize(), 60);
-  } catch (e) { scatter(host, pins); }
+    })).addTo(currentMap);
+    currentMap.fitBounds(group.getBounds().pad(0.25));
+    mapFallbackTimer = setTimeout(useOfflinePlot, 6000);
+    setTimeout(() => generation === mapDrawGeneration && mapObj === currentMap
+      && currentMap.invalidateSize(), 60);
+  } catch (e) {
+    if (mapFallbackTimer) { clearTimeout(mapFallbackTimer); mapFallbackTimer = null; }
+    if (mapObj) { try { mapObj.remove(); } catch (_) {} mapObj = null; }
+    scatter(host, pins);
+  }
 }
 
 // No tiles, no dependency: latitude and longitude straight onto an SVG. Ugly next to a
@@ -4082,10 +4122,18 @@ function scatter(host, pins) {
   const y = (lat) => H - 12 - ((lat - minLat) / Math.max(1e-9, maxLat - minLat)) * (H - 24);
   host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%">
       <rect width="${W}" height="${H}" fill="#0c0d0f"></rect>
-      ${pins.map((p) => { const color = physicalCondition(p) === "fixed" ? "#3ecf6f" : "#ff7a1a";
-        return `<circle cx="${x(p.lng).toFixed(1)}" cy="${y(p.lat).toFixed(1)}" r="5"
+      ${pins.map((p, index) => { const color = physicalCondition(p) === "fixed" ? "#3ecf6f" : "#ff7a1a";
+        return `<circle data-map-report="${index}" role="button" tabindex="0"
+         aria-label="${escapeAttr(tDamage(p))}" cx="${x(p.lng).toFixed(1)}" cy="${y(p.lat).toFixed(1)}" r="7"
          fill="${color}" fill-opacity="0.8" stroke="${color}"></circle>`; }).join("")}
     </svg>`;
+  host.querySelectorAll("[data-map-report]").forEach((point) => {
+    const open = () => openReportDetail(pins[Number(point.dataset.mapReport)], pins);
+    point.onclick = open;
+    point.onkeydown = (event) => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
+    };
+  });
   $("mapNote").innerHTML = t("map_pins", { n: pins.length }) + " · " + t("map_offline");
 }
 
@@ -4129,9 +4177,7 @@ async function shareZip(zip) {
   await P.Share.share({ title: zip.name, files: [w.uri] });
 }
 $("fileInput").onchange = (e) => {
-  const selected = pendingIssueType;
-  pendingIssueType = "road_damage";
-  handleFile(e.target.files[0], selected, { captureSource: "manual_import" });
+  handleFile(e.target.files[0], { captureSource: "manual_import" });
   e.target.value = "";
 };
 
@@ -4176,14 +4222,16 @@ window.handleAppBack = () => {
     if (portalReturnReport) openDetail(portalReturnReport); else show("home");
     return true;
   }
-  for (const s of ["issuePicker", "detail", "settings", "progress", "drive", "review", "dash"]) {
+  if (initialSettingsActive && !$("settings").classList.contains("hidden")) return true;
+  for (const s of ["detail", "settings", "progress", "drive", "review", "dash"]) {
     if (!$(s).classList.contains("hidden")) { show("home"); loadReports(); return true; }
   }
   return false;
 };
 
 // Settings: OpenAI key and sender name. Stored on-device only.
-window.openSettings = (firstRun) => {
+window.openSettings = (showWelcome = false, requireCompletion = false) => {
+  initialSettingsActive = requireCompletion || initialSettingsRequired;
   $("setKey").value = localStorage.getItem("openai_key") || "";
   $("setName").value = localStorage.getItem("sender_name") || "";
   $("setModel").value = ["gpt-5-mini", "gpt-5.6"].includes(localStorage.getItem("detection_model"))
@@ -4195,17 +4243,25 @@ window.openSettings = (firstRun) => {
   $("setRecord").checked = localStorage.getItem("record_video") === "1"; // explicit opt-in
   $("setDriveLimit").value = String(driveLimitMinutes());
   $("setLang").value = LANG;
-  $("settingsHint").textContent = firstRun ? t("welcome_hint") : "";
+  $("settingsHint").textContent = showWelcome ? t("welcome_hint") : "";
+  $("setBack").classList.toggle("hidden", initialSettingsActive);
+  $("setSave").textContent = initialSettingsActive ? t("privacy_accept") : t("save");
   show("settings");
 };
 $("gearBtn").onclick = () => {
   if (nativeFinishPromise || (drive && drive.native && drive.stopping)) return;
-  openSettings(false);
+  openSettings(initialSettingsRequired, initialSettingsRequired);
 };
-$("setBack").onclick = () => show("home");
+$("setBack").onclick = () => { if (!initialSettingsActive) show("home"); };
 $("setSave").onclick = async () => {
   const saveButton = $("setSave");
   if (saveButton.disabled) return;
+  const trimmedKey = $("setKey").value.trim();
+  if (initialSettingsActive && !trimmedKey) {
+    alert(t("key_required"));
+    $("setKey").focus();
+    return;
+  }
   saveButton.disabled = true;
   const selectedModel = $("setModel").value === "gpt-5.6" ? "gpt-5.6" : "gpt-5-mini";
   const selectedDetail = $("setDetail").value === "original" && selectedModel === "gpt-5.6"
@@ -4223,7 +4279,7 @@ $("setSave").onclick = async () => {
         updateNativeDriveHud(updated);
       }
     }
-    localStorage.setItem("openai_key", $("setKey").value.trim());
+    localStorage.setItem("openai_key", trimmedKey);
     localStorage.setItem("sender_name", $("setName").value.trim());
     localStorage.setItem("detection_model", selectedModel);
     localStorage.setItem("image_detail", selectedDetail);
@@ -4232,6 +4288,9 @@ $("setSave").onclick = async () => {
     localStorage.setItem("record_video", recordVideo ? "1" : "0");
     localStorage.setItem("drive_limit_minutes", String(driveLimit));
     localStorage.setItem("app_lang", newLang);
+    localStorage.setItem(INITIAL_SETUP_KEY, "1");
+    initialSettingsRequired = false;
+    initialSettingsActive = false;
     if (newLang !== LANG) { location.reload(); return; }
     await loadHealth();
     await loadReports();
@@ -4331,6 +4390,8 @@ $("wipeBtn").onclick = async () => {
 };
 
 applyLang();
+if (initialSettingsRequired) openSettings(true, true);
+else show("home");
 
 // #report-<id> deep link opens that report's detail screen directly.
 (async () => {

@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 """Camera/location permissions must stay behind the versioned data disclosure."""
+import os
 import sys
 
 from playwright.sync_api import sync_playwright
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 
 INIT_NATIVE_PROBE = r"""
 (() => {
   // Keep the test on Home instead of the unrelated first-run API-key Settings screen.
-  // No request is made: prewarm and the capture picker are replaced below.
+  // No request is made: prewarm and the file picker are replaced below.
   localStorage.setItem("openai_key", "test-key-never-sent");
   const probe = window.__privacyProbe = {
     events: [],
@@ -136,8 +137,6 @@ with sync_playwright() as playwright:
     page.locator("#captureBtn").click()
     page.locator("#dataConsent").wait_for(state="visible")
     page.locator("#privacyAccept").click()
-    page.locator("#issuePicker").wait_for(state="visible")
-    page.locator("#issueRoad").click()
     wait_for_event(page, "camera")
     camera_held = snapshot(page)
     if camera_held["version"] != camera_held["currentVersion"]:
@@ -157,11 +156,9 @@ with sync_playwright() as playwright:
         failures.append(f"capture: accepted action did not resume exactly once: {accepted}")
 
     # The accepted version skips the disclosure but still goes through Android's idempotent
-    # permission checks before opening the file picker, after an issue is chosen.
-    page.locator("#issueBack").click()
+    # permission checks before opening the file picker. Photo is a one-tap pothole flow;
+    # there is no issue/category screen between the button and the camera.
     page.locator("#captureBtn").click()
-    page.locator("#issuePicker").wait_for(state="visible")
-    page.locator("#issueRoad").click()
     wait_for_event(page, "camera", 2)
     repeated = snapshot(page)
     if repeated["consentVisible"]:
@@ -173,7 +170,6 @@ with sync_playwright() as playwright:
 
     # A stale notice version must disclose again. Android Back is a decline: it must not
     # upgrade the stored version or continue the interrupted capture action.
-    page.locator("#issueBack").click()
     page.evaluate("localStorage.setItem('data_notice_version', 'obsolete-notice')")
     page.locator("#captureBtn").click()
     page.locator("#dataConsent").wait_for(state="visible")

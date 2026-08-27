@@ -1,9 +1,9 @@
 # Pothole Reporter
 
-An independent Android app for potholes, garbage, and open or damaged manholes. **Drive**
-detects visible potholes; **Photo** lets the user choose the issue and prepares evidence
-for an official complaint channel. Reports remain on the phone, and nothing is filed
-automatically. There is no project-operated backend or account system.
+An independent Android app for potholes. **Drive** detects visible potholes while the
+phone shows Maps or a call; one tap on **Photo** opens the camera for a pothole check and
+prepares evidence for an official complaint channel. Reports remain on the phone, and
+nothing is filed automatically. There is no project-operated backend or account system.
 
 Current release: [v1.35.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.35.0)
 
@@ -22,7 +22,7 @@ Current release: [v1.35.0](https://github.com/coding-parrot/pothole-reporter/rel
 | All 28 states + 8 Union Territories | A confidently contained coordinate can use a conservative official state/UT grievance handoff. The complete GPS-accuracy circle must stay inside a checksum-pinned boundary; border ambiguity fails closed. |
 | Exact city/authority routes | Reviewed municipal, metropolitan, and authority-specific routes remain preferred wherever available. Nationwide fallback never replaces a more specific route. |
 | 50 largest population centres | All 50 from Census 2011 A-04(I). Existing reviewed/statewide routes stay preferred; 8 centres require both a conservative coordinate envelope and an exact structured city/state match before offering a neutral official grievance channel. Markers do not claim complete Urban Agglomeration boundaries. |
-| Delhi | Full Delhi NCT. Road damage uses PWD Sewa; garbage and manholes use CM JanSunwai. NCR places outside NCT never inherit Delhi's route; Noida and Ghaziabad can qualify through the separate Uttar Pradesh route, while Faridabad retains its top-50 neutral route. |
+| Delhi | Full Delhi NCT. Road damage uses PWD Sewa. NCR places outside NCT never inherit Delhi's route; Noida and Ghaziabad can qualify through the separate Uttar Pradesh route, while Faridabad retains its top-50 neutral route. |
 
 National Highway routing runs first, followed by exact city/authority routes, then the
 state/UT handoff. Boundaries suggest where to start a complaint; they do not prove who
@@ -32,10 +32,10 @@ submitted automatically.
 
 ## How it works
 
-- **Drive** shows a live road view and counters while Maps or a call is open. Optional recording pairs low-resolution silent video with a sharper 720p frame at most every two seconds, keeps only one raw burst waiting for live AI, and can retry unfinished frames after the drive with low-resolution before/after context.
+- **Drive** shows a live road view and counters while Maps or a call is open. Optional silent recording pairs local video with a sharper 720p frame at most every two seconds, keeps only one raw burst waiting for live AI, and can retry unfinished frames after the drive with nearby before/after context.
 - A selectable 15/30/60/90-minute active-time battery limit stops Drive automatically; paused time does not count. The default is 30 minutes.
-- **Photo** offers **Pothole**, **Garbage**, or **Manhole**. Pothole photos use AI; the
-  other two are explicit user reports and are not sent to OpenAI.
+- On a new install, **Settings** appears first so the API key and capture preferences are
+  configured before Drive and Photo are shown. **Photo** is one tap and pothole-only.
 - OpenAI vision returns only **Pothole: Yes/No**, never a user-facing confidence score.
   A Yes requires a bituminous/asphalt, cement-concrete, mastic-asphalt, or paver-block
   drivable surface, localized cavity, broken rim, visible material loss, usable imagery,
@@ -51,8 +51,8 @@ submitted automatically.
 - The app preserves the photo, coordinates, time, category, complaint draft, and official
   reference ID locally. A genuinely temporary routing-data failure can be retried later;
   permanent boundary/category refusals require a new report or added coverage.
-- Garbage and manhole handoffs are enabled in all 28 states and 8 Union Territories.
-  Road damage keeps its road-specific channel where one exists.
+- Pothole handoffs are enabled in all 28 states and 8 Union Territories, with a
+  road-specific channel where one exists.
 - English, Kannada, Marathi, and Bengali are supported.
 
 ### Complaint output
@@ -112,7 +112,7 @@ selected state or an approximate 2° highway tile. See the
 
 1. Install the APK attached to the
    [latest release](https://github.com/coding-parrot/pothole-reporter/releases/latest).
-2. For Pothole or Drive, enter your OpenAI API key. Garbage and Manhole do not need it.
+2. On first launch, enter your OpenAI API key in Settings.
    Allow camera and location access; Drive also needs notification access.
 3. Capture while safely stopped, or securely mount the phone before starting **Drive**.
 4. Review the image, location, authority, wording, and contract-verification status before
@@ -125,8 +125,8 @@ selected state or an approximate 2° highway tile. See the
 - Android may temporarily take the camera for a video call or another higher-priority app;
   Drive pauses camera sampling and resumes automatically. Normal audio calls do not require
   the camera. Device-specific battery managers can still stop long-running services.
-- Selected road-damage images and the user's API key go directly to OpenAI. Garbage and
-  manhole photos do not. Exact coordinates go to OpenStreetMap Nominatim; Karnataka
+- Selected pothole images and the user's API key go directly to OpenAI. Exact coordinates
+  go to OpenStreetMap Nominatim; Karnataka
   locations query Karnataka GIS, and exact Hyderabad CURE checks query Telangana GIS.
   State/UT containment is checked locally against downloaded, checksum-pinned ODbL
   boundaries for all 28 states and 8 Union Territories.
