@@ -29,9 +29,11 @@ def missingReleaseValues = [
     keyAlias: releaseKeyAlias,
     keyPassword: releaseKeyPassword,
 ].findAll { entry -> entry.value == null }.keySet()
+def releaseArtifactTaskPrefixes = ['assemble', 'bundle', 'package', 'publish', 'install']
 def requestedReleaseBuild = gradle.startParameter.taskNames.any { requestedTask ->
     def taskName = requestedTask.tokenize(':').last().toLowerCase()
-    taskName.contains('release') || taskName in ['assemble', 'build', 'bundle', 'package']
+    taskName in ['assemble', 'build', 'bundle', 'package'] ||
+        (taskName.contains('release') && releaseArtifactTaskPrefixes.any { taskName.startsWith(it) })
 }
 
 if (requestedReleaseBuild && !missingReleaseValues.isEmpty()) {

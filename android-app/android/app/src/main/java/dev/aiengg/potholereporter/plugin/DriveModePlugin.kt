@@ -8,17 +8,26 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.util.Base64
+import androidx.annotation.Keep
 import androidx.room.withTransaction
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import dev.aiengg.potholereporter.MainActivity
 import dev.aiengg.potholereporter.db.FootageSegmentEntity
 import dev.aiengg.potholereporter.db.PotholeDatabase
+import dev.aiengg.potholereporter.db.RepairObservationEntity
+import dev.aiengg.potholereporter.db.ReportDao
+import dev.aiengg.potholereporter.db.ReportSyncCandidate
 import dev.aiengg.potholereporter.db.RepairTargetEntity
 import dev.aiengg.potholereporter.db.SessionEntity
 import dev.aiengg.potholereporter.drive.DriveEndSummary
 import dev.aiengg.potholereporter.drive.DriveForegroundService
 import dev.aiengg.potholereporter.drive.DriveSessionLimitPolicy
+import dev.aiengg.potholereporter.drive.NativeKeyframeFiles
+import dev.aiengg.potholereporter.drive.NativeMediaFilesystemMutation
+import dev.aiengg.potholereporter.drive.NativeMediaReconciliationEpoch
+import dev.aiengg.potholereporter.drive.NativeMediaStorageQuota
+import dev.aiengg.potholereporter.drive.NativeStoredImagePolicy
 import dev.aiengg.potholereporter.drive.NotificationHelper
 import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
@@ -132,6 +141,8 @@ internal class PendingStartGate<T> {
     }
 }
 
+// Capacitor reflects over the class-level permission metadata in release builds.
+@Keep
 @CapacitorPlugin(
     name = "DriveMode",
     permissions = [
@@ -148,8 +159,9 @@ class DriveModePlugin : Plugin() {
     private val pluginScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val pendingStartLock = Any()
     private var pendingStart: PendingDriveStart? = null
-    @Volatile private var nativeStateReconciled = false
+    @Volatile private var nativeStateReconciledEpoch = Long.MIN_VALUE
     private val nativeStateReconcileMutex = Mutex()
+    @Volatile private var repairTargetStage: RepairTargetStage? = null
 
     private data class PendingDriveStart(
         val call: PluginCall,
@@ -163,13 +175,17 @@ class DriveModePlugin : Plugin() {
         val onFailure: () -> Unit
     )
 
+    private data class RepairTargetStage(
+        val token: String,
+        val ledger: NativeRepairTargetStagingLedger,
+        val directoryState: NativeRepairTargetStageDirectory,
+        val targets: MutableList<RepairTargetEntity> = mutableListOf()
+    )
+
     private companion object {
         const val START_READY_TIMEOUT_MS = 12_000L
         const val START_CANCEL_TIMEOUT_MS = 25_000L
         const val START_POLL_MS = 50L
-        const val MAX_REPAIR_TARGETS = 2_000
-        const val MAX_REPAIR_TARGET_IMAGE_BYTES = 4 * 1024 * 1024
-        const val MAX_KEYFRAME_IMAGE_BYTES = 8 * 1024 * 1024
     }
 
     override fun load() {
@@ -197,6 +213,8 @@ class DriveModePlugin : Plugin() {
                 put("keyframeCount", status.keyframeCount)
                 put("remainingMs", status.remainingMs)
                 put("maxDurationMinutes", status.maxDurationMinutes)
+                put("captureBlocked", status.captureBlocked)
+                put("captureIssue", status.captureIssue)
             }
             notifyListeners("driveStatusChange", data)
         }
@@ -360,7 +378,7 @@ class DriveModePlugin : Plugin() {
                 // Pause is a valid, user-visible terminal state for startup. It turns
                 // the camera off deliberately and must not become a 12-second failure.
                 if (DriveForegroundService.activeStartRequestId() == pending.requestId &&
-                    status.isRunning && (status.cameraActive || status.isPaused)) {
+                    status.isRunning && (status.cameraActive || status.isPaused || status.captureBlocked)) {
                     if (pending.gate.claimReady()) {
                         synchronized(pendingStartLock) {
                             if (pendingStart === pending) pendingStart = null
@@ -540,8 +558,11 @@ class DriveModePlugin : Plugin() {
         requestPermissionForAliases(aliases, call, "drivePermissionsResult")
     }
 
+    // Capacitor resolves permission callbacks by their source-level method name.
+    // Keep the callback public and non-obfuscated so release R8 builds behave like debug.
+    @Keep
     @PermissionCallback
-    private fun drivePermissionsResult(call: PluginCall) {
+    fun drivePermissionsResult(call: PluginCall) {
         val ret = JSObject().apply {
             put("granted", hasDrivePermissions())
             put("notificationsGranted", Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -552,70 +573,36 @@ class DriveModePlugin : Plugin() {
 
     @PluginMethod
     fun syncReports(call: PluginCall) {
-        val limit = (call.getInt("limit") ?: 5).coerceIn(1, 5)
+        val limit = (call.getInt("limit") ?: NativeBridgeImageBudget.MAX_BATCH_ITEMS)
+            .coerceIn(1, NativeBridgeImageBudget.MAX_BATCH_ITEMS)
         pluginScope.launch {
             try {
                 val db = PotholeDatabase.getDatabase(context)
                 // Evidence images cross the Capacitor bridge as Base64. Bound each page so
                 // a long drive cannot allocate the entire outbox in Java and JS at once.
-                val unsynced = db.reportDao().getUnsyncedReports(limit)
+                // Keyset pages skip broken legacy evidence rather than letting the oldest
+                // row permanently starve every valid report behind it.
+                val dao = db.reportDao()
+                val reportsRoot = File(context.filesDir, "reports")
                 val array = JSArray()
-                for (r in unsynced) {
-                    val obj = JSObject().apply {
-                        put("id", r.id)
-                        put("created_at", r.createdAt)
-                        put("lat", r.lat)
-                        put("lng", r.lng)
-                        put("address", r.address)
-                        put("photo_data_url", r.photoDataUrl)
-                        put("photo_path", r.photoPath)
-                        put("photo_full_data_url", fileAsDataUrl(r.photoFullPath ?: r.photoPath))
-                        put("is_reportable", r.isReportable)
-                        put("is_pothole", r.isPothole)
-                        put("looks_like_speed_breaker", r.looksLikeSpeedBreaker)
-                        put("damage_type", r.damageType)
-                        put("surface_type", r.surfaceType)
-                        put("defect_type", r.defectType)
-                        put("measurement_provenance", r.measurementProvenance)
-                        put("measurement_confidence", r.measurementConfidence)
-                        put("assessment", r.assessment)
-                        put("image_quality", r.imageQuality)
-                        put("on_drivable_surface", r.onDrivableSurface)
-                        put("has_localized_cavity", r.hasLocalizedCavity)
-                        put("has_broken_edge_or_rim", r.hasBrokenEdgeOrRim)
-                        put("has_depth_or_surface_loss", r.hasDepthOrSurfaceLoss)
-                        put("temporal_consistency", r.temporalConsistency)
-                        put("size", r.size)
-                        put("decision", r.decision)
-                        put("description", r.description)
-                        put("email_subject", r.emailSubject)
-                        put("email_body", r.emailBody)
-                        put("status", r.status)
-                        put("detection_model", r.detectionModel)
-                        put("image_detail", r.imageDetail)
-                        put("prompt_version", r.promptVersion)
-                        put("schema_version", r.schemaVersion)
-                        put("evidence_count", r.evidenceCount)
-                        put("drive_id", r.driveId)
-                        put("capture_source", r.captureSource)
-                        put("source_event_key", r.sourceEventKey)
-                        put("captured_at", r.capturedAt)
-                        put("source_offset_s", r.sourceOffsetS)
-                        put("gps_accuracy", r.gpsAccuracy)
-                        put("speed_mps", r.speedMps)
-                        put("heading", r.heading)
-                        put("seen_count", r.seenCount)
-                        put("last_seen_at", r.lastSeenAt)
-                        put("primary_frame_index", r.primaryFrameIndex)
-                        put("debug_capture", r.debugCapture)
+                val imageBudget = NativeBridgeImageBudget()
+                val page = NativeOutboxKeysetPager.collect(
+                    limit = limit,
+                    idOf = ReportSyncCandidate::id,
+                    loadAfter = dao::getUnsyncedReportCandidatesAfter,
+                    evaluate = { report ->
+                        reportBridgeObject(report, dao, reportsRoot, imageBudget)
                     }
-                    array.put(obj)
-                }
+                )
+                page.values.forEach(array::put)
 
                 val ret = JSObject().apply {
                     put("reports", array)
                     put("count", array.length())
-                    put("remaining", db.reportDao().countUnsyncedReports())
+                    put("remaining", dao.countUnsyncedReports())
+                    put("scanned", page.scanned)
+                    put("skipped", page.skipped)
+                    put("capacityReached", page.capacityReached)
                 }
                 call.resolve(ret)
             } catch (e: Exception) {
@@ -634,179 +621,303 @@ class DriveModePlugin : Plugin() {
         }
         pluginScope.launch {
             try {
-                if (ids.isNotEmpty()) PotholeDatabase.getDatabase(context).reportDao().markReportsSynced(ids)
-                call.resolve(JSObject().apply { put("acknowledged", ids.size) })
+                val acknowledged = NativeMediaFilesystemMutation.mutex.withLock {
+                    val distinctIds = ids.distinct()
+                    if (distinctIds.isEmpty()) return@withLock emptyList<Long>()
+                    val db = PotholeDatabase.getDatabase(context)
+                    // This projection deliberately excludes photoDataUrl. Loading every
+                    // full report to acknowledge a two-item bridge page recreated the
+                    // large-report memory spike that paging is meant to prevent.
+                    val requested = db.reportDao().getReportMediaRefs(distinctIds)
+                    val acknowledgedIds = requested.map { it.id }.distinct()
+                    if (acknowledgedIds.isEmpty()) return@withLock emptyList<Long>()
+                    val reportsRoot = File(context.filesDir, "reports")
+                    // Capture only validated private paths while Room still owns them.
+                    // The transaction clears those references first; deletion afterwards
+                    // is orphan cleanup and can be safely retried by reconciliation.
+                    val files = requested.flatMap { report ->
+                        listOfNotNull(report.photoPath, report.photoFullPath).mapNotNull { path ->
+                            runCatching {
+                                NativePrivateMediaFiles.descendant(reportsRoot, path)
+                            }.getOrNull()
+                        }
+                    }.distinctBy(File::getAbsolutePath)
+                    NativeAcknowledgementCommit.commitThenCleanup(
+                        expectedCount = acknowledgedIds.size,
+                        commit = {
+                            db.withTransaction {
+                                val affected = db.reportDao()
+                                    .acknowledgeAndReleasePhotos(acknowledgedIds)
+                                check(affected == acknowledgedIds.size) {
+                                    "Room acknowledged $affected of ${acknowledgedIds.size} reports"
+                                }
+                                affected
+                            }
+                        },
+                        cleanup = { NativePrivateMediaFiles.deleteAll(files) },
+                        onCleanupIncomplete = { NativeMediaReconciliationEpoch.invalidate() }
+                    )
+                    acknowledgedIds
+                }
+                call.resolve(JSObject().apply { put("acknowledged", acknowledged.size) })
             } catch (error: Exception) {
                 call.reject("Failed to acknowledge reports: ${error.message}")
             }
         }
     }
 
-    /**
-     * Atomically replaces the WebView-to-native repair cache. A generation directory
-     * means a malformed or interrupted payload cannot leave Room pointing at a
-     * half-written set of historical evidence images.
-     */
+    /** Starts a generation replacement without moving Room away from its current cache. */
     @PluginMethod
-    fun replaceRepairTargets(call: PluginCall) {
-        val targetsArray = call.getArray("targets")
-        if (targetsArray == null) {
-            call.reject("Repair targets are required")
+    fun beginRepairTargetSync(call: PluginCall) {
+        val idsArray = call.getArray("ids")
+        if (idsArray == null) {
+            call.reject("Repair target manifest is required")
             return
         }
-        if (targetsArray.length() > MAX_REPAIR_TARGETS) {
-            call.reject("Too many repair targets")
+        val ids = (0 until idsArray.length()).map { idsArray.optLong(it, -1L) }
+        val ledger = try {
+            NativeRepairTargetStagingLedger(ids)
+        } catch (error: Exception) {
+            call.reject("Failed to begin repair target sync: ${error.message}")
             return
         }
         pluginScope.launch {
-            val root = File(context.filesDir, "repair_targets")
-            val generation = File(root, "generation-${UUID.randomUUID()}")
             try {
-                if (!generation.mkdirs()) throw IllegalStateException("could not create repair target storage")
-                val parsed = mutableListOf<RepairTargetEntity>()
-                val seenIds = HashSet<Long>()
-                for (index in 0 until targetsArray.length()) {
-                    val obj = targetsArray.getJSONObject(index)
-                    val id = obj.optLong("id", -1L)
-                    if (id <= 0 || !seenIds.add(id)) {
-                        throw IllegalArgumentException("repair target id is invalid or duplicated")
+                val token = NativeMediaFilesystemMutation.mutex.withLock {
+                    requireRepairTargetSyncIsIdle()
+                    repairTargetStage?.let(::discardRepairTargetStageLocked)
+                    val root = File(context.filesDir, "repair_targets")
+                    if (!root.exists() && !root.mkdirs()) {
+                        throw IllegalStateException("could not create repair target storage")
                     }
-                    val lat = obj.optDouble("lat", Double.NaN)
-                    val lng = obj.optDouble("lng", Double.NaN)
-                    if (!lat.isFinite() || !lng.isFinite() || kotlin.math.abs(lat) > 90 ||
-                        kotlin.math.abs(lng) > 180) {
-                        throw IllegalArgumentException("repair target location is invalid")
+                    // A killed WebView can leave only an unreferenced staging directory;
+                    // Room still points to the prior generation, so removing it is safe.
+                    root.listFiles()
+                        ?.filter { it.name.startsWith(".staging-") }
+                        ?.forEach { stale ->
+                            if (!deleteDirectoryVerified(stale)) {
+                                throw IllegalStateException("could not remove incomplete repair staging")
+                            }
+                        }
+                    val nextToken = UUID.randomUUID().toString()
+                    val staging = File(root, ".staging-$nextToken")
+                    if (!staging.mkdir()) {
+                        throw IllegalStateException("could not create repair target staging")
                     }
-                    val gpsAccuracy = nullableFiniteFloat(obj, "gps_accuracy")?.also {
-                        if (it < 0f) throw IllegalArgumentException("repair target GPS accuracy is invalid")
-                    }
-                    val heading = nullableFiniteFloat(obj, "heading")?.let {
-                        (it % 360f + 360f) % 360f
-                    }
-                    val captureSource = obj.optString("capture_source", "").take(40)
-                    val damageType = obj.optString("damage_type", "")
-                    if (damageType !in setOf("pothole_cavity", "failed_patch", "surface_breakup",
-                            "rut_or_depression", "other_road_damage")) {
-                        throw IllegalArgumentException("repair target damage type is invalid")
-                    }
-                    val condition = obj.optString("condition_status", "open")
-                    if (condition !in setOf("open", "repair_review", "fixed")) {
-                        throw IllegalArgumentException("repair target condition is invalid")
-                    }
-                    val lastDamageObservedRaw = obj.optDouble(
-                        "last_damage_observed_at", Double.NaN
+                    // Drive may start after this snapshot. That is safe: staging never
+                    // touches the current Room generation, and commit will abort if Drive
+                    // is active rather than switching files under live inference.
+                    repairTargetStage = RepairTargetStage(
+                        nextToken,
+                        ledger,
+                        NativeRepairTargetStageDirectory(staging)
                     )
-                    if (!lastDamageObservedRaw.isFinite() || lastDamageObservedRaw <= 0.0 ||
-                        lastDamageObservedRaw > Long.MAX_VALUE.toDouble()) {
-                        throw IllegalArgumentException(
-                            "repair target last damage observation is invalid"
-                        )
-                    }
-                    val lastDamageObservedAt = kotlin.math.floor(lastDamageObservedRaw).toLong()
-                    val decoded = decodeImageDataUrl(obj.optString("photo_data_url", ""))
-                    val extension = when (decoded.first) {
-                        "image/png" -> "png"
-                        "image/webp" -> "webp"
-                        "image/gif" -> "gif"
-                        else -> "jpg"
-                    }
-                    val evidence = File(generation, "target-$id.$extension")
-                    evidence.outputStream().use { it.write(decoded.second) }
-                    parsed.add(RepairTargetEntity(
-                        reportId = id,
-                        lat = lat,
-                        lng = lng,
-                        gpsAccuracy = gpsAccuracy,
-                        heading = heading,
-                        captureSource = captureSource,
-                        photoPath = evidence.absolutePath,
-                        photoMime = decoded.first,
-                        damageType = damageType,
-                        conditionStatus = condition,
-                        lastDamageObservedAt = lastDamageObservedAt
-                    ))
+                    nextToken
                 }
-
-                val db = PotholeDatabase.getDatabase(context)
-                var effectiveTargets = parsed.toList()
-                db.withTransaction {
-                    // An unacknowledged native observation is newer than the WebView
-                    // snapshot by definition. Preserve it if replacement runs before
-                    // IndexedDB has durably applied and acknowledged the outbox row.
-                    val pendingByTarget = db.repairObservationDao()
-                        .getUnsyncedObservations()
-                        .associateBy { it.targetReportId }
-                    effectiveTargets = parsed.map { target ->
-                        val pending = pendingByTarget[target.reportId]
-                        if (pending != null && pending.observedAt > target.lastDamageObservedAt &&
-                            pending.currentCondition in setOf("fixed", "repair_review")) {
-                            target.copy(
-                                conditionStatus = pending.currentCondition,
-                                lastObservedDriveId = pending.driveId,
-                                lastObservedAt = pending.observedAt
-                            )
-                        } else target
-                    }
-                    db.repairTargetDao().clearAll()
-                    if (effectiveTargets.isNotEmpty()) {
-                        db.repairTargetDao().insertTargets(effectiveTargets)
-                    }
-                }
-                // Room replacement is atomic. If Drive is active, retain the prior
-                // generation until the next idle refresh because an inference already
-                // in flight may still hold one of its photo paths.
-                val currentStatus = DriveForegroundService.status()
-                if (!currentStatus.isRunning && !currentStatus.isStopping) {
-                    root.listFiles()?.filter { it != generation }?.forEach { it.deleteRecursively() }
-                }
-                call.resolve(JSObject().apply { put("replaced", effectiveTargets.size) })
+                call.resolve(JSObject().apply {
+                    put("token", token)
+                    put("expected", ledger.expectedCount)
+                })
             } catch (error: Exception) {
-                generation.deleteRecursively()
-                call.reject("Failed to replace repair targets: ${error.message}")
+                call.reject("Failed to begin repair target sync: ${error.message}")
+            }
+        }
+    }
+
+    /** Accepts at most two Base64 photos, keeping bridge and decode memory bounded. */
+    @PluginMethod
+    fun appendRepairTargetBatch(call: PluginCall) {
+        val token = call.getString("token").orEmpty()
+        val offset = call.getInt("offset") ?: -1
+        val targetsArray = call.getArray("targets")
+        if (token.isBlank() || targetsArray == null) {
+            call.reject("Repair target staging token and batch are required")
+            return
+        }
+        // Reject before decoding: even a malformed/malicious caller must never make
+        // this method materialize more than the bridge's two-image memory budget.
+        if (targetsArray.length() !in 1..NativeRepairTargetStagingLedger.MAX_BATCH_ITEMS) {
+            call.reject("Repair target batch must contain 1 to ${NativeRepairTargetStagingLedger.MAX_BATCH_ITEMS} targets")
+            return
+        }
+        pluginScope.launch {
+            try {
+                val progress = NativeMediaFilesystemMutation.mutex.withLock {
+                    val stage = repairTargetStage?.takeIf { it.token == token }
+                        ?: throw IllegalStateException("repair target staging is not active")
+                    try {
+                        val decoded = (0 until targetsArray.length()).map { index ->
+                            val obj = targetsArray.getJSONObject(index)
+                            obj to decodeImageDataUrl(obj.optString("photo_data_url", ""))
+                        }
+                        val ids = decoded.map { it.first.optLong("id", -1L) }
+                        val imageSizes = decoded.map { it.second.second.size.toLong() }
+                        // This validates order, the two-item ceiling and all byte caps
+                        // before any file becomes part of the staged generation.
+                        stage.ledger.acceptBatch(offset, ids, imageSizes)
+                        val batchBytes = imageSizes.sum()
+                        val usable = context.filesDir.usableSpace
+                        if (usable < NativeMediaStorageQuota.MIN_FREE_BYTES ||
+                            batchBytes > usable - NativeMediaStorageQuota.MIN_FREE_BYTES) {
+                            throw IllegalStateException("at least 500 MB of free storage is required")
+                        }
+                        val parsed = decoded.map { (obj, image) ->
+                            val extension = when (image.first) {
+                                "image/png" -> "png"
+                                "image/webp" -> "webp"
+                                "image/gif" -> "gif"
+                                else -> "jpg"
+                            }
+                            val evidence = File(
+                                stage.directoryState.currentDirectory(),
+                                "target-${obj.optLong("id", -1L)}.$extension"
+                            )
+                            evidence.outputStream().use { it.write(image.second) }
+                            parseRepairTarget(obj, image.first, evidence)
+                        }
+                        stage.targets.addAll(parsed)
+                        stage.ledger.receivedCount
+                    } catch (error: Exception) {
+                        runCatching { discardRepairTargetStageLocked(stage) }
+                        throw error
+                    }
+                }
+                call.resolve(JSObject().apply { put("received", progress) })
+            } catch (error: Exception) {
+                call.reject("Failed to stage repair targets: ${error.message}")
+            }
+        }
+    }
+
+    /** Atomically switches Room only after every manifest id and image has arrived. */
+    @PluginMethod
+    fun commitRepairTargetSync(call: PluginCall) {
+        val token = call.getString("token").orEmpty()
+        if (token.isBlank()) {
+            call.reject("Repair target staging token is required")
+            return
+        }
+        pluginScope.launch {
+            try {
+                val replaced = NativeMediaFilesystemMutation.mutex.withLock {
+                    requireRepairTargetSyncIsIdle()
+                    val stage = repairTargetStage?.takeIf { it.token == token }
+                        ?: throw IllegalStateException("repair target staging is not active")
+                    try {
+                        stage.ledger.requireComplete()
+                        check(stage.targets.size == stage.ledger.expectedCount) {
+                            "repair target staging metadata is incomplete"
+                        }
+                        val root = File(context.filesDir, "repair_targets")
+                        val generation = File(root, "generation-${stage.token}")
+                        if (!stage.directoryState.finalizeAs(generation)) {
+                            throw IllegalStateException("could not finalize repair target staging")
+                        }
+                        val finalizedTargets = stage.targets.map { target ->
+                            target.copy(photoPath = File(
+                                generation, File(target.photoPath).name
+                            ).absolutePath)
+                        }
+                        val db = PotholeDatabase.getDatabase(context)
+                        var effectiveTargets = finalizedTargets
+                        db.withTransaction {
+                            // A native observation committed after the WebView snapshot is
+                            // newer. Preserve its state until IndexedDB applies and acks it.
+                            val pendingByTarget = db.repairObservationDao()
+                                .getUnsyncedObservations()
+                                .groupBy { it.targetReportId }
+                                .mapValues { (_, observations) ->
+                                    observations.maxByOrNull { it.observedAt }!!
+                                }
+                            effectiveTargets = finalizedTargets.map { target ->
+                                val pending = pendingByTarget[target.reportId]
+                                if (pending != null &&
+                                    pending.observedAt > target.lastDamageObservedAt &&
+                                    pending.currentCondition in setOf("fixed", "repair_review")) {
+                                    target.copy(
+                                        conditionStatus = pending.currentCondition,
+                                        lastObservedDriveId = pending.driveId,
+                                        lastObservedAt = pending.observedAt
+                                    )
+                                } else target
+                            }
+                            db.repairTargetDao().clearAll()
+                            if (effectiveTargets.isNotEmpty()) {
+                                db.repairTargetDao().insertTargets(effectiveTargets)
+                            }
+                        }
+                        repairTargetStage = null
+                        // Drive is required to be idle above, so no inference can hold a
+                        // path in the previous generation. Cleanup failure is recoverable
+                        // and reconciliation retries it; the atomic Room switch succeeded.
+                        var oldGenerationCleanupComplete = true
+                        val oldEntries = runCatching { root.listFiles() }.getOrNull()
+                        if (oldEntries == null) oldGenerationCleanupComplete = false
+                        else oldEntries.filter { it != generation }.forEach { old ->
+                                val removed = runCatching { deleteDirectoryVerified(old) }
+                                    .getOrDefault(false)
+                                if (!removed) oldGenerationCleanupComplete = false
+                        }
+                        if (!oldGenerationCleanupComplete) {
+                            NativeMediaReconciliationEpoch.invalidate()
+                        }
+                        effectiveTargets.size
+                    } catch (error: Exception) {
+                        runCatching { discardRepairTargetStageLocked(stage) }
+                        throw error
+                    }
+                }
+                call.resolve(JSObject().apply { put("replaced", replaced) })
+            } catch (error: Exception) {
+                call.reject("Failed to commit repair targets: ${error.message}")
+            }
+        }
+    }
+
+    @PluginMethod
+    fun abortRepairTargetSync(call: PluginCall) {
+        val token = call.getString("token").orEmpty()
+        pluginScope.launch {
+            try {
+                val aborted = NativeMediaFilesystemMutation.mutex.withLock {
+                    val stage = repairTargetStage?.takeIf { token.isBlank() || it.token == token }
+                        ?: return@withLock false
+                    discardRepairTargetStageLocked(stage)
+                    true
+                }
+                call.resolve(JSObject().apply { put("aborted", aborted) })
+            } catch (error: Exception) {
+                call.reject("Failed to abort repair target sync: ${error.message}")
             }
         }
     }
 
     @PluginMethod
     fun syncRepairObservations(call: PluginCall) {
+        val limit = (call.getInt("limit") ?: NativeBridgeImageBudget.MAX_BATCH_ITEMS)
+            .coerceIn(1, NativeBridgeImageBudget.MAX_BATCH_ITEMS)
         pluginScope.launch {
             try {
-                val observations = PotholeDatabase.getDatabase(context)
-                    .repairObservationDao().getUnsyncedObservations()
+                val dao = PotholeDatabase.getDatabase(context).repairObservationDao()
                 val array = JSArray()
-                observations.forEach { observation ->
-                    array.put(JSObject().apply {
-                        put("id", observation.id)
-                        put("target_report_id", observation.targetReportId)
-                        put("source_event_key", observation.sourceEventKey)
-                        put("observed_at", observation.observedAt)
-                        put("drive_id", observation.driveId)
-                        put("lat", observation.lat)
-                        put("lng", observation.lng)
-                        put("gps_accuracy", observation.gpsAccuracy)
-                        put("speed_mps", observation.speedMps)
-                        put("heading", observation.heading)
-                        put("current_photo_data_url", fileAsDataUrl(observation.currentPhotoPath))
-                        // Room records the resulting local status (fixed/review). The
-                        // WebView independently derives that status from the raw semantic
-                        // claim and assessment, so never ask it to trust a native label.
-                        put("current_condition", if (observation.currentCondition in
-                            setOf("fixed", "repair_review")) "repaired"
-                            else observation.currentCondition)
-                        put("assessment", observation.assessment)
-                        put("image_quality", observation.imageQuality)
-                        put("same_location_visible", observation.sameLocationVisible)
-                        put("completed_repair_visible", observation.completedRepairVisible)
-                        put("description", observation.description)
-                        put("detection_model", observation.detectionModel)
-                        put("image_detail", observation.imageDetail)
-                        put("prompt_version", observation.promptVersion)
-                        put("schema_version", observation.schemaVersion)
-                    })
-                }
+                val imageBudget = NativeBridgeImageBudget()
+                val reportsRoot = File(context.filesDir, "reports")
+                val page = NativeOutboxKeysetPager.collect(
+                    limit = limit,
+                    idOf = RepairObservationEntity::id,
+                    loadAfter = dao::getUnsyncedObservationsAfter,
+                    evaluate = { observation ->
+                        repairObservationBridgeObject(observation, reportsRoot, imageBudget)
+                    }
+                )
+                page.values.forEach(array::put)
                 call.resolve(JSObject().apply {
                     put("observations", array)
                     put("count", array.length())
+                    put("remaining", dao.countUnsyncedObservations())
+                    put("scanned", page.scanned)
+                    put("skipped", page.skipped)
+                    put("capacityReached", page.capacityReached)
                 })
             } catch (error: Exception) {
                 call.reject("Failed to sync repair observations: ${error.message}")
@@ -824,17 +935,39 @@ class DriveModePlugin : Plugin() {
         }
         pluginScope.launch {
             try {
-                if (ids.isNotEmpty()) {
-                    val distinctIds = ids.distinct()
-                    val dao = PotholeDatabase.getDatabase(context).repairObservationDao()
-                    val acknowledged = dao.getObservations(distinctIds)
-                    // IndexedDB has its own Blob now. Remove the durable outbox rows,
-                    // then best-effort remove their native copies so revisits do not
-                    // accumulate hidden JPEGs forever.
-                    dao.deleteObservations(distinctIds)
-                    acknowledged.forEach { runCatching { File(it.currentPhotoPath).delete() } }
+                val removed = NativeMediaFilesystemMutation.mutex.withLock {
+                    if (ids.isNotEmpty()) {
+                        val distinctIds = ids.distinct()
+                        val db = PotholeDatabase.getDatabase(context)
+                        val dao = db.repairObservationDao()
+                        val acknowledged = dao.getObservations(distinctIds)
+                        val acknowledgedIds = acknowledged.map { it.id }.distinct()
+                        if (acknowledgedIds.isEmpty()) return@withLock 0
+                        val reportsRoot = File(context.filesDir, "reports")
+                        val files = acknowledged.mapNotNull { observation ->
+                            runCatching {
+                                NativePrivateMediaFiles.descendant(
+                                    reportsRoot, observation.currentPhotoPath
+                                )
+                            }.getOrNull()
+                        }.distinctBy(File::getAbsolutePath)
+                        NativeAcknowledgementCommit.commitThenCleanup(
+                            expectedCount = acknowledgedIds.size,
+                            commit = {
+                                db.withTransaction {
+                                    val affected = dao.deleteObservations(acknowledgedIds)
+                                    check(affected == acknowledgedIds.size) {
+                                        "Room acknowledged $affected of ${acknowledgedIds.size} repair observations"
+                                    }
+                                    affected
+                                }
+                            },
+                            cleanup = { NativePrivateMediaFiles.deleteAll(files) },
+                            onCleanupIncomplete = { NativeMediaReconciliationEpoch.invalidate() }
+                        )
+                    } else 0
                 }
-                call.resolve(JSObject().apply { put("acknowledged", ids.distinct().size) })
+                call.resolve(JSObject().apply { put("acknowledged", removed) })
             } catch (error: Exception) {
                 call.reject("Failed to acknowledge repair observations: ${error.message}")
             }
@@ -857,29 +990,55 @@ class DriveModePlugin : Plugin() {
         val clearData = {
           pluginScope.launch {
             try {
-                val db = PotholeDatabase.getDatabase(context)
-                val reportsRoot = File(context.filesDir, "reports")
-                val footageRoot = File(context.filesDir, "footage")
-                val repairTargetsRoot = File(context.filesDir, "repair_targets")
-                if (reportsRoot.exists() && (!reportsRoot.deleteRecursively() || reportsRoot.exists())) {
-                    throw IllegalStateException("some report photos could not be deleted")
+                NativeMediaFilesystemMutation.mutex.withLock {
+                    val db = PotholeDatabase.getDatabase(context)
+                    val managedRoots = listOf(
+                        "report photos" to File(context.filesDir, "reports"),
+                        "Drive footage and saved frames" to File(context.filesDir, "footage"),
+                        "repair target photos" to File(context.filesDir, "repair_targets"),
+                        "shared evidence cache" to File(context.cacheDir, "pothole-reporter-shares")
+                    )
+                    val footageRoot = File(context.filesDir, "footage")
+                    val ledgerDeletion =
+                        DriveForegroundService.externalMediaDeletionRecorderIfReconciled()
+                    val footageBytesBefore = directoryBytes(footageRoot)
+                    try {
+                        val failed = managedRoots.filter { (_, root) ->
+                            root.exists() && (!root.deleteRecursively() || root.exists())
+                        }.map { it.first }
+                        if (failed.isNotEmpty()) {
+                            throw IllegalStateException(
+                                "could not delete ${failed.joinToString(", ")}"
+                            )
+                        }
+                        // The staging directory is part of repair_targets above. Do not
+                        // leave an in-memory gate pointing at a generation just deleted by
+                        // an explicit full-app wipe.
+                        repairTargetStage = null
+                        db.withTransaction {
+                            db.footageDao().clearAll()
+                            db.driveKeyframeDao().clearAll()
+                            db.eventSightingDao().clearAll()
+                            db.repairObservationDao().clearAll()
+                            db.repairTargetDao().clearAll()
+                            db.reportDao().clearAll()
+                            db.sessionDao().clearAll()
+                        }
+                        if (managedRoots.any { it.second.exists() }) {
+                            throw IllegalStateException("managed media remained after deletion")
+                        }
+                        NativeMediaReconciliationEpoch.invalidate()
+                    } finally {
+                        val removedBytes =
+                            (footageBytesBefore - directoryBytes(footageRoot)).coerceAtLeast(0L)
+                        ledgerDeletion?.invoke(removedBytes)
+                    }
                 }
-                if (footageRoot.exists() && (!footageRoot.deleteRecursively() || footageRoot.exists())) {
-                    throw IllegalStateException("some recorded footage could not be deleted")
-                }
-                if (repairTargetsRoot.exists() &&
-                    (!repairTargetsRoot.deleteRecursively() || repairTargetsRoot.exists())) {
-                    throw IllegalStateException("some repair target photos could not be deleted")
-                }
-                db.footageDao().clearAll()
-                db.driveKeyframeDao().clearAll()
-                db.eventSightingDao().clearAll()
-                db.repairObservationDao().clearAll()
-                db.repairTargetDao().clearAll()
-                db.reportDao().clearAll()
-                db.sessionDao().clearAll()
-                call.resolve()
+                call.resolve(JSObject().apply { put("cleared", true) })
             } catch (error: Exception) {
+                // Files may have been removed before a later verified deletion or Room
+                // operation failed. Force the next bridge inventory to repair that drift.
+                NativeMediaReconciliationEpoch.invalidate()
                 call.reject("Failed to clear native data: ${error.message}")
               }
           }
@@ -986,7 +1145,7 @@ class DriveModePlugin : Plugin() {
                 val array = JSArray()
                 frames.forEach { frame ->
                     val file = FootagePathPolicy.keyframeFile(sessionRoot, frame.filePath)
-                    if (!file.isFile) return@forEach
+                    if (!NativeKeyframeFiles.readSet(file).isComplete) return@forEach
                     array.put(JSObject().apply {
                         put("id", frame.id)
                         put("captureSeq", frame.captureSeq)
@@ -1028,16 +1187,38 @@ class DriveModePlugin : Plugin() {
                 requireDriveReplayIsIdle(frame.sessionId)
                 val sessionRoot = FootagePathPolicy.sessionDirectory(context.filesDir, frame.sessionId)
                 val file = FootagePathPolicy.keyframeFile(sessionRoot, frame.filePath)
-                if (!file.isFile || file.length() <= 0L || file.length() > MAX_KEYFRAME_IMAGE_BYTES) {
-                    throw IllegalStateException("Saved frame is unavailable")
+                val imageBudget = NativeBridgeImageBudget()
+                val stored = NativeKeyframeFiles.readSet(file)
+                if (!stored.isComplete) {
+                    throw IllegalStateException("Saved frame is incomplete")
                 }
-                val temporalContext = nearbyVideoFrameDataUrls(frame.capturedAtMs, frame.sessionId, db)
-                val before = temporalContext.filter { it.first < frame.capturedAtMs }
-                val after = temporalContext.filter { it.first > frame.capturedAtMs }
-                val photos = JSArray().apply {
-                    before.forEach { put(it.second) }
-                    put("data:image/jpeg;base64," + Base64.encodeToString(file.readBytes(), Base64.NO_WRAP))
-                    after.forEach { put(it.second) }
+                val storedPhotos = stored.files.map { owned ->
+                    fileAsDataUrl(owned.absolutePath, imageBudget)
+                        ?: throw IllegalStateException("Saved frame is unavailable or too large")
+                }
+                val photos = JSArray()
+                var primaryIndex = stored.primaryIndex
+                var hasTemporalContext = stored.hasTemporalContext
+                if (stored.hasTemporalContext) {
+                    storedPhotos.forEach { photos.put(it) }
+                } else {
+                    // Legacy rows contain one JPEG. They become valid temporal evidence
+                    // only when a genuine nearby video frame can be decoded; otherwise
+                    // Web detection receives one source view and fails closed.
+                    val evidence = storedPhotos.single()
+                    val videoContext = nearbyVideoFrameDataUrls(
+                        frame.capturedAtMs,
+                        frame.sessionId,
+                        db,
+                        imageBudget
+                    )
+                    val before = videoContext.filter { it.first < frame.capturedAtMs }
+                    val after = videoContext.filter { it.first > frame.capturedAtMs }
+                    before.forEach { photos.put(it.second) }
+                    photos.put(evidence)
+                    after.forEach { photos.put(it.second) }
+                    primaryIndex = before.size
+                    hasTemporalContext = videoContext.isNotEmpty()
                 }
                 call.resolve(JSObject().apply {
                     put("id", frame.id)
@@ -1051,10 +1232,8 @@ class DriveModePlugin : Plugin() {
                     put("speedMps", frame.speedMps)
                     put("heading", frame.heading)
                     put("photos", photos)
-                    // Video context is ordered before/evidence/after. The WebView keeps
-                    // the evidence frame as the primary image while the model can use
-                    // motion/parallax to reject raised speed breakers.
-                    put("primaryIndex", before.size)
+                    put("primaryIndex", primaryIndex)
+                    put("hasTemporalContext", hasTemporalContext)
                 })
             } catch (error: Exception) {
                 call.reject("Failed to read saved frame: ${error.message}")
@@ -1139,33 +1318,67 @@ class DriveModePlugin : Plugin() {
         }
         pluginScope.launch {
             try {
-                val dao = PotholeDatabase.getDatabase(context).footageDao()
-                val segments = dao.getSegmentsForSession(requestedSession)
-                // Resolve and validate every target first. A corrupt database row must
-                // not cause a partial deletion before an out-of-scope path is noticed.
-                val sessionRoot = FootagePathPolicy.sessionDirectory(context.filesDir, requestedSession)
-                val segmentFiles = segments.map {
-                    FootagePathPolicy.segmentFile(sessionRoot, it.filePath)
-                }
                 var deleted = 0
-                val failed = segmentFiles.filter { file ->
-                    if (!file.exists()) false else if (file.delete()) { deleted++; false } else true
+                NativeMediaFilesystemMutation.mutex.withLock {
+                    val liveStatus = DriveForegroundService.status()
+                    if ((liveStatus.isRunning || liveStatus.isStopping) &&
+                        liveStatus.sessionId == requestedSession) {
+                        throw IllegalStateException("Stop this drive before deleting its footage")
+                    }
+                    val db = PotholeDatabase.getDatabase(context)
+                    val dao = db.footageDao()
+                    val segments = dao.getSegmentsForSession(requestedSession)
+                    // Resolve and validate every target before deleting anything. Room
+                    // reads, filesystem mutation, quota credit and row deletion share the
+                    // same process-wide lock as the camera's first storage inventory.
+                    val sessionRoot =
+                        FootagePathPolicy.sessionDirectory(context.filesDir, requestedSession)
+                    val segmentFiles = segments.map {
+                        FootagePathPolicy.segmentFile(sessionRoot, it.filePath)
+                    }
+                    val ledgerDeletion =
+                        DriveForegroundService.externalMediaDeletionRecorderIfReconciled()
+                    val mediaBytesBefore = directoryBytes(sessionRoot)
+                    try {
+                        val failed = segmentFiles.filter { file ->
+                            if (!file.exists()) false else if (file.delete()) {
+                                deleted++
+                                false
+                            } else true
+                        }
+                        if (failed.isNotEmpty()) {
+                            throw IllegalStateException(
+                                "${failed.size} video clip(s) could not be deleted"
+                            )
+                        }
+                        if (sessionRoot.exists() &&
+                            (!sessionRoot.deleteRecursively() || sessionRoot.exists())) {
+                            throw IllegalStateException("the footage folder could not be deleted")
+                        }
+                        db.withTransaction {
+                            db.footageDao().deleteForSession(requestedSession)
+                            db.driveKeyframeDao().deleteForSession(requestedSession)
+                        }
+                    } finally {
+                        val removedBytes =
+                            (mediaBytesBefore - directoryBytes(sessionRoot)).coerceAtLeast(0L)
+                        ledgerDeletion?.invoke(removedBytes)
+                    }
                 }
-                if (failed.isNotEmpty()) {
-                    throw IllegalStateException("${failed.size} video clip(s) could not be deleted")
-                }
-                if (sessionRoot.exists() && (!sessionRoot.deleteRecursively() || sessionRoot.exists())) {
-                    throw IllegalStateException("the footage folder could not be deleted")
-                }
-                dao.deleteForSession(requestedSession)
-                PotholeDatabase.getDatabase(context).driveKeyframeDao()
-                    .deleteForSession(requestedSession)
                 call.resolve(JSObject().apply { put("deleted", deleted) })
             } catch (error: Exception) {
+                NativeMediaReconciliationEpoch.invalidate()
                 call.reject("Failed to delete footage: ${error.message}")
             }
         }
     }
+
+    private fun directoryBytes(root: File): Long = root.walkTopDown()
+        .filter(File::isFile)
+        .fold(0L) { total, file ->
+            val length = file.length().coerceAtLeast(0L)
+            if (Long.MAX_VALUE - total < length) Long.MAX_VALUE else total + length
+        }
 
     private fun parseJsonArray(json: String): JSArray {
         val arr = JSArray()
@@ -1178,7 +1391,10 @@ class DriveModePlugin : Plugin() {
         return arr
     }
 
-    private suspend fun reconcileNativeState(db: PotholeDatabase) {
+    private suspend fun reconcileNativeState(
+        db: PotholeDatabase,
+        progress: NativeMediaReconciliationProgress
+    ) {
         val serviceStatus = DriveForegroundService.status()
         val activeSessionId = serviceStatus.sessionId
             ?.takeIf { serviceStatus.isRunning || serviceStatus.isStopping }
@@ -1186,30 +1402,218 @@ class DriveModePlugin : Plugin() {
         if (activeSessionId == null) db.sessionDao().markAllStaleInterrupted(now)
         else db.sessionDao().markOtherStaleInterrupted(activeSessionId, now)
 
+        val reportsRoot = File(context.filesDir, "reports")
+        val referencedReportPhotos = HashSet<String>()
+        val syncedRowsReadyToScrub = mutableListOf<Long>()
+        // Reconciliation needs paths and sync state only. Do not hydrate every stored
+        // Base64 thumbnail when a long drive history is opened.
+        for (report in db.reportDao().getAllReportMediaRefs()) {
+            val managed = listOfNotNull(report.photoPath, report.photoFullPath)
+                .mapNotNull { path ->
+                    runCatching {
+                        NativePrivateMediaFiles.descendant(reportsRoot, path)
+                    }.getOrNull()
+                }
+                .distinctBy(File::getAbsolutePath)
+            if (report.syncedToWeb) {
+                if (NativePrivateMediaFiles.deleteAll(managed)) {
+                    syncedRowsReadyToScrub.add(report.id)
+                } else {
+                    progress.markCleanupIncomplete()
+                    managed.filter(File::isFile).mapTo(referencedReportPhotos) {
+                        it.canonicalPath
+                    }
+                }
+            } else {
+                managed.filter(File::isFile).mapTo(referencedReportPhotos) {
+                    it.canonicalPath
+                }
+            }
+        }
+        if (syncedRowsReadyToScrub.isNotEmpty()) {
+            db.reportDao().acknowledgeAndReleasePhotos(syncedRowsReadyToScrub)
+        }
+
+        // A repair observation without its current image can never be transferred to
+        // IndexedDB. Remove that broken outbox row and reopen only the exact target state
+        // that row had changed; a newer observation must win.
+        val staleObservations = mutableListOf<dev.aiengg.potholereporter.db.RepairObservationEntity>()
+        for (observation in db.repairObservationDao().getUnsyncedObservations()) {
+            val file = runCatching {
+                NativePrivateMediaFiles.descendant(reportsRoot, observation.currentPhotoPath)
+            }.getOrNull()
+            if (file == null || !file.isFile) staleObservations.add(observation)
+            else referencedReportPhotos.add(file.canonicalPath)
+        }
+        if (staleObservations.isNotEmpty()) db.withTransaction {
+            staleObservations.forEach { observation ->
+                val target = db.repairTargetDao().getTarget(observation.targetReportId)
+                if (target?.lastObservedDriveId == observation.driveId &&
+                    target.lastObservedAt == observation.observedAt) {
+                    db.repairTargetDao().updateTarget(target.copy(
+                        conditionStatus = "open",
+                        lastObservedDriveId = null,
+                        lastObservedAt = null
+                    ))
+                }
+            }
+            db.repairObservationDao().deleteObservations(staleObservations.map { it.id })
+        }
+
+        if (reportsRoot.isDirectory) {
+            val protected = activeSessionId?.let { File(reportsRoot, it).canonicalFile }
+            reportsRoot.walkTopDown().filter(File::isFile).toList().forEach { file ->
+                val canonical = runCatching { file.canonicalFile }.getOrNull()
+                if (canonical == null) {
+                    progress.markCleanupIncomplete()
+                    return@forEach
+                }
+                val protectedNow = protected != null &&
+                    NativePrivateMediaFiles.contains(protected, canonical)
+                if (canonical.canonicalPath !in referencedReportPhotos) {
+                    if (protectedNow) {
+                        // A write or Room ownership hand-off may still be in flight. Do
+                        // not delete it, but do not close the retry gate over it either.
+                        progress.markCleanupIncomplete()
+                    } else {
+                        progress.deleteFileVerified(canonical)
+                    }
+                }
+            }
+            reportsRoot.walkBottomUp()
+                .filter { it.isDirectory && it != reportsRoot }
+                .filter { directory ->
+                    protected == null || !NativePrivateMediaFiles.contains(protected, directory)
+                }
+                .forEach { directory -> deleteEmptyDirectoryVerified(directory, progress) }
+        } else if (reportsRoot.exists()) {
+            progress.markCleanupIncomplete()
+        }
+
+        val repairTargetsRoot = File(context.filesDir, "repair_targets")
+        val activeStage = repairTargetStage
+        val activeStageDirectory = activeStage?.directoryState?.currentDirectory()?.let {
+            runCatching { it.canonicalFile }.getOrNull()
+        }
+        if (activeStage != null && activeStageDirectory == null) {
+            progress.markCleanupIncomplete()
+        }
+        val activeStagePath = activeStageDirectory?.canonicalPath
+        val repairRootEntries = when {
+            !repairTargetsRoot.exists() -> emptyArray()
+            !repairTargetsRoot.isDirectory -> {
+                progress.markCleanupIncomplete()
+                emptyArray()
+            }
+            else -> runCatching { repairTargetsRoot.listFiles() }.getOrNull().also {
+                if (it == null) progress.markCleanupIncomplete()
+            } ?: emptyArray()
+        }
+        if (activeStage == null || activeStageDirectory != null) {
+            repairRootEntries
+                .filter { it.isDirectory && it.name.startsWith(".staging-") }
+                .filter { runCatching { it.canonicalPath }.getOrNull() != activeStagePath }
+                .forEach { stale ->
+                    if (!deleteDirectoryVerified(stale)) {
+                        throw IllegalStateException("could not remove incomplete repair staging")
+                    }
+                }
+        }
+        val validRepairTargetPaths = HashSet<String>()
+        val invalidRepairTargetIds = mutableListOf<Long>()
+        for (target in db.repairTargetDao().getAllTargets()) {
+            val file = runCatching {
+                NativePrivateMediaFiles.descendant(repairTargetsRoot, target.photoPath)
+            }.getOrNull()
+            if (file == null || !file.isFile) invalidRepairTargetIds.add(target.reportId)
+            else validRepairTargetPaths.add(file.canonicalPath)
+        }
+        if (invalidRepairTargetIds.isNotEmpty()) {
+            db.repairTargetDao().deleteTargets(invalidRepairTargetIds)
+        }
+        // During Drive an inference may still hold a path from the previous generation.
+        // Idle reconciliation can safely remove every unreferenced cache image.
+        val activeStageResolved = activeStage == null || activeStageDirectory != null
+        if (repairTargetsRoot.isDirectory && activeStageResolved) {
+            val unreferencedRepairFiles = repairTargetsRoot.walkTopDown()
+                .filter(File::isFile)
+                .mapNotNull { file ->
+                    runCatching { file.canonicalFile }.getOrNull().also {
+                        if (it == null) progress.markCleanupIncomplete()
+                    }
+                }
+                .filter { it.canonicalPath !in validRepairTargetPaths }
+                .filter { canonical ->
+                    activeStageDirectory == null ||
+                        !NativePrivateMediaFiles.contains(activeStageDirectory, canonical)
+                }
+                .toList()
+            if (activeSessionId != null && unreferencedRepairFiles.isNotEmpty()) {
+                // Inference can still hold an old-generation path. Keep the retry gate
+                // open so the first idle inventory removes it.
+                progress.markCleanupIncomplete()
+            } else if (activeSessionId == null) unreferencedRepairFiles.forEach { canonical ->
+                progress.deleteFileVerified(canonical)
+            }
+        }
+        if (activeSessionId == null && repairTargetsRoot.isDirectory && activeStageResolved) {
+            repairTargetsRoot.walkBottomUp()
+                .filter { it.isDirectory && it != repairTargetsRoot }
+                .filter { directory ->
+                    activeStageDirectory == null ||
+                        !NativePrivateMediaFiles.contains(activeStageDirectory, directory)
+                }
+                .forEach { directory -> deleteEmptyDirectoryVerified(directory, progress) }
+        }
+
         val indexed = db.footageDao().getAllSegments()
         indexed.filter { !File(it.filePath).isFile }.forEach { db.footageDao().deleteSegment(it.id) }
         val indexedPaths = indexed.filter { File(it.filePath).isFile }.mapTo(HashSet()) { it.filePath }
         // Stale rows must be removed even when Android has already removed the whole
         // footage directory (for example after storage cleanup outside the app).
         val indexedKeyframes = db.driveKeyframeDao().getAll()
-        indexedKeyframes.filter { frame ->
-            runCatching {
+        val validKeyframeFiles = HashMap<Long, List<File>>()
+        indexedKeyframes.forEach { frame ->
+            val owned = runCatching {
                 val root = FootagePathPolicy.sessionDirectory(context.filesDir, frame.sessionId)
-                !FootagePathPolicy.keyframeFile(root, frame.filePath).isFile
-            }.getOrDefault(true)
-        }.forEach { db.driveKeyframeDao().deleteKeyframe(it.id) }
-        val indexedKeyframePaths = indexedKeyframes
-            .filter { File(it.filePath).isFile }
-            .mapTo(HashSet()) { it.filePath }
+                val primary = FootagePathPolicy.keyframeFile(root, frame.filePath)
+                NativeKeyframeFiles.readSet(primary).takeIf { it.isComplete }?.files
+            }.getOrNull()
+            if (owned == null) db.driveKeyframeDao().deleteKeyframe(frame.id)
+            else validKeyframeFiles[frame.id] = owned
+        }
+        val indexedKeyframePaths = validKeyframeFiles.values.flatten()
+            .mapTo(HashSet()) { it.absolutePath }
         val footageRoot = File(context.filesDir, "footage")
-        if (!footageRoot.isDirectory) return
-        val orphanFiles = footageRoot.walkTopDown()
+        if (!footageRoot.exists()) return
+        if (!footageRoot.isDirectory) {
+            progress.markCleanupIncomplete()
+            return
+        }
+        val unindexedVideoFiles = footageRoot.walkTopDown()
             .filter { it.isFile && it.extension.equals("mp4", ignoreCase = true) }
             .filter { it.absolutePath !in indexedPaths }
-            .filter { it.parentFile?.name != activeSessionId }
             .toList()
+        if (activeSessionId != null &&
+            unindexedVideoFiles.any { it.parentFile?.name == activeSessionId }) {
+            // Includes the current recorder output and a finalized segment whose Room
+            // ownership hand-off is still running. Revisit it after Drive ends.
+            progress.markCleanupIncomplete()
+        }
+        val orphanFiles = unindexedVideoFiles.filter {
+            it.parentFile?.name != activeSessionId
+        }
         for (file in orphanFiles) {
-            if (file.delete()) continue
+            val existed = file.isFile
+            val bytes = if (existed) file.length().coerceAtLeast(0L) else 0L
+            val removed = runCatching {
+                if (file.exists()) file.delete()
+                !file.exists()
+            }.getOrDefault(false)
+            if (removed) {
+                if (existed) progress.recordFootageDeletion(bytes)
+                continue
+            }
             val orphanSessionId = file.parentFile?.name ?: "interrupted-${file.lastModified()}"
             if (db.sessionDao().getSession(orphanSessionId) == null) {
                 db.sessionDao().insertSession(SessionEntity(
@@ -1235,25 +1639,63 @@ class DriveModePlugin : Plugin() {
         // Such files have no GPS/timing identity and cannot be replayed safely. Temporary
         // files are likewise never valid evidence. Avoid the active session while its
         // write transaction may still be in flight.
-        footageRoot.walkTopDown()
+        val unownedKeyframeFiles = footageRoot.walkTopDown()
             .filter(File::isFile)
             .filter { it.parentFile?.name == "keyframes" }
-            .filter { it.parentFile?.parentFile?.name != activeSessionId }
             .filter { it.extension.equals("tmp", ignoreCase = true) ||
                 (it.extension.equals("jpg", ignoreCase = true) && it.absolutePath !in indexedKeyframePaths) }
             .toList()
-            .forEach { runCatching { it.delete() } }
-        footageRoot.walkBottomUp()
-            .filter { it.isDirectory && it != footageRoot }
-            .forEach { directory -> if (directory.listFiles().isNullOrEmpty()) directory.delete() }
+        if (activeSessionId != null && unownedKeyframeFiles.any {
+                it.parentFile?.parentFile?.name == activeSessionId
+            }) {
+            progress.markCleanupIncomplete()
+        }
+        unownedKeyframeFiles
+            .filter { it.parentFile?.parentFile?.name != activeSessionId }
+            .forEach { progress.deleteFileVerified(it, footage = true) }
+        val activeFootageSession = activeSessionId?.let { sessionId ->
+            runCatching {
+                FootagePathPolicy.sessionDirectory(context.filesDir, sessionId).canonicalFile
+            }.getOrNull()
+        }
+        if (activeSessionId != null && activeFootageSession == null) {
+            progress.markCleanupIncomplete()
+        } else {
+            footageRoot.walkBottomUp()
+                .filter { it.isDirectory && it != footageRoot }
+                .filter { directory ->
+                    activeFootageSession == null ||
+                        !NativePrivateMediaFiles.contains(activeFootageSession, directory)
+                }
+                .forEach { directory -> deleteEmptyDirectoryVerified(directory, progress) }
+        }
     }
 
     private suspend fun reconcileNativeStateOnce(db: PotholeDatabase) {
-        if (nativeStateReconciled) return
+        val requestedEpoch = NativeMediaReconciliationEpoch.snapshot()
+        if (nativeStateReconciledEpoch == requestedEpoch) return
         nativeStateReconcileMutex.withLock {
-            if (nativeStateReconciled) return@withLock
-            reconcileNativeState(db)
-            nativeStateReconciled = true
+            val passEpoch = NativeMediaReconciliationEpoch.snapshot()
+            if (nativeStateReconciledEpoch == passEpoch) return@withLock
+            NativeMediaFilesystemMutation.mutex.withLock {
+                val progress = NativeMediaReconciliationProgress()
+                val ledgerDeletion =
+                    DriveForegroundService.externalMediaDeletionRecorderIfReconciled()
+                try {
+                    reconcileNativeState(db, progress)
+                    // Only a fully verified pass with an unchanged producer epoch closes
+                    // the gate. A concurrent Drive start/end or cleanup failure cannot be
+                    // overwritten by this older pass.
+                    nativeStateReconciledEpoch = if (progress.cleanupComplete &&
+                        NativeMediaReconciliationEpoch.isCurrent(passEpoch)) {
+                        passEpoch
+                    } else {
+                        Long.MIN_VALUE
+                    }
+                } finally {
+                    ledgerDeletion?.invoke(progress.deletedFootageBytes)
+                }
+            }
         }
     }
 
@@ -1305,12 +1747,15 @@ class DriveModePlugin : Plugin() {
         put("keyframeCount", status.keyframeCount)
         put("remainingMs", status.remainingMs)
         put("maxDurationMinutes", status.maxDurationMinutes)
+        put("captureBlocked", status.captureBlocked)
+        put("captureIssue", status.captureIssue)
     }
 
     private suspend fun nearbyVideoFrameDataUrls(
         capturedAtMs: Long,
         sessionId: String,
-        db: PotholeDatabase
+        db: PotholeDatabase,
+        imageBudget: NativeBridgeImageBudget
     ): List<Pair<Long, String>> = withContext(Dispatchers.IO) {
         val contextOffsetMs = 900L
         val targetTimes = listOf(capturedAtMs - contextOffsetMs, capturedAtMs + contextOffsetMs)
@@ -1374,9 +1819,11 @@ class DriveModePlugin : Plugin() {
                             }
                             stream.toByteArray()
                         }
-                        results += targetMs to (
-                            "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
-                        )
+                        if (imageBudget.claimRawBytes(bytes.size.toLong())) {
+                            results += targetMs to (
+                                "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
+                            )
+                        }
                     } catch (_: Exception) {
                         // Keep the evidence keyframe usable when either temporal sample
                         // is unavailable or a device decoder rejects this clip.
@@ -1405,10 +1852,213 @@ class DriveModePlugin : Plugin() {
         put("reason", summary.reason)
     }
 
-    private fun fileAsDataUrl(path: String?): String? {
+    private sealed class BridgeImageSource {
+        data class JpegFile(
+            val file: File,
+            val expectedBytes: Long
+        ) : BridgeImageSource()
+
+        data class JpegDataUrl(
+            val expectedChars: Long,
+            val load: suspend () -> String?
+        ) : BridgeImageSource()
+    }
+
+    /**
+     * Reserves every image in one outbox record before allocating any image bytes. A
+     * corrupt/read-raced record rolls its entire reservation back; a record that could
+     * fit an empty bridge page but not the current one stops paging without being lost.
+     */
+    private suspend fun <T> bridgeImageRecord(
+        sources: List<BridgeImageSource>,
+        imageBudget: NativeBridgeImageBudget,
+        build: (List<String>) -> T
+    ): NativeOutboxCandidate<T> {
+        if (sources.isEmpty()) return NativeOutboxCandidate.Invalid
+        val claims = sources.map { source ->
+            when (source) {
+                is BridgeImageSource.JpegFile ->
+                    imageBudget.rawImageClaim(source.expectedBytes)
+                is BridgeImageSource.JpegDataUrl ->
+                    imageBudget.dataUrlClaim(source.expectedChars)
+            } ?: return NativeOutboxCandidate.Invalid
+        }
+        if (!imageBudget.canEverReserve(claims)) return NativeOutboxCandidate.Invalid
+        val reservation = imageBudget.reserve(claims)
+            ?: return NativeOutboxCandidate.CapacityReached
+        return try {
+            val images = ArrayList<String>(sources.size)
+            for (source in sources) {
+                val image = when (source) {
+                    is BridgeImageSource.JpegFile -> {
+                        val bytes = NativeBridgeJpeg.readExact(
+                            source.file,
+                            source.expectedBytes,
+                            NativeStoredImagePolicy.MAX_BRIDGE_IMAGE_BYTES
+                        ) ?: return NativeOutboxCandidate.Invalid
+                        "data:image/jpeg;base64," +
+                            Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    }
+                    is BridgeImageSource.JpegDataUrl -> {
+                        val value = source.load() ?: return NativeOutboxCandidate.Invalid
+                        if (value.length.toLong() != source.expectedChars ||
+                            !isValidBridgeJpegDataUrl(value)) {
+                            return NativeOutboxCandidate.Invalid
+                        }
+                        value
+                    }
+                }
+                images += image
+            }
+            val value = build(images)
+            reservation.commit()
+            NativeOutboxCandidate.Accepted(value)
+        } finally {
+            reservation.close()
+        }
+    }
+
+    private fun isValidBridgeJpegDataUrl(value: String): Boolean {
+        val prefix = "data:image/jpeg;base64,"
+        if (!value.startsWith(prefix) || value.length <= prefix.length) return false
+        val bytes = try {
+            Base64.decode(value.substring(prefix.length), Base64.DEFAULT)
+        } catch (_: IllegalArgumentException) {
+            return false
+        }
+        return bytes.size.toLong() <= NativeStoredImagePolicy.MAX_BRIDGE_IMAGE_BYTES &&
+            NativeBridgeJpeg.isPlausibleJpeg(bytes)
+    }
+
+    private suspend fun reportBridgeObject(
+        report: ReportSyncCandidate,
+        dao: ReportDao,
+        reportsRoot: File,
+        imageBudget: NativeBridgeImageBudget
+    ): NativeOutboxCandidate<JSObject> {
+        val thumbnailChars = report.photoDataUrlChars
+            ?.takeIf { it > 0L }
+            ?: return NativeOutboxCandidate.Invalid
+
+        // Full-resolution evidence is mandatory for a native report. Never let the
+        // WebView's thumbnail fallback hide a missing, outside-root, corrupt, or
+        // oversized file; thumbnail-only legacy rows remain quarantined in Room.
+        val requiredFullPath = report.photoFullPath?.takeIf(String::isNotBlank)
+            ?: report.photoPath?.takeIf(String::isNotBlank)
+            ?: return NativeOutboxCandidate.Invalid
+        val fullFile = runCatching {
+            NativePrivateMediaFiles.descendant(reportsRoot, requiredFullPath)
+        }.getOrNull()?.takeIf(File::isFile) ?: return NativeOutboxCandidate.Invalid
+        val managedPhotoPath = report.photoPath?.takeIf(String::isNotBlank)?.let { path ->
+            runCatching { NativePrivateMediaFiles.descendant(reportsRoot, path) }
+                .getOrNull()
+                ?.takeIf(File::isFile)
+                ?.absolutePath
+        }
+
+        val sources = listOf<BridgeImageSource>(
+            BridgeImageSource.JpegDataUrl(thumbnailChars) {
+                dao.getUnsyncedReportPhotoDataUrl(report.id)
+            },
+            BridgeImageSource.JpegFile(fullFile, fullFile.length())
+        )
+        return bridgeImageRecord(sources, imageBudget) { images ->
+            JSObject().apply {
+                put("id", report.id)
+                put("created_at", report.createdAt)
+                put("lat", report.lat)
+                put("lng", report.lng)
+                put("address", report.address)
+                put("photo_data_url", images[0])
+                put("photo_path", managedPhotoPath)
+                put("photo_full_data_url", images[1])
+                put("is_reportable", report.isReportable)
+                put("is_pothole", report.isPothole)
+                put("looks_like_speed_breaker", report.looksLikeSpeedBreaker)
+                put("damage_type", report.damageType)
+                put("surface_type", report.surfaceType)
+                put("defect_type", report.defectType)
+                put("measurement_provenance", report.measurementProvenance)
+                put("measurement_confidence", report.measurementConfidence)
+                put("assessment", report.assessment)
+                put("image_quality", report.imageQuality)
+                put("on_drivable_surface", report.onDrivableSurface)
+                put("has_localized_cavity", report.hasLocalizedCavity)
+                put("has_broken_edge_or_rim", report.hasBrokenEdgeOrRim)
+                put("has_depth_or_surface_loss", report.hasDepthOrSurfaceLoss)
+                put("temporal_consistency", report.temporalConsistency)
+                put("size", report.size)
+                put("decision", report.decision)
+                put("description", report.description)
+                put("email_subject", report.emailSubject)
+                put("email_body", report.emailBody)
+                put("status", report.status)
+                put("detection_model", report.detectionModel)
+                put("image_detail", report.imageDetail)
+                put("prompt_version", report.promptVersion)
+                put("schema_version", report.schemaVersion)
+                put("evidence_count", report.evidenceCount)
+                put("drive_id", report.driveId)
+                put("capture_source", report.captureSource)
+                put("source_event_key", report.sourceEventKey)
+                put("captured_at", report.capturedAt)
+                put("source_offset_s", report.sourceOffsetS)
+                put("gps_accuracy", report.gpsAccuracy)
+                put("speed_mps", report.speedMps)
+                put("heading", report.heading)
+                put("seen_count", report.seenCount)
+                put("last_seen_at", report.lastSeenAt)
+                put("primary_frame_index", report.primaryFrameIndex)
+                put("debug_capture", report.debugCapture)
+            }
+        }
+    }
+
+    private suspend fun repairObservationBridgeObject(
+        observation: RepairObservationEntity,
+        reportsRoot: File,
+        imageBudget: NativeBridgeImageBudget
+    ): NativeOutboxCandidate<JSObject> {
+        val file = runCatching {
+            NativePrivateMediaFiles.descendant(reportsRoot, observation.currentPhotoPath)
+        }.getOrNull()?.takeIf(File::isFile) ?: return NativeOutboxCandidate.Invalid
+        return bridgeImageRecord(
+            listOf(BridgeImageSource.JpegFile(file, file.length())),
+            imageBudget
+        ) { images ->
+            JSObject().apply {
+                put("id", observation.id)
+                put("target_report_id", observation.targetReportId)
+                put("source_event_key", observation.sourceEventKey)
+                put("observed_at", observation.observedAt)
+                put("drive_id", observation.driveId)
+                put("lat", observation.lat)
+                put("lng", observation.lng)
+                put("gps_accuracy", observation.gpsAccuracy)
+                put("speed_mps", observation.speedMps)
+                put("heading", observation.heading)
+                put("current_photo_data_url", images[0])
+                // The WebView derives its durable status from the semantic evidence.
+                put("current_condition", if (observation.currentCondition in
+                    setOf("fixed", "repair_review")) "repaired"
+                    else observation.currentCondition)
+                put("assessment", observation.assessment)
+                put("image_quality", observation.imageQuality)
+                put("same_location_visible", observation.sameLocationVisible)
+                put("completed_repair_visible", observation.completedRepairVisible)
+                put("description", observation.description)
+                put("detection_model", observation.detectionModel)
+                put("image_detail", observation.imageDetail)
+                put("prompt_version", observation.promptVersion)
+                put("schema_version", observation.schemaVersion)
+            }
+        }
+    }
+
+    private fun fileAsDataUrl(path: String?, imageBudget: NativeBridgeImageBudget): String? {
         if (path.isNullOrBlank()) return null
         val file = File(path)
-        if (!file.isFile || file.length() > 8L * 1024 * 1024) return null
+        if (!file.isFile || !imageBudget.claimRawBytes(file.length())) return null
         return "data:image/jpeg;base64," + Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
     }
 
@@ -1421,8 +2071,92 @@ class DriveModePlugin : Plugin() {
         return value.toFloat()
     }
 
+    private fun requireRepairTargetSyncIsIdle() {
+        val status = DriveForegroundService.status()
+        val driveStarting = synchronized(pendingStartLock) { pendingStart != null }
+        check(!driveStarting && !status.isRunning && !status.isStopping) {
+            "stop Drive before refreshing repair history"
+        }
+    }
+
+    private fun deleteDirectoryVerified(directory: File): Boolean =
+        !directory.exists() || (directory.deleteRecursively() && !directory.exists())
+
+    private fun deleteEmptyDirectoryVerified(
+        directory: File,
+        progress: NativeMediaReconciliationProgress
+    ) {
+        if (!directory.exists()) return
+        val children = runCatching { directory.listFiles() }.getOrNull()
+        if (children == null) {
+            progress.markCleanupIncomplete()
+        } else if (children.isEmpty() &&
+            !(directory.delete() && !directory.exists())) {
+            progress.markCleanupIncomplete()
+        }
+    }
+
+    /** Must be called while [NativeMediaFilesystemMutation.mutex] is held. */
+    private fun discardRepairTargetStageLocked(stage: RepairTargetStage) {
+        if (!deleteDirectoryVerified(stage.directoryState.currentDirectory())) {
+            throw IllegalStateException("could not remove incomplete repair staging")
+        }
+        if (repairTargetStage === stage) repairTargetStage = null
+    }
+
+    private fun parseRepairTarget(
+        obj: JSONObject,
+        photoMime: String,
+        evidence: File
+    ): RepairTargetEntity {
+        val id = obj.optLong("id", -1L)
+        if (id <= 0L) throw IllegalArgumentException("repair target id is invalid")
+        val lat = obj.optDouble("lat", Double.NaN)
+        val lng = obj.optDouble("lng", Double.NaN)
+        if (!lat.isFinite() || !lng.isFinite() || kotlin.math.abs(lat) > 90 ||
+            kotlin.math.abs(lng) > 180) {
+            throw IllegalArgumentException("repair target location is invalid")
+        }
+        val gpsAccuracy = nullableFiniteFloat(obj, "gps_accuracy")?.also {
+            if (it < 0f) throw IllegalArgumentException("repair target GPS accuracy is invalid")
+        }
+        val heading = nullableFiniteFloat(obj, "heading")?.let {
+            (it % 360f + 360f) % 360f
+        }
+        val captureSource = obj.optString("capture_source", "").take(40)
+        val damageType = obj.optString("damage_type", "")
+        if (damageType !in setOf(
+                "pothole_cavity", "failed_patch", "surface_breakup",
+                "rut_or_depression", "other_road_damage"
+            )) {
+            throw IllegalArgumentException("repair target damage type is invalid")
+        }
+        val condition = obj.optString("condition_status", "open")
+        if (condition !in setOf("open", "repair_review", "fixed")) {
+            throw IllegalArgumentException("repair target condition is invalid")
+        }
+        val lastDamageObservedRaw = obj.optDouble("last_damage_observed_at", Double.NaN)
+        if (!lastDamageObservedRaw.isFinite() || lastDamageObservedRaw <= 0.0 ||
+            lastDamageObservedRaw > Long.MAX_VALUE.toDouble()) {
+            throw IllegalArgumentException("repair target last damage observation is invalid")
+        }
+        return RepairTargetEntity(
+            reportId = id,
+            lat = lat,
+            lng = lng,
+            gpsAccuracy = gpsAccuracy,
+            heading = heading,
+            captureSource = captureSource,
+            photoPath = evidence.absolutePath,
+            photoMime = photoMime,
+            damageType = damageType,
+            conditionStatus = condition,
+            lastDamageObservedAt = kotlin.math.floor(lastDamageObservedRaw).toLong()
+        )
+    }
+
     private fun decodeImageDataUrl(value: String): Pair<String, ByteArray> {
-        if (value.length > MAX_REPAIR_TARGET_IMAGE_BYTES * 2) {
+        if (value.length > NativeRepairTargetStagingLedger.MAX_IMAGE_BYTES * 2) {
             throw IllegalArgumentException("repair target photo is too large")
         }
         val comma = value.indexOf(',')
@@ -1444,7 +2178,8 @@ class DriveModePlugin : Plugin() {
         } catch (_: IllegalArgumentException) {
             throw IllegalArgumentException("repair target photo is invalid")
         }
-        if (bytes.isEmpty() || bytes.size > MAX_REPAIR_TARGET_IMAGE_BYTES) {
+        if (bytes.isEmpty() ||
+            bytes.size.toLong() > NativeRepairTargetStagingLedger.MAX_IMAGE_BYTES) {
             throw IllegalArgumentException("repair target photo is empty or too large")
         }
         return mime to bytes
@@ -1452,6 +2187,23 @@ class DriveModePlugin : Plugin() {
 
     override fun handleOnDestroy() {
         pluginScope.cancel()
+        val abandonedStage = repairTargetStage
+        repairTargetStage = null
+        if (abandonedStage != null) {
+            // Capture the immutable pre-commit path. The stage object can be finalized by
+            // a commit already holding the filesystem mutex after this method observes it;
+            // deleting its mutable/current path would then remove a Room-owned generation.
+            val abandonedStagingDirectory =
+                abandonedStage.directoryState.destructionCleanupDirectory()
+            // Destruction is synchronous, but deleting the abandoned staging directory
+            // must still serialize with a new plugin instance and the storage inventory.
+            // Failure leaves an unmistakable .staging-* directory for reconciliation.
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                NativeMediaFilesystemMutation.mutex.withLock {
+                    runCatching { deleteDirectoryVerified(abandonedStagingDirectory) }
+                }
+            }
+        }
         DriveForegroundService.onStatusListener = null
         DriveForegroundService.onReportListener = null
         DriveForegroundService.onDriveEndedListener = null

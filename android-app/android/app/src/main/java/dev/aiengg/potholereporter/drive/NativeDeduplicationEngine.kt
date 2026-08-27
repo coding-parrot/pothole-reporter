@@ -4,14 +4,74 @@ import dev.aiengg.potholereporter.db.EventSightingEntity
 import dev.aiengg.potholereporter.db.ReportEntity
 import dev.aiengg.potholereporter.db.PotholeDatabase
 import androidx.room.withTransaction
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
 import kotlin.math.*
 
 data class DedupeResult(
     val isDuplicate: Boolean,
     val existingReportId: Long?,
-    val matchKind: String? = null
+    val matchKind: String? = null,
+    /** True when the canonical row took ownership of this candidate's evidence file. */
+    val candidateEvidenceAdopted: Boolean = false
 )
+
+internal data class NativeDuplicateReportMergeResult(
+    val report: ReportEntity,
+    val candidateEvidenceAdopted: Boolean,
+    /** A previously referenced file is now orphaned and must be found by reconciliation. */
+    val priorEvidenceDisplaced: Boolean
+)
+
+/**
+ * Merges a later sighting into its canonical report without losing bridgeable evidence.
+ *
+ * Acknowledgement deliberately scrubs the first native photo after the WebView commits it.
+ * The next accepted revisit therefore has to donate its fresh full image and thumbnail;
+ * otherwise the row is marked unsynced but can never cross the native bridge again.
+ */
+internal object NativeDuplicateReportOwnership {
+    fun merge(
+        prior: ReportEntity,
+        candidate: ReportEntity,
+        sourceEventKeysJson: String,
+        sightingDriveIdsJson: String,
+        exactReplay: Boolean
+    ): NativeDuplicateReportMergeResult {
+        val priorHasFullImage =
+            !prior.photoFullPath.isNullOrBlank() || !prior.photoPath.isNullOrBlank()
+        val priorHasThumbnail = !prior.photoDataUrl.isNullOrBlank()
+        val priorEvidenceIncomplete = !priorHasFullImage || !priorHasThumbnail
+        val candidateFullPath = candidate.photoFullPath?.takeIf(String::isNotBlank)
+            ?: candidate.photoPath?.takeIf(String::isNotBlank)
+        val candidateThumbnail = candidate.photoDataUrl?.takeIf(String::isNotBlank)
+        val adoptCandidateEvidence =
+            priorEvidenceIncomplete && candidateFullPath != null && candidateThumbnail != null
+
+        return NativeDuplicateReportMergeResult(
+            report = prior.copy(
+                photoPath = if (adoptCandidateEvidence) {
+                    candidate.photoPath?.takeIf(String::isNotBlank) ?: candidateFullPath
+                } else {
+                    prior.photoPath
+                },
+                photoFullPath = if (adoptCandidateEvidence) {
+                    candidate.photoFullPath?.takeIf(String::isNotBlank) ?: candidateFullPath
+                } else {
+                    prior.photoFullPath
+                },
+                photoDataUrl = if (adoptCandidateEvidence) candidateThumbnail else prior.photoDataUrl,
+                sourceEventKeysJson = sourceEventKeysJson,
+                sightingDriveIdsJson = sightingDriveIdsJson,
+                seenCount = if (exactReplay) prior.seenCount else prior.seenCount + 1,
+                lastSeenAt = max(prior.lastSeenAt ?: 0L, candidate.capturedAt ?: 0L),
+                syncedToWeb = false
+            ),
+            candidateEvidenceAdopted = adoptCandidateEvidence,
+            priorEvidenceDisplaced = adoptCandidateEvidence && priorHasFullImage
+        )
+    }
+}
 
 class NativeDeduplicationEngine(
     private val database: PotholeDatabase
@@ -46,98 +106,110 @@ class NativeDeduplicationEngine(
     suspend fun checkAndCommitReport(
         candidate: ReportEntity,
         sightings: List<EventSightingEntity>
-    ): DedupeResult = database.withTransaction {
-        if (!candidate.dedupeEligible || candidate.debugCapture) {
+    ): DedupeResult = NativeMediaFilesystemMutation.mutex.withLock {
+        // Acknowledgement clears media columns after bridging. Hold the same process-wide
+        // lock for the read/merge transaction so a stale full-row @Update can never put
+        // an acknowledged path back into Room after its file has been deleted.
+        database.withTransaction {
+            if (!candidate.dedupeEligible || candidate.debugCapture) {
+                val newId = reportDao.insertReport(candidate)
+                val mappedSightings = sightings.map { it.copy(reportId = newId) }
+                sightingDao.insertSightings(mappedSightings)
+                return@withTransaction DedupeResult(isDuplicate = false, existingReportId = newId)
+            }
+
+            val candLat = candidate.lat
+            val candLng = candidate.lng
+            val candidates = mutableListOf<ReportEntity>()
+
+            if (candLat != null && candLng != null) {
+                val latitudeBand = DEDUPE_HISTORY_RADIUS_M / 110900.0
+                candidates.addAll(reportDao.getCandidateReportsInLatitudeBand(candLat - latitudeBand, candLat + latitudeBand))
+            }
+
+            val driveId = candidate.driveId
+            if (driveId != null) {
+                val driveReports = reportDao.getReportsForDrive(driveId)
+                for (dr in driveReports) {
+                    if (candidates.none { it.id == dr.id }) {
+                        candidates.add(dr)
+                    }
+                }
+            }
+
+            for (prior in candidates) {
+                val match = matchRoadEvent(candidate, prior)
+                if (match != null) {
+                    val priorSightings = sightingDao.getSightingsForReport(prior.id).toMutableList()
+                    val currentDrive = candidate.driveId
+                    val observedAt = candidate.capturedAt ?: (System.currentTimeMillis() / 1000)
+                    val cutoff = observedAt - DEDUPE_HISTORY_S
+
+                    val filteredSightings = priorSightings.filter { s ->
+                        val seenAt = s.capturedAt
+                        (s.driveId != null && s.driveId == currentDrive) || seenAt == null || seenAt >= cutoff
+                    }.toMutableList()
+
+                    val sameDriveCount = if (currentDrive == null) 0 else filteredSightings.count { it.driveId == currentDrive }
+                    val exactReplay = match == "same_source"
+
+                    if ((match == "same_drive" || match == "prior_drive") && !exactReplay && (currentDrive == null || sameDriveCount < 64)) {
+                        filteredSightings.add(
+                            EventSightingEntity(
+                                reportId = prior.id,
+                                driveId = candidate.driveId,
+                                lat = candidate.lat,
+                                lng = candidate.lng,
+                                sourceOffsetS = candidate.sourceOffsetS,
+                                capturedAt = candidate.capturedAt,
+                                gpsAccuracy = candidate.gpsAccuracy,
+                                speedMps = candidate.speedMps,
+                                heading = candidate.heading,
+                                sourceEventKey = candidate.sourceEventKey
+                            )
+                        )
+                    }
+
+                    val sightingDrives = filteredSightings.mapNotNull { it.driveId }.distinct()
+                    val keys = parseJsonArray(prior.sourceEventKeysJson)
+                    if (candidate.sourceEventKey != null && !keys.contains(candidate.sourceEventKey)) {
+                        keys.add(candidate.sourceEventKey)
+                    }
+
+                    val merged = NativeDuplicateReportOwnership.merge(
+                        prior = prior,
+                        candidate = candidate,
+                        sourceEventKeysJson = JSONArray(keys.takeLast(64)).toString(),
+                        sightingDriveIdsJson = JSONArray(sightingDrives).toString(),
+                        exactReplay = exactReplay
+                    )
+
+                    reportDao.updateReport(merged.report)
+                    if (merged.priorEvidenceDisplaced) {
+                        // The old managed path is intentionally not deleted here. Once this
+                        // transaction commits it is an orphan; reconciliation, under this same
+                        // mutex, will retain the newly adopted path and retry only true orphans.
+                        NativeMediaReconciliationEpoch.invalidate()
+                    }
+                    sightingDao.deleteSightingsForReport(prior.id)
+                    sightingDao.insertSightings(filteredSightings)
+
+                    return@withTransaction DedupeResult(
+                        isDuplicate = true,
+                        existingReportId = prior.id,
+                        matchKind = match,
+                        candidateEvidenceAdopted = merged.candidateEvidenceAdopted
+                    )
+                }
+            }
+
+            // No match found -> Insert as new canonical report
             val newId = reportDao.insertReport(candidate)
             val mappedSightings = sightings.map { it.copy(reportId = newId) }
             sightingDao.insertSightings(mappedSightings)
-            return@withTransaction DedupeResult(isDuplicate = false, existingReportId = newId)
+
+            DedupeResult(isDuplicate = false, existingReportId = newId)
         }
-
-        val candLat = candidate.lat
-        val candLng = candidate.lng
-        val candidates = mutableListOf<ReportEntity>()
-
-        if (candLat != null && candLng != null) {
-            val latitudeBand = DEDUPE_HISTORY_RADIUS_M / 110900.0
-            candidates.addAll(reportDao.getCandidateReportsInLatitudeBand(candLat - latitudeBand, candLat + latitudeBand))
-        }
-
-        val driveId = candidate.driveId
-        if (driveId != null) {
-            val driveReports = reportDao.getReportsForDrive(driveId)
-            for (dr in driveReports) {
-                if (candidates.none { it.id == dr.id }) {
-                    candidates.add(dr)
-                }
-            }
-        }
-
-        for (prior in candidates) {
-            val match = matchRoadEvent(candidate, prior)
-            if (match != null) {
-                val priorSightings = sightingDao.getSightingsForReport(prior.id).toMutableList()
-                val currentDrive = candidate.driveId
-                val observedAt = candidate.capturedAt ?: (System.currentTimeMillis() / 1000)
-                val cutoff = observedAt - DEDUPE_HISTORY_S
-
-                val filteredSightings = priorSightings.filter { s ->
-                    val seenAt = s.capturedAt
-                    (s.driveId != null && s.driveId == currentDrive) || seenAt == null || seenAt >= cutoff
-                }.toMutableList()
-
-                val sameDriveCount = if (currentDrive == null) 0 else filteredSightings.count { it.driveId == currentDrive }
-                val exactReplay = match == "same_source"
-
-                if ((match == "same_drive" || match == "prior_drive") && !exactReplay && (currentDrive == null || sameDriveCount < 64)) {
-                    filteredSightings.add(
-                        EventSightingEntity(
-                            reportId = prior.id,
-                            driveId = candidate.driveId,
-                            lat = candidate.lat,
-                            lng = candidate.lng,
-                            sourceOffsetS = candidate.sourceOffsetS,
-                            capturedAt = candidate.capturedAt,
-                            gpsAccuracy = candidate.gpsAccuracy,
-                            speedMps = candidate.speedMps,
-                            heading = candidate.heading,
-                            sourceEventKey = candidate.sourceEventKey
-                        )
-                    )
-                }
-
-                val sightingDrives = filteredSightings.mapNotNull { it.driveId }.distinct()
-                val keys = parseJsonArray(prior.sourceEventKeysJson)
-                if (candidate.sourceEventKey != null && !keys.contains(candidate.sourceEventKey)) {
-                    keys.add(candidate.sourceEventKey)
-                }
-
-                val updated = prior.copy(
-                    sourceEventKeysJson = JSONArray(keys.takeLast(64)).toString(),
-                    sightingDriveIdsJson = JSONArray(sightingDrives).toString(),
-                    seenCount = if (exactReplay) prior.seenCount else prior.seenCount + 1,
-                    lastSeenAt = max(prior.lastSeenAt ?: 0L, candidate.capturedAt ?: 0L),
-                    syncedToWeb = false // Notify UI of update
-                )
-
-                reportDao.updateReport(updated)
-                sightingDao.deleteSightingsForReport(prior.id)
-                sightingDao.insertSightings(filteredSightings)
-
-                return@withTransaction DedupeResult(
-                    isDuplicate = true,
-                    existingReportId = prior.id,
-                    matchKind = match
-                )
-            }
-        }
-
-        // No match found -> Insert as new canonical report
-        val newId = reportDao.insertReport(candidate)
-        val mappedSightings = sightings.map { it.copy(reportId = newId) }
-        sightingDao.insertSightings(mappedSightings)
-
-        DedupeResult(isDuplicate = false, existingReportId = newId)
     }
 
     private suspend fun matchRoadEvent(candidate: ReportEntity, prior: ReportEntity): String? {

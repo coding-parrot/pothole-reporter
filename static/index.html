@@ -295,7 +295,7 @@ const I18N = {
     independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
     privacy_title: "Before camera and location access",
     privacy_body: "If you continue, the app will ask for camera and precise foreground location. Road-damage photos—or sampled frames from Drive Mode—are sent with your API key to OpenAI for detection. On a precise later live-drive revisit, the saved earlier damage photo and current views may be sent together for repair verification. User-confirmed garbage and manhole photos are not sent to OpenAI. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports query Karnataka GIS and Hyderabad reports query Telangana GIS. The required state routing pack is downloaded from GitHub Pages. Processing can occur outside India.",
-    privacy_local: "Drive Mode uses no audio. While Drive Mode is active, Android uses the camera and location in the background—even when this app is not visible and Google Maps or a phone call is on screen. A visible persistent foreground-service notification always shows this use; pause or stop it from the app or notification. Optional recording is off by default: low-resolution silent video and sparse 720p evidence frames are stored in app-private files for live and post-drive analysis. Drive stops after the selected active-time battery limit; paused time does not count. Reports, photos, repair evidence, footage, sampled frames, location tracks, settings, verified state packs and highway tiles remain on this device until deleted. Physical road condition is tracked separately from official complaint status.",
+    privacy_local: "Drive Mode uses no audio. While Drive Mode is active, Android uses the camera and location in the background—even when this app is not visible and Google Maps or a phone call is on screen. A visible persistent foreground-service notification always shows this use; pause or stop it from the app or notification. Drive periodically stores sparse 720p evidence frames in app-private storage before attempting live analysis, so interrupted or offline work can be analysed after the drive. Video and saved frames share a 4 GB cap and stop writing before free storage falls below 500 MB. Optional low-resolution silent video recording is off by default. Drive stops after the selected active-time battery limit; paused time does not count. Reports, photos, repair evidence, footage, sampled frames, location tracks, settings, verified state packs and highway tiles remain on this device until deleted. Physical road condition is tracked separately from official complaint status.",
     privacy_government: "This independent app is not a government service and never submits automatically. GitHub Pages receives your IP address, time, user agent and the requested state-pack or 2° highway-tile path, which reveals a state or approximate tile but not exact coordinates, photos or report content. Location may be sent to a government GIS for jurisdiction checks as disclosed above. Complaint text and photos reach a complaint service only when you deliberately open or complete a handoff. Review the destination and content.",
     privacy_link: "Privacy policy", sources_link: "Data sources and limits",
     privacy_accept: "Continue", privacy_decline: "Not now",
@@ -491,7 +491,7 @@ const I18N = {
     independent_note: "ಇದು ಸ್ವತಂತ್ರ, ಅನಧಿಕೃತ ಆ್ಯಪ್. ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯೊಂದಿಗೆ ಸಂಬಂಧ ಅಥವಾ ಅನುಮೋದನೆ ಇಲ್ಲ. ಕಚೇರಿ ಸೂಚನೆ ಅತ್ಯುತ್ತಮ ಪ್ರಯತ್ನ ಮಾತ್ರ; ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
     privacy_title: "ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳ ಅನುಮತಿಯ ಮೊದಲು",
     privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಮುಂಭಾಗದ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ರಸ್ತೆ ಹಾನಿಯ ಫೋಟೋಗಳು ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು ಮಾತ್ರ API ಕೀಯೊಂದಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ನಂತರದ ನಿಖರ ಲೈವ್-ಡ್ರೈವ್ ಮರುಭೇಟಿಯಲ್ಲಿ, ಉಳಿಸಿದ ಹಿಂದಿನ ಹಾನಿಯ ಫೋಟೋ ಮತ್ತು ಪ್ರಸ್ತುತ ದೃಶ್ಯಗಳನ್ನು ದುರಸ್ತಿ ಪರಿಶೀಲನೆಗಾಗಿ ಒಟ್ಟಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಬಹುದು. ಬಳಕೆದಾರರು ದೃಢಪಡಿಸಿದ ಕಸ ಮತ್ತು ಮ್ಯಾನ್‌ಹೋಲ್ ಫೋಟೋಗಳನ್ನು ಕಳುಹಿಸಲಾಗುವುದಿಲ್ಲ. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ವರದಿಗಳು Karnataka GIS ಮತ್ತು ಹೈದರಾಬಾದ್ ವರದಿಗಳು Telangana GIS ಬಳಸುತ್ತವೆ. ಅಗತ್ಯ ರಾಜ್ಯ ರೂಟಿಂಗ್ ಪ್ಯಾಕ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
-    privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ. ಡ್ರೈವ್ ಮೋಡ್ ಸಕ್ರಿಯವಾಗಿರುವಾಗ, ಈ ಆ್ಯಪ್ ಕಾಣಿಸದಿದ್ದರೂ ಅಥವಾ ನೀವು ಅದನ್ನು ಬಳಸದೇ Google Maps ಅಥವಾ ಕರೆ ಪರದೆಯಲ್ಲಿ ಇದ್ದರೂ Android ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳವನ್ನು ಹಿನ್ನಲೆಯಲ್ಲಿ ಬಳಸುತ್ತದೆ. ಕಾಣುವ ನಿರಂತರ foreground-service ಅಧಿಸೂಚನೆ ಈ ಬಳಕೆಯನ್ನು ಯಾವಾಗಲೂ ತೋರಿಸುತ್ತದೆ; ಆ್ಯಪ್ ಅಥವಾ ಅಧಿಸೂಚನೆಯಿಂದ ವಿರಾಮಗೊಳಿಸಿ ಅಥವಾ ನಿಲ್ಲಿಸಿ. ಐಚ್ಛಿಕ ಮೌನ ಸ್ಥಳೀಯ ವಿಡಿಯೋ ರೆಕಾರ್ಡಿಂಗ್ ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್ ಆಗಿರುತ್ತದೆ, ಪರದೆ ಮತ್ತು ಅಧಿಸೂಚನೆಯಲ್ಲಿ ಯಾವಾಗಲೂ ಗುರುತಿಸಲಾಗುತ್ತದೆ ಮತ್ತು ಆ್ಯಪ್‌ನ ಖಾಸಗಿ 60-ಸೆಕೆಂಡ್ ಕ್ಲಿಪ್‌ಗಳಲ್ಲಿ ಉಳಿಯುತ್ತದೆ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ದುರಸ್ತಿ ಸಾಕ್ಷ್ಯ, ಭೌತಿಕ ರಸ್ತೆ ಸ್ಥಿತಿ, ವಿಡಿಯೋ, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್, ಸೆಟ್ಟಿಂಗ್ಸ್, ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್‌ಗಳು ಮತ್ತು ಹೆದ್ದಾರಿ ಟೈಲ್‌ಗಳು ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲಿರುತ್ತವೆ; ಬಳಸದ ಡೇಟಾ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ತೆರವುಗೊಳ್ಳುತ್ತದೆ. ಭೌತಿಕ ರಸ್ತೆ ಸ್ಥಿತಿಯನ್ನು ಅಧಿಕೃತ ದೂರು ಸ್ಥಿತಿಯಿಂದ ಪ್ರತ್ಯೇಕವಾಗಿ ದಾಖಲಿಸಲಾಗುತ್ತದೆ.",
+    privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ. ಡ್ರೈವ್ ಮೋಡ್ ಸಕ್ರಿಯವಾಗಿರುವಾಗ, ಈ ಆ್ಯಪ್ ಕಾಣಿಸದಿದ್ದರೂ ಅಥವಾ ನೀವು ಅದನ್ನು ಬಳಸದೇ Google Maps ಅಥವಾ ಕರೆ ಪರದೆಯಲ್ಲಿ ಇದ್ದರೂ Android ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳವನ್ನು ಹಿನ್ನಲೆಯಲ್ಲಿ ಬಳಸುತ್ತದೆ. ಕಾಣುವ ನಿರಂತರ foreground-service ಅಧಿಸೂಚನೆ ಈ ಬಳಕೆಯನ್ನು ಯಾವಾಗಲೂ ತೋರಿಸುತ್ತದೆ; ಆ್ಯಪ್ ಅಥವಾ ಅಧಿಸೂಚನೆಯಿಂದ ವಿರಾಮಗೊಳಿಸಿ ಅಥವಾ ನಿಲ್ಲಿಸಿ. ಡ್ರೈವ್ ಮೋಡ್ ಲೈವ್ ವಿಶ್ಲೇಷಣೆಗೆ ಮೊದಲು ವಿರಳವಾದ 720p ಸಾಕ್ಷ್ಯ ಫ್ರೇಮ್‌ಗಳನ್ನು ಆ್ಯಪ್‌ನ ಖಾಸಗಿ ಸಂಗ್ರಹದಲ್ಲಿ ಸ್ವತಂತ್ರವಾಗಿ ಉಳಿಸುತ್ತದೆ, ಆದ್ದರಿಂದ ಅಡಚಣೆಯಾದ ಅಥವಾ ಆಫ್‌ಲೈನ್ ಕೆಲಸವನ್ನು ಡ್ರೈವ್ ನಂತರ ವಿಶ್ಲೇಷಿಸಬಹುದು. ಐಚ್ಛಿಕ ಕಡಿಮೆ-ರೆಸಲ್ಯೂಶನ್ ಮೌನ ವಿಡಿಯೋ ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್ ಆಗಿರುತ್ತದೆ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ದುರಸ್ತಿ ಸಾಕ್ಷ್ಯ, ಭೌತಿಕ ರಸ್ತೆ ಸ್ಥಿತಿ, ವಿಡಿಯೋ, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್, ಸೆಟ್ಟಿಂಗ್ಸ್, ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್‌ಗಳು ಮತ್ತು ಹೆದ್ದಾರಿ ಟೈಲ್‌ಗಳು ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲಿರುತ್ತವೆ. ಭೌತಿಕ ರಸ್ತೆ ಸ್ಥಿತಿಯನ್ನು ಅಧಿಕೃತ ದೂರು ಸ್ಥಿತಿಯಿಂದ ಪ್ರತ್ಯೇಕವಾಗಿ ದಾಖಲಿಸಲಾಗುತ್ತದೆ.",
     privacy_government: "ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸರ್ಕಾರಿ ಸೇವೆಯಲ್ಲ ಮತ್ತು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. GitHub Pages ನಿಮ್ಮ IP, ಸಮಯ, user agent ಮತ್ತು ಕೇಳಿದ ರಾಜ್ಯ-ಪ್ಯಾಕ್ ಅಥವಾ 2° ಹೆದ್ದಾರಿ-ಟೈಲ್ ಮಾರ್ಗವನ್ನು ಪಡೆಯುತ್ತದೆ; ಇದರಿಂದ ರಾಜ್ಯ ಅಥವಾ ಅಂದಾಜು ಟೈಲ್ ತಿಳಿಯಬಹುದು, ನಿಖರ ಸ್ಥಳ, ಫೋಟೋ ಅಥವಾ ವರದಿ ವಿಷಯವಲ್ಲ. ಮೇಲಿನ ವಿವರದಂತೆ ಅಧಿಕಾರ ವ್ಯಾಪ್ತಿ ಪರಿಶೀಲಿಸಲು ಸ್ಥಳವನ್ನು ಸರ್ಕಾರಿ GIS ಗೆ ಕಳುಹಿಸಬಹುದು. ನೀವು ಉದ್ದೇಶಪೂರ್ವಕವಾಗಿ ಹಸ್ತಾಂತರವನ್ನು ತೆರೆಯುವ ಅಥವಾ ಪೂರ್ಣಗೊಳಿಸುವಾಗ ಮಾತ್ರ ದೂರಿನ ಪಠ್ಯ ಮತ್ತು ಫೋಟೋ ಅಧಿಕೃತ ದೂರು ಸೇವೆಗೆ ಹೋಗುತ್ತದೆ.",
     privacy_link: "ಗೌಪ್ಯತಾ ನೀತಿ", sources_link: "ಡೇಟಾ ಮೂಲಗಳು ಮತ್ತು ಮಿತಿಗಳು",
     privacy_accept: "ಮುಂದುವರಿಸಿ", privacy_decline: "ಈಗ ಬೇಡ",
@@ -680,7 +680,7 @@ const I18N = {
     independent_note: "हे स्वतंत्र, अनधिकृत अॅप आहे. कोणत्याही सरकारी संस्थेशी संलग्न नाही किंवा तिची मान्यता नाही. सुचवलेले कार्यालय पाठवण्यापूर्वी तपासा.",
     privacy_title: "कॅमेरा आणि स्थान वापरण्यापूर्वी",
     privacy_body: "पुढे गेल्यास अॅप कॅमेरा आणि वापराच्या वेळी अचूक स्थान वापरण्याची परवानगी मागेल. फक्त रस्त्याच्या नुकसानीचे फोटो किंवा ड्राइव्ह मोडमधील निवडक फ्रेम्स API कीसह OpenAI कडे पाठवल्या जातात. नंतरच्या अचूक लाइव्ह-ड्राइव्ह पुनर्भेटीत, जतन केलेला जुना नुकसान फोटो आणि सध्याची दृश्ये दुरुस्ती पडताळणीसाठी OpenAI कडे एकत्र पाठवली जाऊ शकतात. वापरकर्त्याने निवडलेले कचरा आणि मॅनहोलचे फोटो पाठवले जात नाहीत. अचूक स्थान OpenStreetMap/Nominatim कडे जाते; कर्नाटकासाठी Karnataka GIS आणि हैदराबादसाठी Telangana GIS वापरले जाते. आवश्यक राज्य routing pack GitHub Pages वरून डाउनलोड होतो. प्रक्रिया भारताबाहेर होऊ शकते.",
-    privacy_local: "ड्राइव्ह मोडमध्ये ऑडिओ वापरला जात नाही. ड्राइव्ह मोड सक्रिय असताना, हे अॅप दिसत नसताना किंवा तुम्ही ते वापरत नसतानाही—Google Maps किंवा कॉल स्क्रीन समोर असली तरी—Android कॅमेरा आणि स्थान पार्श्वभूमीत वापरते. दिसणारी कायमची foreground-service सूचना हा वापर नेहमी दाखवते; अॅप किंवा सूचनेतून विराम द्या किंवा थांबवा. ऐच्छिक मूक स्थानिक व्हिडिओ रेकॉर्डिंग डीफॉल्टने बंद असते, स्क्रीन आणि सूचनेत नेहमी स्पष्ट दाखवले जाते आणि अॅपच्या खाजगी 60-सेकंदांच्या क्लिपमध्ये साठवले जाते. अहवाल, फोटो, दुरुस्ती पुरावा, प्रत्यक्ष रस्त्याची स्थिती, व्हिडिओ, स्थान मार्ग, सेटिंग्ज, पडताळलेले राज्य packs आणि महामार्ग tiles हटवेपर्यंत साधनावर राहतात; न वापरलेला डेटा आपोआप काढला जातो. प्रत्यक्ष रस्त्याची स्थिती अधिकृत तक्रार स्थितीपासून स्वतंत्रपणे नोंदवली जाते.",
+    privacy_local: "ड्राइव्ह मोडमध्ये ऑडिओ वापरला जात नाही. ड्राइव्ह मोड सक्रिय असताना, हे अॅप दिसत नसताना किंवा तुम्ही ते वापरत नसतानाही—Google Maps किंवा कॉल स्क्रीन समोर असली तरी—Android कॅमेरा आणि स्थान पार्श्वभूमीत वापरते. दिसणारी कायमची foreground-service सूचना हा वापर नेहमी दाखवते; अॅप किंवा सूचनेतून विराम द्या किंवा थांबवा. ड्राइव्ह मोड लाइव्ह विश्लेषणापूर्वी विरळ 720p पुरावा फ्रेम्स स्वतंत्रपणे अॅपच्या खाजगी साठवणीत ठेवतो, त्यामुळे खंडित किंवा ऑफलाइन कामाचे ड्राइव्हनंतर विश्लेषण करता येते. ऐच्छिक कमी-रेझोल्यूशन मूक व्हिडिओ डीफॉल्टने बंद असतो. अहवाल, फोटो, दुरुस्ती पुरावा, प्रत्यक्ष रस्त्याची स्थिती, व्हिडिओ, स्थान मार्ग, सेटिंग्ज, पडताळलेले राज्य packs आणि महामार्ग tiles हटवेपर्यंत साधनावर राहतात. प्रत्यक्ष रस्त्याची स्थिती अधिकृत तक्रार स्थितीपासून स्वतंत्रपणे नोंदवली जाते.",
     privacy_government: "हे स्वतंत्र अॅप सरकारी सेवा नाही आणि तक्रार आपोआप सादर करत नाही. GitHub Pages ला तुमचा IP, वेळ, user agent आणि मागितलेला राज्य-pack किंवा 2° महामार्ग-tile मार्ग मिळतो; त्यामुळे राज्य किंवा अंदाजे tile समजू शकते, अचूक स्थान, फोटो किंवा अहवालाचा मजकूर नाही. वर सांगितल्याप्रमाणे कार्यक्षेत्र तपासण्यासाठी स्थान सरकारी GIS कडे जाऊ शकते. तुम्ही जाणीवपूर्वक handoff उघडता किंवा पूर्ण करता तेव्हाच तक्रारीचा मजकूर आणि फोटो अधिकृत तक्रार सेवेकडे जातात.",
     privacy_link: "गोपनीयता धोरण", sources_link: "डेटा स्रोत आणि मर्यादा",
     privacy_accept: "पुढे जा", privacy_decline: "आत्ता नको",
@@ -860,7 +860,7 @@ const I18N = {
     independent_note: "এটি একটি স্বাধীন, বেসরকারি অ্যাপ। কোনও সরকারি সংস্থার সঙ্গে এর সম্পর্ক নেই এবং কোনও সরকারি সংস্থা এটি অনুমোদন করেনি। প্রাপক নির্বাচন সর্বোত্তম প্রচেষ্টার ভিত্তিতে; পাঠানোর আগে যাচাই করুন।",
     privacy_title: "ক্যামেরা ও অবস্থান ব্যবহারের আগে",
     privacy_body: "এগিয়ে গেলে অ্যাপটি ক্যামেরা ও সামনে খোলা থাকাকালীন সঠিক অবস্থানের অনুমতি চাইবে। শুধু রাস্তার ক্ষতির ছবি বা ড্রাইভ মোডের নির্বাচিত ফ্রেম API key-সহ OpenAI-তে পাঠানো হয়। পরবর্তী নির্ভুল লাইভ-ড্রাইভ পুনরায় যাওয়ার সময়, সংরক্ষিত আগের ক্ষতির ছবি এবং বর্তমান দৃশ্য মেরামত যাচাইয়ের জন্য একসঙ্গে OpenAI-তে পাঠানো হতে পারে। ব্যবহারকারী-নিশ্চিত আবর্জনা ও ম্যানহোলের ছবি পাঠানো হয় না। সঠিক স্থানাঙ্ক OpenStreetMap/Nominatim-এ যায়; কর্ণাটকের জন্য Karnataka GIS এবং হায়দরাবাদের জন্য Telangana GIS ব্যবহার করা হয়। প্রয়োজনীয় রাজ্য routing pack GitHub Pages থেকে ডাউনলোড হয়। তথ্য ভারতের বাইরেও প্রক্রিয়াকৃত হতে পারে।",
-    privacy_local: "ড্রাইভ মোডে অডিও ব্যবহার হয় না। ড্রাইভ মোড সক্রিয় থাকলে, এই অ্যাপটি দৃশ্যমান না থাকলেও বা আপনি ব্যবহার না করলেও—Google Maps বা কল স্ক্রিন সামনে থাকলেও—Android ক্যামেরা ও অবস্থান ব্যাকগ্রাউন্ডে ব্যবহার করে। দৃশ্যমান স্থায়ী foreground-service বিজ্ঞপ্তি এই ব্যবহার সব সময় দেখায়; অ্যাপ বা বিজ্ঞপ্তি থেকে বিরতি দিন বা বন্ধ করুন। ঐচ্ছিক নীরব স্থানীয় ভিডিও রেকর্ডিং ডিফল্টভাবে বন্ধ থাকে, স্ক্রিন ও বিজ্ঞপ্তিতে সব সময় স্পষ্টভাবে দেখানো হয় এবং অ্যাপের ব্যক্তিগত 60-সেকেন্ড ক্লিপে রাখা হয়। রিপোর্ট, ছবি, মেরামতের প্রমাণ, রাস্তার বাস্তব অবস্থা, ভিডিও, অবস্থানের ট্র্যাক, সেটিংস, যাচাই-করা রাজ্য pack ও জাতীয় সড়ক tile মুছে না ফেলা পর্যন্ত থাকে; অব্যবহৃত ডেটা স্বয়ংক্রিয়ভাবে সরানো হয়। রাস্তার বাস্তব অবস্থা সরকারি অভিযোগের অবস্থা থেকে আলাদাভাবে রাখা হয়।",
+    privacy_local: "ড্রাইভ মোডে অডিও ব্যবহার হয় না। ড্রাইভ মোড সক্রিয় থাকলে, এই অ্যাপটি দৃশ্যমান না থাকলেও বা আপনি ব্যবহার না করলেও—Google Maps বা কল স্ক্রিন সামনে থাকলেও—Android ক্যামেরা ও অবস্থান ব্যাকগ্রাউন্ডে ব্যবহার করে। দৃশ্যমান স্থায়ী foreground-service বিজ্ঞপ্তি এই ব্যবহার সব সময় দেখায়; অ্যাপ বা বিজ্ঞপ্তি থেকে বিরতি দিন বা বন্ধ করুন। ড্রাইভ মোড লাইভ বিশ্লেষণের আগে বিরল 720p প্রমাণ ফ্রেম আলাদাভাবে অ্যাপের ব্যক্তিগত স্টোরেজে রাখে, তাই বাধাগ্রস্ত বা অফলাইন কাজ ড্রাইভের পরে বিশ্লেষণ করা যায়। ঐচ্ছিক কম-রেজোলিউশনের নীরব ভিডিও ডিফল্টভাবে বন্ধ থাকে। রিপোর্ট, ছবি, মেরামতের প্রমাণ, রাস্তার বাস্তব অবস্থা, ভিডিও, অবস্থানের ট্র্যাক, সেটিংস, যাচাই-করা রাজ্য pack ও জাতীয় সড়ক tile মুছে না ফেলা পর্যন্ত থাকে। রাস্তার বাস্তব অবস্থা সরকারি অভিযোগের অবস্থা থেকে আলাদাভাবে রাখা হয়।",
     privacy_government: "এই স্বাধীন অ্যাপটি সরকারি পরিষেবা নয় এবং নিজে থেকে অভিযোগ জমা দেয় না। GitHub Pages আপনার IP, সময়, user agent ও চাওয়া রাজ্য-pack বা 2° জাতীয় সড়ক-tile পথ পায়; এতে রাজ্য বা আনুমানিক tile বোঝা যায়, সঠিক স্থানাঙ্ক, ছবি বা রিপোর্টের বিষয় নয়। উপরে জানানো নিয়মে এলাকা যাচাই করতে অবস্থান সরকারি GIS-এ পাঠানো হতে পারে। আপনি ইচ্ছাকৃতভাবে handoff খুললে বা সম্পূর্ণ করলেই অভিযোগের লেখা ও ছবি সরকারি অভিযোগ পরিষেবায় যায়।",
     privacy_link: "গোপনীয়তা নীতি", sources_link: "তথ্যের উৎস ও সীমাবদ্ধতা",
     privacy_accept: "এগিয়ে যান", privacy_decline: "এখন নয়",
@@ -1921,8 +1921,19 @@ function openDetail(r, list) {
   const discard = $("discardBtn");
   if (discard) discard.onclick = async () => {
     if (!confirm(t("confirm_delete"))) return;
-    try { await api(`/api/reports/${r.id}`, { method: "DELETE" }); } catch (e) { alert(e.message); return; }
+    let cleanupError = null;
+    try {
+      await api(`/api/reports/${r.id}`, { method: "DELETE" });
+      const plugin = nativeDrivePlugin();
+      if (plugin) {
+        try { await refreshNativeRepairTargetCache(plugin); }
+        catch (error) { cleanupError = error; }
+      }
+    } catch (e) { alert(e.message); return; }
     await loadReports(); show("home");
+    if (cleanupError) {
+      alert(`The report was deleted, but its native repair cache will be retried later: ${cleanupError.message || cleanupError}`);
+    }
   };
   show("detail");
 }
@@ -2135,7 +2146,7 @@ const RECORD_MIMES = ["video/mp4;codecs=avc1.42E01E", "video/mp4",
 let drive = null;
 let driveStarting = false;
 let driveFinalizing = null;
-const DATA_NOTICE_VERSION = "2026-08-25-v13-hybrid-drive-capture";
+const DATA_NOTICE_VERSION = "2026-08-26-v14-durable-drive-frames";
 let consentWaiter = null;
 let nativeDriveListenersReady = false;
 const handledNativeEnds = new Set();
@@ -2146,6 +2157,7 @@ let nativeWipeLocked = false;
 let nativeSyncPromise = null;
 let nativeTrailingForcePromise = null;
 let nativeRepairSyncPromise = null;
+let nativeWipeInProgress = false;
 let lastNativeSyncAt = 0;
 let lastNativeSyncResult = { reports: 0, repairs: 0, drives: 0 };
 
@@ -2231,7 +2243,10 @@ function updateNativeDriveHud(status) {
   const savedMb = (Number(status.recordedBytes) || 0) / 1048576;
   const remainingMs = Number(status.remainingMs) || 0;
   const minutesLeft = remainingMs > 0 ? Math.max(1, Math.ceil(remainingMs / 60000)) : 0;
-  $("nativeDriveStatus").textContent = String(status.status || "Scanning live")
+  const captureIssue = String(status.captureIssue || "").trim();
+  const statusMessage = status.captureBlocked && captureIssue
+    ? captureIssue : String(status.status || "Scanning live");
+  $("nativeDriveStatus").textContent = statusMessage
     + (queued ? ` · ${queued} queued` : "") + (dropped ? ` · ${dropped} skipped` : "")
     + (keyframes ? ` · ${keyframes} saved frame${keyframes === 1 ? "" : "s"}` : "")
     + (segments ? ` · ${segments} low-res clip${segments === 1 ? "" : "s"} (${savedMb.toFixed(0)} MB)` : "")
@@ -2247,6 +2262,9 @@ function updateNativeDriveHud(status) {
   } else if (status.isPaused) {
     badge.innerHTML = "&#10074;&#10074; PAUSED · CAMERA OFF";
     badge.style.background = "rgba(60,60,60,.88)";
+  } else if (status.captureBlocked) {
+    badge.innerHTML = "CAPTURE PAUSED · CAMERA/GPS UNAVAILABLE";
+    badge.style.background = "rgba(150,0,0,.88)";
   } else if (status.cameraActive !== true) {
     const starting = /starting|waiting/i.test(String(status.status || ""));
     badge.innerHTML = starting ? "CAMERA STARTING" : "CAMERA INTERRUPTED · RETRYING";
@@ -2264,7 +2282,7 @@ function updateNativeDriveHud(status) {
     badge.innerHTML = "&#9679; CAMERA ACTIVE · VIDEO UNAVAILABLE";
     badge.style.background = "rgba(130,70,0,.88)";
   } else {
-    badge.innerHTML = "&#9679; CAMERA ACTIVE · VIDEO NOT SAVED";
+    badge.innerHTML = "&#9679; CAMERA ACTIVE · SAVING FRAMES";
     badge.style.background = "rgba(130,70,0,.88)";
   }
   $("nativeRecordBtn").textContent = status.recordingEnabled ? "Video: Low" : "Video: Off";
@@ -2275,6 +2293,9 @@ function updateNativeDriveHud(status) {
 }
 
 function beginNativeDataSync(force) {
+  if (nativeWipeInProgress) {
+    return Promise.reject(new Error("App data deletion is in progress."));
+  }
   const run = performNativeDataSync({ forceNativeHistory: force }).then((result) => {
     lastNativeSyncAt = Date.now();
     lastNativeSyncResult = result;
@@ -2288,6 +2309,9 @@ function beginNativeDataSync(force) {
 }
 
 function syncNativeData(options = {}) {
+  if (nativeWipeInProgress) {
+    return Promise.reject(new Error("App data deletion is in progress."));
+  }
   const force = options.force === true;
   if (nativeTrailingForcePromise) return nativeTrailingForcePromise;
   if (nativeSyncPromise) {
@@ -2306,16 +2330,21 @@ function syncNativeData(options = {}) {
   return beginNativeDataSync(force);
 }
 
+const NATIVE_IMAGE_BATCH_SIZE = 2;
+
 async function performNativeDataSync(options = {}) {
+  if (nativeWipeInProgress) throw new Error("App data deletion is in progress.");
   const plugin = nativeDrivePlugin();
   if (!plugin) return { reports: 0, drives: 0 };
   let reportCount = 0;
-  // Native evidence is Base64 across this bridge. Five-at-a-time keeps peak memory flat
+  // Native evidence is Base64 across this bridge. Two-at-a-time keeps peak memory flat
   // while each page is acknowledged durably before the next one is requested.
   for (let page = 0; page < 100; page++) {
-    const pending = await plugin.syncReports({ limit: 5 }).catch(() => ({ reports: [] }));
+    const pending = await plugin.syncReports({ limit: NATIVE_IMAGE_BATCH_SIZE })
+      .catch(() => ({ reports: [] }));
     const reports = pending.reports || [];
     if (!reports.length) break;
+    const remainingBeforeAck = Number(pending.remaining);
     const acknowledged = [];
     for (const report of reports) {
       try {
@@ -2335,7 +2364,10 @@ async function performNativeDataSync(options = {}) {
       // here instead of importing it up to another 99 times.
       if (confirmed !== acknowledged.length) break;
     }
-    if (acknowledged.length !== reports.length || reports.length < 5) break;
+    if (acknowledged.length !== reports.length) break;
+    if (Number.isFinite(remainingBeforeAck)) {
+      if (remainingBeforeAck <= acknowledged.length) break;
+    } else if (reports.length < NATIVE_IMAGE_BATCH_SIZE) break;
   }
   const repairs = await refreshNativeRepairData(plugin);
   const sessions = await getNativeDriveHistory({ force: options.forceNativeHistory })
@@ -2352,6 +2384,9 @@ async function performNativeDataSync(options = {}) {
 }
 
 function refreshNativeRepairData(plugin = nativeDrivePlugin()) {
+  if (nativeWipeInProgress) {
+    return Promise.reject(new Error("App data deletion is in progress."));
+  }
   if (nativeRepairSyncPromise) return nativeRepairSyncPromise;
   const run = syncNativeRepairData(plugin);
   nativeRepairSyncPromise = run;
@@ -2362,25 +2397,85 @@ function refreshNativeRepairData(plugin = nativeDrivePlugin()) {
 }
 
 async function syncNativeRepairData(plugin = nativeDrivePlugin()) {
+  if (nativeWipeInProgress) throw new Error("App data deletion is in progress.");
   if (!plugin) return { observations: 0, targets: 0 };
-  const pending = typeof plugin.syncRepairObservations === "function"
-    ? await plugin.syncRepairObservations().catch(() => ({ observations: [] }))
-    : { observations: [] };
-  const acknowledged = [];
-  for (const observation of (pending.observations || [])) {
-    try {
-      await api("/api/native-repair", { method: "POST", body: JSON.stringify(observation) });
-      acknowledged.push(Number(observation.id));
-    } catch (_) { /* leave it in Room so the next foreground sync retries */ }
+  let observationCount = 0;
+  if (typeof plugin.syncRepairObservations === "function") {
+    for (let page = 0; page < 100; page++) {
+      const pending = await plugin.syncRepairObservations({ limit: NATIVE_IMAGE_BATCH_SIZE })
+        .catch(() => ({ observations: [] }));
+      const observations = pending.observations || [];
+      if (!observations.length) break;
+      const remainingBeforeAck = Number(pending.remaining);
+      const acknowledged = [];
+      for (const observation of observations) {
+        try {
+          await api("/api/native-repair", { method: "POST", body: JSON.stringify(observation) });
+          acknowledged.push(Number(observation.id));
+        } catch (_) { /* leave it in Room so the next foreground sync retries */ }
+      }
+      let confirmed = 0;
+      if (acknowledged.length && typeof plugin.acknowledgeRepairObservations === "function") {
+        try {
+          const result = await plugin.acknowledgeRepairObservations({ ids: acknowledged });
+          const value = Number(result && result.acknowledged);
+          if (Number.isFinite(value)) confirmed = Math.max(0, Math.min(acknowledged.length, Math.floor(value)));
+        } catch (_) { break; }
+      }
+      observationCount += confirmed;
+      if (confirmed !== acknowledged.length || acknowledged.length !== observations.length) break;
+      if (Number.isFinite(remainingBeforeAck)) {
+        if (remainingBeforeAck <= confirmed) break;
+      } else if (observations.length < NATIVE_IMAGE_BATCH_SIZE) break;
+    }
   }
-  if (acknowledged.length && typeof plugin.acknowledgeRepairObservations === "function") {
-    await plugin.acknowledgeRepairObservations({ ids: acknowledged }).catch(() => {});
+  const targetCount = await refreshNativeRepairTargetCache(plugin);
+  return { observations: observationCount, targets: targetCount };
+}
+
+async function refreshNativeRepairTargetCache(plugin = nativeDrivePlugin()) {
+  if (nativeWipeInProgress) throw new Error("App data deletion is in progress.");
+  if (!plugin) return 0;
+  const required = ["beginRepairTargetSync", "appendRepairTargetBatch",
+    "commitRepairTargetSync", "abortRepairTargetSync"];
+  if (required.some((name) => typeof plugin[name] !== "function")) {
+    throw new Error("This Android build cannot refresh its repair history safely.");
   }
-  const payload = await api("/api/repair-targets").catch(() => ({ targets: [] }));
-  if (typeof plugin.replaceRepairTargets === "function") {
-    await plugin.replaceRepairTargets({ targets: payload.targets || [] }).catch(() => {});
+  const manifest = await api("/api/repair-targets");
+  const ids = manifest && manifest.target_ids;
+  if (!Array.isArray(ids) || ids.length > 2000
+      || ids.some((id) => !Number.isSafeInteger(id) || id <= 0)
+      || new Set(ids).size !== ids.length) {
+    throw new Error("The repair history manifest is invalid.");
   }
-  return { observations: acknowledged.length, targets: (payload.targets || []).length };
+  const started = await plugin.beginRepairTargetSync({ ids });
+  const token = String(started && started.token || "");
+  if (!token) throw new Error("Android did not start repair history staging.");
+  try {
+    for (let offset = 0; offset < ids.length; offset += NATIVE_IMAGE_BATCH_SIZE) {
+      if (nativeWipeInProgress) throw new Error("App data deletion is in progress.");
+      const batchIds = ids.slice(offset, offset + NATIVE_IMAGE_BATCH_SIZE);
+      const payload = await api("/api/repair-targets", {
+        method: "POST", body: JSON.stringify({ ids: batchIds }),
+      });
+      const targets = payload && payload.targets;
+      if (!Array.isArray(targets) || targets.length !== batchIds.length
+          || targets.some((target, index) => Number(target && target.id) !== batchIds[index])) {
+        throw new Error("Repair history changed while its native cache was being refreshed.");
+      }
+      await plugin.appendRepairTargetBatch({ token, offset, targets });
+    }
+    if (nativeWipeInProgress) throw new Error("App data deletion is in progress.");
+    const committed = await plugin.commitRepairTargetSync({ token });
+    const replaced = Number(committed && committed.replaced);
+    if (!Number.isInteger(replaced) || replaced !== ids.length) {
+      throw new Error("Android did not verify its complete repair history.");
+    }
+    return replaced;
+  } catch (error) {
+    try { await plugin.abortRepairTargetSync({ token }); } catch (_) {}
+    throw error;
+  }
 }
 
 async function finishNativeDrive(summary) {
@@ -4147,31 +4242,92 @@ $("setSave").onclick = async () => {
     saveButton.disabled = false;
   }
 };
+function missingFilesystemEntry(error) {
+  return /(?:not found|does not exist|no such file|enoent)/i.test(
+    String(error && (error.message || error))
+  );
+}
+
+async function removeManagedDirectory(filesystem, path, directory) {
+  if (!filesystem || typeof filesystem.rmdir !== "function") return;
+  try {
+    await filesystem.rmdir({ path, directory, recursive: true });
+  } catch (error) {
+    if (!missingFilesystemEntry(error)) throw error;
+  }
+  if (typeof filesystem.readdir !== "function") return;
+  try {
+    await filesystem.readdir({ path, directory });
+    throw new Error(`${path} still exists after deletion.`);
+  } catch (error) {
+    if (!missingFilesystemEntry(error)) throw error;
+  }
+}
+
+async function clearManagedBrowserCaches() {
+  if (!(window.caches && typeof window.caches.keys === "function")) return;
+  const names = await window.caches.keys();
+  const removed = await Promise.all(names.map((name) => window.caches.delete(name)));
+  if (removed.some((ok) => !ok) || (await window.caches.keys()).length) {
+    throw new Error("Some browser cache data could not be deleted.");
+  }
+}
+
+async function deleteAllAppData() {
+  if (nativeWipeInProgress) throw new Error("App data deletion is already in progress.");
+  // Close the import gate before observing the promises. Anything already running is
+  // allowed to settle, then the transactional wipe runs last; anything newly triggered
+  // by a drive-end/resume event is rejected until the successful reload.
+  nativeWipeInProgress = true;
+  try {
+    const activeSyncs = [...new Set([
+      nativeTrailingForcePromise, nativeSyncPromise, nativeRepairSyncPromise,
+    ].filter(Boolean))];
+    if (activeSyncs.length) await Promise.allSettled(activeSyncs);
+
+    const plugins = window.Capacitor && Capacitor.Plugins;
+    const nativePlugin = nativeDrivePlugin();
+    const filesystem = plugins && plugins.Filesystem;
+    if (nativePlugin) {
+      const result = await nativePlugin.clearNativeData();
+      if (!result || result.cleared !== true) {
+        throw new Error("Android could not verify that its private app data was deleted.");
+      }
+      if (!filesystem || typeof filesystem.rmdir !== "function" ||
+          typeof filesystem.readdir !== "function") {
+        throw new Error("Android file cleanup is unavailable; exported debug frames were not verified.");
+      }
+    }
+    await removeManagedDirectory(filesystem, FRAME_DIR, "DOCUMENTS");
+    await removeManagedDirectory(filesystem, SHARE_CACHE_DIR, "CACHE");
+    await clearManagedBrowserCaches();
+    const cleared = await api("/api/reports", { method: "DELETE" });
+    if (!cleared || cleared.ok !== true) {
+      throw new Error("Saved reports and media could not be verified as deleted.");
+    }
+    sessionStorage.clear();
+    localStorage.clear();
+    if (sessionStorage.length || localStorage.length) {
+      throw new Error("Some settings remain on this device.");
+    }
+    return { cleared: true };
+  } catch (error) {
+    // A failed wipe is explicitly incomplete and the page remains usable for retry.
+    nativeWipeInProgress = false;
+    throw error;
+  }
+}
+
 $("wipeBtn").onclick = async () => {
   if (!confirm(t("confirm_wipe"))) return;
   setNativeWipeLocked(true);
-  try { await api("/api/reports", { method: "DELETE" }); }
-  catch (e) { setNativeWipeLocked(false); alert(e.message); return; }
-  const plugins = window.Capacitor && Capacitor.Plugins;
-  const nativePlugin = nativeDrivePlugin();
-  try { if (nativePlugin) await nativePlugin.clearNativeData(); }
-  catch (e) {
+  try {
+    await deleteAllAppData();
+    location.reload();
+  } catch (e) {
     setNativeWipeLocked(false);
-    alert(e.message || "Some on-device footage could not be deleted.");
-    return;
+    alert(`Delete incomplete: ${e.message || e}`);
   }
-  try {
-    if (plugins && plugins.Filesystem && plugins.Filesystem.rmdir) {
-      await plugins.Filesystem.rmdir({ path: FRAME_DIR, directory: "DOCUMENTS", recursive: true });
-    }
-  } catch (e) {}
-  try {
-    if (plugins && plugins.Filesystem && plugins.Filesystem.rmdir) {
-      await plugins.Filesystem.rmdir({ path: SHARE_CACHE_DIR, directory: "CACHE", recursive: true });
-    }
-  } catch (e) {}
-  localStorage.clear();
-  location.reload();
 };
 
 applyLang();

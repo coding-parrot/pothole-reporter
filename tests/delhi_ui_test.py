@@ -22,7 +22,7 @@ async () => {
   ]);
 
   ok("privacy: background-drive disclosure forces fresh consent",
-     /v13-hybrid-drive-capture$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
+     /v14-durable-drive-frames$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
   for (const [lang, dictionary] of Object.entries(I18N)) {
     ok(`scope: ${lang} describes India-wide State/UT coverage`, /India|ಭಾರತ|भारत|ভারত/.test(
       dictionary.outside_coverage_help), dictionary.outside_coverage_help);

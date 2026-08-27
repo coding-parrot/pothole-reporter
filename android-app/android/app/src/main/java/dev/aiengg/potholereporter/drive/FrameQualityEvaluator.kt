@@ -12,6 +12,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 data class QualityScore(
     val sharpness: Float,
@@ -25,6 +26,17 @@ data class BurstFrame(
     val quality: QualityScore,
     val capturedAtMs: Long
 )
+
+/** Referential ownership guard shared by bitmap transforms and deterministic JVM tests. */
+internal object NativeBitmapOwnership {
+    fun <T : Any> recycleIfOwned(
+        candidate: T,
+        vararg borrowed: T,
+        recycle: (T) -> Unit
+    ) {
+        if (borrowed.none { it === candidate }) recycle(candidate)
+    }
+}
 
 object FrameQualityEvaluator {
     private const val ROAD_BAND = 0.60f
@@ -77,15 +89,16 @@ object FrameQualityEvaluator {
         val sourceY = fullBitmap.height - sourceH
 
         val cropped = Bitmap.createBitmap(fullBitmap, 0, sourceY, fullBitmap.width, sourceH)
-        val scaled = Bitmap.createScaledBitmap(cropped, width, height, true)
-        if (cropped != fullBitmap && !cropped.isRecycled) {
-            cropped.recycle()
+        val scaled = if (cropped.width == width && cropped.height == height) cropped
+        else Bitmap.createScaledBitmap(cropped, width, height, true)
+        NativeBitmapOwnership.recycleIfOwned(cropped, fullBitmap, scaled) {
+            if (!it.isRecycled) it.recycle()
         }
 
         val pixels = IntArray(width * height)
         scaled.getPixels(pixels, 0, width, 0, 0, width, height)
-        if (!scaled.isRecycled) {
-            scaled.recycle()
+        NativeBitmapOwnership.recycleIfOwned(scaled, fullBitmap) {
+            if (!it.isRecycled) it.recycle()
         }
 
         return scoreRoadPixels(pixels, width, height)
@@ -118,9 +131,12 @@ object FrameQualityEvaluator {
         val targetW = max(1, (sw * scale).roundToInt())
         val targetH = max(1, (sh * scale).roundToInt())
 
-        val scaled = Bitmap.createScaledBitmap(cropped, targetW, targetH, true)
-        if (cropped != bitmap && !cropped.isRecycled) {
-            cropped.recycle()
+        val scaled = if (targetW == sw && targetH == sh) cropped
+        else Bitmap.createScaledBitmap(cropped, targetW, targetH, true)
+        // createScaledBitmap may return its input for an identity transform. Keep the
+        // crop alive when it is also the scaled working bitmap.
+        NativeBitmapOwnership.recycleIfOwned(cropped, bitmap, scaled) {
+            if (!it.isRecycled) it.recycle()
         }
 
         val finalBitmap = if (boost) {
@@ -136,11 +152,11 @@ object FrameQualityEvaluator {
         }
 
         val base64 = bitmapToBase64(finalBitmap, quality)
-        if (finalBitmap != scaled && !finalBitmap.isRecycled) {
-            finalBitmap.recycle()
+        NativeBitmapOwnership.recycleIfOwned(finalBitmap, bitmap, scaled) {
+            if (!it.isRecycled) it.recycle()
         }
-        if (!scaled.isRecycled) {
-            scaled.recycle()
+        NativeBitmapOwnership.recycleIfOwned(scaled, bitmap) {
+            if (!it.isRecycled) it.recycle()
         }
 
         return "data:image/jpeg;base64,$base64"
@@ -157,10 +173,12 @@ object FrameQualityEvaluator {
         val targetW = max(1, (sw * scale).roundToInt())
         val targetH = max(1, (sh * scale).roundToInt())
 
-        val scaled = Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
+        val scaled = if (targetW == sw && targetH == sh) bitmap
+        else Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
         val base64 = bitmapToBase64(scaled, quality)
-        if (!scaled.isRecycled) {
-            scaled.recycle()
+        // The caller owns the source bitmap; an identity transform must not recycle it.
+        NativeBitmapOwnership.recycleIfOwned(scaled, bitmap) {
+            if (!it.isRecycled) it.recycle()
         }
         return "data:image/jpeg;base64,$base64"
     }
@@ -169,6 +187,92 @@ object FrameQualityEvaluator {
         val stream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, quality, stream)
         return stream.toByteArray()
+    }
+
+    /**
+     * Encodes an image under a hard byte ceiling. The bitmap is first bounded by
+     * [maxDimension], then JPEG quality and dimensions are reduced in small steps. The
+     * caller's bitmap is never recycled or mutated.
+     */
+    fun bitmapToBoundedJpegBytes(
+        bitmap: Bitmap,
+        maxBytes: Long,
+        maxDimension: Int,
+        initialQuality: Int = 88,
+        minimumQuality: Int = 52
+    ): ByteArray? {
+        require(maxBytes in 1..Int.MAX_VALUE.toLong()) { "JPEG byte limit is invalid" }
+        require(maxDimension > 0) { "JPEG dimension limit is invalid" }
+        require(initialQuality in 1..100 && minimumQuality in 1..initialQuality) {
+            "JPEG quality range is invalid"
+        }
+        if (bitmap.isRecycled || bitmap.width <= 0 || bitmap.height <= 0) return null
+
+        var working = scaleToMaximumDimension(bitmap, maxDimension)
+        var ownsWorking = working !== bitmap
+        try {
+            repeat(MAX_BOUNDED_JPEG_SCALE_PASSES) { pass ->
+                var lastEncodedSize = Long.MAX_VALUE
+                for (quality in boundedQualitySteps(initialQuality, minimumQuality)) {
+                    val stream = ByteArrayOutputStream(
+                        min(maxBytes, BOUNDED_JPEG_INITIAL_BUFFER_BYTES).toInt()
+                    )
+                    if (!working.compress(Bitmap.CompressFormat.JPEG, quality, stream)) return null
+                    lastEncodedSize = stream.size().toLong()
+                    // Do not duplicate an already-oversized ByteArrayOutputStream just to
+                    // discover that it cannot be retained.
+                    if (lastEncodedSize in 1..maxBytes) return stream.toByteArray()
+                }
+
+                if (working.width <= MIN_BOUNDED_JPEG_DIMENSION &&
+                    working.height <= MIN_BOUNDED_JPEG_DIMENSION) return null
+                if (pass == MAX_BOUNDED_JPEG_SCALE_PASSES - 1) return null
+                val estimatedScale = if (lastEncodedSize in 1 until Long.MAX_VALUE) {
+                    sqrt(maxBytes.toDouble() / lastEncodedSize.toDouble()) * 0.92
+                } else DEFAULT_BOUNDED_JPEG_SCALE
+                val scale = estimatedScale
+                    .coerceIn(MIN_BOUNDED_JPEG_SCALE, MAX_BOUNDED_JPEG_SCALE)
+                val targetWidth = max(
+                    1,
+                    min(working.width - 1, (working.width * scale).roundToInt())
+                )
+                val targetHeight = max(
+                    1,
+                    min(working.height - 1, (working.height * scale).roundToInt())
+                )
+                if (targetWidth == working.width && targetHeight == working.height) return null
+                val scaled = Bitmap.createScaledBitmap(working, targetWidth, targetHeight, true)
+                if (ownsWorking && !working.isRecycled) working.recycle()
+                working = scaled
+                ownsWorking = working !== bitmap
+            }
+            return null
+        } finally {
+            if (ownsWorking && !working.isRecycled) working.recycle()
+        }
+    }
+
+    private fun scaleToMaximumDimension(bitmap: Bitmap, maxDimension: Int): Bitmap {
+        val longest = max(bitmap.width, bitmap.height)
+        if (longest <= maxDimension) return bitmap
+        val scale = maxDimension.toFloat() / longest.toFloat()
+        return Bitmap.createScaledBitmap(
+            bitmap,
+            max(1, (bitmap.width * scale).roundToInt()),
+            max(1, (bitmap.height * scale).roundToInt()),
+            true
+        )
+    }
+
+    private fun boundedQualitySteps(initialQuality: Int, minimumQuality: Int): List<Int> {
+        val qualities = mutableListOf<Int>()
+        var quality = initialQuality
+        while (quality > minimumQuality) {
+            qualities += quality
+            quality -= BOUNDED_JPEG_QUALITY_STEP
+        }
+        qualities += minimumQuality
+        return qualities.distinct()
     }
 
     private fun bitmapToBase64(bitmap: Bitmap, quality: Int): String {
@@ -230,4 +334,12 @@ object FrameQualityEvaluator {
         canvas.drawBitmap(src, 0f, 0f, paint)
         return ret
     }
+
+    private const val MAX_BOUNDED_JPEG_SCALE_PASSES = 4
+    private const val BOUNDED_JPEG_QUALITY_STEP = 8
+    private const val BOUNDED_JPEG_INITIAL_BUFFER_BYTES = 64L * 1024L
+    private const val MIN_BOUNDED_JPEG_DIMENSION = 320
+    private const val DEFAULT_BOUNDED_JPEG_SCALE = 0.75
+    private const val MIN_BOUNDED_JPEG_SCALE = 0.55
+    private const val MAX_BOUNDED_JPEG_SCALE = 0.82
 }

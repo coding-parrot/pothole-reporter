@@ -361,9 +361,21 @@ with sync_playwright() as p:
 
     # Recreate the document, not merely the API call: dedupe must come from IndexedDB,
     # not an in-memory set that disappears on navigation or app relaunch.
-    page.reload()
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function("typeof StandaloneAPI !== 'undefined'", timeout=30000)
+    reload_navigations = []
+    page.on("framenavigated", lambda frame: reload_navigations.append(frame.url)
+            if frame == page.main_frame else None)
+    page.reload(wait_until="load")
+    page.wait_for_function("""async () => {
+      if (document.readyState !== "complete" || typeof StandaloneAPI === "undefined") return false;
+      try {
+        const reports = await StandaloneAPI.handle("/api/reports", { method: "GET" });
+        return Array.isArray(reports) && reports.length === 2;
+      } catch (_) { return false; }
+    }""", timeout=30000)
+    if page.url != APP or reload_navigations != [APP]:
+        failures.append(
+            f"reload lifecycle was not one stable navigation: {reload_navigations!r}, {page.url!r}"
+        )
     second = page.evaluate("""async () => {
       %s
       window.__detectorCalls = 0;

@@ -2,6 +2,67 @@ package dev.aiengg.potholereporter.db
 
 import androidx.room.*
 
+/** Small projection for media cleanup; avoids loading Base64 report bodies into memory. */
+data class ReportMediaRef(
+    val id: Long,
+    val photoPath: String?,
+    val photoFullPath: String?,
+    val syncedToWeb: Boolean
+)
+
+/**
+ * Bounded native-to-WebView projection. The potentially large Base64 thumbnail is not
+ * hydrated while scanning; only its character count is read until this row is selected.
+ */
+data class ReportSyncCandidate(
+    val id: Long,
+    val createdAt: Long,
+    val lat: Double?,
+    val lng: Double?,
+    val address: String?,
+    val photoPath: String?,
+    val photoFullPath: String?,
+    val photoDataUrlChars: Long?,
+    val isReportable: Int,
+    val isPothole: Int,
+    val looksLikeSpeedBreaker: Boolean,
+    val damageType: String?,
+    val surfaceType: String,
+    val defectType: String,
+    val measurementProvenance: String,
+    val measurementConfidence: String,
+    val assessment: String?,
+    val imageQuality: String?,
+    val onDrivableSurface: Boolean,
+    val hasLocalizedCavity: Boolean,
+    val hasBrokenEdgeOrRim: Boolean,
+    val hasDepthOrSurfaceLoss: Boolean,
+    val temporalConsistency: String?,
+    val size: String?,
+    val decision: String?,
+    val description: String?,
+    val emailSubject: String?,
+    val emailBody: String?,
+    val status: String,
+    val detectionModel: String?,
+    val imageDetail: String?,
+    val promptVersion: String?,
+    val schemaVersion: Int,
+    val evidenceCount: Int,
+    val driveId: String?,
+    val captureSource: String,
+    val sourceEventKey: String?,
+    val capturedAt: Long?,
+    val sourceOffsetS: Double?,
+    val gpsAccuracy: Float?,
+    val speedMps: Float?,
+    val heading: Float?,
+    val seenCount: Int,
+    val lastSeenAt: Long?,
+    val primaryFrameIndex: Int,
+    val debugCapture: Boolean
+)
+
 @Dao
 interface ReportDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -16,14 +77,43 @@ interface ReportDao {
     @Query("SELECT * FROM reports WHERE id = :id")
     suspend fun getReportById(id: Long): ReportEntity?
 
-    @Query("SELECT * FROM reports WHERE syncedToWeb = 0 ORDER BY id ASC LIMIT :limit")
-    suspend fun getUnsyncedReports(limit: Int): List<ReportEntity>
+    @Query("""SELECT id, photoPath, photoFullPath, syncedToWeb
+        FROM reports ORDER BY id ASC""")
+    suspend fun getAllReportMediaRefs(): List<ReportMediaRef>
+
+    @Query("""SELECT id, photoPath, photoFullPath, syncedToWeb
+        FROM reports WHERE id IN (:ids)""")
+    suspend fun getReportMediaRefs(ids: List<Long>): List<ReportMediaRef>
+
+    @Query("""SELECT id, createdAt, lat, lng, address, photoPath, photoFullPath,
+        length(photoDataUrl) AS photoDataUrlChars,
+        isReportable, isPothole, looksLikeSpeedBreaker, damageType, surfaceType,
+        defectType, measurementProvenance, measurementConfidence, assessment, imageQuality,
+        onDrivableSurface, hasLocalizedCavity, hasBrokenEdgeOrRim, hasDepthOrSurfaceLoss,
+        temporalConsistency, size, decision, description, emailSubject, emailBody, status,
+        detectionModel, imageDetail, promptVersion, schemaVersion, evidenceCount, driveId,
+        captureSource, sourceEventKey, capturedAt, sourceOffsetS, gpsAccuracy, speedMps,
+        heading, seenCount, lastSeenAt, primaryFrameIndex, debugCapture
+        FROM reports
+        WHERE syncedToWeb = 0 AND id > :afterId
+        ORDER BY id ASC LIMIT :limit""")
+    suspend fun getUnsyncedReportCandidatesAfter(
+        afterId: Long,
+        limit: Int
+    ): List<ReportSyncCandidate>
+
+    @Query("SELECT photoDataUrl FROM reports WHERE syncedToWeb = 0 AND id = :id")
+    suspend fun getUnsyncedReportPhotoDataUrl(id: Long): String?
 
     @Query("SELECT COUNT(*) FROM reports WHERE syncedToWeb = 0")
     suspend fun countUnsyncedReports(): Int
 
     @Query("UPDATE reports SET syncedToWeb = 1 WHERE id IN (:ids)")
     suspend fun markReportsSynced(ids: List<Long>)
+
+    @Query("""UPDATE reports SET syncedToWeb = 1, photoPath = NULL,
+        photoFullPath = NULL, photoDataUrl = NULL WHERE id IN (:ids)""")
+    suspend fun acknowledgeAndReleasePhotos(ids: List<Long>): Int
 
     @Query("SELECT * FROM reports WHERE lat BETWEEN :minLat AND :maxLat")
     suspend fun getCandidateReportsInLatitudeBand(minLat: Double, maxLat: Double): List<ReportEntity>
@@ -48,6 +138,9 @@ interface EventSightingDao {
 
     @Query("DELETE FROM event_sightings WHERE reportId = :reportId")
     suspend fun deleteSightingsForReport(reportId: Long)
+
+    @Query("DELETE FROM event_sightings WHERE reportId IN (:reportIds)")
+    suspend fun deleteSightingsForReports(reportIds: List<Long>)
 }
 
 @Dao
@@ -61,11 +154,17 @@ interface RepairTargetDao {
     @Query("SELECT * FROM repair_targets WHERE lat BETWEEN :minLat AND :maxLat")
     suspend fun getTargetsInLatitudeBand(minLat: Double, maxLat: Double): List<RepairTargetEntity>
 
+    @Query("SELECT * FROM repair_targets")
+    suspend fun getAllTargets(): List<RepairTargetEntity>
+
     @Update
     suspend fun updateTarget(target: RepairTargetEntity)
 
     @Query("DELETE FROM repair_targets")
     suspend fun clearAll()
+
+    @Query("DELETE FROM repair_targets WHERE reportId IN (:reportIds)")
+    suspend fun deleteTargets(reportIds: List<Long>)
 }
 
 @Dao
@@ -76,6 +175,17 @@ interface RepairObservationDao {
     @Query("SELECT * FROM repair_observations WHERE syncedToWeb = 0 ORDER BY id ASC")
     suspend fun getUnsyncedObservations(): List<RepairObservationEntity>
 
+    @Query("""SELECT * FROM repair_observations
+        WHERE syncedToWeb = 0 AND id > :afterId
+        ORDER BY id ASC LIMIT :limit""")
+    suspend fun getUnsyncedObservationsAfter(
+        afterId: Long,
+        limit: Int
+    ): List<RepairObservationEntity>
+
+    @Query("SELECT COUNT(*) FROM repair_observations WHERE syncedToWeb = 0")
+    suspend fun countUnsyncedObservations(): Int
+
     @Query("SELECT * FROM repair_observations WHERE id IN (:ids)")
     suspend fun getObservations(ids: List<Long>): List<RepairObservationEntity>
 
@@ -83,7 +193,7 @@ interface RepairObservationDao {
     suspend fun markObservationsSynced(ids: List<Long>)
 
     @Query("DELETE FROM repair_observations WHERE id IN (:ids)")
-    suspend fun deleteObservations(ids: List<Long>)
+    suspend fun deleteObservations(ids: List<Long>): Int
 
     @Query("DELETE FROM repair_observations")
     suspend fun clearAll()

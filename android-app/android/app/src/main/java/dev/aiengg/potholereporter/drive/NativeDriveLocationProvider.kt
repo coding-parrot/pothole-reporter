@@ -1,9 +1,14 @@
 package dev.aiengg.potholereporter.drive
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import android.location.Location
+import android.location.LocationManager
+import android.os.Build
 import android.os.Looper
+import androidx.core.content.ContextCompat
 import com.google.android.gms.location.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -22,13 +27,15 @@ data class GpsFix(
 
 class NativeDriveLocationProvider(
     private val context: Context,
-    private val onLocationUpdate: (GpsFix) -> Unit
+    private val onLocationUpdate: (GpsFix) -> Unit,
+    private val onAvailabilityChange: (NativeLocationAccess) -> Unit = {}
 ) {
     private val fusedClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
 
-    private var locationCallback: LocationCallback? = null
-    var latestFix: GpsFix? = null
+    @Volatile private var locationCallback: LocationCallback? = null
+    @Volatile private var providerAvailable = false
+    @Volatile var latestFix: GpsFix? = null
         private set
 
     val gpsTrack: MutableList<JSONArray> = Collections.synchronizedList(mutableListOf())
@@ -52,12 +59,24 @@ class NativeDriveLocationProvider(
         if (resetTrack) gpsTrack.clear()
         stopUpdates()
 
+        val initial = captureAccess()
+        if (!initial.permissionGranted || !initial.servicesEnabled) {
+            onAvailabilityChange(initial)
+            return
+        }
+
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L)
             .setMinUpdateIntervalMillis(500L)
             .setMinUpdateDistanceMeters(1.0f)
             .build()
 
         locationCallback = object : LocationCallback() {
+            override fun onLocationAvailability(availability: LocationAvailability) {
+                providerAvailable = availability.isLocationAvailable
+                if (!providerAvailable) latestFix = null
+                onAvailabilityChange(captureAccess())
+            }
+
             override fun onLocationResult(result: LocationResult) {
                 val loc: Location = result.lastLocation ?: return
                 val fix = GpsFix(
@@ -69,6 +88,7 @@ class NativeDriveLocationProvider(
                     timestampMs = if (loc.time > 0) loc.time else System.currentTimeMillis()
                 )
                 latestFix = fix
+                providerAvailable = true
 
                 val offsetS = ((System.currentTimeMillis() - startedAtMs) / 100.0).toInt() / 10.0
                 val trackItem = JSONArray()
@@ -81,14 +101,34 @@ class NativeDriveLocationProvider(
                 if (gpsTrack.size < MAX_TRACK_POINTS) gpsTrack.add(trackItem)
 
                 onLocationUpdate(fix)
+                onAvailabilityChange(captureAccess())
             }
         }
 
-        fusedClient.requestLocationUpdates(
-            locationRequest,
-            locationCallback!!,
-            Looper.getMainLooper()
-        )
+        try {
+            fusedClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback!!,
+                Looper.getMainLooper()
+            ).addOnFailureListener {
+                providerAvailable = false
+                latestFix = null
+                onAvailabilityChange(captureAccess())
+            }
+            // Registration is not a fix. Keep capture closed until Fused Location reports
+            // availability and supplies a fresh timestamped location.
+            onAvailabilityChange(captureAccess())
+        } catch (_: SecurityException) {
+            locationCallback = null
+            providerAvailable = false
+            latestFix = null
+            onAvailabilityChange(captureAccess())
+        } catch (_: Exception) {
+            locationCallback = null
+            providerAvailable = false
+            latestFix = null
+            onAvailabilityChange(captureAccess())
+        }
     }
 
     fun stopUpdates() {
@@ -96,11 +136,50 @@ class NativeDriveLocationProvider(
             fusedClient.removeLocationUpdates(it)
             locationCallback = null
         }
+        providerAvailable = false
+        latestFix = null
     }
 
     @SuppressLint("MissingPermission")
     fun resumeUpdates() {
         if (locationCallback == null) startUpdates(startedAtMs, resetTrack = false)
+    }
+
+    @SuppressLint("MissingPermission")
+    fun restartUpdates() {
+        startUpdates(startedAtMs, resetTrack = false)
+    }
+
+    fun captureAccess(nowMs: Long = System.currentTimeMillis()): NativeLocationAccess {
+        val permissionGranted = hasLocationPermission()
+        val servicesEnabled = locationServicesEnabled()
+        val fix = latestFix
+        val fixAgeMs = fix?.let { nowMs - it.timestampMs }
+        val freshFix = fixAgeMs != null && fixAgeMs >= -60_000L && fixAgeMs <= GPS_MAX_AGE_MS
+        return NativeLocationAccess(
+            permissionGranted = permissionGranted,
+            servicesEnabled = servicesEnabled,
+            providerAvailable = providerAvailable,
+            freshFixAvailable = freshFix
+        )
+    }
+
+    private fun hasLocationPermission(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+
+    private fun locationServicesEnabled(): Boolean {
+        val manager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+            ?: return false
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) manager.isLocationEnabled
+            else manager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        } catch (_: Exception) {
+            false
+        }
     }
 
     fun shouldTriggerCapture(

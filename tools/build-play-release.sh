@@ -12,9 +12,12 @@ PROJECT_ROOT=$PWD
 ANDROID_ROOT=android-app/android
 AAB_PATH=$ANDROID_ROOT/app/build/outputs/bundle/release/app-release.aab
 R8_MAPPING_PATH=$ANDROID_ROOT/app/build/outputs/mapping/release/mapping.txt
-BUNDLE_MANIFEST=$ANDROID_ROOT/app/build/intermediates/bundle_manifest/release/processApplicationManifestReleaseForBundle/AndroidManifest.xml
+# AGP 8.13 writes the fully merged, packaged release manifest here. Validate this
+# generated artifact rather than an obsolete pre-8.13 intermediate path.
+BUNDLE_MANIFEST=$ANDROID_ROOT/app/build/intermediates/packaged_manifests/release/processReleaseManifestForPackage/AndroidManifest.xml
 WWW_ROOT=android-app/www
 PACKAGED_ASSETS_ROOT=$ANDROID_ROOT/app/src/main/assets/public
+RELEASE_ASSET_VERIFIER=tools/verify-release-assets.py
 PACK_MANIFEST=static/pack-manifest-v1.35.json
 PREVIOUS_PACK_MANIFEST=static/pack-manifest-v1.33.json
 V131_PACK_MANIFEST=static/pack-manifest-v1.31.json
@@ -51,8 +54,6 @@ same_file() {
 }
 
 require_tool cmp
-require_tool diff
-require_tool find
 require_tool grep
 require_tool jarsigner
 require_tool keytool
@@ -63,10 +64,34 @@ require_tool sort
 require_tool stat
 require_tool unzip
 
+# On the maintainer Mac, reuse the registered Play upload certificate without copying
+# its password into this repository or the shell history. CI and other machines keep
+# using the documented POTHOLE_RELEASE_* variables/ignored properties file.
+if [ ! -f "$ANDROID_ROOT/keystore.properties" ] &&
+   { [ -z "${POTHOLE_RELEASE_STORE_FILE:-}" ] ||
+     [ -z "${POTHOLE_RELEASE_STORE_PASSWORD:-}" ] ||
+     [ -z "${POTHOLE_RELEASE_KEY_ALIAS:-}" ] ||
+     [ -z "${POTHOLE_RELEASE_KEY_PASSWORD:-}" ]; }; then
+  MAC_UPLOAD_KEY="$HOME/.android/pothole-reporter-upload.jks"
+  if command -v security >/dev/null 2>&1 && [ -f "$MAC_UPLOAD_KEY" ]; then
+    MAC_UPLOAD_PASSWORD=$(security find-generic-password \
+      -s com.gauravsen.potholereporter.upload -w 2>/dev/null || true)
+    if [ -n "$MAC_UPLOAD_PASSWORD" ]; then
+      export POTHOLE_RELEASE_STORE_FILE="$MAC_UPLOAD_KEY"
+      export POTHOLE_RELEASE_STORE_PASSWORD="$MAC_UPLOAD_PASSWORD"
+      export POTHOLE_RELEASE_KEY_ALIAS=upload
+      export POTHOLE_RELEASE_KEY_PASSWORD="$MAC_UPLOAD_PASSWORD"
+      trap 'unset MAC_UPLOAD_PASSWORD POTHOLE_RELEASE_STORE_PASSWORD POTHOLE_RELEASE_KEY_PASSWORD' EXIT
+    fi
+  fi
+fi
+
 echo "1/7 validating hosted data packs, municipal schemas and web-source mirrors (read only)"
 [ -d static ] || fail "static source directory is missing"
+[ -d docs ] || fail "hosted docs directory is missing"
 [ -d "$WWW_ROOT" ] || fail "Android www source directory is missing"
 [ -d "$PACKAGED_ASSETS_ROOT" ] || fail "packaged Android assets directory is missing"
+[ -f "$RELEASE_ASSET_VERIFIER" ] || fail "release asset verifier is missing"
 [ -x "$ANDROID_ROOT/gradlew" ] || fail "Gradle wrapper is missing or not executable"
 python3 tools/build-state-packs.py --check
 python3 tools/build-national-highways.py --check
@@ -89,23 +114,8 @@ for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
   [ ! -e "$WWW_ROOT/$asset" ] || fail "state data must not be bundled in Android www/: $asset"
   [ ! -e "$PACKAGED_ASSETS_ROOT/$asset" ] || fail "state data must not be bundled in packaged Android assets: $asset"
 done
-while IFS= read -r source_file; do
-  relative_path=${source_file#static/}
-  same_file "$source_file" "$WWW_ROOT/$relative_path" "static-to-www mirror"
-done < <(find static -type f -print | sort)
-
-while IFS= read -r source_file; do
-  relative_path=${source_file#"$WWW_ROOT"/}
-  same_file "$source_file" "$PACKAGED_ASSETS_ROOT/$relative_path" "www-to-Android mirror"
-done < <(find "$WWW_ROOT" -type f -print | sort)
-
-while IFS= read -r packaged_file; do
-  relative_path=${packaged_file#"$PACKAGED_ASSETS_ROOT"/}
-  case "$relative_path" in
-    cordova.js|cordova_plugins.js) continue ;;
-  esac
-  [ -f "$WWW_ROOT/$relative_path" ] || fail "stale Android public asset is not present in www: $relative_path"
-done < <(find "$PACKAGED_ASSETS_ROOT" -type f -print | sort)
+python3 "$RELEASE_ASSET_VERIFIER" \
+  --static static --www "$WWW_ROOT" --docs docs --packaged "$PACKAGED_ASSETS_ROOT"
 
 echo "2/7 building signed release bundle"
 rm -f "$AAB_PATH"
@@ -183,12 +193,9 @@ if [ "$actual_upload_cert_sha256" != "$expected_upload_cert_sha256" ]; then
 fi
 
 echo "5/7 verifying bundled web assets"
-while IFS= read -r source_file; do
-  relative_path=${source_file#"$PACKAGED_ASSETS_ROOT"/}
-  if ! diff -q <(unzip -p "$AAB_PATH" "base/assets/public/$relative_path") "$source_file" >/dev/null; then
-    fail "AAB asset differs from source: $relative_path"
-  fi
-done < <(find "$PACKAGED_ASSETS_ROOT" -type f -print | sort)
+python3 "$RELEASE_ASSET_VERIFIER" \
+  --static static --www "$WWW_ROOT" --docs docs --packaged "$PACKAGED_ASSETS_ROOT" \
+  --aab "$AAB_PATH"
 
 if unzip -p "$AAB_PATH" base/assets/public/standalone.js | grep -Eqa 'sk-(proj-)?[A-Za-z0-9_-]{20,}'; then
   fail "an API-key-shaped value is embedded in standalone.js"

@@ -120,8 +120,32 @@ with sync_playwright() as playwright:
     preview = initial["preview"] or {}
     if preview.get("width", 0) <= 0 or preview.get("height", 0) <= 0:
         failures.append(f"native Preview was not attached to a visible slot: {initial}")
-    if "VIDEO NOT SAVED" not in initial["badge"]:
-        failures.append(f"initial camera badge did not disclose video status: {initial}")
+    if "SAVING FRAMES" not in initial["badge"]:
+        failures.append(f"initial camera badge did not disclose frame capture: {initial}")
+
+    # GPS/privacy interruptions are a stopped capture, not a camera startup. Keep the
+    # full actionable native reason visible while making the badge unambiguous.
+    blocked_issue = "GPS is unavailable. Camera, detection, and video are paused; capture resumes after GPS returns."
+    page.evaluate("""(issue) => {
+      __nativeDriveProbe.status = {...__nativeDriveProbe.status,
+        cameraActive: false, captureBlocked: true, captureIssue: issue,
+        status: "Waiting for a fresh GPS fix"};
+      (__nativeDriveProbe.listeners.driveStatusChange || []).forEach((fn) =>
+        fn({...__nativeDriveProbe.status}));
+    }""", blocked_issue)
+    blocked_hud = page.evaluate("""() => ({
+      badge: document.querySelector('#nativeCameraBadge').textContent,
+      status: document.querySelector('#nativeDriveStatus').textContent,
+    })""")
+    if blocked_hud["badge"] != "CAPTURE PAUSED · CAMERA/GPS UNAVAILABLE" or blocked_hud["status"] != blocked_issue:
+        failures.append(f"capture blocker was rendered as camera startup: {blocked_hud}")
+    page.evaluate("""() => {
+      __nativeDriveProbe.status = {...__nativeDriveProbe.status,
+        cameraActive: true, captureBlocked: false, captureIssue: null,
+        status: "Scanning live"};
+      (__nativeDriveProbe.listeners.driveStatusChange || []).forEach((fn) =>
+        fn({...__nativeDriveProbe.status}));
+    }""")
 
     page.evaluate("""() => {
       window.__testVisibility = "hidden";
@@ -173,7 +197,7 @@ with sync_playwright() as playwright:
         failures.append(f"Drive re-entry started a duplicate native session: {reentered}")
 
     # The opt-in is explicit, and every visible label must follow native recording
-    # truth rather than implying that frame analysis is saved video.
+    # truth: low-res video is opt-in, while sparse evidence frames are always saved.
     page.locator("#nativeRecordBtn").click()
     page.wait_for_function("__nativeDriveProbe.status.isRecording === true")
     video_on = page.evaluate("""() => ({
@@ -199,7 +223,7 @@ with sync_playwright() as playwright:
       saved: localStorage.getItem('record_video'),
     })""")
     if (video_off["calls"] != 2 or video_off["recording"]
-            or video_off["button"] != "Video: Off" or "VIDEO NOT SAVED" not in video_off["badge"]
+            or video_off["button"] != "Video: Off" or "SAVING FRAMES" not in video_off["badge"]
             or video_off["saved"] != "0"):
         failures.append(f"video-off UI diverged from native recording truth: {video_off}")
 

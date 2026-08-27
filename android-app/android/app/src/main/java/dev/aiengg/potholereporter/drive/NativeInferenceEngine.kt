@@ -957,13 +957,14 @@ class NativeInferenceEngine(
     }
 
     private fun saveEvidenceImage(bitmap: Bitmap, driveId: String, seq: Int): File {
-        val dir = File(context.filesDir, "reports/$driveId")
-        if (!dir.exists()) dir.mkdirs()
-        val file = File(dir, "evidence_${seq}_${System.currentTimeMillis()}.jpg")
-        FileOutputStream(file).use { out ->
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
-        }
-        return file
+        val safeDriveId = driveId.replace(Regex("[^A-Za-z0-9_-]"), "_").take(128)
+        val dir = File(context.filesDir, "reports/$safeDriveId")
+        return saveJpegAtomically(
+            bitmap,
+            dir,
+            "evidence_${seq}_${System.currentTimeMillis()}.jpg",
+            92
+        )
     }
 
     private fun saveRepairEvidenceImage(
@@ -974,19 +975,54 @@ class NativeInferenceEngine(
     ): File {
         val safeDriveId = driveId.replace(Regex("[^A-Za-z0-9_-]"), "_").take(128)
         val dir = File(context.filesDir, "reports/$safeDriveId")
-        if (!dir.exists() && !dir.mkdirs()) {
-            throw NativeInferenceException("Could not create repair evidence storage")
-        }
-        val file = File(
+        return saveJpegAtomically(
+            bitmap,
             dir,
-            "repair_${targetReportId}_${seq}_${System.currentTimeMillis()}.jpg"
+            "repair_${targetReportId}_${seq}_${System.currentTimeMillis()}.jpg",
+            88
         )
-        FileOutputStream(file).use { out ->
-            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 88, out)) {
-                throw NativeInferenceException("Could not save repair evidence")
-            }
+    }
+
+    private fun saveJpegAtomically(
+        bitmap: Bitmap,
+        directory: File,
+        fileName: String,
+        quality: Int
+    ): File {
+        val jpeg = FrameQualityEvaluator.bitmapToBoundedJpegBytes(
+            bitmap = bitmap,
+            maxBytes = NativeStoredImagePolicy.MAX_BRIDGE_IMAGE_BYTES,
+            maxDimension = NativeStoredImagePolicy.EVIDENCE_MAX_DIMENSION,
+            initialQuality = quality
+        ) ?: throw NativeInferenceException("Could not encode evidence within the safe image limit")
+        if (context.filesDir.usableSpace < NativeMediaStorageQuota.MIN_FREE_BYTES + jpeg.size) {
+            throw NativeInferenceException("At least 500 MB of free storage is required")
         }
-        return file
+        if (!directory.exists() && !directory.mkdirs()) {
+            throw NativeInferenceException("Could not create private evidence storage")
+        }
+        val file = File(directory, fileName)
+        val temporary = File(directory, ".$fileName.tmp")
+        try {
+            FileOutputStream(temporary).use { out -> out.write(jpeg) }
+            if (temporary.length() != jpeg.size.toLong() ||
+                temporary.length() > NativeStoredImagePolicy.MAX_BRIDGE_IMAGE_BYTES) {
+                throw NativeInferenceException("Evidence image is empty or too large")
+            }
+            val committed = temporary.renameTo(file) || runCatching {
+                temporary.copyTo(file, overwrite = true)
+                NativeRetryableFileCleanup.deleteVerified(temporary) && file.isFile
+            }.getOrDefault(false)
+            if (!committed || !file.isFile || file.length() <= 0L) {
+                throw NativeInferenceException("Could not commit evidence image")
+            }
+            return file
+        } catch (error: Exception) {
+            NativeRetryableFileCleanup.deleteVerified(temporary)
+            NativeRetryableFileCleanup.deleteVerified(file)
+            if (error is NativeInferenceException) throw error
+            throw NativeInferenceException("Could not save evidence image: ${error.message ?: "storage error"}")
+        }
     }
 
     private fun fileDataUrl(path: String, mime: String): String? {

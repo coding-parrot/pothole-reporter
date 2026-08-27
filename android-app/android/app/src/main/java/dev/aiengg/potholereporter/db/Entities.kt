@@ -213,9 +213,10 @@ data class FootageSegmentEntity(
 
 /**
  * A sparse evidence-resolution frame captured alongside the low-resolution local video.
- * Raw camera bitmaps are never retained: the service writes one bounded JPEG and then
- * recycles the burst. Frames that the live worker could not finish remain available for
- * the explicit post-drive pass.
+ * Raw camera bitmaps are never retained: the service writes one bounded primary JPEG and
+ * one deterministic same-burst temporal companion, then recycles the burst. One row owns
+ * both files and [bytes] is their aggregate size. Frames that the live worker could not
+ * finish remain available for the explicit post-drive pass.
  */
 @Entity(
     tableName = "drive_keyframes",

@@ -153,6 +153,18 @@ async () => {
   const ghaziabad = await P.routeOfficer(
     {city: "Ghaziabad", state: "Uttar Pradesh", country_code: "in"},
     28.6692, 77.4538, 12, null, null, "garbage");
+  const delhiRoad = await P.routeOfficer(
+    {city: "Delhi", state: "Delhi", country_code: "in"},
+    28.6129, 77.2295, 12, null, null, "road_damage");
+  const delhiCivic = await P.routeOfficer(
+    {city: "Delhi", state: "Delhi", country_code: "in"},
+    28.6129, 77.2295, 12, null, null, "garbage");
+  const conflictingRoad = await P.routeOfficer(
+    {city: "Mumbai", state: "Maharashtra", country_code: "in"},
+    28.6129, 77.2295, 12, null, null, "road_damage");
+  const noidaRoad = await P.routeOfficer(
+    {city: "Noida", state: "Uttar Pradesh", country_code: "in"},
+    28.5355, 77.3910, 12, null, null, "road_damage");
   window.fetch = originalFetch;
   eq("state isolation: Noida routes through exact Uttar Pradesh containment",
      noida && [noida.authority_id, noida.routing_pack_id, noida.region],
@@ -161,6 +173,28 @@ async () => {
      ghaziabad && [ghaziabad.authority_id, ghaziabad.routing_pack_id, ghaziabad.region],
      ["up-statewide-unverified", "in-up-routing", "uttar-pradesh-state"]);
   eq("state isolation: Delhi/NCR envelope never calls Karnataka GIS", kgisCalls, 0);
+  eq("authority precedence: Delhi road damage uses PWD Sewa",
+     delhiRoad && [delhiRoad.authority_id, delhiRoad.handoff_name, delhiRoad.issue_type],
+     ["dl-pwd-sewa", "PWD Sewa", "road_damage"]);
+  eq("authority precedence: Delhi route retains exact DL pack provenance",
+     delhiRoad && [delhiRoad.routing_pack_state_code, delhiRoad.contract_state_code],
+     ["DL", "DL"]);
+  ok("authority precedence: a Delhi boundary does not claim road ownership",
+     delhiRoad && delhiRoad.ownership_unverified === true
+       && delhiRoad.road_owner_status === "unverified", delhiRoad);
+  eq("issue precedence: Delhi civic issue uses general JanSunwai, not PWD Sewa",
+     delhiCivic && [delhiCivic.handoff_name, delhiCivic.issue_type,
+       delhiCivic.tender_eligible],
+     ["Delhi CM JanSunwai", "garbage", false]);
+  eq("containment precedence: polygon still selects Delhi when geocoder conflicts",
+     conflictingRoad && [conflictingRoad.authority_id, conflictingRoad.routing_pack_state_code],
+     ["dl-pwd-sewa", "DL"]);
+  eq("contract isolation: conflicting geocoder disables Delhi contract lookup",
+     conflictingRoad && conflictingRoad.contract_state_code, null);
+  eq("neighbour precedence: Noida road damage stays with Uttar Pradesh",
+     noidaRoad && [noidaRoad.authority_id, noidaRoad.routing_pack_state_code,
+       noidaRoad.contract_state_code],
+     ["up-statewide-unverified", "UP", "UP"]);
 
   return checks;
 }

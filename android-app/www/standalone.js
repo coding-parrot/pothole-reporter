@@ -7531,6 +7531,41 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     }));
   }
 
+  const STORED_DATA_STORES = ["reports", "drives", "footage", "state_packs"];
+
+  // Delete-all is one IndexedDB transaction. Sequential clears can leave a misleading
+  // half-wiped history when a later store aborts (especially under storage pressure).
+  function clearAllStoredRecords() {
+    return idb().then((d) => new Promise((resolve, reject) => {
+      const tx = d.transaction(STORED_DATA_STORES, "readwrite");
+      let failure = null;
+      for (const name of STORED_DATA_STORES) {
+        const req = tx.objectStore(name).clear();
+        req.onerror = () => { failure = req.error; };
+      }
+      tx.oncomplete = () => resolve();
+      const died = () => reject(storageError(failure || tx.error));
+      tx.onabort = died;
+      tx.onerror = () => {};
+    }));
+  }
+
+  function allStoredRecordsAreEmpty() {
+    return idb().then((d) => new Promise((resolve, reject) => {
+      const tx = d.transaction(STORED_DATA_STORES, "readonly");
+      let remaining = 0, failure = null;
+      for (const name of STORED_DATA_STORES) {
+        const req = tx.objectStore(name).count();
+        req.onsuccess = () => { remaining += Number(req.result) || 0; };
+        req.onerror = () => { failure = req.error; };
+      }
+      tx.oncomplete = () => failure ? reject(storageError(failure)) : resolve(remaining === 0);
+      const died = () => reject(storageError(failure || tx.error));
+      tx.onabort = died;
+      tx.onerror = () => {};
+    }));
+  }
+
   // A full device is the common cause and the only one the user can act on, so it says so
   // rather than surfacing a DOMException name.
   function storageError(err) {
@@ -7936,31 +7971,99 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     }));
   }
 
-  async function getRepairTargets() {
-    const targets = (await allReports()).filter((report) => {
-      if (!acceptedReport(report) || conditionStatus(report) === "fixed"
-          || report.debug_capture || report.dedupe_eligible === false || !report.photo
-          || report.capture_source === "manual_import"
-          || !finiteCoord(report.lat) || !finiteCoord(report.lng)
-          || !Number.isFinite(eventTime(report))
-          || !Number.isFinite(report.gps_accuracy) || report.gps_accuracy < 0
-          || report.gps_accuracy > REPAIR_MAX_ACCURACY_M) return false;
-      return normaliseIssueType(report.issue_type) === "road_damage";
-    });
-    // Keep the native bridge payload bounded. Two thousand recent active defects is far
-    // beyond a normal on-device history and matches the plugin's explicit safety cap.
-    return Promise.all(targets.slice(-2000).map(async (report) => ({
-      id: report.id,
-      lat: report.lat,
-      lng: report.lng,
-      gps_accuracy: report.gps_accuracy,
-      heading: Number.isFinite(report.heading) ? report.heading : null,
-      capture_source: report.capture_source || null,
-      photo_data_url: await blobToDataUrl(report.photo),
-      last_damage_observed_at: eventTime(report),
-      damage_type: storedDamageType(report),
-      condition_status: conditionStatus(report),
-    })));
+  const MAX_REPAIR_TARGETS = 2000;
+  const MAX_REPAIR_TARGET_BATCH_SIZE = 2;
+  const MAX_REPAIR_TARGET_IMAGE_BYTES = 4 * 1024 * 1024;
+  const MAX_REPAIR_TARGET_TOTAL_BYTES = 512 * 1024 * 1024;
+
+  function eligibleRepairTarget(report) {
+    if (!acceptedReport(report) || conditionStatus(report) === "fixed"
+        || report.debug_capture || report.dedupe_eligible === false || !report.photo
+        || report.capture_source === "manual_import"
+        || !finiteCoord(report.lat) || !finiteCoord(report.lng)
+        || !Number.isFinite(eventTime(report))
+        || !Number.isFinite(report.gps_accuracy) || report.gps_accuracy < 0
+        || report.gps_accuracy > REPAIR_MAX_ACCURACY_M) return false;
+    return normaliseIssueType(report.issue_type) === "road_damage";
+  }
+
+  function repairTargetPhotoBytes(photo) {
+    if (typeof photo === "string") {
+      const match = photo.match(/^data:image\/(?:jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/]*={0,2})$/i);
+      if (!match) return NaN;
+      const payload = match[1];
+      const padding = payload.endsWith("==") ? 2 : payload.endsWith("=") ? 1 : 0;
+      return Math.floor(payload.length * 3 / 4) - padding;
+    }
+    return photo && Number.isFinite(photo.size) ? Number(photo.size) : NaN;
+  }
+
+  // The manifest cursor keeps only numeric ids and stops after the newest 2,000. Calling
+  // getAll() here cloned every historical photo into one JS heap before the native bridge
+  // had a chance to apply its cap.
+  function getRepairTargetIds() {
+    return idb().then((d) => new Promise((resolve, reject) => {
+      const tx = d.transaction("reports", "readonly");
+      const ids = [];
+      let selectedBytes = 0;
+      let failure = null;
+      const scan = tx.objectStore("reports").openCursor(null, "prev");
+      scan.onsuccess = () => {
+        const cursor = scan.result;
+        if (!cursor || ids.length >= MAX_REPAIR_TARGETS) return;
+        const report = cursor.value;
+        const id = Number(report && report.id);
+        const photoBytes = repairTargetPhotoBytes(report && report.photo);
+        if (Number.isSafeInteger(id) && id > 0 && eligibleRepairTarget(report)
+            && Number.isFinite(photoBytes) && photoBytes > 0
+            && photoBytes <= MAX_REPAIR_TARGET_IMAGE_BYTES
+            && selectedBytes <= MAX_REPAIR_TARGET_TOTAL_BYTES - photoBytes) {
+          ids.push(id);
+          selectedBytes += photoBytes;
+        }
+        cursor.continue();
+      };
+      scan.onerror = () => { failure = scan.error; };
+      tx.oncomplete = () => failure ? reject(storageError(failure)) : resolve(ids);
+      const died = () => reject(storageError(failure || tx.error));
+      tx.onabort = died;
+      tx.onerror = () => {};
+    }));
+  }
+
+  async function getRepairTargetBatch(ids) {
+    if (!Array.isArray(ids) || !ids.length || ids.length > MAX_REPAIR_TARGET_BATCH_SIZE
+        || ids.some((id) => !Number.isSafeInteger(id) || id <= 0)
+        || new Set(ids).size !== ids.length) {
+      throw new Error("Repair target batch must contain one or two unique report ids.");
+    }
+    // At most two records and two photos exist in this call at any time.
+    const reports = await Promise.all(ids.map((id) => getReport(id)));
+    const targets = [];
+    for (let index = 0; index < ids.length; index++) {
+      const report = reports[index];
+      if (!report || Number(report.id) !== ids[index] || !eligibleRepairTarget(report)) {
+        throw new Error("Repair history changed while its native cache was being refreshed.");
+      }
+      const photoBytes = repairTargetPhotoBytes(report.photo);
+      if (!Number.isFinite(photoBytes) || photoBytes <= 0
+          || photoBytes > MAX_REPAIR_TARGET_IMAGE_BYTES) {
+        throw new Error("A repair target photo exceeds the 4 MB native cache limit.");
+      }
+      targets.push({
+        id: report.id,
+        lat: report.lat,
+        lng: report.lng,
+        gps_accuracy: report.gps_accuracy,
+        heading: Number.isFinite(report.heading) ? report.heading : null,
+        capture_source: report.capture_source || null,
+        photo_data_url: await blobToDataUrl(report.photo),
+        last_damage_observed_at: eventTime(report),
+        damage_type: storedDamageType(report),
+        condition_status: conditionStatus(report),
+      });
+    }
+    return targets;
   }
 
   async function verifyRepairCandidate(prior, contextDataUrl, roadViews, primaryIndex,
@@ -9847,7 +9950,11 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       return (await migrateLegacyComplaintDrafts(reports)).map(listDict);
     }
     if (path === "/api/repair-targets" && method === "GET") {
-      return { targets: await getRepairTargets() };
+      return { target_ids: await getRepairTargetIds() };
+    }
+    if (path === "/api/repair-targets" && method === "POST") {
+      const body = JSON.parse((opts && opts.body) || "{}");
+      return { targets: await getRepairTargetBatch(body.ids) };
     }
     if (path === "/api/native-repair" && method === "POST") {
       const raw = JSON.parse(opts.body || "{}");
@@ -9881,10 +9988,10 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       return applyRepairObservation(raw.target_report_id, observation);
     }
     if (path === "/api/reports" && method === "DELETE") {
-      await op("readwrite", (s) => s.clear());
-      await op("readwrite", (s) => s.clear(), "drives");
-      await op("readwrite", (s) => s.clear(), "footage");
-      await clearPackCache();
+      await clearAllStoredRecords();
+      if (!(await allStoredRecordsAreEmpty())) {
+        throw new Error("Some saved reports, media, drives, or routing packs remain on this device.");
+      }
       return { ok: true };
     }
     if (path === "/api/drives" && method === "GET") return allDrives();

@@ -41,6 +41,11 @@ REPAIRED = {
     "image_quality": "usable",
     "description": "The same lane edge and curb align; intact asphalt covers the old cavity footprint.",
 }
+PROBABLE_REPAIR = {
+    **REPAIRED,
+    "assessment": "probable",
+    "description": "The same lane edge is visible and a completed patch probably covers the footprint.",
+}
 UNCERTAIN = {
     "same_location_visible": False, "completed_repair_visible": False,
     "current_condition": "not_visible", "assessment": "uncertain",
@@ -162,7 +167,20 @@ with sync_playwright() as p:
       const first = await repairSubmit("drive-1", "live:drive-1:1", 12.911500, f.accepted, null);
       const before = await StandaloneAPI.handle("/api/reports", { method: "GET" });
       const complaintStatus = before[0].status;
-      const repairTargets = await StandaloneAPI.handle("/api/repair-targets", {method:"GET"});
+      const repairManifest = await StandaloneAPI.handle("/api/repair-targets", {method:"GET"});
+      const repairTargetPage = await StandaloneAPI.handle("/api/repair-targets", {
+        method:"POST", body:JSON.stringify({ids:repairManifest.target_ids.slice(0, 2)}),
+      });
+      const repairTargets = {...repairManifest, ...repairTargetPage};
+      let oversizedRepairPageRejected = false;
+      try {
+        await StandaloneAPI.handle("/api/repair-targets", {method:"POST",
+          body:JSON.stringify({ids:[before[0].id, before[0].id + 1, before[0].id + 2]})});
+      } catch (error) {
+        oversizedRepairPageRejected = /one or two/i.test(error.message);
+      }
+      const lightweightRepairManifest = Array.isArray(repairManifest.target_ids)
+        && !("targets" in repairManifest);
 
       const nativeBase = {
         target_report_id: before[0].id, drive_id: "native-revisit", lat: 12.911500,
@@ -227,21 +245,45 @@ with sync_playwright() as p:
 
       // Generic absence plus an inconclusive comparison must leave another report open.
       const second = await repairSubmit("drive-4", "live:drive-4:1", 12.913000, f.accepted, null);
+      let unprovenFixedBlocked = false;
+      try {
+        await StandaloneAPI.handle(`/api/reports/${second.report.id}/condition`, {
+          method:"POST", body:JSON.stringify({condition_status:"fixed"}),
+        });
+      } catch (e) {
+        unprovenFixedBlocked = /enough before-and-after evidence/i.test(e.message);
+      }
       const uncertain = await repairSubmit("drive-5", "live:drive-5:1", 12.913000, f.absent, f.uncertain);
+
+      // A probable completed repair is review-only. A later direct pothole observation
+      // must reopen that same canonical instead of hiding current damage behind review.
+      const reviewTarget = await repairSubmit(
+        "drive-6", "live:drive-6:1", 12.914000, f.accepted, null);
+      const review = await repairSubmit(
+        "drive-7", "live:drive-7:1", 12.914000, f.absent, f.probableRepair);
+      const afterReview = await StandaloneAPI.handle("/api/reports", { method: "GET" });
+      const reviewStored = afterReview.find((r) => r.id === reviewTarget.report.id);
+      const damageAfterReview = await repairSubmit(
+        "drive-8", "live:drive-8:1", 12.914000, f.accepted, null);
+      const afterReviewDamage = await StandaloneAPI.handle("/api/reports", { method: "GET" });
+      const reopenedReview = afterReviewDamage.find((r) => r.id === reviewTarget.report.id);
       const beforeBreaker = (await StandaloneAPI.handle("/api/reports", { method: "GET" })).length;
       const breaker = await repairSubmit(
         "drive-breaker", "live:drive-breaker:1", 12.915000, f.speedBreaker, null
       );
       const finalReports = await StandaloneAPI.handle("/api/reports", { method: "GET" });
       const secondStored = finalReports.find((r) => r.id === (second.report && second.report.id));
-      return { first, complaintStatus, repairTargets, missingTimestamp, earlierTimestamp,
+      return { first, complaintStatus, repairTargets, lightweightRepairManifest,
+        oversizedRepairPageRejected, missingTimestamp, earlierTimestamp,
         malformedEvidence, tinyEvidence, missingProvenance, revisit, replay,
         after: after[0], repairDimensions, fixedGates,
-        recurrence, withRecurrence, uncertain, secondStored, breaker, beforeBreaker,
+        recurrence, withRecurrence, uncertain, secondStored, unprovenFixedBlocked,
+        review, reviewStored, damageAfterReview, reopenedReview, breaker, beforeBreaker,
         afterBreaker: finalReports.length, calls: window.__modelCalls };
     }""", {
         "helpers": HELPERS, "accepted": ACCEPTED, "absent": ABSENT,
-        "repaired": REPAIRED, "uncertain": UNCERTAIN, "speedBreaker": SPEED_BREAKER,
+        "repaired": REPAIRED, "probableRepair": PROBABLE_REPAIR,
+        "uncertain": UNCERTAIN, "speedBreaker": SPEED_BREAKER,
     })
     browser.close()
 
@@ -265,6 +307,8 @@ if result["missingProvenance"].get("reason") != "repair_provenance_invalid":
     failures.append(f"missing repair provenance was not rejected: {result['missingProvenance']}")
 targets = result["repairTargets"].get("targets") or [{}]
 target = targets[0]
+if not result["lightweightRepairManifest"] or not result["oversizedRepairPageRejected"]:
+    failures.append(f"repair-target API did not enforce lightweight two-photo paging: {result['repairTargets']}")
 if target.get("last_damage_observed_at") != result["after"].get("last_seen_at") or "damage_observed_at" in target:
     failures.append(f"native repair target timestamp contract is not canonical: {target}")
 if result["repairDimensions"] != [96, 72]:
@@ -275,11 +319,20 @@ if not result["recurrence"].get("found") or len(result["withRecurrence"]) != 2:
     failures.append("new damage after repair was suppressed as an old duplicate")
 if result["uncertain"].get("repaired") or result["secondStored"].get("condition_status") != "open":
     failures.append("inconclusive revisit incorrectly marked a pothole fixed")
+if not result["unprovenFixedBlocked"]:
+    failures.append("an open report could be marked fixed without revisit evidence")
+if not result["review"].get("repair_review") \
+        or result["reviewStored"].get("condition_status") != "repair_review":
+    failures.append(f"probable repair did not remain review-only: {result['review']}")
+if not result["damageAfterReview"].get("duplicate") \
+        or result["reopenedReview"].get("condition_status") != "open" \
+        or result["reopenedReview"].get("condition_source") != "damage_seen_on_revisit":
+    failures.append("fresh pothole evidence did not reopen a repair-review canonical")
 if result["breaker"].get("found") or result["breaker"].get("stored") \
         or result["afterBreaker"] != result["beforeBreaker"]:
     failures.append(f"speed breaker was persisted as damage: {result['breaker']}")
-if result["calls"].count("road_repair_verification") != 2:
-    failures.append(f"expected two separate before/after checks, got {result['calls']}")
+if result["calls"].count("road_repair_verification") != 3:
+    failures.append(f"expected three separate before/after checks, got {result['calls']}")
 if remote_leaks:
     failures.append(f"unexpected real network requests: {remote_leaks[:3]}")
 
