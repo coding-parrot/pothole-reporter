@@ -1075,6 +1075,8 @@ let health = { ai_configured: true, email_configured: false, delivery: "gmail_dr
 let nativePreviewGeneration = 0;
 let nativePreviewAttached = false;
 let nativePreviewScrollFrame = null;
+let nativeHostAppActive = true;
+let nativeHostAppStateEpoch = 0;
 
 function show(screen) {
   if (screen !== "drive" &&
@@ -2213,7 +2215,7 @@ function stopNativePreview() {
 
 function startNativePreview() {
   const generation = ++nativePreviewGeneration;
-  if (!drive || !drive.native || document.visibilityState !== "visible" ||
+  if (!nativeHostAppActive || !drive || !drive.native || document.visibilityState !== "visible" ||
       $("drive").classList.contains("hidden")) return;
   document.documentElement.classList.add("native-preview-active");
   requestAnimationFrame(() => requestAnimationFrame(async () => {
@@ -3097,6 +3099,21 @@ document.addEventListener("visibilitychange", () => {
     if (drive && drive.native) startNativePreview();
   }
 });
+
+// WebView visibility events are not reliable on every Android/OEM transition. Capacitor's
+// native Activity signal is authoritative: only the preview surface is detached; CameraX,
+// GPS, detection, and optional recording remain owned by the foreground service.
+window.handleNativeAppStateChange = async (isActive) => {
+  nativeHostAppActive = !!isActive;
+  const epoch = ++nativeHostAppStateEpoch;
+  if (!nativeHostAppActive) {
+    stopNativePreview();
+    return;
+  }
+  await restoreNativeDrive({ syncWhenIdle: false });
+  if (epoch !== nativeHostAppStateEpoch || !nativeHostAppActive) return;
+  if (drive && drive.native) startNativePreview();
+};
 window.addEventListener("resize", () => { if (drive && drive.native) startNativePreview(); });
 window.addEventListener("scroll", () => {
   if (!drive || !drive.native || $("drive").classList.contains("hidden")) return;

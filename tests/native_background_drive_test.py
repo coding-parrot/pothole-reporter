@@ -169,6 +169,24 @@ with sync_playwright() as playwright:
     page.wait_for_function(f"__nativeDriveProbe.attach > {initial['attach']}")
     page.locator("#nativeDrivePanel").wait_for(state="visible")
 
+    # Capacitor's native Activity signal is the authoritative fallback on WebViews that
+    # omit or delay document.visibilityState transitions. It detaches only the preview;
+    # the same foreground camera session continues while Maps/chat owns the screen.
+    page.wait_for_function("!!__nativeDriveProbe.appListeners.appStateChange")
+    native_detach_before = page.evaluate("__nativeDriveProbe.detach")
+    page.evaluate("__nativeDriveProbe.appListeners.appStateChange({isActive: false})")
+    page.wait_for_function(f"__nativeDriveProbe.detach > {native_detach_before}")
+    inactive = page.evaluate("""() => ({
+      start: __nativeDriveProbe.start, stop: __nativeDriveProbe.stop,
+      running: __nativeDriveProbe.status.isRunning,
+      sessionId: __nativeDriveProbe.status.sessionId,
+    })""")
+    if inactive != {"start": 1, "stop": 0, "running": True, "sessionId": "native-test"}:
+        failures.append(f"native app backgrounding changed the camera session: {inactive}")
+    native_attach_before = page.evaluate("__nativeDriveProbe.attach")
+    page.evaluate("__nativeDriveProbe.appListeners.appStateChange({isActive: true})")
+    page.wait_for_function(f"__nativeDriveProbe.attach > {native_attach_before}")
+
     # Hardware Back is navigation, not Stop: hide the preview but keep the foreground
     # capture service alive so Maps/calls can remain the foreground app.
     page.wait_for_function("!!__nativeDriveProbe.appListeners.backButton")
@@ -212,6 +230,58 @@ with sync_playwright() as playwright:
             or video_on["button"] != "Video: On" or "RECORDING VIDEO" not in video_on["badge"]
             or video_on["saved"] != "1"):
         failures.append(f"video-on UI diverged from native recording truth: {video_on}")
+
+    # A foreground video-call/camera app may temporarily pre-empt this camera. Drive must
+    # stay alive, disclose the interruption, and resume the user's video preference when
+    # CameraX reports OPEN again—without creating a second service session.
+    page.evaluate("__nativeDriveProbe.appListeners.appStateChange({isActive: false})")
+    interruption = "Camera is in use by another app. Detection and video are paused; capture resumes automatically when access returns."
+    page.evaluate("""(issue) => {
+      __nativeDriveProbe.status = {...__nativeDriveProbe.status,
+        cameraActive: false, isRecording: false, captureBlocked: true,
+        captureIssue: issue, status: issue};
+      (__nativeDriveProbe.listeners.driveStatusChange || []).forEach((fn) =>
+        fn({...__nativeDriveProbe.status}));
+    }""", interruption)
+    attach_before_interrupted_return = page.evaluate("__nativeDriveProbe.attach")
+    page.evaluate("__nativeDriveProbe.appListeners.appStateChange({isActive: true})")
+    page.wait_for_function(f"__nativeDriveProbe.attach > {attach_before_interrupted_return}")
+    interrupted_ui = page.evaluate("""() => ({
+      start: __nativeDriveProbe.start, stop: __nativeDriveProbe.stop,
+      running: __nativeDriveProbe.status.isRunning,
+      enabled: __nativeDriveProbe.status.recordingEnabled,
+      badge: document.querySelector('#nativeCameraBadge').textContent,
+      status: document.querySelector('#nativeDriveStatus').textContent,
+    })""")
+    if (
+        interrupted_ui["start"] != 1
+        or interrupted_ui["stop"] != 0
+        or not interrupted_ui["running"]
+        or not interrupted_ui["enabled"]
+        or interrupted_ui["badge"] != "CAPTURE PAUSED · CAMERA/GPS UNAVAILABLE"
+        or interrupted_ui["status"] != interruption
+    ):
+        failures.append(f"camera contention did not preserve a truthful live session: {interrupted_ui}")
+    page.evaluate("""() => {
+      __nativeDriveProbe.status = {...__nativeDriveProbe.status,
+        cameraActive: true, isRecording: true, captureBlocked: false,
+        captureIssue: null, status: "Scanning live"};
+      (__nativeDriveProbe.listeners.driveStatusChange || []).forEach((fn) =>
+        fn({...__nativeDriveProbe.status}));
+    }""")
+    page.wait_for_function("__nativeDriveProbe.status.isRecording === true")
+    recovered = page.evaluate("""() => ({
+      start: __nativeDriveProbe.start, stop: __nativeDriveProbe.stop,
+      sessionId: __nativeDriveProbe.status.sessionId,
+      badge: document.querySelector('#nativeCameraBadge').textContent,
+    })""")
+    if (
+        recovered["start"] != 1
+        or recovered["stop"] != 0
+        or recovered["sessionId"] != "native-test"
+        or "RECORDING VIDEO" not in recovered["badge"]
+    ):
+        failures.append(f"camera did not resume in the same Drive session: {recovered}")
 
     page.locator("#nativeRecordBtn").click()
     page.wait_for_function("__nativeDriveProbe.status.recordingEnabled === false")

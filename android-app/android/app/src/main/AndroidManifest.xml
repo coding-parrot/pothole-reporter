@@ -63,6 +63,7 @@
         <service
             android:name=".drive.DriveForegroundService"
             android:foregroundServiceType="camera|location"
+            android:stopWithTask="false"
             android:exported="false" />
 
         <receiver

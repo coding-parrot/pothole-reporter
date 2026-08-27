@@ -8,6 +8,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -21,6 +22,7 @@ object NotificationHelper {
     const val ACTION_PAUSE = "dev.aiengg.potholereporter.ACTION_PAUSE"
     const val ACTION_RESUME = "dev.aiengg.potholereporter.ACTION_RESUME"
     const val ACTION_STOP = "dev.aiengg.potholereporter.ACTION_STOP"
+    const val EXTRA_SESSION_ID = "dev.aiengg.potholereporter.extra.SESSION_ID"
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -50,6 +52,7 @@ object NotificationHelper {
 
     fun buildNotification(
         context: Context,
+        sessionId: String,
         isPaused: Boolean,
         checkedCount: Int,
         foundCount: Int,
@@ -71,17 +74,14 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val pauseResumeIntent = Intent(context, NotificationActionReceiver::class.java).apply {
-            action = if (isPaused) ACTION_RESUME else ACTION_PAUSE
-        }
+        val pauseResumeAction = if (isPaused) ACTION_RESUME else ACTION_PAUSE
+        val pauseResumeIntent = controlIntent(context, pauseResumeAction, sessionId)
         val pauseResumePendingIntent = PendingIntent.getBroadcast(
             context, 1, pauseResumeIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val stopIntent = Intent(context, NotificationActionReceiver::class.java).apply {
-            action = ACTION_STOP
-        }
+        val stopIntent = controlIntent(context, ACTION_STOP, sessionId)
         val stopPendingIntent = PendingIntent.getBroadcast(
             context, 2, stopIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -136,4 +136,20 @@ object NotificationHelper {
 
         return builder.build()
     }
+
+    /**
+     * The session is part of PendingIntent identity as well as its extras. A button from
+     * an old notification can therefore never control a newer Drive session.
+     */
+    private fun controlIntent(context: Context, action: String, sessionId: String) =
+        Intent(context, NotificationActionReceiver::class.java).apply {
+            this.action = action
+            data = Uri.Builder()
+                .scheme("pothole-reporter")
+                .authority("drive-control")
+                .appendPath(sessionId)
+                .appendPath(action.substringAfterLast('.'))
+                .build()
+            putExtra(EXTRA_SESSION_ID, sessionId)
+        }
 }

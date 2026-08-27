@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.util.Base64
 import androidx.annotation.Keep
+import androidx.lifecycle.Lifecycle
 import androidx.room.withTransaction
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -271,6 +272,10 @@ class DriveModePlugin : Plugin() {
             call.reject("The previous drive is still stopping safely")
             return
         }
+        if (!activityIsVisibleForDriveStart()) {
+            call.reject("Return to Pothole Reporter and tap Drive again. Android only allows camera Drive Mode to start while the app is visible")
+            return
+        }
         val pending = PendingDriveStart(call)
         val accepted = synchronized(pendingStartLock) {
             if (pendingStart != null) false else {
@@ -308,6 +313,12 @@ class DriveModePlugin : Plugin() {
         }
         if (pending.gate.markStartRequestAccepted()) queuePendingStartStop(pending)
         monitorPendingStart(pending)
+    }
+
+    private fun activityIsVisibleForDriveStart(): Boolean {
+        val host = activity ?: return false
+        return !host.isFinishing && !host.isDestroyed &&
+            host.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
     }
 
     @PluginMethod

@@ -25,6 +25,27 @@ data class GpsFix(
     val timestampMs: Long
 )
 
+/**
+ * Fused Location's availability flag is a forecast, not a revocation of a location it
+ * just delivered. Keep a genuinely fresh fix usable for the same bounded window enforced
+ * by captureAccess; a stale or absent fix still closes capture.
+ */
+internal object NativeLocationAvailabilityPolicy {
+    private const val MAX_FUTURE_SKEW_MS = 60_000L
+
+    fun isFreshFix(timestampMs: Long?, nowMs: Long, maxAgeMs: Long): Boolean {
+        val ageMs = timestampMs?.let { nowMs - it } ?: return false
+        return ageMs in -MAX_FUTURE_SKEW_MS..maxAgeMs
+    }
+
+    fun providerIsUsable(
+        reportedAvailable: Boolean,
+        latestFixTimestampMs: Long?,
+        nowMs: Long,
+        maxAgeMs: Long
+    ): Boolean = reportedAvailable || isFreshFix(latestFixTimestampMs, nowMs, maxAgeMs)
+}
+
 class NativeDriveLocationProvider(
     private val context: Context,
     private val onLocationUpdate: (GpsFix) -> Unit,
@@ -34,7 +55,7 @@ class NativeDriveLocationProvider(
         LocationServices.getFusedLocationProviderClient(context)
 
     @Volatile private var locationCallback: LocationCallback? = null
-    @Volatile private var providerAvailable = false
+    @Volatile private var reportedProviderAvailable = false
     @Volatile var latestFix: GpsFix? = null
         private set
 
@@ -72,8 +93,14 @@ class NativeDriveLocationProvider(
 
         locationCallback = object : LocationCallback() {
             override fun onLocationAvailability(availability: LocationAvailability) {
-                providerAvailable = availability.isLocationAvailable
-                if (!providerAvailable) latestFix = null
+                reportedProviderAvailable = availability.isLocationAvailable
+                val providerUsable = NativeLocationAvailabilityPolicy.providerIsUsable(
+                    reportedAvailable = reportedProviderAvailable,
+                    latestFixTimestampMs = latestFix?.timestampMs,
+                    nowMs = System.currentTimeMillis(),
+                    maxAgeMs = GPS_MAX_AGE_MS
+                )
+                if (!providerUsable) latestFix = null
                 onAvailabilityChange(captureAccess())
             }
 
@@ -88,7 +115,6 @@ class NativeDriveLocationProvider(
                     timestampMs = if (loc.time > 0) loc.time else System.currentTimeMillis()
                 )
                 latestFix = fix
-                providerAvailable = true
 
                 val offsetS = ((System.currentTimeMillis() - startedAtMs) / 100.0).toInt() / 10.0
                 val trackItem = JSONArray()
@@ -111,7 +137,7 @@ class NativeDriveLocationProvider(
                 locationCallback!!,
                 Looper.getMainLooper()
             ).addOnFailureListener {
-                providerAvailable = false
+                reportedProviderAvailable = false
                 latestFix = null
                 onAvailabilityChange(captureAccess())
             }
@@ -120,12 +146,12 @@ class NativeDriveLocationProvider(
             onAvailabilityChange(captureAccess())
         } catch (_: SecurityException) {
             locationCallback = null
-            providerAvailable = false
+            reportedProviderAvailable = false
             latestFix = null
             onAvailabilityChange(captureAccess())
         } catch (_: Exception) {
             locationCallback = null
-            providerAvailable = false
+            reportedProviderAvailable = false
             latestFix = null
             onAvailabilityChange(captureAccess())
         }
@@ -136,7 +162,7 @@ class NativeDriveLocationProvider(
             fusedClient.removeLocationUpdates(it)
             locationCallback = null
         }
-        providerAvailable = false
+        reportedProviderAvailable = false
         latestFix = null
     }
 
@@ -154,12 +180,21 @@ class NativeDriveLocationProvider(
         val permissionGranted = hasLocationPermission()
         val servicesEnabled = locationServicesEnabled()
         val fix = latestFix
-        val fixAgeMs = fix?.let { nowMs - it.timestampMs }
-        val freshFix = fixAgeMs != null && fixAgeMs >= -60_000L && fixAgeMs <= GPS_MAX_AGE_MS
+        val freshFix = NativeLocationAvailabilityPolicy.isFreshFix(
+            timestampMs = fix?.timestampMs,
+            nowMs = nowMs,
+            maxAgeMs = GPS_MAX_AGE_MS
+        )
+        val providerUsable = NativeLocationAvailabilityPolicy.providerIsUsable(
+            reportedAvailable = reportedProviderAvailable,
+            latestFixTimestampMs = fix?.timestampMs,
+            nowMs = nowMs,
+            maxAgeMs = GPS_MAX_AGE_MS
+        )
         return NativeLocationAccess(
             permissionGranted = permissionGranted,
             servicesEnabled = servicesEnabled,
-            providerAvailable = providerAvailable,
+            providerAvailable = providerUsable,
             freshFixAvailable = freshFix
         )
     }

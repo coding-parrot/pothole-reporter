@@ -10269,6 +10269,11 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         App.addListener("backButton", () => {
           if (!(window.handleAppBack && window.handleAppBack())) App.exitApp();
         });
+        App.addListener("appStateChange", (state) => {
+          if (window.handleNativeAppStateChange) {
+            window.handleNativeAppStateChange(!!(state && state.isActive));
+          }
+        });
       }
     } catch (e) {}
   }

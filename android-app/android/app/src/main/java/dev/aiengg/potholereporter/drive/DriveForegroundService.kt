@@ -206,27 +206,54 @@ class DriveForegroundService : LifecycleService() {
             ACTION_START -> if (!sessionRunning && !isStopping) {
                 startRequestId = intent?.getStringExtra(EXTRA_START_REQUEST_ID)
                     ?: "service-$startId-${System.currentTimeMillis()}"
-                startDriveSession(
-                    intent?.getStringExtra(EXTRA_API_KEY).orEmpty(),
-                    intent?.getStringExtra(EXTRA_MODEL) ?: "gpt-5-mini",
-                    intent?.getStringExtra(EXTRA_DETAIL) ?: "high",
-                    intent?.getStringExtra(EXTRA_LANGUAGE) ?: "en",
-                    intent?.getBooleanExtra(EXTRA_DEBUG, false) ?: false,
-                    intent?.getBooleanExtra(EXTRA_RECORD_VIDEO, false) ?: false,
-                    (intent?.getIntExtra(
-                        EXTRA_MAX_DRIVE_MINUTES,
-                        DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES
-                    ) ?: DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES).coerceIn(
-                        DriveSessionLimitPolicy.MIN_LIMIT_MINUTES,
-                        DriveSessionLimitPolicy.MAX_LIMIT_MINUTES
+                try {
+                    startDriveSession(
+                        intent?.getStringExtra(EXTRA_API_KEY).orEmpty(),
+                        intent?.getStringExtra(EXTRA_MODEL) ?: "gpt-5-mini",
+                        intent?.getStringExtra(EXTRA_DETAIL) ?: "high",
+                        intent?.getStringExtra(EXTRA_LANGUAGE) ?: "en",
+                        intent?.getBooleanExtra(EXTRA_DEBUG, false) ?: false,
+                        intent?.getBooleanExtra(EXTRA_RECORD_VIDEO, false) ?: false,
+                        (intent?.getIntExtra(
+                            EXTRA_MAX_DRIVE_MINUTES,
+                            DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES
+                        ) ?: DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES).coerceIn(
+                            DriveSessionLimitPolicy.MIN_LIMIT_MINUTES,
+                            DriveSessionLimitPolicy.MAX_LIMIT_MINUTES
+                        )
                     )
-                )
+                } catch (_: Exception) {
+                    failDriveStart(startId)
+                }
             }
-            ACTION_PAUSE -> pauseDrive()
-            ACTION_RESUME -> resumeDrive()
+            ACTION_PAUSE -> if (sessionRunning || isStopping) pauseDrive() else stopSelf(startId)
+            ACTION_RESUME -> if (sessionRunning || isStopping) resumeDrive() else stopSelf(startId)
             ACTION_STOP -> handleStopIntent(intent, startId)
         }
         return START_NOT_STICKY
+    }
+
+    private fun failDriveStart(startId: Int) {
+        val message = "Drive Mode could not start safely. Return to Pothole Reporter and tap Drive again."
+        sessionRunning = false
+        isPaused = false
+        isStopping = false
+        cameraActive = false
+        cameraIssue = message
+        statusText = message
+        val summary = DriveEndSummary(
+            sessionId = sessionId,
+            checked = checkedCount,
+            found = foundCount,
+            already = alreadyCount,
+            error = message,
+            discarded = true,
+            reason = "Start failed"
+        )
+        completedStopSummary = summary
+        startCompletionLedger.record(startRequestId, summary)
+        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+        stopSelf(startId)
     }
 
     private fun handleStopIntent(intent: Intent?, startId: Int) {
@@ -375,7 +402,7 @@ class DriveForegroundService : LifecycleService() {
 
     private fun startForegroundNow() {
         val notification = NotificationHelper.buildNotification(
-            this, false, 0, 0, 0, statusText,
+            this, sessionId, false, 0, 0, 0, statusText,
             isStopping = false,
             isPausing = false,
             recordingEnabled = recordingEnabled,
@@ -1254,6 +1281,10 @@ class DriveForegroundService : LifecycleService() {
         cameraManager?.detachPreview()
     }
 
+    fun controlsNotificationSession(expectedSessionId: String?): Boolean =
+        sessionRunning && !isStopping && !expectedSessionId.isNullOrBlank() &&
+            expectedSessionId == sessionId
+
     fun setVideoRecordingEnabled(enabled: Boolean, onComplete: ((DriveStatusSnapshot) -> Unit)? = null) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             mainHandler.post { setVideoRecordingEnabled(enabled, onComplete) }
@@ -1760,7 +1791,8 @@ class DriveForegroundService : LifecycleService() {
         if (sessionRunning || isStopping) {
             val capture = captureInterlockDecision()
             val notification = NotificationHelper.buildNotification(
-                this, isPaused, checkedCount, foundCount, alreadyCount, notificationStatus,
+                this, sessionId, isPaused, checkedCount, foundCount, alreadyCount,
+                notificationStatus,
                 isStopping = isStopping,
                 isPausing = pauseTransitioning,
                 recordingEnabled = recordingEnabled,
