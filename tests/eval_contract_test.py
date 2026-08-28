@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline guard that Web, native Drive and evaluator share one binary v9 contract."""
+"""Offline guard that Web, native Drive and evaluator share one binary v10 contract."""
 import importlib.util, json, pathlib, re, sys, tempfile, textwrap
 from PIL import Image
 
@@ -19,6 +19,56 @@ plugin = (ROOT / "android-app" / "android" / "app" / "src" / "main" / "java" /
           "dev" / "aiengg" / "potholereporter" / "plugin" / "DriveModePlugin.kt").read_text()
 labels = json.loads((ROOT / "eval" / "labels.json").read_text())["images"]
 fails = []
+
+
+drive_preprocessing = re.search(
+    r"let imageInputs, dataUrl, roadViews = null, contextDataUrl = null;"
+    r"\s*if \(driveMode\) \{(?P<body>.*?)\n\s*\} else \{",
+    client,
+    re.DOTALL,
+)
+drive_preparation_gate_start = client.find("let driveImagePreparationTail = Promise.resolve();")
+drive_preparation_gate_end = client.find(
+    "\n\n  async function createReport", drive_preparation_gate_start)
+drive_preparation_gate = (client[drive_preparation_gate_start:drive_preparation_gate_end]
+                          if drive_preparation_gate_start >= 0
+                          and drive_preparation_gate_end > drive_preparation_gate_start else "")
+to_data_url_start = client.find("async function toDataUrl(")
+to_data_url_end = client.find("\n\n  // ---------- pipeline ----------", to_data_url_start)
+to_data_url_source = (client[to_data_url_start:to_data_url_end]
+                      if to_data_url_start >= 0 and to_data_url_end > to_data_url_start else "")
+
+
+def drive_preprocessing_is_sequential():
+    if not drive_preprocessing:
+        return False
+    body = drive_preprocessing.group("body")
+    return ("for (const p of photos)" in body
+            and "orderedRoadViews.push(await toDataUrl(p, 1920, 0.85, true, true))" in body
+            and "Promise.all(photos.map" not in body)
+
+
+def drive_preparation_gate_is_safe():
+    if not drive_preprocessing or not drive_preparation_gate:
+        return False
+    body = drive_preprocessing.group("body")
+    return ("const wait = driveImagePreparationTail;" in drive_preparation_gate
+            and "driveImagePreparationTail = new Promise" in drive_preparation_gate
+            and "await wait;" in drive_preparation_gate
+            and re.search(r"finally\s*\{\s*release\(\);\s*\}", drive_preparation_gate)
+            and "withDriveImagePreparation(async () =>" in body
+            and "analyzeImage(" not in body)
+
+
+def image_preprocessing_always_releases_resources():
+    return ("let c = null;" in to_data_url_source
+            and "return c.toDataURL(\"image/jpeg\", quality);" in to_data_url_source
+            and re.search(
+                r"finally\s*\{\s*try\s*\{\s*if \(bmp\.close\) bmp\.close\(\);\s*\}"
+                r"\s*finally\s*\{.*?c\.width = 0; c\.height = 0;.*?\}",
+                to_data_url_source,
+                re.DOTALL,
+            ))
 
 
 def parse_js_object_constant(source, name):
@@ -119,6 +169,12 @@ def check(name, condition):
 check("schema version", 'const SCHEMA_VERSION = 7;' in client and road_eval.SCHEMA_VERSION == 7)
 check("prompt version", f'const PROMPT_VERSION = "{road_eval.PROMPT_VERSION}";' in client)
 check("native prompt version", f'PROMPT_VERSION = "{road_eval.PROMPT_VERSION}"' in native)
+check("Web Drive preprocesses burst crops sequentially to bound peak memory",
+      drive_preprocessing_is_sequential())
+check("Web Drive serializes preparation globally and releases the gate on errors",
+      drive_preparation_gate_is_safe())
+check("Web image preprocessing always releases bitmap and canvas backing storage",
+      image_preprocessing_always_releases_resources())
 check("native and Web use the exact same base detection prompt",
       native_prompt is not None and native_prompt == web_prompt)
 check("Web assessment schema is parsed from the shipped JavaScript",
@@ -317,22 +373,24 @@ native_cadence_spacing = [
 ]
 check("tester speed breaker uses the exact neutral native-cadence fixture",
       native_cadence_breaker.get("path")
-      == "tester-speed-breaker-native-cadence/later/f1.jpg"
+      == "tester-speed-breaker-native-cadence/later/f0.jpg"
       and native_cadence_breaker.get("frames") == [
           "tester-speed-breaker-native-cadence/later/f0.jpg",
           "tester-speed-breaker-native-cadence/later/f1.jpg",
           "tester-speed-breaker-native-cadence/later/f2.jpg",
       ]
       and native_cadence_breaker.get("fixture_sha256") == [
-          "941556eb7456ef900c5b87addf9d620febf79fa19e6fa0c3db7708409b98135d",
-          "f0096847b7ca11b555808b2192123611ecda05b053cf715e2a0a1e4ec8edbdee",
-          "11b003a26846a465816564dcd90e5828e33fade16fc556b80636e0d2aee87c2f",
+          "dd59f703b2ba228e6e3a88082c1a46b6c7add0df8b40c26396bde9b0f38b5a83",
+          "73848930b991ab233c77932c63dd9d89829eac36691b925c5f37df20d3fc72f6",
+          "637545ba6696b8353849408368f0f5ea1e7c3c604af08cbd9d7a1a4b1d2605f1",
       ]
       and "whatsapp" not in json.dumps(native_cadence_breaker).lower())
 check("tester speed breaker records production request cadence",
       native_cadence_breaker.get("capture_cadence_ms") == 180
-      and native_cadence_breaker.get("observed_frame_spacing_ms") == [200, 200]
-      and native_cadence_spacing == [200, 200]
+      and native_cadence_breaker.get("selected_source_indices") == [0, 2, 4]
+      and native_cadence_breaker.get("observed_source_spacing_ms") == [200, 200, 200, 200]
+      and native_cadence_breaker.get("observed_frame_spacing_ms") == [400, 400]
+      and native_cadence_spacing == [400, 400]
       and all(spacing >= native_cadence_breaker["capture_cadence_ms"]
               for spacing in native_cadence_spacing))
 traffic_calming_ids = {
@@ -395,9 +453,9 @@ check("dark resized view is enhanced", transform["enhanced"] is True)
 with tempfile.TemporaryDirectory() as tmp:
     path = pathlib.Path(tmp) / "small-drive.jpg"
     Image.new("RGB", (480, 720), (90, 90, 90)).save(path, quality=100)
-    _, drive_transform = road_eval.encode_view(path, 1024, 85, True, False)
+    _, drive_transform = road_eval.encode_view(path, 1920, 85, True, False)
 check("small Drive road crop is enlarged for model inspection",
-      drive_transform["output"] == {"width": 1024, "height": 399})
+      drive_transform["output"] == {"width": 1920, "height": 748})
 with tempfile.TemporaryDirectory() as tmp:
     path = pathlib.Path(tmp) / "manual.jpg"
     Image.new("RGB", (480, 720), (80, 80, 80)).save(path, quality=100)

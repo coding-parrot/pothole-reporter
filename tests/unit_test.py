@@ -203,9 +203,13 @@ CASES = r"""
   eq("decision: YES without size is NO", P.decisionFor({...good, size:null}), "reject");
 
   // ---- native detector upgrade bridge ----
+  const nativeV10 = P.nativeDetectorContract({prompt_version:"pothole-binary-v10", schema_version:7});
+  ok("native bridge: v10 accepts the temporary traffic-surface vocabulary",
+     nativeV10 && nativeV10.kind === "current_v10"
+       && nativeV10.surfaceTypes.has("temporary_drivable_surface"));
   const nativeV9 = P.nativeDetectorContract({prompt_version:"pothole-binary-v9", schema_version:7});
-  ok("native bridge: v9 accepts the temporary traffic-surface vocabulary",
-     nativeV9 && nativeV9.kind === "current_v9"
+  ok("native bridge: pending v9 rows remain importable",
+     nativeV9 && nativeV9.kind === "legacy_v9"
        && nativeV9.surfaceTypes.has("temporary_drivable_surface"));
   const nativeV8 = P.nativeDetectorContract({prompt_version:"pothole-binary-v8", schema_version:7});
   ok("native bridge: pending v8 rows remain importable",

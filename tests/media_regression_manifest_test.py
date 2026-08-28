@@ -65,7 +65,7 @@ EXPECTED = {
     "tester-second-speed-breaker-2026-08-25": {
         "label": "not_pothole",
         "mode": "drive",
-        "path": "tester-speed-breaker-native-cadence/later/f1.jpg",
+        "path": "tester-speed-breaker-native-cadence/later/f0.jpg",
         "frames": [
             "tester-speed-breaker-native-cadence/later/f0.jpg",
             "tester-speed-breaker-native-cadence/later/f1.jpg",
@@ -73,13 +73,17 @@ EXPECTED = {
         ],
         "source_file": "tester-speed-breaker-clip",
         "source_interval_seconds": [6.1, 7.8],
-        "source_timestamps_seconds": [6.545, 6.745, 6.945],
+        "source_timestamps_seconds": [6.578333, 6.978333, 7.378333],
+        "source_sample_timestamps_seconds": [6.578333, 6.778333, 6.978333,
+                                               7.178333, 7.378333],
+        "selected_source_indices": [0, 2, 4],
         "capture_cadence_ms": 180,
-        "observed_frame_spacing_ms": [200, 200],
+        "observed_source_spacing_ms": [200, 200, 200, 200],
+        "observed_frame_spacing_ms": [400, 400],
         "fixture_sha256": [
-            "941556eb7456ef900c5b87addf9d620febf79fa19e6fa0c3db7708409b98135d",
-            "f0096847b7ca11b555808b2192123611ecda05b053cf715e2a0a1e4ec8edbdee",
-            "11b003a26846a465816564dcd90e5828e33fade16fc556b80636e0d2aee87c2f",
+            "dd59f703b2ba228e6e3a88082c1a46b6c7add0df8b40c26396bde9b0f38b5a83",
+            "73848930b991ab233c77932c63dd9d89829eac36691b925c5f37df20d3fc72f6",
+            "637545ba6696b8353849408368f0f5ea1e7c3c604af08cbd9d7a1a4b1d2605f1",
         ],
     },
     "owner-kanjur-drivable-edge-pothole-2026-08-25": {
@@ -110,8 +114,10 @@ for event_id, expected in EXPECTED.items():
                   for path in image_paths)
           and str(event.get("licence", "")).startswith("private evaluation only"))
     if expected["mode"] == "drive" and len(image_paths) == 3:
+        primary_index = event.get("primary_index")
         check(f"{event_id} primary path matches primary_index",
-              event.get("primary_index") == 1 and event.get("path") == image_paths[1])
+              type(primary_index) is int and primary_index in range(3)
+              and event.get("path") == image_paths[primary_index])
     fixture_hashes = event.get("fixture_sha256", [])
     check(f"{event_id} records one SHA-256 per private fixture",
           len(fixture_hashes) == len(image_paths)
@@ -152,14 +158,16 @@ later_observed_spacing = [
     for left, right in zip(later_timestamps, later_timestamps[1:])
 ]
 check("later tester breaker uses the neutral native-cadence fixture path",
-      later_breaker.get("path") == "tester-speed-breaker-native-cadence/later/f1.jpg"
+      later_breaker.get("path") == "tester-speed-breaker-native-cadence/later/f0.jpg"
       and all(path.startswith("tester-speed-breaker-native-cadence/later/")
               for path in later_breaker.get("frames", []))
       and "whatsapp" not in json.dumps(later_breaker).lower())
-check("later tester breaker enforces the 180 ms request cadence and source quantisation",
+check("later tester breaker enforces five-source sampling and selected-view spacing",
       later_breaker.get("capture_cadence_ms") == 180
-      and later_breaker.get("observed_frame_spacing_ms") == [200, 200]
-      and later_observed_spacing == [200, 200]
+      and later_breaker.get("selected_source_indices") == [0, 2, 4]
+      and later_breaker.get("observed_source_spacing_ms") == [200, 200, 200, 200]
+      and later_breaker.get("observed_frame_spacing_ms") == [400, 400]
+      and later_observed_spacing == [400, 400]
       and all(spacing >= later_breaker["capture_cadence_ms"]
               for spacing in later_observed_spacing))
 

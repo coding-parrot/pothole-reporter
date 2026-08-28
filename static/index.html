@@ -2151,8 +2151,8 @@ const MAX_CAPTURE_QUEUE = 24;
 let SEGMENT_MS = 15000;            // footage is written in 15s pieces so memory stays flat
 let RECORD_BITRATE = 2_500_000;    // ~18 MB/min at 1080p
 let RECORDER_STOP_TIMEOUT_MS = 10000; // a broken WebView must not lock Drive shutdown forever
-let VOD_STEP_S = 1.0;              // frame spacing when re-analysing footage
-const VOD_BURST_HALF_SPAN_S = 0.18; // mirrors the live three-frame temporal window
+let VOD_STEP_S = 0.5;              // overlap windows so short defects cannot fall between samples
+const VOD_BURST_HALF_SPAN_S = 0.40; // mirrors f0/f2/f4 from the native five-sample burst
 const DRIVE_LIMIT_OPTIONS = [15, 30, 60, 90];
 function driveLimitMinutes() {
   const selected = Number(localStorage.getItem("drive_limit_minutes"));
@@ -2501,6 +2501,7 @@ async function refreshNativeRepairTargetCache(plugin = nativeDrivePlugin()) {
 async function finishNativeDrive(summary) {
   const sessionId = summary && summary.sessionId ? String(summary.sessionId) : null;
   const endReason = String(summary && (summary.reason || summary.stopReason) || "").trim();
+  const endError = String(summary && summary.error || "").trim();
   if (sessionId && handledNativeEnds.has(sessionId)) return nativeFinishPromise || Promise.resolve();
   if (nativeFinishPromise) return nativeFinishPromise.then(() => finishNativeDrive(summary));
   if (sessionId) handledNativeEnds.add(sessionId);
@@ -2516,9 +2517,14 @@ async function finishNativeDrive(summary) {
       // Camera/GPS are already off. Return control immediately while durable Room rows
       // hydrate the history in the background portion of this completion barrier.
       show("home");
-      if (endReason && /battery|limit|automatic/i.test(endReason)) {
+      // Explicit Stop is expected. Every other terminal reason must remain visible:
+      // otherwise an invalid key, exhausted credit, storage failure, or camera failure
+      // looks like the app silently quit after the generic native teardown message.
+      const terminalNotice = endReason && !/^stopped$/i.test(endReason)
+        ? endReason : (!endReason && endError ? endError : "");
+      if (terminalNotice) {
         const banner = $("banner");
-        banner.textContent = endReason;
+        banner.textContent = terminalNotice;
         banner.style.display = "block";
       }
     }
@@ -4105,7 +4111,7 @@ async function analyseFootage(driveId, driveRec) {
     if (!isFinite(dur) || dur <= 0) dur = await resolveDuration(v);
     if (!isFinite(dur) || dur <= 0) { URL.revokeObjectURL(url); continue; }
     const times = [];
-    for (let at = Math.min(0.2, dur / 2); at < dur; at += VOD_STEP_S) times.push(at);
+    for (let at = Math.min(0.4, dur / 2); at < dur; at += VOD_STEP_S) times.push(at);
     clips.push({ url, dur, times, blob: clip, seq: clipSeq,
       sourceOffsetS: Number.isFinite(storedClip.source_offset_s) ? storedClip.source_offset_s : null,
       recordingStartedAtMs: Number.isFinite(storedClip.recording_started_at_ms)

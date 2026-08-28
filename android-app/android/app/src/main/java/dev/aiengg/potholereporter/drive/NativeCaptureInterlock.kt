@@ -69,7 +69,7 @@ object NativeCaptureInterlock {
         )
         !location.freshFixAvailable -> blocked(
             NativeCaptureBlocker.WAITING_FOR_FRESH_FIX,
-            "Waiting for a fresh GPS fix. Camera, detection, and video are paused.",
+            "Waiting for a fresh, precise GPS fix (30 m or better). Camera, detection, and video are paused.",
             releaseCamera = true
         )
         !cameraReady -> blocked(

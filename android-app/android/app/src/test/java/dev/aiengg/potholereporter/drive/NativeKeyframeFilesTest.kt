@@ -71,7 +71,7 @@ class NativeKeyframeFilesTest {
     @Test
     fun companionSelectionRequiresARealTimestampDifferenceAndUsesFarthestFrame() {
         assertEquals(2, NativeKeyframeFiles.selectTemporalCompanionIndex(listOf(100L, 200L, 500L), 1))
-        assertEquals(0, NativeKeyframeFiles.selectTemporalCompanionIndex(listOf(100L, 200L, 300L), 1))
+        assertEquals(2, NativeKeyframeFiles.selectTemporalCompanionIndex(listOf(100L, 200L, 300L), 1))
         assertNull(NativeKeyframeFiles.selectTemporalCompanionIndex(listOf(100L, 100L), 0))
         assertNull(NativeKeyframeFiles.selectTemporalCompanionIndex(listOf(100L), 3))
     }

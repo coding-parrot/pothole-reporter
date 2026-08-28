@@ -63,7 +63,9 @@ internal object NativeKeyframeFiles {
             if (index == primaryIndex || capturedAtMs[index] == primaryAt) return@forEach
             val distance = absDifference(capturedAtMs[index], primaryAt)
             if (selected == null || distance > selectedDistance ||
-                (distance == selectedDistance && index < selected!!)
+                // When before/after are equally far from the sharp frame, retain the
+                // later/closer view of an approaching road defect for durable replay.
+                (distance == selectedDistance && index > selected!!)
             ) {
                 selected = index
                 selectedDistance = distance

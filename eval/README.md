@@ -18,7 +18,7 @@ closed instead of silently running a different subset.
 `OPENAI_API_KEY` comes from the environment or the repo-root `.env`. Use
 `--dry-run` to validate transforms and request configuration without making calls.
 
-Drive replay uses the shipped orientation-aware 1024 px road region plus a 768 px
+Drive replay uses the shipped orientation-aware 1920 px road region plus a 768 px
 full-context view: portrait keeps 40%–66% of frame height, landscape keeps 48%–78%,
 and near-square keeps 40%–70%. An entry can provide a three-frame event with `frames` and `primary_index`;
 legacy entries with one `path` still work. Manual replay uses the shipped full-frame
@@ -108,7 +108,7 @@ Kept so nobody re-runs a dead end.
 |---|---|---|
 | Remove the `gpt-5-nano` pre-screen | **Shipped** | nano missed 8 of 9 potholes the main model caught, including a confirmed one at 0.28 confidence |
 | Drive Mode at full resolution instead of 1280px | **Shipped** | 1280px dropped a real pothole to 0.46, under the gate, that holds at 0.60 full size |
-| `reasoning: minimal` on detection | **Shipped** | 6/6 on confirmed potholes at identical median confidence, roughly half the latency |
+| `reasoning: low` on detection | **Shipped** | 6/6 on confirmed potholes at identical median confidence, roughly half the latency |
 | JPEG q95 instead of q85 | Rejected | apparent gain sat inside the noise floor; 1.75x the bytes for nothing |
 | Fixed narrow crop | Rejected | destroys true positives (1/10): a narrow crop excludes mid-lane damage |
 | Expanded crop with horizon and hood anchors | Rejected | anchors restore true positives but false positives rise with road resolution: 50% → 75% → 85% as the retained road area grows 1.04x → 1.42x → 1.90x |

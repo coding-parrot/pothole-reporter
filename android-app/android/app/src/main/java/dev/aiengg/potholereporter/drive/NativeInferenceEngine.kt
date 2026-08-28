@@ -241,7 +241,7 @@ class NativeInferenceEngine(
     companion object {
         private const val OAI_URL = "https://api.openai.com/v1/responses"
         private const val NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
-        private const val PROMPT_VERSION = "pothole-binary-v9"
+        private const val PROMPT_VERSION = "pothole-binary-v10"
         private const val SCHEMA_VERSION = 7
         const val REPAIR_PROMPT_VERSION = "road-repair-v1"
         const val REPAIR_SCHEMA_VERSION = 1
@@ -292,7 +292,11 @@ class NativeInferenceEngine(
             - A pothole can exist inside a generally rough, failed, or gravel-covered traffic lane. Do not reject a discrete cavity merely because nearby surface is also damaged or unfinished.
             - On this surface, a broken edge or rim can be an eroded lip or abrupt localized material-height change; it need not be a fractured asphalt edge.
             - A water-filled cavity can be YES when a localized enclosing lip and depressed opening remain visible and preserve their geometry across the approach. Water or a dark patch without that independent boundary evidence is NO; the cavity floor need not be visible through opaque water.
+            - Do not require dramatic depth, a black interior, or an exposed cavity floor. A shallow opening is YES only when an irregular eroded lip or abrupt material-height change bounds a visibly lower local interior and that same footprint remains coherent as it grows across the approach views. A flat discoloration, intact repair, soft shadow, loose-gravel texture, or broad unevenness without that bounded lower interior is NO.
+            - A long or open-ended eroded edge, a seam or step between paver blocks and loose aggregate, missing edge blocks, and a transition between paved and unfinished material are NO. Do not reinterpret one of these boundaries as a cavity cluster merely because the same rough edge persists across the approach.
+            - On loose gravel, changes in colour, aggregate density, wheel-track texture, or grading do not prove a cavity. Require a separate compact concave opening with its own localized enclosing lip and visibly lower interior; never infer either feature from aggregate texture alone.
             - Two or more adjacent discrete bowl-like material-loss openings are one connected cavity-cluster event. Do not relabel them as broad breakup when their local boundaries remain distinct.
+            - Two adjacent compact oval material-loss openings may be one shallow cavity-cluster even when their floors are similar in colour to the surrounding lane. This is YES only when each opening has a stable irregular boundary and visibly lower interior across the approach; patch outlines and stains remain NO.
             - General roughness, corrugation, wheel ruts, broad breakup, loose aggregate, normal gravel texture, grading, and smooth depressions are NO.
 
             Road-edge boundary interpretation:
@@ -348,7 +352,7 @@ class NativeInferenceEngine(
 
         val primaryFrame = burstFrames.getOrElse(primaryIndex) { burstFrames[0] }
         val contextDataUrl = FrameQualityEvaluator.prepareContextDataUrl(primaryFrame.bitmap, 768, 82)
-        val roadDataUrls = burstFrames.map { FrameQualityEvaluator.prepareRoadBandDataUrl(it.bitmap, 1024, 85, true) }
+        val roadDataUrls = burstFrames.map { FrameQualityEvaluator.prepareRoadBandDataUrl(it.bitmap, 1920, 85, true) }
 
         val imageInputs = mutableListOf(contextDataUrl)
         imageInputs.addAll(roadDataUrls)
@@ -486,7 +490,7 @@ class NativeInferenceEngine(
             FrameQualityEvaluator.prepareContextDataUrl(primary.bitmap, 768, 82)
         )
         images.addAll(burstFrames.map {
-            FrameQualityEvaluator.prepareRoadBandDataUrl(it.bitmap, 1024, 85, true)
+            FrameQualityEvaluator.prepareRoadBandDataUrl(it.bitmap, 1920, 85, true)
         })
         val layout = "\n- Input layout: image 1 is historical evidence; image 2 is " +
             "current full-frame context; images 3-${images.size} are the complete current " +
@@ -736,7 +740,9 @@ class NativeInferenceEngine(
         req.put("store", false)
 
         val reasoningObj = JSONObject()
-        reasoningObj.put("effort", if (model == "gpt-5.6") "none" else "minimal")
+        // Exact owner-video regression uses low reasoning for Drive: it preserves every
+        // supplied hard negative while reliably resolving shallow cavity geometry.
+        reasoningObj.put("effort", if (model == "gpt-5.6") "low" else "minimal")
         req.put("reasoning", reasoningObj)
 
         return req

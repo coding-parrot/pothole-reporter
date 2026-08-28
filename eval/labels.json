@@ -291,26 +291,29 @@
   },
   {
    "event_id": "tester-second-speed-breaker-2026-08-25",
-   "path": "tester-speed-breaker-native-cadence/later/f1.jpg",
+   "path": "tester-speed-breaker-native-cadence/later/f0.jpg",
    "frames": [
     "tester-speed-breaker-native-cadence/later/f0.jpg",
     "tester-speed-breaker-native-cadence/later/f1.jpg",
     "tester-speed-breaker-native-cadence/later/f2.jpg"
    ],
-   "primary_index": 1,
+   "primary_index": 0,
    "mode": "drive",
    "label": "not_pothole",
    "source_file": "tester-speed-breaker-clip",
    "source_interval_seconds": [6.1, 7.8],
-   "source_timestamps_seconds": [6.545, 6.745, 6.945],
+   "source_timestamps_seconds": [6.578333, 6.978333, 7.378333],
+   "source_sample_timestamps_seconds": [6.578333, 6.778333, 6.978333, 7.178333, 7.378333],
+   "selected_source_indices": [0, 2, 4],
    "capture_cadence_ms": 180,
-   "observed_frame_spacing_ms": [200, 200],
+   "observed_source_spacing_ms": [200, 200, 200, 200],
+   "observed_frame_spacing_ms": [400, 400],
    "fixture_sha256": [
-    "941556eb7456ef900c5b87addf9d620febf79fa19e6fa0c3db7708409b98135d",
-    "f0096847b7ca11b555808b2192123611ecda05b053cf715e2a0a1e4ec8edbdee",
-    "11b003a26846a465816564dcd90e5828e33fade16fc556b80636e0d2aee87c2f"
+    "dd59f703b2ba228e6e3a88082c1a46b6c7add0df8b40c26396bde9b0f38b5a83",
+    "73848930b991ab233c77932c63dd9d89829eac36691b925c5f37df20d3fc72f6",
+    "637545ba6696b8353849408368f0f5ea1e7c3c604af08cbd9d7a1a4b1d2605f1"
    ],
-   "notes": "Third traffic-calming interval in the private tester clip (about 6.1-7.8 seconds): an exact production-cadence sample of a painted box-grid speed breaker or rumble table. Drive waits 180 ms between capture requests; the 30 fps source yields the recorded 200 ms adjacent-frame spacing.",
+   "notes": "Third traffic-calming interval in the private tester clip (about 6.1-7.8 seconds): an exact production-cadence sample of a painted box-grid speed breaker or rumble table. Drive samples five source frames after 180 ms waits and submits source indexes 0, 2 and 4; the 30 fps clip yields 200 ms source spacing and 400 ms spacing between submitted views.",
    "source": "private tester demonstration supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
    "labelled_by": "owner"

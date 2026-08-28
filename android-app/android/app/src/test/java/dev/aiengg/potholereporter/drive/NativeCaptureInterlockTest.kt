@@ -46,7 +46,7 @@ class NativeCaptureInterlockTest {
             Case(
                 location = readyLocation.copy(freshFixAvailable = false),
                 blocker = NativeCaptureBlocker.WAITING_FOR_FRESH_FIX,
-                messageFragment = "fresh GPS fix"
+                messageFragment = "precise GPS fix"
             )
         )
 

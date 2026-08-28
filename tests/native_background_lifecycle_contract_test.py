@@ -78,22 +78,71 @@ check(
 )
 
 check(
-    "Activity backgrounding detaches only Preview while service-owned CameraX stays bound",
-    "@Override\n    public void onPause()" in ACTIVITY
-    and "hideDrivePreview();" in ACTIVITY
+    "Activity backgrounding retains Preview while service-owned CameraX stays bound",
+    "public void onPause()" not in ACTIVITY
+    and "public void onDestroy()" in ACTIVITY
+    and "hideDrivePreview();" in ACTIVITY[ACTIVITY.index("public void onDestroy()") :]
     and "stopDrive" not in ACTIVITY
     and "private val lifecycleOwner: LifecycleOwner" in CAMERA
-    and "provider.bindToLifecycle(" in CAMERA,
+    and "provider.bindToLifecycle(" in CAMERA
+    and "host.hasWindowFocus()" in PLUGIN
+    and "Lifecycle.State.RESUMED" in PLUGIN,
+)
+
+bind_camera = CAMERA[
+    CAMERA.index("private fun bindCameraUseCases"):
+    CAMERA.index("private fun handleCameraState")
+]
+detach_preview = CAMERA[
+    CAMERA.index("fun detachPreview()"):
+    CAMERA.index('@SuppressLint("MissingPermission")', CAMERA.index("fun detachPreview()"))
+]
+reconcile_preview = CAMERA[
+    CAMERA.index("private fun reconcilePreviewSurfaceProvider"):
+    CAMERA.index('@SuppressLint("MissingPermission")', CAMERA.index("private fun reconcilePreviewSurfaceProvider"))
+]
+check(
+    "true preview detach unbinds only Preview while Analysis and Video remain service-bound",
+    "ImageReader" not in CAMERA
+    and "backgroundPreviewSurfaceProvider" not in CAMERA
+    and "desiredPreviewProvider != null" in bind_camera
+    and "scheduleLatestPreviewReconciliation()" in bind_camera
+    and "updatePreviewSurfaceProvider(null)" in detach_preview
+    and "private fun scheduleLatestPreviewReconciliation()" in detach_preview
+    and "previewStateGeneration" in reconcile_preview
+    and "generation != previewStateGeneration" in reconcile_preview
+    and "provider.unbind(preview)" in reconcile_preview
+    and reconcile_preview.index("provider.unbind(preview)")
+        < reconcile_preview.index("preview.setSurfaceProvider(null)")
+    and "provider.bindToLifecycle(" in reconcile_preview
+    and "CameraSelector.DEFAULT_BACK_CAMERA,\n                preview" in reconcile_preview
+    and "if (attached) return" in reconcile_preview
+    and "bindCameraUseCases()" in reconcile_preview
+    and "unbindAll()" not in reconcile_preview
+    and "imageAnalysis =" not in reconcile_preview
+    and "videoCapture =" not in reconcile_preview,
 )
 
 check(
     "native app-state events detach and reliably restore the transparent preview",
-    'App.addListener("appStateChange"' in RUNTIME
+    'Capacitor.registerPlugin("App")' in RUNTIME
+    and 'App.addListener("appStateChange"' in RUNTIME
     and "window.handleNativeAppStateChange" in RUNTIME
     and "window.handleNativeAppStateChange = async (isActive)" in WEB
     and "nativeHostAppActive = !!isActive" in WEB
     and "stopNativePreview();" in WEB[WEB.index("window.handleNativeAppStateChange"):]
     and "await restoreNativeDrive({ syncWhenIdle: false })" in WEB,
+)
+
+finish_native_drive = WEB[
+    WEB.index("async function finishNativeDrive"):
+    WEB.index("async function ensureNativeDriveListeners")
+]
+check(
+    "unexpected native termination reasons remain visible after teardown",
+    "const terminalNotice" in finish_native_drive
+    and "!/^stopped$/i.test(endReason)" in finish_native_drive
+    and 'banner.textContent = terminalNotice' in finish_native_drive,
 )
 
 availability_callback = LOCATION[
@@ -110,7 +159,7 @@ check(
     and "latestFix?.timestampMs" in availability_callback
     and availability_callback.index("providerIsUsable(")
         < availability_callback.index("if (!providerUsable) latestFix = null")
-    and "NativeLocationAvailabilityPolicy.isFreshFix(" in capture_access
+    and "NativeCaptureFixQualityPolicy.isUsable(" in capture_access
     and "NativeLocationAvailabilityPolicy.providerIsUsable(" in capture_access
     and "reportedAvailable = reportedProviderAvailable" in capture_access
     and "providerAvailable = providerUsable" in capture_access

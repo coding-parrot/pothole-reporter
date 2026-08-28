@@ -53,6 +53,8 @@ class NativeBurstAccessPolicyTest {
         assertNull(validate(candidate = fix.copy(lng = -181.0)))
         assertNull(validate(candidate = fix.copy(accuracy = Float.NaN)))
         assertNull(validate(candidate = fix.copy(accuracy = -1f)))
+        assertNull(validate(candidate = fix.copy(accuracy = 30.1f)))
+        assertNull(validate(candidate = fix.copy(accuracy = null)))
         assertNull(validate(candidate = null))
     }
 

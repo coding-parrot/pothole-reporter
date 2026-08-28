@@ -50,7 +50,7 @@
   const DRIVE_DETECTION_DETAIL = "high";
   const ALLOWED_MODELS = new Set([DEFAULT_MODEL, "gpt-5.6"]);
   const ALLOWED_DETAILS = new Set(["high", "original"]);
-  const PROMPT_VERSION = "pothole-binary-v9";
+  const PROMPT_VERSION = "pothole-binary-v10";
   const PHOTO_PROMPT_VERSION = "pothole-photo-only-v3";
   const SCHEMA_VERSION = 7;
   const REPAIR_PROMPT_VERSION = "road-repair-v1";
@@ -424,7 +424,11 @@ Camera position alone does not prove that an unsealed surface is a traffic lane.
 - A pothole can exist inside a generally rough, failed, or gravel-covered traffic lane. Do not reject a discrete cavity merely because nearby surface is also damaged or unfinished.
 - On this surface, a broken edge or rim can be an eroded lip or abrupt localized material-height change; it need not be a fractured asphalt edge.
 - A water-filled cavity can be YES when a localized enclosing lip and depressed opening remain visible and preserve their geometry across the approach. Water or a dark patch without that independent boundary evidence is NO; the cavity floor need not be visible through opaque water.
+- Do not require dramatic depth, a black interior, or an exposed cavity floor. A shallow opening is YES only when an irregular eroded lip or abrupt material-height change bounds a visibly lower local interior and that same footprint remains coherent as it grows across the approach views. A flat discoloration, intact repair, soft shadow, loose-gravel texture, or broad unevenness without that bounded lower interior is NO.
+- A long or open-ended eroded edge, a seam or step between paver blocks and loose aggregate, missing edge blocks, and a transition between paved and unfinished material are NO. Do not reinterpret one of these boundaries as a cavity cluster merely because the same rough edge persists across the approach.
+- On loose gravel, changes in colour, aggregate density, wheel-track texture, or grading do not prove a cavity. Require a separate compact concave opening with its own localized enclosing lip and visibly lower interior; never infer either feature from aggregate texture alone.
 - Two or more adjacent discrete bowl-like material-loss openings are one connected cavity-cluster event. Do not relabel them as broad breakup when their local boundaries remain distinct.
+- Two adjacent compact oval material-loss openings may be one shallow cavity-cluster even when their floors are similar in colour to the surrounding lane. This is YES only when each opening has a stable irregular boundary and visibly lower interior across the approach; patch outlines and stains remain NO.
 - General roughness, corrugation, wheel ruts, broad breakup, loose aggregate, normal gravel texture, grading, and smooth depressions are NO.
 
 Road-edge boundary interpretation:
@@ -619,6 +623,8 @@ This is a strict before/after verification, not ordinary pothole detection:
   const TEMPORARY_DRIVABLE_SURFACE = "temporary_drivable_surface";
   const REPORTABLE_SURFACES = new Set([...PAVED_SURFACES, TEMPORARY_DRIVABLE_SURFACE]);
   const KNOWN_SURFACES = new Set([...REPORTABLE_SURFACES, "unpaved_or_nonroad", "unknown"]);
+  const LEGACY_NATIVE_V9_PROMPT_VERSION = "pothole-binary-v9";
+  const LEGACY_NATIVE_V9_SCHEMA_VERSION = 7;
   const LEGACY_NATIVE_V8_PROMPT_VERSION = "pothole-binary-v8";
   const LEGACY_NATIVE_V8_SCHEMA_VERSION = 7;
   const LEGACY_NATIVE_V7_PROMPT_VERSION = "pothole-binary-v7";
@@ -630,7 +636,13 @@ This is a strict before/after verification, not ordinary pothole detection:
     if (!native || typeof native !== "object") return null;
     if (native.prompt_version === PROMPT_VERSION
         && Number(native.schema_version) === SCHEMA_VERSION) {
-      return { kind: "current_v9", surfaceTypes: REPORTABLE_SURFACES };
+      return { kind: "current_v10", surfaceTypes: REPORTABLE_SURFACES };
+    }
+    // v9 used the same strict fields and remains valid for unsynced rows captured by
+    // the previous GitHub release. Its prompt and crop differed, so retain provenance.
+    if (native.prompt_version === LEGACY_NATIVE_V9_PROMPT_VERSION
+        && Number(native.schema_version) === LEGACY_NATIVE_V9_SCHEMA_VERSION) {
+      return { kind: "legacy_v9", surfaceTypes: REPORTABLE_SURFACES };
     }
     // v8 used the same strict fields and remains valid for unsynced rows captured by
     // the previous GitHub release. Its prompt differed, so keep the provenance explicit.
@@ -890,7 +902,8 @@ This is a strict before/after verification, not ordinary pothole detection:
   }
 
   let streamBroken = false;
-  async function analyzeImage(imageInputs, prompt, name, schema, model, onEarly, stopWhenRejected, detail) {
+  async function analyzeImage(imageInputs, prompt, name, schema, model, onEarly,
+                              stopWhenRejected, detail, reasoningEffort = null) {
     const body = (schema === ASSESS_SCHEMA || schema === REPAIR_SCHEMA)
       ? buildDetectionRequest(imageInputs, prompt, model, detail, name, schema)
       : {
@@ -901,6 +914,7 @@ This is a strict before/after verification, not ordinary pothole detection:
           ] }],
           text: fmt(name, schema),
         };
+    if (reasoningEffort) body.reasoning = { effort: reasoningEffort };
     if ((!onEarly && !stopWhenRejected) || streamBroken) return oai(body);
     try {
       return await oaiStream(body, onEarly, stopWhenRejected);
@@ -8181,7 +8195,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     square: Object.freeze({ top: 0.40, bottom: 0.70 }),
   });
   const ROAD_ORIENTATION_EPSILON = 0.10;
-  const ROAD_CROP_MAX_UPSCALE = 2.5;
+  const ROAD_CROP_MAX_UPSCALE = 4.0;
 
   function selectRoadRegion(frameWidth, frameHeight) {
     if (!Number.isFinite(frameWidth) || !Number.isFinite(frameHeight)
@@ -8258,33 +8272,42 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
 
   async function toDataUrl(blob, maxDim, quality = 0.85, boost = false, cropRoad = false) {
     const bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
-    const region = cropRoad ? selectRoadRegion(bmp.width, bmp.height)
-      : { x: 0, y: 0, width: bmp.width, height: bmp.height };
-    const sx = region.x, sy = region.y, sw = region.width, sh = region.height;
-    // Small road defects were disappearing into a sub-512px crop before vision tiling.
-    // Preserve full-frame semantics, but enlarge a Drive road crop up to the requested
-    // inspection width. The cap avoids pathological expansion of corrupt/tiny inputs.
-    const scale = cropRoad
-      ? Math.min(ROAD_CROP_MAX_UPSCALE, maxDim / Math.max(sw, sh))
-      : Math.min(1, maxDim / Math.max(sw, sh));
-    const c = document.createElement("canvas");
-    c.width = Math.round(sw * scale);
-    c.height = Math.round(sh * scale);
-    const ctx = c.getContext("2d");
-    ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, c.width, c.height);
-    // Enhancement follows the pixels, not the wall clock. Fixed evening hours boosted
-    // bright street-lit frames and amplified noise. Preserve the original evidence copy;
-    // this is only the small image used for detection.
-    const imageData = boost ? ctx.getImageData(0, 0, c.width, c.height) : null;
-    const light = imageData
-      ? detectionEnhancementPlan(imageData.data, c.width, c.height) : null;
-    if (light && light.enhanced) {
-      applyDetectionEnhancement(imageData.data, light);
-      ctx.putImageData(imageData, 0, 0);
+    let c = null;
+    try {
+      const region = cropRoad ? selectRoadRegion(bmp.width, bmp.height)
+        : { x: 0, y: 0, width: bmp.width, height: bmp.height };
+      const sx = region.x, sy = region.y, sw = region.width, sh = region.height;
+      // Small road defects were disappearing into a sub-512px crop before vision tiling.
+      // Preserve full-frame semantics, but enlarge a Drive road crop up to the requested
+      // inspection width. The cap avoids pathological expansion of corrupt/tiny inputs.
+      const scale = cropRoad
+        ? Math.min(ROAD_CROP_MAX_UPSCALE, maxDim / Math.max(sw, sh))
+        : Math.min(1, maxDim / Math.max(sw, sh));
+      c = document.createElement("canvas");
+      c.width = Math.round(sw * scale);
+      c.height = Math.round(sh * scale);
+      const ctx = c.getContext("2d");
+      ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, c.width, c.height);
+      // Enhancement follows the pixels, not the wall clock. Fixed evening hours boosted
+      // bright street-lit frames and amplified noise. Preserve the original evidence copy;
+      // this is only the small image used for detection.
+      const imageData = boost ? ctx.getImageData(0, 0, c.width, c.height) : null;
+      const light = imageData
+        ? detectionEnhancementPlan(imageData.data, c.width, c.height) : null;
+      if (light && light.enhanced) {
+        applyDetectionEnhancement(imageData.data, light);
+        ctx.putImageData(imageData, 0, 0);
+      }
+      return c.toDataURL("image/jpeg", quality);
+    } finally {
+      try {
+        if (bmp.close) bmp.close();
+      } finally {
+        // Resetting the bitmap dimensions asks WebView to free its graphics backing
+        // store immediately instead of retaining it until the canvas is collected.
+        if (c) { c.width = 0; c.height = 0; }
+      }
     }
-    const out = c.toDataURL("image/jpeg", quality);
-    if (bmp.close) bmp.close();
-    return out;
   }
 
   // ---------- pipeline ----------
@@ -8312,6 +8335,23 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         release();
       },
     };
+  }
+
+  // VOD replay can keep several detector requests in flight. A 1920px canvas plus its
+  // ImageData is intentionally short-lived, but preparing one burst per request at the
+  // same time can still exhaust a WebView. Serialize only pixel preparation; the lock is
+  // released before network inference so model calls retain their existing concurrency.
+  let driveImagePreparationTail = Promise.resolve();
+  async function withDriveImagePreparation(work) {
+    const wait = driveImagePreparationTail;
+    let release;
+    driveImagePreparationTail = new Promise((resolve) => { release = resolve; });
+    await wait;
+    try {
+      return await work();
+    } finally {
+      release();
+    }
   }
 
   async function createReport(fd, driveMode) {
@@ -8376,8 +8416,19 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     // manual photo remains one full-resolution view because the user already aimed it.
     let imageInputs, dataUrl, roadViews = null, contextDataUrl = null;
     if (driveMode) {
-      roadViews = await Promise.all(photos.map((p) => toDataUrl(p, 1024, 0.85, true, true)));
-      contextDataUrl = await toDataUrl(photo, 768, 0.82, false, false);
+      const prepared = await withDriveImagePreparation(async () => {
+        // Build the three road crops one at a time, preserving chronological order.
+        const orderedRoadViews = [];
+        for (const p of photos) {
+          orderedRoadViews.push(await toDataUrl(p, 1920, 0.85, true, true));
+        }
+        return {
+          roadViews: orderedRoadViews,
+          contextDataUrl: await toDataUrl(photo, 768, 0.82, false, false),
+        };
+      });
+      roadViews = prepared.roadViews;
+      contextDataUrl = prepared.contextDataUrl;
       imageInputs = [{ url: contextDataUrl }, ...roadViews.map((url) => ({ url }))];
       dataUrl = roadViews[primaryIndex];
     } else {
@@ -8429,7 +8480,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     // It streams now purely to stop as soon as the frame is known to be rejected.
     const modelAssessment = await analyzeImage(imageInputs, detectPrompt, "pothole_binary_assessment",
       ASSESS_SCHEMA, detectionModel, driveMode ? null : emitVerdict,
-      driveMode && !S.debug && !repairCandidate, detectionDetail);
+      driveMode && !S.debug && !repairCandidate, detectionDetail,
+      driveMode ? "low" : null);
     const a = binaryAssessment(modelAssessment, driveMode, photos.length);
     const decision = decisionFor(a, driveMode, photos.length);
     const accepted = decision === "accept";
@@ -10408,7 +10460,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
   // Native hardware back button routes through window.handleAppBack (defined by the UI).
   if (NATIVE) {
     try {
-      const App = Capacitor.Plugins.App;
+      let App = Capacitor.registerPlugin ? Capacitor.registerPlugin("App") : null;
+      if (!App || !App.addListener) App = Capacitor.Plugins && Capacitor.Plugins.App;
       if (App && App.addListener) {
         App.addListener("backButton", () => {
           if (!(window.handleAppBack && window.handleAppBack())) App.exitApp();

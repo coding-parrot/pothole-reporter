@@ -8,6 +8,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 CAMERA = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeDriveCameraManager.kt").read_text()
+LOCATION = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeDriveLocationProvider.kt").read_text()
 SERVICE = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/DriveForegroundService.kt").read_text()
 INTERLOCK = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeCaptureInterlock.kt").read_text()
 CAMERA_ACCESS = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeCameraAccessPolicy.kt").read_text()
@@ -61,8 +62,46 @@ check("Android 10 never receives the Android 11 camera foreground-service bit",
           < SERVICE.index("Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q"))
 check("native detection requires at least two real source frames",
       "MIN_DETECTION_SOURCE_FRAMES = 2" in CAMERA
-      and "frames.size < MIN_DETECTION_SOURCE_FRAMES" in CAMERA
+      and "NativeRollingBurstWindow.CAPACITY" in CAMERA
+      and "NativeRollingBurstWindow.selectSourceIndexes(" in CAMERA
+      and "selected.size < MIN_DETECTION_SOURCE_FRAMES" in CAMERA
       and "burstFrames.size < NativeDriveCameraManager.MIN_DETECTION_SOURCE_FRAMES" in INFERENCE)
+check("native capture samples a bounded five-frame source burst only when due",
+      "const val CAPACITY = 5" in (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeRollingBurstWindow.kt").read_text()
+      and "listOf(0, samples.size / 2, samples.lastIndex)" in
+          (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeRollingBurstWindow.kt").read_text()
+      and "SOURCE_SAMPLE_COUNT = NativeRollingBurstWindow.CAPACITY" in CAMERA
+      and "repeat(SOURCE_SAMPLE_COUNT)" in CAMERA
+      and "pendingFrameRequest" in CAMERA
+      and "ArrayDeque<BurstFrame>" not in CAMERA)
+await_next_frame = CAMERA[CAMERA.index("private suspend fun awaitNextFrame()"):
+                          CAMERA.index("private fun Bitmap.recycleSafely()")]
+check("native frame waits cancel orphaned analyzer requests on timeout, Pause, or Stop",
+      "var delivered = false" in await_next_frame
+      and "finally" in await_next_frame
+      and "if (pendingFrameRequest === request) pendingFrameRequest = null" in await_next_frame
+      and "request.deferred.cancel()" in await_next_frame)
+process_proxy = CAMERA[CAMERA.index("private fun processImageProxy"):
+                       CAMERA.index("suspend fun captureBurst()")]
+check("analyzer allocation failure reaches the service instead of killing capture silently",
+      "catch (error: OutOfMemoryError)" in process_proxy
+      and "request?.deferred?.completeExceptionally(error)" in process_proxy
+      and "ownedBitmap?.recycleSafely()" in process_proxy)
+check("native Drive refuses approximate-only location before camera startup",
+      "Camera and Precise Location permission are required" in PLUGIN
+      and "private fun hasDrivePermissions()" in PLUGIN
+      and "Manifest.permission.ACCESS_FINE_LOCATION" in
+          PLUGIN[PLUGIN.index("private fun hasDrivePermissions()"):
+                 PLUGIN.index("private fun hasNotificationPermission()")]
+      and "Manifest.permission.ACCESS_COARSE_LOCATION" not in
+          PLUGIN[PLUGIN.index("private fun hasDrivePermissions()"):
+                 PLUGIN.index("private fun hasNotificationPermission()")])
+runtime_location_permission = LOCATION[LOCATION.index("private fun hasLocationPermission()"):
+                                       LOCATION.index("private fun locationServicesEnabled()")]
+check("mid-drive downgrade to Approximate Location closes capture",
+      "Manifest.permission.ACCESS_FINE_LOCATION" in runtime_location_permission
+      and "Manifest.permission.ACCESS_COARSE_LOCATION" not in runtime_location_permission
+      and "nearestCaptureReady(timestampMs, GPS_COARSE_M)" in LOCATION)
 check("30-minute active-time limit is bounded to 15..90 minutes",
       all(value in POLICY for value in (
           "MIN_LIMIT_MINUTES = 15", "MAX_LIMIT_MINUTES = 90",
@@ -154,11 +193,11 @@ check("hybrid status is explicit and all shipped web copies match",
           == (ROOT / "static/index.html").read_bytes()
       and (ROOT / "android-app/android/app/src/main/assets/public/index.html").read_bytes()
           == (ROOT / "static/index.html").read_bytes())
-check("Android release identity is 1.36.3 code 58 everywhere",
-      re.search(r"versionCode\s+58\b", GRADLE)
-      and re.search(r'versionName\s+"1\.36\.3"', GRADLE)
-      and 'android:versionCode="58"' in RELEASE
-      and 'android:versionName="1.36.3"' in RELEASE)
+check("Android release identity is 1.36.4 code 59 everywhere",
+      re.search(r"versionCode\s+59\b", GRADLE)
+      and re.search(r'versionName\s+"1\.36\.4"', GRADLE)
+      and 'android:versionCode="59"' in RELEASE
+      and 'android:versionName="1.36.4"' in RELEASE)
 
 if failures:
     print(f"\nFAIL: {len(failures)} hybrid Drive contract check(s) failed")

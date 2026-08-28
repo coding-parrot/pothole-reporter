@@ -328,7 +328,7 @@ class DriveForegroundService : LifecycleService() {
         recordingIssue = null
         notificationStopRequested = false; lastNotificationCheckMs = 0L
         lastCapFix = null; lastCapTimeMs = 0L
-        statusText = "Waiting for a fresh GPS fix. Camera, detection, and video are paused."
+        statusText = "Waiting for a fresh, precise GPS fix (30 m or better). Camera, detection, and video are paused."
         startForegroundNow()
         acquireWakeLock()
 
@@ -442,7 +442,10 @@ class DriveForegroundService : LifecycleService() {
         scanJob?.cancel()
         scanJob = lifecycleScope.launch(Dispatchers.Default) {
             while (isActive && sessionRunning && !isStopping) {
-                delay(500)
+                // Poll quickly enough to begin the bounded on-demand camera burst near
+                // the GPS admission instant. The location provider still owns the real
+                // 6 m / 0.5-1.5 s moving capture cadence.
+                delay(100)
                 val accessCheckNow = SystemClock.elapsedRealtime()
                 if (accessCheckNow - lastCameraAccessCheckElapsedMs >= CAMERA_ACCESS_RECHECK_MS) {
                     lastCameraAccessCheckElapsedMs = accessCheckNow
@@ -459,8 +462,18 @@ class DriveForegroundService : LifecycleService() {
                 val fix = loc.latestFix ?: continue
                 val cam = cameraManager ?: continue
                 if (!cam.isCameraReady || !loc.shouldTriggerCapture(lastCapFix, lastCapTimeMs, fix)) continue
+                val captureAdmissionMs = System.currentTimeMillis()
                 val accessEpochBeforeCapture = captureAccessEpoch.snapshot()
-                val burst = cam.captureBurst() ?: continue
+                val burst = try {
+                    cam.captureBurst()
+                } catch (_: OutOfMemoryError) {
+                    withContext(Dispatchers.Main.immediate) {
+                        stopDriveSession(
+                            "Stopped because this device ran out of image memory. Close other apps and start Drive again."
+                        )
+                    }
+                    return@launch
+                } ?: continue
                 val primaryIndex = burst.second.takeIf { it in burst.first.indices }
                 if (primaryIndex == null) {
                     recycleFrames(burst.first)
@@ -471,7 +484,7 @@ class DriveForegroundService : LifecycleService() {
                     accessEpochBeforeCapture,
                     cam,
                     primaryCapturedAt,
-                    loc.latestFix
+                    loc.fixNearestTo(primaryCapturedAt) ?: loc.latestFix
                 )
                 if (validatedFix == null) {
                     // Camera/GPS/privacy state changed while CameraX was collecting the
@@ -488,6 +501,14 @@ class DriveForegroundService : LifecycleService() {
                 )
                 val keyframeId = try {
                     persistSelectedBurst(baseItem)
+                } catch (_: OutOfMemoryError) {
+                    recycle(baseItem)
+                    withContext(Dispatchers.Main.immediate) {
+                        stopDriveSession(
+                            "Stopped because this device ran out of image memory. Close other apps and start Drive again."
+                        )
+                    }
+                    return@launch
                 } catch (_: Exception) {
                     null
                 }
@@ -517,7 +538,9 @@ class DriveForegroundService : LifecycleService() {
                     mainHandler.post(::refreshCaptureInterlock)
                     continue
                 }
-                lastCapFix = validatedFix; lastCapTimeMs = primaryCapturedAt
+                // Admission time controls cadence. The selected evidence frame may be
+                // earlier inside the burst and must not pull the next capture forward.
+                lastCapFix = validatedFix; lastCapTimeMs = captureAdmissionMs
                 if (jobChannel?.trySend(item)?.isSuccess == true) queuedCount++ else recycle(item)
                 publish("Scanning live")
             }
@@ -1154,6 +1177,13 @@ class DriveForegroundService : LifecycleService() {
                     publish(if (isStopping) "Finishing queued detections" else "Scanning live")
                 } catch (cancelled: CancellationException) {
                     throw cancelled
+                } catch (_: OutOfMemoryError) {
+                    publish("Detection stopped because device image memory is exhausted")
+                    if (!isStopping) withContext(Dispatchers.Main) {
+                        stopDriveSession(
+                            "Stopped because this device ran out of image memory. Close other apps and start Drive again."
+                        )
+                    }
                 } catch (error: NativeInferenceException) {
                     publish(error.message ?: "Detection temporarily failed")
                     if (error.fatal && !isStopping) withContext(Dispatchers.Main) {
@@ -1271,8 +1301,8 @@ class DriveForegroundService : LifecycleService() {
         isPaused = false; acquireWakeLock(); locationProvider?.resumeUpdates()
         refreshCameraAccessState()
         cameraActive = false
-        cameraIssue = "Waiting for a fresh GPS fix"
-        publish("Waiting for a fresh GPS fix. Camera, detection, and video are paused.")
+        cameraIssue = "Waiting for a fresh, precise GPS fix"
+        publish("Waiting for a fresh, precise GPS fix (30 m or better). Camera, detection, and video are paused.")
         val manager = cameraManager
         if (manager == null) {
             stopDriveSession("Camera could not resume")

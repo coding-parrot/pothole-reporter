@@ -22,8 +22,8 @@ ROAD_REGION_RATIOS = {
     "square": {"top": 0.40, "bottom": 0.70},
 }
 ROAD_ORIENTATION_EPSILON = 0.10
-ROAD_CROP_MAX_UPSCALE = 2.5
-PROMPT_VERSION = "pothole-binary-v9"
+ROAD_CROP_MAX_UPSCALE = 4.0
+PROMPT_VERSION = "pothole-binary-v10"
 SCHEMA_VERSION = 7
 
 SCHEMA = {
@@ -247,7 +247,7 @@ def prepare_event(entry, root, mode):
         context, meta = encode_view(paths[primary], 768, 82, False, False)
         views.append(context); transforms.append({"role": "primary_context", **meta})
         for index, path in enumerate(paths):
-            view, meta = encode_view(path, 1024, 85, True, True)
+            view, meta = encode_view(path, 1920, 85, True, True)
             views.append(view); transforms.append({"role": "chronological_road_crop", "frame_index": index, **meta})
         note = (f"\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. "
                 f"Images 2-{len(views)} are orientation-aware road-region crops in chronological order; "
@@ -255,7 +255,7 @@ def prepare_event(entry, root, mode):
     return views, transforms, note
 
 
-def build_request(views, prompt, model, detail):
+def build_request(views, prompt, model, detail, mode="drive"):
     model, detail = normalise_config(model, detail)
     content = [{"type": "input_image", "image_url": url, "detail": detail} for url in views[:4]]
     image_count = len(content)
@@ -263,7 +263,8 @@ def build_request(views, prompt, model, detail):
         f"{prompt}\n\nThe {image_count} supplied image(s) are ordered exactly as labelled by the capture pipeline."})
     return {
         "model": model,
-        "reasoning": {"effort": "none" if model == "gpt-5.6" else "minimal"},
+        "reasoning": {"effort": ("low" if mode == "drive" else "none")
+                      if model == "gpt-5.6" else "minimal"},
         "store": False,
         "input": [{"role": "user", "content": content}],
         "text": {"format": {"type": "json_schema", "name": "pothole_binary_assessment",
@@ -435,7 +436,8 @@ def main():
     for name, prompt, model, detail in configs:
         for entry in entries:
             views, transforms, note = prepared[entry["path"]]
-            body = build_request(views, effective_prompt(prompt, args.mode, note), model, detail)
+            body = build_request(views, effective_prompt(prompt, args.mode, note), model, detail,
+                                 args.mode)
             for trial in range(args.trials):
                 jobs.append((name, entry, trial, body, transforms))
     print(f"{len(jobs)} calls: {len(configs)} configurations x {len(entries)} events x {args.trials} trials")

@@ -258,7 +258,7 @@ class DriveModePlugin : Plugin() {
         }
 
         if (!hasDrivePermissions()) {
-            call.reject("Camera and location permission are required before Drive Mode can start")
+            call.reject("Camera and Precise Location permission are required before Drive Mode can start")
             return
         }
         if (!hasNotificationPermission()) {
@@ -560,7 +560,16 @@ class DriveModePlugin : Plugin() {
 
     @PluginMethod
     fun detachPreview(call: PluginCall) {
-        (activity as? MainActivity)?.hideDrivePreview()
+        val host = activity as? MainActivity
+        // App-state/visibility callbacks also ask to detach when Maps, a call, or another
+        // app takes the screen. Keep that same PreviewView surface attached so CameraX
+        // does not reconfigure Analysis/VideoCapture mid-drive. Explicit in-app Stop runs
+        // while this Activity is resumed and focused, so it still removes the preview.
+        if (host != null && host.hasWindowFocus() &&
+            host.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        ) {
+            host.hideDrivePreview()
+        }
         call.resolve()
     }
 
@@ -1932,8 +1941,8 @@ class DriveModePlugin : Plugin() {
 
     private fun hasDrivePermissions(): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
-            (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
 
     private fun hasNotificationPermission(): Boolean =
         NotificationHelper.canShowDriveNotification(context)

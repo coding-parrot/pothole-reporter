@@ -78,12 +78,6 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    public void onPause() {
-        hideDrivePreview();
-        super.onPause();
-    }
-
-    @Override
     public void onDestroy() {
         hideDrivePreview();
         super.onDestroy();

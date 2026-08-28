@@ -46,6 +46,18 @@ internal object NativeLocationAvailabilityPolicy {
     ): Boolean = reportedAvailable || isFreshFix(latestFixTimestampMs, nowMs, maxAgeMs)
 }
 
+/** Capture requires a fresh, finite fix accurate enough for road-level routing. */
+internal object NativeCaptureFixQualityPolicy {
+    fun isUsable(fix: GpsFix?, nowMs: Long, maxAgeMs: Long, maxAccuracyM: Float): Boolean {
+        val value = fix ?: return false
+        val accuracy = value.accuracy ?: return false
+        return value.lat.isFinite() && value.lat in -90.0..90.0 &&
+            value.lng.isFinite() && value.lng in -180.0..180.0 &&
+            accuracy.isFinite() && accuracy in 0f..maxAccuracyM &&
+            NativeLocationAvailabilityPolicy.isFreshFix(value.timestampMs, nowMs, maxAgeMs)
+    }
+}
+
 class NativeDriveLocationProvider(
     private val context: Context,
     private val onLocationUpdate: (GpsFix) -> Unit,
@@ -60,15 +72,16 @@ class NativeDriveLocationProvider(
         private set
 
     val gpsTrack: MutableList<JSONArray> = Collections.synchronizedList(mutableListOf())
+    private val fixHistory = NativeGpsFixHistory()
     private var startedAtMs: Long = 0L
 
     companion object {
         const val TARGET_SPACING_M = 6.0
         const val MOVING_MPS = 1.0f
-        const val MIN_CAPTURE_MS = 750L
-        const val MAX_CAPTURE_MS = 2_000L
+        const val MIN_CAPTURE_MS = 500L
+        const val MAX_CAPTURE_MS = 1_500L
         const val PARKED_CAPTURE_MS = 8000L
-        const val FALLBACK_CAPTURE_MS = 1_000L
+        const val FALLBACK_CAPTURE_MS = 750L
         const val GPS_COARSE_M = 30f
         const val GPS_MAX_AGE_MS = 10_000L
         private const val MAX_TRACK_POINTS = 20_000
@@ -115,6 +128,7 @@ class NativeDriveLocationProvider(
                     timestampMs = if (loc.time > 0) loc.time else System.currentTimeMillis()
                 )
                 latestFix = fix
+                fixHistory.add(fix)
 
                 val offsetS = ((System.currentTimeMillis() - startedAtMs) / 100.0).toInt() / 10.0
                 val trackItem = JSONArray()
@@ -164,6 +178,7 @@ class NativeDriveLocationProvider(
         }
         reportedProviderAvailable = false
         latestFix = null
+        fixHistory.clear()
     }
 
     @SuppressLint("MissingPermission")
@@ -180,10 +195,11 @@ class NativeDriveLocationProvider(
         val permissionGranted = hasLocationPermission()
         val servicesEnabled = locationServicesEnabled()
         val fix = latestFix
-        val freshFix = NativeLocationAvailabilityPolicy.isFreshFix(
-            timestampMs = fix?.timestampMs,
+        val freshFix = NativeCaptureFixQualityPolicy.isUsable(
+            fix = fix,
             nowMs = nowMs,
-            maxAgeMs = GPS_MAX_AGE_MS
+            maxAgeMs = GPS_MAX_AGE_MS,
+            maxAccuracyM = GPS_COARSE_M
         )
         val providerUsable = NativeLocationAvailabilityPolicy.providerIsUsable(
             reportedAvailable = reportedProviderAvailable,
@@ -199,10 +215,11 @@ class NativeDriveLocationProvider(
         )
     }
 
+    fun fixNearestTo(timestampMs: Long): GpsFix? =
+        fixHistory.nearestCaptureReady(timestampMs, GPS_COARSE_M)
+
     private fun hasLocationPermission(): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
 
     private fun locationServicesEnabled(): Boolean {

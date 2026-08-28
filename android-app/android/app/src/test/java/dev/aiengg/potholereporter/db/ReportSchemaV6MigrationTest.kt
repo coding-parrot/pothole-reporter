@@ -49,7 +49,7 @@ class ReportSchemaV6MigrationTest {
         assertEquals("not_pothole", report.defectType)
         assertEquals("not_applicable", report.measurementProvenance)
         assertEquals("not_applicable", report.measurementConfidence)
-        assertEquals("pothole-binary-v9", report.promptVersion)
+        assertEquals("pothole-binary-v10", report.promptVersion)
         assertEquals(7, report.schemaVersion)
     }
 }

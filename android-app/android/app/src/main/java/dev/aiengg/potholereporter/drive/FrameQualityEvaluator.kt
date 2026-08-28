@@ -20,7 +20,9 @@ data class QualityScore(
 data class BurstFrame(
     val bitmap: Bitmap,
     val quality: QualityScore,
-    val capturedAtMs: Long
+    val capturedAtMs: Long,
+    val sourceTimestampNs: Long = capturedAtMs * 1_000_000L,
+    val cameraGeneration: Long = 0L
 )
 
 /** Referential ownership guard shared by bitmap transforms and deterministic JVM tests. */
@@ -229,19 +231,28 @@ object FrameQualityEvaluator {
             roadRegion.width,
             roadRegion.height
         )
-        val scaled = if (cropped.width == width && cropped.height == height) cropped
-        else Bitmap.createScaledBitmap(cropped, width, height, true)
+        val scaled = try {
+            if (cropped.width == width && cropped.height == height) cropped
+            else Bitmap.createScaledBitmap(cropped, width, height, true)
+        } catch (error: Throwable) {
+            NativeBitmapOwnership.recycleIfOwned(cropped, fullBitmap) {
+                if (!it.isRecycled) it.recycle()
+            }
+            throw error
+        }
         NativeBitmapOwnership.recycleIfOwned(cropped, fullBitmap, scaled) {
             if (!it.isRecycled) it.recycle()
         }
 
-        val pixels = IntArray(width * height)
-        scaled.getPixels(pixels, 0, width, 0, 0, width, height)
-        NativeBitmapOwnership.recycleIfOwned(scaled, fullBitmap) {
-            if (!it.isRecycled) it.recycle()
+        try {
+            val pixels = IntArray(width * height)
+            scaled.getPixels(pixels, 0, width, 0, 0, width, height)
+            return scoreRoadPixels(pixels, width, height)
+        } finally {
+            NativeBitmapOwnership.recycleIfOwned(scaled, fullBitmap) {
+                if (!it.isRecycled) it.recycle()
+            }
         }
-
-        return scoreRoadPixels(pixels, width, height)
     }
 
     fun selectBestBurstIndex(frames: List<QualityScore>): Int {
@@ -279,25 +290,37 @@ object FrameQualityEvaluator {
         val targetW = max(1, (sw * scale).roundToInt())
         val targetH = max(1, (sh * scale).roundToInt())
 
-        val scaled = if (targetW == sw && targetH == sh) cropped
-        else Bitmap.createScaledBitmap(cropped, targetW, targetH, true)
+        val scaled = try {
+            if (targetW == sw && targetH == sh) cropped
+            else Bitmap.createScaledBitmap(cropped, targetW, targetH, true)
+        } catch (error: Throwable) {
+            NativeBitmapOwnership.recycleIfOwned(cropped, bitmap) {
+                if (!it.isRecycled) it.recycle()
+            }
+            throw error
+        }
         // createScaledBitmap may return its input for an identity transform. Keep the
         // crop alive when it is also the scaled working bitmap.
         NativeBitmapOwnership.recycleIfOwned(cropped, bitmap, scaled) {
             if (!it.isRecycled) it.recycle()
         }
 
-        val finalBitmap = if (boost) applyDetectionEnhancement(scaled) else scaled
-
-        val base64 = bitmapToBase64(finalBitmap, quality)
-        NativeBitmapOwnership.recycleIfOwned(finalBitmap, bitmap, scaled) {
-            if (!it.isRecycled) it.recycle()
+        try {
+            val finalBitmap = if (boost) applyDetectionEnhancement(scaled) else scaled
+            try {
+                return "data:image/jpeg;base64,${bitmapToBase64(finalBitmap, quality)}"
+            } finally {
+                NativeBitmapOwnership.recycleIfOwned(finalBitmap, bitmap, scaled) {
+                    if (!it.isRecycled) it.recycle()
+                }
+            }
+        } finally {
+            // Encoding and enhancement can fail under memory pressure. The temporary
+            // crop must still be released so the next Drive burst can recover.
+            NativeBitmapOwnership.recycleIfOwned(scaled, bitmap) {
+                if (!it.isRecycled) it.recycle()
+            }
         }
-        NativeBitmapOwnership.recycleIfOwned(scaled, bitmap) {
-            if (!it.isRecycled) it.recycle()
-        }
-
-        return "data:image/jpeg;base64,$base64"
     }
 
     fun prepareContextDataUrl(
@@ -313,12 +336,14 @@ object FrameQualityEvaluator {
 
         val scaled = if (targetW == sw && targetH == sh) bitmap
         else Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
-        val base64 = bitmapToBase64(scaled, quality)
-        // The caller owns the source bitmap; an identity transform must not recycle it.
-        NativeBitmapOwnership.recycleIfOwned(scaled, bitmap) {
-            if (!it.isRecycled) it.recycle()
+        try {
+            return "data:image/jpeg;base64,${bitmapToBase64(scaled, quality)}"
+        } finally {
+            // The caller owns the source bitmap; an identity transform must not recycle it.
+            NativeBitmapOwnership.recycleIfOwned(scaled, bitmap) {
+                if (!it.isRecycled) it.recycle()
+            }
         }
-        return "data:image/jpeg;base64,$base64"
     }
 
     fun bitmapToJpegBytes(bitmap: Bitmap, quality: Int = 85): ByteArray {
@@ -433,7 +458,7 @@ object FrameQualityEvaluator {
     private const val BOUNDED_JPEG_QUALITY_STEP = 8
     private const val BOUNDED_JPEG_INITIAL_BUFFER_BYTES = 64L * 1024L
     private const val MIN_BOUNDED_JPEG_DIMENSION = 320
-    private const val ROAD_CROP_MAX_UPSCALE = 2.5f
+    private const val ROAD_CROP_MAX_UPSCALE = 4.0f
     private const val DEFAULT_BOUNDED_JPEG_SCALE = 0.75
     private const val MIN_BOUNDED_JPEG_SCALE = 0.55
     private const val MAX_BOUNDED_JPEG_SCALE = 0.82

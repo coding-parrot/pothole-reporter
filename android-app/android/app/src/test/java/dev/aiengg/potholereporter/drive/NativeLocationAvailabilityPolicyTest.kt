@@ -76,4 +76,50 @@ class NativeLocationAvailabilityPolicyTest {
         )
         assertFalse(NativeLocationAvailabilityPolicy.isFreshFix(null, nowMs, maxAgeMs))
     }
+
+    @Test
+    fun `capture accepts only a fresh road-level fix`() {
+        val precise = GpsFix(19.1, 72.9, 8f, 6f, 90f, nowMs - 500L)
+        assertTrue(
+            NativeCaptureFixQualityPolicy.isUsable(precise, nowMs, maxAgeMs, 30f)
+        )
+        assertFalse(
+            NativeCaptureFixQualityPolicy.isUsable(
+                precise.copy(accuracy = 30.1f), nowMs, maxAgeMs, 30f
+            )
+        )
+        assertFalse(
+            NativeCaptureFixQualityPolicy.isUsable(
+                precise.copy(accuracy = null), nowMs, maxAgeMs, 30f
+            )
+        )
+        assertFalse(
+            NativeCaptureFixQualityPolicy.isUsable(
+                precise.copy(timestampMs = nowMs - maxAgeMs - 1L),
+                nowMs,
+                maxAgeMs,
+                30f
+            )
+        )
+    }
+
+    @Test
+    fun `capture rejects malformed coordinates or accuracy`() {
+        val base = GpsFix(19.1, 72.9, 8f, 6f, 90f, nowMs)
+        assertFalse(
+            NativeCaptureFixQualityPolicy.isUsable(
+                base.copy(lat = Double.NaN), nowMs, maxAgeMs, 30f
+            )
+        )
+        assertFalse(
+            NativeCaptureFixQualityPolicy.isUsable(
+                base.copy(lng = 181.0), nowMs, maxAgeMs, 30f
+            )
+        )
+        assertFalse(
+            NativeCaptureFixQualityPolicy.isUsable(
+                base.copy(accuracy = -1f), nowMs, maxAgeMs, 30f
+            )
+        )
+    }
 }

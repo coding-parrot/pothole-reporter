@@ -17,6 +17,7 @@ internal class NativeCaptureAccessEpoch {
  */
 internal object NativeBurstAccessPolicy {
     const val MAX_FIX_PRIMARY_DELTA_MS = 2_500L
+    const val MAX_FIX_ACCURACY_M = 30f
 
     fun validatedPostBurstFix(
         epochBeforeCapture: Long,
@@ -35,10 +36,12 @@ internal object NativeBurstAccessPolicy {
             !cameraReady || cameraReleased || primaryCapturedAtMs <= 0L) return null
 
         val fix = postBurstFix ?: return null
+        val accuracy = fix.accuracy ?: return null
         if (!fix.lat.isFinite() || fix.lat !in -90.0..90.0 ||
             !fix.lng.isFinite() || fix.lng !in -180.0..180.0 ||
             fix.timestampMs <= 0L ||
-            fix.accuracy?.let { !it.isFinite() || it < 0f } == true) return null
+            !accuracy.isFinite() || accuracy !in 0f..MAX_FIX_ACCURACY_M
+        ) return null
 
         val deltaMs = if (fix.timestampMs >= primaryCapturedAtMs) {
             fix.timestampMs - primaryCapturedAtMs
