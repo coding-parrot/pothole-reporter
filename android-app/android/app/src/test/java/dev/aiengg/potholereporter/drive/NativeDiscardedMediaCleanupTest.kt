@@ -15,7 +15,11 @@ class NativeDiscardedMediaCleanupTest {
             val file = File(directory, "segment.mp4")
             file.writeBytes(ByteArray(10))
             val cleanup = NativeDiscardedMediaCleanup()
-            val quota = NativeMediaStorageQuota(maxTotalBytes = 1_000L, minFreeBytes = 0L)
+            val quota = NativeMediaStorageQuota(
+                maxTotalBytes = 1_000L,
+                minFreeBytes = 0L,
+                freeSpaceReservations = NativeFreeSpaceReservationLedger()
+            )
             quota.reconcile(0L)
             val reservation = requireNotNull(quota.tryReserve(100L, 1_000L))
             quota.release(reservation)

@@ -78,15 +78,17 @@ check(
 )
 
 check(
-    "Activity backgrounding retains Preview while service-owned CameraX stays bound",
+    "Activity backgrounding detaches only Preview while service-owned CameraX stays bound",
     "public void onPause()" not in ACTIVITY
     and "public void onDestroy()" in ACTIVITY
     and "hideDrivePreview();" in ACTIVITY[ACTIVITY.index("public void onDestroy()") :]
     and "stopDrive" not in ACTIVITY
     and "private val lifecycleOwner: LifecycleOwner" in CAMERA
     and "provider.bindToLifecycle(" in CAMERA
-    and "host.hasWindowFocus()" in PLUGIN
-    and "Lifecycle.State.RESUMED" in PLUGIN,
+    and "if (host != null) host.hideDrivePreview()" in PLUGIN
+    and 'call.getBoolean("preserveGraph") != true' not in PLUGIN
+    and "host.hasWindowFocus()" not in PLUGIN
+    and "stopNativePreview(true)" in WEB,
 )
 
 bind_camera = CAMERA[
@@ -94,8 +96,8 @@ bind_camera = CAMERA[
     CAMERA.index("private fun handleCameraState")
 ]
 detach_preview = CAMERA[
-    CAMERA.index("fun detachPreview()"):
-    CAMERA.index('@SuppressLint("MissingPermission")', CAMERA.index("fun detachPreview()"))
+    CAMERA.index("fun detachPreview(expectedSurfaceProvider"):
+    CAMERA.index('@SuppressLint("MissingPermission")', CAMERA.index("fun detachPreview(expectedSurfaceProvider"))
 ]
 reconcile_preview = CAMERA[
     CAMERA.index("private fun reconcilePreviewSurfaceProvider"):
@@ -107,7 +109,9 @@ check(
     and "backgroundPreviewSurfaceProvider" not in CAMERA
     and "desiredPreviewProvider != null" in bind_camera
     and "scheduleLatestPreviewReconciliation()" in bind_camera
-    and "updatePreviewSurfaceProvider(null)" in detach_preview
+    and "previewSurfaceProvider !== expectedSurfaceProvider" in detach_preview
+    and "previewSurfaceProvider = null" in detach_preview
+    and "runOnMain" in detach_preview
     and "private fun scheduleLatestPreviewReconciliation()" in detach_preview
     and "previewStateGeneration" in reconcile_preview
     and "generation != previewStateGeneration" in reconcile_preview
@@ -116,11 +120,43 @@ check(
         < reconcile_preview.index("preview.setSurfaceProvider(null)")
     and "provider.bindToLifecycle(" in reconcile_preview
     and "CameraSelector.DEFAULT_BACK_CAMERA,\n                preview" in reconcile_preview
-    and "if (attached) return" in reconcile_preview
-    and "bindCameraUseCases()" in reconcile_preview
+    and "if (attached) return true" in reconcile_preview
+    and "bindCameraUseCases()" not in reconcile_preview
+    and "publishState(false, reason)" in reconcile_preview
+    and "NativeCameraRecoveryAction.RELEASE_AND_RETRY" in reconcile_preview
+    and "detection and video continue" not in reconcile_preview
     and "unbindAll()" not in reconcile_preview
     and "imageAnalysis =" not in reconcile_preview
     and "videoCapture =" not in reconcile_preview,
+)
+
+plugin_attach_preview = PLUGIN[
+    PLUGIN.index("fun attachPreview(call: PluginCall)"):
+    PLUGIN.index("fun detachPreview(call: PluginCall)")
+]
+check(
+    "Preview surface is registered before the first CameraX graph bind",
+    "status.cameraActive" not in plugin_attach_preview
+    and "!status.isRunning" in plugin_attach_preview
+    and "host.showDrivePreview" in plugin_attach_preview
+)
+
+show_preview = ACTIVITY[
+    ACTIVITY.index("public void showDrivePreview("):
+    ACTIVITY.index("public void hideDrivePreview()")
+]
+check(
+    "Preview host is visible and laid out before CameraX receives its surface provider",
+    "drivePreviewHost.setVisibility(View.VISIBLE);" in show_preview
+    and "drivePreviewHost.requestLayout();" in show_preview
+    and "attachDrivePreviewWhenLaidOut" in show_preview
+    and "drivePreviewHost.isAttachedToWindow()" in show_preview
+    and "drivePreviewHost.isLaidOut()" in show_preview
+    and "service.attachPreview(drivePreview.getSurfaceProvider())" in show_preview
+    and show_preview.index("drivePreviewHost.setVisibility(View.VISIBLE);")
+        < show_preview.index("service.attachPreview(drivePreview.getSurfaceProvider())")
+    and "if (Boolean.FALSE.equals(attachment))" in show_preview
+    and "callback.onComplete(Boolean.TRUE.equals(attachment));" in show_preview,
 )
 
 check(
@@ -144,6 +180,16 @@ check(
     and "!/^stopped$/i.test(endReason)" in finish_native_drive
     and 'banner.textContent = terminalNotice' in finish_native_drive,
 )
+check(
+    "Stop history hydration is bounded and camera start cancels idle-only cache work",
+    "NATIVE_FINISH_HYDRATE_TIMEOUT_MS = 8000" in WEB
+    and "hydrateNativeDriveEndWithinDeadline()" in finish_native_drive
+    and "invalidateNativeBackgroundSyncs()" in finish_native_drive
+    and "cancelNativeBackgroundSyncsForDriveStart(nativePlugin)" in WEB
+    and "refreshNativeRepairData(nativePlugin).catch" not in WEB[
+        WEB.index("async function startDrive()"):
+        WEB.index('$("driveBtn").onclick = startDrive')]
+)
 
 availability_callback = LOCATION[
     LOCATION.index("override fun onLocationAvailability"):
@@ -156,7 +202,7 @@ capture_access = LOCATION[
 check(
     "a pessimistic fused-location hint cannot discard a still-fresh bounded GPS fix",
     "NativeLocationAvailabilityPolicy.providerIsUsable(" in availability_callback
-    and "latestFix?.timestampMs" in availability_callback
+    and "latestFix?.elapsedRealtimeMs" in availability_callback
     and availability_callback.index("providerIsUsable(")
         < availability_callback.index("if (!providerUsable) latestFix = null")
     and "NativeCaptureFixQualityPolicy.isUsable(" in capture_access
@@ -164,8 +210,30 @@ check(
     and "reportedAvailable = reportedProviderAvailable" in capture_access
     and "providerAvailable = providerUsable" in capture_access
     and "GPS_MAX_AGE_MS" in capture_access
+    and "NativeBurstAccessPolicy.MAX_FIX_PRIMARY_DELTA_MS" in capture_access
     and "fun stopUpdates()" in LOCATION
     and "reportedProviderAvailable = false\n        latestFix = null" in LOCATION,
+)
+
+dispatch_status = SERVICE[
+    SERVICE.index("private fun dispatchStatus()"):
+    SERVICE.index("private fun recycle(item: BurstJob)")
+]
+check(
+    "unchanged status callbacks do not repost the foreground notification every second",
+    "private data class DriveNotificationState(" in SERVICE
+    and "private var lastNotificationState: DriveNotificationState? = null" in SERVICE
+    and "lastNotificationState = null" in SERVICE[
+        SERVICE.index("private fun startDriveSession("):
+        SERVICE.index("private fun startForegroundNow()")
+    ]
+    and "val notificationState = DriveNotificationState(" in dispatch_status
+    and "Looper.myLooper() != Looper.getMainLooper()" in dispatch_status
+    and dispatch_status.index("Looper.myLooper() != Looper.getMainLooper()")
+        < dispatch_status.index("val notificationState = DriveNotificationState(")
+    and "if (notificationState != lastNotificationState)" in dispatch_status
+    and dispatch_status.index(".notify(NotificationHelper.NOTIFICATION_ID, notification)")
+        < dispatch_status.index("lastNotificationState = notificationState"),
 )
 
 if failures:

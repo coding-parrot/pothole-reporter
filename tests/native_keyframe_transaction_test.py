@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static service contract for video-independent, atomic two-view keyframes."""
+"""Static service contract for video-independent, atomic three-view keyframes."""
 
 from pathlib import Path
 import sys
@@ -28,16 +28,17 @@ check(
     "recordingEnabled" not in transaction,
 )
 check(
-    "one capture writes and commits exactly one primary plus one temporal companion",
-    transaction.count("FileOutputStream(primaryTemporary)") == 1
-    and transaction.count("FileOutputStream(companionTemporary)") == 1
-    and transaction.count("commitKeyframeFile(companionTemporary, plan.companionFile)") == 1
-    and transaction.count("commitKeyframeFile(primaryTemporary, plan.primaryFile)") == 1
-    and transaction.index("commitKeyframeFile(companionTemporary, plan.companionFile)")
-    < transaction.index("commitKeyframeFile(primaryTemporary, plan.primaryFile)"),
+    "one capture writes and commits one primary plus two temporal context frames",
+    "val sourceIndexes = listOf(primaryIndex) + contextIndexes" in transaction
+    and "item.burstFrames.map(BurstFrame::capturedAtElapsedMs)" in transaction
+    and "encodedBySourceIndex.size != 3" in transaction
+    and "listOf(plan.primarySourceIndex) + plan.contextSourceIndexes" in transaction
+    and "temporaryFiles.zip(encodedFrames).forEach" in transaction
+    and "temporaryFiles.drop(1).zip(plan.files.drop(1))" in transaction
+    and "commitKeyframeFile(temporaryFiles.first(), plan.primaryFile)" in transaction,
 )
 check(
-    "the two committed files are represented by one Room row with aggregate bytes",
+    "the three committed files are represented by one Room row with aggregate bytes",
     transaction.count("DriveKeyframeEntity(") == 1
     and transaction.count("insertKeyframe(") == 1
     and "val actualBytes = plan.files.sumOf(File::length)" in transaction
@@ -47,7 +48,7 @@ check(
 check(
     "every transactional failure path owns destinations plus temps and reconciles quota",
     transaction.count("cleanFailedKeyframeWrite(") == 3
-    and "val temporaryFiles = listOf(primaryTemporary, companionTemporary)" in transaction
+    and "val temporaryFiles = plan.files.map" in transaction
     and "NativeKeyframeFailureCleanup.cleanup(" in transaction
     and "storage.noteDeletedMediaBytes(cleanup.removedAccountedBytes)" in transaction
     and "storage.releaseMediaBytes(reservation)" in transaction

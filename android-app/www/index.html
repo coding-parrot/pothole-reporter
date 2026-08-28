@@ -208,7 +208,7 @@
         <option value="60">60 minutes</option>
         <option value="90">90 minutes</option>
       </select>
-      <div class="meta" id="driveLimitNote">Active time only. Drive stops automatically; paused time does not count.</div>
+      <div class="meta" id="driveLimitNote">Drive stops at the active-time limit or after 15 minutes continuously paused.</div>
       <label id="keepFramesSetting" style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#f2f2f4">
         <input type="checkbox" id="setKeepFrames" style="width:18px;height:18px;accent-color:var(--accent)">
         <span id="keepFramesLabel">Save every analysed frame to the device</span>
@@ -301,8 +301,8 @@ const I18N = {
     settings_note: "Pothole photos and video-derived frames are sent to OpenAI for detection and can contain number plates or faces. Exact location is sent to OpenStreetMap/Nominatim; Karnataka points use Karnataka GIS and Hyderabad points use Telangana GIS. A verified state pack or 2° National Highway tile is downloaded from GitHub Pages and cached here; that request reveals the state or approximate tile and ordinary connection metadata, not exact coordinates. Your API key is sent only to OpenAI. The app never submits automatically.",
     independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
     privacy_title: "Before camera and location access",
-    privacy_body: "If you continue, the app will ask for camera and precise foreground location. Pothole photos—or sampled frames from Drive Mode—are sent with your API key to OpenAI for detection. On a precise later live-drive revisit, the saved earlier damage photo and current views may be sent together for repair verification. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports query Karnataka GIS and Hyderabad reports query Telangana GIS. The required state routing pack is downloaded from GitHub Pages. Processing can occur outside India.",
-    privacy_local: "Drive Mode uses no audio. While Drive Mode is active, Android uses the camera and location in the background—even when this app is not visible and Google Maps or a phone call is on screen. A visible persistent foreground-service notification always shows this use; pause or stop it from the app or notification. Every selected Drive burst is stored in app-private storage before live analysis; interrupted or offline work is analysed automatically after the drive when the app is open and online. Video and saved frames share a 4 GB cap and stop writing before free storage falls below 500 MB. Optional silent video recording is off by default. Drive stops after the selected active-time battery limit; paused time does not count. Reports, photos, repair evidence, footage, sampled frames, location tracks, settings, verified state packs and highway tiles remain on this device until deleted. Physical road condition is tracked separately from official complaint status.",
+    privacy_body: "If you continue, the app will ask for Camera and Precise Location. While Drive Mode runs, precise location is collected to tag and route road damage even when this app is not visible or in use, including while Maps or a call is on screen. Pothole photos—or sampled frames from Drive Mode—are sent with your API key to OpenAI for detection. On a precise later live-drive revisit, the saved earlier damage photo and current views may be sent together for repair verification. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports query Karnataka GIS and Hyderabad reports query Telangana GIS. The required state routing pack is downloaded from GitHub Pages. Processing can occur outside India.",
+    privacy_local: "Drive Mode uses no audio. While Drive Mode is active, Android uses the camera and location in the background—even when this app is not visible and Google Maps or a phone call is on screen. A visible persistent foreground-service notification always shows this use; pause or stop it from the app or notification. Every selected Drive burst is stored in app-private storage before live analysis; interrupted or offline work is analysed automatically after the drive when the app is open and online. Video and saved frames share a 4 GB cap; report and repair evidence has a separate 512 MB cap. Both stop writing before free storage falls below 500 MB. Optional silent video recording is off by default. Drive stops after the selected active-time battery limit and fully stops after 15 minutes continuously paused. Reports, photos, repair evidence, footage, sampled frames, location tracks, settings, verified state packs and highway tiles remain on this device until deleted. Physical road condition is tracked separately from official complaint status.",
     privacy_government: "This independent app is not a government service and never submits automatically. GitHub Pages receives your IP address, time, user agent and the requested state-pack or 2° highway-tile path, which reveals a state or approximate tile but not exact coordinates, photos or report content. Location may be sent to a government GIS for jurisdiction checks as disclosed above. Complaint text and photos reach a complaint service only when you deliberately open or complete a handoff. Review the destination and content.",
     privacy_link: "Privacy policy", sources_link: "Data sources and limits",
     privacy_accept: "Continue", privacy_decline: "Not now",
@@ -381,7 +381,7 @@ const I18N = {
     debug_note: "On: the video survives analysis, so a drive can be re-examined or re-run against a better model. Off: the video is deleted after detected potholes are extracted.",
     record_label: "Record local video during a drive (no audio; off by default)",
     drive_limit_label: "Drive battery limit",
-    drive_limit_note: "Active time only. Drive stops automatically; paused time does not count.",
+    drive_limit_note: "Drive stops at the active-time limit or after 15 minutes continuously paused.",
     keep_frames_label: "Save every analysed frame to the device",
     keep_frames_note: "Writes each frame the AI checked, with its verdict, into Documents/pothole-frames on this phone. Visible in the Files app, and the raw material for building an evaluation set. Adds up fast: roughly 300 KB a frame.",
     frames_saved: "{n} frames written to Documents/{dir}.",
@@ -424,7 +424,7 @@ const I18N = {
     scanning: "Scanning ({mode})... {checked} checked{analyzing}",
     analyzing_suffix: ", {n} analyzing",
     potholes_one: "{n} pothole", potholes_many: "{n} potholes",
-    drive_tip: "Before moving, aim the camera so the travelled road fills the orange guide with little sky or dashboard. Each check uses a three-frame burst. The back button also stops the drive.",
+    drive_tip: "Before moving, aim the camera so the travelled road fills the orange guide with little sky or dashboard. Each check uses three recent frames. Back hides this screen; Drive continues until you press Stop in the app or notification.",
     drive_end: "Drive ended: {found} found, {checked} frames checked.",
     drive_end_known: "Drive ended: no new report; {already} seen again, {checked} frames checked.",
     drive_seen_suffix: " {already} seen again.",
@@ -500,7 +500,7 @@ const I18N = {
     settings_note: "ಗುಂಡಿಯ ಫೋಟೋಗಳು ಮತ್ತು ವಿಡಿಯೋ ಫ್ರೇಮ್‌ಗಳನ್ನು ಪತ್ತೆಗಾಗಿ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಅವುಗಳಲ್ಲಿ ವಾಹನ ಸಂಖ್ಯೆ ಅಥವಾ ಮುಖಗಳು ಇರಬಹುದು. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ಸ್ಥಳಗಳಿಗೆ Karnataka GIS ಮತ್ತು ಹೈದರಾಬಾದ್ ಸ್ಥಳಗಳಿಗೆ Telangana GIS ಬಳಸಲಾಗುತ್ತದೆ. ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್ ಅಥವಾ 2° ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿ ಟೈಲ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗಿ ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ; ಆ ವಿನಂತಿ ರಾಜ್ಯ ಅಥವಾ ಅಂದಾಜು ಟೈಲ್ ಮತ್ತು ಸಾಮಾನ್ಯ ಸಂಪರ್ಕ ಮಾಹಿತಿಯನ್ನು ತೋರಿಸುತ್ತದೆ, ನಿಖರ ಸ್ಥಳವನ್ನಲ್ಲ. API ಕೀ OpenAI ಗೆ ಮಾತ್ರ ಹೋಗುತ್ತದೆ. ಆ್ಯಪ್ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ.",
     independent_note: "ಇದು ಸ್ವತಂತ್ರ, ಅನಧಿಕೃತ ಆ್ಯಪ್. ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯೊಂದಿಗೆ ಸಂಬಂಧ ಅಥವಾ ಅನುಮೋದನೆ ಇಲ್ಲ. ಕಚೇರಿ ಸೂಚನೆ ಅತ್ಯುತ್ತಮ ಪ್ರಯತ್ನ ಮಾತ್ರ; ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
     privacy_title: "ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳ ಅನುಮತಿಯ ಮೊದಲು",
-    privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಮುಂಭಾಗದ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ಗುಂಡಿಯ ಫೋಟೋಗಳು ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು API ಕೀಯೊಂದಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ನಂತರದ ನಿಖರ ಲೈವ್-ಡ್ರೈವ್ ಮರುಭೇಟಿಯಲ್ಲಿ, ಉಳಿಸಿದ ಹಿಂದಿನ ಹಾನಿಯ ಫೋಟೋ ಮತ್ತು ಪ್ರಸ್ತುತ ದೃಶ್ಯಗಳನ್ನು ದುರಸ್ತಿ ಪರಿಶೀಲನೆಗಾಗಿ ಒಟ್ಟಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಬಹುದು. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ವರದಿಗಳು Karnataka GIS ಮತ್ತು ಹೈದರಾಬಾದ್ ವರದಿಗಳು Telangana GIS ಬಳಸುತ್ತವೆ. ಅಗತ್ಯ ರಾಜ್ಯ ರೂಟಿಂಗ್ ಪ್ಯಾಕ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
+    privacy_body: "ಮುಂದುವರಿಸಿದರೆ, ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಸ್ಥಳಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ. ಡ್ರೈವ್ ಮೋಡ್ ನಡೆಯುವಾಗ, ಆ್ಯಪ್ ಕಾಣಿಸದಿದ್ದರೂ ಅಥವಾ ಬಳಕೆಯಲ್ಲಿಲ್ಲದಿದ್ದರೂ—Maps ಅಥವಾ ಕರೆ ಪರದೆಯಲ್ಲಿದ್ದರೂ—ರಸ್ತೆ ಹಾನಿಗೆ ಸ್ಥಳ ಗುರುತು ಮತ್ತು ರೂಟಿಂಗ್ ಮಾಡಲು ನಿಖರ ಸ್ಥಳವನ್ನು ಸಂಗ್ರಹಿಸಲಾಗುತ್ತದೆ. ಗುಂಡಿಯ ಫೋಟೋಗಳು ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್‌ನ ಆಯ್ದ ಫ್ರೇಮ್‌ಗಳನ್ನು API ಕೀಯೊಂದಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ನಂತರದ ನಿಖರ ಲೈವ್-ಡ್ರೈವ್ ಮರುಭೇಟಿಯಲ್ಲಿ, ಉಳಿಸಿದ ಹಿಂದಿನ ಹಾನಿಯ ಫೋಟೋ ಮತ್ತು ಪ್ರಸ್ತುತ ದೃಶ್ಯಗಳನ್ನು ದುರಸ್ತಿ ಪರಿಶೀಲನೆಗಾಗಿ ಒಟ್ಟಿಗೆ OpenAI ಗೆ ಕಳುಹಿಸಬಹುದು. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ವರದಿಗಳು Karnataka GIS ಮತ್ತು ಹೈದರಾಬಾದ್ ವರದಿಗಳು Telangana GIS ಬಳಸುತ್ತವೆ. ಅಗತ್ಯ ರಾಜ್ಯ ರೂಟಿಂಗ್ ಪ್ಯಾಕ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತದೆ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
     privacy_local: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ. ಡ್ರೈವ್ ಮೋಡ್ ಸಕ್ರಿಯವಾಗಿರುವಾಗ, ಈ ಆ್ಯಪ್ ಕಾಣಿಸದಿದ್ದರೂ ಅಥವಾ ನೀವು ಅದನ್ನು ಬಳಸದೇ Google Maps ಅಥವಾ ಕರೆ ಪರದೆಯಲ್ಲಿ ಇದ್ದರೂ Android ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳವನ್ನು ಹಿನ್ನಲೆಯಲ್ಲಿ ಬಳಸುತ್ತದೆ. ಕಾಣುವ ನಿರಂತರ foreground-service ಅಧಿಸೂಚನೆ ಈ ಬಳಕೆಯನ್ನು ಯಾವಾಗಲೂ ತೋರಿಸುತ್ತದೆ; ಆ್ಯಪ್ ಅಥವಾ ಅಧಿಸೂಚನೆಯಿಂದ ವಿರಾಮಗೊಳಿಸಿ ಅಥವಾ ನಿಲ್ಲಿಸಿ. ಡ್ರೈವ್ ಮೋಡ್ ಲೈವ್ ವಿಶ್ಲೇಷಣೆಗೆ ಮೊದಲು ವಿರಳವಾದ 720p ಸಾಕ್ಷ್ಯ ಫ್ರೇಮ್‌ಗಳನ್ನು ಆ್ಯಪ್‌ನ ಖಾಸಗಿ ಸಂಗ್ರಹದಲ್ಲಿ ಸ್ವತಂತ್ರವಾಗಿ ಉಳಿಸುತ್ತದೆ, ಆದ್ದರಿಂದ ಅಡಚಣೆಯಾದ ಅಥವಾ ಆಫ್‌ಲೈನ್ ಕೆಲಸವನ್ನು ಡ್ರೈವ್ ನಂತರ ವಿಶ್ಲೇಷಿಸಬಹುದು. ಐಚ್ಛಿಕ ಮೌನ ವಿಡಿಯೋ ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್ ಆಗಿರುತ್ತದೆ. ವರದಿಗಳು, ಫೋಟೋಗಳು, ದುರಸ್ತಿ ಸಾಕ್ಷ್ಯ, ಭೌತಿಕ ರಸ್ತೆ ಸ್ಥಿತಿ, ವಿಡಿಯೋ, ಸ್ಥಳ ಟ್ರ್ಯಾಕ್, ಸೆಟ್ಟಿಂಗ್ಸ್, ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್‌ಗಳು ಮತ್ತು ಹೆದ್ದಾರಿ ಟೈಲ್‌ಗಳು ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲಿರುತ್ತವೆ. ಭೌತಿಕ ರಸ್ತೆ ಸ್ಥಿತಿಯನ್ನು ಅಧಿಕೃತ ದೂರು ಸ್ಥಿತಿಯಿಂದ ಪ್ರತ್ಯೇಕವಾಗಿ ದಾಖಲಿಸಲಾಗುತ್ತದೆ.",
     privacy_government: "ಈ ಸ್ವತಂತ್ರ ಆ್ಯಪ್ ಸರ್ಕಾರಿ ಸೇವೆಯಲ್ಲ ಮತ್ತು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ. GitHub Pages ನಿಮ್ಮ IP, ಸಮಯ, user agent ಮತ್ತು ಕೇಳಿದ ರಾಜ್ಯ-ಪ್ಯಾಕ್ ಅಥವಾ 2° ಹೆದ್ದಾರಿ-ಟೈಲ್ ಮಾರ್ಗವನ್ನು ಪಡೆಯುತ್ತದೆ; ಇದರಿಂದ ರಾಜ್ಯ ಅಥವಾ ಅಂದಾಜು ಟೈಲ್ ತಿಳಿಯಬಹುದು, ನಿಖರ ಸ್ಥಳ, ಫೋಟೋ ಅಥವಾ ವರದಿ ವಿಷಯವಲ್ಲ. ಮೇಲಿನ ವಿವರದಂತೆ ಅಧಿಕಾರ ವ್ಯಾಪ್ತಿ ಪರಿಶೀಲಿಸಲು ಸ್ಥಳವನ್ನು ಸರ್ಕಾರಿ GIS ಗೆ ಕಳುಹಿಸಬಹುದು. ನೀವು ಉದ್ದೇಶಪೂರ್ವಕವಾಗಿ ಹಸ್ತಾಂತರವನ್ನು ತೆರೆಯುವ ಅಥವಾ ಪೂರ್ಣಗೊಳಿಸುವಾಗ ಮಾತ್ರ ದೂರಿನ ಪಠ್ಯ ಮತ್ತು ಫೋಟೋ ಅಧಿಕೃತ ದೂರು ಸೇವೆಗೆ ಹೋಗುತ್ತದೆ.",
     privacy_link: "ಗೌಪ್ಯತಾ ನೀತಿ", sources_link: "ಡೇಟಾ ಮೂಲಗಳು ಮತ್ತು ಮಿತಿಗಳು",
@@ -692,7 +692,7 @@ const I18N = {
     settings_note: "खड्ड्यांचे फोटो आणि व्हिडिओतील फ्रेम्स तपासणीसाठी OpenAI कडे पाठवल्या जातात; त्यात वाहन क्रमांक किंवा चेहरे असू शकतात. अचूक स्थान OpenStreetMap/Nominatim कडे पाठवले जाते; कर्नाटकासाठी Karnataka GIS आणि हैदराबादसाठी Telangana GIS वापरले जाते. पडताळलेला राज्य pack किंवा 2° राष्ट्रीय महामार्ग tile GitHub Pages वरून डाउनलोड होऊन या साधनावर जतन होतो; त्या विनंतीत राज्य किंवा अंदाजे tile व सामान्य कनेक्शन माहिती दिसते, अचूक स्थान नाही. API की फक्त OpenAI कडे जाते. अॅप तक्रार आपोआप सादर करत नाही.",
     independent_note: "हे स्वतंत्र, अनधिकृत अॅप आहे. कोणत्याही सरकारी संस्थेशी संलग्न नाही किंवा तिची मान्यता नाही. सुचवलेले कार्यालय पाठवण्यापूर्वी तपासा.",
     privacy_title: "कॅमेरा आणि स्थान वापरण्यापूर्वी",
-    privacy_body: "पुढे गेल्यास अॅप कॅमेरा आणि वापराच्या वेळी अचूक स्थान वापरण्याची परवानगी मागेल. खड्ड्यांचे फोटो किंवा ड्राइव्ह मोडमधील निवडक फ्रेम्स API कीसह OpenAI कडे पाठवल्या जातात. नंतरच्या अचूक लाइव्ह-ड्राइव्ह पुनर्भेटीत, जतन केलेला जुना नुकसान फोटो आणि सध्याची दृश्ये दुरुस्ती पडताळणीसाठी OpenAI कडे एकत्र पाठवली जाऊ शकतात. अचूक स्थान OpenStreetMap/Nominatim कडे जाते; कर्नाटकासाठी Karnataka GIS आणि हैदराबादसाठी Telangana GIS वापरले जाते. आवश्यक राज्य routing pack GitHub Pages वरून डाउनलोड होतो. प्रक्रिया भारताबाहेर होऊ शकते.",
+    privacy_body: "पुढे गेल्यास अॅप कॅमेरा आणि अचूक स्थान वापरण्याची परवानगी मागेल. ड्राइव्ह मोड सुरू असताना, अॅप दिसत नसले किंवा वापरात नसले—Maps किंवा कॉल स्क्रीन समोर असली तरी—रस्त्याच्या नुकसानीला स्थान व मार्ग देण्यासाठी अचूक स्थान गोळा केले जाते. खड्ड्यांचे फोटो किंवा ड्राइव्ह मोडमधील निवडक फ्रेम्स API कीसह OpenAI कडे पाठवल्या जातात. नंतरच्या अचूक लाइव्ह-ड्राइव्ह पुनर्भेटीत, जतन केलेला जुना नुकसान फोटो आणि सध्याची दृश्ये दुरुस्ती पडताळणीसाठी OpenAI कडे एकत्र पाठवली जाऊ शकतात. अचूक स्थान OpenStreetMap/Nominatim कडे जाते; कर्नाटकासाठी Karnataka GIS आणि हैदराबादसाठी Telangana GIS वापरले जाते. आवश्यक राज्य routing pack GitHub Pages वरून डाउनलोड होतो. प्रक्रिया भारताबाहेर होऊ शकते.",
     privacy_local: "ड्राइव्ह मोडमध्ये ऑडिओ वापरला जात नाही. ड्राइव्ह मोड सक्रिय असताना, हे अॅप दिसत नसताना किंवा तुम्ही ते वापरत नसतानाही—Google Maps किंवा कॉल स्क्रीन समोर असली तरी—Android कॅमेरा आणि स्थान पार्श्वभूमीत वापरते. दिसणारी कायमची foreground-service सूचना हा वापर नेहमी दाखवते; अॅप किंवा सूचनेतून विराम द्या किंवा थांबवा. ड्राइव्ह मोड लाइव्ह विश्लेषणापूर्वी विरळ 720p पुरावा फ्रेम्स स्वतंत्रपणे अॅपच्या खाजगी साठवणीत ठेवतो, त्यामुळे खंडित किंवा ऑफलाइन कामाचे ड्राइव्हनंतर विश्लेषण करता येते. ऐच्छिक मूक व्हिडिओ डीफॉल्टने बंद असतो. अहवाल, फोटो, दुरुस्ती पुरावा, प्रत्यक्ष रस्त्याची स्थिती, व्हिडिओ, स्थान मार्ग, सेटिंग्ज, पडताळलेले राज्य packs आणि महामार्ग tiles हटवेपर्यंत साधनावर राहतात. प्रत्यक्ष रस्त्याची स्थिती अधिकृत तक्रार स्थितीपासून स्वतंत्रपणे नोंदवली जाते.",
     privacy_government: "हे स्वतंत्र अॅप सरकारी सेवा नाही आणि तक्रार आपोआप सादर करत नाही. GitHub Pages ला तुमचा IP, वेळ, user agent आणि मागितलेला राज्य-pack किंवा 2° महामार्ग-tile मार्ग मिळतो; त्यामुळे राज्य किंवा अंदाजे tile समजू शकते, अचूक स्थान, फोटो किंवा अहवालाचा मजकूर नाही. वर सांगितल्याप्रमाणे कार्यक्षेत्र तपासण्यासाठी स्थान सरकारी GIS कडे जाऊ शकते. तुम्ही जाणीवपूर्वक handoff उघडता किंवा पूर्ण करता तेव्हाच तक्रारीचा मजकूर आणि फोटो अधिकृत तक्रार सेवेकडे जातात.",
     privacy_link: "गोपनीयता धोरण", sources_link: "डेटा स्रोत आणि मर्यादा",
@@ -875,7 +875,7 @@ const I18N = {
     settings_note: "রাস্তার গর্তের ছবি ও ভিডিওর ফ্রেম শনাক্তকরণের জন্য OpenAI-তে পাঠানো হয়; তাতে নম্বরপ্লেট বা মুখ থাকতে পারে। সঠিক অবস্থান OpenStreetMap/Nominatim-এ পাঠানো হয়; কর্ণাটকের জন্য Karnataka GIS এবং হায়দরাবাদের জন্য Telangana GIS ব্যবহার করা হয়। যাচাই-করা রাজ্য pack বা 2° জাতীয় সড়ক tile GitHub Pages থেকে ডাউনলোড হয়ে ডিভাইসে থাকে; অনুরোধটি রাজ্য বা আনুমানিক tile ও সাধারণ সংযোগের তথ্য প্রকাশ করে, সঠিক অবস্থান নয়। API key কেবল OpenAI-তে যায়। অ্যাপ নিজে থেকে অভিযোগ জমা দেয় না।",
     independent_note: "এটি একটি স্বাধীন, বেসরকারি অ্যাপ। কোনও সরকারি সংস্থার সঙ্গে এর সম্পর্ক নেই এবং কোনও সরকারি সংস্থা এটি অনুমোদন করেনি। প্রাপক নির্বাচন সর্বোত্তম প্রচেষ্টার ভিত্তিতে; পাঠানোর আগে যাচাই করুন।",
     privacy_title: "ক্যামেরা ও অবস্থান ব্যবহারের আগে",
-    privacy_body: "এগিয়ে গেলে অ্যাপটি ক্যামেরা ও সামনে খোলা থাকাকালীন সঠিক অবস্থানের অনুমতি চাইবে। রাস্তার গর্তের ছবি বা ড্রাইভ মোডের নির্বাচিত ফ্রেম API key-সহ OpenAI-তে পাঠানো হয়। পরবর্তী নির্ভুল লাইভ-ড্রাইভ পুনরায় যাওয়ার সময়, সংরক্ষিত আগের ক্ষতির ছবি এবং বর্তমান দৃশ্য মেরামত যাচাইয়ের জন্য একসঙ্গে OpenAI-তে পাঠানো হতে পারে। সঠিক স্থানাঙ্ক OpenStreetMap/Nominatim-এ যায়; কর্ণাটকের জন্য Karnataka GIS এবং হায়দরাবাদের জন্য Telangana GIS ব্যবহার করা হয়। প্রয়োজনীয় রাজ্য routing pack GitHub Pages থেকে ডাউনলোড হয়। তথ্য ভারতের বাইরেও প্রক্রিয়াকৃত হতে পারে।",
+    privacy_body: "এগিয়ে গেলে অ্যাপটি ক্যামেরা ও নির্ভুল অবস্থানের অনুমতি চাইবে। ড্রাইভ মোড চলার সময়, অ্যাপ দৃশ্যমান বা ব্যবহারে না থাকলেও—Maps বা কল স্ক্রিন সামনে থাকলেও—রাস্তার ক্ষতি ট্যাগ ও রুট করতে নির্ভুল অবস্থান সংগ্রহ করা হয়। রাস্তার গর্তের ছবি বা ড্রাইভ মোডের নির্বাচিত ফ্রেম API key-সহ OpenAI-তে পাঠানো হয়। পরবর্তী নির্ভুল লাইভ-ড্রাইভ পুনরায় যাওয়ার সময়, সংরক্ষিত আগের ক্ষতির ছবি এবং বর্তমান দৃশ্য মেরামত যাচাইয়ের জন্য একসঙ্গে OpenAI-তে পাঠানো হতে পারে। সঠিক স্থানাঙ্ক OpenStreetMap/Nominatim-এ যায়; কর্ণাটকের জন্য Karnataka GIS এবং হায়দরাবাদের জন্য Telangana GIS ব্যবহার করা হয়। প্রয়োজনীয় রাজ্য routing pack GitHub Pages থেকে ডাউনলোড হয়। তথ্য ভারতের বাইরেও প্রক্রিয়াকৃত হতে পারে।",
     privacy_local: "ড্রাইভ মোডে অডিও ব্যবহার হয় না। ড্রাইভ মোড সক্রিয় থাকলে, এই অ্যাপটি দৃশ্যমান না থাকলেও বা আপনি ব্যবহার না করলেও—Google Maps বা কল স্ক্রিন সামনে থাকলেও—Android ক্যামেরা ও অবস্থান ব্যাকগ্রাউন্ডে ব্যবহার করে। দৃশ্যমান স্থায়ী foreground-service বিজ্ঞপ্তি এই ব্যবহার সব সময় দেখায়; অ্যাপ বা বিজ্ঞপ্তি থেকে বিরতি দিন বা বন্ধ করুন। ড্রাইভ মোড লাইভ বিশ্লেষণের আগে বিরল 720p প্রমাণ ফ্রেম আলাদাভাবে অ্যাপের ব্যক্তিগত স্টোরেজে রাখে, তাই বাধাগ্রস্ত বা অফলাইন কাজ ড্রাইভের পরে বিশ্লেষণ করা যায়। ঐচ্ছিক নীরব ভিডিও ডিফল্টভাবে বন্ধ থাকে। রিপোর্ট, ছবি, মেরামতের প্রমাণ, রাস্তার বাস্তব অবস্থা, ভিডিও, অবস্থানের ট্র্যাক, সেটিংস, যাচাই-করা রাজ্য pack ও জাতীয় সড়ক tile মুছে না ফেলা পর্যন্ত থাকে। রাস্তার বাস্তব অবস্থা সরকারি অভিযোগের অবস্থা থেকে আলাদাভাবে রাখা হয়।",
     privacy_government: "এই স্বাধীন অ্যাপটি সরকারি পরিষেবা নয় এবং নিজে থেকে অভিযোগ জমা দেয় না। GitHub Pages আপনার IP, সময়, user agent ও চাওয়া রাজ্য-pack বা 2° জাতীয় সড়ক-tile পথ পায়; এতে রাজ্য বা আনুমানিক tile বোঝা যায়, সঠিক স্থানাঙ্ক, ছবি বা রিপোর্টের বিষয় নয়। উপরে জানানো নিয়মে এলাকা যাচাই করতে অবস্থান সরকারি GIS-এ পাঠানো হতে পারে। আপনি ইচ্ছাকৃতভাবে handoff খুললে বা সম্পূর্ণ করলেই অভিযোগের লেখা ও ছবি সরকারি অভিযোগ পরিষেবায় যায়।",
     privacy_link: "গোপনীয়তা নীতি", sources_link: "তথ্যের উৎস ও সীমাবদ্ধতা",
@@ -1078,15 +1078,27 @@ const safePhotoSrc = (value) => {
 let health = { ai_configured: true, email_configured: false, delivery: "gmail_draft" };
 let nativePreviewGeneration = 0;
 let nativePreviewAttached = false;
+let nativePreviewAttachPending = false;
+let nativePreviewPendingGeneration = 0;
+let nativePreviewFailureCount = 0;
+let nativePreviewRetryTimer = null;
 let nativePreviewScrollFrame = null;
 let nativeHostAppActive = true;
 let nativeHostAppStateEpoch = 0;
+let nativePauseControlPending = false;
+let nativeVideoControlPending = false;
 
 function show(screen) {
   // Delete-all is transactional across native files/Room and WebView storage. Keep
   // Settings on screen until it settles so Back or a stale async callback cannot expose
   // a capture action that would recreate data behind the wipe.
   if (nativeWipeInProgress && screen !== "settings") return false;
+  // Stop may take longer to persist than it takes to close CameraX. Until native
+  // confirms that exact boundary, keep the stopping surface visible; no stale async
+  // callback may imply the camera is off by returning Home early.
+  if (drive && drive.native && drive.stopping && !drive.captureStopped &&
+      screen !== "drive") return false;
+  if (nativeFinishLocked && screen === "settings") return false;
   if (screen !== "drive" &&
       (nativePreviewAttached || document.documentElement.classList.contains("native-preview-active"))) {
     stopNativePreview();
@@ -2129,7 +2141,7 @@ async function shareEvidence(r) {
 const FRAME_INTERVAL_MS = 200;   // poll cheaply; the speed-aware gate decides when to capture
 const TARGET_SPACING_M = 6;
 // When speed is unavailable, a 750 ms fallback approximates the 6 m target at
-// ordinary city speed. Measuring from burst start keeps the 360 ms burst itself
+// ordinary city speed. Measuring from burst start keeps the 500 ms burst itself
 // from silently widening the road gap.
 const FALLBACK_CAPTURE_MS = 750;
 const MIN_CAPTURE_MS = 500;
@@ -2139,7 +2151,7 @@ const GPS_COARSE_M = 30;
 const MOVING_MS = 1.0;
 const GPS_MAX_AGE_MS = 10000; // a fix older than this is stale: pause rather than mistag
 const BURST_COUNT = 3;
-const BURST_SPACING_MS = 180;
+const BURST_SPACING_MS = 250;
 const NATIVE_DRIVE_DETECTION_MODEL = "gpt-5.6";
 const NATIVE_DRIVE_DETECTION_DETAIL = "high";
 // A burst is heavier than the old single frame. Capture remains independent of these
@@ -2152,7 +2164,7 @@ let SEGMENT_MS = 15000;            // footage is written in 15s pieces so memory
 let RECORD_BITRATE = 2_500_000;    // ~18 MB/min at 1080p
 let RECORDER_STOP_TIMEOUT_MS = 10000; // a broken WebView must not lock Drive shutdown forever
 let VOD_STEP_S = 0.5;              // overlap windows so short defects cannot fall between samples
-const VOD_BURST_HALF_SPAN_S = 0.40; // mirrors f0/f2/f4 from the native five-sample burst
+const VOD_BURST_HALF_SPAN_S = 0.40; // three-source post-drive window around the candidate
 const DRIVE_LIMIT_OPTIONS = [15, 30, 60, 90];
 function driveLimitMinutes() {
   const selected = Number(localStorage.getItem("drive_limit_minutes"));
@@ -2165,20 +2177,158 @@ const RECORD_MIMES = ["video/mp4;codecs=avc1.42E01E", "video/mp4",
 let drive = null;
 let driveStarting = false;
 let driveFinalizing = null;
-const DATA_NOTICE_VERSION = "2026-08-26-v14-durable-drive-frames";
+let nativeInitialRestorePending = Boolean(window.Capacitor && Capacitor.isNativePlatform &&
+  Capacitor.isNativePlatform());
+let nativeInitialRestorePromise = Promise.resolve();
+let cameraAdmissionOwner = null;
+const DATA_NOTICE_VERSION = "2026-08-29-v15-background-drive-storage";
 let consentWaiter = null;
 let nativeDriveListenersReady = false;
 const handledNativeEnds = new Set();
+const provisionalNativeEnds = new Set();
 let nativeStopPromise = null;
 let nativeFinishPromise = null;
 let nativeFinishLocked = false;
 let nativeWipeLocked = false;
+let nativeCaptureFinalizingSessionId = null;
+let nativeStopStatusPollTimer = null;
+let nativeStartStatusPollTimer = null;
 let nativeSyncPromise = null;
 let nativeTrailingForcePromise = null;
 let nativeRepairSyncPromise = null;
+let nativeDataSyncEpoch = 0;
+let nativeRepairSyncEpoch = 0;
 let nativeWipeInProgress = false;
+let nativeDriveControlEpoch = 0;
 let lastNativeSyncAt = 0;
 let lastNativeSyncResult = { reports: 0, repairs: 0, drives: 0 };
+const NATIVE_FINISH_HYDRATE_TIMEOUT_MS = 8000;
+const NATIVE_SYNC_ABORT_WAIT_MS = 2500;
+
+function newNativeStartRequestId() {
+  if (window.crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  if (window.crypto && typeof crypto.getRandomValues === "function") {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let index = 0; index < bytes.length; index++) {
+      bytes[index] = Math.floor(Math.random() * 256);
+    }
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-` +
+    `${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+function nativeStatusOwnsPendingStart(status, candidate = drive) {
+  if (!(driveStarting || (candidate && candidate.starting)) ||
+      !candidate || !candidate.native || candidate.sessionId) return true;
+  const expected = String(candidate.startRequestId || "");
+  const incoming = String(status && status.startRequestId || "");
+  return Boolean(expected && incoming && expected === incoming);
+}
+
+function claimCameraAdmission(owner) {
+  if (cameraAdmissionOwner) return false;
+  cameraAdmissionOwner = owner;
+  return true;
+}
+
+function releaseCameraAdmission(owner) {
+  if (cameraAdmissionOwner === owner) cameraAdmissionOwner = null;
+}
+
+function invalidateNativeBackgroundSyncs() {
+  nativeDataSyncEpoch++;
+  nativeRepairSyncEpoch++;
+}
+
+function bumpNativeDriveControlEpoch() {
+  nativeDriveControlEpoch++;
+  return nativeDriveControlEpoch;
+}
+
+function requireNativeDataSyncCurrent(epoch) {
+  if (nativeWipeInProgress || nativeCaptureFinalizingSessionId ||
+      epoch !== nativeDataSyncEpoch) {
+    throw new Error("Native data sync was cancelled.");
+  }
+}
+
+function requireNativeRepairSyncCurrent(epoch) {
+  if (nativeWipeInProgress || nativeCaptureFinalizingSessionId ||
+      epoch !== nativeRepairSyncEpoch) {
+    throw new Error("Native repair sync was cancelled.");
+  }
+}
+
+function beginNativeCaptureFinalization(sessionId) {
+  const requested = String(sessionId || "").trim();
+  const current = String(nativeCaptureFinalizingSessionId || "");
+  if (current && current !== "__pending__" && requested && current !== requested) {
+    return false;
+  }
+  nativeCaptureFinalizingSessionId = requested || (current || "__pending__");
+  invalidateNativeBackgroundSyncs();
+  // A repair-cache transaction may otherwise continue decoding bridge images while
+  // CameraX is closing. Abort it without delaying the camera control plane.
+  abortNativeRepairStaging(nativeDrivePlugin()).catch(() => {});
+  return true;
+}
+
+function releaseNativeCaptureFinalization(sessionId) {
+  const requested = String(sessionId || "").trim();
+  const current = String(nativeCaptureFinalizingSessionId || "");
+  if (!current) return true;
+  if (current !== "__pending__" && requested && current !== requested) return false;
+  nativeCaptureFinalizingSessionId = null;
+  return true;
+}
+
+async function abortNativeRepairStaging(plugin) {
+  if (!plugin || typeof plugin.abortRepairTargetSync !== "function") return;
+  let timer = null;
+  try {
+    await Promise.race([
+      plugin.abortRepairTargetSync({ token: "" }).catch(() => {}),
+      new Promise((resolve) => {
+        timer = setTimeout(resolve, NATIVE_SYNC_ABORT_WAIT_MS);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function cancelNativeBackgroundSyncsForDriveStart(plugin) {
+  invalidateNativeBackgroundSyncs();
+  // At most one already-decoding two-image batch may finish. Waiting for the native
+  // abort prevents a multi-page repair-cache rebuild from competing with CameraX.
+  await abortNativeRepairStaging(plugin);
+}
+
+async function hydrateNativeDriveEndWithinDeadline() {
+  let timer = null;
+  const hydration = (async () => {
+    await syncNativeData({ force: true });
+    await loadReports().catch(() => {});
+  })();
+  try {
+    await Promise.race([
+      hydration,
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("Native history hydration timed out.")),
+          NATIVE_FINISH_HYDRATE_TIMEOUT_MS
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 function nativeDrivePlugin() {
   if (!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())) return null;
@@ -2201,31 +2351,91 @@ function setDriveActiveButton(active) {
   $("driveBtn").setAttribute("aria-label", active ? "Drive active — view" : "Drive");
 }
 
-function setNativeFinishLocked(locked) {
-  nativeFinishLocked = locked;
+function applyNativeMutationLocks() {
   const disabled = nativeFinishLocked || nativeWipeLocked;
+  $("driveBtn").disabled = disabled;
+  $("captureBtn").disabled = disabled;
   $("gearBtn").disabled = disabled;
   $("wipeBtn").disabled = disabled;
+  $("setSave").disabled = disabled;
+  $("setBack").disabled = disabled;
+}
+
+function setNativeFinishLocked(locked) {
+  nativeFinishLocked = locked;
+  applyNativeMutationLocks();
 }
 
 function setNativeWipeLocked(locked) {
   nativeWipeLocked = locked;
-  const disabled = nativeFinishLocked || nativeWipeLocked;
-  $("gearBtn").disabled = disabled;
-  $("wipeBtn").disabled = disabled;
+  applyNativeMutationLocks();
 }
 
-function stopNativePreview() {
+function setNativeSavingBanner(active) {
+  const banner = $("banner");
+  if (active) {
+    banner.dataset.nativeStopSaving = "1";
+    banner.textContent = "Camera off · saving drive data…";
+    banner.style.display = "block";
+  } else if (banner.dataset.nativeStopSaving === "1") {
+    delete banner.dataset.nativeStopSaving;
+    banner.textContent = "";
+    banner.style.display = "none";
+  }
+}
+
+function scheduleNativeStopStatusPoll() {
+  if (nativeStopStatusPollTimer || !nativeCaptureFinalizingSessionId) return;
+  nativeStopStatusPollTimer = setTimeout(() => {
+    nativeStopStatusPollTimer = null;
+    if (nativeCaptureFinalizingSessionId && !nativeFinishPromise) {
+      restoreNativeDrive({ syncWhenIdle: false }).catch(() => {
+        scheduleNativeStopStatusPoll();
+      });
+    }
+  }, 750);
+}
+
+function cancelNativeStopStatusPoll() {
+  if (nativeStopStatusPollTimer) clearTimeout(nativeStopStatusPollTimer);
+  nativeStopStatusPollTimer = null;
+}
+
+function scheduleNativeStartStatusPoll() {
+  if (nativeStartStatusPollTimer) return;
+  nativeStartStatusPollTimer = setTimeout(() => {
+    nativeStartStatusPollTimer = null;
+    if ((driveStarting || (drive && drive.native && drive.starting)) &&
+        !nativeWipeInProgress && !nativeFinishPromise) {
+      restoreNativeDrive({ syncWhenIdle: false }).catch(() => {
+        scheduleNativeStartStatusPoll();
+      });
+    }
+  }, 250);
+}
+
+function cancelNativeStartStatusPoll() {
+  if (nativeStartStatusPollTimer) clearTimeout(nativeStartStatusPollTimer);
+  nativeStartStatusPollTimer = null;
+}
+
+function stopNativePreview(preserveGraph = false) {
   nativePreviewGeneration++;
   nativePreviewAttached = false;
+  nativePreviewAttachPending = false;
+  nativePreviewPendingGeneration = 0;
+  nativePreviewFailureCount = 0;
+  if (nativePreviewRetryTimer) clearTimeout(nativePreviewRetryTimer);
+  nativePreviewRetryTimer = null;
   if (nativePreviewScrollFrame) cancelAnimationFrame(nativePreviewScrollFrame);
   nativePreviewScrollFrame = null;
   document.documentElement.classList.remove("native-preview-active");
   const plugin = nativeDrivePlugin();
-  if (plugin) plugin.detachPreview().catch(() => {});
+  if (plugin) plugin.detachPreview({ preserveGraph: !!preserveGraph }).catch(() => {});
 }
 
 function startNativePreview() {
+  if (nativePreviewAttachPending || nativePreviewRetryTimer) return;
   const generation = ++nativePreviewGeneration;
   if (!nativeHostAppActive || !drive || !drive.native || document.visibilityState !== "visible" ||
       $("drive").classList.contains("hidden")) return;
@@ -2236,13 +2446,51 @@ function startNativePreview() {
     const rect = slot.getBoundingClientRect();
     const plugin = nativeDrivePlugin();
     if (plugin) {
+      nativePreviewAttachPending = true;
+      nativePreviewPendingGeneration = generation;
+      let attachTimeout = null;
+      let failed = false;
       try {
-        await plugin.attachPreview({
+        const request = plugin.attachPreview({
           left: rect.left, top: rect.top, width: rect.width, height: rect.height,
           viewportWidth: window.innerWidth, viewportHeight: window.innerHeight,
         });
+        await Promise.race([
+          request,
+          new Promise((_, reject) => {
+            attachTimeout = setTimeout(() => reject(new Error("Preview attachment timed out")), 4000);
+          }),
+        ]);
+        if (generation !== nativePreviewGeneration || !drive || !drive.native ||
+            document.visibilityState !== "visible" || $("drive").classList.contains("hidden")) {
+          nativePreviewAttached = false;
+          return;
+        }
         nativePreviewAttached = true;
-      } catch (_) { nativePreviewAttached = false; }
+        nativePreviewFailureCount = 0;
+      } catch (_) {
+        failed = true;
+        nativePreviewAttached = false;
+        if (generation === nativePreviewGeneration) {
+          nativePreviewFailureCount++;
+          document.documentElement.classList.remove("native-preview-active");
+        }
+      } finally {
+        if (attachTimeout) clearTimeout(attachTimeout);
+        if (nativePreviewPendingGeneration === generation) {
+          nativePreviewAttachPending = false;
+          nativePreviewPendingGeneration = 0;
+        }
+        if (failed && generation === nativePreviewGeneration && nativeHostAppActive &&
+            drive && drive.native && document.visibilityState === "visible" &&
+            !$("drive").classList.contains("hidden")) {
+          const retryMs = Math.min(8000, 500 * (2 ** Math.min(4, nativePreviewFailureCount - 1)));
+          nativePreviewRetryTimer = setTimeout(() => {
+            nativePreviewRetryTimer = null;
+            if (generation === nativePreviewGeneration) startNativePreview();
+          }, retryMs);
+        }
+      }
     }
   }));
 }
@@ -2283,8 +2531,13 @@ function updateNativeDriveHud(status) {
     badge.innerHTML = "&#10074;&#10074; PAUSED · CAMERA OFF";
     badge.style.background = "rgba(60,60,60,.88)";
   } else if (status.captureBlocked) {
-    badge.innerHTML = "CAPTURE PAUSED · CAMERA/GPS UNAVAILABLE";
-    badge.style.background = "rgba(150,0,0,.88)";
+    badge.innerHTML = status.cameraActive === true
+      ? (status.recordingEnabled && status.isRecording
+          ? "&#9679; RECORDING VIDEO · DETECTION WAITING FOR GPS"
+          : "CAMERA ACTIVE · DETECTION WAITING FOR GPS")
+      : "CAPTURE PAUSED · CAMERA/GPS UNAVAILABLE";
+    badge.style.background = status.cameraActive === true
+      ? "rgba(130,70,0,.88)" : "rgba(150,0,0,.88)";
   } else if (status.cameraActive !== true) {
     const starting = /starting|waiting/i.test(String(status.status || ""));
     badge.innerHTML = starting ? "CAMERA STARTING" : "CAMERA INTERRUPTED · RETRYING";
@@ -2306,17 +2559,25 @@ function updateNativeDriveHud(status) {
     badge.style.background = "rgba(130,70,0,.88)";
   }
   $("nativeRecordBtn").textContent = status.recordingEnabled ? "Video: On" : "Video: Off";
-  $("nativeRecordBtn").disabled = Boolean(status.isStopping || status.isPausing) ||
+  $("nativeRecordBtn").disabled = nativeVideoControlPending ||
+    Boolean(status.isStopping || status.isPausing) ||
     (status.videoSupported === false && !status.recordingEnabled);
-  $("nativePauseBtn").disabled = Boolean(status.isStopping || status.isPausing);
+  $("nativePauseBtn").disabled = nativePauseControlPending ||
+    Boolean(status.isStopping || status.isPausing);
   $("nativeDriveStop").disabled = Boolean(status.isStopping);
 }
 
 function beginNativeDataSync(force) {
-  if (nativeWipeInProgress) {
-    return Promise.reject(new Error("App data deletion is in progress."));
+  if (nativeWipeInProgress || nativeCaptureFinalizingSessionId) {
+    return Promise.reject(new Error(nativeWipeInProgress
+      ? "App data deletion is in progress." : "Drive data is still being finalized."));
   }
-  const run = performNativeDataSync({ forceNativeHistory: force }).then((result) => {
+  const syncEpoch = nativeDataSyncEpoch;
+  const repairEpoch = nativeRepairSyncEpoch;
+  const run = performNativeDataSync({
+    forceNativeHistory: force, syncEpoch, repairEpoch,
+  }).then((result) => {
+    requireNativeDataSyncCurrent(syncEpoch);
     lastNativeSyncAt = Date.now();
     lastNativeSyncResult = result;
     return result;
@@ -2329,8 +2590,9 @@ function beginNativeDataSync(force) {
 }
 
 function syncNativeData(options = {}) {
-  if (nativeWipeInProgress) {
-    return Promise.reject(new Error("App data deletion is in progress."));
+  if (nativeWipeInProgress || nativeCaptureFinalizingSessionId) {
+    return Promise.reject(new Error(nativeWipeInProgress
+      ? "App data deletion is in progress." : "Drive data is still being finalized."));
   }
   const force = options.force === true;
   if (nativeTrailingForcePromise) return nativeTrailingForcePromise;
@@ -2339,8 +2601,12 @@ function syncNativeData(options = {}) {
     // A forced finish sync must observe rows committed after an older foreground sync
     // began. Queue exactly one trailing pass instead of quietly returning stale work.
     const active = nativeSyncPromise;
+    const requestedEpoch = nativeDataSyncEpoch;
     nativeTrailingForcePromise = active.catch(() => null)
-      .then(() => beginNativeDataSync(true))
+      .then(() => {
+        requireNativeDataSyncCurrent(requestedEpoch);
+        return beginNativeDataSync(true);
+      })
       .finally(() => { nativeTrailingForcePromise = null; });
     return nativeTrailingForcePromise;
   }
@@ -2353,15 +2619,19 @@ function syncNativeData(options = {}) {
 const NATIVE_IMAGE_BATCH_SIZE = 2;
 
 async function performNativeDataSync(options = {}) {
-  if (nativeWipeInProgress) throw new Error("App data deletion is in progress.");
+  const syncEpoch = options.syncEpoch;
+  const repairEpoch = options.repairEpoch;
+  requireNativeDataSyncCurrent(syncEpoch);
   const plugin = nativeDrivePlugin();
   if (!plugin) return { reports: 0, drives: 0 };
   let reportCount = 0;
   // Native evidence is Base64 across this bridge. Two-at-a-time keeps peak memory flat
   // while each page is acknowledged durably before the next one is requested.
   for (let page = 0; page < 100; page++) {
+    requireNativeDataSyncCurrent(syncEpoch);
     const pending = await plugin.syncReports({ limit: NATIVE_IMAGE_BATCH_SIZE })
       .catch(() => ({ reports: [] }));
+    requireNativeDataSyncCurrent(syncEpoch);
     const reports = pending.reports || [];
     if (!reports.length) break;
     const remainingBeforeAck = Number(pending.remaining);
@@ -2389,12 +2659,16 @@ async function performNativeDataSync(options = {}) {
       if (remainingBeforeAck <= acknowledged.length) break;
     } else if (reports.length < NATIVE_IMAGE_BATCH_SIZE) break;
   }
-  const repairs = await refreshNativeRepairData(plugin);
+  requireNativeDataSyncCurrent(syncEpoch);
+  const repairs = await refreshNativeRepairData(plugin, repairEpoch);
+  requireNativeDataSyncCurrent(syncEpoch);
   const sessions = await getNativeDriveHistory({ force: options.forceNativeHistory })
     .catch(() => ({ drives: [] }));
+  requireNativeDataSyncCurrent(syncEpoch);
   let driveCount = 0;
   for (const session of (sessions.drives || []).filter((x) =>
     x.status === "stopped" || x.status === "interrupted")) {
+    requireNativeDataSyncCurrent(syncEpoch);
     try {
       await api("/api/drives", { method: "POST", body: JSON.stringify(session) });
       driveCount++;
@@ -2403,12 +2677,17 @@ async function performNativeDataSync(options = {}) {
   return { reports: reportCount, repairs: repairs.observations, drives: driveCount };
 }
 
-function refreshNativeRepairData(plugin = nativeDrivePlugin()) {
-  if (nativeWipeInProgress) {
-    return Promise.reject(new Error("App data deletion is in progress."));
+function refreshNativeRepairData(
+  plugin = nativeDrivePlugin(),
+  expectedEpoch = nativeRepairSyncEpoch
+) {
+  if (nativeWipeInProgress || nativeCaptureFinalizingSessionId) {
+    return Promise.reject(new Error(nativeWipeInProgress
+      ? "App data deletion is in progress." : "Drive data is still being finalized."));
   }
   if (nativeRepairSyncPromise) return nativeRepairSyncPromise;
-  const run = syncNativeRepairData(plugin);
+  requireNativeRepairSyncCurrent(expectedEpoch);
+  const run = syncNativeRepairData(plugin, expectedEpoch);
   nativeRepairSyncPromise = run;
   run.finally(() => {
     if (nativeRepairSyncPromise === run) nativeRepairSyncPromise = null;
@@ -2416,14 +2695,19 @@ function refreshNativeRepairData(plugin = nativeDrivePlugin()) {
   return run;
 }
 
-async function syncNativeRepairData(plugin = nativeDrivePlugin()) {
-  if (nativeWipeInProgress) throw new Error("App data deletion is in progress.");
+async function syncNativeRepairData(
+  plugin = nativeDrivePlugin(),
+  expectedEpoch = nativeRepairSyncEpoch
+) {
+  requireNativeRepairSyncCurrent(expectedEpoch);
   if (!plugin) return { observations: 0, targets: 0 };
   let observationCount = 0;
   if (typeof plugin.syncRepairObservations === "function") {
     for (let page = 0; page < 100; page++) {
+      requireNativeRepairSyncCurrent(expectedEpoch);
       const pending = await plugin.syncRepairObservations({ limit: NATIVE_IMAGE_BATCH_SIZE })
         .catch(() => ({ observations: [] }));
+      requireNativeRepairSyncCurrent(expectedEpoch);
       const observations = pending.observations || [];
       if (!observations.length) break;
       const remainingBeforeAck = Number(pending.remaining);
@@ -2449,12 +2733,16 @@ async function syncNativeRepairData(plugin = nativeDrivePlugin()) {
       } else if (observations.length < NATIVE_IMAGE_BATCH_SIZE) break;
     }
   }
-  const targetCount = await refreshNativeRepairTargetCache(plugin);
+  requireNativeRepairSyncCurrent(expectedEpoch);
+  const targetCount = await refreshNativeRepairTargetCache(plugin, expectedEpoch);
   return { observations: observationCount, targets: targetCount };
 }
 
-async function refreshNativeRepairTargetCache(plugin = nativeDrivePlugin()) {
-  if (nativeWipeInProgress) throw new Error("App data deletion is in progress.");
+async function refreshNativeRepairTargetCache(
+  plugin = nativeDrivePlugin(),
+  expectedEpoch = nativeRepairSyncEpoch
+) {
+  requireNativeRepairSyncCurrent(expectedEpoch);
   if (!plugin) return 0;
   const required = ["beginRepairTargetSync", "appendRepairTargetBatch",
     "commitRepairTargetSync", "abortRepairTargetSync"];
@@ -2462,6 +2750,7 @@ async function refreshNativeRepairTargetCache(plugin = nativeDrivePlugin()) {
     throw new Error("This Android build cannot refresh its repair history safely.");
   }
   const manifest = await api("/api/repair-targets");
+  requireNativeRepairSyncCurrent(expectedEpoch);
   const ids = manifest && manifest.target_ids;
   if (!Array.isArray(ids) || ids.length > 2000
       || ids.some((id) => !Number.isSafeInteger(id) || id <= 0)
@@ -2469,23 +2758,26 @@ async function refreshNativeRepairTargetCache(plugin = nativeDrivePlugin()) {
     throw new Error("The repair history manifest is invalid.");
   }
   const started = await plugin.beginRepairTargetSync({ ids });
+  requireNativeRepairSyncCurrent(expectedEpoch);
   const token = String(started && started.token || "");
   if (!token) throw new Error("Android did not start repair history staging.");
   try {
     for (let offset = 0; offset < ids.length; offset += NATIVE_IMAGE_BATCH_SIZE) {
-      if (nativeWipeInProgress) throw new Error("App data deletion is in progress.");
+      requireNativeRepairSyncCurrent(expectedEpoch);
       const batchIds = ids.slice(offset, offset + NATIVE_IMAGE_BATCH_SIZE);
       const payload = await api("/api/repair-targets", {
         method: "POST", body: JSON.stringify({ ids: batchIds }),
       });
+      requireNativeRepairSyncCurrent(expectedEpoch);
       const targets = payload && payload.targets;
       if (!Array.isArray(targets) || targets.length !== batchIds.length
           || targets.some((target, index) => Number(target && target.id) !== batchIds[index])) {
         throw new Error("Repair history changed while its native cache was being refreshed.");
       }
       await plugin.appendRepairTargetBatch({ token, offset, targets });
+      requireNativeRepairSyncCurrent(expectedEpoch);
     }
-    if (nativeWipeInProgress) throw new Error("App data deletion is in progress.");
+    requireNativeRepairSyncCurrent(expectedEpoch);
     const committed = await plugin.commitRepairTargetSync({ token });
     const replaced = Number(committed && committed.replaced);
     if (!Number.isInteger(replaced) || replaced !== ids.length) {
@@ -2498,43 +2790,97 @@ async function refreshNativeRepairTargetCache(plugin = nativeDrivePlugin()) {
   }
 }
 
-async function finishNativeDrive(summary) {
+async function finishNativeDrive(summary, options = {}) {
+  const provisional = options.provisional === true;
   const sessionId = summary && summary.sessionId ? String(summary.sessionId) : null;
   const endReason = String(summary && (summary.reason || summary.stopReason) || "").trim();
   const endError = String(summary && summary.error || "").trim();
-  if (sessionId && handledNativeEnds.has(sessionId)) return nativeFinishPromise || Promise.resolve();
-  if (nativeFinishPromise) return nativeFinishPromise.then(() => finishNativeDrive(summary));
-  if (sessionId) handledNativeEnds.add(sessionId);
+  const liveSessionId = drive && drive.native ? String(drive.sessionId || "") : "";
+  const liveStartRequestId = drive && drive.native ? String(drive.startRequestId || "") : "";
+  const endedStartRequestId = String(summary && summary.startRequestId || "");
+  // A terminal event from session A can cross a WebView/plugin recreation and arrive
+  // while session B owns a blank pre-start context. Never attach A to B merely because
+  // B's final timestamp-based session ID has not been published yet.
+  if ((driveStarting || (drive && drive.starting)) &&
+      drive && drive.native && !liveSessionId && sessionId &&
+      liveStartRequestId && endedStartRequestId !== liveStartRequestId) {
+    handledNativeEnds.add(sessionId);
+    const previousNotice = endError ||
+      (endReason && !/^stopped$/i.test(endReason) ? endReason : "");
+    if (previousNotice) {
+      const banner = $("banner");
+      banner.textContent = `Previous drive: ${previousNotice}`;
+      banner.style.display = "block";
+    }
+    const plugin = nativeDrivePlugin();
+    if (plugin && typeof plugin.acknowledgeDriveEndSummary === "function") {
+      await plugin.acknowledgeDriveEndSummary({ sessionId }).catch(() => {});
+    }
+    return Promise.resolve();
+  }
+  if (liveSessionId && sessionId && liveSessionId !== sessionId) return Promise.resolve();
+  if (sessionId && handledNativeEnds.has(sessionId)) {
+    return nativeFinishPromise || Promise.resolve();
+  }
+  if (nativeFinishPromise) {
+    return nativeFinishPromise.then(() => finishNativeDrive(summary, options));
+  }
+  const wasProvisional = Boolean(!provisional && sessionId && provisionalNativeEnds.delete(sessionId));
+  if (provisional && sessionId) {
+    provisionalNativeEnds.add(sessionId);
+    while (provisionalNativeEnds.size > 32) {
+      provisionalNativeEnds.delete(provisionalNativeEnds.values().next().value);
+    }
+  } else if (sessionId) handledNativeEnds.add(sessionId);
+  bumpNativeDriveControlEpoch();
   const current = drive;
   const belongsToCurrent = current && current.native &&
-    (!sessionId || !current.sessionId || String(current.sessionId) === sessionId);
+    (!sessionId || String(current.sessionId || "") === sessionId ||
+      (!current.sessionId && liveStartRequestId &&
+       endedStartRequestId === liveStartRequestId));
+  const showTerminalNotice = () => {
+    const terminalNotice = endError ||
+      (endReason && !/^stopped$/i.test(endReason) ? endReason : "");
+    if (!terminalNotice) return;
+    const banner = $("banner");
+    banner.textContent = terminalNotice;
+    banner.style.display = "block";
+  };
+  // driveEnded is the durable boundary. Only now may the controlled history hydration
+  // use the native bridge; Home remains mutation-locked until that hydration settles.
+  releaseNativeCaptureFinalization(sessionId);
+  cancelNativeStopStatusPoll();
+  cancelNativeStartStatusPoll();
   nativeFinishPromise = (async () => {
     if (belongsToCurrent) {
       setNativeFinishLocked(true);
       stopNativePreview();
       drive = null;
       setDriveActiveButton(false);
+      setNativeSavingBanner(false);
       // Camera/GPS are already off. Return control immediately while durable Room rows
       // hydrate the history in the background portion of this completion barrier.
       show("home");
       // Explicit Stop is expected. Every other terminal reason must remain visible:
       // otherwise an invalid key, exhausted credit, storage failure, or camera failure
       // looks like the app silently quit after the generic native teardown message.
-      const terminalNotice = endReason && !/^stopped$/i.test(endReason)
-        ? endReason : (!endReason && endError ? endError : "");
-      if (terminalNotice) {
-        const banner = $("banner");
-        banner.textContent = terminalNotice;
-        banner.style.display = "block";
-      }
+      showTerminalNotice();
+    } else if (wasProvisional) {
+      // A compatibility fallback may have returned Home before an older native build
+      // delivered its terminal event. Preserve the real later error/reason visibly.
+      showTerminalNotice();
     }
     // A wipe stops the foreground service before deleting its Room rows and files.
     // Do not race that deletion by syncing the just-ended session back into web data.
     if (!(summary && summary.discarded)) {
       invalidateNativeDriveHistory();
       try {
-        await syncNativeData({ force: true });
-        await loadReports().catch(() => {});
+        await hydrateNativeDriveEndWithinDeadline();
+      } catch (_) {
+        // Room rows and evidence remain durable. Release the UI now and abort any
+        // repair-cache staging; visibility/online replay can safely retry later.
+        invalidateNativeBackgroundSyncs();
+        abortNativeRepairStaging(nativeDrivePlugin()).catch(() => {});
       } finally {
         // Live overflow and interrupted requests remain durable Room keyframes. A
         // routing/repair-cache sync failure must not strand them until another app
@@ -2542,12 +2888,60 @@ async function finishNativeDrive(summary) {
         scheduleNativeKeyframeReplay(sessionId);
       }
     }
+    // Persisted terminal summaries are removed only after their exact result has been
+    // presented and the completion hand-off has finished. If this call fails, the
+    // summary deliberately remains available after the next WebView/process restart.
+    const plugin = nativeDrivePlugin();
+    if (!provisional && sessionId && plugin &&
+        typeof plugin.acknowledgeDriveEndSummary === "function") {
+      await plugin.acknowledgeDriveEndSummary({ sessionId }).catch(() => {});
+    }
   })().finally(() => {
+    releaseNativeCaptureFinalization(sessionId);
+    setNativeSavingBanner(false);
     setNativeFinishLocked(false);
     nativeStopPromise = null;
     nativeFinishPromise = null;
   });
   return nativeFinishPromise;
+}
+
+function presentNativeStoppingStatus(status) {
+  if (!status || !status.isStopping) return false;
+  const incomingSession = String(status.sessionId || "");
+  if (nativeFinishPromise || (incomingSession && handledNativeEnds.has(incomingSession))) {
+    return false;
+  }
+  const currentSession = drive && drive.native ? String(drive.sessionId || "") : "";
+  if (!nativeStatusOwnsPendingStart(status)) return false;
+  if (currentSession && incomingSession && currentSession !== incomingSession) return false;
+  bumpNativeDriveControlEpoch();
+  if (!beginNativeCaptureFinalization(incomingSession || currentSession)) return false;
+  if (!drive || !drive.native) {
+    drive = { native: true, sessionId: status.sessionId,
+      startRequestId: status.startRequestId || null,
+      stopping: true, captureStopped: false };
+  } else if (!currentSession && incomingSession) {
+    drive.sessionId = incomingSession;
+  }
+  drive.stopping = true;
+  // Monotonic per session: a delayed pre-close status can never move the UI back from
+  // verified Camera-off to a stopping preview.
+  drive.captureStopped = Boolean(drive.captureStopped || status.captureStopped);
+  setDrivePanels(true);
+  setNativeFinishLocked(true);
+  updateNativeDriveHud({ ...status, captureStopped: drive.captureStopped });
+  if (drive.captureStopped) {
+    stopNativePreview();
+    setDriveActiveButton(false);
+    setNativeSavingBanner(true);
+    show("home");
+  } else {
+    setDriveActiveButton(true);
+    show("drive");
+  }
+  scheduleNativeStopStatusPoll();
+  return true;
 }
 
 async function ensureNativeDriveListeners() {
@@ -2556,17 +2950,55 @@ async function ensureNativeDriveListeners() {
   nativeDriveListenersReady = true;
   await plugin.addListener("driveStatusChange", (status) => {
     if (status && status.isRunning) {
-      if (!drive || !drive.native) drive = { native: true, sessionId: status.sessionId };
+      const incomingSession = String(status.sessionId || "");
+      if (nativeFinishPromise || (incomingSession && handledNativeEnds.has(incomingSession))) return;
+      const currentSession = drive && drive.native ? String(drive.sessionId || "") : "";
+      const adoptingRunningDrive = !drive || !drive.native;
+      const resolvingBlankStart = !adoptingRunningDrive && !currentSession &&
+        Boolean(drive.starting || driveStarting);
+      // A late callback from a torn-down service must never mark a newer drive active or
+      // stopping. Blank current IDs are allowed only while Start is still resolving.
+      if (!nativeStatusOwnsPendingStart(status) ||
+          (currentSession && incomingSession && currentSession !== incomingSession)) return;
+      bumpNativeDriveControlEpoch();
+      if (!drive || !drive.native) drive = { native: true, sessionId: status.sessionId,
+        startRequestId: status.startRequestId || null };
+      else {
+        if (!currentSession && incomingSession) drive.sessionId = incomingSession;
+        drive.starting = false;
+        if (!drive.startRequestId && status.startRequestId) {
+          drive.startRequestId = status.startRequestId;
+        }
+      }
       setDriveActiveButton(true);
       updateNativeDriveHud(status);
-      if (!nativePreviewAttached && !$("drive").classList.contains("hidden")) startNativePreview();
-    } else if (status && status.isStopping && drive && drive.native) {
-      drive.stopping = true;
-      setNativeFinishLocked(true);
-      updateNativeDriveHud(status);
-    }
+      // Listener registration deliberately precedes the awaited initial getStatus call.
+      // If this event wins that race, the epoch guard makes the stale restore return;
+      // the listener must therefore adopt the visible control plane as well as the data.
+      if (adoptingRunningDrive || resolvingBlankStart) {
+        cancelNativeStartStatusPoll();
+        setDrivePanels(true);
+        show("drive");
+        startNativePreview();
+      } else if (!nativePreviewAttached && !$("drive").classList.contains("hidden")) {
+        startNativePreview();
+      }
+    } else if (status && status.isStopping) presentNativeStoppingStatus(status);
   });
-  await plugin.addListener("driveEnded", (summary) => { finishNativeDrive(summary); });
+  await plugin.addListener("driveEnded", (summary) => {
+    const sessionId = String(summary && summary.sessionId || "");
+    // Listener registration intentionally precedes getStatus during restoration. If
+    // teardown wins in that interval there is no JS drive object yet; reconstruct the
+    // exact terminal owner before finishing so its error is shown and only then acked.
+    if (!drive && !nativeFinishPromise && sessionId &&
+        !handledNativeEnds.has(sessionId)) {
+      drive = { native: true, sessionId,
+        startRequestId: summary && summary.startRequestId || null,
+        stopping: true, captureStopped: true };
+      setDrivePanels(true);
+    }
+    finishNativeDrive(summary);
+  });
 }
 
 function finishDataConsent(accepted) {
@@ -2621,7 +3053,23 @@ function distMeters(a, b) {
 }
 
 async function startDrive() {
+  if (!claimCameraAdmission("drive")) return;
+  try {
+    return await startDriveAdmitted();
+  } finally {
+    releaseCameraAdmission("drive");
+  }
+}
+
+async function startDriveAdmitted() {
   if (nativeWipeInProgress) return;
+  // Do not admit a second camera while the first native status/terminal hand-off is
+  // still being reconstructed after page load. The await is short and shared by taps.
+  if (nativeInitialRestorePending) {
+    await nativeInitialRestorePromise.catch(() => {});
+    if (nativeWipeInProgress) return;
+  }
+  if (photoCaptureStarting) return;
   // Synchronous reentry guard: a second tap during the camera permission prompt
   // must not start a parallel drive session and leak the first camera stream.
   if (drive && drive.native && !drive.stopping) {
@@ -2631,6 +3079,9 @@ async function startDrive() {
     return;
   }
   if (drive || driveStarting || driveFinalizing || nativeFinishPromise) return;
+  // Invalidate status reads that began before this user-initiated Start. A delayed
+  // idle result must never hide a newly admitted foreground camera session.
+  bumpNativeDriveControlEpoch();
   // A new camera session has priority. A completed replay request is checkpointed,
   // then the automatic loop yields before reading another saved frame.
   if (nativeKeyframeReplay && !nativeKeyframeReplay.interactive) {
@@ -2640,11 +3091,15 @@ async function startDrive() {
     openSettings(true, false);
     return;
   }
+  const nativePlugin = nativeDrivePlugin();
+  const backgroundSyncCancelled = nativePlugin
+    ? cancelNativeBackgroundSyncsForDriveStart(nativePlugin)
+    : Promise.resolve();
   driveStarting = true;
   if (!(await ensureDataConsent())) { driveStarting = false; return; }
   if (nativeWipeInProgress) { driveStarting = false; return; }
-  const nativePlugin = nativeDrivePlugin();
   const permissions = await requestNativeDrivePermissions();
+  await backgroundSyncCancelled;
   if (nativeWipeInProgress) { driveStarting = false; return; }
   if (nativePlugin && (!permissions || !permissions.granted || permissions.notificationsGranted === false)) {
     driveStarting = false;
@@ -2653,12 +3108,19 @@ async function startDrive() {
   }
   if (drive || driveFinalizing || nativeFinishPromise) { driveStarting = false; return; }
   if (nativePlugin) {
-    // Refresh in parallel: camera preview and capture must not wait for the repair cache,
-    // while a new report still becomes eligible for later revisit verification.
-    refreshNativeRepairData(nativePlugin).catch(() => {});
+    // Use the last atomically committed repair cache for this drive. Multi-page cache
+    // rebuilding is idle-only and must never compete with camera frames or the encoder.
     await ensureNativeDriveListeners();
     if (nativeWipeInProgress) { driveStarting = false; return; }
-    const ctx = { native: true, sessionId: null };
+    const ctx = {
+      native: true,
+      sessionId: null,
+      startRequestId: newNativeStartRequestId(),
+      starting: true,
+      stopping: false,
+      captureStopped: false,
+    };
+    bumpNativeDriveControlEpoch();
     drive = ctx;
     setDriveActiveButton(true);
     setDrivePanels(true);
@@ -2669,6 +3131,7 @@ async function startDrive() {
     show("drive");
     try {
       const status = await nativePlugin.startDrive({
+        startRequestId: ctx.startRequestId,
         apiKey: localStorage.getItem("openai_key") || "",
         model: NATIVE_DRIVE_DETECTION_MODEL,
         detail: NATIVE_DRIVE_DETECTION_DETAIL,
@@ -2682,8 +3145,56 @@ async function startDrive() {
         setDriveActiveButton(false);
         return;
       }
-      ctx.sessionId = status.sessionId || null;
-      updateNativeDriveHud(status);
+      // Visibility restoration may have rebuilt the WebView while Android was between
+      // accepting ACTION_START and publishing the running service. Re-adopt only the
+      // exact live session; never leave a detached foreground camera hidden behind Home.
+      // Always re-read Android after the bridge promise resolves. That result can be
+      // stale if another terminal/control callback ran at the same message boundary.
+      const latest = await nativePlugin.getStatus().catch(() => null);
+      if (!latest) {
+        ctx.starting = true;
+        setDriveActiveButton(true); setDrivePanels(true); show("drive");
+        updateNativeDriveHud({ ...status, cameraActive: false,
+          status: "Verifying the foreground camera" });
+        scheduleNativeStartStatusPoll();
+        return;
+      }
+      const incomingSession = String(latest.sessionId || "");
+      const incomingStartRequestId = String(latest.startRequestId || "");
+      const currentSession = drive && drive.native ? String(drive.sessionId || "") : "";
+      if (!latest.isRunning || latest.isStopping || !incomingSession ||
+          (incomingSession && handledNativeEnds.has(incomingSession)) ||
+          (currentSession && incomingSession && currentSession !== incomingSession)) {
+        if (latest.isStopping) presentNativeStoppingStatus(latest);
+        else if (drive === ctx) {
+          drive = null; setDriveActiveButton(false); show("home");
+        }
+        return;
+      }
+      let committedStatus = latest;
+      if (incomingStartRequestId !== ctx.startRequestId) {
+        // Native already owned another exact live session (for example one restored
+        // from before WebView recreation). Adopt it visibly; never relabel it as this tap.
+        drive = { native: true, sessionId: incomingSession,
+          startRequestId: incomingStartRequestId || null };
+      } else {
+        drive = ctx;
+      }
+      const committedDrive = drive;
+      committedDrive.sessionId = committedStatus.sessionId || null;
+      committedDrive.startRequestId = committedStatus.startRequestId ||
+        committedDrive.startRequestId || null;
+      committedDrive.starting = false;
+      committedDrive.stopping = false;
+      committedDrive.captureStopped = false;
+      cancelNativeStartStatusPoll();
+      // A delayed callback may have returned the WebView to Home while Android kept
+      // the admitted camera alive. Every successful start restores the visible,
+      // transparent camera surface before attaching preview.
+      setDriveActiveButton(true);
+      setDrivePanels(true);
+      show("drive");
+      updateNativeDriveHud(committedStatus);
       startNativePreview();
     } catch (e) {
       // If the user pressed Stop while native startup was still waiting for CameraX,
@@ -3049,19 +3560,27 @@ function stopDrive() {
   if (drive.native) {
     if (nativeStopPromise) return nativeStopPromise;
     const ctx = drive;
+    bumpNativeDriveControlEpoch();
     ctx.stopping = true;
+    ctx.captureStopped = false;
     const plugin = nativeDrivePlugin();
     $("nativeDriveStatus").textContent = t("working");
     $("nativeDriveStop").disabled = true;
     setNativeFinishLocked(true);
+    beginNativeCaptureFinalization(ctx.sessionId);
+    show("drive");
     nativeStopPromise = plugin.stopDrive()
       .then((summary) => finishNativeDrive(summary))
-      .catch((e) => {
+      .catch(async (e) => {
+        const status = await plugin.getStatus().catch(() => null);
+        nativeStopPromise = null;
+        if (status && status.isStopping && presentNativeStoppingStatus(status)) return;
+        releaseNativeCaptureFinalization(ctx.sessionId);
         ctx.stopping = false;
+        ctx.captureStopped = false;
         setNativeFinishLocked(false);
         $("nativeDriveStop").disabled = false;
         $("nativeDriveStatus").textContent = e.message || String(e);
-        nativeStopPromise = null;
       });
     return nativeStopPromise;
   }
@@ -3137,19 +3656,38 @@ $("driveStop").onclick = stopDrive;
 $("nativeDriveStop").onclick = stopDrive;
 $("nativePauseBtn").onclick = async () => {
   const plugin = nativeDrivePlugin();
-  if (!plugin || !drive || !drive.native) return;
-  const current = await plugin.getStatus();
-  const next = current.isPaused ? await plugin.resumeDrive() : await plugin.pauseDrive();
-  updateNativeDriveHud(next);
+  if (!plugin || !drive || !drive.native || drive.stopping || nativePauseControlPending) return;
+  nativePauseControlPending = true;
+  $("nativePauseBtn").disabled = true;
+  let next = null;
+  try {
+    const current = await plugin.getStatus();
+    next = current.isPaused ? await plugin.resumeDrive() : await plugin.pauseDrive();
+  } catch (error) {
+    $("nativeDriveStatus").textContent = error.message || String(error);
+  } finally {
+    if (!next) next = await plugin.getStatus().catch(() => null);
+    nativePauseControlPending = false;
+    if (next && drive && drive.native) updateNativeDriveHud(next);
+  }
 };
 $("nativeRecordBtn").onclick = async () => {
   const plugin = nativeDrivePlugin();
-  if (!plugin || !drive || !drive.native || drive.stopping) return;
-  const current = await plugin.getStatus();
-  const enabled = !current.recordingEnabled;
-  const next = await plugin.setVideoRecording({ enabled });
-  localStorage.setItem("record_video", enabled ? "1" : "0");
-  updateNativeDriveHud(next);
+  if (!plugin || !drive || !drive.native || drive.stopping || nativeVideoControlPending) return;
+  nativeVideoControlPending = true;
+  $("nativeRecordBtn").disabled = true;
+  let next = null;
+  try {
+    const current = await plugin.getStatus();
+    next = await plugin.setVideoRecording({ enabled: !current.recordingEnabled });
+    localStorage.setItem("record_video", next.recordingEnabled ? "1" : "0");
+  } catch (error) {
+    $("nativeDriveStatus").textContent = error.message || String(error);
+  } finally {
+    if (!next) next = await plugin.getStatus().catch(() => null);
+    nativeVideoControlPending = false;
+    if (next && drive && drive.native) updateNativeDriveHud(next);
+  }
 };
 $("openMapsBtn").onclick = async () => {
   const plugin = nativeDrivePlugin();
@@ -3158,7 +3696,7 @@ $("openMapsBtn").onclick = async () => {
 
 document.addEventListener("visibilitychange", () => {
   if (drive && !drive.native && document.visibilityState === "hidden") stopDrive();
-  if (drive && drive.native && document.visibilityState === "hidden") stopNativePreview();
+  if (drive && drive.native && document.visibilityState === "hidden") stopNativePreview(true);
   if (document.visibilityState === "visible") {
     restoreNativeDrive();
     if (drive && drive.native) startNativePreview();
@@ -3167,13 +3705,14 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // WebView visibility events are not reliable on every Android/OEM transition. Capacitor's
-// native Activity signal is authoritative: only the preview surface is detached; CameraX,
-// GPS, detection, and optional recording remain owned by the foreground service.
+// native Activity signal is authoritative. Detach the Activity-owned Preview surface
+// before Maps/calls destroy its window. The foreground service keeps CameraX analysis,
+// GPS, detection, and optional recording alive and binds a fresh visible surface on return.
 window.handleNativeAppStateChange = async (isActive) => {
   nativeHostAppActive = !!isActive;
   const epoch = ++nativeHostAppStateEpoch;
   if (!nativeHostAppActive) {
-    stopNativePreview();
+    stopNativePreview(true);
     return;
   }
   await restoreNativeDrive({ syncWhenIdle: false });
@@ -3199,22 +3738,110 @@ async function restoreNativeDrive(options = {}) {
   const plugin = nativeDrivePlugin();
   if (!plugin) return;
   await ensureNativeDriveListeners();
+  const requestEpoch = nativeDriveControlEpoch;
+  const observedDrive = drive && drive.native ? drive : null;
+  const observedSession = observedDrive ? String(observedDrive.sessionId || "") : "";
+  const observedStopping = Boolean(observedDrive && observedDrive.stopping);
   const status = await plugin.getStatus().catch(() => null);
+  const currentDrive = drive && drive.native ? drive : null;
+  if (requestEpoch !== nativeDriveControlEpoch || currentDrive !== observedDrive ||
+      (currentDrive && String(currentDrive.sessionId || "") !== observedSession) ||
+      Boolean(currentDrive && currentDrive.stopping) !== observedStopping) return;
+  if (!status) {
+    if (drive && drive.native && drive.stopping) scheduleNativeStopStatusPoll();
+    return;
+  }
+  if (status && status.isStarting) {
+    if (currentDrive && currentDrive.stopping) return;
+    if (!currentDrive) drive = { native: true, sessionId: null, starting: true,
+      startRequestId: status.startRequestId || null };
+    else {
+      currentDrive.starting = true;
+      if (!currentDrive.startRequestId && status.startRequestId) {
+        currentDrive.startRequestId = status.startRequestId;
+      }
+    }
+    setDriveActiveButton(true);
+    setDrivePanels(true);
+    updateNativeDriveHud({ ...status, status: status.status || "Starting camera and GPS" });
+    show("drive");
+    scheduleNativeStartStatusPoll();
+    return;
+  }
+  cancelNativeStartStatusPoll();
   if (status && status.isRunning) {
-    drive = { native: true, sessionId: status.sessionId };
+    const incomingSession = String(status.sessionId || "");
+    if (nativeFinishPromise || nativeCaptureFinalizingSessionId ||
+        (incomingSession && handledNativeEnds.has(incomingSession))) return;
+    if (!nativeStatusOwnsPendingStart(status, currentDrive)) return;
+    if (currentDrive && (currentDrive.stopping ||
+        (observedSession && incomingSession && observedSession !== incomingSession))) return;
+    if (!currentDrive) drive = { native: true, sessionId: status.sessionId,
+      startRequestId: status.startRequestId || null };
+    else {
+      currentDrive.starting = false;
+      if (!observedSession && incomingSession) currentDrive.sessionId = incomingSession;
+      if (!currentDrive.startRequestId && status.startRequestId) {
+        currentDrive.startRequestId = status.startRequestId;
+      }
+    }
     setDriveActiveButton(true);
     setDrivePanels(true);
     updateNativeDriveHud(status);
     show("drive");
     startNativePreview();
   } else if (status && status.isStopping) {
-    if (drive && drive.native) {
-      drive.stopping = true;
-      updateNativeDriveHud(status);
-      show("drive");
-    }
+    presentNativeStoppingStatus(status);
   } else {
+    // Same-page foreground/visibility restoration can race an accepted native Start.
+    // Older bridges/mocks may still report Idle in that tiny window; a blank session
+    // owned by startDrive must remain visible until its promise settles.
+    if (driveStarting && currentDrive && !currentDrive.stopping && !observedSession) {
+      currentDrive.starting = true;
+      scheduleNativeStartStatusPoll();
+      return;
+    }
+    // A service may finish while the WebView is being recreated, before listeners are
+    // attached and with no JS drive object to identify it. Consume the latest exact,
+    // unacknowledged native result so a camera/storage failure cannot vanish as Idle.
+    if (!currentDrive && typeof plugin.getDriveEndSummary === "function") {
+      const terminalEpoch = nativeDriveControlEpoch;
+      const result = await plugin.getDriveEndSummary({}).catch(() => null);
+      if (terminalEpoch !== nativeDriveControlEpoch || drive) return;
+      const endedSessionId = String(result && result.sessionId || "");
+      if (result && result.available === true && endedSessionId &&
+          !handledNativeEnds.has(endedSessionId)) {
+        drive = { native: true, sessionId: endedSessionId, stopping: true,
+                  startRequestId: result.startRequestId || null,
+                  captureStopped: true };
+        setDrivePanels(true);
+        await finishNativeDrive(result);
+        return;
+      }
+    }
     if (drive && drive.native) {
+      if (drive.stopping) {
+        const endedSessionId = String(drive.sessionId || "");
+        let terminal = null;
+        if (endedSessionId && typeof plugin.getDriveEndSummary === "function") {
+          const terminalEpoch = nativeDriveControlEpoch;
+          const terminalDrive = drive;
+          const result = await plugin.getDriveEndSummary({ sessionId: endedSessionId })
+            .catch(() => null);
+          if (terminalEpoch !== nativeDriveControlEpoch || drive !== terminalDrive ||
+              !drive || !drive.native || !drive.stopping ||
+              String(drive.sessionId || "") !== endedSessionId) return;
+          if (result && result.available === true) terminal = result;
+        }
+        // Older native builds do not expose the durable terminal hand-off. Their idle
+        // fallback is provisional: it must not suppress a delayed real error/discard event.
+        await finishNativeDrive(
+          terminal || { sessionId: endedSessionId, reason: "Stopped" },
+          { provisional: !terminal }
+        );
+        return;
+      }
+      bumpNativeDriveControlEpoch();
       stopNativePreview();
       drive = null;
       setDriveActiveButton(false);
@@ -3232,17 +3859,23 @@ async function restoreNativeDrive(options = {}) {
 // so the photo does not also pay for a TLS handshake.
 let photoCaptureStarting = false;
 $("captureBtn").onclick = async () => {
-  if (photoCaptureStarting) return;
-  if (!(localStorage.getItem("openai_key") || "").trim()) {
-    openSettings(true, false);
-    return;
-  }
+  if (photoCaptureStarting || nativeFinishLocked || nativeWipeLocked) return;
+  if (!claimCameraAdmission("photo")) return;
+  // Claim synchronously before the shared restore await so two fast taps cannot both
+  // open camera/photo pipelines or duplicate a paid inference request.
   photoCaptureStarting = true;
   try {
+    if (nativeInitialRestorePending) await nativeInitialRestorePromise.catch(() => {});
+    if (drive || driveStarting || nativeFinishLocked || nativeWipeLocked) return;
+    if (!(localStorage.getItem("openai_key") || "").trim()) {
+      openSettings(true, false);
+      return;
+    }
     if (!(await ensureDataConsent())) return;
     await beginPotholeCapture();
   } finally {
     photoCaptureStarting = false;
+    releaseCameraAdmission("photo");
   }
 };
 
@@ -3682,7 +4315,8 @@ let nativeKeyframeAutoBackoffTimer = null;
 function nativeAutomaticReplayAllowed() {
   return Boolean(nativeDrivePlugin()) && nativeHostAppActive &&
     document.visibilityState === "visible" && !nativeWipeInProgress &&
-    !drive && !driveStarting && navigator.onLine !== false &&
+    !nativeCaptureFinalizingSessionId && !drive && !driveStarting &&
+    navigator.onLine !== false &&
     Boolean((localStorage.getItem("openai_key") || "").trim());
 }
 
@@ -4540,6 +5174,7 @@ window.addEventListener("pipeline-verdict", (e) => {
 // service. The explicit Stop control is the only in-app action that ends a native drive.
 window.handleAppBack = () => {
   if (nativeWipeInProgress) return true;
+  if (drive && drive.native && drive.stopping && !drive.captureStopped) return true;
   if (drive && drive.native && !$("drive").classList.contains("hidden")) {
     stopNativePreview();
     setDriveActiveButton(true);
@@ -4572,6 +5207,7 @@ window.handleAppBack = () => {
 
 // Settings: OpenAI key and sender name. Stored on-device only.
 window.openSettings = (showWelcome = false, requireCompletion = false) => {
+  if (nativeFinishLocked || nativeWipeLocked) return false;
   initialSettingsActive = requireCompletion || initialSettingsRequired;
   $("setKey").value = localStorage.getItem("openai_key") || "";
   $("setName").value = localStorage.getItem("sender_name") || "";
@@ -4588,6 +5224,7 @@ window.openSettings = (showWelcome = false, requireCompletion = false) => {
   $("setBack").classList.toggle("hidden", initialSettingsActive);
   $("setSave").textContent = initialSettingsActive ? t("privacy_accept") : t("save");
   show("settings");
+  return true;
 };
 $("gearBtn").onclick = () => {
   if (nativeFinishPromise || (drive && drive.native && drive.stopping)) return;
@@ -4642,7 +5279,7 @@ $("setSave").onclick = async () => {
   } catch (error) {
     alert(error.message || "The settings could not be applied.");
   } finally {
-    saveButton.disabled = false;
+    saveButton.disabled = nativeFinishLocked || nativeWipeLocked;
   }
 };
 function missingFilesystemEntry(error) {
@@ -4682,6 +5319,7 @@ async function deleteAllAppData() {
   // allowed to settle, then the transactional wipe runs last; anything newly triggered
   // by a drive-end/resume event is rejected until the successful reload.
   nativeWipeInProgress = true;
+  bumpNativeDriveControlEpoch();
   try {
     const replayState = nativeKeyframeReplay;
     if (replayState) replayState.cancelled = true;
@@ -4741,11 +5379,16 @@ if (initialSettingsRequired) openSettings(true, true);
 else show("home");
 
 // #report-<id> deep link opens that report's detail screen directly.
+nativeInitialRestorePromise = (async () => {
+  try {
+    // Reconstruct the process-owned camera before allowing a new Drive/Photo action.
+    await restoreNativeDrive({ syncWhenIdle: false });
+  } finally {
+    nativeInitialRestorePending = false;
+  }
+})();
 (async () => {
-  await loadHealth();
-  // Restore a live foreground service before hydrating history so returning from Maps or
-  // a call shows the camera/HUD immediately instead of waiting on database and file scans.
-  await restoreNativeDrive({ syncWhenIdle: false });
+  await Promise.all([loadHealth(), nativeInitialRestorePromise]);
   const m = location.hash.match(/^#report-(\d+)$/);
   if (!drive || m) await loadReports();
   else loadReports().catch(() => {});

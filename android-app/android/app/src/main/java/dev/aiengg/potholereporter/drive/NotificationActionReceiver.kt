@@ -20,6 +20,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
             NotificationHelper.ACTION_PAUSE -> service.pauseDrive()
             NotificationHelper.ACTION_RESUME -> service.resumeDrive()
             NotificationHelper.ACTION_STOP -> service.stopDriveSession()
+            NotificationHelper.ACTION_DISMISS -> service.stopDriveSession(
+                "Stopped because the Drive Mode notification was dismissed"
+            )
         }
     }
 }

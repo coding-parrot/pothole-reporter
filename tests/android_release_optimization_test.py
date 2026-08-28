@@ -3,6 +3,7 @@
 
 from pathlib import Path
 import importlib.util
+import json
 import re
 import sys
 import tempfile
@@ -24,6 +25,12 @@ DRIVE_PLUGIN = (
     ROOT
     / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/plugin/DriveModePlugin.kt"
 ).read_text()
+SOURCE_CAPACITOR_CONFIG = json.loads(
+    (ROOT / "android-app/capacitor.config.json").read_text()
+)
+PACKAGED_CAPACITOR_CONFIG = json.loads(
+    (ROOT / "android-app/android/app/src/main/assets/capacitor.config.json").read_text()
+)
 failures = []
 
 
@@ -60,8 +67,8 @@ check("Kotlin compiler, KSP and runtime use one compatible release line",
       "kotlin-gradle-plugin:2.1.0" in ROOT_BUILD_GRADLE
       and "ksp.gradle.plugin:2.1.0-1.0.29" in ROOT_BUILD_GRADLE
       and "kotlinVersion = '2.1.0'" in VARIABLES_GRADLE)
-check("declared CameraX and coroutines match the resolved Capacitor graph",
-      "cameraXVersion = '1.4.2'" in VARIABLES_GRADLE
+check("declared stable CameraX and coroutines match the resolved release graph",
+      "cameraXVersion = '1.5.3'" in VARIABLES_GRADLE
       and "coroutinesVersion = '1.10.2'" in VARIABLES_GRADLE)
 check("dependency inspection does not demand release signing credentials",
       "releaseArtifactTaskPrefixes" in BUILD_GRADLE
@@ -75,6 +82,10 @@ check("Capacitor plugin metadata and callbacks survive release obfuscation",
       and "@com.getcapacitor.annotation.ActivityCallback <methods>;" in PROGUARD_RULES
       and "@Keep\n@CapacitorPlugin(" in DRIVE_PLUGIN
       and "@Keep\n    @PermissionCallback\n    fun drivePermissionsResult" in DRIVE_PLUGIN)
+check("Android bridge logging cannot expose API keys in logcat",
+      SOURCE_CAPACITOR_CONFIG.get("android", {}).get("loggingBehavior") == "none"
+      and PACKAGED_CAPACITOR_CONFIG.get("android", {}).get("loggingBehavior") == "none"
+      and SOURCE_CAPACITOR_CONFIG == PACKAGED_CAPACITOR_CONFIG)
 
 
 def load_asset_verifier():

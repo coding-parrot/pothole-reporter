@@ -44,7 +44,7 @@ class NativeBridgeImageBudgetTest {
     }
 
     @Test
-    fun noNativeResultCanCarryMoreThanTwoImagesEvenWhenTheyAreTiny() {
+    fun noNativeResultCanCarryMoreThanThreeImagesEvenWhenTheyAreTiny() {
         val budget = NativeBridgeImageBudget(
             maxEncodedChars = 1_000L,
             maxSingleRawBytes = 100L
@@ -52,9 +52,10 @@ class NativeBridgeImageBudgetTest {
 
         assertTrue(budget.claimRawBytes(1L))
         assertTrue(budget.claimRawBytes(1L))
-        assertEquals(2, budget.usedItems)
+        assertTrue(budget.claimRawBytes(1L))
+        assertEquals(3, budget.usedItems)
         assertFalse(budget.claimRawBytes(1L))
-        assertEquals(2, budget.usedItems)
+        assertEquals(3, budget.usedItems)
     }
 
     @Test

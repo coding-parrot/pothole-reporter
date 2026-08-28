@@ -29,8 +29,10 @@ class NativeBurstAccessPolicyTest {
     @Test
     fun unchangedAccessReturnsTheExactPostBurstFix() {
         assertEquals(fix, validate())
-        assertNotNull(validate(candidate = fix.copy(timestampMs = primaryAt - 2_500L)))
-        assertNotNull(validate(candidate = fix.copy(timestampMs = primaryAt + 2_500L)))
+        assertNotNull(validate(candidate = fix.copy(elapsedRealtimeMs = primaryAt - 2_500L)))
+        assertNotNull(validate(candidate = fix.copy(elapsedRealtimeMs = primaryAt + 2_500L)))
+        // Wall-clock corrections are reporting metadata and cannot change capture access.
+        assertNotNull(validate(candidate = fix.copy(timestampMs = 1_700_000_000_000L)))
     }
 
     @Test
@@ -46,8 +48,10 @@ class NativeBurstAccessPolicyTest {
 
     @Test
     fun staleFutureOrInvalidCoordinatesNeverReachEvidenceWork() {
-        assertNull(validate(candidate = fix.copy(timestampMs = primaryAt - 2_501L)))
-        assertNull(validate(candidate = fix.copy(timestampMs = primaryAt + 2_501L)))
+        assertNull(validate(candidate = fix.copy(elapsedRealtimeMs = primaryAt - 2_501L)))
+        assertNull(validate(candidate = fix.copy(elapsedRealtimeMs = primaryAt + 2_501L)))
+        assertNull(validate(candidate = fix.copy(timestampMs = 0L)))
+        assertNull(validate(candidate = fix.copy(elapsedRealtimeMs = 0L)))
         assertNull(validate(candidate = fix.copy(lat = Double.NaN)))
         assertNull(validate(candidate = fix.copy(lat = 91.0)))
         assertNull(validate(candidate = fix.copy(lng = -181.0)))

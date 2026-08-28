@@ -40,6 +40,29 @@ class NativeKeyframeFilesTest {
     }
 
     @Test
+    fun threeFramePlanOwnsAndReadsEveryViewInCameraOrder() {
+        val directory = temporaryFolder.newFolder("burst")
+        val plan = NativeKeyframeFiles.writePlan(directory, 11, 1, listOf(0, 2))
+        plan.files.forEachIndexed { index, file -> file.writeBytes(byteArrayOf((index + 1).toByte())) }
+
+        assertEquals("frame_000011_p1_c0_d2.jpg", plan.primaryFile.name)
+        assertEquals(
+            listOf(
+                "frame_000011_p1_c0_d2.jpg",
+                "frame_000011_p1_c0_d2_context_0.jpg",
+                "frame_000011_p1_c0_d2_context_2.jpg"
+            ),
+            plan.files.map(File::getName)
+        )
+        assertEquals(plan.files, NativeKeyframeFiles.ownedFiles(plan.primaryFile))
+        val readSet = NativeKeyframeFiles.readSet(plan.primaryFile)
+        assertEquals(listOf(plan.files[1], plan.files[0], plan.files[2]), readSet.files)
+        assertEquals(1, readSet.primaryIndex)
+        assertTrue(readSet.hasTemporalContext)
+        assertTrue(readSet.isComplete)
+    }
+
+    @Test
     fun missingCompanionIsNotACompleteTemporalSet() {
         val directory = temporaryFolder.newFolder("incomplete")
         val plan = NativeKeyframeFiles.writePlan(directory, 9, 0, 2)
@@ -74,5 +97,14 @@ class NativeKeyframeFilesTest {
         assertEquals(2, NativeKeyframeFiles.selectTemporalCompanionIndex(listOf(100L, 200L, 300L), 1))
         assertNull(NativeKeyframeFiles.selectTemporalCompanionIndex(listOf(100L, 100L), 0))
         assertNull(NativeKeyframeFiles.selectTemporalCompanionIndex(listOf(100L), 3))
+    }
+
+    @Test
+    fun contextSelectionRetainsBothNonPrimaryViews() {
+        assertEquals(
+            listOf(0, 2),
+            NativeKeyframeFiles.selectTemporalContextIndexes(listOf(100L, 300L, 500L), 1)
+        )
+        assertNull(NativeKeyframeFiles.selectTemporalContextIndexes(listOf(100L, 100L, 500L), 0))
     }
 }

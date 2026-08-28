@@ -19,6 +19,8 @@ R8_MAPPING_PATH=$ANDROID_ROOT/app/build/outputs/mapping/release/mapping.txt
 BUNDLE_MANIFEST=$ANDROID_ROOT/app/build/intermediates/packaged_manifests/release/processReleaseManifestForPackage/AndroidManifest.xml
 WWW_ROOT=android-app/www
 PACKAGED_ASSETS_ROOT=$ANDROID_ROOT/app/src/main/assets/public
+SOURCE_CAPACITOR_CONFIG=android-app/capacitor.config.json
+PACKAGED_CAPACITOR_CONFIG=$ANDROID_ROOT/app/src/main/assets/capacitor.config.json
 RELEASE_ASSET_VERIFIER=tools/verify-release-assets.py
 PACK_MANIFEST=static/pack-manifest-v1.35.json
 PREVIOUS_PACK_MANIFEST=static/pack-manifest-v1.33.json
@@ -53,6 +55,25 @@ same_file() {
   local label=$3
   [ -f "$actual" ] || fail "$label is missing: $actual"
   cmp -s "$expected" "$actual" || fail "$label differs: $expected != $actual"
+}
+
+same_json() {
+  local expected=$1
+  local actual=$2
+  local label=$3
+  [ -f "$expected" ] || fail "$label source is missing: $expected"
+  [ -f "$actual" ] || fail "$label is missing: $actual"
+  python3 -c 'import json, sys; expected = json.load(open(sys.argv[1], encoding="utf-8")); actual = json.load(open(sys.argv[2], encoding="utf-8")); raise SystemExit(expected != actual)' \
+    "$expected" "$actual" || fail "$label differs: $expected != $actual"
+}
+
+json_in_zip_matches() {
+  local expected=$1
+  local archive=$2
+  local member=$3
+  local label=$4
+  python3 -c 'import json, sys, zipfile; expected = json.load(open(sys.argv[1], encoding="utf-8")); archive = zipfile.ZipFile(sys.argv[2]); actual = json.loads(archive.read(sys.argv[3])); raise SystemExit(expected != actual)' \
+    "$expected" "$archive" "$member" || fail "$label differs from $expected"
 }
 
 require_tool cmp
@@ -114,6 +135,8 @@ echo "1/7 validating hosted data packs, municipal schemas and web-source mirrors
 [ -d docs ] || fail "hosted docs directory is missing"
 [ -d "$WWW_ROOT" ] || fail "Android www source directory is missing"
 [ -d "$PACKAGED_ASSETS_ROOT" ] || fail "packaged Android assets directory is missing"
+[ -f "$SOURCE_CAPACITOR_CONFIG" ] || fail "source Capacitor config is missing"
+[ -f "$PACKAGED_CAPACITOR_CONFIG" ] || fail "packaged Capacitor config is missing"
 [ -f "$RELEASE_ASSET_VERIFIER" ] || fail "release asset verifier is missing"
 [ -x "$ANDROID_ROOT/gradlew" ] || fail "Gradle wrapper is missing or not executable"
 python3 tools/build-state-packs.py --check
@@ -139,6 +162,8 @@ for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
 done
 python3 "$RELEASE_ASSET_VERIFIER" \
   --static static --www "$WWW_ROOT" --docs docs --packaged "$PACKAGED_ASSETS_ROOT"
+same_json "$SOURCE_CAPACITOR_CONFIG" "$PACKAGED_CAPACITOR_CONFIG" \
+  "packaged Capacitor runtime config"
 
 echo "2/7 building signed release bundle and APK"
 rm -f "$AAB_PATH" "$APK_PATH"
@@ -154,8 +179,8 @@ fi
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="dev.aiengg.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="59"' "$BUNDLE_MANIFEST" || fail "expected versionCode 59"
-grep -Fq 'android:versionName="1.36.4"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.36.4"
+grep -Fq 'android:versionCode="60"' "$BUNDLE_MANIFEST" || fail "expected versionCode 60"
+grep -Fq 'android:versionName="1.36.5"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.36.5"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"
@@ -254,6 +279,10 @@ fi
 if ! unzip -p "$APK_PATH" assets/capacitor.plugins.json | grep -Fq '@capacitor/app-launcher'; then
   fail "App Launcher plugin is missing from the release APK"
 fi
+json_in_zip_matches "$SOURCE_CAPACITOR_CONFIG" "$AAB_PATH" \
+  base/assets/capacitor.config.json "AAB Capacitor runtime config"
+json_in_zip_matches "$SOURCE_CAPACITOR_CONFIG" "$APK_PATH" \
+  assets/capacitor.config.json "APK Capacitor runtime config"
 
 echo "6/7 confirming large data packs are absent from both artifacts"
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do

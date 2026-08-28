@@ -24,10 +24,12 @@ import dev.aiengg.potholereporter.db.SessionEntity
 import dev.aiengg.potholereporter.drive.DriveEndSummary
 import dev.aiengg.potholereporter.drive.DriveForegroundService
 import dev.aiengg.potholereporter.drive.DriveSessionLimitPolicy
+import dev.aiengg.potholereporter.drive.NativeDriveEndSummaryStore
 import dev.aiengg.potholereporter.drive.NativeKeyframeFiles
 import dev.aiengg.potholereporter.drive.NativeMediaFilesystemMutation
 import dev.aiengg.potholereporter.drive.NativeMediaReconciliationEpoch
 import dev.aiengg.potholereporter.drive.NativeMediaStorageQuota
+import dev.aiengg.potholereporter.drive.NativeReportEvidenceStorage
 import dev.aiengg.potholereporter.drive.NativeStoredImagePolicy
 import dev.aiengg.potholereporter.drive.NotificationHelper
 import com.getcapacitor.JSArray
@@ -158,12 +160,6 @@ internal class PendingStartGate<T> {
 class DriveModePlugin : Plugin() {
 
     private val pluginScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val pendingStartLock = Any()
-    private var pendingStart: PendingDriveStart? = null
-    // Shares pendingStartLock with start admission. Once a destructive wipe is
-    // admitted, no later ACTION_START can be queued until every native store and
-    // managed-media root has either been verified clear or reported as incomplete.
-    private var nativeClearInProgress = false
     @Volatile private var nativeStateReconciledEpoch = Long.MIN_VALUE
     private val nativeStateReconcileMutex = Mutex()
     @Volatile private var repairTargetStage: RepairTargetStage? = null
@@ -191,17 +187,33 @@ class DriveModePlugin : Plugin() {
         const val START_READY_TIMEOUT_MS = 12_000L
         const val START_CANCEL_TIMEOUT_MS = 25_000L
         const val START_POLL_MS = 50L
+        // Start admission and destructive clear are process control-plane state, not
+        // WebView/plugin-instance state. They must survive an Activity recreation while
+        // Android is still delivering ACTION_START.
+        val pendingStartLock = Any()
+        var pendingStart: PendingDriveStart? = null
+        var nativeClearInProgress = false
+        val driveControlScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 
     override fun load() {
         super.load()
+        // Seed the separate report/repair evidence quota from disk at process startup.
+        // If an older build exceeded the cap, only unreferenced files are pruned.
+        pluginScope.launch {
+            runCatching { NativeReportEvidenceStorage.initialize(context) }
+                .onFailure { NativeMediaReconciliationEpoch.invalidate() }
+        }
         DriveForegroundService.onStatusListener = { status ->
             val data = JSObject().apply {
                 put("isRunning", status.isRunning)
+                put("isStarting", status.isStarting)
                 put("isPaused", status.isPaused)
                 put("isPausing", status.isPausing)
                 put("isStopping", status.isStopping)
+                put("captureStopped", status.captureStopped)
                 put("sessionId", status.sessionId)
+                put("startRequestId", status.startRequestId)
                 put("checked", status.checked)
                 put("found", status.found)
                 put("already", status.already)
@@ -277,6 +289,10 @@ class DriveModePlugin : Plugin() {
             call.resolve(statusObject(existing))
             return
         }
+        if (existing.isStarting) {
+            call.reject("Drive Mode is already starting")
+            return
+        }
         if (existing.isStopping) {
             call.reject("The previous drive is still stopping safely")
             return
@@ -285,7 +301,10 @@ class DriveModePlugin : Plugin() {
             call.reject("Return to Pothole Reporter and tap Drive again. Android only allows camera Drive Mode to start while the app is visible")
             return
         }
-        val pending = PendingDriveStart(call)
+        val callerStartRequestId = call.getString("startRequestId")?.let { candidate ->
+            runCatching { UUID.fromString(candidate).toString() }.getOrNull()
+        }
+        val pending = PendingDriveStart(call, requestId = callerStartRequestId ?: UUID.randomUUID().toString())
         var rejectedByClear = false
         val accepted = synchronized(pendingStartLock) {
             if (nativeClearInProgress) {
@@ -299,6 +318,13 @@ class DriveModePlugin : Plugin() {
         if (!accepted) {
             call.reject(if (rejectedByClear) "App data deletion is in progress"
                 else "Drive Mode is already starting")
+            return
+        }
+        if (!DriveForegroundService.admitStart(pending.requestId)) {
+            synchronized(pendingStartLock) {
+                if (pendingStart === pending) pendingStart = null
+            }
+            call.reject("Drive Mode is already starting")
             return
         }
         val context = context
@@ -317,6 +343,7 @@ class DriveModePlugin : Plugin() {
         try {
             ContextCompat.startForegroundService(context, serviceIntent)
         } catch (error: Exception) {
+            DriveForegroundService.clearStartAdmission(pending.requestId)
             synchronized(pendingStartLock) {
                 if (pendingStart === pending) pendingStart = null
             }
@@ -378,7 +405,7 @@ class DriveModePlugin : Plugin() {
     }
 
     private fun monitorPendingStart(pending: PendingDriveStart) {
-        pluginScope.launch {
+        driveControlScope.launch {
             val readyDeadline = System.currentTimeMillis() + START_READY_TIMEOUT_MS
             var failure: String? = null
             while (System.currentTimeMillis() < readyDeadline) {
@@ -408,6 +435,7 @@ class DriveModePlugin : Plugin() {
                         synchronized(pendingStartLock) {
                             if (pendingStart === pending) pendingStart = null
                         }
+                        DriveForegroundService.clearStartAdmission(pending.requestId)
                         pending.call.resolve(statusObject(status))
                         return@launch
                     }
@@ -434,6 +462,7 @@ class DriveModePlugin : Plugin() {
             synchronized(pendingStartLock) {
                 if (pendingStart === pending) pendingStart = null
             }
+            DriveForegroundService.clearStartAdmission(pending.requestId)
             pending.call.reject(failure ?: "Drive camera failed to start")
             waiters.forEach { waiter ->
                 if (cancellation.stopped) waiter.onStopped(finalSummary)
@@ -443,6 +472,11 @@ class DriveModePlugin : Plugin() {
     }
 
     private fun queuePendingStartStop(pending: PendingDriveStart) {
+        val discardData = pending.gate.anyWaiter { it.discardData }
+        // Mark the process-owned admission before ACTION_START can open CameraX. A
+        // Stop/wipe from a recreated plugin instance then cancels the queued start at
+        // the service boundary instead of briefly creating a hidden camera session.
+        DriveForegroundService.cancelStartAdmission(pending.requestId, discardData)
         if (!pending.gate.queueStopIntentOnce()) return
         // This request is queued only after ACTION_START was accepted, while the user
         // is still in the foreground. Android delivers the two starts in order, so a
@@ -453,7 +487,7 @@ class DriveModePlugin : Plugin() {
                 putExtra(DriveForegroundService.EXTRA_STOP_REQUEST_ID, pending.requestId)
                 putExtra(
                     DriveForegroundService.EXTRA_STOP_DISCARD_DATA,
-                    pending.gate.anyWaiter { it.discardData }
+                    discardData
                 )
             })
         }
@@ -530,12 +564,77 @@ class DriveModePlugin : Plugin() {
             found = status.found,
             already = status.already,
             discarded = discardData,
-            reason = status.status
+            reason = status.status,
+            startRequestId = status.startRequestId
         )
 
     @PluginMethod
     fun getStatus(call: PluginCall) {
         call.resolve(statusObject(DriveForegroundService.status()))
+    }
+
+    @PluginMethod
+    fun getDriveEndSummary(call: PluginCall) {
+        val sessionId = call.getString("sessionId")?.trim().orEmpty()
+        if (sessionId.isNotEmpty() &&
+            runCatching { FootagePathPolicy.sessionDirectory(context.filesDir, sessionId) }.isFailure) {
+            call.reject("A valid Drive session is required")
+            return
+        }
+        pluginScope.launch {
+            try {
+                val exact = if (sessionId.isEmpty()) {
+                    NativeDriveEndSummaryStore.readLatest(context)
+                } else {
+                    NativeDriveEndSummaryStore.read(context, sessionId)
+                }
+                val summary = exact ?: run {
+                    if (sessionId.isEmpty()) return@run null
+                    val database = PotholeDatabase.getDatabase(context)
+                    reconcileNativeStateOnce(database)
+                    database.sessionDao().getSession(sessionId)?.takeIf {
+                        it.endedAt != null && it.status in setOf("stopped", "interrupted")
+                    }?.let { session ->
+                        val interrupted = session.status == "interrupted"
+                        val reason = if (interrupted) {
+                            "Drive Mode was interrupted before its final result could be delivered."
+                        } else "Stopped"
+                        DriveEndSummary(
+                            sessionId = session.id,
+                            checked = session.checkedCount,
+                            found = session.foundCount,
+                            already = session.alreadyCount,
+                            error = reason.takeIf { interrupted },
+                            discarded = false,
+                            reason = reason
+                        )
+                    }
+                }
+                call.resolve(JSObject().apply {
+                    put("available", summary != null)
+                    if (summary != null) {
+                        val terminal = endSummaryObject(summary)
+                        terminal.keys().forEach { key -> put(key, terminal.get(key)) }
+                    }
+                })
+            } catch (error: Exception) {
+                call.reject("Could not read the final Drive result: ${error.message}")
+            }
+        }
+    }
+
+    @PluginMethod
+    fun acknowledgeDriveEndSummary(call: PluginCall) {
+        val sessionId = call.getString("sessionId")?.trim().orEmpty()
+        if (runCatching { FootagePathPolicy.sessionDirectory(context.filesDir, sessionId) }.isFailure) {
+            call.reject("A valid Drive session is required")
+            return
+        }
+        if (NativeDriveEndSummaryStore.acknowledge(context, sessionId)) {
+            call.resolve(JSObject().apply { put("acknowledged", true) })
+        } else {
+            call.reject("Could not acknowledge the final Drive result")
+        }
     }
 
     @PluginMethod
@@ -550,26 +649,30 @@ class DriveModePlugin : Plugin() {
             call.reject("Preview bounds are invalid")
             return
         }
-        if (DriveForegroundService.activeService == null || !DriveForegroundService.status().isRunning) {
-            call.reject("Drive camera is still starting")
+        val status = DriveForegroundService.status()
+        if (DriveForegroundService.activeService == null || !status.isRunning) {
+            call.reject("Drive camera is not running")
             return
         }
-        (activity as? MainActivity)?.showDrivePreview(left, top, width, height, viewportWidth, viewportHeight)
-        call.resolve()
+        val host = activity as? MainActivity
+        if (host == null) {
+            call.reject("Drive preview host is unavailable")
+            return
+        }
+        host.showDrivePreview(left, top, width, height, viewportWidth, viewportHeight) { attached ->
+            if (attached) call.resolve() else call.reject("Drive preview is not laid out yet")
+        }
     }
 
     @PluginMethod
     fun detachPreview(call: PluginCall) {
         val host = activity as? MainActivity
-        // App-state/visibility callbacks also ask to detach when Maps, a call, or another
-        // app takes the screen. Keep that same PreviewView surface attached so CameraX
-        // does not reconfigure Analysis/VideoCapture mid-drive. Explicit in-app Stop runs
-        // while this Activity is resumed and focused, so it still removes the preview.
-        if (host != null && host.hasWindowFocus() &&
-            host.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
-        ) {
-            host.hideDrivePreview()
-        }
+        // A PreviewView surface belongs to the Activity window and is destroyed when
+        // Maps, a call, or another app owns the screen. Keeping that dead surface bound
+        // can make CameraX wait five seconds and terminate the Drive on return. Always
+        // detach the Activity-owned Preview; NativeDriveCameraManager unbinds only that
+        // use case, so service-owned Analysis/VideoCapture and the FGS remain alive.
+        if (host != null) host.hideDrivePreview()
         call.resolve()
     }
 
@@ -688,7 +791,7 @@ class DriveModePlugin : Plugin() {
                                 affected
                             }
                         },
-                        cleanup = { NativePrivateMediaFiles.deleteAll(files) },
+                        cleanup = { NativeReportEvidenceStorage.deleteAll(files) },
                         onCleanupIncomplete = { NativeMediaReconciliationEpoch.invalidate() }
                     )
                     acknowledgedIds
@@ -996,7 +1099,7 @@ class DriveModePlugin : Plugin() {
                                     affected
                                 }
                             },
-                            cleanup = { NativePrivateMediaFiles.deleteAll(files) },
+                            cleanup = { NativeReportEvidenceStorage.deleteAll(files) },
                             onCleanupIncomplete = { NativeMediaReconciliationEpoch.invalidate() }
                         )
                     } else 0
@@ -1037,13 +1140,14 @@ class DriveModePlugin : Plugin() {
             synchronized(pendingStartLock) { nativeClearInProgress = false }
         }
         val clearData = {
-          pluginScope.launch {
+          driveControlScope.launch {
             var failure: Exception? = null
             try {
                 NativeMediaFilesystemMutation.mutex.withLock {
                     val db = PotholeDatabase.getDatabase(context)
+                    val reportsRoot = File(context.filesDir, "reports")
                     val managedRoots = listOf(
-                        "report photos" to File(context.filesDir, "reports"),
+                        "report photos" to reportsRoot,
                         "Drive footage and saved frames" to File(context.filesDir, "footage"),
                         "repair target photos" to File(context.filesDir, "repair_targets"),
                         "shared evidence cache" to File(context.cacheDir, "pothole-reporter-shares")
@@ -1074,6 +1178,9 @@ class DriveModePlugin : Plugin() {
                             db.reportDao().clearAll()
                             db.sessionDao().clearAll()
                         }
+                        if (!NativeDriveEndSummaryStore.clear(context)) {
+                            throw IllegalStateException("terminal Drive results remained after deletion")
+                        }
                         if (managedRoots.any { it.second.exists() }) {
                             throw IllegalStateException("managed media remained after deletion")
                         }
@@ -1082,6 +1189,9 @@ class DriveModePlugin : Plugin() {
                         val removedBytes =
                             (footageBytesBefore - directoryBytes(footageRoot)).coerceAtLeast(0L)
                         ledgerDeletion?.invoke(removedBytes)
+                        // A partial recursive wipe is still reconciled exactly, so neither
+                        // success nor failure can leave phantom report-evidence capacity.
+                        NativeReportEvidenceStorage.reconcileFromDiskLocked(context)
                     }
                 }
             } catch (error: Exception) {
@@ -1276,7 +1386,9 @@ class DriveModePlugin : Plugin() {
 
     @PluginMethod
     fun readKeyframe(call: PluginCall) {
-        val id = call.getLong("id") ?: -1L
+        // Capacitor materializes ordinary JavaScript integers as Integer, while Room
+        // row ids are Long. JSONObject's numeric coercion accepts both representations.
+        val id = call.data.optLong("id", -1L)
         if (id <= 0L) {
             call.reject("A saved frame is required")
             return
@@ -1345,7 +1457,7 @@ class DriveModePlugin : Plugin() {
 
     @PluginMethod
     fun markKeyframeAnalyzed(call: PluginCall) {
-        val id = call.getLong("id") ?: -1L
+        val id = call.data.optLong("id", -1L)
         if (id <= 0L) {
             call.reject("A saved frame is required")
             return
@@ -1518,7 +1630,7 @@ class DriveModePlugin : Plugin() {
                 }
                 .distinctBy(File::getAbsolutePath)
             if (report.syncedToWeb) {
-                if (NativePrivateMediaFiles.deleteAll(managed)) {
+                if (NativeReportEvidenceStorage.deleteAll(managed)) {
                     syncedRowsReadyToScrub.add(report.id)
                 } else {
                     progress.markCleanupIncomplete()
@@ -1605,7 +1717,9 @@ class DriveModePlugin : Plugin() {
                         // not delete it, but do not close the retry gate over it either.
                         progress.markCleanupIncomplete()
                     } else {
-                        progress.deleteFileVerified(canonical)
+                        if (!NativeReportEvidenceStorage.deleteVerified(canonical)) {
+                            progress.markCleanupIncomplete()
+                        }
                     }
                 }
             }
@@ -1908,6 +2022,9 @@ class DriveModePlugin : Plugin() {
                         Long.MIN_VALUE
                     }
                 } finally {
+                    // Reconciliation may remove acknowledged or orphan evidence through
+                    // several paths. Reset the quota to the verified filesystem truth.
+                    NativeReportEvidenceStorage.reconcileFromDiskLocked(context)
                     ledgerDeletion?.invoke(progress.deletedFootageBytes)
                 }
             }
@@ -1949,10 +2066,13 @@ class DriveModePlugin : Plugin() {
 
     private fun statusObject(status: dev.aiengg.potholereporter.drive.DriveStatusSnapshot) = JSObject().apply {
         put("isRunning", status.isRunning)
+        put("isStarting", status.isStarting)
         put("isPaused", status.isPaused)
         put("isPausing", status.isPausing)
         put("isStopping", status.isStopping)
+        put("captureStopped", status.captureStopped)
         put("sessionId", status.sessionId)
+        put("startRequestId", status.startRequestId)
         put("checked", status.checked)
         put("found", status.found)
         put("already", status.already)
@@ -2072,6 +2192,7 @@ class DriveModePlugin : Plugin() {
         put("error", summary.error)
         put("discarded", summary.discarded)
         put("reason", summary.reason)
+        put("startRequestId", summary.startRequestId)
     }
 
     private sealed class BridgeImageSource {

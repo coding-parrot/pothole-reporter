@@ -8195,7 +8195,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     square: Object.freeze({ top: 0.40, bottom: 0.70 }),
   });
   const ROAD_ORIENTATION_EPSILON = 0.10;
-  const ROAD_CROP_MAX_UPSCALE = 4.0;
+  const MAX_PREPARED_ROAD_DIMENSION = 1280;
 
   function selectRoadRegion(frameWidth, frameHeight) {
     if (!Number.isFinite(frameWidth) || !Number.isFinite(frameHeight)
@@ -8277,12 +8277,10 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       const region = cropRoad ? selectRoadRegion(bmp.width, bmp.height)
         : { x: 0, y: 0, width: bmp.width, height: bmp.height };
       const sx = region.x, sy = region.y, sw = region.width, sh = region.height;
-      // Small road defects were disappearing into a sub-512px crop before vision tiling.
-      // Preserve full-frame semantics, but enlarge a Drive road crop up to the requested
-      // inspection width. The cap avoids pathological expansion of corrupt/tiny inputs.
-      const scale = cropRoad
-        ? Math.min(ROAD_CROP_MAX_UPSCALE, maxDim / Math.max(sw, sh))
-        : Math.min(1, maxDim / Math.max(sw, sh));
+      // Match native live detection: crop first, then downscale only. Upscaling a small
+      // saved frame invents no road detail, costs heap/bridge time, and made replay use
+      // materially different pixels from the same burst's live request.
+      const scale = Math.min(1, maxDim / Math.max(sw, sh));
       c = document.createElement("canvas");
       c.width = Math.round(sw * scale);
       c.height = Math.round(sh * scale);
@@ -8337,7 +8335,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     };
   }
 
-  // VOD replay can keep several detector requests in flight. A 1920px canvas plus its
+  // VOD replay can keep several detector requests in flight. A 1280px canvas plus its
   // ImageData is intentionally short-lived, but preparing one burst per request at the
   // same time can still exhaust a WebView. Serialize only pixel preparation; the lock is
   // released before network inference so model calls retain their existing concurrency.
@@ -8420,7 +8418,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         // Build the three road crops one at a time, preserving chronological order.
         const orderedRoadViews = [];
         for (const p of photos) {
-          orderedRoadViews.push(await toDataUrl(p, 1920, 0.85, true, true));
+          orderedRoadViews.push(await toDataUrl(
+            p, MAX_PREPARED_ROAD_DIMENSION, 0.85, true, true
+          ));
         }
         return {
           roadViews: orderedRoadViews,

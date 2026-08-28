@@ -52,7 +52,7 @@ check(
     "!it.isDuplicate || it.candidateEvidenceAdopted" in SERVICE
     and "uncommittedReportPhoto = null" in SERVICE
     and "uncommittedReportPhoto?.let" in SERVICE
-    and "NativeRetryableFileCleanup.deleteVerified(File(it))" in SERVICE,
+    and "NativeReportEvidenceStorage.deleteVerified(File(it))" in SERVICE,
 )
 check(
     "the bridge still requires a thumbnail and full-resolution evidence",

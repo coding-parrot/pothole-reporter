@@ -23,6 +23,7 @@ let reportLoads = 0;
 let apiCalls = 0;
 let nativeHostAppActive = true;
 let nativeWipeInProgress = false;
+let nativeCaptureFinalizingSessionId = null;
 let drive = null;
 let driveStarting = false;
 const document = { visibilityState: "visible", querySelectorAll: () => [] };
@@ -180,6 +181,8 @@ async function testNativeStoppingRetriesTheExactBridgeOperations() {
 
 
 def main() -> int:
+    read_block = PLUGIN[PLUGIN.index("fun readKeyframe("):
+                          PLUGIN.index("fun markKeyframeAnalyzed(")]
     mark_block = PLUGIN[PLUGIN.index("fun markKeyframeAnalyzed("):
                           PLUGIN.index("fun shareFootage(")]
     checkpoint_guard = PLUGIN[PLUGIN.index("private fun requireDriveReplayCheckpointIsSafe("):
@@ -187,6 +190,13 @@ def main() -> int:
     if ("requireDriveReplayCheckpointIsSafe(frame.sessionId)" not in mark_block
             or "status.sessionId == sessionId" not in checkpoint_guard):
         print("FAILED: an old replay result cannot checkpoint safely during a newer Drive",
+              file=sys.stderr)
+        return 1
+    if ('call.data.optLong("id", -1L)' not in read_block
+            or 'call.data.optLong("id", -1L)' not in mark_block
+            or 'call.getLong("id")' in read_block
+            or 'call.getLong("id")' in mark_block):
+        print("FAILED: keyframe bridge IDs must accept Capacitor Integer and Long values",
               file=sys.stderr)
         return 1
     script = textwrap.dedent(HARNESS).replace("__REPLAY_SOURCE__", REPLAY_SOURCE)

@@ -38,6 +38,19 @@ if 'if (path === "/api/repair-targets" && method === "POST")' not in script_sour
 harness = r"""
 let nativeRepairSyncPromise = null;
 let nativeWipeInProgress = false;
+let nativeCaptureFinalizingSessionId = null;
+let nativeDataSyncEpoch = 0;
+let nativeRepairSyncEpoch = 0;
+function requireNativeDataSyncCurrent(epoch) {
+  if (nativeWipeInProgress || nativeCaptureFinalizingSessionId || epoch !== nativeDataSyncEpoch) {
+    throw new Error("Native data sync was cancelled.");
+  }
+}
+function requireNativeRepairSyncCurrent(epoch) {
+  if (nativeWipeInProgress || nativeCaptureFinalizingSessionId || epoch !== nativeRepairSyncEpoch) {
+    throw new Error("Native repair sync was cancelled.");
+  }
+}
 let activePlugin;
 function nativeDrivePlugin() { return activePlugin; }
 async function getNativeDriveHistory() { return {drives: []}; }
@@ -107,7 +120,7 @@ function pluginWithRows(count, acknowledge) {
 
 (async () => {
   activePlugin = pluginWithRows(5, true);
-  const complete = await performNativeDataSync();
+  const complete = await performNativeDataSync({syncEpoch: 0, repairEpoch: 0});
   const completeProbe = {
     result: complete,
     reportLimits: activePlugin.reportLimits,
@@ -121,7 +134,7 @@ function pluginWithRows(count, acknowledge) {
   };
 
   activePlugin = pluginWithRows(5, false);
-  const blocked = await performNativeDataSync();
+  const blocked = await performNativeDataSync({syncEpoch: 0, repairEpoch: 0});
   const blockedProbe = {
     result: blocked,
     reportCalls: activePlugin.reportLimits.length,

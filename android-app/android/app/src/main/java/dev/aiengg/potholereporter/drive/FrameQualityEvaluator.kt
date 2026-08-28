@@ -22,7 +22,8 @@ data class BurstFrame(
     val quality: QualityScore,
     val capturedAtMs: Long,
     val sourceTimestampNs: Long = capturedAtMs * 1_000_000L,
-    val cameraGeneration: Long = 0L
+    val cameraGeneration: Long = 0L,
+    val capturedAtElapsedMs: Long = capturedAtMs
 )
 
 /** Referential ownership guard shared by bitmap transforms and deterministic JVM tests. */
@@ -76,6 +77,19 @@ internal object RoadRegionSelector {
             .roundToInt()
             .coerceIn(top + 1, frameHeight)
         return RoadRegion(x = 0, y = top, width = frameWidth, height = bottom - top)
+    }
+}
+
+/** Pure, downscale-only dimension policy shared by context and road-band preparation. */
+internal object NativePreparedImageScale {
+    fun downscaleOnly(width: Int, height: Int, maxDimension: Int): Pair<Int, Int> {
+        require(width > 0 && height > 0) { "Image dimensions must be positive" }
+        require(maxDimension > 0) { "Maximum image dimension must be positive" }
+        val longest = max(width, height)
+        if (longest <= maxDimension) return width to height
+        val scale = maxDimension.toFloat() / longest.toFloat()
+        return max(1, (width * scale).roundToInt()) to
+            max(1, (height * scale).roundToInt())
     }
 }
 
@@ -180,6 +194,8 @@ internal object DetectionImageEnhancement {
 }
 
 object FrameQualityEvaluator {
+    internal const val MAX_PREPARED_ROAD_DIMENSION = 1280
+
     fun scoreRoadPixels(pixels: IntArray, width: Int, height: Int): QualityScore {
         val gray = FloatArray(width * height)
         var total = 0f
@@ -270,7 +286,8 @@ object FrameQualityEvaluator {
         bitmap: Bitmap,
         maxDim: Int = 1024,
         quality: Int = 85,
-        boost: Boolean = true
+        boost: Boolean = true,
+        maxBytes: Long = NativeStoredImagePolicy.MAX_MODEL_IMAGE_BYTES
     ): String {
         val roadRegion = RoadRegionSelector.select(bitmap.width, bitmap.height)
         val cropped = Bitmap.createBitmap(
@@ -283,12 +300,15 @@ object FrameQualityEvaluator {
 
         val sw = cropped.width
         val sh = cropped.height
-        // A sub-512px road band makes small rims vanish before model image tiling. Scale
-        // the inspection view up to maxDim (bounded for malformed/tiny inputs); context
-        // encoding remains downscale-only in prepareContextDataUrl.
-        val scale = min(ROAD_CROP_MAX_UPSCALE, maxDim.toFloat() / max(sw, sh).toFloat())
-        val targetW = max(1, (sw * scale).roundToInt())
-        val targetH = max(1, (sh * scale).roundToInt())
+        // Camera analysis is already bounded to the useful source resolution. Upscaling a
+        // 1280-wide (or smaller) crop creates a much larger ARGB bitmap without inventing
+        // road detail, and materially raises peak memory during three-frame inference.
+        val preparedMaxDimension = min(maxDim, MAX_PREPARED_ROAD_DIMENSION)
+        val (targetW, targetH) = NativePreparedImageScale.downscaleOnly(
+            sw,
+            sh,
+            preparedMaxDimension
+        )
 
         val scaled = try {
             if (targetW == sw && targetH == sh) cropped
@@ -308,7 +328,13 @@ object FrameQualityEvaluator {
         try {
             val finalBitmap = if (boost) applyDetectionEnhancement(scaled) else scaled
             try {
-                return "data:image/jpeg;base64,${bitmapToBase64(finalBitmap, quality)}"
+                val jpeg = bitmapToBoundedJpegBytes(
+                    finalBitmap,
+                    maxBytes,
+                    preparedMaxDimension,
+                    quality
+                ) ?: throw IllegalStateException("Road image could not fit the model byte limit")
+                return "data:image/jpeg;base64,${Base64.encodeToString(jpeg, Base64.NO_WRAP)}"
             } finally {
                 NativeBitmapOwnership.recycleIfOwned(finalBitmap, bitmap, scaled) {
                     if (!it.isRecycled) it.recycle()
@@ -328,13 +354,13 @@ object FrameQualityEvaluator {
         maxDim: Int = 768,
         quality: Int = 82
     ): String {
-        val sw = bitmap.width
-        val sh = bitmap.height
-        val scale = min(1f, maxDim.toFloat() / max(sw, sh).toFloat())
-        val targetW = max(1, (sw * scale).roundToInt())
-        val targetH = max(1, (sh * scale).roundToInt())
+        val (targetW, targetH) = NativePreparedImageScale.downscaleOnly(
+            bitmap.width,
+            bitmap.height,
+            maxDim
+        )
 
-        val scaled = if (targetW == sw && targetH == sh) bitmap
+        val scaled = if (targetW == bitmap.width && targetH == bitmap.height) bitmap
         else Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
         try {
             return "data:image/jpeg;base64,${bitmapToBase64(scaled, quality)}"
@@ -458,7 +484,6 @@ object FrameQualityEvaluator {
     private const val BOUNDED_JPEG_QUALITY_STEP = 8
     private const val BOUNDED_JPEG_INITIAL_BUFFER_BYTES = 64L * 1024L
     private const val MIN_BOUNDED_JPEG_DIMENSION = 320
-    private const val ROAD_CROP_MAX_UPSCALE = 4.0f
     private const val DEFAULT_BOUNDED_JPEG_SCALE = 0.75
     private const val MIN_BOUNDED_JPEG_SCALE = 0.55
     private const val MAX_BOUNDED_JPEG_SCALE = 0.82

@@ -30,9 +30,9 @@ data class NativeCaptureDecision(
 /**
  * Fail-closed sensor policy shared by the service callbacks and its polling loop.
  *
- * Permission, Android Camera-access, and GPS failures release CameraX so the app cannot
- * keep video without usable sensors. CameraX availability errors remain bound when its
- * own recovery loop can restore the stream.
+ * Permission, Android Camera-access, and hard GPS failures release CameraX so the app
+ * cannot keep video without usable sensors. A transiently old fix blocks evidence but
+ * keeps the graph warm; CameraX availability errors also remain bound for recovery.
  */
 object NativeCaptureInterlock {
     fun evaluate(
@@ -69,8 +69,8 @@ object NativeCaptureInterlock {
         )
         !location.freshFixAvailable -> blocked(
             NativeCaptureBlocker.WAITING_FOR_FRESH_FIX,
-            "Waiting for a fresh, precise GPS fix (30 m or better). Camera, detection, and video are paused.",
-            releaseCamera = true
+            "Waiting for a fresh, precise GPS fix (30 m or better). Detection is paused; camera and local video stay ready.",
+            releaseCamera = false
         )
         !cameraReady -> blocked(
             NativeCaptureBlocker.CAMERA_UNAVAILABLE,

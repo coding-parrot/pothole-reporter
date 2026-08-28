@@ -107,7 +107,7 @@ internal class NativeBridgeImageBudget(
     }
 
     companion object {
-        const val MAX_BATCH_ITEMS = 2
+        const val MAX_BATCH_ITEMS = 3
         const val MAX_SINGLE_RAW_BYTES = NativeStoredImagePolicy.MAX_BRIDGE_IMAGE_BYTES
         const val MAX_BATCH_ENCODED_CHARS = 4L * 1024L * 1024L
         private const val JPEG_DATA_URL_HEADER_CHARS = 23

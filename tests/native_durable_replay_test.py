@@ -27,6 +27,8 @@ replay = WEB[WEB.index("function nativeAutomaticReplayAllowed"):
              WEB.index("function gpsAt")]
 finish = WEB[WEB.index("async function finishNativeDrive"):
              WEB.index("async function ensureNativeDriveListeners")]
+hydrate = WEB[WEB.index("async function hydrateNativeDriveEndWithinDeadline"):
+              WEB.index("function nativeDrivePlugin")]
 quality = WEB[WEB.index("function roadFrameQuality(video)"):
               WEB.index("function bestBurstIndex", WEB.index("function roadFrameQuality(video)"))]
 
@@ -40,13 +42,15 @@ check(
 check(
     "a persistence failure stops capture explicitly instead of inferring without evidence",
     "saved-frame storage is unavailable" in scan
-    and scan.index("if (keyframeId == null)") < scan.index("stopDriveSession("),
+    and scan.index("if (keyframeId == null)")
+        < scan.index("stopDriveSession(", scan.index("if (keyframeId == null)")),
 )
 check(
     "slow-network overflow remains memory bounded and describes durable deferral",
-    "capacity = 1" in SERVICE
-    and "BufferOverflow.DROP_OLDEST" in SERVICE
-    and "every selected burst has already been saved" in SERVICE,
+    "capacity = Channel.RENDEZVOUS" in SERVICE
+    and "onBufferOverflow" not in SERVICE
+    and "durable replay still owns the work" in SERVICE
+    and "droppedCount++" in scan[scan.index("jobChannel?.trySend(item)"):],
 )
 check(
     "native completion is checkpointed only after a complete detector verdict",
@@ -66,8 +70,9 @@ check(
     "saved frames automatically replay after stop and on a later safe foreground",
     "scheduleNativeKeyframeReplay(sessionId)" in WEB
     and "await scheduleNativeKeyframeReplay(sessionId)" not in WEB
-    and "finally {" in finish[finish.index("await syncNativeData({ force: true })"):]
-    and finish.index("await syncNativeData({ force: true })")
+    and "await syncNativeData({ force: true })" in hydrate
+    and "finally {" in finish[finish.index("await hydrateNativeDriveEndWithinDeadline()"):]
+    and finish.index("await hydrateNativeDriveEndWithinDeadline()")
         < finish.index("scheduleNativeKeyframeReplay(sessionId)")
     and 'document.visibilityState === "visible"' in replay
     and "nativeHostAppActive" in replay

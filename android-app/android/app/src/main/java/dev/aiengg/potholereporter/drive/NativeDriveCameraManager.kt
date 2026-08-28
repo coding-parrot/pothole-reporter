@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Size
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -37,6 +38,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.ArrayDeque
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -81,6 +83,7 @@ class NativeDriveCameraManager(
         val completion: CompletableDeferred<NativeVideoSegment?>,
         val storageReservation: NativeMediaStorageQuota.Reservation,
         var recording: Recording? = null,
+        var stopRequested: Boolean = false,
         var terminalState: VideoSegmentTerminalState = VideoSegmentTerminalState.ACTIVE,
         val discardedMediaCleanup: NativeDiscardedMediaCleanup = NativeDiscardedMediaCleanup()
     )
@@ -106,9 +109,18 @@ class NativeDriveCameraManager(
     private var activeVideoSegment: ActiveVideoSegment? = null
     private val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private val captureMutex = Mutex()
-    private val pendingFrameLock = Any()
-    private var pendingFrameRequest: PendingFrameRequest? = null
-    private var captureGeneration = 0L
+    private val cameraOperationMutex = Mutex()
+    private val rollingFrameLock = Any()
+    private val rollingFrames = ArrayDeque<CapturedFrame>(NativeRollingBurstWindow.CAPACITY)
+    private var lastRollingSourceTimestampNs = 0L
+    @Volatile private var analyzerSamplingEnabled = true
+    private val analyzerSamplingGeneration = NativeGenerationGate()
+    @Volatile private var analyzerFatalError: OutOfMemoryError? = null
+    @Volatile private var analyzerFatalSignalled = false
+    private var analyzerConversionFailures = 0
+    private var analyzerConversionRecoverySignalled = false
+    private val cameraStartGeneration = NativeGenerationGate()
+    private val cameraGraphGeneration = NativeGenerationGate()
     private val recordingHandler = Handler(Looper.getMainLooper())
     private val storageScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -148,13 +160,10 @@ class NativeDriveCameraManager(
     companion object {
         const val BURST_COUNT = 3
         const val MIN_DETECTION_SOURCE_FRAMES = 2
-        private const val MAX_FRAME_WAIT_MS = 2_000L
-        private const val MAX_SOURCE_BURST_MS = 3_000L
-        private const val SOURCE_SAMPLE_COUNT = NativeRollingBurstWindow.CAPACITY
-        private const val SOURCE_SAMPLE_SPACING_MS = 180L
         private const val RECORDING_SEGMENT_MS = 60_000L
         private const val RECORDING_RESTART_DELAY_MS = 1_000L
         private const val RECORDING_FINALIZE_TIMEOUT_MS = 12_000L
+        private const val MAX_ANALYZER_CONVERSION_FAILURES = 8
     }
 
     fun startCamera(onReady: (Boolean) -> Unit = {}) {
@@ -163,33 +172,59 @@ class NativeDriveCameraManager(
             return
         }
         requested = true
+        val startToken = cameraStartGeneration.issue()
         val future = ProcessCameraProvider.getInstance(context)
         future.addListener({
-            if (!requested || destroyed) {
-                onReady(false)
+            // Pause/Resume is an ABA transition: `requested` can be true again while this
+            // callback still belongs to the pre-Pause request. Only the exact token may bind.
+            if (!requested || destroyed || !cameraStartGeneration.isCurrent(startToken)) {
                 return@addListener
             }
             try {
-                cameraProvider = future.get()
+                val provider = future.get()
+                if (!requested || destroyed || !cameraStartGeneration.isCurrent(startToken)) {
+                    return@addListener
+                }
+                if (!provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA)) {
+                    val reason = "This device has no rear camera for Drive Mode."
+                    publishState(false, reason)
+                    onCameraRecoveryRequired(NativeCameraRecoveryAction.STOP_TERMINALLY, reason)
+                    onReady(false)
+                    return@addListener
+                }
+                cameraProvider = provider
                 onReady(bindCameraUseCases())
             } catch (e: Exception) {
-                publishState(false, "Camera could not start: ${e.message ?: "unknown error"}")
+                if (!cameraStartGeneration.isCurrent(startToken)) return@addListener
+                val reason = "Camera could not start: ${e.message ?: "unknown error"}"
+                publishState(false, reason)
+                onCameraRecoveryRequired(NativeCameraRecoveryAction.RELEASE_AND_RETRY, reason)
                 onReady(false)
             }
         }, ContextCompat.getMainExecutor(context))
     }
 
     @SuppressLint("UnsafeOptInUsageError")
-    private fun bindCameraUseCases(): Boolean {
+    private fun bindCameraUseCases(transitionReason: String? = null): Boolean {
         val provider = cameraProvider ?: return false
         if (!requested || destroyed) return false
 
         return try {
+            // A graph reconfiguration briefly has no active CameraX stream. Publish that
+            // truth before unbindAll so the foreground HUD cannot claim a live preview
+            // while enabling/disabling VideoCapture produces a black transition frame.
+            transitionReason?.let { publishState(false, it) }
+            val graphToken = cameraGraphGeneration.issue()
             // A new graph gets one recovery signal per critical code. CameraState can
             // repeat the same error while moving through CLOSING and CLOSED.
             lastSignalledRecoveryErrorCode = null
             boundCamera?.cameraInfo?.cameraState?.removeObservers(lifecycleOwner)
-            clearPendingFrameRequest()
+            imageAnalysis?.clearAnalyzer()
+            clearRollingFrames()
+            analyzerFatalError = null
+            analyzerFatalSignalled = false
+            analyzerConversionFailures = 0
+            analyzerConversionRecoverySignalled = false
             provider.unbindAll()
             previewIsBound = false
 
@@ -198,7 +233,9 @@ class NativeDriveCameraManager(
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build().also { analysis ->
                     imageAnalysis = analysis
-                    analysis.setAnalyzer(cameraExecutor, ::processImageProxy)
+                    analysis.setAnalyzer(cameraExecutor) { imageProxy ->
+                        processImageProxy(imageProxy, graphToken)
+                    }
                 }
 
             val desiredPreviewProvider = synchronized(previewStateLock) {
@@ -232,23 +269,9 @@ class NativeDriveCameraManager(
                 videoCapture = candidate
                 return camera
             }
-            boundCamera = try {
-                isVideoSupported = true
-                bindWithVideo(QualitySelector.from(
-                    // SD is the requested recording profile. The fallback searches below
-                    // it first and only moves higher when a camera exposes no SD profile.
-                    Quality.SD,
-                    FallbackStrategy.lowerQualityOrHigherThan(Quality.SD)
-                ))
-            } catch (_: Exception) {
-                provider.unbindAll()
-                previewIsBound = false
-                // Some cameras cannot run Preview + Analysis + VideoCapture together.
-                // Detection stays available and the UI says video is unavailable.
+            fun bindWithoutVideo(): Camera {
                 videoCapture = null
-                isVideoSupported = false
-                onRecordingStateChange(isVideoRecordingEnabled, false, false, "Video recording unavailable on this camera")
-                if (desiredPreviewProvider != null) {
+                val camera = if (desiredPreviewProvider != null) {
                     provider.bindToLifecycle(
                         lifecycleOwner,
                         CameraSelector.DEFAULT_BACK_CAMERA,
@@ -262,8 +285,35 @@ class NativeDriveCameraManager(
                         analysis
                     )
                 }
-            }.also { camera ->
-                camera.cameraInfo.cameraState.observe(lifecycleOwner, ::handleCameraState)
+                return camera
+            }
+            boundCamera = (if (!isVideoRecordingEnabled) {
+                // Video is opt-in. Do not consume an encoder/third camera stream on every
+                // default Drive; this is both faster and substantially more compatible
+                // with Samsung/Xiaomi stream-combination limits.
+                isVideoSupported = true
+                bindWithoutVideo()
+            } else try {
+                isVideoSupported = true
+                bindWithVideo(QualitySelector.from(
+                    // SD is the requested recording profile. The fallback searches below
+                    // it first and only moves higher when a camera exposes no SD profile.
+                    Quality.SD,
+                    FallbackStrategy.lowerQualityOrHigherThan(Quality.SD)
+                ))
+            } catch (_: Exception) {
+                provider.unbindAll()
+                previewIsBound = false
+                // Some cameras cannot run Preview + Analysis + VideoCapture together.
+                // Keep visible frame detection available and report video as unsupported.
+                videoCapture = null
+                isVideoSupported = false
+                onRecordingStateChange(true, false, false, "Video recording unavailable on this camera")
+                bindWithoutVideo()
+            }).also { camera ->
+                camera.cameraInfo.cameraState.observe(lifecycleOwner) { state ->
+                    if (cameraGraphGeneration.isCurrent(graphToken)) handleCameraState(state)
+                }
             }
             if (isVideoRecordingEnabled && isVideoSupported) startRecordingSegment()
             // An attach/detach request may have run before previewUseCase existed and
@@ -272,7 +322,10 @@ class NativeDriveCameraManager(
             scheduleLatestPreviewReconciliation()
             true
         } catch (e: Exception) {
-            publishState(false, "Camera unavailable: ${e.message ?: "another app may be using it"}")
+            val reason = "Camera unavailable: ${e.message ?: "another app may be using it"}"
+            runCatching { releaseCameraUseCases() }
+            publishState(false, reason)
+            onCameraRecoveryRequired(NativeCameraRecoveryAction.RELEASE_AND_RETRY, reason)
             false
         }
     }
@@ -285,7 +338,7 @@ class NativeDriveCameraManager(
             // Even recoverable errors can first arrive with Type.CLOSING. Mark the
             // stream unavailable immediately, but leave ordinary contention bound so
             // CameraX can execute its documented automatic recovery.
-            clearPendingFrameRequest()
+            clearRollingFrames()
             publishState(false, reason)
             if (action != NativeCameraRecoveryAction.WAIT_FOR_CAMERAX &&
                 requested && lastSignalledRecoveryErrorCode != error.code) {
@@ -304,11 +357,11 @@ class NativeDriveCameraManager(
                 }
             }
             CameraState.Type.PENDING_OPEN -> {
-                clearPendingFrameRequest()
+                clearRollingFrames()
                 publishState(false, "Waiting for camera")
             }
             CameraState.Type.CLOSED -> {
-                clearPendingFrameRequest()
+                clearRollingFrames()
                 if (requested) {
                     val reason =
                         "Camera access was interrupted. Detection and video are paused; capture resumes automatically when access returns."
@@ -340,16 +393,51 @@ class NativeDriveCameraManager(
         onCameraStateChange(available, reason)
     }
 
-    private fun processImageProxy(imageProxy: ImageProxy) {
-        val request = synchronized(pendingFrameLock) {
-            pendingFrameRequest?.also { pendingFrameRequest = null }
+    /**
+     * Stops expensive ImageProxy-to-Bitmap work without touching the CameraX graph.
+     * Preview and optional VideoCapture remain bound; disabling also discards any partial
+     * detection window so a later enable can only produce a fully fresh burst.
+     */
+    fun setAnalyzerSamplingEnabled(enabled: Boolean) {
+        var discardedFrames: List<CapturedFrame> = emptyList()
+        synchronized(rollingFrameLock) {
+            if (analyzerSamplingEnabled == enabled) return
+            analyzerSamplingEnabled = enabled
+            analyzerSamplingGeneration.invalidate()
+            if (!enabled) {
+                lastRollingSourceTimestampNs = 0L
+                discardedFrames = rollingFrames.toList()
+                rollingFrames.clear()
+            }
         }
+        discardedFrames.forEach { it.bitmap.recycleSafely() }
+    }
+
+    private fun processImageProxy(imageProxy: ImageProxy, sourceGraphGeneration: Long) {
         var ownedBitmap: Bitmap? = null
+        var samplingGeneration = 0L
         try {
-            if (request == null) return
             val capturedAtMs = System.currentTimeMillis()
+            val capturedAtElapsedMs = SystemClock.elapsedRealtime()
             val sourceTimestampNs = imageProxy.imageInfo.timestamp.takeIf { it > 0L }
                 ?: System.nanoTime()
+            val shouldSample = synchronized(rollingFrameLock) {
+                samplingGeneration = analyzerSamplingGeneration.current()
+                if (NativeAnalyzerSamplingPolicy.shouldConvert(
+                        enabled = analyzerSamplingEnabled,
+                        requested = requested,
+                        destroyed = destroyed,
+                        cameraReady = isCameraReady,
+                        graphCurrent = cameraGraphGeneration.isCurrent(sourceGraphGeneration),
+                        sourceTimestampNs = sourceTimestampNs,
+                        lastSampleTimestampNs = lastRollingSourceTimestampNs,
+                        minimumSpacingNs = NativeRollingBurstWindow.SAMPLE_SPACING_NS
+                    )) {
+                    lastRollingSourceTimestampNs = sourceTimestampNs
+                    true
+                } else false
+            }
+            if (!shouldSample) return
             val raw = imageProxy.toBitmap()
             ownedBitmap = raw
             val rotation = imageProxy.imageInfo.rotationDegrees
@@ -366,19 +454,64 @@ class NativeDriveCameraManager(
             val frame = CapturedFrame(
                 upright,
                 capturedAtMs,
+                capturedAtElapsedMs,
                 sourceTimestampNs,
-                request.generation
+                sourceGraphGeneration
             )
-            if (request.deferred.complete(frame)) ownedBitmap = null else upright.recycleSafely()
+            val retained = synchronized(rollingFrameLock) {
+                if (!analyzerSamplingEnabled ||
+                    !analyzerSamplingGeneration.isCurrent(samplingGeneration) ||
+                    !requested || destroyed || !isCameraReady ||
+                    !cameraGraphGeneration.isCurrent(sourceGraphGeneration)
+                ) false else {
+                    rollingFrames.addLast(frame)
+                    while (rollingFrames.size > NativeRollingBurstWindow.CAPACITY) {
+                        rollingFrames.removeFirst().bitmap.recycleSafely()
+                    }
+                    true
+                }
+            }
+            if (retained) {
+                analyzerConversionFailures = 0
+                analyzerConversionRecoverySignalled = false
+                ownedBitmap = null
+            } else upright.recycleSafely()
         } catch (error: OutOfMemoryError) {
-            // The analyzer runs on its own executor, so an allocation failure here will
-            // never reach captureBurst unless the deferred carries it across. Recycle any
-            // partial conversion and let the service stop with a visible low-memory error.
-            request?.deferred?.completeExceptionally(error)
             ownedBitmap?.recycleSafely()
+            // An invalidated graph can finish conversion after its replacement started.
+            // It owns its temporary Bitmap, but it must not terminate the new session.
+            if (analyzerSamplingEnabled &&
+                analyzerSamplingGeneration.isCurrent(samplingGeneration) &&
+                requested && !destroyed &&
+                cameraGraphGeneration.isCurrent(sourceGraphGeneration)
+            ) {
+                analyzerFatalError = error
+                if (!analyzerFatalSignalled) {
+                    analyzerFatalSignalled = true
+                    onCameraRecoveryRequired(
+                        NativeCameraRecoveryAction.STOP_TERMINALLY,
+                        "This device ran out of image memory while reading camera frames."
+                    )
+                }
+            }
         } catch (_: Exception) {
-            request?.deferred?.complete(null)
             ownedBitmap?.recycleSafely()
+            if (analyzerSamplingEnabled &&
+                analyzerSamplingGeneration.isCurrent(samplingGeneration) &&
+                requested && !destroyed &&
+                cameraGraphGeneration.isCurrent(sourceGraphGeneration)
+            ) {
+                analyzerConversionFailures++
+                if (analyzerConversionFailures >= MAX_ANALYZER_CONVERSION_FAILURES &&
+                    !analyzerConversionRecoverySignalled
+                ) {
+                    analyzerConversionRecoverySignalled = true
+                    onCameraRecoveryRequired(
+                        NativeCameraRecoveryAction.RELEASE_AND_RETRY,
+                        "Camera frames could not be read. Detection and video are restarting."
+                    )
+                }
+            }
         } finally {
             imageProxy.close()
         }
@@ -387,88 +520,60 @@ class NativeDriveCameraManager(
     suspend fun captureBurst(): Pair<List<BurstFrame>, Int>? {
         if (!isCameraReady || !requested || destroyed) return null
         return captureMutex.withLock {
-            val sourceFrames = mutableListOf<CapturedFrame>()
-            var ownershipTransferred = false
-            try {
-                val collected = withTimeoutOrNull(MAX_SOURCE_BURST_MS) {
-                    repeat(SOURCE_SAMPLE_COUNT) { index ->
-                        if (index > 0) delay(SOURCE_SAMPLE_SPACING_MS)
-                        awaitNextFrame()?.let(sourceFrames::add)
-                    }
-                    true
-                } == true
-                if (!collected) return@withLock null
+            analyzerFatalError?.let { error ->
+                analyzerFatalError = null
+                throw error
+            }
+            val selected = synchronized(rollingFrameLock) {
+                val sourceFrames = rollingFrames.toList()
                 val generation = sourceFrames.firstOrNull()?.cameraGeneration
-                    ?: return@withLock null
+                    ?: return@synchronized null
                 val sourceIndexes = NativeRollingBurstWindow.selectSourceIndexes(
                     sourceFrames.map {
                         NativeRollingBurstWindow.Sample(
-                            it.capturedAtMs,
+                            it.capturedAtElapsedMs,
                             it.sourceTimestampNs,
                             it.cameraGeneration
                         )
                     },
-                    nowMs = System.currentTimeMillis(),
+                    nowElapsedMs = SystemClock.elapsedRealtime(),
                     expectedGeneration = generation
-                ) ?: return@withLock null
-                val selectedIndexSet = sourceIndexes.toSet()
-                val selected = sourceIndexes.map { index ->
-                    val frame = sourceFrames[index]
+                ) ?: return@synchronized null
+                // The selector currently requires and returns the complete three-frame
+                // ring. Transfer those Bitmaps to the caller instead of cloning another
+                // ~11 MB on every admission. The analyzer immediately starts refilling a
+                // new bounded ring, while the service owns and eventually recycles these.
+                val transferred = sourceIndexes.map(sourceFrames::get)
+                rollingFrames.clear()
+                lastRollingSourceTimestampNs = 0L
+                transferred
+            } ?: return@withLock null
+            var ownershipTransferred = false
+            try {
+                val burstFrames = selected.map { frame ->
                     BurstFrame(
                         frame.bitmap,
                         FrameQualityEvaluator.evaluateRoadFrameQuality(frame.bitmap),
                         frame.capturedAtMs,
                         frame.sourceTimestampNs,
-                        frame.cameraGeneration
+                        frame.cameraGeneration,
+                        frame.capturedAtElapsedMs
                     )
                 }
-                sourceFrames.forEachIndexed { index, frame ->
-                    if (index !in selectedIndexSet) frame.bitmap.recycleSafely()
-                }
-                if (selected.size < MIN_DETECTION_SOURCE_FRAMES) {
-                    selected.forEach { it.bitmap.recycleSafely() }
+                if (burstFrames.size < MIN_DETECTION_SOURCE_FRAMES) {
+                    burstFrames.forEach { it.bitmap.recycleSafely() }
                     return@withLock null
                 }
                 val result = Pair(
-                    selected,
-                    FrameQualityEvaluator.selectBestBurstIndex(selected.map(BurstFrame::quality))
+                    burstFrames,
+                    FrameQualityEvaluator.selectBestBurstIndex(burstFrames.map(BurstFrame::quality))
                 )
                 ownershipTransferred = true
                 result
             } finally {
                 if (!ownershipTransferred) {
-                    sourceFrames.forEach { it.bitmap.recycleSafely() }
+                    selected.forEach { it.bitmap.recycleSafely() }
                 }
-            }
-        }
-    }
-
-    private suspend fun awaitNextFrame(): CapturedFrame? {
-        val request = synchronized(pendingFrameLock) {
-            if (!requested || destroyed || !isCameraReady) return null
-            PendingFrameRequest(
-                generation = captureGeneration,
-                deferred = CompletableDeferred()
-            ).also {
-                pendingFrameRequest?.deferred?.cancel()
-                pendingFrameRequest = it
-            }
-        }
-        var delivered = false
-        try {
-            val frame = withTimeoutOrNull(MAX_FRAME_WAIT_MS) { request.deferred.await() }
-            delivered = frame != null
-            return frame
-        } finally {
-            if (!delivered) {
-                // Parent cancellation (Pause/Stop or the outer burst timeout) bypasses
-                // withTimeoutOrNull's ordinary null path. Cancel the exact request in
-                // finally so an analyzer already holding it cannot complete an orphaned
-                // deferred with a Bitmap that nobody will recycle.
-                synchronized(pendingFrameLock) {
-                    if (pendingFrameRequest === request) pendingFrameRequest = null
-                }
-                request.deferred.cancel()
             }
         }
     }
@@ -477,62 +582,92 @@ class NativeDriveCameraManager(
         if (!isRecycled) recycle()
     }
 
-    private data class PendingFrameRequest(
-        val generation: Long,
-        val deferred: CompletableDeferred<CapturedFrame?>
-    )
-
     private data class CapturedFrame(
         val bitmap: Bitmap,
         val capturedAtMs: Long,
+        val capturedAtElapsedMs: Long,
         val sourceTimestampNs: Long,
         val cameraGeneration: Long
     )
 
-    suspend fun setVideoRecordingEnabled(enabled: Boolean) {
-        val completion = withContext(Dispatchers.Main.immediate) {
+    suspend fun setVideoRecordingEnabled(enabled: Boolean) = cameraOperationMutex.withLock {
+        val transition = withContext(Dispatchers.Main.immediate) {
+            val changed = isVideoRecordingEnabled != enabled
             isVideoRecordingEnabled = enabled
             if (enabled) storageBlocked = false
-            if (!enabled) {
-                stopActiveRecording()
-            } else {
-                if (!isVideoSupported) {
-                    onRecordingStateChange(true, false, false, "Video recording unavailable on this camera")
-                } else if (requested && !destroyed) {
-                    startRecordingSegment()
+            Pair(if (!enabled) stopActiveRecording() else null, changed)
+        }
+        // A rapid Off -> On request cancels the service coroutine that asked for Off.
+        // Once Recording.stop() has been sent, its bounded Finalize cleanup must still
+        // finish; otherwise On sees the stale active segment and can never restart video.
+        withContext(NonCancellable) { awaitFinalization(transition.first) }
+        withContext(Dispatchers.Main.immediate) {
+            // A new graph is the only reliable way to add/remove VideoCapture across OEM
+            // camera stacks. Revalidate because Pause/Stop may have won during Finalize.
+            if (transition.second && requested && !destroyed &&
+                isVideoRecordingEnabled == enabled
+            ) {
+                val rebound = bindCameraUseCases("Applying video setting")
+                if (!rebound) {
+                    onRecordingStateChange(
+                        enabled,
+                        false,
+                        isVideoSupported,
+                        "Camera could not apply the video setting"
+                    )
                 }
-                null
+            } else if (enabled && requested && !destroyed && !isVideoSupported) {
+                onRecordingStateChange(true, false, false, "Video recording unavailable on this camera")
+            }
+            if (!enabled) {
+                onRecordingStateChange(false, false, isVideoSupported, "Scanning frames; video is not saved")
             }
         }
-        awaitFinalization(completion)
-        if (!enabled) withContext(Dispatchers.Main.immediate) {
-            onRecordingStateChange(false, false, isVideoSupported, "Scanning frames; video is not saved")
-        }
     }
 
-    fun attachPreview(surfaceProvider: Preview.SurfaceProvider) {
+    /** True = bound, null = accepted while CameraX is starting, false = bind failed. */
+    fun attachPreview(surfaceProvider: Preview.SurfaceProvider): Boolean? =
         updatePreviewSurfaceProvider(surfaceProvider)
-    }
 
-    fun detachPreview() {
-        updatePreviewSurfaceProvider(null)
-    }
-
-    private fun updatePreviewSurfaceProvider(surfaceProvider: Preview.SurfaceProvider?) {
+    fun detachPreview(expectedSurfaceProvider: Preview.SurfaceProvider) {
         val generation = synchronized(previewStateLock) {
+            // An old Activity can finish after its replacement already attached. Its late
+            // onDestroy must not detach the replacement Activity's PreviewView.
+            if (previewSurfaceProvider !== expectedSurfaceProvider) return
+            previewSurfaceProvider = null
+            ++previewStateGeneration
+        }
+        runOnMain { reconcilePreviewSurfaceProvider(generation) }
+    }
+
+    private fun updatePreviewSurfaceProvider(surfaceProvider: Preview.SurfaceProvider?): Boolean? {
+        val generation = synchronized(previewStateLock) {
+            if (previewSurfaceProvider === surfaceProvider &&
+                (surfaceProvider == null || previewIsBound)
+            ) return previewIsBound
             previewSurfaceProvider = surfaceProvider
             ++previewStateGeneration
         }
-        ContextCompat.getMainExecutor(context).execute {
+        return if (Looper.myLooper() == Looper.getMainLooper()) {
             reconcilePreviewSurfaceProvider(generation)
+        } else {
+            ContextCompat.getMainExecutor(context).execute {
+                reconcilePreviewSurfaceProvider(generation)
+            }
+            null
         }
     }
 
     private fun scheduleLatestPreviewReconciliation() {
         val generation = synchronized(previewStateLock) { previewStateGeneration }
-        ContextCompat.getMainExecutor(context).execute {
+        runOnMain {
             reconcilePreviewSurfaceProvider(generation)
         }
+    }
+
+    private fun runOnMain(block: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) block()
+        else ContextCompat.getMainExecutor(context).execute(block)
     }
 
     /**
@@ -544,14 +679,14 @@ class NativeDriveCameraManager(
      * after a replacement Activity has already attached a new one. A stale queued detach
      * must never unbind that replacement preview.
      */
-    private fun reconcilePreviewSurfaceProvider(generation: Long) {
+    private fun reconcilePreviewSurfaceProvider(generation: Long): Boolean? {
         val surfaceProvider = synchronized(previewStateLock) {
-            if (generation != previewStateGeneration || fullyClosed) return
+            if (generation != previewStateGeneration || fullyClosed) return false
             previewSurfaceProvider
         }
-        if (!requested || destroyed) return
-        val provider = cameraProvider ?: return
-        val preview = previewUseCase ?: return
+        if (!requested || destroyed) return false
+        val provider = cameraProvider ?: return null
+        val preview = previewUseCase ?: return null
 
         if (surfaceProvider == null) {
             if (previewIsBound) {
@@ -559,15 +694,15 @@ class NativeDriveCameraManager(
                 // provider from a still-bound Preview can tear down the whole camera graph
                 // on affected devices even though Analysis should continue in the FGS.
                 val detached = runCatching { provider.unbind(preview) }.isSuccess
-                if (!detached) return
+                if (!detached) return false
                 previewIsBound = false
             }
             preview.setSurfaceProvider(null)
-            return
+            return true
         }
 
         preview.setSurfaceProvider(surfaceProvider)
-        if (previewIsBound) return
+        if (previewIsBound) return true
         val attached = runCatching {
             provider.bindToLifecycle(
                 lifecycleOwner,
@@ -577,16 +712,22 @@ class NativeDriveCameraManager(
         }.onSuccess {
             previewIsBound = true
         }.isSuccess
-        if (attached) return
+        if (attached) return true
 
-        // Some devices accept Analysis + VideoCapture but cannot add Preview to that
-        // already-configured graph. Use the normal controlled graph bind exactly once:
-        // it retries Preview + Analysis + VideoCapture, then its existing fallback drops
-        // unsupported video and binds Preview + Analysis. This preserves the transparent
-        // live view instead of silently continuing with no visible preview.
+        // When the app is visible, a hidden camera is not an acceptable fallback. Keep
+        // the requested provider registered, close capture immediately, and let the
+        // service's serialized recovery path finalize video before rebuilding the whole
+        // graph with Preview present from the first bind.
         if (generation == synchronized(previewStateLock) { previewStateGeneration }) {
-            bindCameraUseCases()
+            preview.setSurfaceProvider(null)
+            val reason = "Live camera preview could not attach. Camera is restarting visibly."
+            publishState(false, reason)
+            onCameraRecoveryRequired(
+                NativeCameraRecoveryAction.RELEASE_AND_RETRY,
+                reason
+            )
         }
+        return false
     }
 
     @SuppressLint("MissingPermission")
@@ -829,6 +970,13 @@ class NativeDriveCameraManager(
     private fun stopActiveRecording(): CompletableDeferred<NativeVideoSegment?>? {
         recordingHandler.removeCallbacks(restartRecording)
         val active = activeVideoSegment ?: return null
+        val shouldRequestStop = synchronized(active) {
+            if (active.stopRequested) false else {
+                active.stopRequested = true
+                true
+            }
+        }
+        if (!shouldRequestStop) return active.completion
         runCatching { active.recording?.stop() }.onFailure {
             if (activeVideoSegment === active) activeVideoSegment = null
             val discarded = discardReservedVideoFile(active)
@@ -872,8 +1020,9 @@ class NativeDriveCameraManager(
     }
 
     /** Finalizes the active MP4 before releasing the camera. */
-    suspend fun pauseCameraSafely() {
+    suspend fun pauseCameraSafely() = cameraOperationMutex.withLock {
         val completion = withContext(Dispatchers.Main.immediate) {
+            cameraStartGeneration.invalidate()
             requested = false
             isCameraReady = false
             stopActiveRecording()
@@ -891,16 +1040,20 @@ class NativeDriveCameraManager(
             return
         }
         requested = true
-        if (cameraProvider == null) startCamera(onReady) else onReady(bindCameraUseCases())
+        if (cameraProvider == null) startCamera(onReady) else {
+            cameraStartGeneration.issue()
+            onReady(bindCameraUseCases())
+        }
     }
 
-    suspend fun stopCameraSafely() {
+    suspend fun stopCameraSafely() = cameraOperationMutex.withLock {
         if (fullyClosed) return
         var recordingFinalized = false
         try {
             val completion = withContext(Dispatchers.Main.immediate) {
                 if (fullyClosed) return@withContext null
                 destroyed = true
+                cameraStartGeneration.invalidate()
                 requested = false
                 isCameraReady = false
                 stopActiveRecording()
@@ -937,6 +1090,7 @@ class NativeDriveCameraManager(
         synchronized(permanentCloseLock) {
             if (fullyClosed) return
             destroyed = true
+            cameraStartGeneration.invalidate()
             requested = false
             isCameraReady = false
             recordingHandler.removeCallbacks(restartRecording)
@@ -944,18 +1098,24 @@ class NativeDriveCameraManager(
             storagePreparationInFlight = false
             storageScope.cancel()
             if (abandonActiveRecording) abandonActiveVideoSegment()
+            var released = false
             try {
                 releaseCameraUseCases()
+                released = true
             } finally {
                 synchronized(previewStateLock) {
                     previewSurfaceProvider = null
                     previewStateGeneration++
                 }
-                cameraProvider = null
                 videoCapture = null
                 isVideoRecording = false
                 runCatching { cameraExecutor.shutdownNow() }
-                fullyClosed = true
+                // Keep the provider and permit an emergency retry when CameraX rejected
+                // unbindAll. Claiming success here would leave a live camera uncloseable.
+                if (released) {
+                    cameraProvider = null
+                    fullyClosed = true
+                }
             }
         }
     }
@@ -964,7 +1124,13 @@ class NativeDriveCameraManager(
         val active = activeVideoSegment
         activeVideoSegment = null
         if (active != null) {
-            runCatching { active.recording?.stop() }
+            val shouldRequestStop = synchronized(active) {
+                if (active.stopRequested) false else {
+                    active.stopRequested = true
+                    true
+                }
+            }
+            if (shouldRequestStop) runCatching { active.recording?.stop() }
             runCatching { active.recording?.close() }
             if (!active.completion.isCompleted) {
                 discardReservedVideoFile(active)
@@ -1008,25 +1174,28 @@ class NativeDriveCameraManager(
     }
 
     private fun releaseCameraUseCases() {
+        cameraGraphGeneration.invalidate()
         val camera = boundCamera
         boundCamera = null
         runCatching { camera?.cameraInfo?.cameraState?.removeObservers(lifecycleOwner) }
         val analysis = imageAnalysis
         imageAnalysis = null
-        runCatching { analysis?.clearAnalyzer() }
+        analysis?.clearAnalyzer()
+        clearRollingFrames()
+        // Keep the provider reachable until unbind succeeds so permanent teardown can
+        // retry instead of falsely reporting a clean close.
+        cameraProvider?.unbindAll()
         previewUseCase = null
         previewIsBound = false
         videoCapture = null
-        runCatching { cameraProvider?.unbindAll() }
-        runCatching { clearPendingFrameRequest() }
     }
 
-    private fun clearPendingFrameRequest() {
-        val pending = synchronized(pendingFrameLock) {
-            captureGeneration++
-            pendingFrameRequest.also { pendingFrameRequest = null }
+    private fun clearRollingFrames() {
+        val frames = synchronized(rollingFrameLock) {
+            lastRollingSourceTimestampNs = 0L
+            rollingFrames.toList().also { rollingFrames.clear() }
         }
-        pending?.deferred?.complete(null)
+        frames.forEach { it.bitmap.recycleSafely() }
     }
 
     private suspend fun ensureStorageInventory() {

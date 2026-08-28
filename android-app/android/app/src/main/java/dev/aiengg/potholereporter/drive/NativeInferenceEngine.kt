@@ -17,7 +17,6 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
@@ -173,7 +172,10 @@ internal object NativeDetectionStreamCompletionPolicy {
             "OpenAI detection stream was interrupted"
         )
         return completeVerdict
-            ?: throw NativeInferenceException("OpenAI returned an incomplete detection assessment")
+            ?: throw NativeInferenceException(
+                "OpenAI returned an invalid completed detection assessment",
+                suspendInference = true
+            )
     }
 }
 
@@ -218,8 +220,105 @@ private data class RepairModelAssessment(
 
 class NativeInferenceException(
     message: String,
-    val fatal: Boolean = false
-) : IOException(message)
+    val fatal: Boolean = false,
+    val suspendInference: Boolean = false,
+    val retryAfterMs: Long? = null,
+    cause: Throwable? = null
+) : IOException(message, cause)
+
+/** A small bounded UTF-8 accumulator for untrusted streamed output text. */
+internal class NativeSseTextAccumulator(
+    private val maxUtf8Bytes: Int = MAX_UTF8_BYTES
+) {
+    private val text = StringBuilder(minOf(maxUtf8Bytes.coerceAtLeast(1), 4 * 1024))
+    private var utf8Bytes = 0
+
+    init {
+        require(maxUtf8Bytes > 0) { "SSE text limit must be positive" }
+    }
+
+    /** Returns false without appending any part of [delta] when the cap would be crossed. */
+    fun append(delta: String): Boolean {
+        val deltaBytes = utf8LengthAtMost(delta, maxUtf8Bytes - utf8Bytes)
+            ?: return false
+        text.append(delta)
+        utf8Bytes += deltaBytes
+        return true
+    }
+
+    fun snapshot(): String = text.toString()
+
+    private fun utf8LengthAtMost(value: String, remaining: Int): Int? {
+        var total = 0
+        var index = 0
+        while (index < value.length) {
+            val char = value[index]
+            val bytes = when {
+                char.code < 0x80 -> 1
+                char.code < 0x800 -> 2
+                Character.isHighSurrogate(char) && index + 1 < value.length &&
+                    Character.isLowSurrogate(value[index + 1]) -> {
+                    index++
+                    4
+                }
+                else -> 3
+            }
+            if (total > remaining - bytes) return null
+            total += bytes
+            index++
+        }
+        return total
+    }
+
+    companion object {
+        const val MAX_UTF8_BYTES = 64 * 1024
+    }
+}
+
+/** HTTP retry taxonomy: only explicit transient statuses and transport failures retry. */
+internal object NativeInferenceHttpFailurePolicy {
+    private const val MAX_BACKOFF_MS = 60_000L
+    private val TRANSIENT_HTTP_CODES = setOf(408, 409, 425, 429)
+
+    /** Code 0 is the engine's sentinel for a network/stream transport failure. */
+    fun isTransient(code: Int): Boolean =
+        code == 0 || code in TRANSIENT_HTTP_CODES || code in 500..599
+
+    fun shouldSuspendInference(code: Int): Boolean = !isTransient(code)
+
+    fun retryDelayMs(code: Int, retryAfterHeader: String?, consecutiveFailure: Int): Long? {
+        if (!isTransient(code)) return null
+        val headerDelay = retryAfterHeader?.trim()?.toLongOrNull()
+            ?.takeIf { it >= 0L }
+            ?.let { seconds ->
+                if (seconds > MAX_BACKOFF_MS / 1_000L) MAX_BACKOFF_MS else seconds * 1_000L
+            }
+        val base = when (code) {
+            429 -> 5_000L
+            0 -> 10_000L
+            else -> 2_000L
+        }
+        val shift = consecutiveFailure.coerceIn(0, 5)
+        val exponential = (base * (1L shl shift)).coerceAtMost(MAX_BACKOFF_MS)
+        return maxOf(headerDelay ?: 0L, exponential)
+    }
+}
+
+/**
+ * Transfers a newly committed evidence file to the caller before any later allocation can
+ * fail. If the receiver cannot record ownership, the producer removes the otherwise orphaned
+ * file and rethrows the original failure.
+ */
+internal object NativeInferenceEvidenceOwnership {
+    fun handOff(file: File, receiver: (String) -> Unit) {
+        try {
+            receiver(file.absolutePath)
+        } catch (error: Throwable) {
+            NativeReportEvidenceStorage.deleteVerified(file)
+            throw error
+        }
+    }
+}
 
 class NativeInferenceEngine(
     private val context: Context,
@@ -229,11 +328,51 @@ class NativeInferenceEngine(
     private val language: String = "en",
     private val debug: Boolean = false
 ) {
+    private var consecutiveRetryableHttpFailures = 0
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
+    private val activeCallLock = Any()
+    private val activeCalls = mutableSetOf<Call>()
+    @Volatile private var engineClosed = false
+
+    /**
+     * Registers a call atomically against [close]. If Stop wins the lock, no later
+     * request can begin; if this call wins, Stop receives and cancels the exact Call.
+     * Ownership lasts through response-body consumption, not merely execute().
+     */
+    private inline fun <T> withTrackedCall(request: Request, block: (Call) -> T): T {
+        val call = okHttpClient.newCall(request)
+        synchronized(activeCallLock) {
+            if (engineClosed) throw IOException("Detection engine is closed")
+            activeCalls.add(call)
+        }
+        return try {
+            block(call)
+        } finally {
+            synchronized(activeCallLock) { activeCalls.remove(call) }
+        }
+    }
+
+    private fun retryableFailure(message: String, cause: Throwable? = null): NativeInferenceException {
+        val retryDelay = NativeInferenceHttpFailurePolicy.retryDelayMs(
+            code = 0,
+            retryAfterHeader = null,
+            consecutiveFailure = consecutiveRetryableHttpFailures++
+        )
+        return NativeInferenceException(message, retryAfterMs = retryDelay, cause = cause)
+    }
+
+    private fun normalizeRetryableFailure(error: Throwable, message: String): NativeInferenceException {
+        if (error is NativeInferenceException &&
+            (error.fatal || error.suspendInference || error.retryAfterMs != null)
+        ) {
+            return error
+        }
+        return retryableFailure(error.message?.takeIf(String::isNotBlank) ?: message, error)
+    }
 
     private val nominatimMutex = Mutex()
     private var lastNominatimTimeMs = 0L
@@ -243,6 +382,8 @@ class NativeInferenceEngine(
         private const val NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
         private const val PROMPT_VERSION = "pothole-binary-v10"
         private const val SCHEMA_VERSION = 7
+        private const val MAX_DETECTION_OUTPUT_TOKENS = 1_536
+        private const val MAX_REPAIR_OUTPUT_TOKENS = 768
         const val REPAIR_PROMPT_VERSION = "road-repair-v1"
         const val REPAIR_SCHEMA_VERSION = 1
 
@@ -342,20 +483,39 @@ class NativeInferenceEngine(
         gpsAccuracy: Float?,
         speedMps: Float?,
         heading: Float?,
+        onEvidenceSaved: (String) -> Unit,
         requireCompleteVerdict: Boolean = false
     ): InferenceOutcome = withContext(Dispatchers.IO) {
-        if (burstFrames.size < NativeDriveCameraManager.MIN_DETECTION_SOURCE_FRAMES) {
+        if (burstFrames.size !in NativeDriveCameraManager.MIN_DETECTION_SOURCE_FRAMES..
+            NativeRollingBurstWindow.OUTPUT_COUNT
+        ) {
             // Defensive gate for callers and restored keyframes: Drive Mode may never
-            // turn one source bitmap plus its crop into a multi-frame YES.
+            // turn one source bitmap plus its crop into a multi-frame YES or exceed
+            // the four-image production/evaluator request contract.
             return@withContext InferenceOutcome(analyzed = false, accepted = false, decision = "reject", assessment = null)
         }
 
-        val primaryFrame = burstFrames.getOrElse(primaryIndex) { burstFrames[0] }
-        val contextDataUrl = FrameQualityEvaluator.prepareContextDataUrl(primaryFrame.bitmap, 768, 82)
-        val roadDataUrls = burstFrames.map { FrameQualityEvaluator.prepareRoadBandDataUrl(it.bitmap, 1920, 85, true) }
+        // Reserve the maximum possible evidence JPEG before any paid request. The
+        // reservation is an accounting lease only (no bitmap/JPEG is retained), and is
+        // committed by an accepted result or released by every reject/error path.
+        val evidenceLease = NativeReportEvidenceStorage.reserveInferenceCapacity(context)
+        try {
 
-        val imageInputs = mutableListOf(contextDataUrl)
-        imageInputs.addAll(roadDataUrls)
+        val primaryFrame = burstFrames.getOrElse(primaryIndex) { burstFrames[0] }
+        // Prepare one temporary bitmap/data URL at a time. Each transform releases its
+        // crop/enhancement bitmap before the next frame starts, and request encoding below
+        // clears these Base64 strings before waiting on the network response.
+        val imageInputs = ArrayList<String>(burstFrames.size + 1)
+        imageInputs += FrameQualityEvaluator.prepareContextDataUrl(primaryFrame.bitmap, 768, 82)
+        burstFrames.forEach { frame ->
+            imageInputs += FrameQualityEvaluator.prepareRoadBandDataUrl(
+                frame.bitmap,
+                FrameQualityEvaluator.MAX_PREPARED_ROAD_DIMENSION,
+                85,
+                true
+            )
+        }
+        val evidenceCount = imageInputs.size
 
         val langSuffix = when (language) {
             "kn" -> "\n- Write the description field in formal Kannada (ಕನ್ನಡ ಭಾಷೆಯಲ್ಲಿ ಬರೆಯಿರಿ)."
@@ -363,7 +523,7 @@ class NativeInferenceEngine(
             "bn" -> "\n- Write the description field in clear formal Bengali (পরিষ্কার, প্রমিত বাংলায় লিখুন)."
             else -> ""
         }
-        val layoutNote = "\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. Images 2-${imageInputs.size} are orientation-aware road-region crops in chronological order; the sharpest crop is chronological frame ${primaryIndex + 1}."
+        val layoutNote = "\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. Images 2-$evidenceCount are orientation-aware road-region crops in chronological order; the sharpest crop is chronological frame ${primaryIndex + 1}."
         val fullPrompt = DETECT_PROMPT + layoutNote + langSuffix
 
         val assessment = executeOaiStreaming(
@@ -386,8 +546,23 @@ class NativeInferenceEngine(
         val shortAddress = "Road coordinates (${lat?.let { "%.5f".format(it) }}, ${lng?.let { "%.5f".format(it) }})"
 
         // Save evidence image to disk
-        val photoFile = saveEvidenceImage(primaryFrame.bitmap, driveId, captureSeq)
-        val photoThumbUrl = roadDataUrls.getOrElse(primaryIndex) { roadDataUrls[0] }
+        val photoFile = saveEvidenceImage(
+            primaryFrame.bitmap, driveId, captureSeq, evidenceLease
+        )
+        // The service's worker-level finally block becomes the owner immediately. This hand-off
+        // must precede thumbnail/JSON/entity allocation and the suspend-function return boundary;
+        // otherwise an OOM or prompt cancellation can strand a JPEG the caller never learns about.
+        NativeInferenceEvidenceOwnership.handOff(photoFile, onEvidenceSaved)
+        val photoThumbJpeg = FrameQualityEvaluator.bitmapToBoundedJpegBytes(
+            primaryFrame.bitmap,
+            NativeStoredImagePolicy.MAX_ROOM_THUMB_IMAGE_BYTES,
+            NativeStoredImagePolicy.ROOM_THUMB_MAX_DIMENSION,
+            78
+        )
+        val photoThumbUrl = photoThumbJpeg?.let {
+            "data:image/jpeg;base64," +
+                AndroidBase64.encodeToString(it, AndroidBase64.NO_WRAP)
+        }
 
         val sourceEventKey = "live:$driveId:$captureSeq"
 
@@ -424,7 +599,7 @@ class NativeInferenceEngine(
             imageDetail = detail,
             promptVersion = PROMPT_VERSION,
             schemaVersion = SCHEMA_VERSION,
-            evidenceCount = imageInputs.size,
+            evidenceCount = evidenceCount,
             driveId = driveId,
             captureSource = "drive_live",
             sourceEventKey = sourceEventKey,
@@ -464,6 +639,9 @@ class NativeInferenceEngine(
             reportEntity = reportEntity,
             sightings = listOf(sighting)
         )
+        } finally {
+            NativeReportEvidenceStorage.releaseInferenceCapacity(evidenceLease)
+        }
     }
 
     /**
@@ -477,23 +655,30 @@ class NativeInferenceEngine(
         burstFrames: List<BurstFrame>,
         primaryIndex: Int,
         driveId: String,
-        captureSeq: Int
+        captureSeq: Int,
+        onEvidenceSaved: (String) -> Unit
     ): RepairVerificationResult? = withContext(Dispatchers.IO) {
         if (burstFrames.isEmpty()) return@withContext null
-        val historical = fileDataUrl(target.photoPath, target.photoMime)
-            ?: return@withContext null
+        val evidenceLease = NativeReportEvidenceStorage.reserveInferenceCapacity(context)
+        try {
         val safePrimary = primaryIndex.coerceIn(0, burstFrames.lastIndex)
         val primary = burstFrames[safePrimary]
 
-        val images = mutableListOf(
-            historical,
-            FrameQualityEvaluator.prepareContextDataUrl(primary.bitmap, 768, 82)
-        )
-        images.addAll(burstFrames.map {
-            FrameQualityEvaluator.prepareRoadBandDataUrl(it.bitmap, 1920, 85, true)
-        })
+        val images = ArrayList<String>(burstFrames.size + 2)
+        images += fileDataUrl(target.photoPath, target.photoMime)
+            ?: return@withContext null
+        images += FrameQualityEvaluator.prepareContextDataUrl(primary.bitmap, 768, 82)
+        burstFrames.forEach { frame ->
+            images += FrameQualityEvaluator.prepareRoadBandDataUrl(
+                frame.bitmap,
+                FrameQualityEvaluator.MAX_PREPARED_ROAD_DIMENSION,
+                85,
+                true
+            )
+        }
+        val repairImageCount = images.size
         val layout = "\n- Input layout: image 1 is historical evidence; image 2 is " +
-            "current full-frame context; images 3-${images.size} are the complete current " +
+            "current full-frame context; images 3-$repairImageCount are the complete current " +
             "lower-road burst in chronological order; its sharpest crop is image ${safePrimary + 3}."
         val languageNote = when (language) {
             "kn" -> "\n- Write description in formal Kannada."
@@ -511,8 +696,9 @@ class NativeInferenceEngine(
         ) ?: return@withContext null
 
         val currentPhoto = saveRepairEvidenceImage(
-            primary.bitmap, driveId, target.reportId, captureSeq
+            primary.bitmap, driveId, target.reportId, captureSeq, evidenceLease
         )
+        NativeInferenceEvidenceOwnership.handOff(currentPhoto, onEvidenceSaved)
         RepairVerificationResult(
             currentCondition = mappedCondition,
             assessment = assessment.assessment,
@@ -526,15 +712,24 @@ class NativeInferenceEngine(
             promptVersion = REPAIR_PROMPT_VERSION,
             schemaVersion = REPAIR_SCHEMA_VERSION
         )
+        } finally {
+            NativeReportEvidenceStorage.releaseInferenceCapacity(evidenceLease)
+        }
     }
 
     private fun executeOaiStreaming(
-        imageUrls: List<String>,
+        imageUrls: MutableList<String>,
         prompt: String,
         allowEarlyReject: Boolean = true
     ): AssessmentResult {
-        val requestJson = buildRequestBody(imageUrls, prompt)
-        val body = requestJson.toString().toRequestBody("application/json".toMediaType())
+        val body = try {
+            buildRequestBody(imageUrls, prompt).toString()
+                .toRequestBody("application/json".toMediaType())
+        } finally {
+            // RequestBody owns its encoded bytes. Drop the second set of large Base64
+            // strings before blocking on connect/read timeouts.
+            imageUrls.clear()
+        }
 
         val request = Request.Builder()
             .url(OAI_URL)
@@ -543,109 +738,169 @@ class NativeInferenceEngine(
             .post(body)
             .build()
 
-        val call = okHttpClient.newCall(request)
-        val response = call.execute()
-
-        if (!response.isSuccessful) {
-            val code = response.code
-            response.close()
-            val message = when (code) {
-                401 -> "OpenAI rejected the API key"
-                403 -> "This API key cannot use the selected model"
-                429 -> "OpenAI rate limit or credit exhausted"
-                in 500..599 -> "OpenAI is temporarily unavailable"
-                else -> "OpenAI rejected the detection request ($code)"
+        return withTrackedCall(request) { call ->
+            val response = try {
+                call.execute()
+            } catch (error: IOException) {
+                throw retryableFailure("OpenAI detection connection failed", error)
             }
-            throw NativeInferenceException(message, fatal = code == 401 || code == 403 || code == 429)
-        }
 
-        val responseBody = response.body ?: run {
-            response.close()
-            throw NativeInferenceException("Empty response body from OpenAI")
-        }
-        val reader = responseBody.charStream().buffered()
-        val textBuilder = StringBuilder()
-        var earlyRejected = false
-        var transportCompleted = false
-
-        try {
-            var line: String?
-            while (reader.readLine().also { line = it } != null) {
-                val l = line?.trim() ?: continue
-                if (!l.startsWith("data:")) continue
-                val payload = l.substring(5).trim()
-                if (payload.isEmpty()) continue
-                if (payload == "[DONE]") {
-                    transportCompleted = true
-                    continue
+            if (!response.isSuccessful) {
+                val code = response.code
+                val retryAfter = response.header("Retry-After")
+                response.close()
+                val message = when (code) {
+                    401 -> "OpenAI rejected the API key"
+                    403 -> "This API key cannot use the selected model"
+                    400 -> "OpenAI rejected the model or structured-output request (400)"
+                    404 -> "The selected OpenAI model or endpoint was not found (404)"
+                    429 -> "OpenAI rate limit or credit exhausted"
+                    in 500..599 -> "OpenAI is temporarily unavailable"
+                    else -> "OpenAI rejected the detection request ($code)"
                 }
+                val suspendInference = NativeInferenceHttpFailurePolicy.shouldSuspendInference(code)
+                val retryDelay = if (NativeInferenceHttpFailurePolicy.isTransient(code)) {
+                    NativeInferenceHttpFailurePolicy.retryDelayMs(
+                        code,
+                        retryAfter,
+                        consecutiveRetryableHttpFailures++
+                    )
+                } else null
+                throw NativeInferenceException(
+                    message,
+                    suspendInference = suspendInference,
+                    retryAfterMs = retryDelay
+                )
+            }
+            val responseBody = response.body ?: run {
+                response.close()
+                throw retryableFailure("Empty response body from OpenAI")
+            }
+            val reader = responseBody.charStream().buffered()
+            val textAccumulator = NativeSseTextAccumulator()
+            var earlyRejected = false
+            var transportCompleted = false
 
-                try {
-                    val ev = JSONObject(payload)
+            try {
+                var line: String?
+                while (reader.readLine().also { line = it } != null) {
+                    val l = line?.trim() ?: continue
+                    if (!l.startsWith("data:")) continue
+                    val payload = l.substring(5).trim()
+                    if (payload.isEmpty()) continue
+                    if (payload == "[DONE]") {
+                        transportCompleted = true
+                        continue
+                    }
+
+                    val ev = try {
+                        JSONObject(payload)
+                    } catch (_: Exception) {
+                        continue
+                    }
                     val type = ev.optString("type")
                     if (type == "response.completed") transportCompleted = true
                     if (type == "response.output_text.delta") {
                         val delta = ev.optString("delta", "")
-                        textBuilder.append(delta)
+                        if (!textAccumulator.append(delta)) {
+                            call.cancel()
+                            // With an explicit output-token ceiling, repeatedly receiving more
+                            // than this is a deterministic protocol/configuration failure rather
+                            // than a network interruption. Pause API work instead of filling the
+                            // durable replay queue with the same oversized response.
+                            throw NativeInferenceException(
+                                "OpenAI detection response exceeded the 64 KiB safety limit",
+                                suspendInference = true
+                            )
+                        }
 
-                        if (allowEarlyReject && !debug && peekReject(textBuilder.toString())) {
+                        if (allowEarlyReject && !debug && peekReject(textAccumulator.snapshot())) {
                             earlyRejected = true
                             call.cancel()
                             break
                         }
                     }
-                } catch (_: Exception) {}
+                }
+            } catch (error: NativeInferenceException) {
+                throw error
+            } catch (_: IOException) {
+                // The explicit terminal event below distinguishes a complete stream from a
+                // clean or exceptional truncation. Intentional early rejection is separate.
+            } finally {
+                response.close()
             }
-        } catch (_: IOException) {
-            // The explicit terminal event below distinguishes a complete stream from a
-            // clean or exceptional truncation. Intentional early rejection is separate.
-        } finally {
-            response.close()
-        }
 
-        val text = textBuilder.toString()
-        return NativeDetectionStreamCompletionPolicy.requireVerdict(
-            completeVerdict = if (!earlyRejected && transportCompleted) {
-                NativeCompleteVerdictParser.parse(text)
-            } else null,
-            intentionalEarlyReject = if (earlyRejected) rejectedVerdict(text) else null,
-            transportCompleted = transportCompleted
-        )
+            val text = textAccumulator.snapshot()
+            val verdict = try {
+                NativeDetectionStreamCompletionPolicy.requireVerdict(
+                    completeVerdict = if (!earlyRejected && transportCompleted) {
+                        NativeCompleteVerdictParser.parse(text)
+                    } else null,
+                    intentionalEarlyReject = if (earlyRejected) rejectedVerdict(text) else null,
+                    transportCompleted = transportCompleted
+                )
+            } catch (error: Exception) {
+                throw normalizeRetryableFailure(error, "OpenAI detection response was incomplete")
+            }
+            consecutiveRetryableHttpFailures = 0
+            verdict
+        }
     }
 
     private fun executeRepairStreaming(
-        imageUrls: List<String>,
+        imageUrls: MutableList<String>,
         prompt: String
     ): RepairModelAssessment {
-        val requestJson = buildRepairRequestBody(imageUrls, prompt)
-        val body = requestJson.toString().toRequestBody("application/json".toMediaType())
+        val body = try {
+            buildRepairRequestBody(imageUrls, prompt).toString()
+                .toRequestBody("application/json".toMediaType())
+        } finally {
+            imageUrls.clear()
+        }
         val request = Request.Builder()
             .url(OAI_URL)
             .addHeader("Authorization", "Bearer $apiKey")
             .addHeader("Content-Type", "application/json")
             .post(body)
             .build()
-        val response = okHttpClient.newCall(request).execute()
+        return withTrackedCall(request) { call ->
+        val response = try {
+            call.execute()
+        } catch (error: IOException) {
+            throw retryableFailure("OpenAI repair-check connection failed", error)
+        }
         if (!response.isSuccessful) {
             val code = response.code
+            val retryAfter = response.header("Retry-After")
             response.close()
             val message = when (code) {
                 401 -> "OpenAI rejected the API key"
                 403 -> "This API key cannot use the selected model"
+                400 -> "OpenAI rejected the repair model or structured-output request (400)"
+                404 -> "The selected OpenAI repair model or endpoint was not found (404)"
                 429 -> "OpenAI rate limit or credit exhausted"
                 in 500..599 -> "OpenAI is temporarily unavailable"
                 else -> "OpenAI rejected the repair check ($code)"
             }
+            val suspendInference = NativeInferenceHttpFailurePolicy.shouldSuspendInference(code)
+            val retryDelay = if (NativeInferenceHttpFailurePolicy.isTransient(code)) {
+                NativeInferenceHttpFailurePolicy.retryDelayMs(
+                    code,
+                    retryAfter,
+                    consecutiveRetryableHttpFailures++
+                )
+            } else null
             throw NativeInferenceException(
-                message, fatal = code == 401 || code == 403 || code == 429
+                message,
+                suspendInference = suspendInference,
+                retryAfterMs = retryDelay
             )
         }
-
         val responseBody = response.body ?: run {
             response.close()
-            throw NativeInferenceException("Empty repair-check response from OpenAI")
+            throw retryableFailure("Empty repair-check response from OpenAI")
         }
-        val textBuilder = StringBuilder()
+        val textAccumulator = NativeSseTextAccumulator()
         var transportCompleted = false
         try {
             responseBody.charStream().buffered().useLines { lines ->
@@ -658,25 +913,43 @@ class NativeInferenceEngine(
                         transportCompleted = true
                         return@forEach
                     }
-                    try {
-                        val event = JSONObject(payload)
-                        if (event.optString("type") == "response.completed") {
-                            transportCompleted = true
-                        }
-                        if (event.optString("type") == "response.output_text.delta") {
-                            textBuilder.append(event.optString("delta", ""))
-                        }
-                    } catch (_: Exception) {}
+                    val event = try {
+                        JSONObject(payload)
+                    } catch (_: Exception) {
+                        return@forEach
+                    }
+                    if (event.optString("type") == "response.completed") {
+                        transportCompleted = true
+                    }
+                    if (event.optString("type") == "response.output_text.delta" &&
+                        !textAccumulator.append(event.optString("delta", ""))
+                    ) {
+                        throw NativeInferenceException(
+                            "OpenAI repair-check response exceeded the 64 KiB safety limit",
+                            suspendInference = true
+                        )
+                    }
                 }
             }
+        } catch (error: NativeInferenceException) {
+            throw error
+        } catch (error: IOException) {
+            throw retryableFailure("OpenAI repair-check stream was interrupted", error)
         } finally {
             response.close()
         }
-        NativeStreamCompletionPolicy.requireCompleted(
-            transportCompleted,
-            "OpenAI repair-check stream was interrupted"
-        )
-        return parseRepairAssessment(textBuilder.toString())
+        val assessment = try {
+            NativeStreamCompletionPolicy.requireCompleted(
+                transportCompleted,
+                "OpenAI repair-check stream was interrupted"
+            )
+            parseRepairAssessment(textAccumulator.snapshot())
+        } catch (error: Exception) {
+            throw normalizeRetryableFailure(error, "OpenAI repair-check response was incomplete")
+        }
+        consecutiveRetryableHttpFailures = 0
+        assessment
+        }
     }
 
     private fun buildRequestBody(imageUrls: List<String>, prompt: String): JSONObject {
@@ -738,6 +1011,7 @@ class NativeInferenceEngine(
         req.put("text", textConfig)
         req.put("stream", true)
         req.put("store", false)
+        req.put("max_output_tokens", MAX_DETECTION_OUTPUT_TOKENS)
 
         val reasoningObj = JSONObject()
         // Exact owner-video regression uses low reasoning for Drive: it preserves every
@@ -796,6 +1070,7 @@ class NativeInferenceEngine(
             })
             put("stream", true)
             put("store", false)
+            put("max_output_tokens", MAX_REPAIR_OUTPUT_TOKENS)
             put("reasoning", JSONObject().put(
                 "effort", if (model == "gpt-5.6") "none" else "minimal"
             ))
@@ -824,7 +1099,11 @@ class NativeInferenceEngine(
                 description = json.getString("description").take(1000)
             )
         } catch (error: Exception) {
-            throw NativeInferenceException("OpenAI returned an invalid repair assessment")
+            throw NativeInferenceException(
+                "OpenAI returned an invalid completed repair assessment",
+                suspendInference = true,
+                cause = error
+            )
         }
     }
 
@@ -954,7 +1233,7 @@ class NativeInferenceEngine(
                     .addHeader("User-Agent", "PotholeReporter/1.20 (Android Native FGS)")
                     .build()
 
-                okHttpClient.newCall(request).execute().use { response ->
+                withTrackedCall(request) { call -> call.execute().use { response ->
                     if (!response.isSuccessful) return@withContext null
                     val bodyStr = response.body?.string() ?: return@withContext null
                     val json = JSONObject(bodyStr)
@@ -984,7 +1263,7 @@ class NativeInferenceEngine(
                     if (pc.isNotEmpty()) parts.add(pc)
 
                     if (parts.isNotEmpty()) parts.joinToString(", ") else if (json.has("display_name")) json.getString("display_name") else null
-                }
+                } }
             } catch (_: Exception) {
                 null
             }
@@ -1034,22 +1313,29 @@ class NativeInferenceEngine(
         return Pair(subject, body)
     }
 
-    private fun saveEvidenceImage(bitmap: Bitmap, driveId: String, seq: Int): File {
+    private suspend fun saveEvidenceImage(
+        bitmap: Bitmap,
+        driveId: String,
+        seq: Int,
+        lease: NativeReportEvidenceStorage.InferenceCapacityLease
+    ): File {
         val safeDriveId = driveId.replace(Regex("[^A-Za-z0-9_-]"), "_").take(128)
         val dir = File(context.filesDir, "reports/$safeDriveId")
         return saveJpegAtomically(
             bitmap,
             dir,
             "evidence_${seq}_${System.currentTimeMillis()}.jpg",
-            92
+            92,
+            lease
         )
     }
 
-    private fun saveRepairEvidenceImage(
+    private suspend fun saveRepairEvidenceImage(
         bitmap: Bitmap,
         driveId: String,
         targetReportId: Long,
-        seq: Int
+        seq: Int,
+        lease: NativeReportEvidenceStorage.InferenceCapacityLease
     ): File {
         val safeDriveId = driveId.replace(Regex("[^A-Za-z0-9_-]"), "_").take(128)
         val dir = File(context.filesDir, "reports/$safeDriveId")
@@ -1057,15 +1343,17 @@ class NativeInferenceEngine(
             bitmap,
             dir,
             "repair_${targetReportId}_${seq}_${System.currentTimeMillis()}.jpg",
-            88
+            88,
+            lease
         )
     }
 
-    private fun saveJpegAtomically(
+    private suspend fun saveJpegAtomically(
         bitmap: Bitmap,
         directory: File,
         fileName: String,
-        quality: Int
+        quality: Int,
+        lease: NativeReportEvidenceStorage.InferenceCapacityLease
     ): File {
         val jpeg = FrameQualityEvaluator.bitmapToBoundedJpegBytes(
             bitmap = bitmap,
@@ -1073,33 +1361,22 @@ class NativeInferenceEngine(
             maxDimension = NativeStoredImagePolicy.EVIDENCE_MAX_DIMENSION,
             initialQuality = quality
         ) ?: throw NativeInferenceException("Could not encode evidence within the safe image limit")
-        if (context.filesDir.usableSpace < NativeMediaStorageQuota.MIN_FREE_BYTES + jpeg.size) {
-            throw NativeInferenceException("At least 500 MB of free storage is required")
-        }
-        if (!directory.exists() && !directory.mkdirs()) {
-            throw NativeInferenceException("Could not create private evidence storage")
-        }
-        val file = File(directory, fileName)
-        val temporary = File(directory, ".$fileName.tmp")
-        try {
-            FileOutputStream(temporary).use { out -> out.write(jpeg) }
-            if (temporary.length() != jpeg.size.toLong() ||
-                temporary.length() > NativeStoredImagePolicy.MAX_BRIDGE_IMAGE_BYTES) {
-                throw NativeInferenceException("Evidence image is empty or too large")
-            }
-            val committed = temporary.renameTo(file) || runCatching {
-                temporary.copyTo(file, overwrite = true)
-                NativeRetryableFileCleanup.deleteVerified(temporary) && file.isFile
-            }.getOrDefault(false)
-            if (!committed || !file.isFile || file.length() <= 0L) {
-                throw NativeInferenceException("Could not commit evidence image")
-            }
-            return file
+        return try {
+            NativeReportEvidenceStorage.saveJpegAtomically(
+                context,
+                directory,
+                fileName,
+                jpeg,
+                lease
+            )
+        } catch (error: NativeInferenceException) {
+            throw error
         } catch (error: Exception) {
-            NativeRetryableFileCleanup.deleteVerified(temporary)
-            NativeRetryableFileCleanup.deleteVerified(file)
-            if (error is NativeInferenceException) throw error
-            throw NativeInferenceException("Could not save evidence image: ${error.message ?: "storage error"}")
+            throw NativeInferenceException(
+                "Could not save evidence image: ${error.message ?: "storage error"}",
+                suspendInference = true,
+                cause = error
+            )
         }
     }
 
@@ -1114,7 +1391,19 @@ class NativeInferenceEngine(
     }
 
     fun close() {
-        okHttpClient.dispatcher.cancelAll()
-        okHttpClient.connectionPool.evictAll()
+        val calls = synchronized(activeCallLock) {
+            engineClosed = true
+            activeCalls.toList()
+        }
+        var firstFailure: Throwable? = null
+        fun attempt(block: () -> Unit) {
+            runCatching(block).onFailure { error ->
+                if (firstFailure == null) firstFailure = error
+            }
+        }
+        calls.forEach { call -> attempt(call::cancel) }
+        attempt(okHttpClient.dispatcher::cancelAll)
+        attempt(okHttpClient.connectionPool::evictAll)
+        firstFailure?.let { throw it }
     }
 }

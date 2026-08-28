@@ -10,7 +10,7 @@ import org.junit.Test
 class NativeMediaStorageQuotaTest {
     @Test
     fun requiresFilesystemReconciliationBeforeAnyWriterCanReserve() {
-        val quota = NativeMediaStorageQuota(maxTotalBytes = 100, minFreeBytes = 10)
+        val quota = isolatedQuota(maxTotalBytes = 100, minFreeBytes = 10)
 
         assertNull(quota.tryReserve(20, usableSpaceBytes = 100))
         quota.reconcile(30)
@@ -19,7 +19,7 @@ class NativeMediaStorageQuotaTest {
 
     @Test
     fun videoAndKeyframesReserveAgainstOneConcurrentCap() {
-        val quota = NativeMediaStorageQuota(maxTotalBytes = 100, minFreeBytes = 10)
+        val quota = isolatedQuota(maxTotalBytes = 100, minFreeBytes = 10)
         quota.reconcile(25)
 
         val video = quota.tryReserve(60, usableSpaceBytes = 1_000)
@@ -35,7 +35,7 @@ class NativeMediaStorageQuotaTest {
 
     @Test
     fun preservesFreeSpaceAndReclaimsCommittedBytesAfterDeletion() {
-        val quota = NativeMediaStorageQuota(maxTotalBytes = 100, minFreeBytes = 40)
+        val quota = isolatedQuota(maxTotalBytes = 100, minFreeBytes = 40)
         quota.reconcile(80)
 
         assertNull(quota.tryReserve(10, usableSpaceBytes = 49))
@@ -47,7 +47,7 @@ class NativeMediaStorageQuotaTest {
 
     @Test
     fun concurrentReservationsAlsoShareTheFreeSpaceAllowance() {
-        val quota = NativeMediaStorageQuota(maxTotalBytes = 1_000, minFreeBytes = 40)
+        val quota = isolatedQuota(maxTotalBytes = 1_000, minFreeBytes = 40)
         quota.reconcile(0)
 
         assertNotNull(quota.tryReserve(35, usableSpaceBytes = 100))
@@ -56,8 +56,38 @@ class NativeMediaStorageQuotaTest {
     }
 
     @Test
+    fun driveAndReportQuotasCannotJointlyConsumeTheSharedFreeSpaceFloor() {
+        val sharedFreeSpace = NativeFreeSpaceReservationLedger()
+        val floor = 500L * 1024L * 1024L
+        val videoBytes = 80L * 1024L * 1024L
+        val evidenceBytes = 2L * 1024L * 1024L
+        val usableSpace = floor + videoBytes + evidenceBytes - 1L
+        val driveQuota = NativeMediaStorageQuota(
+            maxTotalBytes = 4L * 1024L * 1024L * 1024L,
+            minFreeBytes = floor,
+            freeSpaceReservations = sharedFreeSpace
+        )
+        val reportQuota = NativeMediaStorageQuota(
+            maxTotalBytes = 512L * 1024L * 1024L,
+            minFreeBytes = floor,
+            freeSpaceReservations = sharedFreeSpace
+        )
+        driveQuota.reconcile(0L)
+        reportQuota.reconcile(0L)
+
+        val video = driveQuota.tryReserve(videoBytes, usableSpace)
+        assertNotNull(video)
+        assertNull(reportQuota.tryReserve(evidenceBytes, usableSpace))
+
+        driveQuota.release(video!!)
+        val evidence = reportQuota.tryReserve(evidenceBytes, usableSpace)
+        assertNotNull(evidence)
+        reportQuota.release(evidence!!)
+    }
+
+    @Test
     fun oversizedCommitIsRejectedWithoutConsumingTheReservation() {
-        val quota = NativeMediaStorageQuota(maxTotalBytes = 100, minFreeBytes = 0)
+        val quota = isolatedQuota(maxTotalBytes = 100, minFreeBytes = 0)
         quota.reconcile(10)
         val reservation = quota.tryReserve(20, usableSpaceBytes = 1_000)!!
 
@@ -70,7 +100,7 @@ class NativeMediaStorageQuotaTest {
 
     @Test
     fun rejectedFileThatCannotBeDeletedRemainsAccounted() {
-        val quota = NativeMediaStorageQuota(maxTotalBytes = 100, minFreeBytes = 0)
+        val quota = isolatedQuota(maxTotalBytes = 100, minFreeBytes = 0)
         quota.reconcile(10)
         val reservation = quota.tryReserve(20, usableSpaceBytes = 1_000)!!
 
@@ -80,4 +110,11 @@ class NativeMediaStorageQuotaTest {
 
         assertEquals(31L, quota.accountedBytes())
     }
+
+    private fun isolatedQuota(maxTotalBytes: Long, minFreeBytes: Long) =
+        NativeMediaStorageQuota(
+            maxTotalBytes = maxTotalBytes,
+            minFreeBytes = minFreeBytes,
+            freeSpaceReservations = NativeFreeSpaceReservationLedger()
+        )
 }

@@ -9,53 +9,92 @@ import java.io.File
 import java.security.MessageDigest
 import org.json.JSONArray
 import org.json.JSONObject
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Exports the exact JPEG inputs prepared by Android Drive from a private five-sample
- * rolling window. Production sends samples 0/2/4 as one three-frame live burst. The
- * optional durable-pair mode additionally exercises the exact bounded-JPEG persistence
- * and reload path used when a saved keyframe is replayed through the WebView.
+ * Exports the exact JPEG inputs prepared by Android Drive from its private three-sample
+ * rolling window. Production sends all three samples as one chronological live burst. The
+ * optional durable-burst mode additionally exercises the bounded-JPEG persistence and
+ * reload path used when a saved keyframe is replayed through the WebView.
  *
  * Input and output stay in the target app's private files directory. No evaluation images
  * are packaged in the test APK:
  *
- *   files/native-eval-input/<event>/f0.jpg .. f4.jpg
- *   files/native-eval-output/<event>/{JPEGs,manifest.json}
+ *   files/native-eval-input/<event>/f0.jpg .. f2.jpg
+ *   files/native-eval-output/<event>/{source/f0.jpg..f2.jpg,JPEGs,manifest.json}
  *
  * Instrumentation arguments:
  *
  *   event=<safe event name>
- *   sourceMode=live | durable-pair (live by default)
- *   sourceTimestampsMs=<five comma-separated, positive, strictly increasing timestamps>
+ *   sourceMode=live | durable-burst (live by default)
+ *   capturedAtElapsedMs=<three comma-separated monotonic capture times in milliseconds>
+ *   sourceTimestampNs=<three comma-separated CameraX source times in nanoseconds>
+ *   captureRequestElapsedMs=<positive monotonic time at the production capture request>
  *
- * Callers producing a production-faithful durable fixture must supply the real timestamps;
- * a deterministic production-cadence fallback remains available for existing live fixtures.
+ * Both independent clocks are mandatory because production uses CameraX nanoseconds for
+ * analyzer cadence and elapsed-realtime milliseconds for rolling-window age/span.
  */
 @RunWith(AndroidJUnit4::class)
 class NativeEvalExporterInstrumentedTest {
     @Test
     fun exportProductionPreparedBurst() {
         val arguments = InstrumentationRegistry.getArguments()
-        val event = requireEventName(arguments.getString("event"))
+        val eventArgument = arguments.getString("event")
+        // This is an argument-driven fixture exporter, not a normal device assertion.
+        // Keep the ordinary connected test suite green while still failing closed when
+        // a caller explicitly supplies a malformed event name.
+        assumeTrue("native evaluator export requires -e event <name>", eventArgument != null)
+        val event = requireEventName(eventArgument)
         val sourceMode = SourceMode.parse(arguments.getString("sourceMode"))
-        val timestampArgument = arguments.getString("sourceTimestampsMs")
-        val sourceTimestampsMs = parseSourceTimestamps(timestampArgument)
-        if (sourceMode == SourceMode.DURABLE_PAIR) {
-            require(timestampArgument != null) {
-                "sourceTimestampsMs is required for a production-faithful durable-pair export"
+        val capturedAtElapsedMs = parseThreePositiveChronological(
+            arguments.getString("capturedAtElapsedMs"),
+            "capturedAtElapsedMs"
+        )
+        val sourceTimestampNs = parseThreePositiveChronological(
+            arguments.getString("sourceTimestampNs"),
+            "sourceTimestampNs"
+        )
+        val captureRequestElapsedMs = arguments.getString("captureRequestElapsedMs")
+            ?.trim()?.toLongOrNull()
+            ?: error("captureRequestElapsedMs is required and must be an integer")
+        require(captureRequestElapsedMs > 0L) {
+            "captureRequestElapsedMs must be positive"
+        }
+        require(captureRequestElapsedMs >= capturedAtElapsedMs.last()) {
+            "captureRequestElapsedMs must not precede the newest source frame"
+        }
+        var lastSampleTimestampNs = 0L
+        sourceTimestampNs.forEach { timestampNs ->
+            require(
+                NativeAnalyzerSamplingPolicy.shouldConvert(
+                    enabled = true,
+                    requested = true,
+                    destroyed = false,
+                    cameraReady = true,
+                    graphCurrent = true,
+                    sourceTimestampNs = timestampNs,
+                    lastSampleTimestampNs = lastSampleTimestampNs,
+                    minimumSpacingNs = NativeRollingBurstWindow.SAMPLE_SPACING_NS
+                )
+            ) {
+                "sourceTimestampNs violates the production analyzer cadence"
             }
+            lastSampleTimestampNs = timestampNs
         }
 
         val filesDir = InstrumentationRegistry.getInstrumentation().targetContext.filesDir
         val inputDir = File(filesDir, "native-eval-input/$event")
         val outputDir = File(filesDir, "native-eval-output/$event")
-        val frames = INPUT_FRAME_INDICES.map { index ->
+        val inputFiles = INPUT_FRAME_INDICES.map { index ->
             val input = File(inputDir, "f$index.jpg")
             require(input.isFile && input.length() > 0L) {
                 "Missing non-empty native evaluation input: ${input.absolutePath}"
             }
+            input
+        }
+        val frames = inputFiles.map { input ->
             BitmapFactory.decodeFile(input.absolutePath)
                 ?: error("Could not decode native evaluation input: ${input.absolutePath}")
         }
@@ -72,18 +111,17 @@ class NativeEvalExporterInstrumentedTest {
 
             val rollingSourceIndexes = NativeRollingBurstWindow.selectSourceIndexes(
                 INPUT_FRAME_INDICES.map { index ->
-                    val capturedAtMs = sourceTimestampsMs[index]
                     NativeRollingBurstWindow.Sample(
-                        capturedAtMs,
-                        capturedAtMs * 1_000_000L,
+                        capturedAtElapsedMs[index],
+                        sourceTimestampNs[index],
                         generation = 1L
                     )
                 },
-                nowMs = sourceTimestampsMs.last() + 1L,
+                nowElapsedMs = captureRequestElapsedMs,
                 expectedGeneration = 1L
             ) ?: error("Production rolling-window policy rejected the evaluator samples")
             val selectedFrames = rollingSourceIndexes.map(frames::get)
-            val selectedTimestampsMs = rollingSourceIndexes.map(sourceTimestampsMs::get)
+            val selectedTimestampsMs = rollingSourceIndexes.map(capturedAtElapsedMs::get)
             val qualities = selectedFrames.map(FrameQualityEvaluator::evaluateRoadFrameQuality)
             val livePrimaryIndex = FrameQualityEvaluator.selectBestBurstIndex(qualities)
             val primarySourceIndex = rollingSourceIndexes[livePrimaryIndex]
@@ -95,7 +133,7 @@ class NativeEvalExporterInstrumentedTest {
                     primaryIndex = livePrimaryIndex,
                     recycleFrames = false
                 )
-                SourceMode.DURABLE_PAIR -> prepareDurablePair(
+                SourceMode.DURABLE_BURST -> prepareDurableBurst(
                     outputDir = outputDir,
                     selectedFrames = selectedFrames,
                     selectedTimestampsMs = selectedTimestampsMs,
@@ -120,7 +158,10 @@ class NativeEvalExporterInstrumentedTest {
                         role = "road_band",
                         sourceIndex = request.sourceIndexes[index],
                         dataUrl = FrameQualityEvaluator.prepareRoadBandDataUrl(
-                            bitmap, maxDim = 1920, quality = 85, boost = true
+                            bitmap,
+                            maxDim = FrameQualityEvaluator.MAX_PREPARED_ROAD_DIMENSION,
+                            quality = 85,
+                            boost = true
                         )
                     )
                 }
@@ -152,36 +193,68 @@ class NativeEvalExporterInstrumentedTest {
                     }
                 }
 
-                val requestTimestampsMs = request.sourceIndexes.map(sourceTimestampsMs::get)
+                val requestTimestampsMs = request.sourceIndexes.map(capturedAtElapsedMs::get)
                 val imageOrder = if (sourceMode == SourceMode.LIVE) {
-                    "primary context, then selected f0/f2/f4 road bands"
+                    "primary context, then selected f0/f1/f2 road bands"
                 } else {
-                    "reloaded primary context, then persisted pair road bands in camera-time order"
+                    "reloaded primary context, then persisted burst road bands in camera-time order"
+                }
+                val sourceFrameManifest = JSONArray()
+                val exportedSourceDir = File(outputDir, "source")
+                check(exportedSourceDir.mkdirs()) {
+                    "Could not create exported source directory: ${exportedSourceDir.absolutePath}"
+                }
+                inputFiles.forEachIndexed { index, input ->
+                    val bytes = input.readBytes()
+                    val exportedSource = File(exportedSourceDir, "f$index.jpg")
+                    exportedSource.writeBytes(bytes)
+                    check(exportedSource.length() == bytes.size.toLong()) {
+                        "Could not export complete source frame: ${exportedSource.absolutePath}"
+                    }
+                    sourceFrameManifest.put(
+                        JSONObject()
+                            .put("index", index)
+                            .put("file", "source/${exportedSource.name}")
+                            .put("sha256", sha256(bytes))
+                            .put("bytes", bytes.size)
+                            .put("width", frames[index].width)
+                            .put("height", frames[index].height)
+                    )
                 }
                 val manifest = JSONObject()
                     .put("event", event)
                     .put("source_mode", sourceMode.argument)
-                    .put("timestamp_provenance", if (timestampArgument == null) {
-                        "production-cadence fallback"
-                    } else {
-                        "instrumentation argument"
-                    })
+                    .put("timestamp_provenance", "instrumentation arguments")
                     .put("primary_index", request.primaryIndex)
                     .put("live_primary_index", livePrimaryIndex)
                     .put("primary_source_index", primarySourceIndex)
                     .put("rolling_source_frame_indices", JSONArray(rollingSourceIndexes))
                     .put("source_frame_indices", JSONArray(request.sourceIndexes))
-                    .put("source_timestamps_ms", JSONArray(sourceTimestampsMs))
-                    .put("request_source_timestamps_ms", JSONArray(requestTimestampsMs))
+                    .put("captured_at_elapsed_ms", JSONArray(capturedAtElapsedMs))
+                    .put("source_timestamps_ns", JSONArray(sourceTimestampNs))
+                    .put("capture_request_elapsed_ms", captureRequestElapsedMs)
+                    .put("request_captured_at_elapsed_ms", JSONArray(requestTimestampsMs))
+                    .put(
+                        "capture_policy",
+                        JSONObject()
+                            .put("capacity", NativeRollingBurstWindow.CAPACITY)
+                            .put("output_count", NativeRollingBurstWindow.OUTPUT_COUNT)
+                            .put("sample_spacing_ms", NativeRollingBurstWindow.SAMPLE_SPACING_MS)
+                            .put("min_window_span_ms", NativeRollingBurstWindow.MIN_WINDOW_SPAN_MS)
+                            .put("max_oldest_age_ms", NativeRollingBurstWindow.MAX_OLDEST_AGE_MS)
+                    )
+                    .put("source_frames", sourceFrameManifest)
                     .put("quality_scores", JSONArray(qualities.map { it.score.toDouble() }))
                     .put("image_count", prepared.size)
                     .put("image_order", imageOrder)
                     .put("images", imageManifest)
-                if (sourceMode == SourceMode.DURABLE_PAIR) {
+                if (sourceMode == SourceMode.DURABLE_BURST) {
                     manifest.put(
                         "durable_persistence",
                         JSONObject()
+                            .put("image_count", NativeRollingBurstWindow.OUTPUT_COUNT)
                             .put("max_bytes_per_image", NativeStoredImagePolicy.MAX_KEYFRAME_IMAGE_BYTES)
+                            .put("max_total_bytes", NativeStoredImagePolicy.MAX_KEYFRAME_BURST_BYTES)
                             .put("max_dimension", NativeStoredImagePolicy.KEYFRAME_MAX_DIMENSION)
                             .put("initial_quality", KEYFRAME_JPEG_QUALITY)
                     )
@@ -202,17 +275,17 @@ class NativeEvalExporterInstrumentedTest {
     }
 
     /**
-     * Runs the same full-frame persistence transaction used by Drive, then resolves the
-     * saved pair with NativeKeyframeFiles before decoding it for replay preparation.
+     * Runs the same bounded full-frame encoding used by Drive, then resolves the saved
+     * burst with NativeKeyframeFiles before decoding it for replay preparation.
      */
-    private fun prepareDurablePair(
+    private fun prepareDurableBurst(
         outputDir: File,
         selectedFrames: List<Bitmap>,
         selectedTimestampsMs: List<Long>,
         rollingSourceIndexes: List<Int>,
         livePrimaryIndex: Int
     ): PreparedRequest {
-        val companionIndex = NativeKeyframeFiles.selectTemporalCompanionIndex(
+        val contextIndexes = NativeKeyframeFiles.selectTemporalContextIndexes(
             selectedTimestampsMs,
             livePrimaryIndex
         ) ?: error("Production keyframe policy rejected the evaluator timestamps")
@@ -224,12 +297,10 @@ class NativeEvalExporterInstrumentedTest {
             persistenceDir,
             captureSeq = 0,
             primarySourceIndex = livePrimaryIndex,
-            companionSourceIndex = companionIndex
+            contextSourceIndexes = contextIndexes
         )
-        val encodings = listOf(
-            plan.primaryFile to selectedFrames[livePrimaryIndex],
-            plan.companionFile to selectedFrames[companionIndex]
-        )
+        val persistenceSourceIndexes = listOf(livePrimaryIndex) + contextIndexes
+        val encodings = plan.files.zip(persistenceSourceIndexes.map(selectedFrames::get))
         encodings.forEach { (file, bitmap) ->
             val jpeg = FrameQualityEvaluator.bitmapToBoundedJpegBytes(
                 bitmap = bitmap,
@@ -245,8 +316,8 @@ class NativeEvalExporterInstrumentedTest {
         }
 
         val readSet = NativeKeyframeFiles.readSet(plan.primaryFile)
-        check(readSet.hasTemporalContext && readSet.isComplete && readSet.files.size == 2) {
-            "Production keyframe reader rejected the persisted evaluator pair"
+        check(readSet.hasTemporalContext && readSet.isComplete && readSet.files.size == 3) {
+            "Production keyframe reader rejected the persisted evaluator burst"
         }
         val decoded = mutableListOf<Bitmap>()
         try {
@@ -262,12 +333,16 @@ class NativeEvalExporterInstrumentedTest {
                 "Could not remove durable evaluator source files: ${persistenceDir.absolutePath}"
             }
         }
-        val sourceIndexes = readSet.files.map { file ->
-            if (file.name == plan.primaryFile.name) {
-                rollingSourceIndexes[livePrimaryIndex]
-            } else {
-                rollingSourceIndexes[companionIndex]
+        val sourceIndexByName = buildMap {
+            put(plan.primaryFile.name, livePrimaryIndex)
+            plan.contextFiles.zip(contextIndexes).forEach { (file, sourceIndex) ->
+                put(file.name, sourceIndex)
             }
+        }
+        val sourceIndexes = readSet.files.map { file ->
+            val selectedIndex = sourceIndexByName[file.name]
+                ?: error("Production keyframe reader returned an unknown evaluator file")
+            rollingSourceIndexes[selectedIndex]
         }
         return PreparedRequest(
             frames = decoded,
@@ -285,19 +360,19 @@ class NativeEvalExporterInstrumentedTest {
         return event
     }
 
-    private fun parseSourceTimestamps(value: String?): List<Long> {
+    private fun parseThreePositiveChronological(value: String?, name: String): List<Long> {
         val timestamps = value?.split(",")?.map { item ->
             item.trim().toLongOrNull()
-                ?: error("sourceTimestampsMs must contain only integer timestamps")
-        } ?: INPUT_FRAME_INDICES.map { index -> 1_000L + index * SAMPLE_SPACING_MS }
+                ?: error("$name must contain only integer timestamps")
+        } ?: error("$name is required")
         require(timestamps.size == INPUT_FRAME_INDICES.count()) {
-            "sourceTimestampsMs must contain exactly five timestamps"
+            "$name must contain exactly three timestamps"
         }
         require(timestamps.all { it > 0L }) {
-            "sourceTimestampsMs must contain only positive timestamps"
+            "$name must contain only positive timestamps"
         }
         require(timestamps.zipWithNext().all { (left, right) -> right > left }) {
-            "sourceTimestampsMs must be strictly chronological"
+            "$name must be strictly chronological"
         }
         return timestamps
     }
@@ -331,20 +406,19 @@ class NativeEvalExporterInstrumentedTest {
 
     private enum class SourceMode(val argument: String) {
         LIVE("live"),
-        DURABLE_PAIR("durable-pair");
+        DURABLE_BURST("durable-burst");
 
         companion object {
             fun parse(value: String?): SourceMode = when (value ?: LIVE.argument) {
                 LIVE.argument -> LIVE
-                DURABLE_PAIR.argument -> DURABLE_PAIR
-                else -> error("sourceMode must be live or durable-pair")
+                DURABLE_BURST.argument -> DURABLE_BURST
+                else -> error("sourceMode must be live or durable-burst")
             }
         }
     }
 
     private companion object {
-        val INPUT_FRAME_INDICES = 0..4
-        const val SAMPLE_SPACING_MS = 180L
+        val INPUT_FRAME_INDICES = 0..2
         const val KEYFRAME_JPEG_QUALITY = 88
         val EVENT_NAME = Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,79}")
         const val JPEG_DATA_URL_PREFIX = "data:image/jpeg;base64,"

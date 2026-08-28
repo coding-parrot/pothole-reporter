@@ -19,7 +19,8 @@ class NativeCaptureInterlockTest {
             val cameraPermission: Boolean = true,
             val location: NativeLocationAccess = readyLocation,
             val blocker: NativeCaptureBlocker,
-            val messageFragment: String
+            val messageFragment: String,
+            val releasesCamera: Boolean = true
         )
 
         val cases = listOf(
@@ -46,7 +47,8 @@ class NativeCaptureInterlockTest {
             Case(
                 location = readyLocation.copy(freshFixAvailable = false),
                 blocker = NativeCaptureBlocker.WAITING_FOR_FRESH_FIX,
-                messageFragment = "precise GPS fix"
+                messageFragment = "precise GPS fix",
+                releasesCamera = false
             )
         )
 
@@ -59,10 +61,25 @@ class NativeCaptureInterlockTest {
             )
             assertEquals(case.blocker, decision.blocker)
             assertFalse(decision.canCapture)
-            assertTrue(decision.shouldReleaseCamera)
+            assertEquals(case.releasesCamera, decision.shouldReleaseCamera)
             assertTrue(decision.message.contains(case.messageFragment))
             assertTrue(decision.message.contains("paused"))
         }
+    }
+
+    @Test
+    fun transientlyStaleFixBlocksEvidenceWithoutRebindingCameraGraph() {
+        val decision = NativeCaptureInterlock.evaluate(
+            cameraPermissionGranted = true,
+            cameraReady = true,
+            cameraIssue = null,
+            location = readyLocation.copy(freshFixAvailable = false)
+        )
+
+        assertEquals(NativeCaptureBlocker.WAITING_FOR_FRESH_FIX, decision.blocker)
+        assertFalse(decision.canCapture)
+        assertFalse(decision.shouldReleaseCamera)
+        assertTrue(decision.message.contains("camera and local video stay ready"))
     }
 
     @Test

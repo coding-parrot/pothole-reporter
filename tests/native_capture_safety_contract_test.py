@@ -58,9 +58,14 @@ check(
 )
 check(
     "GPS and downstream timestamps are anchored to the selected primary frame",
-    "val primaryCapturedAt = burst.first[primaryIndex].capturedAtMs" in scan
+    "val primaryFrame = burst.first[primaryIndex]" in scan
+    and "val primaryCapturedAt = primaryFrame.capturedAtMs" in scan
+    and "primaryFrame.capturedAtElapsedMs" in scan
     and "sourceOffset = (primaryCapturedAt - startedAtMs).coerceAtLeast(0L)" in scan
-    and "validatedFix, sequence, primaryCapturedAt" in scan,
+    and "fix = validatedFix" in scan
+    and "captureSeq = sequence" in scan
+    and "capturedAtMs = primaryCapturedAt" in scan
+    and "capturedAtElapsedMs = primaryFrame.capturedAtElapsedMs" in scan,
 )
 check(
     "keyframe encoding and Room indexing each have an access gate",

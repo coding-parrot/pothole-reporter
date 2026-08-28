@@ -8,15 +8,21 @@ internal object NativeKeyframeOwnershipPaging {
     const val FILE_PAGE_SIZE = 128
     const val MAX_OWNER_CANDIDATES_PER_FILE = 2
     const val OWNER_QUERY_LIMIT = FILE_PAGE_SIZE * MAX_OWNER_CANDIDATES_PER_FILE
+    private val burstContextPattern = Regex("^(.+)_context_[0-9]+\\.jpg$", RegexOption.IGNORE_CASE)
 
     /**
-     * A JPEG can be a row's primary file or the deterministic `_context` companion of
+     * A JPEG can be a row's primary file or one of its deterministic context files.
      * that primary. Return both possible stored paths without scanning other rows or
      * directories. Temporary/non-JPEG files can never be owned by a committed row.
      */
     fun ownerCandidatePaths(file: File): List<String> {
         if (!file.extension.equals("jpg", ignoreCase = true)) return emptyList()
         val exact = file.absolutePath
+        val burstContext = burstContextPattern.matchEntire(file.name)
+        if (burstContext != null) {
+            val primaryName = burstContext.groupValues[1] + ".jpg"
+            return listOf(exact, File(file.parentFile, primaryName).absolutePath).distinct()
+        }
         if (!file.name.endsWith("_context.jpg", ignoreCase = true)) {
             return listOf(exact)
         }

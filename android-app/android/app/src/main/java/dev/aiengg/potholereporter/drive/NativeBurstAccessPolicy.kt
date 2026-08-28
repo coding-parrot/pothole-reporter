@@ -39,14 +39,14 @@ internal object NativeBurstAccessPolicy {
         val accuracy = fix.accuracy ?: return null
         if (!fix.lat.isFinite() || fix.lat !in -90.0..90.0 ||
             !fix.lng.isFinite() || fix.lng !in -180.0..180.0 ||
-            fix.timestampMs <= 0L ||
+            fix.timestampMs <= 0L || fix.elapsedRealtimeMs <= 0L ||
             !accuracy.isFinite() || accuracy !in 0f..MAX_FIX_ACCURACY_M
         ) return null
 
-        val deltaMs = if (fix.timestampMs >= primaryCapturedAtMs) {
-            fix.timestampMs - primaryCapturedAtMs
+        val deltaMs = if (fix.elapsedRealtimeMs >= primaryCapturedAtMs) {
+            fix.elapsedRealtimeMs - primaryCapturedAtMs
         } else {
-            primaryCapturedAtMs - fix.timestampMs
+            primaryCapturedAtMs - fix.elapsedRealtimeMs
         }
         return fix.takeIf { deltaMs <= MAX_FIX_PRIMARY_DELTA_MS }
     }

@@ -21,6 +21,21 @@ class NativeKeyframeOwnershipPagingTest {
     }
 
     @Test
+    fun burstContextChecksItsExactPathAndThreeFramePrimary() {
+        val context = File(
+            "/private/footage/drive/keyframes/frame_000011_p1_c0_d2_context_2.jpg"
+        )
+
+        assertEquals(
+            listOf(
+                context.absolutePath,
+                File(context.parentFile, "frame_000011_p1_c0_d2.jpg").absolutePath
+            ),
+            NativeKeyframeOwnershipPaging.ownerCandidatePaths(context)
+        )
+    }
+
+    @Test
     fun ordinaryPrimaryAndLegacyNamesRemainEligibleForExactRoomOwnership() {
         listOf("frame_000007_p0_c2.jpg", "frame_000001.jpg", "legacy-name.jpg").forEach { name ->
             val file = File("/private/footage/drive/keyframes/$name")

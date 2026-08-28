@@ -12,9 +12,11 @@ INIT = r"""
   const probe = window.__nativeDriveProbe = {
     listeners: {}, appListeners: {}, start: 0, stop: 0, stopCompleted: 0,
     pause: 0, resume: 0, maps: 0, attach: 0, detach: 0, setVideo: 0,
-    exit: 0, ack: 0, lastPreview: null,
-    status: {isRunning: false, isPaused: false, isStopping: false,
-             sessionId: null, checked: 0, found: 0, already: 0, queued: 0,
+    exit: 0, ack: 0, terminalAck: 0, lastPreview: null, terminalSummaries: {},
+    status: {isRunning: false, isStarting: false, isPaused: false, isStopping: false,
+             captureStopped: false,
+             sessionId: null, startRequestId: null,
+             checked: 0, found: 0, already: 0, queued: 0,
              dropped: 0, recordingEnabled: false, isRecording: false,
              videoSupported: true, cameraActive: false, status: "Idle"},
   };
@@ -23,15 +25,26 @@ INIT = r"""
   const DriveMode = {
     addListener: async (name, fn) => { (probe.listeners[name] ||= []).push(fn); },
     requestDrivePermissions: async () => ({granted: true, notificationsGranted: true}),
-    startDrive: async ({recordVideo = false} = {}) => {
+    startDrive: async ({recordVideo = false, startRequestId = null} = {}) => {
       probe.start++;
       probe.status = {...probe.status, isRunning: true, isStopping: false,
-        sessionId: "native-test", recordingEnabled: recordVideo,
+        captureStopped: false,
+        sessionId: "native-test", startRequestId, recordingEnabled: recordVideo,
         isRecording: recordVideo, cameraActive: true, status: "Scanning live"};
       queueMicrotask(emitStatus);
       return {...probe.status};
     },
     getStatus: async () => ({...probe.status}),
+    getDriveEndSummary: async ({sessionId} = {}) => {
+      if (sessionId) return probe.terminalSummaries[String(sessionId)] || {available: false};
+      const values = Object.values(probe.terminalSummaries);
+      return values.length ? values[values.length - 1] : {available: false};
+    },
+    acknowledgeDriveEndSummary: async ({sessionId}) => {
+      probe.terminalAck++;
+      delete probe.terminalSummaries[String(sessionId)];
+      return {acknowledged: true};
+    },
     attachPreview: async (rect) => { probe.attach++; probe.lastPreview = rect; },
     detachPreview: async () => { probe.detach++; },
     pauseDrive: async () => {
@@ -59,15 +72,23 @@ INIT = r"""
     openMaps: async () => { probe.maps++; },
     stopDrive: async () => {
       probe.stop++;
-      probe.status = {...probe.status, isStopping: true, status: "Stopping safely"};
+      probe.status = {...probe.status, isRunning: false, isStopping: true,
+        status: "Stopping safely"};
       emitStatus();
       return await new Promise((resolve) => {
+        probe.completeCameraStop = () => {
+          probe.status = {...probe.status, cameraActive: false, isRecording: false,
+            captureStopped: true, status: "Camera off · finalizing saved data"};
+          emitStatus();
+        };
         probe.completeStop = () => {
           if (probe.stopCompleted) return;
           probe.stopCompleted++;
-          const summary = {sessionId: "native-test", checked: 7, found: 1, already: 0};
+          const summary = {sessionId: "native-test",
+            startRequestId: probe.status.startRequestId,
+            checked: 7, found: 1, already: 0};
           probe.status = {...probe.status, isRunning: false, isStopping: false,
-            isRecording: false, status: "Stopped"};
+            captureStopped: true, isRecording: false, status: "Stopped"};
           emit("driveEnded", summary);
           resolve(summary);
         };
@@ -305,9 +326,8 @@ with sync_playwright() as playwright:
     page.locator("#nativeDriveStop").click()
     page.wait_for_function("__nativeDriveProbe.stop === 1")
 
-    # Stop remains on the transparent Drive screen until native finalization and
-    # persistence complete. In particular, neither a double event nor App.exitApp may
-    # close the Activity during this barrier.
+    # Before CameraX confirms closure, Stop remains on the transparent Drive screen.
+    # In particular, neither a double event nor App.exitApp may imply that capture ended.
     page.wait_for_timeout(100)
     while_stopping = page.evaluate("""() => ({
       driveVisible: !document.querySelector('#drive').classList.contains('hidden'),
@@ -319,7 +339,62 @@ with sync_playwright() as playwright:
     })""")
     if while_stopping != {"driveVisible": True, "homeVisible": False, "disabled": True,
                           "stopping": True, "completed": 0, "exit": 0}:
-        failures.append(f"Stop UI did not await durable native completion: {while_stopping}")
+        failures.append(f"Stop UI returned Home before verified camera closure: {while_stopping}")
+
+    # Camera closure is a separate, earlier control-plane boundary. Home may now be
+    # shown, but every mutating control and native sync stays locked until driveEnded.
+    page.evaluate("__nativeDriveProbe.completeCameraStop()")
+    page.locator("#home").wait_for(state="visible")
+    camera_off = page.evaluate("""async () => {
+      let syncRejected = false;
+      try { await syncNativeData(); } catch (_) { syncRejected = true; }
+      return {
+        driveVisible: !document.querySelector('#drive').classList.contains('hidden'),
+        homeVisible: !document.querySelector('#home').classList.contains('hidden'),
+        driveLocked: document.querySelector('#driveBtn').disabled,
+        photoLocked: document.querySelector('#captureBtn').disabled,
+        settingsLocked: document.querySelector('#gearBtn').disabled,
+        wipeLocked: document.querySelector('#wipeBtn').disabled,
+        stillOwned: !!(drive && drive.native && drive.stopping && drive.captureStopped),
+        banner: document.querySelector('#banner').textContent,
+        syncRejected,
+        completed: __nativeDriveProbe.stopCompleted,
+      };
+    }""")
+    expected_camera_off = {
+        "driveVisible": False, "homeVisible": True, "driveLocked": True,
+        "photoLocked": True, "settingsLocked": True, "wipeLocked": True,
+        "stillOwned": True, "banner": "Camera off · saving drive data…",
+        "syncRejected": True, "completed": 0,
+    }
+    if camera_off != expected_camera_off:
+        failures.append(f"verified camera-off phase was not safely locked: {camera_off}")
+
+    # A recreated WebView obtains the phase from getStatus; it does not depend on having
+    # received the original event. A delayed pre-close status is then monotonic and must
+    # not bounce the UI back to Drive.
+    page.evaluate("""async () => {
+      drive = null;
+      nativeCaptureFinalizingSessionId = null;
+      setNativeFinishLocked(false);
+      await restoreNativeDrive({syncWhenIdle: false});
+    }""")
+    page.locator("#home").wait_for(state="visible")
+    page.evaluate("""() => {
+      const stale = {...__nativeDriveProbe.status, captureStopped: false,
+        status: "Stopping safely"};
+      (__nativeDriveProbe.listeners.driveStatusChange || []).forEach((fn) => fn(stale));
+    }""")
+    monotonic = page.evaluate("""() => ({
+      homeVisible: !document.querySelector('#home').classList.contains('hidden'),
+      captureStopped: !!(drive && drive.captureStopped),
+      locked: document.querySelector('#driveBtn').disabled,
+      nativePanelSelected: !document.querySelector('#nativeDrivePanel').classList.contains('hidden') &&
+        document.querySelector('#webDrivePanel').classList.contains('hidden'),
+    })""")
+    if monotonic != {"homeVisible": True, "captureStopped": True, "locked": True,
+                     "nativePanelSelected": True}:
+        failures.append(f"recreated or stale Stop state regressed camera-off truth: {monotonic}")
 
     page.evaluate("__nativeDriveProbe.completeStop()")
     page.wait_for_function("__nativeDriveProbe.stopCompleted === 1")
@@ -328,8 +403,11 @@ with sync_playwright() as playwright:
       start: __nativeDriveProbe.start, maps: __nativeDriveProbe.maps,
       stop: __nativeDriveProbe.stop, completed: __nativeDriveProbe.stopCompleted,
       exit: __nativeDriveProbe.exit,
+      driveLocked: document.querySelector('#driveBtn').disabled,
+      photoLocked: document.querySelector('#captureBtn').disabled,
     })""")
-    if final != {"start": 1, "maps": 1, "stop": 1, "completed": 1, "exit": 0}:
+    if final != {"start": 1, "maps": 1, "stop": 1, "completed": 1, "exit": 0,
+                 "driveLocked": False, "photoLocked": False}:
         failures.append(f"native controls did not call the bridge exactly once: {final}")
     if page.evaluate("!!drive"):
         failures.append("native Drive state remained after driveEnded")
@@ -352,6 +430,412 @@ with sync_playwright() as playwright:
     }""")
     if discarded != {"syncCalls": 0, "loadCalls": 0}:
         failures.append(f"discarded native data was synced back during wipe: {discarded}")
+
+    # A getStatus call begun before Start must not apply its delayed idle result to the
+    # newer camera session.
+    stale_idle = page.evaluate("""async () => {
+      const plugin = Capacitor.Plugins.DriveMode;
+      const originalGetStatus = plugin.getStatus;
+      let resolveStatus = null, requested = false;
+      plugin.getStatus = () => { requested = true; return new Promise((resolve) => {
+        resolveStatus = resolve;
+      }); };
+      const restoring = restoreNativeDrive({syncWhenIdle: false});
+      for (let i = 0; i < 50 && !requested; i++) await new Promise((r) => setTimeout(r, 1));
+      bumpNativeDriveControlEpoch();
+      drive = {native: true, sessionId: "race-new"};
+      setDrivePanels(true); show("drive");
+      resolveStatus({isRunning: false, isStopping: false, sessionId: null, status: "Idle"});
+      await restoring;
+      const result = {sessionId: drive && drive.sessionId,
+        driveVisible: !document.querySelector("#drive").classList.contains("hidden")};
+      drive = null; setDriveActiveButton(false); show("home");
+      plugin.getStatus = originalGetStatus;
+      return result;
+    }""")
+    if stale_idle != {"sessionId": "race-new", "driveVisible": True}:
+        failures.append(f"stale idle status erased a newer Drive: {stale_idle}")
+
+    # The inverse race must not resurrect a session after its terminal event won.
+    stale_running = page.evaluate("""async () => {
+      const plugin = Capacitor.Plugins.DriveMode;
+      const originalGetStatus = plugin.getStatus;
+      let resolveStatus = null, requested = false;
+      drive = {native: true, sessionId: "race-ended"};
+      setDrivePanels(true); show("drive");
+      plugin.getStatus = () => { requested = true; return new Promise((resolve) => {
+        resolveStatus = resolve;
+      }); };
+      const restoring = restoreNativeDrive({syncWhenIdle: false});
+      for (let i = 0; i < 50 && !requested; i++) await new Promise((r) => setTimeout(r, 1));
+      await finishNativeDrive({sessionId: "race-ended", reason: "Stopped", discarded: true});
+      resolveStatus({isRunning: true, isStopping: false, sessionId: "race-ended",
+        cameraActive: true, status: "Scanning live"});
+      await restoring;
+      const result = {drivePresent: !!drive,
+        homeVisible: !document.querySelector("#home").classList.contains("hidden")};
+      plugin.getStatus = originalGetStatus;
+      return result;
+    }""")
+    if stale_running != {"drivePresent": False, "homeVisible": True}:
+        failures.append(f"stale running status resurrected an ended Drive: {stale_running}")
+
+    # An accepted ACTION_START has a native process-owned Starting state. Neither a
+    # same-page Idle read nor a full WebView recreation may hide that pending camera;
+    # the eventual running session is re-adopted on the transparent Drive screen.
+    starting_races = page.evaluate("""async () => {
+      const plugin = Capacitor.Plugins.DriveMode;
+      const originalGetStatus = plugin.getStatus;
+      driveStarting = true;
+      drive = {native: true, sessionId: null, starting: true};
+      setDrivePanels(true); show("drive");
+      plugin.getStatus = async () => ({isRunning: false, isStarting: false,
+        isStopping: false, sessionId: null, status: "Idle"});
+      await restoreNativeDrive({syncWhenIdle: false});
+      const samePage = {preserved: !!drive,
+        visible: !document.querySelector("#drive").classList.contains("hidden")};
+
+      driveStarting = false;
+      drive = null;
+      plugin.getStatus = async () => ({isRunning: false, isStarting: true,
+        isStopping: false, sessionId: null, cameraActive: false,
+        startRequestId: "33333333-3333-4333-8333-333333333333",
+        status: "Starting camera and GPS"});
+      await restoreNativeDrive({syncWhenIdle: false});
+      const recreated = {starting: !!(drive && drive.starting),
+        visible: !document.querySelector("#drive").classList.contains("hidden")};
+
+      plugin.getStatus = async () => ({isRunning: true, isStarting: false,
+        isStopping: false, sessionId: "late-start", cameraActive: true,
+        startRequestId: "33333333-3333-4333-8333-333333333333",
+        status: "Scanning live"});
+      await restoreNativeDrive({syncWhenIdle: false});
+      const adopted = {sessionId: drive && drive.sessionId,
+        starting: !!(drive && drive.starting),
+        visible: !document.querySelector("#drive").classList.contains("hidden")};
+      cancelNativeStartStatusPoll();
+      drive = null; setDriveActiveButton(false); show("home");
+      plugin.getStatus = originalGetStatus;
+      return {samePage, recreated, adopted};
+    }""")
+    expected_starting_races = {
+        "samePage": {"preserved": True, "visible": True},
+        "recreated": {"starting": True, "visible": True},
+        "adopted": {"sessionId": "late-start", "starting": False, "visible": True},
+    }
+    if starting_races != expected_starting_races:
+        failures.append(f"accepted native Start was hidden or detached: {starting_races}")
+
+    # If a control callback temporarily returned the WebView Home while the admitted
+    # native start was resolving, success must re-read Android and visibly re-adopt the
+    # exact live camera session. A running foreground camera may never stay behind Home.
+    resolved_start_readoption = page.evaluate("""async () => {
+      const plugin = Capacitor.Plugins.DriveMode;
+      const originalStartDrive = plugin.startDrive;
+      const originalGetStatus = plugin.getStatus;
+      let resolveStart = null, startRequested = false, freshReads = 0;
+      let requestedStartId = null;
+      const live = {isRunning: true, isStarting: false, isStopping: false,
+        sessionId: "resolved-re-adopt", cameraActive: true, checked: 0,
+        found: 0, already: 0, queued: 0, dropped: 0, status: "Scanning live"};
+      handledNativeEnds.delete(live.sessionId);
+      drive = null; setDriveActiveButton(false); show("home");
+      plugin.startDrive = async ({startRequestId}) => {
+        startRequested = true;
+        requestedStartId = startRequestId;
+        return await new Promise((resolve) => { resolveStart = resolve; });
+      };
+      plugin.getStatus = async () => {
+        freshReads++;
+        return {...live, startRequestId: requestedStartId};
+      };
+      const pending = startDrive();
+      for (let i = 0; i < 100 && !startRequested; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 1));
+      }
+      // Simulate an older terminal/control callback winning the visible UI while the
+      // native service is still successfully opening CameraX.
+      drive = null; setDriveActiveButton(false); show("home");
+      resolveStart({...live, startRequestId: requestedStartId});
+      await pending;
+      const result = {sessionId: drive && drive.sessionId, freshReads,
+        driveVisible: !document.querySelector("#drive").classList.contains("hidden"),
+        homeVisible: !document.querySelector("#home").classList.contains("hidden"),
+        nativePanelVisible: !document.querySelector("#nativeDrivePanel").classList.contains("hidden"),
+        activeLabel: document.querySelector("#driveBtn").getAttribute("aria-label")};
+      drive = null; setDriveActiveButton(false); show("home");
+      plugin.startDrive = originalStartDrive;
+      plugin.getStatus = originalGetStatus;
+      return result;
+    }""")
+    if resolved_start_readoption != {
+        "sessionId": "resolved-re-adopt", "freshReads": 1,
+        "driveVisible": True, "homeVisible": False, "nativePanelVisible": True,
+        "activeLabel": "Drive active — view",
+    }:
+        failures.append(
+            f"resolved native Start stayed hidden behind Home: {resolved_start_readoption}"
+        )
+
+    # Delayed status/end events from session A must not claim the blank JS context for
+    # newly admitted session B. Ownership is the caller-generated native start token,
+    # not the temporary absence of B's timestamp-based session ID.
+    cross_session_start = page.evaluate("""async () => {
+      const beforeAck = __nativeDriveProbe.terminalAck;
+      const requestA = "11111111-1111-4111-8111-111111111111";
+      const requestB = "22222222-2222-4222-8222-222222222222";
+      driveStarting = true;
+      drive = {native: true, sessionId: null, startRequestId: requestB,
+        starting: true, stopping: false, captureStopped: false};
+      // This is the recreated/fallback state after startDrive's global finally ran.
+      driveStarting = false;
+      setDrivePanels(true); show("drive");
+      document.querySelector("#banner").textContent = "";
+      const staleStopAccepted = presentNativeStoppingStatus({isRunning: false,
+        isStopping: true, captureStopped: true, sessionId: "old-a",
+        startRequestId: requestA, status: "Stopping safely"});
+      (__nativeDriveProbe.listeners.driveStatusChange || []).forEach((fn) => fn({
+        isRunning: true, isStopping: false, sessionId: "old-a",
+        startRequestId: requestA, cameraActive: true, status: "Scanning live"}));
+      __nativeDriveProbe.terminalSummaries["old-a"] = {available: true, stopped: true,
+        sessionId: "old-a", startRequestId: requestA, checked: 2, found: 0,
+        already: 0, discarded: false, error: "Camera A failed", reason: "Stopped"};
+      (__nativeDriveProbe.listeners.driveEnded || []).forEach((fn) =>
+        fn(__nativeDriveProbe.terminalSummaries["old-a"]));
+      for (let i = 0; i < 100 && __nativeDriveProbe.terminalAck === beforeAck; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 1));
+      }
+      const afterA = {sessionId: drive && drive.sessionId,
+        requestId: drive && drive.startRequestId, stopping: !!(drive && drive.stopping),
+        captureStopped: !!(drive && drive.captureStopped), staleStopAccepted,
+        acked: __nativeDriveProbe.terminalAck - beforeAck,
+        banner: document.querySelector("#banner").textContent};
+      (__nativeDriveProbe.listeners.driveStatusChange || []).forEach((fn) => fn({
+        isRunning: true, isStopping: false, sessionId: "new-b",
+        startRequestId: requestB, cameraActive: true, status: "Scanning live"}));
+      const afterB = {sessionId: drive && drive.sessionId,
+        requestId: drive && drive.startRequestId, stopping: !!(drive && drive.stopping),
+        captureStopped: !!(drive && drive.captureStopped)};
+      driveStarting = false;
+      drive = null; setDriveActiveButton(false); show("home");
+      return {afterA, afterB};
+    }""")
+    if cross_session_start != {
+        "afterA": {"sessionId": None,
+                   "requestId": "22222222-2222-4222-8222-222222222222",
+                   "stopping": False, "captureStopped": False,
+                   "staleStopAccepted": False, "acked": 1,
+                   "banner": "Previous drive: Camera A failed"},
+        "afterB": {"sessionId": "new-b",
+                   "requestId": "22222222-2222-4222-8222-222222222222",
+                   "stopping": False, "captureStopped": False},
+    }:
+        failures.append(f"old Drive callbacks poisoned a new Start: {cross_session_start}")
+
+    photo_restore_reentry = page.evaluate("""async () => {
+      const originalCapture = beginPotholeCapture;
+      const originalPromise = nativeInitialRestorePromise;
+      let releaseRestore = null, opens = 0;
+      nativeInitialRestorePending = true;
+      nativeInitialRestorePromise = new Promise((resolve) => { releaseRestore = resolve; });
+      beginPotholeCapture = async () => { opens++; };
+      photoCaptureStarting = false;
+      document.querySelector("#captureBtn").click();
+      document.querySelector("#captureBtn").click();
+      const claimedBeforeRestore = photoCaptureStarting;
+      releaseRestore();
+      for (let i = 0; i < 100 && photoCaptureStarting; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 1));
+      }
+      const result = {claimedBeforeRestore, opens, released: !photoCaptureStarting};
+      beginPotholeCapture = originalCapture;
+      nativeInitialRestorePromise = originalPromise;
+      nativeInitialRestorePending = false;
+      return result;
+    }""")
+    if photo_restore_reentry != {
+        "claimedBeforeRestore": True, "opens": 1, "released": True,
+    }:
+        failures.append(
+            f"two Photo taps crossed initial restore concurrently: {photo_restore_reentry}"
+        )
+
+    camera_mutual_admission = page.evaluate("""async () => {
+      const originalDriveAdmitted = startDriveAdmitted;
+      const originalCapture = beginPotholeCapture;
+      const originalPromise = nativeInitialRestorePromise;
+      let driveOpens = 0, photoOpens = 0;
+      startDriveAdmitted = async () => {
+        await nativeInitialRestorePromise;
+        driveOpens++;
+      };
+      beginPotholeCapture = async () => { photoOpens++; };
+      async function round(first, second) {
+        let release = null;
+        nativeInitialRestorePending = true;
+        nativeInitialRestorePromise = new Promise((resolve) => { release = resolve; });
+        first.click(); second.click();
+        release();
+        for (let i = 0; i < 100 && cameraAdmissionOwner; i++) {
+          await new Promise((resolve) => setTimeout(resolve, 1));
+        }
+      }
+      const driveButton = document.querySelector("#driveBtn");
+      const photoButton = document.querySelector("#captureBtn");
+      await round(driveButton, photoButton);
+      await round(photoButton, driveButton);
+      const result = {driveOpens, photoOpens, owner: cameraAdmissionOwner,
+        driveStarting, photoCaptureStarting};
+      startDriveAdmitted = originalDriveAdmitted;
+      beginPotholeCapture = originalCapture;
+      nativeInitialRestorePromise = originalPromise;
+      nativeInitialRestorePending = false;
+      return result;
+    }""")
+    if camera_mutual_admission != {
+        "driveOpens": 1, "photoOpens": 1, "owner": None,
+        "driveStarting": False, "photoCaptureStarting": False,
+    }:
+        failures.append(
+            f"Photo and Drive crossed the shared camera admission: {camera_mutual_admission}"
+        )
+
+    # Full recreation after native teardown has no JS session object. The latest exact
+    # unacknowledged terminal summary must still be shown once and then acknowledged.
+    latest_terminal = page.evaluate("""async () => {
+      const beforeAck = __nativeDriveProbe.terminalAck;
+      __nativeDriveProbe.status = {isRunning: false, isStarting: false,
+        isStopping: false, sessionId: null, status: "Idle"};
+      __nativeDriveProbe.terminalSummaries["lost-end"] = {
+        available: true, stopped: true, sessionId: "lost-end", checked: 4,
+        found: 1, already: 0, discarded: true,
+        error: "Camera privacy access was revoked", reason: "Start failed"
+      };
+      drive = null;
+      await restoreNativeDrive({syncWhenIdle: false});
+      return {handled: handledNativeEnds.has("lost-end"),
+        banner: document.querySelector("#banner").textContent,
+        acked: __nativeDriveProbe.terminalAck - beforeAck,
+        retained: !!__nativeDriveProbe.terminalSummaries["lost-end"]};
+    }""")
+    if latest_terminal != {"handled": True,
+                           "banner": "Camera privacy access was revoked",
+                           "acked": 1, "retained": False}:
+        failures.append(f"sessionless terminal result was lost after recreation: {latest_terminal}")
+
+    listener_gap_terminal = page.evaluate("""async () => {
+      const beforeAck = __nativeDriveProbe.terminalAck;
+      const summary = {available: true, stopped: true, sessionId: "listener-gap-end",
+        checked: 0, found: 0, already: 0, discarded: true,
+        error: "Camera failed while restoring the app", reason: "Start failed"};
+      __nativeDriveProbe.terminalSummaries[summary.sessionId] = summary;
+      drive = null;
+      (__nativeDriveProbe.listeners.driveEnded || []).forEach((fn) => fn(summary));
+      for (let i = 0; i < 100 && (!handledNativeEnds.has(summary.sessionId) || nativeFinishPromise); i++) {
+        await new Promise((resolve) => setTimeout(resolve, 2));
+      }
+      return {handled: handledNativeEnds.has(summary.sessionId),
+        banner: document.querySelector("#banner").textContent,
+        acked: __nativeDriveProbe.terminalAck - beforeAck,
+        drivePresent: !!drive};
+    }""")
+    if listener_gap_terminal != {"handled": True,
+                                 "banner": "Camera failed while restoring the app",
+                                 "acked": 1, "drivePresent": False}:
+        failures.append(
+            f"terminal event between listener registration and status was lost: {listener_gap_terminal}"
+        )
+
+    # The running half of the same listener/getStatus race must visibly adopt the native
+    # camera. The listener bumps the control epoch, so the delayed Idle result is expected
+    # to abort; leaving presentation solely to restoreNativeDrive would strand Home over
+    # a still-running foreground camera.
+    listener_gap_running = page.evaluate("""async () => {
+      const plugin = Capacitor.Plugins.DriveMode;
+      const originalGetStatus = plugin.getStatus;
+      let resolveStatus = null, requested = false;
+      stopNativePreview();
+      driveStarting = false;
+      drive = null;
+      setDriveActiveButton(false);
+      show("home");
+      plugin.getStatus = () => { requested = true; return new Promise((resolve) => {
+        resolveStatus = resolve;
+      }); };
+      const restoring = restoreNativeDrive({syncWhenIdle: false});
+      for (let i = 0; i < 50 && !requested; i++) await new Promise((r) => setTimeout(r, 1));
+      const attachBefore = __nativeDriveProbe.attach;
+      const running = {isRunning: true, isStarting: false, isStopping: false,
+        sessionId: "listener-gap-running", startRequestId: "listener-gap-start",
+        cameraActive: true, status: "Scanning live"};
+      __nativeDriveProbe.status = {...__nativeDriveProbe.status, ...running};
+      (__nativeDriveProbe.listeners.driveStatusChange || []).forEach((fn) => fn(running));
+      resolveStatus({isRunning: false, isStarting: false, isStopping: false,
+        sessionId: null, status: "Idle"});
+      await restoring;
+      for (let i = 0; i < 100 && __nativeDriveProbe.attach <= attachBefore; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 2));
+      }
+      const result = {sessionId: drive && drive.sessionId,
+        starting: !!(drive && drive.starting),
+        driveVisible: !document.querySelector("#drive").classList.contains("hidden"),
+        panelVisible: !document.querySelector("#nativeDrivePanel").classList.contains("hidden"),
+        previewAttached: __nativeDriveProbe.attach > attachBefore};
+      stopNativePreview();
+      drive = null;
+      setDriveActiveButton(false);
+      show("home");
+      __nativeDriveProbe.status = {...__nativeDriveProbe.status, isRunning: false,
+        isStarting: false, isStopping: false, sessionId: null, cameraActive: false,
+        status: "Idle"};
+      plugin.getStatus = originalGetStatus;
+      return result;
+    }""")
+    if listener_gap_running != {"sessionId": "listener-gap-running",
+                               "starting": False, "driveVisible": True,
+                               "panelVisible": True, "previewAttached": True}:
+        failures.append(
+            f"running event between listener registration and status stayed behind Home: "
+            f"{listener_gap_running}"
+        )
+
+    # Idle recovery consumes the exact durable summary. The compatibility fallback is
+    # deliberately provisional so a later real failure remains visible and authoritative.
+    terminal_recovery = page.evaluate("""async () => {
+      const plugin = Capacitor.Plugins.DriveMode;
+      const originalTerminal = plugin.getDriveEndSummary;
+      __nativeDriveProbe.status = {isRunning: false, isStopping: false,
+        sessionId: null, status: "Idle"};
+      __nativeDriveProbe.terminalSummaries["exact-end"] = {
+        available: true, stopped: true, sessionId: "exact-end", checked: 3,
+        found: 0, already: 0, discarded: true,
+        reason: "Report evidence storage is full"
+      };
+      drive = {native: true, sessionId: "exact-end", stopping: true, captureStopped: true};
+      await restoreNativeDrive({syncWhenIdle: false});
+      const exact = {handled: handledNativeEnds.has("exact-end"),
+        banner: document.querySelector("#banner").textContent};
+
+      plugin.getDriveEndSummary = undefined;
+      drive = {native: true, sessionId: "compat-end", stopping: true, captureStopped: true};
+      await restoreNativeDrive({syncWhenIdle: false});
+      const provisionalHandled = handledNativeEnds.has("compat-end");
+      await finishNativeDrive({sessionId: "compat-end", discarded: true,
+        reason: "Camera service failed"});
+      const compatibility = {provisionalHandled,
+        handled: handledNativeEnds.has("compat-end"),
+        banner: document.querySelector("#banner").textContent};
+      plugin.getDriveEndSummary = originalTerminal;
+      return {exact, compatibility};
+    }""")
+    if terminal_recovery["exact"] != {
+        "handled": True, "banner": "Report evidence storage is full"
+    }:
+        failures.append(f"durable terminal summary was not recovered exactly: {terminal_recovery}")
+    if terminal_recovery["compatibility"] != {
+        "provisionalHandled": False, "handled": True, "banner": "Camera service failed"
+    }:
+        failures.append(f"provisional fallback suppressed the real terminal event: {terminal_recovery}")
 
     imported = page.evaluate(r"""async () => {
       const native = {

@@ -10,6 +10,9 @@ enum class NativeCameraRecoveryAction {
     /** Release the failed graph and make a bounded attempt to bind a fresh one. */
     RELEASE_AND_RETRY,
 
+    /** User/device state must change; release and poll without turning it into a crash. */
+    RELEASE_AND_RETRY_USER_STATE,
+
     /** The current drive cannot safely continue and must surface a terminal reason. */
     STOP_TERMINALLY
 }
@@ -26,7 +29,7 @@ internal object NativeCameraRecoveryPolicy {
 
         CameraState.ERROR_CAMERA_DISABLED,
         CameraState.ERROR_DO_NOT_DISTURB_MODE_ENABLED ->
-            NativeCameraRecoveryAction.RELEASE_AND_RETRY
+            NativeCameraRecoveryAction.RELEASE_AND_RETRY_USER_STATE
 
         CameraState.ERROR_STREAM_CONFIG,
         CameraState.ERROR_CAMERA_FATAL_ERROR ->

@@ -22,7 +22,8 @@ ROAD_REGION_RATIOS = {
     "square": {"top": 0.40, "bottom": 0.70},
 }
 ROAD_ORIENTATION_EPSILON = 0.10
-ROAD_CROP_MAX_UPSCALE = 4.0
+MAX_PREPARED_ROAD_DIMENSION = 1280
+NATIVE_DRIVE_MAX_OUTPUT_TOKENS = 1536
 PROMPT_VERSION = "pothole-binary-v10"
 SCHEMA_VERSION = 7
 
@@ -206,8 +207,9 @@ def encode_view(path, max_dim, quality=85, road_crop=False, enhance=False):
     if road_region:
         x, y = road_region["x"], road_region["y"]
         image = image.crop((x, y, x + road_region["width"], y + road_region["height"]))
-    scale = (min(ROAD_CROP_MAX_UPSCALE, max_dim / max(image.size)) if road_crop
-             else min(1.0, max_dim / max(image.size)))
+    # Match both native live analysis and WebView saved-frame replay: crop first,
+    # then downscale only. Upscaling cannot recover road detail and changes the request.
+    scale = min(1.0, max_dim / max(image.size))
     if scale != 1:
         image = image.resize((positive_half_up(image.width * scale),
                               positive_half_up(image.height * scale)), Image.Resampling.LANCZOS)
@@ -247,7 +249,9 @@ def prepare_event(entry, root, mode):
         context, meta = encode_view(paths[primary], 768, 82, False, False)
         views.append(context); transforms.append({"role": "primary_context", **meta})
         for index, path in enumerate(paths):
-            view, meta = encode_view(path, 1920, 85, True, True)
+            view, meta = encode_view(
+                path, MAX_PREPARED_ROAD_DIMENSION, 85, True, True
+            )
             views.append(view); transforms.append({"role": "chronological_road_crop", "frame_index": index, **meta})
         note = (f"\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. "
                 f"Images 2-{len(views)} are orientation-aware road-region crops in chronological order; "
@@ -261,7 +265,7 @@ def build_request(views, prompt, model, detail, mode="drive"):
     image_count = len(content)
     content.append({"type": "input_text", "text":
         f"{prompt}\n\nThe {image_count} supplied image(s) are ordered exactly as labelled by the capture pipeline."})
-    return {
+    request = {
         "model": model,
         "reasoning": {"effort": ("low" if mode == "drive" else "none")
                       if model == "gpt-5.6" else "minimal"},
@@ -270,6 +274,11 @@ def build_request(views, prompt, model, detail, mode="drive"):
         "text": {"format": {"type": "json_schema", "name": "pothole_binary_assessment",
                               "schema": SCHEMA, "strict": True}, "verbosity": "low"},
     }
+    if mode == "drive":
+        # Match the shipped native streaming request. An eval completion that needs
+        # more output than production permits is not a valid production result.
+        request["max_output_tokens"] = NATIVE_DRIVE_MAX_OUTPUT_TOKENS
+    return request
 
 
 def decision(result, mode="drive", source_view_count=3):

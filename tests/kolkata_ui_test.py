@@ -46,7 +46,7 @@ async () => {
        && /ক্যামেরা/.test(document.getElementById("privacyBody").textContent),
      document.getElementById("privacyBody").textContent);
   ok("privacy: background-drive disclosure forces fresh consent",
-     /v14-durable-drive-frames$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
+     /v15-background-drive-storage$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
 
   const P = StandaloneAPI.__pure;
   const complaintFooter = "Pothole Reporter একটি স্বাধীন অ্যাপ। প্রস্তাবিত কর্তৃপক্ষ, ওয়ার্ড, "

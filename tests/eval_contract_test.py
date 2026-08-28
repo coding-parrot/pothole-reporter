@@ -44,7 +44,8 @@ def drive_preprocessing_is_sequential():
         return False
     body = drive_preprocessing.group("body")
     return ("for (const p of photos)" in body
-            and "orderedRoadViews.push(await toDataUrl(p, 1920, 0.85, true, true))" in body
+            and "MAX_PREPARED_ROAD_DIMENSION" in body
+            and "1920" not in body
             and "Promise.all(photos.map" not in body)
 
 
@@ -171,6 +172,12 @@ check("prompt version", f'const PROMPT_VERSION = "{road_eval.PROMPT_VERSION}";' 
 check("native prompt version", f'PROMPT_VERSION = "{road_eval.PROMPT_VERSION}"' in native)
 check("Web Drive preprocesses burst crops sequentially to bound peak memory",
       drive_preprocessing_is_sequential())
+check("Web and evaluator use the native 1280px downscale-only road transform",
+      "const MAX_PREPARED_ROAD_DIMENSION = 1280;" in client
+      and "const scale = Math.min(1, maxDim / Math.max(sw, sh));" in to_data_url_source
+      and "ROAD_CROP_MAX_UPSCALE" not in client
+      and road_eval.MAX_PREPARED_ROAD_DIMENSION == 1280
+      and "ROAD_CROP_MAX_UPSCALE" not in evaluator_source)
 check("Web Drive serializes preparation globally and releases the gate on errors",
       drive_preparation_gate_is_safe())
 check("Web image preprocessing always releases bitmap and canvas backing storage",
@@ -268,6 +275,16 @@ request = road_eval.build_request(["one", "two", "three", "four", "five"],
 content = request["input"][0]["content"]
 images = [item for item in content if item["type"] == "input_image"]
 check("request image cap", len(images) == 4)
+check("Drive evaluator uses the native output-token ceiling",
+      request.get("max_output_tokens") == 1536
+      and "MAX_DETECTION_OUTPUT_TOKENS = 1_536" in native
+      and 'req.put("max_output_tokens", MAX_DETECTION_OUTPUT_TOKENS)' in native)
+check("manual evaluator does not inherit the native Drive token ceiling",
+      "max_output_tokens" not in road_eval.build_request(
+          ["one"], "P", "gpt-5.6", "high", mode="manual"))
+check("native Drive fails closed outside the bounded production burst",
+      "burstFrames.size !in NativeDriveCameraManager.MIN_DETECTION_SOURCE_FRAMES.." in native
+      and "NativeRollingBurstWindow.OUTPUT_COUNT" in native)
 check("prompt once and last", len([x for x in content if x["type"] == "input_text"]) == 1
       and content[-1]["type"] == "input_text")
 check("detail belongs to every image", all(x.get("detail") == "original" for x in images))
@@ -373,7 +390,7 @@ native_cadence_spacing = [
 ]
 check("tester speed breaker uses the exact neutral native-cadence fixture",
       native_cadence_breaker.get("path")
-      == "tester-speed-breaker-native-cadence/later/f0.jpg"
+      == "tester-speed-breaker-native-cadence/later/f1.jpg"
       and native_cadence_breaker.get("frames") == [
           "tester-speed-breaker-native-cadence/later/f0.jpg",
           "tester-speed-breaker-native-cadence/later/f1.jpg",
@@ -381,16 +398,16 @@ check("tester speed breaker uses the exact neutral native-cadence fixture",
       ]
       and native_cadence_breaker.get("fixture_sha256") == [
           "dd59f703b2ba228e6e3a88082c1a46b6c7add0df8b40c26396bde9b0f38b5a83",
-          "73848930b991ab233c77932c63dd9d89829eac36691b925c5f37df20d3fc72f6",
-          "637545ba6696b8353849408368f0f5ea1e7c3c604af08cbd9d7a1a4b1d2605f1",
+          "de6f0e9e37f20cabdba7e7287de2c4aad1556694dc607eae9941ac4d83d6a32f",
+          "90428d428e900d448cb145020848b5b4b1f5b5c5954520ad0428e97805efa1ba",
       ]
       and "whatsapp" not in json.dumps(native_cadence_breaker).lower())
 check("tester speed breaker records production request cadence",
-      native_cadence_breaker.get("capture_cadence_ms") == 180
-      and native_cadence_breaker.get("selected_source_indices") == [0, 2, 4]
-      and native_cadence_breaker.get("observed_source_spacing_ms") == [200, 200, 200, 200]
-      and native_cadence_breaker.get("observed_frame_spacing_ms") == [400, 400]
-      and native_cadence_spacing == [400, 400]
+      native_cadence_breaker.get("capture_cadence_ms") == 250
+      and native_cadence_breaker.get("selected_source_indices") == [0, 1, 2]
+      and native_cadence_breaker.get("observed_source_spacing_ms") == [267, 267]
+      and native_cadence_breaker.get("observed_frame_spacing_ms") == [267, 267]
+      and native_cadence_spacing == [267, 267]
       and all(spacing >= native_cadence_breaker["capture_cadence_ms"]
               for spacing in native_cadence_spacing))
 traffic_calming_ids = {
@@ -411,6 +428,25 @@ check("all three supplied traffic-calming intervals are retained as negative bur
       and all(entry.get("labelled_by") == "owner"
               for entry in traffic_calming_events
               if entry.get("event_id") != "tester-opening-grid-calming-marking-2026-08-25"))
+production_bursts = [entry for entry in labels
+                     if entry.get("mode") == "drive" and len(entry.get("frames", [])) == 3]
+check("every labelled drive burst is reproducible at production analyzer cadence",
+      bool(production_bursts)
+      and all(
+          entry.get("capture_cadence_ms") == 250
+          and entry.get("selected_source_indices") == [0, 1, 2]
+          and entry.get("source_sample_timestamps_seconds")
+              == entry.get("source_timestamps_seconds")
+          and entry.get("observed_source_spacing_ms")
+              == entry.get("observed_frame_spacing_ms")
+          and len(entry.get("observed_source_spacing_ms", [])) == 2
+          and all(spacing >= entry["capture_cadence_ms"]
+                  for spacing in entry["observed_source_spacing_ms"])
+          and [round((right - left) * 1000)
+               for left, right in zip(entry["source_timestamps_seconds"],
+                                      entry["source_timestamps_seconds"][1:])]
+              == entry["observed_source_spacing_ms"]
+          for entry in production_bursts))
 corrected_b_events = [entry for entry in labels
                       if entry.get("event_id") == "owner-construction-drive-2026-08-28-b"]
 check("broad shallow segment_0001 event B is retained as a strict negative",
@@ -453,9 +489,11 @@ check("dark resized view is enhanced", transform["enhanced"] is True)
 with tempfile.TemporaryDirectory() as tmp:
     path = pathlib.Path(tmp) / "small-drive.jpg"
     Image.new("RGB", (480, 720), (90, 90, 90)).save(path, quality=100)
-    _, drive_transform = road_eval.encode_view(path, 1920, 85, True, False)
-check("small Drive road crop is enlarged for model inspection",
-      drive_transform["output"] == {"width": 1920, "height": 748})
+    _, drive_transform = road_eval.encode_view(
+        path, road_eval.MAX_PREPARED_ROAD_DIMENSION, 85, True, False
+    )
+check("small Drive road crop is not upscaled beyond its real pixels",
+      drive_transform["output"] == {"width": 480, "height": 187})
 with tempfile.TemporaryDirectory() as tmp:
     path = pathlib.Path(tmp) / "manual.jpg"
     Image.new("RGB", (480, 720), (80, 80, 80)).save(path, quality=100)

@@ -14,7 +14,10 @@ ext {
     androidxEspressoCoreVersion = '3.7.0'
     cordovaAndroidVersion = '14.0.1'
     kotlinVersion = '2.1.0'
-    cameraXVersion = '1.4.2'
+    // 1.5.3 includes CameraX lifecycle-owner leak fixes and a Samsung-specific
+    // Preview + ImageAnalysis + record-template freeze fix. Stay on this stable line;
+    // 1.6.x also changes the camera pipeline and is too broad for this release.
+    cameraXVersion = '1.5.3'
     playServicesLocationVersion = '21.3.0'
     roomVersion = '2.6.1'
     lifecycleVersion = '2.8.7'

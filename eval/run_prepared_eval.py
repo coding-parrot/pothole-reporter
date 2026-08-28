@@ -8,9 +8,12 @@ gate from run_eval.py.
 """
 import argparse
 import base64
+import io
 import json
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+from PIL import Image, UnidentifiedImageError
 
 import run_eval
 
@@ -19,23 +22,22 @@ def data_url(raw):
     return "data:image/jpeg;base64," + base64.b64encode(raw).decode()
 
 
-SOURCE_MODES = {"live", "durable-pair"}
-ROLLING_SOURCE_FRAME_INDICES = [0, 2, 4]
-
-
-def temporal_companion_index(timestamps, primary):
-    """Mirror NativeKeyframeFiles' real-timestamp choice, including its later tie-break."""
-    selected = None
-    selected_distance = 0
-    for index, timestamp in enumerate(timestamps):
-        if index == primary or timestamp == timestamps[primary]:
-            continue
-        distance = abs(timestamp - timestamps[primary])
-        if (selected is None or distance > selected_distance
-                or (distance == selected_distance and index > selected)):
-            selected = index
-            selected_distance = distance
-    return selected
+SOURCE_MODES = {"live", "durable-burst"}
+ROLLING_SOURCE_FRAME_INDICES = [0, 1, 2]
+CAPTURE_POLICY = {
+    "capacity": 3,
+    "output_count": 3,
+    "sample_spacing_ms": 250,
+    "min_window_span_ms": 400,
+    "max_oldest_age_ms": 1_250,
+}
+DURABLE_PERSISTENCE = {
+    "image_count": 3,
+    "max_bytes_per_image": 900 * 1024,
+    "max_total_bytes": 3 * 900 * 1024,
+    "max_dimension": 1280,
+    "initial_quality": 88,
+}
 
 
 def load_event(path, source_mode="live"):
@@ -48,7 +50,7 @@ def load_event(path, source_mode="live"):
         raise ValueError(f"{path.name}: manifest root must be an object")
     if manifest.get("source_mode") != source_mode:
         raise ValueError(f"{path.name}: manifest source_mode does not match requested mode")
-    expected_image_count = 4 if source_mode == "live" else 3
+    expected_image_count = 4
     raw_images = manifest.get("images")
     if not isinstance(raw_images, list) or len(raw_images) != expected_image_count:
         raise ValueError(
@@ -77,36 +79,88 @@ def load_event(path, source_mode="live"):
     rolling_sources = manifest.get("rolling_source_frame_indices")
     if rolling_sources != ROLLING_SOURCE_FRAME_INDICES:
         raise ValueError(
-            f"{path.name}: rolling_source_frame_indices must be the production sequence 0,2,4"
+            f"{path.name}: rolling_source_frame_indices must be the production sequence 0,1,2"
         )
-    timestamps = manifest.get("source_timestamps_ms")
-    if not isinstance(timestamps, list) or len(timestamps) != 5 or any(
-            type(value) is not int or value <= 0 for value in timestamps):
-        raise ValueError(f"{path.name}: expected five positive source_timestamps_ms")
-    if any(timestamps[index] <= timestamps[index - 1] for index in range(1, len(timestamps))):
-        raise ValueError(f"{path.name}: source_timestamps_ms must be strictly chronological")
+    captured_at_elapsed_ms = manifest.get("captured_at_elapsed_ms")
+    if not isinstance(captured_at_elapsed_ms, list) or len(captured_at_elapsed_ms) != 3 or any(
+            type(value) is not int or value <= 0 for value in captured_at_elapsed_ms):
+        raise ValueError(f"{path.name}: expected three positive captured_at_elapsed_ms")
+    if any(captured_at_elapsed_ms[index] <= captured_at_elapsed_ms[index - 1]
+           for index in range(1, len(captured_at_elapsed_ms))):
+        raise ValueError(f"{path.name}: captured_at_elapsed_ms must be strictly chronological")
+    source_timestamps_ns = manifest.get("source_timestamps_ns")
+    if not isinstance(source_timestamps_ns, list) or len(source_timestamps_ns) != 3 or any(
+            type(value) is not int or value <= 0 for value in source_timestamps_ns):
+        raise ValueError(f"{path.name}: expected three positive source_timestamps_ns")
+    if any(source_timestamps_ns[index] <= source_timestamps_ns[index - 1]
+           for index in range(1, len(source_timestamps_ns))):
+        raise ValueError(f"{path.name}: source_timestamps_ns must be strictly chronological")
+    source_gaps_ns = [right - left for left, right in
+                      zip(source_timestamps_ns, source_timestamps_ns[1:])]
+    if any(gap < CAPTURE_POLICY["sample_spacing_ms"] * 1_000_000
+           for gap in source_gaps_ns):
+        raise ValueError(f"{path.name}: source timestamps violate production analyzer cadence")
+    window_span = captured_at_elapsed_ms[-1] - captured_at_elapsed_ms[0]
+    if window_span < CAPTURE_POLICY["min_window_span_ms"]:
+        raise ValueError(f"{path.name}: source timestamps violate production window span")
+    capture_request_elapsed_ms = manifest.get("capture_request_elapsed_ms")
+    if type(capture_request_elapsed_ms) is not int or capture_request_elapsed_ms <= 0:
+        raise ValueError(f"{path.name}: capture_request_elapsed_ms must be a positive integer")
+    if capture_request_elapsed_ms < captured_at_elapsed_ms[-1]:
+        raise ValueError(f"{path.name}: capture request precedes the newest source frame")
+    if (capture_request_elapsed_ms - captured_at_elapsed_ms[0]
+            > CAPTURE_POLICY["max_oldest_age_ms"]):
+        raise ValueError(f"{path.name}: source timestamps exceed production window age")
 
-    selected_timestamps = [timestamps[index] for index in rolling_sources]
-    if source_mode == "live":
-        expected_sources = rolling_sources
-        expected_primary = live_primary
-    else:
-        if manifest.get("timestamp_provenance") != "instrumentation argument":
+    if manifest.get("capture_policy") != CAPTURE_POLICY:
+        raise ValueError(f"{path.name}: capture policy is not production-exact")
+    source_frames = manifest.get("source_frames")
+    if not isinstance(source_frames, list) or len(source_frames) != 3:
+        raise ValueError(f"{path.name}: expected exactly three source-frame manifest entries")
+    for index, item in enumerate(source_frames):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path.name}: every source-frame manifest entry must be an object")
+        sha256 = item.get("sha256")
+        expected_source_file = f"source/f{index}.jpg"
+        if (item.get("index") != index or item.get("file") != expected_source_file
+                or type(item.get("bytes")) is not int or item["bytes"] <= 0
+                or type(item.get("width")) is not int or item["width"] <= 0
+                or type(item.get("height")) is not int or item["height"] <= 0
+                or not isinstance(sha256, str) or len(sha256) != 64
+                or any(character not in "0123456789abcdef" for character in sha256)):
+            raise ValueError(f"{path.name}: invalid source-frame manifest entry f{index}")
+        source_path = path / expected_source_file
+        try:
+            source_raw = source_path.read_bytes()
+        except OSError as error:
+            raise ValueError(
+                f"{path.name}: source frame f{index} is missing or unreadable"
+            ) from error
+        if len(source_raw) != item["bytes"]:
+            raise ValueError(f"{path.name}: source-frame byte count mismatch for f{index}")
+        if run_eval.sha(source_raw) != sha256:
+            raise ValueError(f"{path.name}: source-frame SHA-256 mismatch for f{index}")
+        try:
+            with Image.open(io.BytesIO(source_raw)) as source_image:
+                source_width, source_height = source_image.size
+                source_format = source_image.format
+                source_image.verify()
+        except (OSError, UnidentifiedImageError) as error:
+            raise ValueError(f"{path.name}: source frame f{index} is not a valid image") from error
+        if source_format != "JPEG":
+            raise ValueError(f"{path.name}: source frame f{index} is not JPEG")
+        if source_width != item["width"] or source_height != item["height"]:
+            raise ValueError(f"{path.name}: source-frame dimensions mismatch for f{index}")
+
+    expected_sources = rolling_sources
+    expected_primary = live_primary
+    if source_mode == "durable-burst":
+        if manifest.get("timestamp_provenance") != "instrumentation arguments":
             raise ValueError(
                 f"{path.name}: durable manifest must use real instrumentation timestamps"
             )
-        companion = temporal_companion_index(selected_timestamps, live_primary)
-        if companion is None:
-            raise ValueError(f"{path.name}: durable timestamps have no temporal companion")
-        chronological = sorted((live_primary, companion))
-        expected_sources = [rolling_sources[index] for index in chronological]
-        expected_primary = chronological.index(live_primary)
         persistence = manifest.get("durable_persistence")
-        if persistence != {
-                "max_bytes_per_image": 900 * 1024,
-                "max_dimension": 1280,
-                "initial_quality": 88,
-        }:
+        if persistence != DURABLE_PERSISTENCE:
             raise ValueError(f"{path.name}: durable persistence settings are not production-exact")
 
     source_indices = manifest.get("source_frame_indices")
@@ -120,8 +174,8 @@ def load_event(path, source_mode="live"):
             or primary_source != rolling_sources[live_primary]
             or primary_source != source_indices[primary]):
         raise ValueError(f"{path.name}: primary_source_index does not match primary_index")
-    request_timestamps = manifest.get("request_source_timestamps_ms")
-    if request_timestamps != [timestamps[index] for index in source_indices]:
+    request_timestamps = manifest.get("request_captured_at_elapsed_ms")
+    if request_timestamps != [captured_at_elapsed_ms[index] for index in source_indices]:
         raise ValueError(f"{path.name}: request timestamps do not match request source frames")
     expected_image_sources = (
         [f"f{primary_source}.jpg"]
@@ -153,7 +207,7 @@ def main():
     parser.add_argument("--trials", type=int, default=2)
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--reasoning", choices=("none", "low", "medium"), default="low")
-    parser.add_argument("--source-mode", choices=("live", "durable-pair"), default="live")
+    parser.add_argument("--source-mode", choices=("live", "durable-burst"), default="live")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
     if args.trials < 1:

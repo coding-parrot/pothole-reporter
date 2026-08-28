@@ -201,6 +201,10 @@ interface RepairObservationDao {
     @Query("SELECT * FROM repair_observations WHERE syncedToWeb = 0 ORDER BY id ASC")
     suspend fun getUnsyncedObservations(): List<RepairObservationEntity>
 
+    /** Lightweight ownership inventory for the persistent report-evidence quota. */
+    @Query("SELECT currentPhotoPath FROM repair_observations ORDER BY id ASC")
+    suspend fun getAllPhotoPaths(): List<String>
+
     @Query("""SELECT * FROM repair_observations
         WHERE syncedToWeb = 0 AND id > :afterId
         ORDER BY id ASC LIMIT :limit""")

@@ -1,6 +1,7 @@
 package dev.aiengg.potholereporter.drive
 
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
@@ -56,13 +57,15 @@ class NativeDetectionStreamCompletionPolicyTest {
 
     @Test
     fun malformedOrTruncatedNaturalCompletionCannotCheckpoint() {
-        assertThrows(NativeInferenceException::class.java) {
+        val error = assertThrows(NativeInferenceException::class.java) {
             NativeDetectionStreamCompletionPolicy.requireVerdict(
                 completeVerdict = null,
                 intentionalEarlyReject = null,
                 transportCompleted = true
             )
         }
+
+        assertTrue(error.suspendInference)
     }
 
     @Test

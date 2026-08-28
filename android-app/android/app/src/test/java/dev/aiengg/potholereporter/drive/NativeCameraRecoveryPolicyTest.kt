@@ -27,7 +27,7 @@ class NativeCameraRecoveryPolicyTest {
             CameraState.ERROR_DO_NOT_DISTURB_MODE_ENABLED
         ).forEach { code ->
             assertEquals(
-                NativeCameraRecoveryAction.RELEASE_AND_RETRY,
+                NativeCameraRecoveryAction.RELEASE_AND_RETRY_USER_STATE,
                 NativeCameraRecoveryPolicy.actionFor(code, CameraState.ErrorType.CRITICAL)
             )
         }

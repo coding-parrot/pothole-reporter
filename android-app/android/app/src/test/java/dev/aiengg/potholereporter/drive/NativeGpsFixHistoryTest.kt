@@ -5,7 +5,8 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class NativeGpsFixHistoryTest {
-    private fun fix(timestampMs: Long) = GpsFix(19.0, 72.0, 5f, 10f, 90f, timestampMs)
+    private fun fix(timestampMs: Long, elapsedRealtimeMs: Long = timestampMs) =
+        GpsFix(19.0, 72.0, 5f, 10f, 90f, timestampMs, elapsedRealtimeMs)
 
     @Test
     fun selectsNearestFixAndPrefersLaterFixOnTie() {
@@ -40,5 +41,14 @@ class NativeGpsFixHistoryTest {
             2_000L,
             history.nearestCaptureReady(1_500L, 30f)?.timestampMs
         )
+    }
+
+    @Test
+    fun wallClockOrderingCannotCorruptMonotonicCameraPairing() {
+        val history = NativeGpsFixHistory()
+        history.add(fix(timestampMs = 9_000_000L, elapsedRealtimeMs = 1_000L))
+        history.add(fix(timestampMs = 1_000L, elapsedRealtimeMs = 1_500L))
+
+        assertEquals(1_000L, history.nearestCaptureReady(1_490L, 30f)?.timestampMs)
     }
 }
