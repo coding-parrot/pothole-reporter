@@ -137,6 +137,14 @@ check("UI wires timer and idempotent saved-frame analysis",
       and "result.analyzed !== true" in analysis
       and analysis.index('await api("/api/frame"')
           < analysis.index("() => plugin.markKeyframeAnalyzed"))
+check("native Drive uses the live-regression model independent of Photo settings",
+      'const NATIVE_DRIVE_DETECTION_MODEL = "gpt-5.6"' in WEB
+      and 'const NATIVE_DRIVE_DETECTION_DETAIL = "high"' in WEB
+      and "model: NATIVE_DRIVE_DETECTION_MODEL" in WEB
+      and "detail: NATIVE_DRIVE_DETECTION_DETAIL" in WEB
+      and 'private val model: String = "gpt-5.6"' in INFERENCE
+      and 'call.getString("model") ?: "gpt-5.6"' in PLUGIN
+      and 'intent?.getStringExtra(EXTRA_MODEL) ?: "gpt-5.6"' in SERVICE)
 check("hybrid status is explicit and all shipped web copies match",
       "RECORDING VIDEO" in WEB and '"Video: On"' in WEB
       and "SAVING FRAMES" in WEB and "saved frame" in WEB and "min left" in WEB
@@ -146,11 +154,11 @@ check("hybrid status is explicit and all shipped web copies match",
           == (ROOT / "static/index.html").read_bytes()
       and (ROOT / "android-app/android/app/src/main/assets/public/index.html").read_bytes()
           == (ROOT / "static/index.html").read_bytes())
-check("Android release identity is 1.36.2 code 57 everywhere",
-      re.search(r"versionCode\s+57\b", GRADLE)
-      and re.search(r'versionName\s+"1\.36\.2"', GRADLE)
-      and 'android:versionCode="57"' in RELEASE
-      and 'android:versionName="1.36.2"' in RELEASE)
+check("Android release identity is 1.36.3 code 58 everywhere",
+      re.search(r"versionCode\s+58\b", GRADLE)
+      and re.search(r'versionName\s+"1\.36\.3"', GRADLE)
+      and 'android:versionCode="58"' in RELEASE
+      and 'android:versionName="1.36.3"' in RELEASE)
 
 if failures:
     print(f"\nFAIL: {len(failures)} hybrid Drive contract check(s) failed")

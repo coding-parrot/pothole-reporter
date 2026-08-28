@@ -376,6 +376,25 @@ with sync_playwright() as playwright:
       };
       const first = await api("/api/native-report", {method: "POST", body: JSON.stringify(native)});
       const second = await api("/api/native-report", {method: "POST", body: JSON.stringify(native)});
+      // v8/schema7 rows can remain unsynced in Room after an app update. This contract
+      // introduced temporary drivable surfaces and must import once, then dedupe retries.
+      const legacyV8 = {...native, id: 97, lat: 28.7495, lng: 77.0565,
+        surface_type: "temporary_drivable_surface",
+        prompt_version: "pothole-binary-v8", schema_version: 7,
+        drive_id: "native-import-v8", source_event_key: "live:native-import-v8:1"};
+      const v8First = await api("/api/native-report",
+        {method: "POST", body: JSON.stringify(legacyV8)});
+      const v8Second = await api("/api/native-report",
+        {method: "POST", body: JSON.stringify(legacyV8)});
+      // The currently shipped v9/schema7 contract follows the same import and retry path.
+      const currentV9 = {...native, id: 98, lat: 28.5921, lng: 77.0460,
+        surface_type: "temporary_drivable_surface",
+        prompt_version: "pothole-binary-v9", schema_version: 7,
+        drive_id: "native-import-v9", source_event_key: "live:native-import-v9:1"};
+      const v9First = await api("/api/native-report",
+        {method: "POST", body: JSON.stringify(currentV9)});
+      const v9Second = await api("/api/native-report",
+        {method: "POST", body: JSON.stringify(currentV9)});
       const obsolete = {...native, id: 92, prompt_version: "road-damage-v4", schema_version: 4,
         source_event_key: "live:native-import:obsolete"};
       const ignored = await api("/api/native-report", {method: "POST", body: JSON.stringify(obsolete)});
@@ -393,13 +412,23 @@ with sync_playwright() as playwright:
       for (const value of invalids) invalidResults.push(await api("/api/native-report",
         {method: "POST", body: JSON.stringify(value)}));
       const reports = await api("/api/reports");
-      return {first, second, ignored, invalidResults, count: reports.length, report: reports[0]};
+      return {first, second, v8First, v8Second, v9First, v9Second, ignored,
+        invalidResults, count: reports.length, reports};
     }""")
-    if imported["count"] != 1 or not imported["second"]["duplicate"]:
+    if imported["count"] != 3 or not imported["second"]["duplicate"]:
         failures.append(f"native report retry was not idempotent: {imported}")
-    if not imported["report"].get("authority_id") or imported["report"].get("status") != "draft":
-        failures.append(f"native report did not use the existing authority router: {imported}")
-    if imported["ignored"].get("ignored") is not True or imported["count"] != 1:
+    for version, first_key, second_key in (
+        ("pothole-binary-v8", "v8First", "v8Second"),
+        ("pothole-binary-v9", "v9First", "v9Second"),
+    ):
+        if imported[first_key].get("duplicate") or not imported[second_key].get("duplicate"):
+            failures.append(f"{version} native import was not idempotent: {imported}")
+    reports_by_version = {report.get("prompt_version"): report for report in imported["reports"]}
+    for version in ("pothole-binary-v6", "pothole-binary-v8", "pothole-binary-v9"):
+        report = reports_by_version.get(version)
+        if not report or not report.get("authority_id") or report.get("status") != "draft":
+            failures.append(f"{version} native report did not use the existing authority router: {imported}")
+    if imported["ignored"].get("ignored") is not True or imported["count"] != 3:
         failures.append(f"obsolete non-binary native report was imported: {imported}")
     if any(result.get("ignored") is not True for result in imported["invalidResults"]):
         failures.append(f"native report bypassed a persisted binary gate: {imported}")

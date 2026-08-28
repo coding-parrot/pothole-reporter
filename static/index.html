@@ -181,12 +181,12 @@
       <input type="password" id="setKey" placeholder="sk-...">
       <label id="nameLabel">Your name (used in complaint emails)</label>
       <input type="text" id="setName" placeholder="Username for emails">
-      <label id="modelLabel">Detection model</label>
+      <label id="modelLabel">Photo model</label>
       <select id="setModel">
-        <option value="gpt-5-mini">gpt-5-mini — current baseline</option>
-        <option value="gpt-5.6">gpt-5.6 — accuracy experiment</option>
+        <option value="gpt-5-mini">gpt-5-mini — recommended</option>
+        <option value="gpt-5.6">gpt-5.6</option>
       </select>
-      <label id="detailLabel">Image detail</label>
+      <label id="detailLabel">Photo detail</label>
       <select id="setDetail">
         <option value="high">High</option>
         <option value="original">Original (gpt-5.6 only)</option>
@@ -294,9 +294,9 @@ const I18N = {
     key_label: "OpenAI API key (saved here; sent to OpenAI as the credential)",
     name_label: "Your name (used in complaint emails)",
     name_placeholder: "Username for emails",
-    model_label: "Detection model",
-    detail_label: "Image detail",
-    accuracy_note: "gpt-5-mini/high remains the baseline. gpt-5.6/original is an experiment until your held-out drive benchmark proves it better.",
+    model_label: "Photo model",
+    detail_label: "Photo detail",
+    accuracy_note: "Drive uses gpt-5.6/high; these choices apply only to Photo.",
     debug_label: "Debug mode: keep the drive video after analysing it",
     settings_note: "Pothole photos and video-derived frames are sent to OpenAI for detection and can contain number plates or faces. Exact location is sent to OpenStreetMap/Nominatim; Karnataka points use Karnataka GIS and Hyderabad points use Telangana GIS. A verified state pack or 2° National Highway tile is downloaded from GitHub Pages and cached here; that request reveals the state or approximate tile and ordinary connection metadata, not exact coordinates. Your API key is sent only to OpenAI. The app never submits automatically.",
     independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
@@ -493,9 +493,9 @@ const I18N = {
     key_label: "OpenAI API ಕೀ (ಈ ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ; OpenAI ಗೆ ಪ್ರಮಾಣಪತ್ರವಾಗಿ ಹೋಗುತ್ತದೆ)",
     name_label: "ನಿಮ್ಮ ಹೆಸರು (ದೂರು ಇಮೇಲ್‌ಗಳಲ್ಲಿ ಬಳಸಲಾಗುತ್ತದೆ)",
     name_placeholder: "ಇಮೇಲ್‌ಗಳಿಗೆ ಬಳಸುವ ಹೆಸರು",
-    model_label: "ಪತ್ತೆ ಮಾದರಿ",
-    detail_label: "ಚಿತ್ರದ ವಿವರ",
-    accuracy_note: "gpt-5-mini/high ಪ್ರಸ್ತುತ ಮೂಲಮಟ್ಟ. ನಿಮ್ಮ ಪ್ರತ್ಯೇಕ ಡ್ರೈವ್ ಪರೀಕ್ಷೆ ಉತ್ತಮವೆಂದು ಸಾಬೀತುಪಡಿಸುವವರೆಗೆ gpt-5.6/original ಪ್ರಯೋಗವಾಗಿದೆ.",
+    model_label: "ಫೋಟೋ ಮಾದರಿ",
+    detail_label: "ಫೋಟೋ ಚಿತ್ರದ ವಿವರ",
+    accuracy_note: "Drive gpt-5.6/high ಬಳಸುತ್ತದೆ; ಈ ಆಯ್ಕೆಗಳು Photoಗೆ ಮಾತ್ರ.",
     debug_label: "ಡೀಬಗ್ ಮೋಡ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ಡ್ರೈವ್ ವಿಡಿಯೋ ಉಳಿಸಿ",
     settings_note: "ಗುಂಡಿಯ ಫೋಟೋಗಳು ಮತ್ತು ವಿಡಿಯೋ ಫ್ರೇಮ್‌ಗಳನ್ನು ಪತ್ತೆಗಾಗಿ OpenAI ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಅವುಗಳಲ್ಲಿ ವಾಹನ ಸಂಖ್ಯೆ ಅಥವಾ ಮುಖಗಳು ಇರಬಹುದು. ನಿಖರ ಸ್ಥಳವನ್ನು OpenStreetMap/Nominatim ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ; ಕರ್ನಾಟಕದ ಸ್ಥಳಗಳಿಗೆ Karnataka GIS ಮತ್ತು ಹೈದರಾಬಾದ್ ಸ್ಥಳಗಳಿಗೆ Telangana GIS ಬಳಸಲಾಗುತ್ತದೆ. ಪರಿಶೀಲಿತ ರಾಜ್ಯ ಪ್ಯಾಕ್ ಅಥವಾ 2° ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿ ಟೈಲ್ GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗಿ ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತದೆ; ಆ ವಿನಂತಿ ರಾಜ್ಯ ಅಥವಾ ಅಂದಾಜು ಟೈಲ್ ಮತ್ತು ಸಾಮಾನ್ಯ ಸಂಪರ್ಕ ಮಾಹಿತಿಯನ್ನು ತೋರಿಸುತ್ತದೆ, ನಿಖರ ಸ್ಥಳವನ್ನಲ್ಲ. API ಕೀ OpenAI ಗೆ ಮಾತ್ರ ಹೋಗುತ್ತದೆ. ಆ್ಯಪ್ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ದೂರು ಸಲ್ಲಿಸುವುದಿಲ್ಲ.",
     independent_note: "ಇದು ಸ್ವತಂತ್ರ, ಅನಧಿಕೃತ ಆ್ಯಪ್. ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯೊಂದಿಗೆ ಸಂಬಂಧ ಅಥವಾ ಅನುಮೋದನೆ ಇಲ್ಲ. ಕಚೇರಿ ಸೂಚನೆ ಅತ್ಯುತ್ತಮ ಪ್ರಯತ್ನ ಮಾತ್ರ; ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
@@ -685,9 +685,9 @@ const I18N = {
     key_label: "OpenAI API की (येथे जतन होते; विनंतीचे प्रमाणीकरण करण्यासाठी OpenAI कडे पाठवली जाते)",
     name_label: "तुमचे नाव (तक्रारीच्या ईमेलमध्ये वापरले जाईल)",
     name_placeholder: "ईमेलसाठी वापरायचे नाव",
-    model_label: "शोध मॉडेल",
-    detail_label: "चित्राचा तपशील",
-    accuracy_note: "gpt-5-mini/high हा सध्याचा आधार आहे. स्वतंत्र चाचणीत अधिक चांगला ठरेपर्यंत gpt-5.6/original हा प्रयोग आहे.",
+    model_label: "फोटो मॉडेल",
+    detail_label: "फोटो तपशील",
+    accuracy_note: "Drive gpt-5.6/high वापरते; हे पर्याय फक्त Photo साठी आहेत.",
     debug_label: "डीबग मोड: विश्लेषणानंतरही ड्राइव्हचा व्हिडिओ जतन करा",
     settings_note: "खड्ड्यांचे फोटो आणि व्हिडिओतील फ्रेम्स तपासणीसाठी OpenAI कडे पाठवल्या जातात; त्यात वाहन क्रमांक किंवा चेहरे असू शकतात. अचूक स्थान OpenStreetMap/Nominatim कडे पाठवले जाते; कर्नाटकासाठी Karnataka GIS आणि हैदराबादसाठी Telangana GIS वापरले जाते. पडताळलेला राज्य pack किंवा 2° राष्ट्रीय महामार्ग tile GitHub Pages वरून डाउनलोड होऊन या साधनावर जतन होतो; त्या विनंतीत राज्य किंवा अंदाजे tile व सामान्य कनेक्शन माहिती दिसते, अचूक स्थान नाही. API की फक्त OpenAI कडे जाते. अॅप तक्रार आपोआप सादर करत नाही.",
     independent_note: "हे स्वतंत्र, अनधिकृत अॅप आहे. कोणत्याही सरकारी संस्थेशी संलग्न नाही किंवा तिची मान्यता नाही. सुचवलेले कार्यालय पाठवण्यापूर्वी तपासा.",
@@ -868,9 +868,9 @@ const I18N = {
     key_label: "OpenAI API key (এখানে সংরক্ষিত; অনুমোদনের পরিচয় হিসেবে OpenAI-তে পাঠানো হয়)",
     name_label: "আপনার নাম (অভিযোগের ইমেলে ব্যবহৃত হবে)",
     name_placeholder: "ইমেলের জন্য ব্যবহৃত নাম",
-    model_label: "শনাক্তকরণ মডেল",
+    model_label: "ছবির মডেল",
     detail_label: "ছবির বিশদতা",
-    accuracy_note: "gpt-5-mini/high বর্তমান ভিত্তিমাত্রা। আলাদা রাখা ড্রাইভ বেঞ্চমার্কে উন্নতি প্রমাণিত না হওয়া পর্যন্ত gpt-5.6/original পরীক্ষামূলক।",
+    accuracy_note: "Drive gpt-5.6/high ব্যবহার করে; এই বিকল্পগুলি শুধু Photo-র জন্য।",
     debug_label: "ডিবাগ মোড: বিশ্লেষণের পরেও ড্রাইভের ভিডিও রাখুন",
     settings_note: "রাস্তার গর্তের ছবি ও ভিডিওর ফ্রেম শনাক্তকরণের জন্য OpenAI-তে পাঠানো হয়; তাতে নম্বরপ্লেট বা মুখ থাকতে পারে। সঠিক অবস্থান OpenStreetMap/Nominatim-এ পাঠানো হয়; কর্ণাটকের জন্য Karnataka GIS এবং হায়দরাবাদের জন্য Telangana GIS ব্যবহার করা হয়। যাচাই-করা রাজ্য pack বা 2° জাতীয় সড়ক tile GitHub Pages থেকে ডাউনলোড হয়ে ডিভাইসে থাকে; অনুরোধটি রাজ্য বা আনুমানিক tile ও সাধারণ সংযোগের তথ্য প্রকাশ করে, সঠিক অবস্থান নয়। API key কেবল OpenAI-তে যায়। অ্যাপ নিজে থেকে অভিযোগ জমা দেয় না।",
     independent_note: "এটি একটি স্বাধীন, বেসরকারি অ্যাপ। কোনও সরকারি সংস্থার সঙ্গে এর সম্পর্ক নেই এবং কোনও সরকারি সংস্থা এটি অনুমোদন করেনি। প্রাপক নির্বাচন সর্বোত্তম প্রচেষ্টার ভিত্তিতে; পাঠানোর আগে যাচাই করুন।",
@@ -2140,6 +2140,8 @@ const MOVING_MS = 1.0;
 const GPS_MAX_AGE_MS = 10000; // a fix older than this is stale: pause rather than mistag
 const BURST_COUNT = 3;
 const BURST_SPACING_MS = 180;
+const NATIVE_DRIVE_DETECTION_MODEL = "gpt-5.6";
+const NATIVE_DRIVE_DETECTION_DETAIL = "high";
 // A burst is heavier than the old single frame. Capture remains independent of these
 // workers and waits in a bounded local queue rather than leaving unseen road gaps.
 const MAX_IN_FLIGHT = 6;
@@ -2662,8 +2664,8 @@ async function startDrive() {
     try {
       const status = await nativePlugin.startDrive({
         apiKey: localStorage.getItem("openai_key") || "",
-        model: localStorage.getItem("detection_model") || "gpt-5-mini",
-        detail: localStorage.getItem("image_detail") || "high",
+        model: NATIVE_DRIVE_DETECTION_MODEL,
+        detail: NATIVE_DRIVE_DETECTION_DETAIL,
         language: LANG,
         debug: localStorage.getItem("debug_mode") === "1",
         recordVideo: localStorage.getItem("record_video") === "1",

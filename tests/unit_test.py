@@ -203,9 +203,13 @@ CASES = r"""
   eq("decision: YES without size is NO", P.decisionFor({...good, size:null}), "reject");
 
   // ---- native detector upgrade bridge ----
+  const nativeV9 = P.nativeDetectorContract({prompt_version:"pothole-binary-v9", schema_version:7});
+  ok("native bridge: v9 accepts the temporary traffic-surface vocabulary",
+     nativeV9 && nativeV9.kind === "current_v9"
+       && nativeV9.surfaceTypes.has("temporary_drivable_surface"));
   const nativeV8 = P.nativeDetectorContract({prompt_version:"pothole-binary-v8", schema_version:7});
-  ok("native bridge: v8 accepts the temporary traffic-surface vocabulary",
-     nativeV8 && nativeV8.kind === "current_v8"
+  ok("native bridge: pending v8 rows remain importable",
+     nativeV8 && nativeV8.kind === "legacy_v8"
        && nativeV8.surfaceTypes.has("temporary_drivable_surface"));
   const nativeV7 = P.nativeDetectorContract({prompt_version:"pothole-binary-v7", schema_version:7});
   ok("native bridge: pending v7 rows remain importable",
@@ -292,6 +296,8 @@ CASES = r"""
      content.filter((x) => x.type === "input_text").length === 1, content);
   eq("settings: arbitrary model fails safe", P.normaliseModel("gpt-made-up"), "gpt-5-mini");
   eq("settings: original falls back on mini", P.normaliseDetail("original", "gpt-5-mini"), "high");
+  eq("Drive: accuracy-tested model is pinned", P.DRIVE_DETECTION_MODEL, "gpt-5.6");
+  eq("Drive: accuracy-tested detail is pinned", P.DRIVE_DETECTION_DETAIL, "high");
 
   // ---- deterministic burst-quality selection ----
   const pixels = (w, h, fn) => {

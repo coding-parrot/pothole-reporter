@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Offline guard that the evaluator mirrors the pure client's binary v8 contract."""
-import importlib.util, json, pathlib, sys, tempfile
+"""Offline guard that Web, native Drive and evaluator share one binary v9 contract."""
+import importlib.util, json, pathlib, re, sys, tempfile, textwrap
 from PIL import Image
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -8,6 +8,7 @@ spec = importlib.util.spec_from_file_location("road_eval", ROOT / "eval" / "run_
 road_eval = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(road_eval)
 client = (ROOT / "static" / "standalone.js").read_text()
+evaluator_source = (ROOT / "eval" / "run_eval.py").read_text()
 native = (ROOT / "android-app" / "android" / "app" / "src" / "main" / "java" /
           "dev" / "aiengg" / "potholereporter" / "drive" / "NativeInferenceEngine.kt").read_text()
 entities = (ROOT / "android-app" / "android" / "app" / "src" / "main" / "java" /
@@ -20,6 +21,95 @@ labels = json.loads((ROOT / "eval" / "labels.json").read_text())["images"]
 fails = []
 
 
+def parse_js_object_constant(source, name):
+    """Parse the JSON-compatible object literal assigned to a JS const."""
+    match = re.search(rf"\bconst\s+{re.escape(name)}\s*=\s*", source)
+    if not match:
+        raise ValueError(f"JavaScript constant {name} was not found")
+    start = source.find("{", match.end())
+    if start < 0:
+        raise ValueError(f"JavaScript constant {name} is not an object")
+
+    depth = 0
+    quote = None
+    escaped = False
+    line_comment = False
+    block_comment = False
+    end = None
+    index = start
+    while index < len(source):
+        char = source[index]
+        following = source[index + 1] if index + 1 < len(source) else ""
+        if line_comment:
+            if char in "\r\n":
+                line_comment = False
+            index += 1
+            continue
+        if block_comment:
+            if char == "*" and following == "/":
+                block_comment = False
+                index += 2
+            else:
+                index += 1
+            continue
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            index += 1
+            continue
+        if char == "/" and following == "/":
+            line_comment = True
+            index += 2
+            continue
+        if char == "/" and following == "*":
+            block_comment = True
+            index += 2
+            continue
+        if char in ('"', "'", "`"):
+            quote = char
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                end = index + 1
+                break
+        index += 1
+    if end is None:
+        raise ValueError(f"JavaScript constant {name} has an unterminated object")
+
+    literal = source[start:end]
+    literal = re.sub(r'([,{]\s*)([A-Za-z_$][A-Za-z0-9_$]*)\s*:',
+                     r'\1"\2":', literal)
+    literal = re.sub(r",\s*([}\]])", r"\1", literal)
+    return json.loads(literal)
+
+
+web_prompt = road_eval.prompts()["baseline"]
+try:
+    web_schema = parse_js_object_constant(client, "ASSESS_SCHEMA")
+except (ValueError, json.JSONDecodeError):
+    web_schema = None
+native_prompt_match = re.search(
+    r'private val DETECT_PROMPT =\s*"""(.*?)"""\.trimIndent\(\)', native, re.S
+)
+native_prompt = (textwrap.dedent(native_prompt_match.group(1)).strip("\n")
+                 if native_prompt_match else None)
+native_schema_match = re.search(
+    r'private fun buildRequestBody.*?val schemaObj = JSONObject\(\s*'
+    r'"""(.*?)"""\.trimIndent\(\)', native, re.S
+)
+try:
+    native_schema = json.loads(textwrap.dedent(native_schema_match.group(1)).strip()) \
+        if native_schema_match else None
+except json.JSONDecodeError:
+    native_schema = None
+
+
 def check(name, condition):
     print(f"  {'ok  ' if condition else 'FAIL'} {name}")
     if not condition:
@@ -29,6 +119,21 @@ def check(name, condition):
 check("schema version", 'const SCHEMA_VERSION = 7;' in client and road_eval.SCHEMA_VERSION == 7)
 check("prompt version", f'const PROMPT_VERSION = "{road_eval.PROMPT_VERSION}";' in client)
 check("native prompt version", f'PROMPT_VERSION = "{road_eval.PROMPT_VERSION}"' in native)
+check("native and Web use the exact same base detection prompt",
+      native_prompt is not None and native_prompt == web_prompt)
+check("Web assessment schema is parsed from the shipped JavaScript",
+      web_schema is not None)
+check("native, Web and evaluator use the exact same assessment schema",
+      web_schema is not None and native_schema == web_schema == road_eval.SCHEMA)
+layout_contract_fragments = (
+    "Capture layout: image 1 is full-frame context from the sharpest burst frame.",
+    "orientation-aware road-region crops in chronological order;",
+    "the sharpest crop is chronological frame",
+)
+check("native, Web and evaluator describe the Drive image layout identically",
+      all(all(fragment in source for fragment in layout_contract_fragments)
+          for source in (client, native, evaluator_source))
+      and "lower-road crops in chronological order" not in native)
 expected_road_regions = {
     "portrait": {"top": .40, "bottom": .66},
     "landscape": {"top": .48, "bottom": .78},
@@ -72,6 +177,14 @@ check("prompt explicitly distinguishes speed breakers",
       "speed breaker" in road_eval.prompts()["baseline"].lower())
 check("prompt makes ambiguity a negative",
       "any ambiguity must be no" in road_eval.prompts()["baseline"].lower())
+check("drivable lane-edge cavities remain eligible without admitting roadside damage",
+      all(term in web_prompt.lower() for term in (
+          "opening intrudes into the drivable surface",
+          "cavity footprint inside the active traffic surface",
+          "damage confined to a kerb, gutter, drain, footpath, shoulder, verge",
+          "broken edge outside the active traffic surface",
+      ))
+      and ", road edge," not in web_prompt.lower())
 check("prompt defines every fallback size band",
       all(term in road_eval.prompts()["baseline"].lower()
           for term in ("below 30 cm", "30 to 60 cm", "above 60 cm")))
@@ -80,8 +193,8 @@ check("native prompt defines the same fallback size bands",
 check("native schema exposes the binary verdict",
       '"is_pothole": { "type": "boolean" }' in native and
       '"has_localized_cavity": { "type": "boolean" }' in native)
-check("native Drive cannot emit a single-view positive",
-      '"consistent", "single_view"' not in native)
+check("native Drive rejects single-view output despite the shared schema",
+      'if (temporalConsistency != "consistent") return "reject"' in native)
 check("native persists and syncs every binary physical gate",
       all(term in entities for term in ("looksLikeSpeedBreaker", "hasLocalizedCavity"))
       and all(f'put("{term}"' in plugin for term in
@@ -102,9 +215,23 @@ check("request image cap", len(images) == 4)
 check("prompt once and last", len([x for x in content if x["type"] == "input_text"]) == 1
       and content[-1]["type"] == "input_text")
 check("detail belongs to every image", all(x.get("detail") == "original" for x in images))
+check("evaluator disables response storage like both shipped runtimes",
+      request.get("store") is False and 'req.put("store", false)' in native
+      and "store: false" in client)
 check("mini rejects unsupported original detail",
       road_eval.build_request(["one"], "P", "gpt-5-mini", "original")
       ["input"][0]["content"][0]["detail"] == "high")
+photo_suffix = road_eval.client_template_constant("PHOTO_ONLY_PROMPT_SUFFIX")
+check("manual evaluator attaches the exact shipped Photo-only scope",
+      road_eval.effective_prompt("BASE", "manual", "NOTE")
+      == "BASE" + photo_suffix + "NOTE")
+check("Drive evaluator never attaches the Photo-only suffix",
+      road_eval.effective_prompt("BASE", "drive", "NOTE") == "BASENOTE")
+check("evaluator records the shipped mode-specific prompt version",
+      road_eval.effective_prompt_version("drive") == road_eval.PROMPT_VERSION
+      and road_eval.effective_prompt_version("manual")
+      == road_eval.client_string_constant("PHOTO_PROMPT_VERSION")
+      == "pothole-photo-only-v3")
 
 good = {"is_pothole": True, "looks_like_speed_breaker": False,
         "image_quality": "usable", "surface_type": "bituminous_asphalt",
@@ -182,6 +309,65 @@ check("tester speed breaker is retained as a verified negative event",
       and speed_breaker_events[0].get("label") == "not_pothole"
       and speed_breaker_events[0].get("labelled_by") == "owner"
       and len(speed_breaker_events[0].get("frames", [])) == 3)
+native_cadence_breaker = speed_breaker_events[0]
+native_cadence_timestamps = native_cadence_breaker.get("source_timestamps_seconds", [])
+native_cadence_spacing = [
+    round((right - left) * 1000)
+    for left, right in zip(native_cadence_timestamps, native_cadence_timestamps[1:])
+]
+check("tester speed breaker uses the exact neutral native-cadence fixture",
+      native_cadence_breaker.get("path")
+      == "tester-speed-breaker-native-cadence/later/f1.jpg"
+      and native_cadence_breaker.get("frames") == [
+          "tester-speed-breaker-native-cadence/later/f0.jpg",
+          "tester-speed-breaker-native-cadence/later/f1.jpg",
+          "tester-speed-breaker-native-cadence/later/f2.jpg",
+      ]
+      and native_cadence_breaker.get("fixture_sha256") == [
+          "941556eb7456ef900c5b87addf9d620febf79fa19e6fa0c3db7708409b98135d",
+          "f0096847b7ca11b555808b2192123611ecda05b053cf715e2a0a1e4ec8edbdee",
+          "11b003a26846a465816564dcd90e5828e33fade16fc556b80636e0d2aee87c2f",
+      ]
+      and "whatsapp" not in json.dumps(native_cadence_breaker).lower())
+check("tester speed breaker records production request cadence",
+      native_cadence_breaker.get("capture_cadence_ms") == 180
+      and native_cadence_breaker.get("observed_frame_spacing_ms") == [200, 200]
+      and native_cadence_spacing == [200, 200]
+      and all(spacing >= native_cadence_breaker["capture_cadence_ms"]
+              for spacing in native_cadence_spacing))
+traffic_calming_ids = {
+    "tester-opening-grid-calming-marking-2026-08-25",
+    "tester-zebra-raised-speed-breaker-2026-08-25",
+    "tester-second-speed-breaker-2026-08-25",
+}
+traffic_calming_events = [entry for entry in labels
+                          if entry.get("event_id") in traffic_calming_ids]
+check("all three supplied traffic-calming intervals are retained as negative bursts",
+      {entry.get("event_id") for entry in traffic_calming_events} == traffic_calming_ids
+      and all(entry.get("label") == "not_pothole"
+              and len(entry.get("frames", [])) == 3
+              for entry in traffic_calming_events)
+      and next(entry for entry in traffic_calming_events
+               if entry.get("event_id") == "tester-opening-grid-calming-marking-2026-08-25")
+          .get("labelled_by") == "independent assistant frame review"
+      and all(entry.get("labelled_by") == "owner"
+              for entry in traffic_calming_events
+              if entry.get("event_id") != "tester-opening-grid-calming-marking-2026-08-25"))
+corrected_b_events = [entry for entry in labels
+                      if entry.get("event_id") == "owner-construction-drive-2026-08-28-b"]
+check("broad shallow segment_0001 event B is retained as a strict negative",
+      len(corrected_b_events) == 1
+      and corrected_b_events[0].get("label") == "not_pothole"
+      and "broad disturbed patch" in corrected_b_events[0].get("notes", "").lower()
+      and "requires no" in corrected_b_events[0].get("notes", "").lower())
+kanjur_events = [entry for entry in labels
+                 if entry.get("event_id") == "owner-kanjur-drivable-edge-pothole-2026-08-25"]
+check("owner-confirmed Kanjur drivable-edge cavity is a manual positive",
+      len(kanjur_events) == 1
+      and kanjur_events[0].get("mode") == "manual"
+      and kanjur_events[0].get("label") == "pothole"
+      and kanjur_events[0].get("labelled_by") == "owner"
+      and "drivable surface" in kanjur_events[0].get("notes", "").lower())
 check("manual and drive sets stay separate",
       road_eval.entry_mode({"source": "project owner, dashcam frame"}) == "drive"
       and road_eval.entry_mode({"source": "project owner, own camera"}) == "manual")

@@ -1,5 +1,5 @@
 {
- "_comment": "Binary pothole benchmark labels. Images are NOT committed: see eval/README.md. Six seed photos are owner-confirmed positives and the tester's second speed-breaker burst is an owner-confirmed negative. Three candidate pothole events and one strict negative from the 28 Aug construction-road clips were independently assistant-reviewed pending owner confirmation. Other negatives remain assistant-judged and UNVERIFIED; disputed and unlabelled images are excluded from rates. This small set is still not a release gate.",
+ "_comment": "Binary pothole benchmark labels. Images are NOT committed: see eval/README.md. Owner-verified cases include seven manual pothole photos and the two speed-breaker intervals identified by the tester as negatives; the opening traffic-calming interval is independently reviewed. The 28 Aug construction-road clips contain two definite pothole events (A and mid), one ambiguous broad patch (B) labelled negative under the strict false-positive policy, and an all-negative second segment. Those drive-video labels were independently frame-reviewed, not owner-verified. Other negatives remain assistant-judged and UNVERIFIED; disputed and unlabelled images are excluded from rates. This small set is still not a release gate.",
  "images": [
   {
    "path": "seed/IMG20260720144314.jpg",
@@ -156,10 +156,18 @@
    "primary_index": 1,
    "mode": "drive",
    "label": "pothole",
-   "notes": "First reportable event in segment_0001.mp4 at about 35 seconds: a localized water-filled cavity on the left side of the temporary surface actively carrying traffic. Distinct from general construction-road roughness.",
+   "source_file": "construction-drive-segment-1",
+   "source_interval_seconds": [33.6, 35.8],
+   "source_timestamps_seconds": [35.4, 35.6, 35.8],
+   "fixture_sha256": [
+    "24dd68914de9d8a294a1fcb028790ddcda6b878c2831176cf7e2065231f580b5",
+    "0b8ffc5bcdc5c5e46e6bfa9aaa0cf99050c8b01a10df39e38bc103368736a7e7",
+    "28d549938ef5b121561a8432da1c59ebed6a40c0aa24c3d045edf817e8dcd1cb"
+   ],
+   "notes": "Definite event A in construction-drive-segment-1 (visible about 33.6-35.8 seconds, strongest about 34.8-35.6): a localized water-filled cavity on the left side of the temporary surface actively carrying traffic. Distinct from general construction-road roughness.",
    "source": "private drive video supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
-   "labelled_by": "assistant-reviewed; owner confirmation pending"
+   "labelled_by": "independent assistant frame review"
   },
   {
    "event_id": "owner-construction-drive-2026-08-28-mid",
@@ -172,10 +180,18 @@
    "primary_index": 1,
    "mode": "drive",
    "label": "pothole",
-   "notes": "Middle reportable event in segment_0001.mp4 at about 45.5 seconds: two adjacent shallow, rough-edged material-loss cavities on the left side of the travelled strip. One physical report.",
+   "source_file": "construction-drive-segment-1",
+   "source_interval_seconds": [44.3, 45.8],
+   "source_timestamps_seconds": [45.3, 45.5, 45.7],
+   "fixture_sha256": [
+    "e397b7056e3ac8bd8040cea4aa227a713d968e9745c9bbce22c5b6d6b5c1b4ef",
+    "6200f11737ec4ca1e7866ec7829147387ba8f4bbe062c010bba22424cde3d021",
+    "6844aa4ce72e849682a7fd10cfee59220714194d1017fcfddffa16377cd2ffae"
+   ],
+   "notes": "Definite event M in construction-drive-segment-1 (visible about 44.3-45.8 seconds, strongest about 44.5-45.5): two to three adjacent shallow, rough-edged material-loss cavities on the left side of the travelled strip. Treat the cluster as one physical report.",
    "source": "private drive video supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
-   "labelled_by": "independent assistant review; owner confirmation pending"
+   "labelled_by": "independent assistant frame review"
   },
   {
    "event_id": "owner-construction-drive-2026-08-28-b",
@@ -187,11 +203,19 @@
    ],
    "primary_index": 1,
    "mode": "drive",
-   "label": "pothole",
-   "notes": "Second reportable event in segment_0001.mp4 at about 55 seconds: a connected localized cavity cluster on the left side of the temporary surface. One physical report despite multiple visible openings.",
+   "label": "not_pothole",
+   "source_file": "construction-drive-segment-1",
+   "source_interval_seconds": [53.3, 55.8],
+   "source_timestamps_seconds": [55.2, 55.4, 55.6],
+   "fixture_sha256": [
+    "db2792fc899767536830f7c6f0489827fc37efdc8aa9e2266436566e3feb11a7",
+    "73a33e6b31e04cf91e535ec77dfa92f20f18271c72ef8360d2764432e00dd42f",
+    "2f1be0341ad5f0bdbf8e8e6ba6a090f655624456e1d8a544b15458f385a5b236"
+   ],
+   "notes": "Ambiguous broad disturbed patch B in construction-drive-segment-1 (visible about 53.3-55.8 seconds). It is shallow and lacks a defensible bounded cavity across the burst, so the strict false-positive policy requires NO.",
    "source": "private drive video supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
-   "labelled_by": "assistant-reviewed; owner confirmation pending"
+   "labelled_by": "independent assistant review of the complete source video"
   },
   {
    "event_id": "owner-construction-drive-2026-08-28-borderline-negative",
@@ -204,25 +228,105 @@
    "primary_index": 1,
    "mode": "drive",
    "label": "not_pothole",
-   "notes": "Strict negative from segment_0002.mp4 at about 44 seconds. Possible shallow spall or roughness, but no defensible localized cavity with a distinct rim across the burst.",
+   "source_file": "construction-drive-segment-2",
+   "source_interval_seconds": [0.0, 48.99],
+   "source_timestamps_seconds": [44.0, 44.2, 44.4],
+   "fixture_sha256": [
+    "b340f5b26d8ee624b3ea03d86b054aa94afd4c2145d287b2daa943c8e030ba1d",
+    "115cfe22c62b334a3a4d3b740390769db4990d97036fb46852cfd8c081a5f43f",
+    "b41a8baa6e89f9d120b131ddf5644f2da509ca6cb33cd0bbfbc01acfb7759237"
+   ],
+   "notes": "Representative strict negative from the all-negative construction-drive-segment-2. The clip contains roughness, gravel, joins, debris and a resurfaced patch, but no persistent bounded cavity; this burst at about 44 seconds is possible shallow spall or roughness without a defensible localized cavity and rim.",
    "source": "private drive video supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
-   "labelled_by": "assistant-reviewed; owner confirmation pending"
+   "labelled_by": "independent assistant frame review"
   },
   {
-   "event_id": "tester-second-speed-breaker-2026-08-25",
-   "path": "tester-speed-breaker-2026-08-25/t070.jpg",
+   "event_id": "tester-opening-grid-calming-marking-2026-08-25",
+   "path": "tester-speed-breaker-2026-08-25/opening/f1.jpg",
    "frames": [
-    "tester-speed-breaker-2026-08-25/t065.jpg",
-    "tester-speed-breaker-2026-08-25/t070.jpg",
-    "tester-speed-breaker-2026-08-25/t075.jpg"
+    "tester-speed-breaker-2026-08-25/opening/f0.jpg",
+    "tester-speed-breaker-2026-08-25/opening/f1.jpg",
+    "tester-speed-breaker-2026-08-25/opening/f2.jpg"
    ],
    "primary_index": 1,
    "mode": "drive",
    "label": "not_pothole",
-   "notes": "Owner-confirmed second painted speed breaker from the closed-test demonstration. This is documentation filmed from another phone, not the original app-camera burst, so it is a useful regression but not a substitute for retaining the raw detector frames.",
+   "source_file": "tester-speed-breaker-clip",
+   "source_interval_seconds": [0.0, 1.2],
+   "source_timestamps_seconds": [0.3, 0.5, 0.7],
+   "fixture_sha256": [
+    "204a97808d2cd97c842847338f9888f6bdd287dd29fab1119133d92b82f48836",
+    "d8fd5d9824b01ccf667fe414ab3c4924fc41e7ba5d897bfa79bcfb59edbc4f32",
+    "cbba91114baa77908dddf17725c15332ba793d0d1be148970ab54456146b7076"
+   ],
+   "notes": "First traffic-calming interval in the tester clip (about 0.0-1.2 seconds): the vehicle is crossing or has just crossed a painted box-grid marking. It is not a pothole.",
    "source": "private tester demonstration supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
+   "labelled_by": "independent assistant frame review"
+  },
+  {
+   "event_id": "tester-zebra-raised-speed-breaker-2026-08-25",
+   "path": "tester-speed-breaker-2026-08-25/zebra/f1.jpg",
+   "frames": [
+    "tester-speed-breaker-2026-08-25/zebra/f0.jpg",
+    "tester-speed-breaker-2026-08-25/zebra/f1.jpg",
+    "tester-speed-breaker-2026-08-25/zebra/f2.jpg"
+   ],
+   "primary_index": 1,
+   "mode": "drive",
+   "label": "not_pothole",
+   "source_file": "tester-speed-breaker-clip",
+   "source_interval_seconds": [2.4, 4.8],
+   "source_timestamps_seconds": [3.4, 3.6, 3.8],
+   "fixture_sha256": [
+    "7eafbc27ac7a412a37b843cdf58f5e9ee0a8d74f829cd0fad61737e2bf06480d",
+    "2cb495c7ce8f14c54d72044c5bf54a2d26cb16dd4bd94e5045e72edd0698246f",
+    "18494aa84b0a2d1885dca0dce5aaeee85424fe51c9a1eb8da21405be30285587"
+   ],
+   "notes": "Second traffic-calming interval in the tester clip (about 2.4-4.8 seconds): a clearly painted zebra-style raised speed breaker. It is not a pothole.",
+   "source": "private tester demonstration supplied by project owner",
+   "licence": "private evaluation only; frames are not distributed",
+   "labelled_by": "owner"
+  },
+  {
+   "event_id": "tester-second-speed-breaker-2026-08-25",
+   "path": "tester-speed-breaker-native-cadence/later/f1.jpg",
+   "frames": [
+    "tester-speed-breaker-native-cadence/later/f0.jpg",
+    "tester-speed-breaker-native-cadence/later/f1.jpg",
+    "tester-speed-breaker-native-cadence/later/f2.jpg"
+   ],
+   "primary_index": 1,
+   "mode": "drive",
+   "label": "not_pothole",
+   "source_file": "tester-speed-breaker-clip",
+   "source_interval_seconds": [6.1, 7.8],
+   "source_timestamps_seconds": [6.545, 6.745, 6.945],
+   "capture_cadence_ms": 180,
+   "observed_frame_spacing_ms": [200, 200],
+   "fixture_sha256": [
+    "941556eb7456ef900c5b87addf9d620febf79fa19e6fa0c3db7708409b98135d",
+    "f0096847b7ca11b555808b2192123611ecda05b053cf715e2a0a1e4ec8edbdee",
+    "11b003a26846a465816564dcd90e5828e33fade16fc556b80636e0d2aee87c2f"
+   ],
+   "notes": "Third traffic-calming interval in the private tester clip (about 6.1-7.8 seconds): an exact production-cadence sample of a painted box-grid speed breaker or rumble table. Drive waits 180 ms between capture requests; the 30 fps source yields the recorded 200 ms adjacent-frame spacing.",
+   "source": "private tester demonstration supplied by project owner",
+   "licence": "private evaluation only; frames are not distributed",
+   "labelled_by": "owner"
+  },
+  {
+   "event_id": "owner-kanjur-drivable-edge-pothole-2026-08-25",
+   "path": "owner-kanjur-village-road-photo-2026-08-25/photo.jpg",
+   "mode": "manual",
+   "label": "pothole",
+   "source_file": "owner-manual-edge-photo",
+   "fixture_sha256": [
+    "e56538191e6775cbd83c5e1fa95c16d3bee3f5a13a5417ccb6853b191cb1fbc3"
+   ],
+   "notes": "Owner-confirmed pothole: a localized road-edge cavity on the drivable surface beside a raised slab. The defect is on the vehicle-traversed surface and must not be relabelled as drain, footpath, garbage or manhole damage merely because it is near an edge.",
+   "source": "private manual photo supplied by project owner",
+   "licence": "private evaluation only; photo is not distributed",
    "labelled_by": "owner"
   }
  ]

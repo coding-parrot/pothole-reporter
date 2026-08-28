@@ -23,7 +23,7 @@ ROAD_REGION_RATIOS = {
 }
 ROAD_ORIENTATION_EPSILON = 0.10
 ROAD_CROP_MAX_UPSCALE = 2.5
-PROMPT_VERSION = "pothole-binary-v8"
+PROMPT_VERSION = "pothole-binary-v9"
 SCHEMA_VERSION = 7
 
 SCHEMA = {
@@ -67,18 +67,44 @@ def load_key():
     sys.exit("OPENAI_API_KEY not set (environment or .env)")
 
 
+def client_template_constant(name):
+    """Read an auditable template literal from the shipped pure-client runtime."""
+    src = (ROOT / "static" / "standalone.js").read_text()
+    found = re.search(rf"const {re.escape(name)} = `(.*?)`;", src, re.S)
+    if not found:
+        sys.exit(f"could not find {name} in static/standalone.js")
+    return found.group(1)
+
+
+def client_string_constant(name):
+    """Read a quoted version identifier from the shipped pure-client runtime."""
+    src = (ROOT / "static" / "standalone.js").read_text()
+    found = re.search(rf'const {re.escape(name)} = "([^"]+)";', src)
+    if not found:
+        sys.exit(f"could not find {name} in static/standalone.js")
+    return found.group(1)
+
+
 def prompts():
     """Read the live prompt from the pure client so the control cannot drift."""
-    src = (ROOT / "static" / "standalone.js").read_text()
-    found = re.search(r"const DETECT_PROMPT = `(.*?)`;", src, re.S)
-    if not found:
-        sys.exit("could not find DETECT_PROMPT in static/standalone.js")
-    variants = {"baseline": found.group(1)}
+    variants = {"baseline": client_template_constant("DETECT_PROMPT")}
     extra = ROOT / "eval" / "prompts"
     if extra.is_dir():
         for path in sorted(extra.glob("*.txt")):
             variants[path.stem] = path.read_text().rstrip("\n")
     return variants
+
+
+def effective_prompt(base_prompt, mode, layout_note=""):
+    """Mirror the shipped mode-specific prompt assembly exactly."""
+    photo_scope = client_template_constant("PHOTO_ONLY_PROMPT_SUFFIX") \
+        if mode == "manual" else ""
+    return base_prompt + photo_scope + layout_note
+
+
+def effective_prompt_version(mode):
+    return client_string_constant("PHOTO_PROMPT_VERSION") if mode == "manual" \
+        else PROMPT_VERSION
 
 
 def normalise_config(model, detail):
@@ -89,31 +115,60 @@ def normalise_config(model, detail):
     return model, detail
 
 
-def adaptive_lift(image):
-    """Mirror the client's sampled RGB luma test on the already-resized view."""
-    from PIL import ImageEnhance
+def detection_enhancement_plan(image):
+    """Return the integer enhancement plan shared with Android and the Web runtime."""
     pixels = image.load()
     step = max(1, math.floor(math.sqrt((image.width * image.height) / 12000)))
-    total = count = clipped_dark = clipped_bright = 0
+    luminance_sum = sample_count = dark_count = bright_count = 0
     for y in range(0, image.height, step):
         for x in range(0, image.width, step):
             red, green, blue = pixels[x, y]
-            luminance = .2126 * red + .7152 * green + .0722 * blue
-            total += luminance
-            count += 1
-            clipped_dark += luminance < 12
-            clipped_bright += luminance > 245
-    mean = total / max(1, count)
-    dark = clipped_dark / max(1, count)
-    bright = clipped_bright / max(1, count)
-    if mean >= 72 or bright >= .08:
-        return image, {"luminance": mean, "dark": dark, "bright": bright,
-                       "enhanced": False}
-    lift = min(1.65, max(1.15, 85 / max(35, mean)))
-    image = ImageEnhance.Brightness(image).enhance(lift)
-    image = ImageEnhance.Contrast(image).enhance(1.10)
-    return image, {"luminance": mean, "dark": dark, "bright": bright,
-                   "enhanced": True, "brightness": lift}
+            luminance = 2126 * red + 7152 * green + 722 * blue
+            luminance_sum += luminance
+            sample_count += 1
+            dark_count += luminance < 120000
+            bright_count += luminance > 2450000
+
+    enhanced = (luminance_sum < 720000 * sample_count
+                and bright_count * 100 < 8 * sample_count)
+    gain_numerator = gain_denominator = 1
+    if enhanced:
+        gain_numerator = 935000 * sample_count
+        gain_denominator = max(luminance_sum, 350000 * sample_count)
+        if gain_numerator * 1000 < 1265 * gain_denominator:
+            gain_numerator, gain_denominator = 1265, 1000
+        elif gain_numerator * 1000 > 1815 * gain_denominator:
+            gain_numerator, gain_denominator = 1815, 1000
+
+    return {
+        "enhanced": enhanced,
+        "sample_count": sample_count,
+        "luminance_sum": luminance_sum,
+        "dark_count": dark_count,
+        "bright_count": bright_count,
+        "gain_numerator": gain_numerator,
+        "gain_denominator": gain_denominator,
+        "luminance": luminance_sum / max(1, 10000 * sample_count),
+        "dark": dark_count / max(1, sample_count),
+        "bright": bright_count / max(1, sample_count),
+    }
+
+
+def apply_detection_enhancement(image, plan):
+    """Apply Android's exact black-pivot rational gain through an integer RGB LUT."""
+    if not plan["enhanced"]:
+        return image
+    numerator = plan["gain_numerator"]
+    denominator = plan["gain_denominator"]
+    lookup = [min(255, (2 * channel * numerator + denominator) // (2 * denominator))
+              for channel in range(256)]
+    return image.point(lookup * 3)
+
+
+def adaptive_lift(image):
+    """Enhance the already-cropped/resized view with the cross-runtime pixel kernel."""
+    plan = detection_enhancement_plan(image)
+    return apply_detection_enhancement(image, plan), plan
 
 
 def positive_half_up(value):
@@ -209,6 +264,7 @@ def build_request(views, prompt, model, detail):
     return {
         "model": model,
         "reasoning": {"effort": "none" if model == "gpt-5.6" else "minimal"},
+        "store": False,
         "input": [{"role": "user", "content": content}],
         "text": {"format": {"type": "json_schema", "name": "pothole_binary_assessment",
                               "schema": SCHEMA, "strict": True}, "verbosity": "low"},
@@ -379,7 +435,7 @@ def main():
     for name, prompt, model, detail in configs:
         for entry in entries:
             views, transforms, note = prepared[entry["path"]]
-            body = build_request(views, prompt + note, model, detail)
+            body = build_request(views, effective_prompt(prompt, args.mode, note), model, detail)
             for trial in range(args.trials):
                 jobs.append((name, entry, trial, body, transforms))
     print(f"{len(jobs)} calls: {len(configs)} configurations x {len(entries)} events x {args.trials} trials")
@@ -458,7 +514,8 @@ def main():
 
     manifest = {
         "created_at": datetime.now(timezone.utc).isoformat(), "git_commit": git_commit(),
-        "mode": args.mode, "trials_per_event": args.trials, "prompt_version": PROMPT_VERSION,
+        "mode": args.mode, "trials_per_event": args.trials,
+        "prompt_version": effective_prompt_version(args.mode),
         "schema_version": SCHEMA_VERSION, "schema_sha256": sha(json.dumps(SCHEMA, sort_keys=True)),
         "labels_sha256": sha(label_bytes), "configs": [config[0] for config in configs],
         "warning": "The small set is not a release gate; collect diverse verified events and lock a held-out split.",

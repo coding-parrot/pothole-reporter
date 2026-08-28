@@ -1,11 +1,7 @@
 package dev.aiengg.potholereporter.drive
 
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
-import android.graphics.Paint
 import android.util.Base64
 import java.io.ByteArrayOutputStream
 import kotlin.math.abs
@@ -81,10 +77,107 @@ internal object RoadRegionSelector {
     }
 }
 
-object FrameQualityEvaluator {
-    private const val LUMINANCE_SAMPLE_MAX_WIDTH = 160
-    private const val LUMINANCE_SAMPLE_MAX_HEIGHT = 96
+/**
+ * Integer-only low-light enhancement shared, formula-for-formula, with the Web and
+ * evaluation runtimes. Android Drive is the reference behaviour: contrast is a gain
+ * around black, not CSS/Pillow contrast around a grey or image-mean pivot.
+ *
+ * Keeping the decision and channel transform free of Bitmap/Canvas makes the exact
+ * pixels testable on the JVM and prevents renderer-specific colour-filter rounding.
+ */
+internal data class DetectionEnhancementPlan(
+    val enhanced: Boolean,
+    val sampleCount: Int,
+    val luminanceSum: Long,
+    val darkCount: Int,
+    val brightCount: Int,
+    val gainNumerator: Long,
+    val gainDenominator: Long
+)
 
+internal object DetectionImageEnhancement {
+    private const val LUMA_RED = 2_126L
+    private const val LUMA_GREEN = 7_152L
+    private const val LUMA_BLUE = 722L
+    private const val LUMA_SCALE = 10_000L
+    private const val SAMPLE_TARGET = 12_000.0
+
+    fun plan(argb: IntArray, width: Int, height: Int): DetectionEnhancementPlan {
+        require(width > 0 && height > 0 && argb.size == width * height) {
+            "Enhancement pixels must match positive dimensions"
+        }
+        val step = max(1, sqrt(width.toDouble() * height.toDouble() / SAMPLE_TARGET).toInt())
+        var luminanceSum = 0L
+        var sampleCount = 0
+        var darkCount = 0
+        var brightCount = 0
+        for (y in 0 until height step step) {
+            for (x in 0 until width step step) {
+                val pixel = argb[y * width + x]
+                val red = (pixel ushr 16) and 0xff
+                val green = (pixel ushr 8) and 0xff
+                val blue = pixel and 0xff
+                val luminance = LUMA_RED * red + LUMA_GREEN * green + LUMA_BLUE * blue
+                luminanceSum += luminance
+                sampleCount++
+                if (luminance < 12L * LUMA_SCALE) darkCount++
+                if (luminance > 245L * LUMA_SCALE) brightCount++
+            }
+        }
+
+        val enhance = luminanceSum < 72L * LUMA_SCALE * sampleCount &&
+            brightCount.toLong() * 100L < 8L * sampleCount
+        if (!enhance) {
+            return DetectionEnhancementPlan(
+                false, sampleCount, luminanceSum, darkCount, brightCount, 1L, 1L
+            )
+        }
+
+        // gain = 1.10 * clamp(1.15, 1.65, 85 / max(35, mean_luminance)).
+        // The rational form avoids Float/Double and renderer rounding differences.
+        var gainNumerator = 935_000L * sampleCount
+        var gainDenominator = max(luminanceSum, 35L * LUMA_SCALE * sampleCount)
+        when {
+            gainNumerator * 1_000L < 1_265L * gainDenominator -> {
+                gainNumerator = 1_265L
+                gainDenominator = 1_000L
+            }
+            gainNumerator * 1_000L > 1_815L * gainDenominator -> {
+                gainNumerator = 1_815L
+                gainDenominator = 1_000L
+            }
+        }
+        return DetectionEnhancementPlan(
+            true,
+            sampleCount,
+            luminanceSum,
+            darkCount,
+            brightCount,
+            gainNumerator,
+            gainDenominator
+        )
+    }
+
+    fun apply(argb: IntArray, plan: DetectionEnhancementPlan): IntArray {
+        if (!plan.enhanced) return argb.copyOf()
+        val lookup = IntArray(256) { channel -> scaleChannel(channel, plan) }
+        return IntArray(argb.size) { index ->
+            val pixel = argb[index]
+            val alpha = pixel and -0x1000000
+            val red = lookup[(pixel ushr 16) and 0xff]
+            val green = lookup[(pixel ushr 8) and 0xff]
+            val blue = lookup[pixel and 0xff]
+            alpha or (red shl 16) or (green shl 8) or blue
+        }
+    }
+
+    private fun scaleChannel(channel: Int, plan: DetectionEnhancementPlan): Int {
+        val numerator = 2L * channel * plan.gainNumerator + plan.gainDenominator
+        return (numerator / (2L * plan.gainDenominator)).toInt().coerceIn(0, 255)
+    }
+}
+
+object FrameQualityEvaluator {
     fun scoreRoadPixels(pixels: IntArray, width: Int, height: Int): QualityScore {
         val gray = FloatArray(width * height)
         var total = 0f
@@ -194,17 +287,7 @@ object FrameQualityEvaluator {
             if (!it.isRecycled) it.recycle()
         }
 
-        val finalBitmap = if (boost) {
-            val (meanLum, brightRatio) = calculateAverageLuminance(scaled)
-            if (meanLum < 72f && brightRatio < 0.08f) {
-                val lift = min(1.65f, max(1.15f, 85f / max(35f, meanLum)))
-                applyBrightnessContrast(scaled, lift, 1.10f)
-            } else {
-                scaled
-            }
-        } else {
-            scaled
-        }
+        val finalBitmap = if (boost) applyDetectionEnhancement(scaled) else scaled
 
         val base64 = bitmapToBase64(finalBitmap, quality)
         NativeBitmapOwnership.recycleIfOwned(finalBitmap, bitmap, scaled) {
@@ -335,59 +418,15 @@ object FrameQualityEvaluator {
         return Base64.encodeToString(bytes, Base64.NO_WRAP)
     }
 
-    private fun calculateAverageLuminance(bitmap: Bitmap): Pair<Float, Float> {
-        val scale = min(
-            1f,
-            min(
-                LUMINANCE_SAMPLE_MAX_WIDTH.toFloat() / bitmap.width.toFloat(),
-                LUMINANCE_SAMPLE_MAX_HEIGHT.toFloat() / bitmap.height.toFloat()
-            )
-        )
-        val width = max(1, (bitmap.width * scale).roundToInt())
-        val height = max(1, (bitmap.height * scale).roundToInt())
-        val sampled = Bitmap.createScaledBitmap(bitmap, width, height, true)
-
-        try {
-            val pixels = IntArray(width * height)
-            sampled.getPixels(pixels, 0, width, 0, 0, width, height)
-
-            var total = 0f
-            var bright = 0
-
-            for (c in pixels) {
-                val r = Color.red(c)
-                val g = Color.green(c)
-                val b = Color.blue(c)
-                val lum = 0.2126f * r + 0.7152f * g + 0.0722f * b
-                total += lum
-                if (lum > 245f) bright++
-            }
-
-            val count = pixels.size
-            val mean = if (count > 0) total / count else 0f
-            val brightRatio = if (count > 0) bright.toFloat() / count else 0f
-            return Pair(mean, brightRatio)
-        } finally {
-            if (sampled !== bitmap && !sampled.isRecycled) {
-                sampled.recycle()
-            }
+    private fun applyDetectionEnhancement(src: Bitmap): Bitmap {
+        val pixels = IntArray(src.width * src.height)
+        src.getPixels(pixels, 0, src.width, 0, 0, src.width, src.height)
+        val plan = DetectionImageEnhancement.plan(pixels, src.width, src.height)
+        if (!plan.enhanced) return src
+        val output = DetectionImageEnhancement.apply(pixels, plan)
+        return Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888).also {
+            it.setPixels(output, 0, src.width, 0, 0, src.width, src.height)
         }
-    }
-
-    private fun applyBrightnessContrast(src: Bitmap, brightness: Float, contrast: Float): Bitmap {
-        val cm = ColorMatrix(
-            floatArrayOf(
-                contrast * brightness, 0f, 0f, 0f, 0f,
-                0f, contrast * brightness, 0f, 0f, 0f,
-                0f, 0f, contrast * brightness, 0f, 0f,
-                0f, 0f, 0f, 1f, 0f
-            )
-        )
-        val ret = Bitmap.createBitmap(src.width, src.height, src.config ?: Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(ret)
-        val paint = Paint().apply { colorFilter = ColorMatrixColorFilter(cm) }
-        canvas.drawBitmap(src, 0f, 0f, paint)
-        return ret
     }
 
     private const val MAX_BOUNDED_JPEG_SCALE_PASSES = 4

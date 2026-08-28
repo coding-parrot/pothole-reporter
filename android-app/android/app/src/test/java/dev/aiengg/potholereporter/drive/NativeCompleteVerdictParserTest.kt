@@ -165,6 +165,7 @@ class NativeCompleteVerdictParserTest {
             clearPothole + ("has_localized_cavity" to false),
             clearPothole + ("has_broken_edge_or_rim" to false),
             clearPothole + ("has_depth_or_surface_loss" to false),
+            clearPothole + ("temporal_consistency" to "single_view"),
             clearPothole + ("temporal_consistency" to "inconsistent"),
             clearPothole + ("size" to null)
         )
@@ -199,7 +200,7 @@ class NativeCompleteVerdictParserTest {
             clearPothole + ("looks_like_speed_breaker" to "false")
         ))
         assertNull(NativeCompleteVerdictParser.fromFields(
-            clearPothole + ("temporal_consistency" to "single_view")
+            clearPothole + ("temporal_consistency" to "probable")
         ))
         assertNull(NativeCompleteVerdictParser.fromFields(
             clearPothole + ("surface_type" to "gravel")

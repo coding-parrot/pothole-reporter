@@ -52,7 +52,7 @@ data class ReportEntity(
     val status: String = "draft",
     val detectionModel: String? = "gpt-5-mini",
     val imageDetail: String? = "high",
-    val promptVersion: String? = "pothole-binary-v8",
+    val promptVersion: String? = "pothole-binary-v9",
     val schemaVersion: Int = 7,
     val evidenceCount: Int = 4,
     val unroutedReason: String? = null,

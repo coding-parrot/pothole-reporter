@@ -241,7 +241,7 @@ class DriveModePlugin : Plugin() {
     @PluginMethod
     fun startDrive(call: PluginCall) {
         val apiKey = call.getString("apiKey") ?: ""
-        val model = call.getString("model") ?: "gpt-5-mini"
+        val model = call.getString("model") ?: "gpt-5.6"
         val detail = call.getString("detail") ?: "high"
         val language = call.getString("language") ?: "en"
         val debug = call.getBoolean("debug") ?: false

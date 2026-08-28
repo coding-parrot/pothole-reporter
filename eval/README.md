@@ -68,11 +68,14 @@ with a strong rim and stable geometry across a chronological burst can be positi
 Ordinary gravel texture, corrugation, ruts, broad breakup, puddle ambiguity, shoulders,
 and construction beds remain negative.
 
-The current set is not a release gate: it has six owner-verified positive photos and one
-owner-verified speed-breaker burst, while the other negative labels are unverified and
-historical result files predate this contract. Do not choose a model or claim accuracy
-from it. First collect fully audited drives with diverse positive and negative events,
-keep adjacent frames in one event/split, and lock a held-out test set.
+The current set is not a release gate. It has seven owner-verified positive photos, two
+owner-verified speed-breaker intervals, one independently reviewed traffic-calming
+interval, two independently reviewed Drive positives, an independently reviewed
+ambiguous-patch negative and one representative burst from an all-negative second clip.
+Other labels remain unverified, and historical result files
+predate this contract. Do not choose a model or claim accuracy from this set alone. First
+collect fully audited drives with diverse positive and negative events, keep adjacent
+frames in one event/split, and lock a held-out test set.
 
 To reproduce the set, drop the owner's photos and drive frames into the paths under
 `eval/images/` named in `labels.json`. The private tester frames must not be distributed.
@@ -80,6 +83,13 @@ When adding third-party imagery, record its licence and attribution in `labels.j
 Openly licensed street-level imagery is suitable for evaluation; it is **not** suitable
 for filing complaints, because a complaint asserts a current condition on a road you
 observed.
+
+Private events retain a neutral source identifier, the reviewed source interval and exact
+frame timestamps in `labels.json`; every fixture also records a SHA-256 so a local private
+copy can be verified without publishing its filename or pixels. Exact original filenames
+and capture times stay outside the repository. `tests/media_regression_manifest_test.py`
+guards this coverage without requiring the private image files to be committed or present
+in CI.
 
 ## Arms
 
@@ -124,9 +134,11 @@ mid-lane texture: an erosion and silt strip, and an intact but dusty road. The
 hypothesis the evidence supports is a clause requiring a **visible depth cue or a
 defined rim**, rather than anything about where on the road the defect sits.
 
-The set is too small to settle this: six owner-confirmed potholes, one owner-confirmed
-speed-breaker burst, several assistant-labelled negatives, and five frames nobody has
-reviewed. Growing it with retained raw Drive bursts and openly licensed Indian
+The set is too small to settle this: seven owner-confirmed photo potholes, two
+owner-confirmed traffic-calming intervals, one independently reviewed traffic-calming
+interval, a few independently reviewed Drive events,
+several assistant-labelled negatives, and five frames nobody has reviewed. Growing it
+with retained raw Drive bursts and openly licensed Indian
 street-level imagery is the highest-value work available here.
 
 ## 20 Aug 2026: the repair-scar clause, ACCEPTED

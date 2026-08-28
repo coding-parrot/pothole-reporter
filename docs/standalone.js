@@ -43,10 +43,15 @@
   const pmsg = (k) => (PROGRESS[LANG()] && PROGRESS[LANG()][k]) || PROGRESS.en[k];
 
   const DEFAULT_MODEL = "gpt-5-mini";
+  // Live private-media regression on the exact Drive contract found materially better
+  // recall from gpt-5.6 while preserving every supplied hard negative. Manual Photo kept
+  // better edge-cavity recall on gpt-5-mini. Keep the modes explicit and auditable.
+  const DRIVE_DETECTION_MODEL = "gpt-5.6";
+  const DRIVE_DETECTION_DETAIL = "high";
   const ALLOWED_MODELS = new Set([DEFAULT_MODEL, "gpt-5.6"]);
   const ALLOWED_DETAILS = new Set(["high", "original"]);
-  const PROMPT_VERSION = "pothole-binary-v8";
-  const PHOTO_PROMPT_VERSION = "pothole-photo-only-v2";
+  const PROMPT_VERSION = "pothole-binary-v9";
+  const PHOTO_PROMPT_VERSION = "pothole-photo-only-v3";
   const SCHEMA_VERSION = 7;
   const REPAIR_PROMPT_VERSION = "road-repair-v1";
   const REPAIR_SCHEMA_VERSION = 1;
@@ -398,7 +403,9 @@ A pothole is a localized concave open cavity in the surface currently used by mo
 - it has visible depth or localized material loss; and
 - when several chronological views are supplied, they consistently show the same concave geometry as the vehicle approaches.
 
-Return NO for a speed breaker, road hump, rumble strip, shadow, stain, glare, dust, loose debris, lane marking, intact patch, crack, broad surface breakup without a distinct cavity, wheel rut, smooth depression, manhole, drain, expansion joint, road edge, shoulder erosion, or construction obstacle. A failed patch is YES only when it now contains a distinct cavity satisfying every rule.
+Position near the side of a lane is not itself a rejection. A localized cavity whose opening intrudes into the drivable surface actually used by moving traffic may be YES when every physical gate above is satisfied, including when the cavity adjoins a raised kerb or roadside slab. This exception is only for the cavity footprint inside the active traffic surface: damage confined to a kerb, gutter, drain, footpath, shoulder, verge, roadside ground, or a broken outer edge that vehicles do not traverse is NO.
+
+Return NO for a speed breaker, road hump, rumble strip, shadow, stain, glare, dust, loose debris, lane marking, intact patch, crack, broad surface breakup without a distinct cavity, wheel rut, smooth depression, manhole, drain, expansion joint, shoulder erosion, construction obstacle, or broken edge outside the active traffic surface. A failed patch is YES only when it now contains a distinct cavity satisfying every rule.
 
 Speed-breaker rule:
 - Set looks_like_speed_breaker true whenever the feature is or could reasonably be an intentional raised speed breaker, hump, or rumble strip. Painted rectangles or stripes, reflectors, a transverse ridge across the lane, parallel leading/trailing edges, camera pitch, and a vehicle jolt support NO, not YES.
@@ -419,6 +426,9 @@ Camera position alone does not prove that an unsealed surface is a traffic lane.
 - A water-filled cavity can be YES when a localized enclosing lip and depressed opening remain visible and preserve their geometry across the approach. Water or a dark patch without that independent boundary evidence is NO; the cavity floor need not be visible through opaque water.
 - Two or more adjacent discrete bowl-like material-loss openings are one connected cavity-cluster event. Do not relabel them as broad breakup when their local boundaries remain distinct.
 - General roughness, corrugation, wheel ruts, broad breakup, loose aggregate, normal gravel texture, grading, and smooth depressions are NO.
+
+Road-edge boundary interpretation:
+- A cavity at the meeting line of a flat roadway foreground and a raised roadside slab is not confined to the footpath or gutter when its broken opening removes part of that flat road edge or creates an abrupt open drop reachable by a vehicle wheel. In that case set on_drivable_surface true even when much of the visible void or rubble extends beside or underneath the slab. Reject it as confined outside the road only when an intact continuous kerb or gutter clearly separates the entire cavity opening from the traffic surface.
 
 unpaved_or_nonroad and unknown must always be NO.
 
@@ -609,6 +619,8 @@ This is a strict before/after verification, not ordinary pothole detection:
   const TEMPORARY_DRIVABLE_SURFACE = "temporary_drivable_surface";
   const REPORTABLE_SURFACES = new Set([...PAVED_SURFACES, TEMPORARY_DRIVABLE_SURFACE]);
   const KNOWN_SURFACES = new Set([...REPORTABLE_SURFACES, "unpaved_or_nonroad", "unknown"]);
+  const LEGACY_NATIVE_V8_PROMPT_VERSION = "pothole-binary-v8";
+  const LEGACY_NATIVE_V8_SCHEMA_VERSION = 7;
   const LEGACY_NATIVE_V7_PROMPT_VERSION = "pothole-binary-v7";
   const LEGACY_NATIVE_V7_SCHEMA_VERSION = 7;
   const LEGACY_NATIVE_V6_PROMPT_VERSION = "pothole-binary-v6";
@@ -618,7 +630,13 @@ This is a strict before/after verification, not ordinary pothole detection:
     if (!native || typeof native !== "object") return null;
     if (native.prompt_version === PROMPT_VERSION
         && Number(native.schema_version) === SCHEMA_VERSION) {
-      return { kind: "current_v8", surfaceTypes: REPORTABLE_SURFACES };
+      return { kind: "current_v9", surfaceTypes: REPORTABLE_SURFACES };
+    }
+    // v8 used the same strict fields and remains valid for unsynced rows captured by
+    // the previous GitHub release. Its prompt differed, so keep the provenance explicit.
+    if (native.prompt_version === LEGACY_NATIVE_V8_PROMPT_VERSION
+        && Number(native.schema_version) === LEGACY_NATIVE_V8_SCHEMA_VERSION) {
+      return { kind: "legacy_v8", surfaceTypes: REPORTABLE_SURFACES };
     }
     // v7 used the same strict schema and temporary-surface vocabulary. Preserve pending
     // and accepted rows captured immediately before the prompt/crop upgrade.
@@ -8181,22 +8199,61 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     return { x: 0, y: top, width, height: bottom - top };
   }
 
-  function averageLuminance(ctx, width, height) {
-    const data = ctx.getImageData(0, 0, width, height).data;
+  function detectionEnhancementPlan(data, width, height) {
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0
+        || !data || data.length !== width * height * 4) {
+      throw new Error("Enhancement pixels must match positive dimensions");
+    }
     const step = Math.max(1, Math.floor(Math.sqrt((width * height) / 12000)));
-    let total = 0, count = 0, clippedDark = 0, clippedBright = 0;
+    let luminanceSum = 0, sampleCount = 0, darkCount = 0, brightCount = 0;
     for (let y = 0; y < height; y += step) {
       for (let x = 0; x < width; x += step) {
         const i = (y * width + x) * 4;
-        const lum = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
-        total += lum; count++;
-        if (lum < 12) clippedDark++;
-        if (lum > 245) clippedBright++;
+        const luminance = 2126 * data[i] + 7152 * data[i + 1] + 722 * data[i + 2];
+        luminanceSum += luminance; sampleCount++;
+        if (luminance < 120000) darkCount++;
+        if (luminance > 2450000) brightCount++;
       }
     }
-    return { mean: count ? total / count : 0,
-             dark: count ? clippedDark / count : 1,
-             bright: count ? clippedBright / count : 0 };
+    const enhanced = luminanceSum < 720000 * sampleCount
+      && brightCount * 100 < 8 * sampleCount;
+    let gainNumerator = 1, gainDenominator = 1;
+    if (enhanced) {
+      gainNumerator = 935000 * sampleCount;
+      gainDenominator = Math.max(luminanceSum, 350000 * sampleCount);
+      if (gainNumerator * 1000 < 1265 * gainDenominator) {
+        gainNumerator = 1265; gainDenominator = 1000;
+      } else if (gainNumerator * 1000 > 1815 * gainDenominator) {
+        gainNumerator = 1815; gainDenominator = 1000;
+      }
+    }
+    return {
+      enhanced, sampleCount, luminanceSum, darkCount, brightCount,
+      gainNumerator, gainDenominator,
+      mean: sampleCount ? luminanceSum / (10000 * sampleCount) : 0,
+      dark: sampleCount ? darkCount / sampleCount : 1,
+      bright: sampleCount ? brightCount / sampleCount : 0,
+    };
+  }
+
+  function applyDetectionEnhancement(data, plan) {
+    if (!plan || !plan.enhanced) return data;
+    const denominator = 2 * plan.gainDenominator;
+    const lookup = new Uint8Array(256);
+    for (let channel = 0; channel < lookup.length; channel++) {
+      const numerator = 2 * channel * plan.gainNumerator + plan.gainDenominator;
+      lookup[channel] = Math.max(0, Math.min(255, Math.floor(numerator / denominator)));
+    }
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = lookup[data[i]];
+      data[i + 1] = lookup[data[i + 1]];
+      data[i + 2] = lookup[data[i + 2]];
+    }
+    return data;
+  }
+
+  function averageLuminance(ctx, width, height) {
+    return detectionEnhancementPlan(ctx.getImageData(0, 0, width, height).data, width, height);
   }
 
   async function toDataUrl(blob, maxDim, quality = 0.85, boost = false, cropRoad = false) {
@@ -8218,12 +8275,12 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     // Enhancement follows the pixels, not the wall clock. Fixed evening hours boosted
     // bright street-lit frames and amplified noise. Preserve the original evidence copy;
     // this is only the small image used for detection.
-    const light = boost ? averageLuminance(ctx, c.width, c.height) : null;
-    if (boost && light.mean < 72 && light.bright < 0.08) {
-      const lift = Math.min(1.65, Math.max(1.15, 85 / Math.max(35, light.mean)));
-      ctx.filter = `brightness(${lift.toFixed(2)}) contrast(1.10)`;
-      ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, c.width, c.height);
-      ctx.filter = "none";
+    const imageData = boost ? ctx.getImageData(0, 0, c.width, c.height) : null;
+    const light = imageData
+      ? detectionEnhancementPlan(imageData.data, c.width, c.height) : null;
+    if (light && light.enhanced) {
+      applyDetectionEnhancement(imageData.data, light);
+      ctx.putImageData(imageData, 0, 0);
     }
     const out = c.toDataURL("image/jpeg", quality);
     if (bmp.close) bmp.close();
@@ -8362,7 +8419,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         : LANG() === "bn"
           ? "\n- Write the description field in clear formal Bengali (পরিষ্কার, প্রমিত বাংলায় লিখুন)."
         : "");
-    const detectionModel = S.model, detectionDetail = S.detail;
+    const detectionModel = driveMode ? DRIVE_DETECTION_MODEL : S.model;
+    const detectionDetail = driveMode ? DRIVE_DETECTION_DETAIL : S.detail;
     const repairCandidate = repairCandidateP ? await repairCandidateP : null;
     // Single shot has one verdict on screen, so show it the moment it streams in.
     // Drive Mode analyses run concurrently and report through the HUD instead.
@@ -10370,6 +10428,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    binaryAssessment,
                    nativeDetectorContract,
                    damageTypeOf, assessmentOf, normaliseModel, normaliseDetail,
+                   DRIVE_DETECTION_MODEL, DRIVE_DETECTION_DETAIL,
                    normaliseIssueType, civicIssueName, issueFileStem,
                    buildDetectionRequest, ASSESS_SCHEMA, DETECT_PROMPT, PROMPT_VERSION,
                    PHOTO_ONLY_PROMPT_SUFFIX, PHOTO_PROMPT_VERSION,
@@ -10377,6 +10436,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    REPAIR_SCHEMA_VERSION, clearAbsenceForRepair, repairConditionFor,
                    SCHEMA_VERSION, MAX_DETECTION_IMAGES, ROAD_REGION_RATIOS,
                    selectRoadRegion, averageLuminance,
+                   detectionEnhancementPlan, applyDetectionEnhancement,
                    distMeters, roadEventMatch, sameRoadEvent, repairTargetMatch,
                    findRepairCandidateFromReports, findDuplicateReport,
                    draftEmail, buildComplaintOutputs, complaintOutputsForRecord,

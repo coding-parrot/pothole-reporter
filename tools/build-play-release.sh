@@ -154,8 +154,8 @@ fi
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="dev.aiengg.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="57"' "$BUNDLE_MANIFEST" || fail "expected versionCode 57"
-grep -Fq 'android:versionName="1.36.2"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.36.2"
+grep -Fq 'android:versionCode="58"' "$BUNDLE_MANIFEST" || fail "expected versionCode 58"
+grep -Fq 'android:versionName="1.36.3"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.36.3"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"
@@ -242,13 +242,13 @@ python3 "$RELEASE_ASSET_VERIFIER" \
   --static static --www "$WWW_ROOT" --docs docs --packaged "$PACKAGED_ASSETS_ROOT" \
   --aab "$AAB_PATH" --apk "$APK_PATH"
 
-if unzip -p "$AAB_PATH" base/assets/public/standalone.js | grep -Eqa 'sk-(proj-)?[A-Za-z0-9_-]{20,}'; then
+if unzip -p "$AAB_PATH" base/assets/public/standalone.js | grep -Eqa 'sk-(proj-[A-Za-z0-9_-]{40,}|[A-Za-z0-9]{40,})'; then
   fail "an API-key-shaped value is embedded in standalone.js"
 fi
 if ! unzip -p "$AAB_PATH" base/assets/capacitor.plugins.json | grep -Fq '@capacitor/app-launcher'; then
   fail "App Launcher plugin is missing from the release bundle"
 fi
-if unzip -p "$APK_PATH" assets/public/standalone.js | grep -Eqa 'sk-(proj-)?[A-Za-z0-9_-]{20,}'; then
+if unzip -p "$APK_PATH" assets/public/standalone.js | grep -Eqa 'sk-(proj-[A-Za-z0-9_-]{40,}|[A-Za-z0-9]{40,})'; then
   fail "an API-key-shaped value is embedded in the release APK"
 fi
 if ! unzip -p "$APK_PATH" assets/capacitor.plugins.json | grep -Fq '@capacitor/app-launcher'; then

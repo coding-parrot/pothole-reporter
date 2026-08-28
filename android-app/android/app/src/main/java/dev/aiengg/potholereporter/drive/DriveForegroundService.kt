@@ -207,7 +207,7 @@ class DriveForegroundService : LifecycleService() {
                 try {
                     startDriveSession(
                         intent?.getStringExtra(EXTRA_API_KEY).orEmpty(),
-                        intent?.getStringExtra(EXTRA_MODEL) ?: "gpt-5-mini",
+                        intent?.getStringExtra(EXTRA_MODEL) ?: "gpt-5.6",
                         intent?.getStringExtra(EXTRA_DETAIL) ?: "high",
                         intent?.getStringExtra(EXTRA_LANGUAGE) ?: "en",
                         intent?.getBooleanExtra(EXTRA_DEBUG, false) ?: false,
