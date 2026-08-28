@@ -71,18 +71,20 @@ check("30-minute active-time limit is bounded to 15..90 minutes",
       and "SystemClock.elapsedRealtime()" in SERVICE
       and all(value in SERVICE for value in (
           "startSessionLimitLoop()", "pauseSessionLimit()", "resumeSessionLimit()")))
-check("sparse keyframes are durable and unique per drive capture",
-      "KEYFRAME_INTERVAL_MS = 2_000L" in SERVICE
-      and "persistSparseKeyframe(baseItem)" in SERVICE
-      and "if (!recordingEnabled" not in SERVICE[SERVICE.index("private suspend fun persistSparseKeyframe"):SERVICE.index("private fun startInferenceWorker")]
-      and SERVICE.index("return withContext(Dispatchers.IO)", SERVICE.index("private suspend fun persistSparseKeyframe"))
-          < SERVICE.index("FrameQualityEvaluator.bitmapToBoundedJpegBytes", SERVICE.index("private suspend fun persistSparseKeyframe"))
+check("every selected burst is durable and unique before live inference",
+      "KEYFRAME_INTERVAL_MS" not in SERVICE
+      and "persistSelectedBurst(baseItem)" in SERVICE
+      and "if (!recordingEnabled" not in SERVICE[SERVICE.index("private suspend fun persistSelectedBurst"):SERVICE.index("private fun startInferenceWorker")]
+      and SERVICE.index("return withContext(Dispatchers.IO)", SERVICE.index("private suspend fun persistSelectedBurst"))
+          < SERVICE.index("FrameQualityEvaluator.bitmapToBoundedJpegBytes", SERVICE.index("private suspend fun persistSelectedBurst"))
       and "selectTemporalCompanionIndex" in SERVICE
       and "reserveMediaBytes(expectedBytes)" in SERVICE
       and "MAX_KEYFRAME_IMAGE_BYTES = 900L * 1024L" in IMAGE_POLICY
       and "MAX_KEYFRAME_PAIR_BYTES = 2L * MAX_KEYFRAME_IMAGE_BYTES" in IMAGE_POLICY
       and "_context.jpg" in KEYFRAME_FILES
-      and SERVICE.index("persistSparseKeyframe(baseItem)") < SERVICE.index("jobChannel?.trySend(item)")
+      and SERVICE.index("persistSelectedBurst(baseItem)") < SERVICE.index("jobChannel?.trySend(item)")
+      and 'if (keyframeId == null)' in SERVICE
+      and 'stopDriveSession(' in SERVICE[SERVICE.index('if (keyframeId == null)'):SERVICE.index('val item = baseItem.copy')]
       and "MAX_TOTAL_BYTES = 4L * 1024 * 1024 * 1024" in QUOTA
       and "VIDEO_SEGMENT_RESERVATION_BYTES" in QUOTA
       and "MIGRATION_3_4" in DATABASE
@@ -122,7 +124,7 @@ check("native bridge exposes pending keyframe replay",
       and 'getInt("maxDurationMinutes")' in PLUGIN
       and "EXTRA_MAX_DRIVE_MINUTES" in PLUGIN)
 
-analysis = WEB[WEB.index("async function analyseNativeKeyframes"):]
+analysis = WEB[WEB.index("function nativeAutomaticReplayAllowed"):]
 analysis = analysis[:analysis.index("function gpsAt")]
 check("UI wires timer and idempotent saved-frame analysis",
       "const DRIVE_LIMIT_OPTIONS = [15, 30, 60, 90]" in WEB
@@ -130,8 +132,11 @@ check("UI wires timer and idempotent saved-frame analysis",
       and 'data-analysenative="${driveId}"' in WEB
       and "pendingOnly: true" in analysis
       and "`live:${state.driveId}:${saved.captureSeq}`" in analysis
+      and "scheduleNativeKeyframeReplay(sessionId)" in WEB
+      and "scheduleNativeKeyframeReplay();" in WEB
+      and "result.analyzed !== true" in analysis
       and analysis.index('await api("/api/frame"')
-          < analysis.index("await plugin.markKeyframeAnalyzed"))
+          < analysis.index("() => plugin.markKeyframeAnalyzed"))
 check("hybrid status is explicit and all shipped web copies match",
       "RECORDING VIDEO" in WEB and '"Video: On"' in WEB
       and "SAVING FRAMES" in WEB and "saved frame" in WEB and "min left" in WEB
@@ -141,11 +146,11 @@ check("hybrid status is explicit and all shipped web copies match",
           == (ROOT / "static/index.html").read_bytes()
       and (ROOT / "android-app/android/app/src/main/assets/public/index.html").read_bytes()
           == (ROOT / "static/index.html").read_bytes())
-check("Android release identity is 1.36.1 code 56 everywhere",
-      re.search(r"versionCode\s+56\b", GRADLE)
-      and re.search(r'versionName\s+"1\.36\.1"', GRADLE)
-      and 'android:versionCode="56"' in RELEASE
-      and 'android:versionName="1.36.1"' in RELEASE)
+check("Android release identity is 1.36.2 code 57 everywhere",
+      re.search(r"versionCode\s+57\b", GRADLE)
+      and re.search(r'versionName\s+"1\.36\.2"', GRADLE)
+      and 'android:versionCode="57"' in RELEASE
+      and 'android:versionName="1.36.2"' in RELEASE)
 
 if failures:
     print(f"\nFAIL: {len(failures)} hybrid Drive contract check(s) failed")

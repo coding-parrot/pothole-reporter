@@ -367,6 +367,8 @@ with sync_playwright() as playwright:
         has_broken_edge_or_rim: true, has_depth_or_surface_loss: true,
         temporal_consistency: "consistent", size: "medium", decision: "accept",
         description: "Test native Drive detection", detection_model: "gpt-5-mini",
+        // A strict v6 row can remain unsynced in Room across an app update. It must be
+        // imported once under its paved-surface vocabulary, not discarded or retried.
         image_detail: "high", prompt_version: "pothole-binary-v6", schema_version: 6,
         evidence_count: 4, drive_id: "native-import", capture_source: "drive_live",
         source_event_key: "live:native-import:1", captured_at: Date.now() / 1000,

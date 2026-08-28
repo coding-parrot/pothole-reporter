@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Build a Play upload bundle without copying or mutating any web source files.
+# Build signed Play and direct-install release artifacts without copying or
+# mutating any web source files.
 #
 # Signing values may come from the POTHOLE_RELEASE_* environment variables or
 # from the ignored android-app/android/keystore.properties file. Gradle refuses
@@ -11,6 +12,7 @@ cd "$(dirname "$0")/.."
 PROJECT_ROOT=$PWD
 ANDROID_ROOT=android-app/android
 AAB_PATH=$ANDROID_ROOT/app/build/outputs/bundle/release/app-release.aab
+APK_PATH=$ANDROID_ROOT/app/build/outputs/apk/release/app-release.apk
 R8_MAPPING_PATH=$ANDROID_ROOT/app/build/outputs/mapping/release/mapping.txt
 # AGP 8.13 writes the fully merged, packaged release manifest here. Validate this
 # generated artifact rather than an obsolete pre-8.13 intermediate path.
@@ -54,7 +56,9 @@ same_file() {
 }
 
 require_tool cmp
+require_tool find
 require_tool grep
+require_tool head
 require_tool jarsigner
 require_tool keytool
 require_tool python3
@@ -62,6 +66,8 @@ require_tool sed
 require_tool shasum
 require_tool sort
 require_tool stat
+require_tool tail
+require_tool tr
 require_tool unzip
 
 # On the maintainer Mac, reuse the registered Play upload certificate without copying
@@ -85,6 +91,23 @@ if [ ! -f "$ANDROID_ROOT/keystore.properties" ] &&
     fi
   fi
 fi
+
+# apksigner is the authoritative verifier for modern APK Signature Scheme v2+
+# signatures. jarsigner cannot see those signatures and can incorrectly call a
+# valid release APK unsigned. Resolve the same Android SDK that Gradle uses.
+APKSIGNER=$(command -v apksigner 2>/dev/null || true)
+if [ -z "$APKSIGNER" ]; then
+  ANDROID_SDK_PATH=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}
+  if [ -z "$ANDROID_SDK_PATH" ] && [ -f "$ANDROID_ROOT/local.properties" ]; then
+    ANDROID_SDK_PATH=$(sed -n 's/^sdk\.dir=//p' "$ANDROID_ROOT/local.properties" | head -n 1)
+  fi
+  if [ -n "$ANDROID_SDK_PATH" ] && [ -d "$ANDROID_SDK_PATH/build-tools" ]; then
+    APKSIGNER=$(find "$ANDROID_SDK_PATH/build-tools" -mindepth 2 -maxdepth 2 \
+      -type f -name apksigner -print | sort | tail -n 1)
+  fi
+fi
+[ -n "$APKSIGNER" ] && [ -x "$APKSIGNER" ] || \
+  fail "Android SDK apksigner is missing; install Android SDK Build Tools"
 
 echo "1/7 validating hosted data packs, municipal schemas and web-source mirrors (read only)"
 [ -d static ] || fail "static source directory is missing"
@@ -117,10 +140,12 @@ done
 python3 "$RELEASE_ASSET_VERIFIER" \
   --static static --www "$WWW_ROOT" --docs docs --packaged "$PACKAGED_ASSETS_ROOT"
 
-echo "2/7 building signed release bundle"
-rm -f "$AAB_PATH"
-(cd "$ANDROID_ROOT" && ./gradlew --no-daemon --offline :app:bundleRelease -q)
+echo "2/7 building signed release bundle and APK"
+rm -f "$AAB_PATH" "$APK_PATH"
+(cd "$ANDROID_ROOT" && ./gradlew --no-daemon --offline \
+  :app:bundleRelease :app:assembleRelease -q)
 [ -s "$AAB_PATH" ] || fail "Gradle produced no non-empty AAB"
+[ -s "$APK_PATH" ] || fail "Gradle produced no non-empty release APK"
 [ -s "$R8_MAPPING_PATH" ] || fail "R8 mapping is missing; release code shrinking is not active"
 [ -f "$BUNDLE_MANIFEST" ] || fail "Gradle produced no release bundle manifest"
 if ! unzip -Z1 "$AAB_PATH" | grep -Fx 'BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map' >/dev/null; then
@@ -129,8 +154,8 @@ fi
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="dev.aiengg.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="56"' "$BUNDLE_MANIFEST" || fail "expected versionCode 56"
-grep -Fq 'android:versionName="1.36.1"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.36.1"
+grep -Fq 'android:versionCode="57"' "$BUNDLE_MANIFEST" || fail "expected versionCode 57"
+grep -Fq 'android:versionName="1.36.2"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.36.2"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"
@@ -173,7 +198,7 @@ if [ "$actual_permissions" != "$expected_permissions" ]; then
   fail "release permission set changed; review it before publishing"
 fi
 
-echo "4/7 validating the AAB signature"
+echo "4/7 validating AAB and APK signatures"
 signature_report=$(jarsigner -verify "$AAB_PATH" 2>&1 || true)
 if ! grep -Fq 'jar verified.' <<<"$signature_report" || grep -Fqi 'jar is unsigned' <<<"$signature_report"; then
   fail "AAB is not signed with a verifiable JAR signature"
@@ -192,10 +217,30 @@ if [ "$actual_upload_cert_sha256" != "$expected_upload_cert_sha256" ]; then
   fail "AAB signer does not match the registered Pothole Reporter upload certificate"
 fi
 
-echo "5/7 verifying bundled web assets"
+if ! apk_signature_report=$("$APKSIGNER" verify --verbose --print-certs "$APK_PATH" 2>&1); then
+  printf '%s\n' "$apk_signature_report" >&2
+  fail "APK signature verification failed"
+fi
+if ! grep -Fq 'Verified using v2 scheme (APK Signature Scheme v2): true' \
+  <<<"$apk_signature_report"; then
+  fail "APK does not have a verified APK Signature Scheme v2 signature"
+fi
+if ! grep -Fq 'Number of signers: 1' <<<"$apk_signature_report"; then
+  fail "APK must have exactly one signer"
+fi
+if grep -Fqi 'CN=Android Debug' <<<"$apk_signature_report"; then
+  fail "APK is signed with the Android debug certificate"
+fi
+expected_apk_cert_sha256=$(printf '%s' "$expected_upload_cert_sha256" | tr -d ':' | tr '[:upper:]' '[:lower:]')
+if ! grep -Fq "Signer #1 certificate SHA-256 digest: $expected_apk_cert_sha256" \
+  <<<"$apk_signature_report"; then
+  fail "APK signer does not match the registered Pothole Reporter upload certificate"
+fi
+
+echo "5/7 verifying bundled web assets in both artifacts"
 python3 "$RELEASE_ASSET_VERIFIER" \
   --static static --www "$WWW_ROOT" --docs docs --packaged "$PACKAGED_ASSETS_ROOT" \
-  --aab "$AAB_PATH"
+  --aab "$AAB_PATH" --apk "$APK_PATH"
 
 if unzip -p "$AAB_PATH" base/assets/public/standalone.js | grep -Eqa 'sk-(proj-)?[A-Za-z0-9_-]{20,}'; then
   fail "an API-key-shaped value is embedded in standalone.js"
@@ -203,11 +248,20 @@ fi
 if ! unzip -p "$AAB_PATH" base/assets/capacitor.plugins.json | grep -Fq '@capacitor/app-launcher'; then
   fail "App Launcher plugin is missing from the release bundle"
 fi
+if unzip -p "$APK_PATH" assets/public/standalone.js | grep -Eqa 'sk-(proj-)?[A-Za-z0-9_-]{20,}'; then
+  fail "an API-key-shaped value is embedded in the release APK"
+fi
+if ! unzip -p "$APK_PATH" assets/capacitor.plugins.json | grep -Fq '@capacitor/app-launcher'; then
+  fail "App Launcher plugin is missing from the release APK"
+fi
 
-echo "6/7 confirming large data packs are absent from the AAB"
+echo "6/7 confirming large data packs are absent from both artifacts"
 for asset in "${FORBIDDEN_STATE_ASSETS[@]}"; do
   if unzip -Z1 "$AAB_PATH" | grep -Fx "base/assets/public/$asset" >/dev/null; then
     fail "state data is bundled in the AAB: $asset"
+  fi
+  if unzip -Z1 "$APK_PATH" | grep -Fx "assets/public/$asset" >/dev/null; then
+    fail "state data is bundled in the APK: $asset"
   fi
 done
 if unzip -Z1 "$AAB_PATH" | grep -Eq '^base/assets/public/packs/v1/highways/'; then
@@ -216,8 +270,19 @@ fi
 if unzip -Z1 "$AAB_PATH" | grep -Eq '^base/assets/public/packs/v1/(contracts|road-notices|road-agreements)/'; then
   fail "contract/tender data packs are bundled in the AAB"
 fi
+if unzip -Z1 "$APK_PATH" | grep -Eq '^assets/public/packs/v1/highways/'; then
+  fail "National Highway geometry tiles are bundled in the APK"
+fi
+if unzip -Z1 "$APK_PATH" | grep -Eq '^assets/public/packs/v1/(contracts|road-notices|road-agreements)/'; then
+  fail "contract/tender data packs are bundled in the APK"
+fi
 
-echo "7/7 release bundle accepted"
+echo "7/7 release bundle and APK accepted"
 bundle_bytes=$(stat -f%z "$AAB_PATH" 2>/dev/null || stat -c%s "$AAB_PATH")
 bundle_sha256=$(shasum -a 256 "$AAB_PATH" | sed 's/[[:space:]].*//')
-printf 'AAB OK  %s bytes  SHA-256 %s\n%s\n' "$bundle_bytes" "$bundle_sha256" "$PROJECT_ROOT/$AAB_PATH"
+apk_bytes=$(stat -f%z "$APK_PATH" 2>/dev/null || stat -c%s "$APK_PATH")
+apk_sha256=$(shasum -a 256 "$APK_PATH" | sed 's/[[:space:]].*//')
+printf 'AAB OK  %s bytes  SHA-256 %s\n%s\n' \
+  "$bundle_bytes" "$bundle_sha256" "$PROJECT_ROOT/$AAB_PATH"
+printf 'APK OK  %s bytes  SHA-256 %s\n%s\n' \
+  "$apk_bytes" "$apk_sha256" "$PROJECT_ROOT/$APK_PATH"

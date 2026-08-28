@@ -1,5 +1,5 @@
 {
- "_comment": "Binary pothole benchmark labels. Images are NOT committed: see eval/README.md. Six seed photos are owner-confirmed positives and the tester's second speed-breaker burst is an owner-confirmed negative. Other negatives remain assistant-judged and UNVERIFIED; disputed and unlabelled images are excluded from rates. This small set is still not a release gate.",
+ "_comment": "Binary pothole benchmark labels. Images are NOT committed: see eval/README.md. Six seed photos are owner-confirmed positives and the tester's second speed-breaker burst is an owner-confirmed negative. Three candidate pothole events and one strict negative from the 28 Aug construction-road clips were independently assistant-reviewed pending owner confirmation. Other negatives remain assistant-judged and UNVERIFIED; disputed and unlabelled images are excluded from rates. This small set is still not a release gate.",
  "images": [
   {
    "path": "seed/IMG20260720144314.jpg",
@@ -52,7 +52,7 @@
   {
    "path": "seed/t013s.jpg",
    "label": "not_pothole",
-   "notes": "Loose debris and an exposed drainage grate at the kerb. The carriageway itself is intact. The sharpest probe in the set: the live prompt rejects it 10/10, and every road-band crop variant accepted it.",
+   "notes": "Loose debris and an exposed drainage grate at the kerb. The carriageway itself is intact. The sharpest probe in the set: the live prompt rejects it 10/10, and every historical fixed-crop variant accepted it.",
    "source": "project owner, dashcam frame",
    "licence": "owner",
    "labelled_by": "assistant, UNVERIFIED"
@@ -144,6 +144,70 @@
    "source": "project owner, dashcam frame",
    "licence": "owner",
    "labelled_by": "assistant, UNVERIFIED"
+  },
+  {
+   "event_id": "owner-construction-drive-2026-08-28-a",
+   "path": "owner-construction-drive-2026-08-28/event-a/f1.jpg",
+   "frames": [
+    "owner-construction-drive-2026-08-28/event-a/f0.jpg",
+    "owner-construction-drive-2026-08-28/event-a/f1.jpg",
+    "owner-construction-drive-2026-08-28/event-a/f2.jpg"
+   ],
+   "primary_index": 1,
+   "mode": "drive",
+   "label": "pothole",
+   "notes": "First reportable event in segment_0001.mp4 at about 35 seconds: a localized water-filled cavity on the left side of the temporary surface actively carrying traffic. Distinct from general construction-road roughness.",
+   "source": "private drive video supplied by project owner",
+   "licence": "private evaluation only; frames are not distributed",
+   "labelled_by": "assistant-reviewed; owner confirmation pending"
+  },
+  {
+   "event_id": "owner-construction-drive-2026-08-28-mid",
+   "path": "owner-construction-drive-2026-08-28/event-mid/f1.jpg",
+   "frames": [
+    "owner-construction-drive-2026-08-28/event-mid/f0.jpg",
+    "owner-construction-drive-2026-08-28/event-mid/f1.jpg",
+    "owner-construction-drive-2026-08-28/event-mid/f2.jpg"
+   ],
+   "primary_index": 1,
+   "mode": "drive",
+   "label": "pothole",
+   "notes": "Middle reportable event in segment_0001.mp4 at about 45.5 seconds: two adjacent shallow, rough-edged material-loss cavities on the left side of the travelled strip. One physical report.",
+   "source": "private drive video supplied by project owner",
+   "licence": "private evaluation only; frames are not distributed",
+   "labelled_by": "independent assistant review; owner confirmation pending"
+  },
+  {
+   "event_id": "owner-construction-drive-2026-08-28-b",
+   "path": "owner-construction-drive-2026-08-28/event-b/f1.jpg",
+   "frames": [
+    "owner-construction-drive-2026-08-28/event-b/f0.jpg",
+    "owner-construction-drive-2026-08-28/event-b/f1.jpg",
+    "owner-construction-drive-2026-08-28/event-b/f2.jpg"
+   ],
+   "primary_index": 1,
+   "mode": "drive",
+   "label": "pothole",
+   "notes": "Second reportable event in segment_0001.mp4 at about 55 seconds: a connected localized cavity cluster on the left side of the temporary surface. One physical report despite multiple visible openings.",
+   "source": "private drive video supplied by project owner",
+   "licence": "private evaluation only; frames are not distributed",
+   "labelled_by": "assistant-reviewed; owner confirmation pending"
+  },
+  {
+   "event_id": "owner-construction-drive-2026-08-28-borderline-negative",
+   "path": "owner-construction-drive-2026-08-28/negative/f1.jpg",
+   "frames": [
+    "owner-construction-drive-2026-08-28/negative/f0.jpg",
+    "owner-construction-drive-2026-08-28/negative/f1.jpg",
+    "owner-construction-drive-2026-08-28/negative/f2.jpg"
+   ],
+   "primary_index": 1,
+   "mode": "drive",
+   "label": "not_pothole",
+   "notes": "Strict negative from segment_0002.mp4 at about 44 seconds. Possible shallow spall or roughness, but no defensible localized cavity with a distinct rim across the burst.",
+   "source": "private drive video supplied by project owner",
+   "licence": "private evaluation only; frames are not distributed",
+   "labelled_by": "assistant-reviewed; owner confirmation pending"
   },
   {
    "event_id": "tester-second-speed-breaker-2026-08-25",

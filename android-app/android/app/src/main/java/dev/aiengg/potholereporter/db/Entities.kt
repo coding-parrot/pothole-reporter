@@ -52,8 +52,8 @@ data class ReportEntity(
     val status: String = "draft",
     val detectionModel: String? = "gpt-5-mini",
     val imageDetail: String? = "high",
-    val promptVersion: String? = "pothole-binary-v6",
-    val schemaVersion: Int = 6,
+    val promptVersion: String? = "pothole-binary-v8",
+    val schemaVersion: Int = 7,
     val evidenceCount: Int = 4,
     val unroutedReason: String? = null,
     val unroutedBody: String? = null,
@@ -244,4 +244,12 @@ data class DriveKeyframeEntity(
     val height: Int,
     val bytes: Long,
     val liveAnalyzed: Boolean = false
+)
+
+/** Bounded history projection; rendering drives does not materialize every frame row. */
+data class DriveKeyframeSummary(
+    val sessionId: String,
+    val keyframeCount: Int,
+    val pendingCount: Int,
+    val keyframeBytes: Long
 )

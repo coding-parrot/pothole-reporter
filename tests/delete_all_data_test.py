@@ -56,6 +56,21 @@ with sync_playwright() as playwright:
             tx.oncomplete = () => { importCompleted = true; resolve(); };
             tx.onabort = () => reject(tx.error);
           }));
+          let releaseReplay;
+          let replayCancelledAtRelease = false;
+          const replayGate = new Promise((resolve) => { releaseReplay = resolve; });
+          const replayState = {cancelled: false, interactive: false};
+          replayState.done = replayGate.then(() => new Promise((resolve, reject) => {
+            replayCancelledAtRelease = replayState.cancelled;
+            const tx = db.transaction("reports", "readwrite");
+            tx.objectStore("reports").put({id: 9004, created_at: 4,
+              photo: new Blob(["late-saved-frame-replay"])});
+            tx.oncomplete = () => { nativeKeyframeReplay = null; resolve(); };
+            tx.onabort = () => reject(tx.error);
+          }));
+          nativeKeyframeReplay = replayState;
+          nativeKeyframeAutoPromise = replayState.done;
+          show("settings");
           let wipeSettled = false;
           const wipePromise = deleteAllAppData().then((value) => {
             wipeSettled = true;
@@ -63,10 +78,17 @@ with sync_playwright() as playwright:
           });
           await new Promise((resolve) => setTimeout(resolve, 30));
           const wipeSettledBeforeImport = wipeSettled;
+          const screenBeforeNavigation = $("settings").classList.contains("hidden") ? "other" : "settings";
+          const navigationAllowed = show("home");
+          const screenAfterNavigation = $("settings").classList.contains("hidden") ? "other" : "settings";
+          const backConsumed = window.handleAppBack();
+          await startDrive();
+          const driveStartedDuringWipe = !!drive || driveStarting;
           let gatedSyncError = null;
           try { await syncNativeData(); }
           catch (error) { gatedSyncError = String(error && error.message || error); }
           releaseImport();
+          releaseReplay();
           const completed = await wipePromise;
           const counts = await new Promise((resolve, reject) => {
             const tx = db.transaction(["reports", "drives", "footage", "state_packs"], "readonly");
@@ -88,8 +110,14 @@ with sync_playwright() as playwright:
             localLengthAfterSuccess,
             sessionLengthAfterSuccess,
             importCompleted,
+            replayCancelledAtRelease,
             wipeSettledBeforeImport,
             gatedSyncError,
+            screenBeforeNavigation,
+            navigationAllowed,
+            screenAfterNavigation,
+            backConsumed,
+            driveStartedDuringWipe,
           };
         }"""
     )
@@ -149,8 +177,16 @@ if result["localLengthAfterSuccess"] or result["sessionLengthAfterSuccess"]:
     failures.append("localStorage/sessionStorage survived a successful delete-all")
 if not result["importCompleted"] or result["wipeSettledBeforeImport"]:
     failures.append(f"delete-all did not await the in-flight import: {result}")
+if not result["replayCancelledAtRelease"]:
+    failures.append(f"delete-all did not cancel and await saved-frame replay: {result}")
 if "deletion is in progress" not in (result["gatedSyncError"] or ""):
     failures.append(f"delete-all allowed a new native sync: {result['gatedSyncError']}")
+if result["screenBeforeNavigation"] != "settings" or result["screenAfterNavigation"] != "settings":
+    failures.append(f"delete-all allowed navigation away from Settings: {result}")
+if result["navigationAllowed"] is not False or result["backConsumed"] is not True:
+    failures.append(f"delete-all did not consume direct/Back navigation: {result}")
+if result["driveStartedDuringWipe"]:
+    failures.append("Drive started while delete-all was in progress")
 if "simulated native cleanup failure" not in (failure_result["rejected"] or ""):
     failures.append(f"native deletion failure was hidden: {failure_result['rejected']}")
 if failure_result["retained"] != 1 or failure_result["retainedSetting"] != "yes":

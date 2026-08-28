@@ -38,8 +38,50 @@ internal object NativeBitmapOwnership {
     }
 }
 
+/**
+ * Pixel bounds for the part of a forward-facing camera frame that contains the
+ * near/mid road. The bounds deliberately stop above the bottom of the image so a
+ * dashboard or bonnet cannot dominate either quality selection or inference.
+ */
+internal data class RoadRegion(
+    val x: Int,
+    val y: Int,
+    val width: Int,
+    val height: Int
+) {
+    val bottomExclusive: Int get() = y + height
+}
+
+internal object RoadRegionSelector {
+    private const val PORTRAIT_TOP = 0.40f
+    // The supplied 480x720 road clips place the closest cavities down to about
+    // 64% of frame height, while the bonnet begins around 66%. Keep that near
+    // road evidence without returning to the old dashboard-heavy lower crop.
+    private const val PORTRAIT_BOTTOM = 0.66f
+    private const val LANDSCAPE_TOP = 0.48f
+    private const val LANDSCAPE_BOTTOM = 0.78f
+    private const val SQUARE_TOP = 0.40f
+    private const val SQUARE_BOTTOM = 0.70f
+    private const val ORIENTATION_EPSILON = 0.10f
+
+    fun select(frameWidth: Int, frameHeight: Int): RoadRegion {
+        require(frameWidth > 0 && frameHeight > 0) { "Frame dimensions must be positive" }
+
+        val aspectRatio = frameWidth.toFloat() / frameHeight.toFloat()
+        val (topRatio, bottomRatio) = when {
+            aspectRatio < 1f - ORIENTATION_EPSILON -> PORTRAIT_TOP to PORTRAIT_BOTTOM
+            aspectRatio > 1f + ORIENTATION_EPSILON -> LANDSCAPE_TOP to LANDSCAPE_BOTTOM
+            else -> SQUARE_TOP to SQUARE_BOTTOM
+        }
+        val top = (frameHeight * topRatio).roundToInt().coerceIn(0, frameHeight - 1)
+        val bottom = (frameHeight * bottomRatio)
+            .roundToInt()
+            .coerceIn(top + 1, frameHeight)
+        return RoadRegion(x = 0, y = top, width = frameWidth, height = bottom - top)
+    }
+}
+
 object FrameQualityEvaluator {
-    private const val ROAD_BAND = 0.60f
     private const val LUMINANCE_SAMPLE_MAX_WIDTH = 160
     private const val LUMINANCE_SAMPLE_MAX_HEIGHT = 96
 
@@ -85,10 +127,15 @@ object FrameQualityEvaluator {
     fun evaluateRoadFrameQuality(fullBitmap: Bitmap): QualityScore {
         val width = 160
         val height = 96
-        val sourceH = max(1, (fullBitmap.height * ROAD_BAND).roundToInt())
-        val sourceY = fullBitmap.height - sourceH
+        val roadRegion = RoadRegionSelector.select(fullBitmap.width, fullBitmap.height)
 
-        val cropped = Bitmap.createBitmap(fullBitmap, 0, sourceY, fullBitmap.width, sourceH)
+        val cropped = Bitmap.createBitmap(
+            fullBitmap,
+            roadRegion.x,
+            roadRegion.y,
+            roadRegion.width,
+            roadRegion.height
+        )
         val scaled = if (cropped.width == width && cropped.height == height) cropped
         else Bitmap.createScaledBitmap(cropped, width, height, true)
         NativeBitmapOwnership.recycleIfOwned(cropped, fullBitmap, scaled) {
@@ -121,13 +168,21 @@ object FrameQualityEvaluator {
         quality: Int = 85,
         boost: Boolean = true
     ): String {
-        val sourceH = max(1, (bitmap.height * ROAD_BAND).roundToInt())
-        val sourceY = bitmap.height - sourceH
-        val cropped = Bitmap.createBitmap(bitmap, 0, sourceY, bitmap.width, sourceH)
+        val roadRegion = RoadRegionSelector.select(bitmap.width, bitmap.height)
+        val cropped = Bitmap.createBitmap(
+            bitmap,
+            roadRegion.x,
+            roadRegion.y,
+            roadRegion.width,
+            roadRegion.height
+        )
 
         val sw = cropped.width
         val sh = cropped.height
-        val scale = min(1f, maxDim.toFloat() / max(sw, sh).toFloat())
+        // A sub-512px road band makes small rims vanish before model image tiling. Scale
+        // the inspection view up to maxDim (bounded for malformed/tiny inputs); context
+        // encoding remains downscale-only in prepareContextDataUrl.
+        val scale = min(ROAD_CROP_MAX_UPSCALE, maxDim.toFloat() / max(sw, sh).toFloat())
         val targetW = max(1, (sw * scale).roundToInt())
         val targetH = max(1, (sh * scale).roundToInt())
 
@@ -339,6 +394,7 @@ object FrameQualityEvaluator {
     private const val BOUNDED_JPEG_QUALITY_STEP = 8
     private const val BOUNDED_JPEG_INITIAL_BUFFER_BYTES = 64L * 1024L
     private const val MIN_BOUNDED_JPEG_DIMENSION = 320
+    private const val ROAD_CROP_MAX_UPSCALE = 2.5f
     private const val DEFAULT_BOUNDED_JPEG_SCALE = 0.75
     private const val MIN_BOUNDED_JPEG_SCALE = 0.55
     private const val MAX_BOUNDED_JPEG_SCALE = 0.82

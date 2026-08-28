@@ -25,6 +25,7 @@ HOSTED_DOC_FILES = frozenset({
 })
 HOSTED_DOC_PREFIXES = ("packs/",)
 AAB_PUBLIC_PREFIX = "base/assets/public/"
+APK_PUBLIC_PREFIX = "assets/public/"
 
 
 class AssetVerificationError(RuntimeError):
@@ -99,17 +100,22 @@ def verify_source_trees(static: Path, www: Path, docs: Path, packaged: Path) -> 
     _require_same_bytes(www_files, packaged_files, "www-to-Android mirror")
 
 
-def verify_aab(packaged: Path, aab: Path) -> None:
-    if not aab.is_file() or aab.stat().st_size <= 0:
-        raise AssetVerificationError(f"release bundle is missing or empty: {aab}")
+def _verify_archive_assets(
+    packaged: Path,
+    artifact: Path,
+    public_prefix: str,
+    artifact_label: str,
+) -> None:
+    if not artifact.is_file() or artifact.stat().st_size <= 0:
+        raise AssetVerificationError(f"release {artifact_label} is missing or empty: {artifact}")
     packaged_files = _files(packaged)
-    with zipfile.ZipFile(aab) as archive:
+    with zipfile.ZipFile(artifact) as archive:
         public_entries: dict[str, str] = {}
         duplicates: set[str] = set()
         for info in archive.infolist():
-            if info.is_dir() or not info.filename.startswith(AAB_PUBLIC_PREFIX):
+            if info.is_dir() or not info.filename.startswith(public_prefix):
                 continue
-            relative_path = info.filename[len(AAB_PUBLIC_PREFIX):]
+            relative_path = info.filename[len(public_prefix):]
             if not relative_path:
                 continue
             if relative_path in public_entries:
@@ -117,12 +123,26 @@ def verify_aab(packaged: Path, aab: Path) -> None:
             public_entries[relative_path] = info.filename
         if duplicates:
             raise AssetVerificationError(
-                f"AAB has duplicate public assets: [{_format_names(duplicates)}]"
+                f"{artifact_label} has duplicate public assets: [{_format_names(duplicates)}]"
             )
-        _require_same_set(set(packaged_files), set(public_entries), "AAB public assets")
+        _require_same_set(
+            set(packaged_files),
+            set(public_entries),
+            f"{artifact_label} public assets",
+        )
         for relative_path in sorted(packaged_files):
             if archive.read(public_entries[relative_path]) != packaged_files[relative_path].read_bytes():
-                raise AssetVerificationError(f"AAB asset differs from source: {relative_path}")
+                raise AssetVerificationError(
+                    f"{artifact_label} asset differs from source: {relative_path}"
+                )
+
+
+def verify_aab(packaged: Path, aab: Path) -> None:
+    _verify_archive_assets(packaged, aab, AAB_PUBLIC_PREFIX, "AAB")
+
+
+def verify_apk(packaged: Path, apk: Path) -> None:
+    _verify_archive_assets(packaged, apk, APK_PUBLIC_PREFIX, "APK")
 
 
 def main() -> int:
@@ -132,11 +152,14 @@ def main() -> int:
     parser.add_argument("--docs", type=Path, required=True)
     parser.add_argument("--packaged", type=Path, required=True)
     parser.add_argument("--aab", type=Path)
+    parser.add_argument("--apk", type=Path)
     args = parser.parse_args()
     try:
         verify_source_trees(args.static, args.www, args.docs, args.packaged)
         if args.aab is not None:
             verify_aab(args.packaged, args.aab)
+        if args.apk is not None:
+            verify_apk(args.packaged, args.apk)
     except (AssetVerificationError, OSError, zipfile.BadZipFile) as error:
         print(f"FAIL: {error}", file=sys.stderr)
         return 1

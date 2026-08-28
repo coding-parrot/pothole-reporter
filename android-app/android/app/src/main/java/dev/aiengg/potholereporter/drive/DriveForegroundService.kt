@@ -129,7 +129,6 @@ class DriveForegroundService : LifecycleService() {
     private var sessionLimitJob: Job? = null
     private var sessionLimitPolicy: DriveSessionLimitPolicy? = null
     private var sessionLimitMinutes = DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES
-    private var lastKeyframeAtMs = 0L
     @Volatile private var lastStatusDispatchElapsedMs = 0L
     @Volatile private var lastCameraAccessCheckElapsedMs = 0L
     @Volatile private var lastCameraRestartAttemptElapsedMs = Long.MIN_VALUE
@@ -167,7 +166,6 @@ class DriveForegroundService : LifecycleService() {
         const val EXTRA_STOP_REQUEST_ID = "extra_stop_request_id"
         const val EXTRA_STOP_DISCARD_DATA = "extra_stop_discard_data"
         private const val MAX_WAKELOCK_MS = 4 * 60 * 60 * 1000L
-        private const val KEYFRAME_INTERVAL_MS = 2_000L
         private const val KEYFRAME_JPEG_QUALITY = 88
         private const val ROUTINE_STATUS_THROTTLE_MS = 1_000L
         private const val CAMERA_ACCESS_RECHECK_MS = 2_000L
@@ -312,7 +310,7 @@ class DriveForegroundService : LifecycleService() {
         recordingEnabled = recordVideo; isRecording = false; videoSupported = true
         debugMode = debug
         segmentCount = 0; recordedBytes = 0L; pauseTransitioning = false
-        keyframeCount = 0; lastKeyframeAtMs = 0L
+        keyframeCount = 0
         sessionLimitMinutes = maxDriveMinutes
         sessionLimitPolicy = DriveSessionLimitPolicy(SystemClock.elapsedRealtime(), maxDriveMinutes)
         discardDataOnStop = false
@@ -336,9 +334,9 @@ class DriveForegroundService : LifecycleService() {
 
         inferenceEngine = NativeInferenceEngine(applicationContext, apiKey, model, detail, language, debug)
         jobChannel = Channel(
-            // A remote model cannot consume raw camera bursts at capture cadence. Retain
-            // only the latest pending burst; sparse JPEG keyframes preserve replayable
-            // evidence without allowing ARGB bitmap memory to grow with network latency.
+            // A remote model cannot consume raw camera bursts at capture cadence. Keep
+            // only one raw burst in memory; every selected burst has already been saved
+            // durably, so overflow defers inference without destroying its evidence.
             capacity = 1,
             onBufferOverflow = BufferOverflow.DROP_OLDEST,
             onUndeliveredElement = { item ->
@@ -488,7 +486,29 @@ class DriveForegroundService : LifecycleService() {
                     burst.first, primaryIndex, validatedFix, sequence, primaryCapturedAt,
                     sourceOffset, accessEpochBeforeCapture
                 )
-                val keyframeId = persistSparseKeyframe(baseItem)
+                val keyframeId = try {
+                    persistSelectedBurst(baseItem)
+                } catch (_: Exception) {
+                    null
+                }
+                if (keyframeId == null) {
+                    val accessStillValid = isBurstAccessStillValid(baseItem)
+                    recycle(baseItem)
+                    if (!accessStillValid) {
+                        // Access changed during persistence. No inference is allowed and
+                        // the regular interlock owns recovery/pause messaging.
+                        mainHandler.post(::refreshCaptureInterlock)
+                    } else {
+                        // Never send a selected burst to the model unless its source
+                        // frames and capture metadata are already durable.
+                        withContext(Dispatchers.Main.immediate) {
+                            stopDriveSession(
+                                "Stopped because saved-frame storage is unavailable. Free app storage and start Drive again."
+                            )
+                        }
+                    }
+                    continue
+                }
                 val item = baseItem.copy(keyframeId = keyframeId)
                 if (!isBurstAccessStillValid(item)) {
                     // A transition during JPEG persistence keeps the saved frame pending
@@ -870,11 +890,9 @@ class DriveForegroundService : LifecycleService() {
         }
     }
 
-    /** Saves two bounded, temporally distinct burst JPEGs at most once every two seconds. */
-    private suspend fun persistSparseKeyframe(item: BurstJob): Long? {
+    /** Saves every selected burst as two bounded, temporally distinct JPEGs. */
+    private suspend fun persistSelectedBurst(item: BurstJob): Long? {
         if (!isBurstAccessStillValid(item)) return null
-        if (item.capturedAtMs - lastKeyframeAtMs < KEYFRAME_INTERVAL_MS) return null
-        lastKeyframeAtMs = item.capturedAtMs
         val primaryIndex = item.primaryIndex.takeIf { it in item.burstFrames.indices } ?: return null
         val companionIndex = NativeKeyframeFiles.selectTemporalCompanionIndex(
             item.burstFrames.map(BurstFrame::capturedAtMs),
@@ -1129,9 +1147,10 @@ class DriveForegroundService : LifecycleService() {
                             }
                         }
                     }
-                    // A model response alone is not a completed job: keep the durable
-                    // keyframe pending if local deduplication/report persistence failed.
-                    analysisCompleted = true
+                    // Only a complete detector verdict closes durable replay. A null or
+                    // deliberately incomplete result stays pending, as does any local
+                    // deduplication/report-persistence failure thrown above.
+                    analysisCompleted = outcome?.analyzed == true
                     publish(if (isStopping) "Finishing queued detections" else "Scanning live")
                 } catch (cancelled: CancellationException) {
                     throw cancelled

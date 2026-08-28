@@ -422,13 +422,20 @@ class NativeDriveCameraManager(
         storagePreparationInFlight = true
         storageScope.launch {
             val prepared = runCatching {
-                val directoryReady = footageRoot.exists() || footageRoot.mkdirs()
-                val reservation = if (directoryReady) {
+                // Reserving first is also a barrier against a reconciliation pass that
+                // snapshotted the service before this Drive became active. Create and
+                // revalidate the session directory under that same filesystem mutex only
+                // after the stale pass has finished, so it cannot delete the empty root
+                // between mkdirs and recorder startup.
+                val reservation =
                     reserveMediaBytes(NativeMediaStorageQuota.VIDEO_SEGMENT_RESERVATION_BYTES)
-                } else null
+                val directoryReady = NativeMediaFilesystemMutation.mutex.withLock {
+                    footageRoot.isDirectory || (!footageRoot.exists() && footageRoot.mkdirs())
+                }
+                if (!directoryReady) reservation?.let(storageQuota::release)
                 PreparedStorage(
                     directoryReady = directoryReady,
-                    reservation = reservation,
+                    reservation = reservation.takeIf { directoryReady },
                     accountedBytes = storageQuota.accountedBytes() ?: 0L
                 )
             }

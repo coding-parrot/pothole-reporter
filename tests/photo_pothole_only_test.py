@@ -57,7 +57,7 @@ check('api("/api/civic-report"' not in INDEX,
 
 # A separate version makes the single-photo instruction auditable without changing the
 # Drive prompt contract used by the native closed-test build.
-check('const PHOTO_PROMPT_VERSION = "pothole-photo-only-v1";' in CLIENT,
+check('const PHOTO_PROMPT_VERSION = "pothole-photo-only-v2";' in CLIENT,
       "Photo prompt contract/version is missing or changed without updating this test", failures)
 check("const promptVersion = driveMode ? PROMPT_VERSION : PHOTO_PROMPT_VERSION;" in CLIENT,
       "single-photo reports do not record the Photo-only prompt version", failures)
@@ -160,7 +160,7 @@ with sync_playwright() as playwright:
         })"""
     )
     suffix = prompt["suffix"].lower()
-    check(prompt["version"] == "pothole-photo-only-v1",
+    check(prompt["version"] == "pothole-photo-only-v2",
           f"runtime Photo prompt version is not the audited contract: {prompt['version']}", failures)
     check(all(term in suffix for term in (
         "detect potholes only", "garbage", "open or damaged manholes",

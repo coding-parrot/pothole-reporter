@@ -63,6 +63,32 @@ data class ReportSyncCandidate(
     val debugCapture: Boolean
 )
 
+/**
+ * Minimal ownership projection used while reconciling private Drive keyframe files.
+ *
+ * A selected burst can include multiple JPEGs and long drives can retain thousands of
+ * rows. Reconciliation only needs this identity triple; hydrating capture metadata (or
+ * every full [DriveKeyframeEntity]) would make an otherwise idle bridge call scale with
+ * the entire retained history.
+ */
+data class DriveKeyframeOwnershipRef(
+    val id: Long,
+    val sessionId: String,
+    val filePath: String
+)
+
+/** Lightweight cursor page for the automatic saved-frame replay scheduler. */
+data class PendingKeyframeSession(
+    val sessionId: String,
+    val pendingCount: Int
+)
+
+/** A keyframe owner whose parent session write did not survive process death. */
+data class MissingKeyframeSessionRef(
+    val sessionId: String,
+    val firstCapturedAtMs: Long
+)
+
 @Dao
 interface ReportDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -204,6 +230,9 @@ interface SessionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: SessionEntity)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertSessionIfMissing(session: SessionEntity): Long
+
     @Update
     suspend fun updateSession(session: SessionEntity)
 
@@ -261,14 +290,73 @@ interface DriveKeyframeDao {
     @Query("SELECT * FROM drive_keyframes WHERE id = :id")
     suspend fun getKeyframe(id: Long): DriveKeyframeEntity?
 
-    @Query("SELECT * FROM drive_keyframes WHERE sessionId = :sessionId ORDER BY captureSeq ASC")
-    suspend fun getForSession(sessionId: String): List<DriveKeyframeEntity>
+    @Query("SELECT * FROM drive_keyframes WHERE sessionId = :sessionId ORDER BY captureSeq ASC LIMIT :limit")
+    suspend fun getForSession(sessionId: String, limit: Int): List<DriveKeyframeEntity>
 
-    @Query("SELECT * FROM drive_keyframes WHERE sessionId = :sessionId AND liveAnalyzed = 0 ORDER BY captureSeq ASC")
-    suspend fun getPendingForSession(sessionId: String): List<DriveKeyframeEntity>
+    @Query("""SELECT * FROM drive_keyframes
+        WHERE sessionId = :sessionId AND liveAnalyzed = 0
+        ORDER BY captureSeq ASC LIMIT :limit""")
+    suspend fun getPendingForSession(
+        sessionId: String,
+        limit: Int
+    ): List<DriveKeyframeEntity>
 
-    @Query("SELECT * FROM drive_keyframes ORDER BY capturedAtMs DESC")
-    suspend fun getAll(): List<DriveKeyframeEntity>
+    @Query("SELECT COUNT(*) FROM drive_keyframes WHERE sessionId = :sessionId AND liveAnalyzed = 0")
+    suspend fun countPendingForSession(sessionId: String): Int
+
+    @Query("""SELECT sessionId AS sessionId,
+        COUNT(*) AS keyframeCount,
+        SUM(CASE WHEN liveAnalyzed = 0 THEN 1 ELSE 0 END) AS pendingCount,
+        COALESCE(SUM(bytes), 0) AS keyframeBytes
+        FROM drive_keyframes GROUP BY sessionId""")
+    suspend fun getSummaries(): List<DriveKeyframeSummary>
+
+    @Query("SELECT id FROM drive_keyframes ORDER BY id DESC LIMIT 1")
+    suspend fun getNewestOwnershipId(): Long?
+
+    @Query("""SELECT id, sessionId, filePath FROM drive_keyframes
+        WHERE id > :afterId AND id <= :throughId
+        ORDER BY id ASC LIMIT :limit""")
+    suspend fun getOwnershipPage(
+        afterId: Long,
+        throughId: Long,
+        limit: Int
+    ): List<DriveKeyframeOwnershipRef>
+
+    @Query("""SELECT id, sessionId, filePath FROM drive_keyframes
+        WHERE sessionId = :sessionId AND filePath IN (:storedPaths)
+        ORDER BY id ASC LIMIT :limit""")
+    suspend fun getOwnershipPageForSession(
+        sessionId: String,
+        storedPaths: List<String>,
+        limit: Int
+    ): List<DriveKeyframeOwnershipRef>
+
+    @Query("""SELECT drive_keyframes.sessionId AS sessionId, COUNT(*) AS pendingCount
+        FROM drive_keyframes
+        INNER JOIN sessions ON sessions.id = drive_keyframes.sessionId
+        WHERE drive_keyframes.liveAnalyzed = 0
+          AND sessions.status IN ('stopped', 'interrupted')
+          AND drive_keyframes.sessionId > :afterSessionId
+        GROUP BY drive_keyframes.sessionId
+        ORDER BY drive_keyframes.sessionId ASC LIMIT :limit""")
+    suspend fun getPendingSessionPage(
+        afterSessionId: String,
+        limit: Int
+    ): List<PendingKeyframeSession>
+
+    @Query("""SELECT drive_keyframes.sessionId AS sessionId,
+        MIN(drive_keyframes.capturedAtMs) AS firstCapturedAtMs
+        FROM drive_keyframes
+        LEFT JOIN sessions ON sessions.id = drive_keyframes.sessionId
+        WHERE sessions.id IS NULL
+          AND drive_keyframes.sessionId > :afterSessionId
+        GROUP BY drive_keyframes.sessionId
+        ORDER BY drive_keyframes.sessionId ASC LIMIT :limit""")
+    suspend fun getMissingSessionPage(
+        afterSessionId: String,
+        limit: Int
+    ): List<MissingKeyframeSessionRef>
 
     @Query("UPDATE drive_keyframes SET liveAnalyzed = 1 WHERE id = :id")
     suspend fun markAnalyzed(id: Long)

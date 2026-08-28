@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline guard that the evaluator mirrors the pure client's binary v6 contract."""
+"""Offline guard that the evaluator mirrors the pure client's binary v8 contract."""
 import importlib.util, json, pathlib, sys, tempfile
 from PIL import Image
 
@@ -26,10 +26,34 @@ def check(name, condition):
         fails.append(name)
 
 
-check("schema version", 'const SCHEMA_VERSION = 6;' in client and road_eval.SCHEMA_VERSION == 6)
+check("schema version", 'const SCHEMA_VERSION = 7;' in client and road_eval.SCHEMA_VERSION == 7)
 check("prompt version", f'const PROMPT_VERSION = "{road_eval.PROMPT_VERSION}";' in client)
 check("native prompt version", f'PROMPT_VERSION = "{road_eval.PROMPT_VERSION}"' in native)
-check("road-band transform", 'const ROAD_BAND = 0.6;' in client and road_eval.ROAD_BAND == .60)
+expected_road_regions = {
+    "portrait": {"top": .40, "bottom": .66},
+    "landscape": {"top": .48, "bottom": .78},
+    "square": {"top": .40, "bottom": .70},
+}
+check("orientation-aware road-region ratios",
+      road_eval.ROAD_REGION_RATIOS == expected_road_regions
+      and 'portrait: Object.freeze({ top: 0.40, bottom: 0.66 })' in client
+      and 'landscape: Object.freeze({ top: 0.48, bottom: 0.78 })' in client
+      and 'square: Object.freeze({ top: 0.40, bottom: 0.70 })' in client)
+check("portrait road-region geometry",
+      road_eval.select_road_region(480, 720) == {
+          "x": 0, "y": 288, "width": 480, "height": 187,
+          "orientation": "portrait", "top_ratio": .40, "bottom_ratio": .66})
+check("landscape road-region geometry",
+      road_eval.select_road_region(1280, 720) == {
+          "x": 0, "y": 346, "width": 1280, "height": 216,
+          "orientation": "landscape", "top_ratio": .48, "bottom_ratio": .78})
+check("square road-region geometry",
+      road_eval.select_road_region(1000, 1000) == {
+          "x": 0, "y": 400, "width": 1000, "height": 300,
+          "orientation": "square", "top_ratio": .40, "bottom_ratio": .70})
+retired_fixed_band_name = "ROAD_" + "BAND"
+check("retired fixed bottom-band transform is absent",
+      retired_fixed_band_name not in client and not hasattr(road_eval, retired_fixed_band_name))
 check("schema has no model-confidence gate", "confidence" not in road_eval.SCHEMA["properties"])
 check("schema has one binary pothole verdict",
       road_eval.SCHEMA["properties"].get("is_pothole") == {"type": "boolean"})
@@ -40,6 +64,10 @@ check("speed-breaker veto is required",
 check("speed-breaker veto is boolean",
       road_eval.SCHEMA["properties"].get("looks_like_speed_breaker") == {"type": "boolean"})
 check("surface classification is required", "surface_type" in road_eval.SCHEMA["required"])
+check("temporary traffic surface is an explicit schema value",
+      "temporary_drivable_surface" in road_eval.SCHEMA["properties"]["surface_type"]["enum"]
+      and '"temporary_drivable_surface"' in client
+      and '"temporary_drivable_surface"' in native)
 check("prompt explicitly distinguishes speed breakers",
       "speed breaker" in road_eval.prompts()["baseline"].lower())
 check("prompt makes ambiguity a negative",
@@ -104,6 +132,15 @@ check("off-road rejected", road_eval.decision({**good, "on_drivable_surface": Fa
 check("unknown surface rejected", road_eval.decision({**good, "surface_type": "unknown"}) == "reject")
 check("unpaved/non-road surface rejected",
       road_eval.decision({**good, "surface_type": "unpaved_or_nonroad"}) == "reject")
+temporary = {**good, "surface_type": "temporary_drivable_surface"}
+check("temporary active traffic surface accepts a complete Drive cavity",
+      road_eval.decision(temporary, "drive", 3) == "accept")
+check("temporary surface fails closed for single Photo",
+      road_eval.decision({**temporary, "temporal_consistency": "single_view"},
+                         "manual", 1) == "reject")
+check("temporary roughness without a localized cavity is NO",
+      road_eval.decision({**temporary, "has_localized_cavity": False},
+                         "drive", 3) == "reject")
 check("surface damage without a localized cavity is NO",
       road_eval.decision({**good, "has_localized_cavity": False}) == "reject")
 check("missing broken rim is NO",
@@ -125,6 +162,19 @@ check("non-cavity surface breakup label is negative",
 check("legacy failed patch awaits explicit binary relabelling",
       road_eval.binary_label("failed_patch") is None)
 check("unverified category excluded", road_eval.binary_label("disputed") is None)
+selected = road_eval.select_events([
+    {"event_id": "one", "path": "one.jpg"},
+    {"event_id": "two", "path": "two.jpg"},
+    {"event_id": "three", "path": "three.jpg"},
+], "three,one")
+check("event selector preserves label order and filters exactly",
+      [entry["event_id"] for entry in selected] == ["one", "three"])
+try:
+    road_eval.select_events([{"event_id": "one"}], "missing")
+    missing_event_fails = False
+except ValueError:
+    missing_event_fails = True
+check("event selector fails on unknown IDs", missing_event_fails)
 speed_breaker_events = [entry for entry in labels
                         if entry.get("event_id") == "tester-second-speed-breaker-2026-08-25"]
 check("tester speed breaker is retained as a verified negative event",
@@ -148,10 +198,27 @@ road_eval.adaptive_lift = observe_lift
 with tempfile.TemporaryDirectory() as tmp:
     path = pathlib.Path(tmp) / "dark.jpg"
     Image.new("RGB", (2000, 1000), (30, 30, 30)).save(path, quality=100)
-    _, transform = road_eval.encode_view(path, 1000, 85, .60, True)
+    _, transform = road_eval.encode_view(path, 1000, 85, True, True)
 road_eval.adaptive_lift = real_lift
-check("evaluator resizes before luminance", observed.get("size") == (1000, 300))
+check("evaluator crops and resizes before luminance", observed.get("size") == (1000, 150))
+check("evaluator records landscape road-region transform",
+      transform["road_region"] == {
+          "x": 0, "y": 480, "width": 2000, "height": 300,
+          "orientation": "landscape", "top_ratio": .48, "bottom_ratio": .78})
 check("dark resized view is enhanced", transform["enhanced"] is True)
+with tempfile.TemporaryDirectory() as tmp:
+    path = pathlib.Path(tmp) / "small-drive.jpg"
+    Image.new("RGB", (480, 720), (90, 90, 90)).save(path, quality=100)
+    _, drive_transform = road_eval.encode_view(path, 1024, 85, True, False)
+check("small Drive road crop is enlarged for model inspection",
+      drive_transform["output"] == {"width": 1024, "height": 399})
+with tempfile.TemporaryDirectory() as tmp:
+    path = pathlib.Path(tmp) / "manual.jpg"
+    Image.new("RGB", (480, 720), (80, 80, 80)).save(path, quality=100)
+    _, manual_transform = road_eval.encode_view(path, 2000, 85, False, False)
+check("manual Photo remains full-frame",
+      manual_transform["road_region"] is None
+      and manual_transform["output"] == {"width": 480, "height": 720})
 _, green = real_lift(Image.new("RGB", (32, 32), (0, 101, 0)))
 check("evaluator uses client RGB luma weights", green["enhanced"] is False)
 

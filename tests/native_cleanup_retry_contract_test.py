@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DRIVE = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive"
 PLUGIN = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/plugin"
 SERVICE = (DRIVE / "DriveForegroundService.kt").read_text()
+CAMERA = (DRIVE / "NativeDriveCameraManager.kt").read_text()
 INFERENCE = (DRIVE / "NativeInferenceEngine.kt").read_text()
 DISCARDED = (DRIVE / "NativeDiscardedMediaCleanup.kt").read_text()
 RETRY = (DRIVE / "NativeRetryableFileCleanup.kt").read_text()
@@ -54,8 +55,12 @@ check(
     "active report, video and keyframe deferrals leave reconciliation incomplete",
     BRIDGE.count("progress.markCleanupIncomplete()") >= 8
     and "unindexedVideoFiles.any" in BRIDGE
-    and "unownedKeyframeFiles.any" in BRIDGE
-    and "if (protectedNow)" in BRIDGE,
+    and "wasActiveAtInventory" in BRIDGE
+    and "becameActiveDuringInventory" in BRIDGE
+    and "if (protectedNow)" in BRIDGE
+    and "fun protectedByReportProducer(candidate: File)" in BRIDGE
+    and "val liveStatus = DriveForegroundService.status()" in BRIDGE
+    and "!protectedByReportProducer(directory)" in BRIDGE,
 )
 check(
     "keyframe rollback owns temporary files and separates quota classes",
@@ -71,6 +76,33 @@ check(
     SERVICE.count("withContext(NonCancellable)") >= 4
     and "var rowCommitted = false" in SERVICE
     and "if (!rowCommitted) cleanFailedKeyframeWrite(" in SERVICE,
+)
+video_prepare = CAMERA[CAMERA.index("private fun startRecordingSegment()"):
+                       CAMERA.index("private fun blockRecordingForStorage(")]
+check(
+    "video session directory creation cannot race a stale reconciliation snapshot",
+    video_prepare.index("reserveMediaBytes(")
+    < video_prepare.index("NativeMediaFilesystemMutation.mutex.withLock")
+    < video_prepare.index("footageRoot.mkdirs()")
+    and "if (!directoryReady) reservation?.let(storageQuota::release)" in video_prepare
+    and "reservation.takeIf { directoryReady }" in video_prepare,
+)
+start_drive = BRIDGE[BRIDGE.index("fun startDrive(call: PluginCall)"):
+                     BRIDGE.index("private fun activityIsVisibleForDriveStart")]
+clear_data = BRIDGE[BRIDGE.index("fun clearNativeData(call: PluginCall)"):
+                    BRIDGE.index("fun getDrives(call: PluginCall)")]
+check(
+    "native destructive wipe and Drive admission share one interlock",
+    "private var nativeClearInProgress = false" in BRIDGE
+    and "synchronized(pendingStartLock) { nativeClearInProgress }" in start_drive
+    and "if (nativeClearInProgress)" in start_drive
+    and start_drive.index("if (nativeClearInProgress)")
+        < start_drive.index("pendingStart = pending")
+    and "nativeClearInProgress = true" in clear_data
+    and clear_data.index("nativeClearInProgress = true")
+        < clear_data.index("pendingStart?.takeIf")
+    and "synchronized(pendingStartLock) { nativeClearInProgress = false }" in clear_data
+    and clear_data.index("finishClear()") < clear_data.index("call.resolve"),
 )
 
 if failures:

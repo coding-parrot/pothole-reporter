@@ -16,9 +16,15 @@ API = "https://api.openai.com/v1/responses"
 DEFAULT_MODEL = "gpt-5-mini"
 ALLOWED_MODELS = {DEFAULT_MODEL, "gpt-5.6"}
 ALLOWED_DETAILS = {"high", "original"}
-ROAD_BAND = 0.60
-PROMPT_VERSION = "pothole-binary-v6"
-SCHEMA_VERSION = 6
+ROAD_REGION_RATIOS = {
+    "portrait": {"top": 0.40, "bottom": 0.66},
+    "landscape": {"top": 0.48, "bottom": 0.78},
+    "square": {"top": 0.40, "bottom": 0.70},
+}
+ROAD_ORIENTATION_EPSILON = 0.10
+ROAD_CROP_MAX_UPSCALE = 2.5
+PROMPT_VERSION = "pothole-binary-v8"
+SCHEMA_VERSION = 7
 
 SCHEMA = {
     "type": "object", "additionalProperties": False,
@@ -31,6 +37,7 @@ SCHEMA = {
         "image_quality": {"type": "string", "enum": ["usable", "unusable"]},
         "surface_type": {"type": "string", "enum": ["bituminous_asphalt",
             "cement_concrete", "mastic_asphalt", "paver_blocks",
+            "temporary_drivable_surface",
             "unpaved_or_nonroad", "unknown"]},
         "on_drivable_surface": {"type": "boolean"},
         "has_localized_cavity": {"type": "boolean"},
@@ -109,16 +116,46 @@ def adaptive_lift(image):
                    "enhanced": True, "brightness": lift}
 
 
-def encode_view(path, max_dim, quality=85, band=1.0, enhance=False):
+def positive_half_up(value):
+    """Match Kotlin roundToInt/JavaScript Math.round for positive dimensions."""
+    return math.floor(value + .5)
+
+
+def select_road_region(frame_width, frame_height):
+    """Mirror Android/WebView RoadRegionSelector pixel-for-pixel."""
+    if frame_width <= 0 or frame_height <= 0:
+        raise ValueError("Frame dimensions must be positive")
+    aspect_ratio = frame_width / frame_height
+    if aspect_ratio < 1 - ROAD_ORIENTATION_EPSILON:
+        orientation = "portrait"
+    elif aspect_ratio > 1 + ROAD_ORIENTATION_EPSILON:
+        orientation = "landscape"
+    else:
+        orientation = "square"
+    ratios = ROAD_REGION_RATIOS[orientation]
+    # Kotlin roundToInt and JavaScript Math.round round a positive half upward;
+    # Python's built-in round uses ties-to-even and would drift at .5 boundaries.
+    top = min(frame_height - 1, max(0, positive_half_up(frame_height * ratios["top"])))
+    bottom = min(frame_height, max(top + 1,
+        positive_half_up(frame_height * ratios["bottom"])))
+    return {"x": 0, "y": top, "width": frame_width, "height": bottom - top,
+            "orientation": orientation, "top_ratio": ratios["top"],
+            "bottom_ratio": ratios["bottom"]}
+
+
+def encode_view(path, max_dim, quality=85, road_crop=False, enhance=False):
     from PIL import Image
     image = Image.open(path).convert("RGB")
     source = {"width": image.width, "height": image.height}
-    if band < 1:
-        height = max(1, round(image.height * band))
-        image = image.crop((0, image.height - height, image.width, image.height))
-    scale = min(1.0, max_dim / max(image.size))
-    if scale < 1:
-        image = image.resize((round(image.width * scale), round(image.height * scale)), Image.Resampling.LANCZOS)
+    road_region = select_road_region(image.width, image.height) if road_crop else None
+    if road_region:
+        x, y = road_region["x"], road_region["y"]
+        image = image.crop((x, y, x + road_region["width"], y + road_region["height"]))
+    scale = (min(ROAD_CROP_MAX_UPSCALE, max_dim / max(image.size)) if road_crop
+             else min(1.0, max_dim / max(image.size)))
+    if scale != 1:
+        image = image.resize((positive_half_up(image.width * scale),
+                              positive_half_up(image.height * scale)), Image.Resampling.LANCZOS)
     light = {"enhanced": False}
     if enhance:
         image, light = adaptive_lift(image)
@@ -127,7 +164,7 @@ def encode_view(path, max_dim, quality=85, band=1.0, enhance=False):
     raw = buf.getvalue()
     return "data:image/jpeg;base64," + base64.b64encode(raw).decode(), {
         "source": source, "output": {"width": image.width, "height": image.height},
-        "max_dim": max_dim, "jpeg_quality": quality, "road_band": band,
+        "max_dim": max_dim, "jpeg_quality": quality, "road_region": road_region,
         **light, "bytes_sha256": sha(raw),
     }
 
@@ -148,17 +185,17 @@ def prepare_event(entry, root, mode):
     primary = primary if 0 <= primary < len(paths) else 0
     views, transforms = [], []
     if mode == "manual":
-        view, meta = encode_view(paths[primary], 2000, 85, 1.0, True)
+        view, meta = encode_view(paths[primary], 2000, 85, False, True)
         views.append(view); transforms.append(meta)
         note = "\n- Capture layout: one user-framed full image."
     else:
-        context, meta = encode_view(paths[primary], 768, 82, 1.0, False)
+        context, meta = encode_view(paths[primary], 768, 82, False, False)
         views.append(context); transforms.append({"role": "primary_context", **meta})
         for index, path in enumerate(paths):
-            view, meta = encode_view(path, 1024, 85, ROAD_BAND, True)
+            view, meta = encode_view(path, 1024, 85, True, True)
             views.append(view); transforms.append({"role": "chronological_road_crop", "frame_index": index, **meta})
         note = (f"\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. "
-                f"Images 2-{len(views)} are lower-road crops in chronological order; "
+                f"Images 2-{len(views)} are orientation-aware road-region crops in chronological order; "
                 f"the sharpest crop is chronological frame {primary + 1}.")
     return views, transforms, note
 
@@ -183,14 +220,20 @@ def decision(result, mode="drive", source_view_count=3):
         return "reject"
     if result.get("looks_like_speed_breaker") is not False:
         return "reject"
-    if result.get("image_quality") != "usable" or result.get("surface_type") not in {
-            "bituminous_asphalt", "cement_concrete", "mastic_asphalt", "paver_blocks"}:
+    surface_type = result.get("surface_type")
+    if result.get("image_quality") != "usable" or surface_type not in {
+            "bituminous_asphalt", "cement_concrete", "mastic_asphalt", "paver_blocks",
+            "temporary_drivable_surface"}:
         return "reject"
     if result.get("on_drivable_surface") is not True:
         return "reject"
     if result.get("has_localized_cavity") is not True:
         return "reject"
     if result.get("has_broken_edge_or_rim") is not True or result.get("has_depth_or_surface_loss") is not True:
+        return "reject"
+    # A temporary traffic surface needs the corroborating chronology that separates a
+    # discrete cavity from ordinary gravel texture, grading and wheel ruts.
+    if surface_type == "temporary_drivable_surface" and mode != "drive":
         return "reject"
     if mode == "drive":
         if result.get("temporal_consistency") != "consistent" or source_view_count < 2:
@@ -260,6 +303,21 @@ def git_commit():
         return None
 
 
+def select_events(entries, selector):
+    """Select exact event IDs while preserving label-file order."""
+    requested = [item.strip() for item in str(selector or "").split(",") if item.strip()]
+    if not requested:
+        return entries
+    wanted = set(requested)
+    found = {str(entry.get("event_id")) for entry in entries
+             if entry.get("event_id") is not None and str(entry.get("event_id")) in wanted}
+    missing = sorted(wanted - found)
+    if missing:
+        raise ValueError(f"unknown event id(s) for selected mode: {', '.join(missing)}")
+    return [entry for entry in entries
+            if entry.get("event_id") is not None and str(entry.get("event_id")) in wanted]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--trials", type=int, default=5)
@@ -269,6 +327,8 @@ def main():
     parser.add_argument("--mode", choices=["manual", "drive"], default="drive")
     parser.add_argument("--images-root", default=str(ROOT / "eval" / "images"))
     parser.add_argument("--labels", default=str(ROOT / "eval" / "labels.json"))
+    parser.add_argument("--events", default="",
+                        help="comma-separated exact event IDs; evaluates only those events")
     parser.add_argument("--concurrency", type=int, default=5)
     parser.add_argument("--limit", type=int, default=0, help="first N matching events; smoke tests only")
     parser.add_argument("--out", default=str(ROOT / "eval" / "results"))
@@ -278,6 +338,10 @@ def main():
     label_bytes = Path(args.labels).read_bytes()
     all_entries = json.loads(label_bytes)["images"]
     entries = [entry for entry in all_entries if entry_mode(entry) == args.mode]
+    try:
+        entries = select_events(entries, args.events)
+    except ValueError as exc:
+        sys.exit(str(exc))
     if args.limit > 0:
         entries = entries[:args.limit]
     if not entries:

@@ -16,6 +16,17 @@ CASES = r"""
   const eq = (name, got, want) => out.push([name, JSON.stringify(got) === JSON.stringify(want), got, want]);
   const ok = (name, cond, detail) => out.push([name, !!cond, detail === undefined ? cond : detail, true]);
 
+  // ---- orientation-aware Drive road region; manual Photo bypasses this transform ----
+  eq("road region: portrait excludes sky and dashboard", P.selectRoadRegion(480, 720),
+     {x:0, y:288, width:480, height:187});
+  eq("road region: landscape excludes sky and dashboard", P.selectRoadRegion(1280, 720),
+     {x:0, y:346, width:1280, height:216});
+  eq("road region: near-square uses its explicit geometry", P.selectRoadRegion(1000, 1000),
+     {x:0, y:400, width:1000, height:300});
+  let invalidRoadRegionThrows = false;
+  try { P.selectRoadRegion(0, 720); } catch (_) { invalidRoadRegionThrows = true; }
+  ok("road region: invalid dimensions fail closed", invalidRoadRegionThrows);
+
   // ---- distMeters: the dedupe radius and the 8 m capture spacing both rest on this ----
   const d = P.distMeters(12.9115, 77.6427, 12.9115, 77.6427);
   ok("distMeters: same point is zero", d === 0, d);
@@ -111,6 +122,7 @@ CASES = r"""
   const rejected = '{"is_pothole":false,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":false,"has_broken_edge_or_rim":false,"has_depth_or_surface_loss":false,"temporal_consistency":"not_applicable","size":null,"description":"no cavity"}';
   const speedBreaker = '{"is_pothole":true,"looks_like_speed_breaker":true,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"painted transverse raised ridge"}';
   const surfaceBreakup = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":false,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"broad breakup"}';
+  const temporaryCavity = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"temporary_drivable_surface","on_drivable_surface":true,"has_localized_cavity":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"persistent localized cavity in an active temporary traffic lane"}';
   eq("peek: nothing yet", P.peekVerdict('{"is_pot'), null);
   eq("peek: YES cannot be announced before size",
      P.peekVerdict(accepted.slice(0, accepted.indexOf(',"size"'))), null);
@@ -128,6 +140,7 @@ CASES = r"""
   ok("reject: YES alone is not final", P.peekReject('{"is_pothole":true') === false);
   ok("reject: speed breaker becomes final after required fields", P.peekReject(speedBreaker) === true);
   ok("reject: non-cavity breakup becomes final after required fields", P.peekReject(surfaceBreakup) === true);
+  ok("reject: valid temporary-surface Drive cavity is not aborted", P.peekReject(temporaryCavity, true) === false);
 
   // An accepted response must never be reported as rejected at any prefix.
   let wrongAbort = null;
@@ -170,6 +183,15 @@ CASES = r"""
   eq("decision: off-road rejects", P.decisionFor({...good, on_drivable_surface:false}), "reject");
   eq("decision: unknown surface fails closed", P.decisionFor({...good, surface_type:"unknown"}), "reject");
   eq("decision: unpaved surface fails closed", P.decisionFor({...good, surface_type:"unpaved_or_nonroad"}), "reject");
+  const temporary = {...good, surface_type:"temporary_drivable_surface"};
+  eq("decision: complete temporary traffic-surface cavity accepts in Drive",
+     P.decisionFor(temporary, true, 3), "accept");
+  eq("decision: temporary surface fails closed for one Photo",
+     P.decisionFor({...temporary, temporal_consistency:"single_view"}, false, 1), "reject");
+  eq("decision: temporary surface needs a discrete localized cavity",
+     P.decisionFor({...temporary, has_localized_cavity:false}, true, 3), "reject");
+  eq("decision: temporary surface needs a distinct broken rim",
+     P.decisionFor({...temporary, has_broken_edge_or_rim:false}, true, 3), "reject");
   eq("decision: no localized cavity is NO",
      P.decisionFor({...good, has_localized_cavity:false}), "reject");
   eq("decision: missing broken rim is NO",
@@ -179,6 +201,23 @@ CASES = r"""
   eq("decision: inconsistent views are NO",
      P.decisionFor({...good, temporal_consistency:"inconsistent"}), "reject");
   eq("decision: YES without size is NO", P.decisionFor({...good, size:null}), "reject");
+
+  // ---- native detector upgrade bridge ----
+  const nativeV8 = P.nativeDetectorContract({prompt_version:"pothole-binary-v8", schema_version:7});
+  ok("native bridge: v8 accepts the temporary traffic-surface vocabulary",
+     nativeV8 && nativeV8.kind === "current_v8"
+       && nativeV8.surfaceTypes.has("temporary_drivable_surface"));
+  const nativeV7 = P.nativeDetectorContract({prompt_version:"pothole-binary-v7", schema_version:7});
+  ok("native bridge: pending v7 rows remain importable",
+     nativeV7 && nativeV7.kind === "legacy_v7"
+       && nativeV7.surfaceTypes.has("temporary_drivable_surface"));
+  const nativeV6 = P.nativeDetectorContract({prompt_version:"pothole-binary-v6", schema_version:6});
+  ok("native bridge: unsynced strict v6 paved reports remain importable",
+     nativeV6 && nativeV6.kind === "legacy_v6" && nativeV6.surfaceTypes.has("bituminous_asphalt"));
+  ok("native bridge: v6 cannot claim the temporary-surface class",
+     nativeV6 && !nativeV6.surfaceTypes.has("temporary_drivable_surface"));
+  eq("native bridge: older detector contracts stay obsolete",
+     P.nativeDetectorContract({prompt_version:"road-damage-v4", schema_version:4}), null);
 
   // ---- strict physical repair status ----
   const repairPrior = {...event, id:41, photo:"data:image/jpeg;base64,eA==",

@@ -23,7 +23,7 @@ def check(label, condition):
 scan_start = SERVICE.index("private fun startScanLoop()")
 scan_end = SERVICE.index("private fun hasCameraPermission()", scan_start)
 scan = SERVICE[scan_start:scan_end]
-keyframe_start = SERVICE.index("private suspend fun persistSparseKeyframe(")
+keyframe_start = SERVICE.index("private suspend fun persistSelectedBurst(")
 keyframe_end = SERVICE.index("private fun commitKeyframeFile", keyframe_start)
 keyframe = SERVICE[keyframe_start:keyframe_end]
 worker_start = SERVICE.index("private fun startInferenceWorker()")
@@ -53,7 +53,7 @@ check(
 check(
     "the access epoch is captured before CameraX and checked before persistence",
     scan.index("captureAccessEpoch.snapshot()") < scan.index("cam.captureBurst()")
-    < scan.index("validatedPostBurstFix(") < scan.index("persistSparseKeyframe(baseItem)")
+    < scan.index("validatedPostBurstFix(") < scan.index("persistSelectedBurst(baseItem)")
     and "recycleFrames(burst.first)" in scan,
 )
 check(

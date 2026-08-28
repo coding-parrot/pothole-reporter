@@ -12,11 +12,15 @@ python3 eval/run_eval.py --mode manual --trials 5
 python3 eval/run_eval.py --mode drive --models gpt-5-mini,gpt-5.6 --details high,original
 ```
 
+Use `--events id-one,id-two` to replay only exact labelled event IDs; unknown IDs fail
+closed instead of silently running a different subset.
+
 `OPENAI_API_KEY` comes from the environment or the repo-root `.env`. Use
 `--dry-run` to validate transforms and request configuration without making calls.
 
-Drive replay uses the shipped lower-60%/1024 px road view plus a 768 px full-context
-view. An entry can provide a three-frame event with `frames` and `primary_index`;
+Drive replay uses the shipped orientation-aware 1024 px road region plus a 768 px
+full-context view: portrait keeps 40%–66% of frame height, landscape keeps 48%–78%,
+and near-square keeps 40%–70%. An entry can provide a three-frame event with `frames` and `primary_index`;
 legacy entries with one `path` still work. Manual replay uses the shipped full-frame
 2000 px path. Pixel-triggered low-light enhancement, model, image detail, prompt,
 schema and decision policy are recorded in each run.
@@ -59,6 +63,11 @@ clearly non-cavity surface classes are negative. Legacy `failed_patch` is exclud
 a human records whether it contains a distinct cavity. Unlabelled and disputed images
 also run but are excluded from binary rates.
 
+For an unfinished lane that is visibly carrying traffic, only a discrete localized cavity
+with a strong rim and stable geometry across a chronological burst can be positive.
+Ordinary gravel texture, corrugation, ruts, broad breakup, puddle ambiguity, shoulders,
+and construction beds remain negative.
+
 The current set is not a release gate: it has six owner-verified positive photos and one
 owner-verified speed-breaker burst, while the other negative labels are unverified and
 historical result files predate this contract. Do not choose a model or claim accuracy
@@ -79,7 +88,7 @@ control cannot silently drift from what ships. Every `.txt` file in
 `eval/prompts/` becomes an additional arm named after the file.
 
 Everything below is a historical log for retired detector contracts. It explains past
-choices but is not directly comparable with the binary v6 result.
+choices but is not directly comparable with the binary v8 result.
 
 ## Results log
 
@@ -91,8 +100,8 @@ Kept so nobody re-runs a dead end.
 | Drive Mode at full resolution instead of 1280px | **Shipped** | 1280px dropped a real pothole to 0.46, under the gate, that holds at 0.60 full size |
 | `reasoning: minimal` on detection | **Shipped** | 6/6 on confirmed potholes at identical median confidence, roughly half the latency |
 | JPEG q95 instead of q85 | Rejected | apparent gain sat inside the noise floor; 1.75x the bytes for nothing |
-| Crop to the road band | Rejected | destroys true positives (1/10): a narrow band excludes mid-lane damage |
-| Crop keeping horizon and hood as anchors | Rejected | anchors restore true positives but false positives rise with road resolution: 50% → 75% → 85% as the road band goes 1.04x → 1.42x → 1.90x |
+| Fixed narrow crop | Rejected | destroys true positives (1/10): a narrow crop excludes mid-lane damage |
+| Expanded crop with horizon and hood anchors | Rejected | anchors restore true positives but false positives rise with road resolution: 50% → 75% → 85% as the retained road area grows 1.04x → 1.42x → 1.90x |
 | Unsharp mask | Rejected | only variant with a negative confidence delta; lost the hard case outright |
 | Carriageway / kerb-exclusion prompt (`prompts/carriageway.txt`) | Rejected | cost real potholes (18/18 → 15/18 photos, 10/10 → 8/10 dashcam) with no false-positive gain, and *raised* false-positive confidence by handing the model the word "carriageway" to assert |
 | Raise the gate to 0.60 or 0.65 | Rejected | 0.65 cuts false alarms 48% → 8% but dashcam true positives collapse to 9/20, and Drive Mode is exactly where distant real potholes live |
@@ -136,7 +145,7 @@ Two candidates were measured and rejected before this one.
   Widening the definition to any failed carriageway: real drive 2/11 to 5/11, but it
   accepted all four images labelled intact, including two that are plainly clean asphalt.
 
-  Cropping to the lower 55% of the frame, on the theory that a portrait mount wastes half
+  A fixed bottom-55% crop, on the theory that a portrait mount wastes half
   the image on sky: eval positives fell from 8/8 to 4/8, because the owner-verified
   positives are close-range shots where the damage sits higher in the frame.
 
@@ -158,34 +167,24 @@ What this does not fix: the detector still describes this damage as a pothole, a
 that has lost its surface is really a different complaint. The letter wording has not been
 changed to match, and should be, once someone decides what that complaint says.
 
-## 20 Aug 2026: crop drive frames to the road band, ACCEPTED
+## 28 Aug 2026: orientation-aware Drive road region, ACCEPTED
 
-A phone mounted in a car points at the horizon, so the top of every dashcam frame is sky,
-trees and parked cars, and the road worth inspecting is underneath. Frames from a real
-drive, three runs each, at the 1024px the drive path already uses:
+The retired fixed bottom crop included the dashboard exactly when a nearby cavity became
+large enough to judge. It also treated portrait and landscape mounts as though their road
+geometry were interchangeable. Production now selects one bounded region by source-image
+orientation:
 
-                          real drive      dashcam potholes    labelled intact, rejected
-  full frame (shipped)    6/33  (18%)     6/6                 4/6
-  lower 60%               9/33  (27%)     6/6                 3/6
-  lower 45%               3/33  ( 9%)     0/6                 6/6
-  1600px, full frame      7/33  (21%)     6/6                 5/6
-  1600px, lower 60%       9/33  (27%)     3/6                 4/6
+| Orientation | Retained vertical interval | Purpose |
+|---|---:|---|
+| Portrait | 40%–66% | retains the near cavities in the audited 480×720 drive while stopping at the dashboard boundary |
+| Landscape | 48%–78% | keeps near/mid carriageway without the usual bonnet-dominated bottom strip |
+| Near-square (aspect ratio 0.9–1.1) | 40%–70% | gives ambiguous orientations an explicit, deterministic fallback |
 
-Keeping the lower 60% at 1024px is the only variant that gains on the real road without
-losing a known pothole. More pixels did not help: 1600px full frame is inside the noise of
-1024px, which says the limit is what is in the frame rather than how finely it is sampled.
-Cropping harder removes the damage itself, and cropping at 1600px loses half the dashcam
-positives, so both are out.
+The region is selected before resize, luminance sampling and conditional enhancement, so
+the quality signal and the inference image describe the same road pixels. Pixel bounds use
+positive half-up rounding to match Kotlin and JavaScript exactly; evaluator results record
+the selected orientation, ratios and pixel rectangle under `road_region`.
 
-This applies to Drive Mode only. A single shot is not cropped, because the person holding
-the phone has already aimed at the defect, and the full-resolution copy attached to the
-complaint is never cropped, because that is what the officer looks at.
-
-Confirmed on a device through the real drive path: 9 of 33, and the three frames that pass
-are the ones where the broken surface is near the camera. Every frame where the road
-recedes to the horizon still fails, which is the honest limit of this approach.
-
-A caveat that belongs with these numbers: they were measured on frames recovered from a
-screen recording, at 720x1584, not on what the camera actually captured. Real captures are
-sharper and larger, so the absolute rates are probably pessimistic. The comparison between
-variants is what should be trusted here, not the level.
+This transform applies only to Drive Mode working images and generated Drive evidence
+crops. Manual Photo analysis stays full-frame because the user has deliberately framed the
+defect, and the full-resolution complaint evidence stays full-frame for human review.

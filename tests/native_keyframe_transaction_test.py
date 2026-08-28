@@ -11,7 +11,7 @@ SERVICE = (
     / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/DriveForegroundService.kt"
 ).read_text()
 
-start = SERVICE.index("private suspend fun persistSparseKeyframe(")
+start = SERVICE.index("private suspend fun persistSelectedBurst(")
 end = SERVICE.index("private fun startInferenceWorker()", start)
 transaction = SERVICE[start:end]
 failures = []

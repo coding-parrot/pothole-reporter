@@ -99,11 +99,19 @@ def rejects(operation, expected):
     return False
 
 
-check("Play release invokes symmetric source and AAB asset verification",
+check("Play release invokes symmetric source and release-artifact verification",
       RELEASE_SCRIPT.count('python3 "$RELEASE_ASSET_VERIFIER"') == 2
       and "--static static --www" in RELEASE_SCRIPT
       and "--docs docs --packaged" in RELEASE_SCRIPT
-      and '--aab "$AAB_PATH"' in RELEASE_SCRIPT)
+      and '--aab "$AAB_PATH" --apk "$APK_PATH"' in RELEASE_SCRIPT)
+check("release flow builds and verifies signed AAB and APK artifacts together",
+      ":app:bundleRelease :app:assembleRelease" in RELEASE_SCRIPT
+      and 'APK_PATH=$ANDROID_ROOT/app/build/outputs/apk/release/app-release.apk'
+      in RELEASE_SCRIPT
+      and '"$APKSIGNER" verify --verbose --print-certs "$APK_PATH"' in RELEASE_SCRIPT
+      and "Verified using v2 scheme (APK Signature Scheme v2): true" in RELEASE_SCRIPT
+      and "APK signer does not match the registered Pothole Reporter upload certificate"
+      in RELEASE_SCRIPT)
 
 try:
     verifier = load_asset_verifier()
@@ -163,6 +171,14 @@ try:
                     archive.writestr(verifier.AAB_PUBLIC_PREFIX + relative, path.read_bytes())
         verifier.verify_aab(packaged, good_aab)
 
+        good_apk = fixture / "good.apk"
+        with zipfile.ZipFile(good_apk, "w") as archive:
+            for path in packaged.rglob("*"):
+                if path.is_file():
+                    relative = path.relative_to(packaged).as_posix()
+                    archive.writestr(verifier.APK_PUBLIC_PREFIX + relative, path.read_bytes())
+        verifier.verify_apk(packaged, good_apk)
+
         stale_aab = fixture / "stale.aab"
         with zipfile.ZipFile(stale_aab, "w") as archive:
             for path in packaged.rglob("*"):
@@ -174,10 +190,22 @@ try:
             lambda: verifier.verify_aab(packaged, stale_aab),
             "AAB public assets file set differs",
         ))
+
+        stale_apk = fixture / "stale.apk"
+        with zipfile.ZipFile(stale_apk, "w") as archive:
+            for path in packaged.rglob("*"):
+                if path.is_file():
+                    relative = path.relative_to(packaged).as_posix()
+                    archive.writestr(verifier.APK_PUBLIC_PREFIX + relative, path.read_bytes())
+            archive.writestr(verifier.APK_PUBLIC_PREFIX + "stale.js", b"stale")
+        fixture_checks.append(rejects(
+            lambda: verifier.verify_apk(packaged, stale_apk),
+            "APK public assets file set differs",
+        ))
 except Exception:
     fixture_checks.append(False)
-check("asset verifier rejects stale source, hosted, packaged and AAB entries",
-      fixture_checks == [True, True, True, True])
+check("asset verifier rejects stale source, hosted, packaged, AAB and APK entries",
+      fixture_checks == [True, True, True, True, True])
 
 if failures:
     print(f"\nFAIL: {len(failures)} Android release optimization check(s) failed")

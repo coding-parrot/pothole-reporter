@@ -302,7 +302,7 @@ const I18N = {
     independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
     privacy_title: "Before camera and location access",
     privacy_body: "If you continue, the app will ask for camera and precise foreground location. Pothole photos—or sampled frames from Drive Mode—are sent with your API key to OpenAI for detection. On a precise later live-drive revisit, the saved earlier damage photo and current views may be sent together for repair verification. Exact coordinates are sent to OpenStreetMap/Nominatim; Karnataka reports query Karnataka GIS and Hyderabad reports query Telangana GIS. The required state routing pack is downloaded from GitHub Pages. Processing can occur outside India.",
-    privacy_local: "Drive Mode uses no audio. While Drive Mode is active, Android uses the camera and location in the background—even when this app is not visible and Google Maps or a phone call is on screen. A visible persistent foreground-service notification always shows this use; pause or stop it from the app or notification. Drive periodically stores sparse 720p evidence frames in app-private storage before attempting live analysis, so interrupted or offline work can be analysed after the drive. Video and saved frames share a 4 GB cap and stop writing before free storage falls below 500 MB. Optional silent video recording is off by default. Drive stops after the selected active-time battery limit; paused time does not count. Reports, photos, repair evidence, footage, sampled frames, location tracks, settings, verified state packs and highway tiles remain on this device until deleted. Physical road condition is tracked separately from official complaint status.",
+    privacy_local: "Drive Mode uses no audio. While Drive Mode is active, Android uses the camera and location in the background—even when this app is not visible and Google Maps or a phone call is on screen. A visible persistent foreground-service notification always shows this use; pause or stop it from the app or notification. Every selected Drive burst is stored in app-private storage before live analysis; interrupted or offline work is analysed automatically after the drive when the app is open and online. Video and saved frames share a 4 GB cap and stop writing before free storage falls below 500 MB. Optional silent video recording is off by default. Drive stops after the selected active-time battery limit; paused time does not count. Reports, photos, repair evidence, footage, sampled frames, location tracks, settings, verified state packs and highway tiles remain on this device until deleted. Physical road condition is tracked separately from official complaint status.",
     privacy_government: "This independent app is not a government service and never submits automatically. GitHub Pages receives your IP address, time, user agent and the requested state-pack or 2° highway-tile path, which reveals a state or approximate tile but not exact coordinates, photos or report content. Location may be sent to a government GIS for jurisdiction checks as disclosed above. Complaint text and photos reach a complaint service only when you deliberately open or complete a handoff. Review the destination and content.",
     privacy_link: "Privacy policy", sources_link: "Data sources and limits",
     privacy_accept: "Continue", privacy_decline: "Not now",
@@ -1083,6 +1083,10 @@ let nativeHostAppActive = true;
 let nativeHostAppStateEpoch = 0;
 
 function show(screen) {
+  // Delete-all is transactional across native files/Room and WebView storage. Keep
+  // Settings on screen until it settles so Back or a stale async callback cannot expose
+  // a capture action that would recreate data behind the wipe.
+  if (nativeWipeInProgress && screen !== "settings") return false;
   if (screen !== "drive" &&
       (nativePreviewAttached || document.documentElement.classList.contains("native-preview-active"))) {
     stopNativePreview();
@@ -1091,6 +1095,7 @@ function show(screen) {
     $(s).classList.toggle("hidden", s !== screen);
   }
   window.scrollTo(0, 0);
+  return true;
 }
 
 function fmtDate(ts) { return new Date(ts * 1000).toLocaleString([], {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"}); }
@@ -2259,7 +2264,8 @@ function updateNativeDriveHud(status) {
   const statusMessage = status.captureBlocked && captureIssue
     ? captureIssue : String(status.status || "Scanning live");
   $("nativeDriveStatus").textContent = statusMessage
-    + (queued ? ` · ${queued} queued` : "") + (dropped ? ` · ${dropped} skipped` : "")
+    + (queued ? ` · ${queued} queued` : "")
+    + (dropped ? ` · ${dropped} saved for later` : "")
     + (keyframes ? ` · ${keyframes} saved frame${keyframes === 1 ? "" : "s"}` : "")
     + (segments ? ` · ${segments} video clip${segments === 1 ? "" : "s"} (${savedMb.toFixed(0)} MB)` : "")
     + (minutesLeft && !status.isStopping ? ` · ${minutesLeft} min left` : "");
@@ -2518,8 +2524,15 @@ async function finishNativeDrive(summary) {
     // Do not race that deletion by syncing the just-ended session back into web data.
     if (!(summary && summary.discarded)) {
       invalidateNativeDriveHistory();
-      await syncNativeData({ force: true });
-      await loadReports().catch(() => {});
+      try {
+        await syncNativeData({ force: true });
+        await loadReports().catch(() => {});
+      } finally {
+        // Live overflow and interrupted requests remain durable Room keyframes. A
+        // routing/repair-cache sync failure must not strand them until another app
+        // visibility event; replay has its own guarded retry lifecycle.
+        scheduleNativeKeyframeReplay(sessionId);
+      }
     }
   })().finally(() => {
     setNativeFinishLocked(false);
@@ -2600,6 +2613,7 @@ function distMeters(a, b) {
 }
 
 async function startDrive() {
+  if (nativeWipeInProgress) return;
   // Synchronous reentry guard: a second tap during the camera permission prompt
   // must not start a parallel drive session and leak the first camera stream.
   if (drive && drive.native && !drive.stopping) {
@@ -2609,14 +2623,21 @@ async function startDrive() {
     return;
   }
   if (drive || driveStarting || driveFinalizing || nativeFinishPromise) return;
+  // A new camera session has priority. A completed replay request is checkpointed,
+  // then the automatic loop yields before reading another saved frame.
+  if (nativeKeyframeReplay && !nativeKeyframeReplay.interactive) {
+    nativeKeyframeReplay.cancelled = true;
+  }
   if (!(localStorage.getItem("openai_key") || "").trim()) {
     openSettings(true, false);
     return;
   }
   driveStarting = true;
   if (!(await ensureDataConsent())) { driveStarting = false; return; }
+  if (nativeWipeInProgress) { driveStarting = false; return; }
   const nativePlugin = nativeDrivePlugin();
   const permissions = await requestNativeDrivePermissions();
+  if (nativeWipeInProgress) { driveStarting = false; return; }
   if (nativePlugin && (!permissions || !permissions.granted || permissions.notificationsGranted === false)) {
     driveStarting = false;
     alert("Drive needs camera, location and notification permission. The notification is required so camera use is always visible.");
@@ -2628,6 +2649,7 @@ async function startDrive() {
     // while a new report still becomes eligible for later revisit verification.
     refreshNativeRepairData(nativePlugin).catch(() => {});
     await ensureNativeDriveListeners();
+    if (nativeWipeInProgress) { driveStarting = false; return; }
     const ctx = { native: true, sessionId: null };
     drive = ctx;
     setDriveActiveButton(true);
@@ -2647,6 +2669,11 @@ async function startDrive() {
         recordVideo: localStorage.getItem("record_video") === "1",
         maxDurationMinutes: driveLimitMinutes(),
       });
+      if (nativeWipeInProgress) {
+        drive = null;
+        setDriveActiveButton(false);
+        return;
+      }
       ctx.sessionId = status.sessionId || null;
       updateNativeDriveHud(status);
       startNativePreview();
@@ -2655,6 +2682,11 @@ async function startDrive() {
       // the Stop barrier owns the UI. Do not flash a false camera-failure alert or
       // expose Home before that service has actually finished.
       if (ctx.stopping) return;
+      if (nativeWipeInProgress) {
+        drive = null;
+        setDriveActiveButton(false);
+        return;
+      }
       drive = null; setDriveActiveButton(false); show("home"); alert(t("camera_failed") + (e.message || e));
     } finally { driveStarting = false; }
     return;
@@ -2669,6 +2701,11 @@ async function startDrive() {
       audio: false,
     });
   } catch (e) { driveStarting = false; alert(t("camera_failed") + e.message); return; }
+  if (nativeWipeInProgress) {
+    stream.getTracks().forEach((track) => track.stop());
+    driveStarting = false;
+    return;
+  }
   const video = $("driveVideo");
   video.srcObject = stream;
   const ctx = {
@@ -2688,7 +2725,16 @@ async function startDrive() {
   try { await video.play(); } catch (e) {}
   // Stop can be tapped while play() is waiting for the media pipeline. Do not let
   // this continuation recreate recording, GPS or wake-lock resources after teardown.
-  if (drive !== ctx || ctx.stopping) { driveStarting = false; return; }
+  if (drive !== ctx || ctx.stopping || nativeWipeInProgress) {
+    if (drive === ctx && nativeWipeInProgress) {
+      clearTimeout(ctx.limitTimer);
+      stream.getTracks().forEach((track) => track.stop());
+      video.srcObject = null;
+      drive = null;
+    }
+    driveStarting = false;
+    return;
+  }
   const track = stream.getVideoTracks && stream.getVideoTracks()[0];
   const settings = track && track.getSettings ? track.getSettings() : {};
   ctx.cameraSettings = { width: settings.width || null, height: settings.height || null,
@@ -2803,8 +2849,14 @@ function roadFrameQuality(video) {
   const c = document.createElement("canvas");
   c.width = width; c.height = height;
   const ctx = c.getContext("2d", { willReadFrequently: true });
-  const sourceH = Math.max(1, Math.round(video.videoHeight * 0.62));
-  ctx.drawImage(video, 0, video.videoHeight - sourceH, video.videoWidth, sourceH,
+  const selector = window.StandaloneAPI && StandaloneAPI.__pure &&
+    StandaloneAPI.__pure.selectRoadRegion;
+  if (typeof selector !== "function") throw new Error("Road-region selector unavailable");
+  const region = selector(video.videoWidth, video.videoHeight);
+  if (!region || region.width <= 0 || region.height <= 0) {
+    throw new Error("Road-region selector returned an invalid region");
+  }
+  ctx.drawImage(video, region.x, region.y, region.width, region.height,
                 0, 0, width, height);
   return scoreRoadPixels(ctx.getImageData(0, 0, width, height).data, width, height);
 }
@@ -3102,6 +3154,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
     restoreNativeDrive();
     if (drive && drive.native) startNativePreview();
+    else scheduleNativeKeyframeReplay();
   }
 });
 
@@ -3118,7 +3171,9 @@ window.handleNativeAppStateChange = async (isActive) => {
   await restoreNativeDrive({ syncWhenIdle: false });
   if (epoch !== nativeHostAppStateEpoch || !nativeHostAppActive) return;
   if (drive && drive.native) startNativePreview();
+  else scheduleNativeKeyframeReplay();
 };
+window.addEventListener("online", () => { scheduleNativeKeyframeReplay(); });
 window.addEventListener("resize", () => { if (drive && drive.native) startNativePreview(); });
 window.addEventListener("scroll", () => {
   if (!drive || !drive.native || $("drive").classList.contains("hidden")) return;
@@ -3161,6 +3216,7 @@ async function restoreNativeDrive(options = {}) {
       await syncNativeData();
       await loadReports().catch(() => {});
     }
+    scheduleNativeKeyframeReplay();
   }
 }
 
@@ -3604,45 +3660,144 @@ function localDataUrlBlob(value) {
 }
 
 const NATIVE_KEYFRAME_BATCH_SIZE = 25;
+const NATIVE_AUTO_KEYFRAME_ATTEMPTS_PER_RUN = 100;
+const NATIVE_AUTO_KEYFRAME_SESSION_PAGE_SIZE = 25;
+const NATIVE_REPLAY_IDLE_RETRY_LIMIT = 4;
+const NATIVE_REPLAY_IDLE_RETRY_MS = 200;
+const NATIVE_REPLAY_FAILURE_BACKOFF_MS = 60_000;
 let nativeKeyframeReplay = null;
+let nativeKeyframeAutoPromise = null;
+let nativeKeyframeAutoPreferredSession = null;
+const nativeKeyframeAutoDeferredUntil = new Map();
+let nativeKeyframeAutoBackoffTimer = null;
 
-async function analyseNativeKeyframes(driveId) {
-  if (nativeKeyframeReplay) {
-    alert("Saved-frame analysis is already running.");
-    return;
+function nativeAutomaticReplayAllowed() {
+  return Boolean(nativeDrivePlugin()) && nativeHostAppActive &&
+    document.visibilityState === "visible" && !nativeWipeInProgress &&
+    !drive && !driveStarting && navigator.onLine !== false &&
+    Boolean((localStorage.getItem("openai_key") || "").trim());
+}
+
+function nativeReplayNeedsIdleRetry(error) {
+  return /stop drive before analysing saved frames/i.test(
+    String(error && (error.message || error) || "")
+  );
+}
+
+async function withNativeReplayIdleRetry(operation, automatic) {
+  let retries = 0;
+  while (true) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!automatic || !nativeReplayNeedsIdleRetry(error) ||
+          retries >= NATIVE_REPLAY_IDLE_RETRY_LIMIT || !nativeAutomaticReplayAllowed()) {
+        throw error;
+      }
+      retries++;
+      // driveEnded is emitted just before the native service reaches onDestroy. Give
+      // that small teardown window bounded time to close instead of losing the only
+      // automatic replay trigger. Retrying the bridge operation (especially mark) also
+      // avoids repeating an already-completed, billable model request.
+      await new Promise((resolve) => setTimeout(
+        resolve, NATIVE_REPLAY_IDLE_RETRY_MS * retries
+      ));
+    }
   }
+}
+
+function nativeReplaySessionDeferred(sessionId, now = Date.now()) {
+  const id = String(sessionId || "");
+  const until = Number(nativeKeyframeAutoDeferredUntil.get(id)) || 0;
+  if (!id || until <= now) {
+    if (id) nativeKeyframeAutoDeferredUntil.delete(id);
+    return false;
+  }
+  return true;
+}
+
+function refreshNativeReplayBackoffTimer() {
+  if (nativeKeyframeAutoBackoffTimer !== null) {
+    clearTimeout(nativeKeyframeAutoBackoffTimer);
+    nativeKeyframeAutoBackoffTimer = null;
+  }
+  const deadlines = [...nativeKeyframeAutoDeferredUntil.values()]
+    .map(Number).filter(Number.isFinite);
+  if (!deadlines.length) return;
+  const delay = Math.max(0, Math.min(...deadlines) - Date.now());
+  const timer = setTimeout(() => {
+    if (nativeKeyframeAutoBackoffTimer === timer) nativeKeyframeAutoBackoffTimer = null;
+    const now = Date.now();
+    for (const [sessionId, until] of nativeKeyframeAutoDeferredUntil) {
+      if (Number(until) <= now) nativeKeyframeAutoDeferredUntil.delete(sessionId);
+    }
+    scheduleNativeKeyframeReplay();
+    refreshNativeReplayBackoffTimer();
+  }, delay);
+  // Node's behavioral harness must be free to exit; browsers simply lack unref().
+  if (timer && typeof timer.unref === "function") timer.unref();
+  nativeKeyframeAutoBackoffTimer = timer;
+}
+
+function deferNativeReplaySession(sessionId) {
+  const id = String(sessionId || "");
+  if (id) nativeKeyframeAutoDeferredUntil.set(
+    id, Date.now() + NATIVE_REPLAY_FAILURE_BACKOFF_MS
+  );
+  refreshNativeReplayBackoffTimer();
+}
+
+function clearNativeReplaySessionDeferral(sessionId) {
+  const id = String(sessionId || "");
+  if (id) nativeKeyframeAutoDeferredUntil.delete(id);
+  refreshNativeReplayBackoffTimer();
+}
+
+async function replayNativeKeyframeBatch(driveId, interactive) {
+  if (nativeKeyframeReplay) return { busy: true };
   const plugin = nativeDrivePlugin();
   if (!plugin || typeof plugin.listKeyframes !== "function") {
-    alert("This build cannot analyse saved Drive frames.");
-    return;
+    throw new Error("This build cannot analyse saved Drive frames.");
   }
-  const state = { driveId: String(driveId), cancelled: false };
+  const state = { driveId: String(driveId), cancelled: false, interactive: !!interactive };
+  let resolveReplayDone;
+  state.done = new Promise((resolve) => { resolveReplayDone = resolve; });
   nativeKeyframeReplay = state;
-  const buttons = [...document.querySelectorAll("[data-analysenative]")]
-    .filter((button) => String(button.dataset.analysenative) === state.driveId);
+  const buttons = state.interactive
+    ? [...document.querySelectorAll("[data-analysenative]")]
+      .filter((button) => String(button.dataset.analysenative) === state.driveId)
+    : [];
   buttons.forEach((button) => { button.disabled = true; });
   const cancel = $("progressCancel");
-  cancel.classList.remove("hidden");
-  cancel.disabled = false;
-  cancel.onclick = () => {
-    state.cancelled = true;
-    cancel.disabled = true;
-    $("progressText").textContent = "Stopping after the current saved frame...";
-  };
+  if (state.interactive) {
+    cancel.classList.remove("hidden");
+    cancel.disabled = false;
+    cancel.onclick = () => {
+      state.cancelled = true;
+      cancel.disabled = true;
+      $("progressText").textContent = "Stopping after the current saved frame...";
+    };
+  }
   let showingProgress = false;
   try {
-    const listed = await plugin.listKeyframes({ sessionId: state.driveId, pendingOnly: true });
+    const listed = await withNativeReplayIdleRetry(() => plugin.listKeyframes({
+      sessionId: state.driveId,
+      pendingOnly: true,
+      limit: NATIVE_KEYFRAME_BATCH_SIZE,
+    }), !state.interactive);
     const pending = Array.isArray(listed.keyframes) ? listed.keyframes : [];
-    if (!pending.length) {
-      alert("Every saved frame from this drive has already been checked.");
-      return;
-    }
+    const totalPending = Math.max(pending.length, Number(listed.pending) || 0);
+    if (!pending.length) return { empty: true, checked: 0, found: 0,
+      duplicates: 0, failed: 0, attempted: 0, remaining: 0 };
     const frames = pending.slice(0, NATIVE_KEYFRAME_BATCH_SIZE);
-    show("progress");
-    showingProgress = true;
-    $("progressPhoto").src = "";
+    if (state.interactive) {
+      show("progress");
+      showingProgress = true;
+      $("progressPhoto").src = "";
+    }
     let done = 0, checked = 0, found = 0, duplicates = 0, failed = 0, consecutiveFailures = 0;
     const paint = () => {
+      if (!state.interactive) return;
       $("progressText").textContent = `Checking saved frame ${done} of ${frames.length} · ${found} found`
         + (duplicates ? ` · ${duplicates} already known` : "")
         + (failed ? ` · ${failed} failed` : "");
@@ -3651,14 +3806,20 @@ async function analyseNativeKeyframes(driveId) {
 
     for (const frame of frames) {
       if (state.cancelled) break;
+      if (!state.interactive && !nativeAutomaticReplayAllowed()) {
+        state.cancelled = true;
+        break;
+      }
       try {
-        const saved = await plugin.readKeyframe({ id: Number(frame.id) });
+        const saved = await withNativeReplayIdleRetry(
+          () => plugin.readKeyframe({ id: Number(frame.id) }), !state.interactive
+        );
         const photos = Array.isArray(saved.photos) ? saved.photos.slice(0, 3) : [];
         if (!photos.length) throw new Error("Saved frame is unavailable.");
         const requestedPrimary = Number(saved.primaryIndex);
         const primaryIndex = Number.isInteger(requestedPrimary) && requestedPrimary >= 0 &&
           requestedPrimary < photos.length ? requestedPrimary : 0;
-        $("progressPhoto").src = photos[primaryIndex];
+        if (state.interactive) $("progressPhoto").src = photos[primaryIndex];
         const fd = new FormData();
         photos.forEach((photo, index) => fd.append("photo", localDataUrlBlob(photo),
           index === primaryIndex ? "evidence-frame.jpg" : `video-context-${index}.jpg`));
@@ -3667,7 +3828,10 @@ async function analyseNativeKeyframes(driveId) {
         if (finiteSaved(saved.lat)) fd.append("lat", String(saved.lat));
         if (finiteSaved(saved.lng)) fd.append("lng", String(saved.lng));
         fd.append("drive_id", state.driveId);
-        fd.append("capture_source", "drive_vod");
+        // This is deferred inference of a frame captured by the live native Drive,
+        // not arbitrary uploaded/recorded footage. Preserve live provenance so the
+        // strict same-location repair verifier can still evaluate a genuine revisit.
+        fd.append("capture_source", "drive_live");
         // Replay is the same capture, not a new sighting. Sharing the live key makes a
         // retry idempotent even if its Room checkpoint failed after web storage committed.
         fd.append("source_event_key", `live:${state.driveId}:${saved.captureSeq}`);
@@ -3676,8 +3840,27 @@ async function analyseNativeKeyframes(driveId) {
         if (finiteSaved(saved.gpsAccuracy)) fd.append("gps_accuracy", String(saved.gpsAccuracy));
         if (finiteSaved(saved.speedMps)) fd.append("speed", String(saved.speedMps));
         if (finiteSaved(saved.heading)) fd.append("heading", String(saved.heading));
+        // Start has priority. If a new Drive began while this bridge read was pending,
+        // yield before starting a billable model call. A call already in flight may
+        // finish and checkpoint its old session without delaying the new camera.
+        if (!state.interactive && !nativeAutomaticReplayAllowed()) {
+          state.cancelled = true;
+          break;
+        }
         const result = await api("/api/frame", { method: "POST", body: fd });
-        await plugin.markKeyframeAnalyzed({ id: Number(frame.id) });
+        if (!result || result.analyzed !== true) {
+          throw new Error("The detector did not return a complete saved-frame verdict.");
+        }
+        // Delete-all is the destructive barrier: it waits for this batch and removes
+        // any Web report the just-finished request created before deleting native files.
+        // Ordinary Cancel means "after the current frame", so a completed result is
+        // still checkpointed and is not billed/replayed again.
+        if (nativeWipeInProgress) {
+          throw new Error("Saved-frame analysis was interrupted before checkpointing.");
+        }
+        await withNativeReplayIdleRetry(
+          () => plugin.markKeyframeAnalyzed({ id: Number(frame.id) }), !state.interactive
+        );
         checked++;
         if (result && result.found) found++;
         else if (result && result.duplicate) duplicates++;
@@ -3691,23 +3874,150 @@ async function analyseNativeKeyframes(driveId) {
         paint();
       }
     }
-    invalidateNativeDriveHistory();
-    await loadReports().catch(() => {});
-    show("home");
-    showingProgress = false;
-    const remaining = Math.max(0, pending.length - checked);
-    const tail = remaining ? ` ${remaining} saved frame${remaining === 1 ? " remains" : "s remain"}; tap Analyse again to continue.` : "";
-    alert(`Saved-frame analysis ${state.cancelled ? "stopped" : "complete"}: ${checked} checked, ${found} new, ${duplicates} already known${failed ? `, ${failed} failed` : ""}.${tail}`);
-  } catch (error) {
-    if (showingProgress) show("home");
-    alert(error.message || String(error));
+    if (checked) invalidateNativeDriveHistory();
+    return {
+      checked, found, duplicates, failed, attempted: done,
+      cancelled: state.cancelled,
+      remaining: Math.max(0, totalPending - checked),
+    };
   } finally {
+    if (showingProgress) show("home");
     if (nativeKeyframeReplay === state) nativeKeyframeReplay = null;
-    cancel.onclick = null;
-    cancel.disabled = false;
-    cancel.classList.add("hidden");
+    resolveReplayDone();
+    if (state.interactive) {
+      cancel.onclick = null;
+      cancel.disabled = false;
+      cancel.classList.add("hidden");
+    }
     buttons.forEach((button) => { button.disabled = false; });
   }
+}
+
+async function analyseNativeKeyframes(driveId) {
+  if (nativeKeyframeReplay) {
+    alert("Saved-frame analysis is already running.");
+    return;
+  }
+  try {
+    const result = await replayNativeKeyframeBatch(driveId, true);
+    if (result.empty) {
+      alert("Every saved frame from this drive has already been checked.");
+      return;
+    }
+    await loadReports().catch(() => {});
+    const tail = result.remaining
+      ? ` ${result.remaining} saved frame${result.remaining === 1 ? " remains" : "s remain"}; analysis resumes automatically while the app is open.`
+      : "";
+    alert(`Saved-frame analysis ${result.cancelled ? "stopped" : "complete"}: ${result.checked} checked, ${result.found} new, ${result.duplicates} already known${result.failed ? `, ${result.failed} failed` : ""}.${tail}`);
+  } catch (error) {
+    show("home");
+    alert(error.message || String(error));
+  }
+}
+
+function scheduleNativeKeyframeReplay(preferredSessionId) {
+  if (preferredSessionId) nativeKeyframeAutoPreferredSession = String(preferredSessionId);
+  if (nativeKeyframeAutoPromise || !nativeAutomaticReplayAllowed()) {
+    return nativeKeyframeAutoPromise || Promise.resolve();
+  }
+  const plugin = nativeDrivePlugin();
+  let continueAfterYield = false;
+  const run = (async () => {
+    let attempts = 0;
+    let changed = false;
+    const visitedSessionIds = new Set();
+    let sessionCursor = "";
+    let sessionPage = [];
+    // Finish one session without re-hydrating the entire drive/footage/GPS history
+    // between 25-frame pages. A stopped session handed to us by finishNativeDrive gets
+    // first priority unless it is cooling down after a failed batch.
+    let activeSessionId = nativeKeyframeAutoPreferredSession;
+    if (nativeReplaySessionDeferred(activeSessionId)) activeSessionId = null;
+
+    const nextPendingSessionId = async () => {
+      while (nativeAutomaticReplayAllowed()) {
+        while (sessionPage.length) {
+          const id = String(sessionPage.shift().sessionId || "");
+          if (id && !visitedSessionIds.has(id) && !nativeReplaySessionDeferred(id)) {
+            return id;
+          }
+        }
+        const listed = await plugin.listPendingKeyframeSessions({
+          afterSessionId: sessionCursor,
+          limit: NATIVE_AUTO_KEYFRAME_SESSION_PAGE_SIZE,
+        });
+        const pending = Array.isArray(listed.sessions) ? listed.sessions : [];
+        if (!pending.length) return null;
+        const nextCursor = String(listed.nextAfterSessionId ||
+          (pending[pending.length - 1] && pending[pending.length - 1].sessionId) || "");
+        if (!nextCursor || nextCursor === sessionCursor) {
+          throw new Error("Saved-frame session paging did not advance.");
+        }
+        sessionCursor = nextCursor;
+        sessionPage = pending.slice(0, NATIVE_AUTO_KEYFRAME_SESSION_PAGE_SIZE);
+      }
+      return null;
+    };
+
+    while (attempts < NATIVE_AUTO_KEYFRAME_ATTEMPTS_PER_RUN && nativeAutomaticReplayAllowed()) {
+      if (!activeSessionId) {
+        activeSessionId = await nextPendingSessionId();
+        if (!activeSessionId) break;
+      }
+      const result = await replayNativeKeyframeBatch(activeSessionId, false);
+      if (result.busy || result.empty) {
+        if (result.empty && activeSessionId === nativeKeyframeAutoPreferredSession) {
+          nativeKeyframeAutoPreferredSession = null;
+        }
+        if (result.empty) visitedSessionIds.add(activeSessionId);
+        activeSessionId = null;
+        if (result.busy) break;
+        continue;
+      }
+      attempts += Math.max(1, Number(result.attempted) || 0);
+      changed = changed || result.checked > 0;
+      if (result.failed) {
+        // Preserve the failed frame, but rotate beyond this session so one corrupt image
+        // or transient per-frame error cannot starve every later drive. A future external
+        // trigger may retry it after the cooldown; this run never hammers it in a loop.
+        deferNativeReplaySession(activeSessionId);
+        visitedSessionIds.add(activeSessionId);
+        activeSessionId = null;
+        if (!nativeAutomaticReplayAllowed()) break;
+        if (attempts >= NATIVE_AUTO_KEYFRAME_ATTEMPTS_PER_RUN) {
+          continueAfterYield = true;
+          break;
+        }
+        continue;
+      }
+      if (result.cancelled || result.checked === 0) break;
+      if (!result.remaining) {
+        if (activeSessionId === nativeKeyframeAutoPreferredSession) {
+          nativeKeyframeAutoPreferredSession = null;
+        }
+        clearNativeReplaySessionDeferral(activeSessionId);
+        visitedSessionIds.add(activeSessionId);
+        activeSessionId = null;
+      }
+      if (attempts >= NATIVE_AUTO_KEYFRAME_ATTEMPTS_PER_RUN) {
+        continueAfterYield = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    if (changed) {
+      invalidateNativeDriveHistory();
+      await loadReports().catch(() => {});
+    }
+  })().catch(() => {});
+  nativeKeyframeAutoPromise = run;
+  run.finally(() => {
+    if (nativeKeyframeAutoPromise === run) nativeKeyframeAutoPromise = null;
+    if (continueAfterYield && nativeAutomaticReplayAllowed()) {
+      setTimeout(() => { scheduleNativeKeyframeReplay(); }, 250);
+    }
+  }).catch(() => {});
+  return run;
 }
 
 function gpsAt(track, seconds) {
@@ -4221,6 +4531,7 @@ window.addEventListener("pipeline-verdict", (e) => {
 // Native Android back button: leaving the Drive screen does not stop its foreground
 // service. The explicit Stop control is the only in-app action that ends a native drive.
 window.handleAppBack = () => {
+  if (nativeWipeInProgress) return true;
   if (drive && drive.native && !$("drive").classList.contains("hidden")) {
     stopNativePreview();
     setDriveActiveButton(true);
@@ -4317,6 +4628,9 @@ $("setSave").onclick = async () => {
     await loadHealth();
     await loadReports();
     show("home");
+    // A missing key is the only reason durable Drive frames may have remained queued.
+    // Saving settings is therefore a replay trigger just like resume/online/drive stop.
+    scheduleNativeKeyframeReplay();
   } catch (error) {
     alert(error.message || "The settings could not be applied.");
   } finally {
@@ -4361,8 +4675,11 @@ async function deleteAllAppData() {
   // by a drive-end/resume event is rejected until the successful reload.
   nativeWipeInProgress = true;
   try {
+    const replayState = nativeKeyframeReplay;
+    if (replayState) replayState.cancelled = true;
     const activeSyncs = [...new Set([
       nativeTrailingForcePromise, nativeSyncPromise, nativeRepairSyncPromise,
+      nativeKeyframeAutoPromise, replayState && replayState.done,
     ].filter(Boolean))];
     if (activeSyncs.length) await Promise.allSettled(activeSyncs);
 

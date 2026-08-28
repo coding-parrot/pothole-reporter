@@ -76,7 +76,7 @@ class NativeCompleteVerdictParserTest {
     }
 
     @Test
-    fun acceptsOnlyExplicitlySupportedPavedSurfaceTypes() {
+    fun acceptsExplicitlySupportedPavedSurfaceTypes() {
         for (surface in listOf(
             "bituminous_asphalt", "cement_concrete", "mastic_asphalt", "paver_blocks"
         )) {
@@ -98,6 +98,60 @@ class NativeCompleteVerdictParserTest {
         )
         assertEquals("reject", unpaved?.decision)
         assertEquals("not_pothole", unpaved?.defectType)
+    }
+
+    @Test
+    fun acceptsTemporaryDrivableSurfaceOnlyWithCompletePersistentCavityEvidence() {
+        val complete = NativeCompleteVerdictParser.fromFields(
+            clearPothole + ("surface_type" to "temporary_drivable_surface")
+        )
+        assertEquals("temporary_drivable_surface", complete?.surfaceType)
+        assertEquals(true, complete?.isPothole)
+        assertEquals("accept", complete?.decision)
+
+        val missingRequiredEvidence = listOf(
+            clearPothole + mapOf(
+                "surface_type" to "temporary_drivable_surface",
+                "is_pothole" to false
+            ),
+            clearPothole + mapOf(
+                "surface_type" to "temporary_drivable_surface",
+                "looks_like_speed_breaker" to true
+            ),
+            clearPothole + mapOf(
+                "surface_type" to "temporary_drivable_surface",
+                "image_quality" to "unusable"
+            ),
+            clearPothole + mapOf(
+                "surface_type" to "temporary_drivable_surface",
+                "has_localized_cavity" to false
+            ),
+            clearPothole + mapOf(
+                "surface_type" to "temporary_drivable_surface",
+                "has_broken_edge_or_rim" to false
+            ),
+            clearPothole + mapOf(
+                "surface_type" to "temporary_drivable_surface",
+                "has_depth_or_surface_loss" to false
+            ),
+            clearPothole + mapOf(
+                "surface_type" to "temporary_drivable_surface",
+                "temporal_consistency" to "inconsistent"
+            ),
+            clearPothole + mapOf(
+                "surface_type" to "temporary_drivable_surface",
+                "on_drivable_surface" to false
+            ),
+            clearPothole + mapOf(
+                "surface_type" to "temporary_drivable_surface",
+                "size" to null
+            )
+        )
+        for (fields in missingRequiredEvidence) {
+            val result = NativeCompleteVerdictParser.fromFields(fields)
+            assertEquals(false, result?.isPothole)
+            assertEquals("reject", result?.decision)
+        }
     }
 
     @Test

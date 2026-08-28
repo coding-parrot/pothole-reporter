@@ -53,9 +53,9 @@ internal object NativeCompleteVerdictParser {
     private val sizes = setOf("small", "medium", "large")
     private val surfaceTypes = setOf(
         "bituminous_asphalt", "cement_concrete", "mastic_asphalt", "paver_blocks",
-        "unpaved_or_nonroad", "unknown"
+        "temporary_drivable_surface", "unpaved_or_nonroad", "unknown"
     )
-    private val supportedPavedSurfaceTypes = surfaceTypes - setOf("unknown", "unpaved_or_nonroad")
+    private val reportableSurfaceTypes = surfaceTypes - setOf("unknown", "unpaved_or_nonroad")
 
     fun parse(text: String): AssessmentResult? {
         return try {
@@ -145,13 +145,42 @@ internal object NativeCompleteVerdictParser {
         size: String?
     ): String {
         if (!isPothole || looksLikeSpeedBreaker) return "reject"
-        if (surfaceType !in supportedPavedSurfaceTypes) return "reject"
+        if (surfaceType !in reportableSurfaceTypes) return "reject"
         if (imageQuality != "usable" || !onDrivableSurface || !hasLocalizedCavity) return "reject"
         if (!hasBrokenEdgeOrRim || !hasDepthOrSurfaceLoss) return "reject"
         // NativeInferenceEngine is Drive-only and always receives a chronological burst.
         if (temporalConsistency != "consistent") return "reject"
         if (size !in sizes) return "reject"
         return "accept"
+    }
+}
+
+/**
+ * Decides whether a streamed detector request produced a durable verdict. An intentional
+ * early reject is complete for Drive's binary purpose even though cancelling the response
+ * body can surface as an IOException. Every other interrupted or malformed response must
+ * remain retryable instead of being converted into a synthetic NO.
+ */
+internal object NativeDetectionStreamCompletionPolicy {
+    fun requireVerdict(
+        completeVerdict: AssessmentResult?,
+        intentionalEarlyReject: AssessmentResult?,
+        transportCompleted: Boolean
+    ): AssessmentResult {
+        if (intentionalEarlyReject != null) return intentionalEarlyReject
+        NativeStreamCompletionPolicy.requireCompleted(
+            transportCompleted,
+            "OpenAI detection stream was interrupted"
+        )
+        return completeVerdict
+            ?: throw NativeInferenceException("OpenAI returned an incomplete detection assessment")
+    }
+}
+
+/** Shared terminal-event gate for detector and repair SSE responses. */
+internal object NativeStreamCompletionPolicy {
+    fun requireCompleted(transportCompleted: Boolean, incompleteMessage: String) {
+        if (!transportCompleted) throw NativeInferenceException(incompleteMessage)
     }
 }
 
@@ -212,15 +241,15 @@ class NativeInferenceEngine(
     companion object {
         private const val OAI_URL = "https://api.openai.com/v1/responses"
         private const val NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
-        private const val PROMPT_VERSION = "pothole-binary-v6"
-        private const val SCHEMA_VERSION = 6
+        private const val PROMPT_VERSION = "pothole-binary-v8"
+        private const val SCHEMA_VERSION = 7
         const val REPAIR_PROMPT_VERSION = "road-repair-v1"
         const val REPAIR_SCHEMA_VERSION = 1
 
         private val IS_POTHOLE_RE = Pattern.compile("\"is_pothole\"\\s*:\\s*(true|false)")
         private val SPEED_BREAKER_RE = Pattern.compile("\"looks_like_speed_breaker\"\\s*:\\s*(true|false)")
         private val QUALITY_RE = Pattern.compile("\"image_quality\"\\s*:\\s*\"(usable|unusable)\"")
-        private val SURFACE_RE = Pattern.compile("\"surface_type\"\\s*:\\s*\"(bituminous_asphalt|cement_concrete|mastic_asphalt|paver_blocks|unpaved_or_nonroad|unknown)\"")
+        private val SURFACE_RE = Pattern.compile("\"surface_type\"\\s*:\\s*\"(bituminous_asphalt|cement_concrete|mastic_asphalt|paver_blocks|temporary_drivable_surface|unpaved_or_nonroad|unknown)\"")
         private val ROAD_RE = Pattern.compile("\"on_drivable_surface\"\\s*:\\s*(true|false)")
         private val CAVITY_RE = Pattern.compile("\"has_localized_cavity\"\\s*:\\s*(true|false)")
         private val EDGE_RE = Pattern.compile("\"has_broken_edge_or_rim\"\\s*:\\s*(true|false)")
@@ -230,9 +259,10 @@ class NativeInferenceEngine(
 
         private const val DETECT_PROMPT =
             "You are a high-precision binary pothole detector inspecting chronologically ordered road views for a civic complaint app. Return one decision only: is_pothole true (YES) or false (NO). There is no confidence score, probability, probable result, review result, or general road-damage category. False positives are more harmful than false negatives, so any ambiguity must be NO. " +
-            "A pothole is a localized concave open cavity in the drivable paved surface with pavement material visibly missing or disintegrated. YES requires the feature to be on the paved surface used by moving traffic, have a distinct broken edge or rim, have visible depth or material loss, and be geometrically consistent across supplied chronological views. " +
-            "Classify surface_type as bituminous_asphalt for conventional asphalt or blacktop, cement_concrete for a concrete slab, mastic_asphalt only when that pavement is visually identifiable, paver_blocks for interlocking paved blocks, unpaved_or_nonroad for an unpaved shoulder or non-road surface, or unknown whenever the material is uncertain. YES is permitted only for the four named paved surface types; unpaved_or_nonroad and unknown must be NO. " +
-            "Return NO for a speed breaker, road hump, rumble strip, shadow, stain, water, glare, dust, loose debris, lane marking, intact patch, crack, broad surface breakup without a distinct cavity, rut or smooth depression, manhole, drain, expansion joint, road edge, or shoulder erosion. A failed patch is YES only when it now contains a distinct open cavity satisfying every pothole rule. " +
+            "A pothole is a localized concave open cavity in the surface currently used by moving road traffic, with surface material visibly missing, displaced, or disintegrated. YES requires the feature to be on the drivable surface, have a distinct local edge, lip, or abrupt height discontinuity enclosing a depressed opening, have visible depth or localized material loss, and preserve the same concave geometry across the supplied chronological views. " +
+            "Classify surface_type as bituminous_asphalt for conventional asphalt or blacktop, cement_concrete for a concrete slab, mastic_asphalt only when that pavement is visually identifiable, paver_blocks for interlocking paved blocks, temporary_drivable_surface only for an unsealed, unfinished, or construction-stage lane that the chronological views clearly show is currently carrying road traffic, unpaved_or_nonroad for a dirt or gravel shoulder, construction bed, work area, service path, roadside ground, or other non-carriageway surface, or unknown whenever the material or road use is uncertain. Camera position alone does not prove that an unsealed surface is a traffic lane. " +
+            "The four named paved surfaces may be YES only when every physical gate is satisfied. On temporary_drivable_surface, a pothole can exist inside a generally rough, failed, or gravel-covered traffic lane: do not reject a discrete cavity merely because nearby surface is also damaged or unfinished. A broken edge or rim can be an eroded lip or abrupt localized material-height change rather than fractured asphalt. A water-filled cavity can be YES when a localized enclosing lip and depressed opening remain visible and preserve their geometry across the approach; water or a dark patch without that independent boundary evidence is NO, and the cavity floor need not be visible through opaque water. Two or more adjacent discrete bowl-like material-loss openings are one connected cavity-cluster event. General roughness, corrugation, wheel ruts, broad breakup, loose aggregate, normal gravel texture, grading, and smooth depressions are NO. unpaved_or_nonroad and unknown must always be NO. " +
+            "Return NO for a speed breaker, road hump, rumble strip, shadow, stain, glare, dust, loose debris, lane marking, intact patch, crack, broad surface breakup without a distinct cavity, wheel rut, smooth depression, manhole, drain, expansion joint, road edge, shoulder erosion, or construction obstacle. A failed patch is YES only when it now contains a distinct cavity satisfying every rule. " +
             "Set looks_like_speed_breaker true whenever the feature is or could reasonably be an intentional raised breaker, hump, or rumble strip. Painted rectangles or stripes, reflectors, a transverse ridge, parallel leading and trailing edges, camera pitch, and a vehicle jolt support NO. A separate cavity on or beside a breaker is YES only when visually unambiguous and distinct from the raised ridge. If raised-versus-concave geometry is uncertain, return NO. " +
             "Set image_quality unusable when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. Use temporal_consistency consistent only when the chronological views agree; otherwise use inconsistent. " +
             "Only after YES, classify approximate visual size using these app bands: small means maximum visible opening width below 30 cm; medium means 30 to 60 cm; large means above 60 cm or a connected cavity cluster. For NO, size must be null. These are app estimates, not municipal measurements. " +
@@ -489,6 +519,7 @@ class NativeInferenceEngine(
         val reader = responseBody.charStream().buffered()
         val textBuilder = StringBuilder()
         var earlyRejected = false
+        var transportCompleted = false
 
         try {
             var line: String?
@@ -496,11 +527,16 @@ class NativeInferenceEngine(
                 val l = line?.trim() ?: continue
                 if (!l.startsWith("data:")) continue
                 val payload = l.substring(5).trim()
-                if (payload.isEmpty() || payload == "[DONE]") continue
+                if (payload.isEmpty()) continue
+                if (payload == "[DONE]") {
+                    transportCompleted = true
+                    continue
+                }
 
                 try {
                     val ev = JSONObject(payload)
                     val type = ev.optString("type")
+                    if (type == "response.completed") transportCompleted = true
                     if (type == "response.output_text.delta") {
                         val delta = ev.optString("delta", "")
                         textBuilder.append(delta)
@@ -514,16 +550,20 @@ class NativeInferenceEngine(
                 } catch (_: Exception) {}
             }
         } catch (_: IOException) {
-            // Stream cancelled or aborted
+            // The explicit terminal event below distinguishes a complete stream from a
+            // clean or exceptional truncation. Intentional early rejection is separate.
         } finally {
             response.close()
         }
 
-        return if (earlyRejected) {
-            rejectedVerdict(textBuilder.toString())
-        } else {
-            parseCompleteVerdict(textBuilder.toString())
-        }
+        val text = textBuilder.toString()
+        return NativeDetectionStreamCompletionPolicy.requireVerdict(
+            completeVerdict = if (!earlyRejected && transportCompleted) {
+                NativeCompleteVerdictParser.parse(text)
+            } else null,
+            intentionalEarlyReject = if (earlyRejected) rejectedVerdict(text) else null,
+            transportCompleted = transportCompleted
+        )
     }
 
     private fun executeRepairStreaming(
@@ -559,15 +599,23 @@ class NativeInferenceEngine(
             throw NativeInferenceException("Empty repair-check response from OpenAI")
         }
         val textBuilder = StringBuilder()
+        var transportCompleted = false
         try {
             responseBody.charStream().buffered().useLines { lines ->
                 lines.forEach { raw ->
                     val line = raw.trim()
                     if (!line.startsWith("data:")) return@forEach
                     val payload = line.substring(5).trim()
-                    if (payload.isEmpty() || payload == "[DONE]") return@forEach
+                    if (payload.isEmpty()) return@forEach
+                    if (payload == "[DONE]") {
+                        transportCompleted = true
+                        return@forEach
+                    }
                     try {
                         val event = JSONObject(payload)
+                        if (event.optString("type") == "response.completed") {
+                            transportCompleted = true
+                        }
                         if (event.optString("type") == "response.output_text.delta") {
                             textBuilder.append(event.optString("delta", ""))
                         }
@@ -577,6 +625,10 @@ class NativeInferenceEngine(
         } finally {
             response.close()
         }
+        NativeStreamCompletionPolicy.requireCompleted(
+            transportCompleted,
+            "OpenAI repair-check stream was interrupted"
+        )
         return parseRepairAssessment(textBuilder.toString())
     }
 
@@ -611,7 +663,7 @@ class NativeInferenceEngine(
                 "is_pothole": { "type": "boolean" },
                 "looks_like_speed_breaker": { "type": "boolean" },
                 "image_quality": { "type": "string", "enum": ["usable", "unusable"] },
-                "surface_type": { "type": "string", "enum": ["bituminous_asphalt", "cement_concrete", "mastic_asphalt", "paver_blocks", "unpaved_or_nonroad", "unknown"] },
+                "surface_type": { "type": "string", "enum": ["bituminous_asphalt", "cement_concrete", "mastic_asphalt", "paver_blocks", "temporary_drivable_surface", "unpaved_or_nonroad", "unknown"] },
                 "on_drivable_surface": { "type": "boolean" },
                 "has_localized_cavity": { "type": "boolean" },
                 "has_broken_edge_or_rim": { "type": "boolean" },
@@ -833,29 +885,6 @@ class NativeInferenceEngine(
             size = null,
             description = if (modelSaidPothole) "Pothole evidence failed a required physical gate."
                 else "No pothole detected.",
-            decision = "reject"
-        )
-    }
-
-    private fun parseCompleteVerdict(text: String): AssessmentResult {
-        return NativeCompleteVerdictParser.parse(text) ?: AssessmentResult(
-            isPothole = false,
-            looksLikeSpeedBreaker = true,
-            reportable = false,
-            assessment = "absent",
-            imageQuality = "unusable",
-            damageType = "none",
-            surfaceType = "unknown",
-            defectType = "not_pothole",
-            measurementProvenance = "not_applicable",
-            measurementConfidence = "not_applicable",
-            onDrivableSurface = false,
-            hasLocalizedCavity = false,
-            hasBrokenEdgeOrRim = false,
-            hasDepthOrSurfaceLoss = false,
-            temporalConsistency = "inconsistent",
-            size = null,
-            description = "Detection response was incomplete.",
             decision = "reject"
         )
     }

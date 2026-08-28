@@ -45,9 +45,9 @@
   const DEFAULT_MODEL = "gpt-5-mini";
   const ALLOWED_MODELS = new Set([DEFAULT_MODEL, "gpt-5.6"]);
   const ALLOWED_DETAILS = new Set(["high", "original"]);
-  const PROMPT_VERSION = "pothole-binary-v6";
-  const PHOTO_PROMPT_VERSION = "pothole-photo-only-v1";
-  const SCHEMA_VERSION = 6;
+  const PROMPT_VERSION = "pothole-binary-v8";
+  const PHOTO_PROMPT_VERSION = "pothole-photo-only-v2";
+  const SCHEMA_VERSION = 7;
   const REPAIR_PROMPT_VERSION = "road-repair-v1";
   const REPAIR_SCHEMA_VERSION = 1;
   const MAX_DETECTION_IMAGES = 4;
@@ -392,19 +392,35 @@
 
 Return one decision only: is_pothole true (YES) or false (NO). There is no confidence score, probability, probable result, review result, or general road-damage category. False positives are more harmful than false negatives, so any ambiguity must be NO.
 
-A pothole is a localized concave open cavity in the drivable paved surface, with pavement material visibly missing or disintegrated. A YES requires all of these:
-- the feature is on the paved surface used by moving traffic;
-- it has a distinct broken edge or rim;
-- it has visible depth or material loss; and
-- when several chronological views are supplied, their geometry consistently supports the same concave cavity.
+A pothole is a localized concave open cavity in the surface currently used by moving road traffic, with surface material visibly missing, displaced, or disintegrated. A YES requires all of these:
+- the feature is on the drivable surface used by moving traffic;
+- it has a distinct local edge, lip, or abrupt height discontinuity enclosing a depressed opening;
+- it has visible depth or localized material loss; and
+- when several chronological views are supplied, they consistently show the same concave geometry as the vehicle approaches.
 
-Return NO for a speed breaker, road hump, rumble strip, shadow, stain, water, glare, dust, loose debris, lane marking, intact patch, crack, broad surface breakup without a distinct cavity, rut or smooth depression, manhole, drain, expansion joint, road edge, or shoulder erosion. A failed patch is YES only when it now contains a distinct open cavity satisfying every pothole rule above.
+Return NO for a speed breaker, road hump, rumble strip, shadow, stain, glare, dust, loose debris, lane marking, intact patch, crack, broad surface breakup without a distinct cavity, wheel rut, smooth depression, manhole, drain, expansion joint, road edge, shoulder erosion, or construction obstacle. A failed patch is YES only when it now contains a distinct cavity satisfying every rule.
 
 Speed-breaker rule:
 - Set looks_like_speed_breaker true whenever the feature is or could reasonably be an intentional raised speed breaker, hump, or rumble strip. Painted rectangles or stripes, reflectors, a transverse ridge across the lane, parallel leading/trailing edges, camera pitch, and a vehicle jolt support NO, not YES.
 - A separate cavity on or beside a breaker is YES only when it is visually unambiguous and distinct from the raised ridge. If raised-versus-concave geometry is uncertain, return NO.
 
-Classify surface_type as bituminous_asphalt, cement_concrete, mastic_asphalt, paver_blocks, unpaved_or_nonroad, or unknown. A YES is permitted only on one of the four paved surface types. If the surface cannot be distinguished from an unpaved shoulder, drain edge, footpath, or other non-road area, use unknown or unpaved_or_nonroad and return NO.
+Classify surface_type as:
+- bituminous_asphalt for conventional asphalt or blacktop;
+- cement_concrete for a concrete slab;
+- mastic_asphalt only when that pavement is visually identifiable;
+- paver_blocks for interlocking paved blocks;
+- temporary_drivable_surface only for an unsealed, unfinished, or construction-stage lane that the chronological views clearly show is currently carrying road traffic;
+- unpaved_or_nonroad for a dirt or gravel shoulder, construction bed, work area, service path, roadside ground, or other non-carriageway surface; or
+- unknown whenever the material or road use is uncertain.
+
+Camera position alone does not prove that an unsealed surface is a traffic lane. The four named paved surfaces may be YES only when every physical gate is satisfied. For temporary_drivable_surface, distinguish a local cavity from the surrounding unfinished texture:
+- A pothole can exist inside a generally rough, failed, or gravel-covered traffic lane. Do not reject a discrete cavity merely because nearby surface is also damaged or unfinished.
+- On this surface, a broken edge or rim can be an eroded lip or abrupt localized material-height change; it need not be a fractured asphalt edge.
+- A water-filled cavity can be YES when a localized enclosing lip and depressed opening remain visible and preserve their geometry across the approach. Water or a dark patch without that independent boundary evidence is NO; the cavity floor need not be visible through opaque water.
+- Two or more adjacent discrete bowl-like material-loss openings are one connected cavity-cluster event. Do not relabel them as broad breakup when their local boundaries remain distinct.
+- General roughness, corrugation, wheel ruts, broad breakup, loose aggregate, normal gravel texture, grading, and smooth depressions are NO.
+
+unpaved_or_nonroad and unknown must always be NO.
 
 Set image_quality unusable when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. For multiple views use temporal_consistency consistent only when they agree; use inconsistent when they do not. For a single user-framed image use single_view.
 
@@ -432,7 +448,8 @@ Photo feature scope: detect potholes only. Garbage, litter, dumped waste, open o
       looks_like_speed_breaker: { type: "boolean" },
       image_quality: { type: "string", enum: ["usable", "unusable"] },
       surface_type: { type: "string", enum: ["bituminous_asphalt", "cement_concrete",
-        "mastic_asphalt", "paver_blocks", "unpaved_or_nonroad", "unknown"] },
+        "mastic_asphalt", "paver_blocks", "temporary_drivable_surface",
+        "unpaved_or_nonroad", "unknown"] },
       on_drivable_surface: { type: "boolean" },
       has_localized_cavity: { type: "boolean" },
       has_broken_edge_or_rim: { type: "boolean" },
@@ -444,7 +461,7 @@ Photo feature scope: detect potholes only. Garbage, litter, dumped waste, open o
   };
   const REPAIR_PROMPT = `Compare a saved pothole photograph with new road views from a later live drive.
 
-Image 1 is the older saved road-damage evidence. Image 2 is the current full-frame context. The remaining images are current lower-road crops.
+Image 1 is the older saved road-damage evidence. Image 2 is the current full-frame context. The remaining images are current orientation-aware road-region crops.
 
 This is a strict before/after verification, not ordinary pothole detection:
 - Set same_location_visible true only when stable road geometry and surrounding features show that the old damaged footprint itself is visible in the current views. Nearby clean asphalt, a different lane, or a similar-looking road is not the same footprint.
@@ -579,7 +596,7 @@ This is a strict before/after verification, not ordinary pothole detection:
   const IS_POTHOLE_RE = /"is_pothole"\s*:\s*(true|false)/;
   const SPEED_BREAKER_RE = /"looks_like_speed_breaker"\s*:\s*(true|false)/;
   const QUALITY_RE = /"image_quality"\s*:\s*"(usable|unusable)"/;
-  const SURFACE_RE = /"surface_type"\s*:\s*"(bituminous_asphalt|cement_concrete|mastic_asphalt|paver_blocks|unpaved_or_nonroad|unknown)"/;
+  const SURFACE_RE = /"surface_type"\s*:\s*"(bituminous_asphalt|cement_concrete|mastic_asphalt|paver_blocks|temporary_drivable_surface|unpaved_or_nonroad|unknown)"/;
   const ROAD_RE = /"on_drivable_surface"\s*:\s*(true|false)/;
   const CAVITY_RE = /"has_localized_cavity"\s*:\s*(true|false)/;
   const EDGE_RE = /"has_broken_edge_or_rim"\s*:\s*(true|false)/;
@@ -589,15 +606,46 @@ This is a strict before/after verification, not ordinary pothole detection:
   const POTHOLE_SIZES = new Set(["small", "medium", "large"]);
   const PAVED_SURFACES = new Set(["bituminous_asphalt", "cement_concrete",
     "mastic_asphalt", "paver_blocks"]);
+  const TEMPORARY_DRIVABLE_SURFACE = "temporary_drivable_surface";
+  const REPORTABLE_SURFACES = new Set([...PAVED_SURFACES, TEMPORARY_DRIVABLE_SURFACE]);
+  const KNOWN_SURFACES = new Set([...REPORTABLE_SURFACES, "unpaved_or_nonroad", "unknown"]);
+  const LEGACY_NATIVE_V7_PROMPT_VERSION = "pothole-binary-v7";
+  const LEGACY_NATIVE_V7_SCHEMA_VERSION = 7;
+  const LEGACY_NATIVE_V6_PROMPT_VERSION = "pothole-binary-v6";
+  const LEGACY_NATIVE_V6_SCHEMA_VERSION = 6;
+
+  function nativeDetectorContract(native) {
+    if (!native || typeof native !== "object") return null;
+    if (native.prompt_version === PROMPT_VERSION
+        && Number(native.schema_version) === SCHEMA_VERSION) {
+      return { kind: "current_v8", surfaceTypes: REPORTABLE_SURFACES };
+    }
+    // v7 used the same strict schema and temporary-surface vocabulary. Preserve pending
+    // and accepted rows captured immediately before the prompt/crop upgrade.
+    if (native.prompt_version === LEGACY_NATIVE_V7_PROMPT_VERSION
+        && Number(native.schema_version) === LEGACY_NATIVE_V7_SCHEMA_VERSION) {
+      return { kind: "legacy_v7", surfaceTypes: REPORTABLE_SURFACES };
+    }
+    // v6 knew only sealed paved surfaces and cannot authorize the temporary class.
+    if (native.prompt_version === LEGACY_NATIVE_V6_PROMPT_VERSION
+        && Number(native.schema_version) === LEGACY_NATIVE_V6_SCHEMA_VERSION) {
+      return { kind: "legacy_v6", surfaceTypes: PAVED_SURFACES };
+    }
+    return null;
+  }
 
   function decisionFor(a, driveMode = false, sourceViewCount = null) {
     // The model supplies YES/NO, but YES still has to satisfy every physical invariant.
     // Anything missing, ambiguous, off-road, raised, or poorly visible becomes NO.
     if (!a || a.is_pothole !== true || a.looks_like_speed_breaker !== false) return "reject";
-    if (a.image_quality !== "usable" || !PAVED_SURFACES.has(a.surface_type)
+    if (a.image_quality !== "usable" || !REPORTABLE_SURFACES.has(a.surface_type)
         || a.on_drivable_surface !== true ||
         a.has_localized_cavity !== true) return "reject";
     if (a.has_broken_edge_or_rim !== true || a.has_depth_or_surface_loss !== true) return "reject";
+    // An unfinished surface can be distinguished from ordinary gravel/ruts only from a
+    // chronological Drive burst. A single user-framed Photo must fail closed here even
+    // if the model contradicts the prompt and calls it reportable.
+    if (a.surface_type === TEMPORARY_DRIVABLE_SURFACE && !driveMode) return "reject";
     if (driveMode) {
       // A full scene and a crop of the same frame are not temporal corroboration.
       if (a.temporal_consistency !== "consistent" || sourceViewCount < 2) return "reject";
@@ -619,9 +667,7 @@ This is a strict before/after verification, not ordinary pothole detection:
       assessment: accepted ? "clear" : "absent",
       damage_type: accepted ? "pothole_cavity" : "none",
       defect_type: accepted ? "pothole" : "not_pothole",
-      surface_type: PAVED_SURFACES.has(a && a.surface_type)
-        || a && ["unpaved_or_nonroad", "unknown"].includes(a.surface_type)
-        ? a.surface_type : "unknown",
+      surface_type: KNOWN_SURFACES.has(a && a.surface_type) ? a.surface_type : "unknown",
       // No pixel-to-centimetre conversion is defensible without a scale reference.
       // Keep the useful visual class, but make the absent physical measurements explicit.
       measurement_provenance: accepted ? "visual_estimate_no_scale" : "not_applicable",
@@ -711,9 +757,14 @@ This is a strict before/after verification, not ordinary pothole detection:
       state.buf = state.buf.slice(i + 1);
       if (!line.startsWith("data:")) continue;
       const payload = line.slice(5).trim();
-      if (!payload || payload === "[DONE]") continue;
+      if (!payload) continue;
+      if (payload === "[DONE]") {
+        state.transportCompleted = true;
+        continue;
+      }
       let ev;
       try { ev = JSON.parse(payload); } catch (e) { continue; }
+      if (ev.type === "response.completed") state.transportCompleted = true;
       if (ev.type === "response.output_text.delta" && typeof ev.delta === "string") {
         state.text += ev.delta;
         if (!state.early && onEarly) {
@@ -733,7 +784,8 @@ This is a strict before/after verification, not ordinary pothole detection:
     });
     if (!res.ok) throw await statusError(res);
 
-    const state = { buf: "", text: "", early: false, stop: false };
+    const state = { buf: "", text: "", early: false, stop: false,
+                    transportCompleted: false };
     if (res.body && typeof res.body.getReader === "function") {
       const reader = res.body.getReader();
       const dec = new TextDecoder();
@@ -753,9 +805,15 @@ This is a strict before/after verification, not ordinary pothole detection:
       finally { if (res.__disarm) res.__disarm(); }
     }
     if (res.__disarm) res.__disarm();
-    if (state.stop) return rejectedVerdict(state.text);
+    // Flush an unterminated last SSE line before deciding whether the stream itself
+    // completed. A parseable JSON delta is not proof that the HTTP body was complete.
     drainSSE("\n", state, onEarly, stopWhenRejected);
     if (state.stop) return rejectedVerdict(state.text);
+    if (!state.transportCompleted) {
+      const incomplete = new Error("Detection stream ended before OpenAI confirmed completion.");
+      incomplete.incompleteStream = true;
+      throw incomplete;
+    }
     if (!state.text) throw new Error("Empty model response.");
     return JSON.parse(state.text);
   }
@@ -835,6 +893,7 @@ This is a strict before/after verification, not ordinary pothole detection:
       // stalled. Retrying it unstreamed stalls again, so a single stalled frame cost two
       // full timeouts, and latching streamBroken made every later frame pay for streaming
       // it would no longer use. Surface it and leave streaming alone.
+      if (e && e.incompleteStream) throw e;
       if (e && (e.timeout || e.name === "AbortError")) {
         // The abort can surface from the body reader rather than from fetch, where it
         // arrives as a bare "Aborted". Nobody watching a demo should be shown that.
@@ -6983,6 +7042,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     cement_concrete: "Cement concrete",
     mastic_asphalt: "Mastic asphalt",
     paver_blocks: "Paver blocks",
+    temporary_drivable_surface: "Temporary traffic surface",
     unpaved_or_nonroad: "Unpaved / non-road",
     unknown: "Unknown",
   });
@@ -8093,13 +8153,33 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
 
   // ---------- image ----------
 
-  // The fraction of a dashcam frame kept for detection. A phone mounted in a car points at
-  // the horizon, so the top of the frame is sky, trees and parked cars and the road worth
-  // inspecting is underneath. Measured on frames from a real drive: keeping the lower 60%
-  // took detection from 18% of frames to 27%, and every dashcam pothole in the eval set
-  // still passed. Keeping less than half loses the damage itself, and this must not be
-  // applied to a single shot, where the photographer has already aimed at the defect.
-  const ROAD_BAND = 0.6;
+  // Drive frames use the same orientation-aware road region as native Android. Both
+  // quality enhancement and inference therefore inspect near/mid road while excluding
+  // sky and the dashboard/bonnet. Manual Photo remains full-frame because the person
+  // has already aimed the camera at the defect.
+  const ROAD_REGION_RATIOS = Object.freeze({
+    portrait: Object.freeze({ top: 0.40, bottom: 0.66 }),
+    landscape: Object.freeze({ top: 0.48, bottom: 0.78 }),
+    square: Object.freeze({ top: 0.40, bottom: 0.70 }),
+  });
+  const ROAD_ORIENTATION_EPSILON = 0.10;
+  const ROAD_CROP_MAX_UPSCALE = 2.5;
+
+  function selectRoadRegion(frameWidth, frameHeight) {
+    if (!Number.isFinite(frameWidth) || !Number.isFinite(frameHeight)
+        || frameWidth <= 0 || frameHeight <= 0) {
+      throw new Error("Frame dimensions must be positive");
+    }
+    const width = Math.round(frameWidth), height = Math.round(frameHeight);
+    if (width <= 0 || height <= 0) throw new Error("Frame dimensions must be positive");
+    const aspectRatio = width / height;
+    const orientation = aspectRatio < 1 - ROAD_ORIENTATION_EPSILON ? "portrait"
+      : aspectRatio > 1 + ROAD_ORIENTATION_EPSILON ? "landscape" : "square";
+    const ratios = ROAD_REGION_RATIOS[orientation];
+    const top = Math.max(0, Math.min(height - 1, Math.round(height * ratios.top)));
+    const bottom = Math.max(top + 1, Math.min(height, Math.round(height * ratios.bottom)));
+    return { x: 0, y: top, width, height: bottom - top };
+  }
 
   function averageLuminance(ctx, width, height) {
     const data = ctx.getImageData(0, 0, width, height).data;
@@ -8119,12 +8199,17 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
              bright: count ? clippedBright / count : 0 };
   }
 
-  async function toDataUrl(blob, maxDim, quality = 0.85, boost = false, band = 1) {
+  async function toDataUrl(blob, maxDim, quality = 0.85, boost = false, cropRoad = false) {
     const bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
-    const sx = 0, sw = bmp.width;
-    const sh = Math.max(1, Math.round(bmp.height * band));
-    const sy = bmp.height - sh;
-    const scale = Math.min(1, maxDim / Math.max(sw, sh));
+    const region = cropRoad ? selectRoadRegion(bmp.width, bmp.height)
+      : { x: 0, y: 0, width: bmp.width, height: bmp.height };
+    const sx = region.x, sy = region.y, sw = region.width, sh = region.height;
+    // Small road defects were disappearing into a sub-512px crop before vision tiling.
+    // Preserve full-frame semantics, but enlarge a Drive road crop up to the requested
+    // inspection width. The cap avoids pathological expansion of corrupt/tiny inputs.
+    const scale = cropRoad
+      ? Math.min(ROAD_CROP_MAX_UPSCALE, maxDim / Math.max(sw, sh))
+      : Math.min(1, maxDim / Math.max(sw, sh));
     const c = document.createElement("canvas");
     c.width = Math.round(sw * scale);
     c.height = Math.round(sh * scale);
@@ -8229,17 +8314,17 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     // context. Single shots stay at full size:
     // one photo, someone waiting, and no footage behind it.
     // Drive Mode supplies one short burst. The model sees a full context view of the
-    // sharpest frame plus three road-band crops in chronological order. Context keeps
+    // sharpest frame plus three orientation-aware road-region crops in chronological order. Context keeps
     // lane/edge geometry; the crops give a distant defect enough pixels to judge. A
     // manual photo remains one full-resolution view because the user already aimed it.
     let imageInputs, dataUrl, roadViews = null, contextDataUrl = null;
     if (driveMode) {
-      roadViews = await Promise.all(photos.map((p) => toDataUrl(p, 1024, 0.85, true, ROAD_BAND)));
-      contextDataUrl = await toDataUrl(photo, 768, 0.82, false, 1);
+      roadViews = await Promise.all(photos.map((p) => toDataUrl(p, 1024, 0.85, true, true)));
+      contextDataUrl = await toDataUrl(photo, 768, 0.82, false, false);
       imageInputs = [{ url: contextDataUrl }, ...roadViews.map((url) => ({ url }))];
       dataUrl = roadViews[primaryIndex];
     } else {
-      dataUrl = await toDataUrl(photo, 2000, 0.85, true, 1);
+      dataUrl = await toDataUrl(photo, 2000, 0.85, true, false);
       imageInputs = [{ url: dataUrl }];
     }
     // A waiting single-shot user benefits from speculative geocoding. Drive Mode rejects
@@ -8266,7 +8351,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
           : null)
           .catch(() => null);
     const sequenceNote = driveMode
-      ? `\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. Images 2-${imageInputs.length} are lower-road crops in chronological order; the sharpest crop is chronological frame ${primaryIndex + 1}.`
+      ? `\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. Images 2-${imageInputs.length} are orientation-aware road-region crops in chronological order; the sharpest crop is chronological frame ${primaryIndex + 1}.`
       : "\n- Capture layout: one user-framed full image.";
     const promptVersion = driveMode ? PROMPT_VERSION : PHOTO_PROMPT_VERSION;
     const detectPrompt = DETECT_PROMPT + (driveMode ? "" : PHOTO_ONLY_PROMPT_SUFFIX)
@@ -8305,7 +8390,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
           const repairResult = await applyRepairObservation(repairCandidate.id, {
             ...repairObservationBase,
             ...comparison,
-            // Keep the full scene, not only the lower-road working crop, so a later
+            // Keep the full scene, not only the orientation-aware road working crop, so a later
             // reviewer can audit that the before/after frames show the same footprint.
             current_photo_data_url: contextDataUrl,
             detection_model: detectionModel,
@@ -8551,7 +8636,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       ? "user_selected_before_capture" : "user_selected_for_import";
 
     progress(pmsg("compress"));
-    const dataUrl = await toDataUrl(photo, 2000, 0.85, true, 1);
+    const dataUrl = await toDataUrl(photo, 2000, 0.85, true, false);
     progress(pmsg("finalize"));
     const geo = lat != null ? await reverseGeocode(lat, lng).catch(() => null) : null;
     const address = (geo && geo.short) || null;
@@ -8725,21 +8810,22 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     if (!Number.isFinite(nativeId) || nativeId <= 0) throw new Error("Native report id missing.");
     const nativeIsPothole = native.is_pothole === true || Number(native.is_pothole) === 1;
     const nativeIsReportable = native.is_reportable === true || Number(native.is_reportable) === 1;
-    const nativeSchemaIsCurrent = native.prompt_version === PROMPT_VERSION
-      && Number(native.schema_version) === SCHEMA_VERSION;
+    const nativeContract = nativeDetectorContract(native);
     const nativeSize = POTHOLE_SIZES.has(native.size) ? native.size : null;
-    const nativeSurface = PAVED_SURFACES.has(native.surface_type) ? native.surface_type : "unknown";
+    const nativeSurface = nativeContract && nativeContract.surfaceTypes.has(native.surface_type)
+      ? native.surface_type : "unknown";
     const nativeTemporal = native.temporal_consistency;
-    const nativePassedBinaryGate = nativeSchemaIsCurrent && native.decision === "accept"
+    const nativePassedBinaryGate = !!nativeContract && native.decision === "accept"
       && nativeIsPothole && nativeIsReportable && native.damage_type === "pothole_cavity"
       && native.looks_like_speed_breaker === false
-      && native.image_quality === "usable" && PAVED_SURFACES.has(nativeSurface)
+      && native.image_quality === "usable" && nativeContract.surfaceTypes.has(nativeSurface)
       && native.on_drivable_surface === true
       && native.has_localized_cavity === true
       && native.has_broken_edge_or_rim === true && native.has_depth_or_surface_loss === true
       && nativeTemporal === "consistent" && Number(native.evidence_count) >= 3 && !!nativeSize;
-    // A pre-v6 native row lacks the strict pavement-surface evidence. Acknowledge and
-    // discard it instead of letting an obsolete verdict block sync or become a complaint.
+    // Contracts older than v6, malformed current rows, and v6 rows claiming a v7+-only
+    // surface are acknowledged and discarded instead of looping forever or becoming a
+    // complaint. Already-synced WebView reports are never reclassified here.
     if (!nativePassedBinaryGate) {
       return { native_id: nativeId, ignored: true, reason: "obsolete_or_invalid_detector_contract" };
     }
@@ -8764,7 +8850,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       : null;
     const tender = normaliseTenderMatch(tenderCandidate, covered ? route : null);
     const assessment = binaryAssessment({
-      // Native v6 saved this row only after the same binary physical gate accepted it.
+      // Native v6/v7/v8 saved this row only after the same binary physical gate accepted it.
       is_pothole: true,
       looks_like_speed_breaker: false,
       image_quality: native.image_quality,
@@ -9790,9 +9876,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     }
     rec = migrateLegacyComplaintRecord(rec);
     const source = await dataUrlToBlob(rec.photo_full || rec.photo);
-    const wideUrl = await toDataUrl(source, 1280, 0.86, false, 1);
+    const wideUrl = await toDataUrl(source, 1280, 0.86, false, false);
     const cropUrl = rec.capture_source && !isManualCaptureSource(rec.capture_source)
-      ? await toDataUrl(source, 1280, 0.86, false, ROAD_BAND) : null;
+      ? await toDataUrl(source, 1280, 0.86, false, true) : null;
     const base64 = wideUrl && wideUrl.split(",")[1];
     const cropBase64 = cropUrl && cropUrl.split(",")[1];
     if (!base64) throw new Error("The report photo could not be read.");
@@ -10282,13 +10368,15 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
   // exactly the code that runs in production. Nothing here holds state or a secret.
   const __pure = { inCoverage, peekVerdict, peekReject, rejectedVerdict, decisionFor,
                    binaryAssessment,
+                   nativeDetectorContract,
                    damageTypeOf, assessmentOf, normaliseModel, normaliseDetail,
                    normaliseIssueType, civicIssueName, issueFileStem,
                    buildDetectionRequest, ASSESS_SCHEMA, DETECT_PROMPT, PROMPT_VERSION,
                    PHOTO_ONLY_PROMPT_SUFFIX, PHOTO_PROMPT_VERSION,
                    REPAIR_SCHEMA, REPAIR_PROMPT, REPAIR_PROMPT_VERSION,
                    REPAIR_SCHEMA_VERSION, clearAbsenceForRepair, repairConditionFor,
-                   SCHEMA_VERSION, MAX_DETECTION_IMAGES, ROAD_BAND, averageLuminance,
+                   SCHEMA_VERSION, MAX_DETECTION_IMAGES, ROAD_REGION_RATIOS,
+                   selectRoadRegion, averageLuminance,
                    distMeters, roadEventMatch, sameRoadEvent, repairTargetMatch,
                    findRepairCandidateFromReports, findDuplicateReport,
                    draftEmail, buildComplaintOutputs, complaintOutputsForRecord,

@@ -160,6 +160,10 @@ class DriveModePlugin : Plugin() {
     private val pluginScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val pendingStartLock = Any()
     private var pendingStart: PendingDriveStart? = null
+    // Shares pendingStartLock with start admission. Once a destructive wipe is
+    // admitted, no later ACTION_START can be queued until every native store and
+    // managed-media root has either been verified clear or reported as incomplete.
+    private var nativeClearInProgress = false
     @Volatile private var nativeStateReconciledEpoch = Long.MIN_VALUE
     private val nativeStateReconcileMutex = Mutex()
     @Volatile private var repairTargetStage: RepairTargetStage? = null
@@ -248,6 +252,11 @@ class DriveModePlugin : Plugin() {
             DriveSessionLimitPolicy.MAX_LIMIT_MINUTES
         )
 
+        if (synchronized(pendingStartLock) { nativeClearInProgress }) {
+            call.reject("App data deletion is in progress")
+            return
+        }
+
         if (!hasDrivePermissions()) {
             call.reject("Camera and location permission are required before Drive Mode can start")
             return
@@ -277,14 +286,19 @@ class DriveModePlugin : Plugin() {
             return
         }
         val pending = PendingDriveStart(call)
+        var rejectedByClear = false
         val accepted = synchronized(pendingStartLock) {
-            if (pendingStart != null) false else {
+            if (nativeClearInProgress) {
+                rejectedByClear = true
+                false
+            } else if (pendingStart != null) false else {
                 pendingStart = pending
                 true
             }
         }
         if (!accepted) {
-            call.reject("Drive Mode is already starting")
+            call.reject(if (rejectedByClear) "App data deletion is in progress"
+                else "Drive Mode is already starting")
             return
         }
         val context = context
@@ -998,8 +1012,24 @@ class DriveModePlugin : Plugin() {
 
     @PluginMethod
     fun clearNativeData(call: PluginCall) {
+        var clearAdmitted = false
+        synchronized(pendingStartLock) {
+            if (!nativeClearInProgress) {
+                nativeClearInProgress = true
+                clearAdmitted = true
+            }
+        }
+        if (!clearAdmitted) {
+            call.reject("App data deletion is already in progress")
+            return
+        }
+
+        fun finishClear() {
+            synchronized(pendingStartLock) { nativeClearInProgress = false }
+        }
         val clearData = {
           pluginScope.launch {
+            var failure: Exception? = null
             try {
                 NativeMediaFilesystemMutation.mutex.withLock {
                     val db = PotholeDatabase.getDatabase(context)
@@ -1045,19 +1075,30 @@ class DriveModePlugin : Plugin() {
                         ledgerDeletion?.invoke(removedBytes)
                     }
                 }
-                call.resolve(JSObject().apply { put("cleared", true) })
             } catch (error: Exception) {
                 // Files may have been removed before a later verified deletion or Room
                 // operation failed. Force the next bridge inventory to repair that drift.
                 NativeMediaReconciliationEpoch.invalidate()
-                call.reject("Failed to clear native data: ${error.message}")
-              }
+                failure = error
+            }
+            // Reopen start admission before settling the bridge call. A caller that
+            // immediately retries after a verified failure or reloads after success
+            // cannot observe a stale destructive-operation gate.
+            finishClear()
+            if (failure == null) {
+                call.resolve(JSObject().apply { put("cleared", true) })
+            } else {
+                call.reject("Failed to clear native data: ${failure?.message}")
+            }
           }
         }
         val pendingWaiter = PendingCancellationWaiter(
             discardData = true,
             onStopped = { clearData(); Unit },
-            onFailure = { call.reject("Failed to clear native data: Drive start could not be cancelled safely") }
+            onFailure = {
+                finishClear()
+                call.reject("Failed to clear native data: Drive start could not be cancelled safely")
+            }
         )
         val pending = synchronized(pendingStartLock) {
             pendingStart?.takeIf { it.gate.requestCancellation(pendingWaiter) }
@@ -1067,8 +1108,13 @@ class DriveModePlugin : Plugin() {
             return
         }
         val service = DriveForegroundService.activeService
-        if (service == null) clearData()
-        else service.stopDriveSession("Data cleared", discardData = true) { clearData() }
+        try {
+            if (service == null) clearData()
+            else service.stopDriveSession("Data cleared", discardData = true) { clearData() }
+        } catch (error: Exception) {
+            finishClear()
+            call.reject("Failed to clear native data: ${error.message}")
+        }
     }
 
     @PluginMethod
@@ -1079,11 +1125,12 @@ class DriveModePlugin : Plugin() {
                 reconcileNativeStateOnce(db)
                 val sessions = db.sessionDao().getAllSessions()
                 val footageBySession = db.footageDao().getAllSegments().groupBy { it.sessionId }
-                val keyframesBySession = db.driveKeyframeDao().getAll().groupBy { it.sessionId }
+                val keyframesBySession = db.driveKeyframeDao().getSummaries()
+                    .associateBy { it.sessionId }
                 val array = JSArray()
                 for (s in sessions) {
                     val footage = footageBySession[s.id].orEmpty()
-                    val keyframes = keyframesBySession[s.id].orEmpty()
+                    val keyframes = keyframesBySession[s.id]
                     val obj = JSObject().apply {
                         put("id", s.id)
                         put("started_at", s.startedAt)
@@ -1097,9 +1144,9 @@ class DriveModePlugin : Plugin() {
                         put("footage_segments", footage.size)
                         put("footage_bytes", footage.sumOf { it.bytes })
                         put("footage_duration_ms", footage.sumOf { it.durationMs })
-                        put("keyframe_count", keyframes.size)
-                        put("pending_keyframes", keyframes.count { !it.liveAnalyzed })
-                        put("keyframe_bytes", keyframes.sumOf { it.bytes })
+                        put("keyframe_count", keyframes?.keyframeCount ?: 0)
+                        put("pending_keyframes", keyframes?.pendingCount ?: 0)
+                        put("keyframe_bytes", keyframes?.keyframeBytes ?: 0L)
                     }
                     array.put(obj)
                 }
@@ -1139,6 +1186,37 @@ class DriveModePlugin : Plugin() {
     }
 
     @PluginMethod
+    fun listPendingKeyframeSessions(call: PluginCall) {
+        val afterSessionId = call.getString("afterSessionId").orEmpty()
+        val limit = (call.getInt("limit") ?: 25).coerceIn(1, 100)
+        pluginScope.launch {
+            try {
+                val db = PotholeDatabase.getDatabase(context)
+                reconcileNativeStateOnce(db)
+                val requested = limit + 1
+                val rows = db.driveKeyframeDao()
+                    .getPendingSessionPage(afterSessionId, requested)
+                val visible = rows.take(limit)
+                val array = JSArray()
+                visible.forEach { row ->
+                    array.put(JSObject().apply {
+                        put("sessionId", row.sessionId)
+                        put("pending", row.pendingCount)
+                    })
+                }
+                call.resolve(JSObject().apply {
+                    put("sessions", array)
+                    put("count", array.length())
+                    put("hasMore", rows.size > limit)
+                    put("nextAfterSessionId", visible.lastOrNull()?.sessionId ?: afterSessionId)
+                })
+            } catch (error: Exception) {
+                call.reject("Failed to list drives awaiting analysis: ${error.message}")
+            }
+        }
+    }
+
+    @PluginMethod
     fun listKeyframes(call: PluginCall) {
         val requestedSession = call.getString("sessionId")
         if (requestedSession.isNullOrBlank()) {
@@ -1146,13 +1224,15 @@ class DriveModePlugin : Plugin() {
             return
         }
         val pendingOnly = call.getBoolean("pendingOnly") ?: true
+        val limit = (call.getInt("limit") ?: 25).coerceIn(1, 100)
         pluginScope.launch {
             try {
                 requireDriveReplayIsIdle(requestedSession)
                 val sessionRoot = FootagePathPolicy.sessionDirectory(context.filesDir, requestedSession)
                 val dao = PotholeDatabase.getDatabase(context).driveKeyframeDao()
-                val frames = if (pendingOnly) dao.getPendingForSession(requestedSession)
-                    else dao.getForSession(requestedSession)
+                val frames = if (pendingOnly) dao.getPendingForSession(requestedSession, limit)
+                    else dao.getForSession(requestedSession, limit)
+                val pendingCount = dao.countPendingForSession(requestedSession)
                 val array = JSArray()
                 frames.forEach { frame ->
                     val file = FootagePathPolicy.keyframeFile(sessionRoot, frame.filePath)
@@ -1176,6 +1256,8 @@ class DriveModePlugin : Plugin() {
                 call.resolve(JSObject().apply {
                     put("keyframes", array)
                     put("count", array.length())
+                    put("pending", pendingCount)
+                    put("remaining", (pendingCount - array.length()).coerceAtLeast(0))
                 })
             } catch (error: Exception) {
                 call.reject("Failed to list saved frames: ${error.message}")
@@ -1264,7 +1346,7 @@ class DriveModePlugin : Plugin() {
                 val dao = PotholeDatabase.getDatabase(context).driveKeyframeDao()
                 val frame = dao.getKeyframe(id)
                     ?: throw IllegalArgumentException("Saved frame not found")
-                requireDriveReplayIsIdle(frame.sessionId)
+                requireDriveReplayCheckpointIsSafe(frame.sessionId)
                 dao.markAnalyzed(id)
                 call.resolve(JSObject().apply { put("analyzed", id) })
             } catch (error: Exception) {
@@ -1472,15 +1554,42 @@ class DriveModePlugin : Plugin() {
         }
 
         if (reportsRoot.isDirectory) {
-            val protected = activeSessionId?.let { File(reportsRoot, it).canonicalFile }
+            val protectedAtInventory = activeSessionId?.let { File(reportsRoot, it).canonicalFile }
+            fun protectedByReportProducer(candidate: File): Boolean {
+                if (protectedAtInventory != null &&
+                    NativePrivateMediaFiles.contains(protectedAtInventory, candidate)) {
+                    return true
+                }
+                // A Drive may start after this reconciliation pass took its initial
+                // status snapshot. Native inference atomically writes its JPEG before
+                // the dedupe/repair transaction acquires this same filesystem mutex.
+                // Re-read producer state immediately before deletion so that hand-off
+                // window cannot turn a valid Room row into a missing-image row.
+                val liveStatus = DriveForegroundService.status()
+                val liveSessionId = liveStatus.sessionId
+                    ?.takeIf { liveStatus.isRunning || liveStatus.isStopping }
+                    ?: return false
+                val liveDirectory = runCatching {
+                    NativePrivateMediaFiles.descendant(
+                        reportsRoot,
+                        File(reportsRoot, liveSessionId).absolutePath
+                    )
+                }.getOrNull()
+                if (liveDirectory == null) {
+                    // The service owns the producer identity, but an unexpected path
+                    // must fail closed rather than authorize deletion of fresh media.
+                    progress.markCleanupIncomplete()
+                    return true
+                }
+                return NativePrivateMediaFiles.contains(liveDirectory, candidate)
+            }
             reportsRoot.walkTopDown().filter(File::isFile).toList().forEach { file ->
                 val canonical = runCatching { file.canonicalFile }.getOrNull()
                 if (canonical == null) {
                     progress.markCleanupIncomplete()
                     return@forEach
                 }
-                val protectedNow = protected != null &&
-                    NativePrivateMediaFiles.contains(protected, canonical)
+                val protectedNow = protectedByReportProducer(canonical)
                 if (canonical.canonicalPath !in referencedReportPhotos) {
                     if (protectedNow) {
                         // A write or Room ownership hand-off may still be in flight. Do
@@ -1493,9 +1602,7 @@ class DriveModePlugin : Plugin() {
             }
             reportsRoot.walkBottomUp()
                 .filter { it.isDirectory && it != reportsRoot }
-                .filter { directory ->
-                    protected == null || !NativePrivateMediaFiles.contains(protected, directory)
-                }
+                .filter { directory -> !protectedByReportProducer(directory) }
                 .forEach { directory -> deleteEmptyDirectoryVerified(directory, progress) }
         } else if (reportsRoot.exists()) {
             progress.markCleanupIncomplete()
@@ -1581,20 +1688,67 @@ class DriveModePlugin : Plugin() {
         indexed.filter { !File(it.filePath).isFile }.forEach { db.footageDao().deleteSegment(it.id) }
         val indexedPaths = indexed.filter { File(it.filePath).isFile }.mapTo(HashSet()) { it.filePath }
         // Stale rows must be removed even when Android has already removed the whole
-        // footage directory (for example after storage cleanup outside the app).
-        val indexedKeyframes = db.driveKeyframeDao().getAll()
-        val validKeyframeFiles = HashMap<Long, List<File>>()
-        indexedKeyframes.forEach { frame ->
-            val owned = runCatching {
-                val root = FootagePathPolicy.sessionDirectory(context.filesDir, frame.sessionId)
-                val primary = FootagePathPolicy.keyframeFile(root, frame.filePath)
-                NativeKeyframeFiles.readSet(primary).takeIf { it.isComplete }?.files
-            }.getOrNull()
-            if (owned == null) db.driveKeyframeDao().deleteKeyframe(frame.id)
-            else validKeyframeFiles[frame.id] = owned
+        // footage directory (for example after storage cleanup outside the app). Freeze
+        // the upper id so an active producer cannot make this maintenance pass unbounded,
+        // then hydrate only the three ownership columns in fixed keyset pages.
+        val keyframeDao = db.driveKeyframeDao()
+        val ownershipThroughId = keyframeDao.getNewestOwnershipId() ?: 0L
+        var ownershipAfterId = 0L
+        while (ownershipAfterId < ownershipThroughId) {
+            val page = keyframeDao.getOwnershipPage(
+                afterId = ownershipAfterId,
+                throughId = ownershipThroughId,
+                limit = NativeKeyframeOwnershipPaging.ROW_PAGE_SIZE
+            )
+            if (page.isEmpty()) break
+            page.forEach { frame ->
+                val complete = runCatching {
+                    val root = FootagePathPolicy.sessionDirectory(context.filesDir, frame.sessionId)
+                    val primary = FootagePathPolicy.keyframeFile(root, frame.filePath)
+                    NativeKeyframeFiles.readSet(primary).isComplete
+                }.getOrDefault(false)
+                if (!complete) keyframeDao.deleteKeyframe(frame.id)
+            }
+            val next = page.last().id
+            if (next <= ownershipAfterId) {
+                progress.markCleanupIncomplete()
+                break
+            }
+            ownershipAfterId = next
         }
-        val indexedKeyframePaths = validKeyframeFiles.values.flatten()
-            .mapTo(HashSet()) { it.absolutePath }
+        // Session creation is intentionally asynchronous at Drive start so foreground
+        // startup never blocks on Room. A process death can therefore leave a fully
+        // committed keyframe without its parent session. Recover only rows that survived
+        // the file-integrity pass above, in bounded cursor pages, and never overwrite a
+        // session that appeared concurrently.
+        var missingSessionAfter = ""
+        while (true) {
+            val missing = keyframeDao.getMissingSessionPage(
+                afterSessionId = missingSessionAfter,
+                limit = NativeKeyframeOwnershipPaging.ROW_PAGE_SIZE
+            )
+            if (missing.isEmpty()) break
+            missing.forEach { row ->
+                val recovered = NativeKeyframeOwnershipPaging.recoveredSessionState(
+                    sessionId = row.sessionId,
+                    firstCapturedAtMs = row.firstCapturedAtMs,
+                    activeSessionId = activeSessionId,
+                    nowSeconds = now
+                )
+                db.sessionDao().insertSessionIfMissing(SessionEntity(
+                    id = row.sessionId,
+                    startedAt = recovered.startedAtSeconds,
+                    endedAt = recovered.endedAtSeconds,
+                    status = recovered.status
+                ))
+            }
+            val next = missing.last().sessionId
+            if (next <= missingSessionAfter) {
+                progress.markCleanupIncomplete()
+                break
+            }
+            missingSessionAfter = next
+        }
         val footageRoot = File(context.filesDir, "footage")
         if (!footageRoot.exists()) return
         if (!footageRoot.isDirectory) {
@@ -1650,20 +1804,61 @@ class DriveModePlugin : Plugin() {
         // Such files have no GPS/timing identity and cannot be replayed safely. Temporary
         // files are likewise never valid evidence. Avoid the active session while its
         // write transaction may still be in flight.
-        val unownedKeyframeFiles = footageRoot.walkTopDown()
+        val keyframeFiles = footageRoot.walkTopDown()
+            .onFail { _, _ -> progress.markCleanupIncomplete() }
             .filter(File::isFile)
             .filter { it.parentFile?.name == "keyframes" }
             .filter { it.extension.equals("tmp", ignoreCase = true) ||
-                (it.extension.equals("jpg", ignoreCase = true) && it.absolutePath !in indexedKeyframePaths) }
-            .toList()
-        if (activeSessionId != null && unownedKeyframeFiles.any {
-                it.parentFile?.parentFile?.name == activeSessionId
-            }) {
-            progress.markCleanupIncomplete()
+                it.extension.equals("jpg", ignoreCase = true) }
+        // Walk the tree once and reconcile one bounded file page at a time. Ownership is
+        // queried per session because a context JPEG is derived from that session's Room
+        // primary; no global file/path set is retained.
+        keyframeFiles.chunked(NativeKeyframeOwnershipPaging.FILE_PAGE_SIZE).forEach { filePage ->
+            filePage.groupBy { it.parentFile?.parentFile?.name }.forEach { (sessionId, files) ->
+                val candidatePaths = NativeKeyframeOwnershipPaging.ownerCandidatePaths(files)
+                val ownershipRows = if (sessionId == null || candidatePaths.isEmpty()) {
+                    emptyList()
+                } else {
+                    keyframeDao.getOwnershipPageForSession(
+                        sessionId = sessionId,
+                        storedPaths = candidatePaths,
+                        limit = NativeKeyframeOwnershipPaging.OWNER_QUERY_LIMIT
+                    )
+                }
+                val ownedPaths = ownershipRows.asSequence().flatMap { frame ->
+                    val paths = runCatching {
+                        val root = FootagePathPolicy.sessionDirectory(context.filesDir, frame.sessionId)
+                        val primary = FootagePathPolicy.keyframeFile(root, frame.filePath)
+                        NativeKeyframeFiles.ownedFiles(primary)
+                            .map { it.canonicalPath }
+                    }.getOrElse {
+                        progress.markCleanupIncomplete()
+                        emptyList()
+                    }
+                    paths.asSequence()
+                }.toHashSet()
+                files.forEach { file ->
+                    val canonical = runCatching { file.canonicalFile }.getOrNull()
+                    if (canonical == null) {
+                        progress.markCleanupIncomplete()
+                    } else if (canonical.canonicalPath !in ownedPaths) {
+                        val currentStatus = DriveForegroundService.status()
+                        val wasActiveAtInventory = activeSessionId != null &&
+                            sessionId == activeSessionId
+                        val becameActiveDuringInventory = sessionId != null &&
+                            (currentStatus.isRunning || currentStatus.isStopping) &&
+                            currentStatus.sessionId == sessionId
+                        if (wasActiveAtInventory || becameActiveDuringInventory) {
+                            // The camera may have atomically renamed this file immediately
+                            // before its Room ownership hand-off. Retry only after Drive.
+                            progress.markCleanupIncomplete()
+                        } else {
+                            progress.deleteFileVerified(canonical, footage = true)
+                        }
+                    }
+                }
+            }
         }
-        unownedKeyframeFiles
-            .filter { it.parentFile?.parentFile?.name != activeSessionId }
-            .forEach { progress.deleteFileVerified(it, footage = true) }
         val activeFootageSession = activeSessionId?.let { sessionId ->
             runCatching {
                 FootagePathPolicy.sessionDirectory(context.filesDir, sessionId).canonicalFile
@@ -1712,8 +1907,15 @@ class DriveModePlugin : Plugin() {
 
     private fun requireDriveReplayIsIdle(sessionId: String) {
         val status = DriveForegroundService.status()
+        if (status.isRunning || status.isStopping) {
+            throw IllegalStateException("Stop Drive before analysing saved frames")
+        }
+    }
+
+    private fun requireDriveReplayCheckpointIsSafe(sessionId: String) {
+        val status = DriveForegroundService.status()
         if ((status.isRunning || status.isStopping) && status.sessionId == sessionId) {
-            throw IllegalStateException("Stop this drive before analysing its saved frames")
+            throw IllegalStateException("Stop this drive before checkpointing its saved frames")
         }
     }
 
