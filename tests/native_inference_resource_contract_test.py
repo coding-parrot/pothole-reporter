@@ -9,10 +9,10 @@ ROOT = Path(__file__).resolve().parents[1]
 DRIVE = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive"
 ENGINE = (DRIVE / "NativeInferenceEngine.kt").read_text()
 TRANSPORT = (DRIVE / "NativeInferenceTransport.kt").read_text()
-PROTOCOL = (DRIVE / "NativeInferenceProtocol.kt").read_text()
+REQUEST = (DRIVE / "NativeInferenceRequest.kt").read_text()
 DETECTION_CONTRACT = (DRIVE / "NativeDetectionContract.kt").read_text()
 REPAIR_CONTRACT = (DRIVE / "NativeRepairContract.kt").read_text()
-INFERENCE = "\n".join((ENGINE, TRANSPORT, PROTOCOL, DETECTION_CONTRACT, REPAIR_CONTRACT))
+INFERENCE = "\n".join((ENGINE, TRANSPORT, REQUEST, DETECTION_CONTRACT, REPAIR_CONTRACT))
 QUALITY = (DRIVE / "FrameQualityEvaluator.kt").read_text()
 SERVICE = (DRIVE / "DriveForegroundService.kt").read_text()
 failures = []
@@ -34,13 +34,12 @@ repair_stream = TRANSPORT[TRANSPORT.index("fun verifyRepair("):
                           TRANSPORT.index("private fun authorizedRequest(")]
 http_failure = TRANSPORT[TRANSPORT.index("private fun httpFailure("):
                          TRANSPORT.index("private fun retryableFailure(")]
-http_policy = PROTOCOL[PROTOCOL.index("internal object NativeInferenceHttpFailurePolicy"):
-                       PROTOCOL.index("internal object NativeInferenceEvidenceOwnership")]
+http_policy = TRANSPORT[TRANSPORT.index("internal fun isTransientInferenceFailure"):]
 scan = SERVICE[SERVICE.index("private fun startScanLoop()"):
                SERVICE.index("private fun validatedPostBurstFix(")]
 worker = SERVICE[SERVICE.index("private fun startInferenceWorker()"):
                  SERVICE.index("private fun startSessionLimitLoop()")]
-call_gate = TRANSPORT[TRANSPORT.index("private val activeCallLock"):
+call_gate = TRANSPORT[TRANSPORT.index("private val activeCalls"):
                       TRANSPORT.index("fun detect(")]
 
 check(
@@ -67,20 +66,18 @@ check(
 )
 check(
     "only explicit transient HTTP statuses and transport receive retry delay",
-    "TRANSIENT_HTTP_CODES = setOf(408, 409, 425, 429)" in http_policy
-    and "code == 0 || code in TRANSIENT_HTTP_CODES || code in 500..599" in http_policy
-    and "if (!isTransient(code)) return null" in http_policy
-    and "shouldSuspendInference(code: Int)" in http_policy,
+    "code == 0 || code in setOf(408, 409, 425, 429) || code in 500..599" in http_policy
+    and "if (!isTransientInferenceFailure(code)) return null" in http_policy,
 )
 check(
     "deterministic failures do not advance retry backoff or replay oversized output forever",
     detect_stream.count("httpFailure(") == 1
     and repair_stream.count("httpFailure(") == 1
-    and http_failure.count("if (NativeInferenceHttpFailurePolicy.isTransient(code))") == 1
-    and "OpenAI detection response exceeded the 64 KiB safety limit" in detect_stream
-    and "suspendInference = true" in detect_stream
-    and "OpenAI repair-check response exceeded the 64 KiB safety limit" in repair_stream
-    and "suspendInference = true" in repair_stream,
+    and http_failure.count("if (isTransientInferenceFailure(code))") == 1
+    and 'readSse(call, responseBody, "OpenAI detection response")' in detect_stream
+    and 'readSse(call, responseBody, "OpenAI repair-check response")' in repair_stream
+    and '"$responseName exceeded the 64 KiB safety limit"' in TRANSPORT
+    and "suspendInference = true" in TRANSPORT[TRANSPORT.index("private fun readSse("):],
 )
 check(
     "deterministic request failures suspend inference without stopping camera or filling pending bursts",
@@ -93,24 +90,24 @@ check(
 )
 check(
     "both SSE outputs are bounded to 64 KiB",
-    "const val MAX_UTF8_BYTES = 64 * 1024" in PROTOCOL
-    and detect_stream.count("accumulator.append(") >= 1
-    and repair_stream.count("accumulator.append(") >= 1
-    and "accumulator.snapshot()" in detect_stream
-    and "accumulator.snapshot()" in repair_stream,
+    "const val MAX_UTF8_BYTES = 64 * 1024" in TRANSPORT
+    and "if (!output.append(" in TRANSPORT
+    and TRANSPORT.count("readSse(call, responseBody") == 2
+    and "output.snapshot()" in TRANSPORT,
 )
 check(
     "structured Responses requests have small explicit output-token caps",
     "MAX_OUTPUT_TOKENS = 1_536" in DETECTION_CONTRACT
     and "MAX_OUTPUT_TOKENS = 768" in REPAIR_CONTRACT
-    and 'put("max_output_tokens", spec.maxOutputTokens)' in DETECTION_CONTRACT
-    and 'put("max_output_tokens", spec.maxOutputTokens)' in REPAIR_CONTRACT,
+    and "maxOutputTokens = NativeDetectionContract.MAX_OUTPUT_TOKENS" in REQUEST
+    and "maxOutputTokens = NativeRepairContract.MAX_OUTPUT_TOKENS" in REQUEST
+    and 'put("max_output_tokens", maxOutputTokens)' in REQUEST,
 )
 check(
     "Stop atomically blocks future HTTP calls and cancels every registered call",
     "private val activeCalls = mutableSetOf<Call>()" in TRANSPORT
     and "@Volatile private var closed = false" in call_gate
-    and "synchronized(activeCallLock)" in TRANSPORT
+    and "synchronized(activeCallsLock)" in TRANSPORT
     and "if (closed) throw IOException" in TRANSPORT
     and "activeCalls.add(call)" in TRANSPORT
     and "activeCalls.remove(call)" in TRANSPORT

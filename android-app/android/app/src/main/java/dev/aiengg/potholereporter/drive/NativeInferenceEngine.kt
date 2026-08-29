@@ -53,25 +53,22 @@ class NativeInferenceEngine(
             val primaryFrame = burstFrames.getOrElse(primaryIndex) { burstFrames[0] }
             val imageInputs = prepareDetectionImages(burstFrames, primaryFrame)
             val evidenceCount = imageInputs.size
-            val prompt = NativeDetectionPromptFactory.build(
+            val prompt = NativeDetectionContract.buildPrompt(
                 language = language,
                 imageCount = evidenceCount,
                 primaryIndex = primaryIndex
             )
-            val streamVerdict = transport.detect(
+            val assessment = transport.detect(
                 imageUrls = imageInputs,
                 prompt = prompt,
                 allowEarlyReject = !requireCompleteVerdict
             )
-            val assessment = streamVerdict.assessment
-            val trace = streamVerdict.toPublicTrace()
             if (assessment.decision != "accept") {
                 return@withContext InferenceOutcome(
                     analyzed = true,
                     accepted = false,
                     decision = assessment.decision,
-                    assessment = assessment,
-                    detectionTrace = trace
+                    assessment = assessment
                 )
             }
 
@@ -82,8 +79,8 @@ class NativeInferenceEngine(
                 evidenceLease
             )
             // Transfer cleanup ownership before any thumbnail/entity allocation can fail.
-            NativeInferenceEvidenceOwnership.handOff(photoFile, onEvidenceSaved)
-            NativeInferenceReportFactory.create(
+            publishEvidence(photoFile, onEvidenceSaved)
+            createInferenceOutcome(
                 NativeDetectionReportInput(
                     assessment = assessment,
                     latitude = lat,
@@ -101,8 +98,7 @@ class NativeInferenceEngine(
                     speedMps = speedMps,
                     heading = heading,
                     primaryIndex = primaryIndex,
-                    debug = debug,
-                    detectionTrace = trace
+                    debug = debug
                 )
             )
         } finally {
@@ -131,7 +127,7 @@ class NativeInferenceEngine(
                 ?: return@withContext null
             val assessment = transport.verifyRepair(
                 images,
-                NativeRepairPromptFactory.build(language, images.size, safePrimary)
+                NativeRepairContract.buildPrompt(language, images.size, safePrimary)
             )
             val mappedCondition = NativeRepairDecision.fromModel(
                 assessment.currentCondition,
@@ -148,7 +144,7 @@ class NativeInferenceEngine(
                 captureSeq,
                 evidenceLease
             )
-            NativeInferenceEvidenceOwnership.handOff(currentPhoto, onEvidenceSaved)
+            publishEvidence(currentPhoto, onEvidenceSaved)
             RepairVerificationResult(
                 currentCondition = mappedCondition,
                 assessment = assessment.assessment,
@@ -159,8 +155,8 @@ class NativeInferenceEngine(
                 currentPhotoPath = currentPhoto.absolutePath,
                 detectionModel = model,
                 imageDetail = detail,
-                promptVersion = REPAIR_PROMPT_VERSION,
-                schemaVersion = REPAIR_SCHEMA_VERSION
+                promptVersion = NativeRepairContract.PROMPT_VERSION,
+                schemaVersion = NativeRepairContract.SCHEMA_VERSION
             )
         } finally {
             NativeReportEvidenceStorage.releaseInferenceCapacity(evidenceLease)
@@ -204,21 +200,4 @@ class NativeInferenceEngine(
     }
 
     fun close() = transport.close()
-
-    companion object {
-        const val REPAIR_PROMPT_VERSION = NativeRepairContract.PROMPT_VERSION
-        const val REPAIR_SCHEMA_VERSION = NativeRepairContract.SCHEMA_VERSION
-    }
 }
-
-private fun NativeDetectionStreamVerdict.toPublicTrace(): DetectionTrace = DetectionTrace(
-    rawModelIsPothole = rawVerdict?.isPothole ?: when (completionMode) {
-        NativeDetectionCompletionMode.EARLY_MODEL_NO -> false
-        NativeDetectionCompletionMode.EARLY_SPEED_BREAKER,
-        NativeDetectionCompletionMode.EARLY_GATE_VETO -> true
-        NativeDetectionCompletionMode.COMPLETE -> null
-    },
-    completionMode = completionMode.name,
-    observedFields = observedFields,
-    rejectionReasons = rejectionReasons.map(DetectionRejectionReason::name)
-)

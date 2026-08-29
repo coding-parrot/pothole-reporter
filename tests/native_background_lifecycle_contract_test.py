@@ -11,6 +11,7 @@ ANDROID = ROOT / "android-app/android/app/src/main"
 MANIFEST_PATH = ANDROID / "AndroidManifest.xml"
 SERVICE = (ANDROID / "java/dev/aiengg/potholereporter/drive/DriveForegroundService.kt").read_text()
 CAMERA = (ANDROID / "java/dev/aiengg/potholereporter/drive/NativeDriveCameraManager.kt").read_text()
+START_REGISTRY = (ANDROID / "java/dev/aiengg/potholereporter/drive/DriveStartRegistry.kt").read_text()
 LOCATION = (ANDROID / "java/dev/aiengg/potholereporter/drive/NativeDriveLocationProvider.kt").read_text()
 RECEIVER = (ANDROID / "java/dev/aiengg/potholereporter/drive/NotificationActionReceiver.kt").read_text()
 NOTIFICATION = (ANDROID / "java/dev/aiengg/potholereporter/drive/NotificationHelper.kt").read_text()
@@ -57,7 +58,8 @@ failed_start = SERVICE[SERVICE.index("private fun failDriveStart"):
 check(
     "service-side foreground promotion failure is recorded and stopped without a process crash",
     "try {" in on_start and "failDriveStart(startId)" in on_start
-    and "startCompletionLedger.record(startRequestId, summary)" in failed_start
+    and "startRegistry.recordCompletion(startRequestId, summary)" in failed_start
+    and "fun recordCompletion(requestId: String?, summary: DriveEndSummary)" in START_REGISTRY
     and "stopForeground(STOP_FOREGROUND_REMOVE)" in failed_start
     and "stopSelf(startId)" in failed_start,
 )

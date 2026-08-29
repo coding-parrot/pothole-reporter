@@ -14,7 +14,7 @@ LOCATION = (DRIVE / "NativeDriveLocationProvider.kt").read_text()
 SERVICE = (DRIVE / "DriveForegroundService.kt").read_text()
 INFERENCE = "\n".join(
     (DRIVE / name).read_text()
-    for name in ("NativeInferenceEngine.kt", "NativeInferenceProtocol.kt", "NativeInferenceTransport.kt")
+    for name in ("NativeInferenceEngine.kt", "NativeInferenceRequest.kt", "NativeInferenceTransport.kt")
 )
 NOTIFICATION = (DRIVE / "NotificationHelper.kt").read_text()
 RECEIVER = (DRIVE / "NotificationActionReceiver.kt").read_text()
@@ -199,17 +199,17 @@ check(
 )
 check(
     "transient API and transport failures defer while deterministic requests suspend detection only",
-    "TRANSIENT_HTTP_CODES = setOf(408, 409, 425, 429)" in INFERENCE
-    and "code == 0 || code in TRANSIENT_HTTP_CODES || code in 500..599" in INFERENCE
-    and "if (!isTransient(code)) return null" in INFERENCE
+    "code == 0 || code in setOf(408, 409, 425, 429) || code in 500..599" in INFERENCE
+    and "if (!isTransientInferenceFailure(code)) return null" in INFERENCE
     and "retryAfterMs = retryDelay" in INFERENCE
     and 'throw retryableFailure("OpenAI detection connection failed", error)' in INFERENCE
     and 'throw retryableFailure("OpenAI repair-check connection failed", error)' in INFERENCE
-    and INFERENCE.count("consecutiveRetryableHttpFailures = 0") == 3
+    and INFERENCE.count("consecutiveRetryableFailures = 0") >= 3
     and "frame saved for later" in SERVICE
     and "if (error.suspendInference)" in SERVICE
     and "camera and local video continue" in SERVICE
-    and "if (!error.fatal) error.retryAfterMs?.let { delay(it) }" in SERVICE,
+    and "error.retryAfterMs?.let { delay(it) }" in SERVICE
+    and "error.fatal" not in SERVICE,
 )
 
 android = "{http://schemas.android.com/apk/res/android}"

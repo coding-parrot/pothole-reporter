@@ -94,3 +94,13 @@ internal class NativeInferenceEvidenceStore(private val context: Context) {
         private val UNSAFE_FILE_COMPONENT = Regex("[^A-Za-z0-9_-]")
     }
 }
+
+/** Publishes file ownership to the caller or removes the otherwise orphaned evidence. */
+internal fun publishEvidence(file: File, receiver: (String) -> Unit) {
+    try {
+        receiver(file.absolutePath)
+    } catch (error: Throwable) {
+        NativeReportEvidenceStorage.deleteVerified(file)
+        throw error
+    }
+}

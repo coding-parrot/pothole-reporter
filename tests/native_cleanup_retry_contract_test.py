@@ -10,7 +10,8 @@ DRIVE = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter
 PLUGIN = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/plugin"
 SERVICE = (DRIVE / "DriveForegroundService.kt").read_text()
 CAMERA = (DRIVE / "NativeDriveCameraManager.kt").read_text()
-INFERENCE_PROTOCOL = (DRIVE / "NativeInferenceProtocol.kt").read_text()
+EVIDENCE_STORE = (DRIVE / "NativeInferenceEvidenceStore.kt").read_text()
+VIDEO_STORAGE = (DRIVE / "NativeVideoSegmentStorage.kt").read_text()
 REPORT_STORAGE = (DRIVE / "NativeReportEvidenceStorage.kt").read_text()
 DISCARDED = (DRIVE / "NativeDiscardedMediaCleanup.kt").read_text()
 RETRY = (DRIVE / "NativeRetryableFileCleanup.kt").read_text()
@@ -45,13 +46,16 @@ check(
     "uncommittedReportPhoto?.let" in SERVICE
     and "uncommittedRepairPhoto?.let" in SERVICE
     and SERVICE.count("NativeReportEvidenceStorage.deleteVerified(File(it))") >= 2
-    and "NativeReportEvidenceStorage.deleteVerified(file)" in INFERENCE_PROTOCOL
+    and "NativeReportEvidenceStorage.deleteVerified(file)" in EVIDENCE_STORE
     and REPORT_STORAGE.count("NativeRetryableFileCleanup.deleteVerified(") >= 2,
 )
 check(
     "discarded and unindexed videos keep failed deletion discoverable",
     "NativeMediaReconciliationEpoch.invalidate()" in DISCARDED
-    and "NativeRetryableFileCleanup.deleteVerified(File(segment.filePath))" in SERVICE,
+    and "NativeRetryableFileCleanup.deleteVerified(File(segment.filePath))" in SERVICE
+    and "quota.release(reservation)" in VIDEO_STORAGE
+    and "discardedFile.reconcile(file, deleteFile)" in VIDEO_STORAGE
+    and "quota.noteUnexpectedExistingFile(result.addedBytes)" in VIDEO_STORAGE,
 )
 check(
     "active report, video and keyframe deferrals leave reconciliation incomplete",

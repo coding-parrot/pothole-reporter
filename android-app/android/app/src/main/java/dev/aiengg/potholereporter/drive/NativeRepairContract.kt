@@ -1,6 +1,5 @@
 package dev.aiengg.potholereporter.drive
 
-import org.json.JSONArray
 import org.json.JSONObject
 
 data class RepairVerificationResult(
@@ -61,10 +60,8 @@ internal object NativeRepairContract {
           }
         }
         """.trimIndent()
-}
 
-internal object NativeRepairPromptFactory {
-    fun build(language: String, imageCount: Int, primaryIndex: Int): String {
+    fun buildPrompt(language: String, imageCount: Int, primaryIndex: Int): String {
         require(imageCount >= 3) { "Repair verification requires historical and current evidence" }
         val layout = "\n- Input layout: image 1 is historical evidence; image 2 is " +
             "current full-frame context; images 3-$imageCount are the complete current " +
@@ -75,91 +72,17 @@ internal object NativeRepairPromptFactory {
             "bn" -> "\n- Write description in clear formal Bengali."
             else -> ""
         }
-        return NativeRepairContract.PROMPT + layout + languageNote
+        return PROMPT + layout + languageNote
     }
-}
 
-internal class NativeRepairRequestFactory(
-    private val model: String,
-    private val detail: String
-) {
-    internal data class Spec(
-        val model: String,
-        val detail: String,
-        val imageUrls: List<String>,
-        val prompt: String,
-        val schemaName: String,
-        val schemaJson: String,
-        val stream: Boolean,
-        val store: Boolean,
-        val maxOutputTokens: Int,
-        val reasoningEffort: String
-    )
-
-    fun spec(imageUrls: List<String>, prompt: String): Spec = Spec(
-        model = model,
-        detail = detail,
-        imageUrls = imageUrls.toList(),
-        prompt = prompt,
-        schemaName = "road_repair_assessment",
-        schemaJson = NativeRepairContract.SCHEMA_JSON,
-        stream = true,
-        store = false,
-        maxOutputTokens = NativeRepairContract.MAX_OUTPUT_TOKENS,
-        reasoningEffort = if (model == "gpt-5.6") "none" else "minimal"
-    )
-
-    fun build(imageUrls: List<String>, prompt: String): JSONObject {
-        val spec = spec(imageUrls, prompt)
-        val content = JSONArray()
-        spec.imageUrls.forEach { url ->
-            content.put(JSONObject().apply {
-                put("type", "input_image")
-                put("image_url", url)
-                put("detail", spec.detail)
-            })
-        }
-        content.put(JSONObject().apply {
-            put("type", "input_text")
-            put("text", spec.prompt)
-        })
-        val format = JSONObject().apply {
-            put("type", "json_schema")
-            put("name", spec.schemaName)
-            put("strict", true)
-            put("schema", JSONObject(spec.schemaJson))
-        }
-        return JSONObject().apply {
-            put("model", spec.model)
-            put("input", JSONArray().put(JSONObject().apply {
-                put("role", "user")
-                put("content", content)
-            }))
-            put("text", JSONObject().apply {
-                put("format", format)
-                put("verbosity", "low")
-            })
-            put("stream", spec.stream)
-            put("store", spec.store)
-            put("max_output_tokens", spec.maxOutputTokens)
-            put("reasoning", JSONObject().put("effort", spec.reasoningEffort))
-        }
-    }
-}
-
-internal object NativeRepairAssessmentParser {
-    private val conditions = setOf("repaired", "still_damaged", "not_visible", "uncertain")
-    private val assessments = setOf("clear", "probable", "uncertain")
-    private val imageQualities = setOf("usable", "degraded", "unusable")
-
-    fun parse(text: String): RepairModelAssessment {
+    fun parseAssessment(text: String): RepairModelAssessment {
         try {
             val json = JSONObject(text)
             val condition = json.getString("current_condition")
             val assessment = json.getString("assessment")
             val imageQuality = json.getString("image_quality")
-            if (condition !in conditions || assessment !in assessments ||
-                imageQuality !in imageQualities
+            if (condition !in CONDITIONS || assessment !in ASSESSMENTS ||
+                imageQuality !in IMAGE_QUALITIES
             ) throw IllegalArgumentException("Unexpected repair assessment value")
 
             return RepairModelAssessment(
@@ -178,4 +101,8 @@ internal object NativeRepairAssessmentParser {
             )
         }
     }
+
+    private val CONDITIONS = setOf("repaired", "still_damaged", "not_visible", "uncertain")
+    private val ASSESSMENTS = setOf("clear", "probable", "uncertain")
+    private val IMAGE_QUALITIES = setOf("usable", "degraded", "unusable")
 }

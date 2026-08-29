@@ -63,24 +63,6 @@ data class DriveEndSummary(
     val startRequestId: String? = null
 )
 
-internal class DriveStartCompletionLedger {
-    private val summaries = LinkedHashMap<String, DriveEndSummary>()
-
-    @Synchronized
-    fun record(requestId: String?, summary: DriveEndSummary) {
-        if (requestId.isNullOrBlank()) return
-        // A late, empty ACTION_STOP can recreate an already-stopped service. Preserve
-        // the first (durable, data-bearing) completion for that exact start request.
-        if (summaries.containsKey(requestId)) return
-        summaries[requestId] = summary
-        while (summaries.size > 32) summaries.remove(summaries.keys.first())
-    }
-
-    @Synchronized
-    fun summaryFor(requestId: String): DriveEndSummary? =
-        summaries[requestId]
-}
-
 class DriveForegroundService : LifecycleService() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var cameraManager: NativeDriveCameraManager? = null
@@ -222,13 +204,7 @@ class DriveForegroundService : LifecycleService() {
         private const val USER_CAMERA_STATE_RETRY_MS = 5_000L
         private const val MAX_CRITICAL_CAMERA_RETRIES = 3
         private const val ABNORMAL_TEARDOWN_JOIN_MS = 8_000L
-        private const val START_ADMISSION_TTL_MS = 30_000L
-        private val startCompletionLedger = DriveStartCompletionLedger()
-        private val startAdmissionLock = Any()
-        private var admittedStartRequestId: String? = null
-        private var admittedStartElapsedMs = Long.MIN_VALUE
-        private var admittedStartCancelled = false
-        private var admittedStartDiscardData = false
+        private val startRegistry = DriveStartRegistry(SystemClock::elapsedRealtime)
         // LifecycleService cancels lifecycleScope after onDestroy. This process-owned
         // scope exists solely for a bounded ownership/session barrier when Android
         // destroys the service without going through explicit Stop.
@@ -239,9 +215,7 @@ class DriveForegroundService : LifecycleService() {
         var onReportListener: ((Long, String, String?) -> Unit)? = null
         var onDriveEndedListener: ((DriveEndSummary) -> Unit)? = null
         fun status(): DriveStatusSnapshot = activeService?.snapshot()
-            ?: synchronized(startAdmissionLock) {
-                expireStaleAdmissionLocked()
-                val pendingRequestId = admittedStartRequestId
+            ?: startRegistry.pendingRequestId().let { pendingRequestId ->
                 DriveStatusSnapshot(
                 false, false, false, false, null, 0, 0, 0, 0, 0,
                 if (pendingRequestId != null) "Starting camera and GPS" else "Idle",
@@ -253,7 +227,7 @@ class DriveForegroundService : LifecycleService() {
             }
         fun activeStartRequestId(): String? = activeService?.startRequestId
         fun completedStartSummary(requestId: String): DriveEndSummary? =
-            startCompletionLedger.summaryFor(requestId)
+            startRegistry.completionFor(requestId)
 
         /**
          * Process-owned start admission closes the gap between
@@ -261,60 +235,19 @@ class DriveForegroundService : LifecycleService() {
          * therefore distinguish an accepted start from true Idle instead of hiding a
          * camera session that Android is still launching.
          */
-        fun admitStart(requestId: String): Boolean = synchronized(startAdmissionLock) {
-            expireStaleAdmissionLocked()
-            if (admittedStartRequestId != null) return@synchronized false
-            admittedStartRequestId = requestId
-            admittedStartElapsedMs = SystemClock.elapsedRealtime()
-            admittedStartCancelled = false
-            admittedStartDiscardData = false
-            true
-        }
+        fun admitStart(requestId: String): Boolean = startRegistry.admit(requestId)
 
         fun cancelStartAdmission(requestId: String, discardData: Boolean): Boolean =
-            synchronized(startAdmissionLock) {
-                expireStaleAdmissionLocked()
-                if (admittedStartRequestId != requestId) return@synchronized false
-                admittedStartCancelled = true
-                admittedStartDiscardData = admittedStartDiscardData || discardData
-                true
-            }
+            startRegistry.cancel(requestId, discardData)
 
-        fun clearStartAdmission(requestId: String?) = synchronized(startAdmissionLock) {
-            if (requestId != null && admittedStartRequestId == requestId) {
-                admittedStartRequestId = null
-                admittedStartElapsedMs = Long.MIN_VALUE
-                admittedStartCancelled = false
-                admittedStartDiscardData = false
-            }
-        }
+        fun clearStartAdmission(requestId: String?) = startRegistry.clear(requestId)
 
         private fun cancelledStartDisposition(requestId: String?): Boolean? =
-            synchronized(startAdmissionLock) {
-                expireStaleAdmissionLocked()
-                if (requestId == null || admittedStartRequestId != requestId ||
-                    !admittedStartCancelled) null else admittedStartDiscardData
-            }
+            startRegistry.cancellationFor(requestId)
 
-        private fun hasAdmittedStart(): Boolean = synchronized(startAdmissionLock) {
-            expireStaleAdmissionLocked()
-            admittedStartRequestId != null
-        }
+        private fun hasAdmittedStart(): Boolean = startRegistry.pendingRequestId() != null
 
-        private fun pendingAdmittedStartRequestId(): String? = synchronized(startAdmissionLock) {
-            expireStaleAdmissionLocked()
-            admittedStartRequestId
-        }
-
-        private fun expireStaleAdmissionLocked() {
-            if (admittedStartRequestId != null &&
-                SystemClock.elapsedRealtime() - admittedStartElapsedMs > START_ADMISSION_TTL_MS) {
-                admittedStartRequestId = null
-                admittedStartElapsedMs = Long.MIN_VALUE
-                admittedStartCancelled = false
-                admittedStartDiscardData = false
-            }
-        }
+        private fun pendingAdmittedStartRequestId(): String? = startRegistry.pendingRequestId()
 
         /** Called only while [NativeMediaFilesystemMutation.mutex] is held. */
         internal fun externalMediaDeletionRecorderIfReconciled(): ((Long) -> Unit)? =
@@ -395,7 +328,7 @@ class DriveForegroundService : LifecycleService() {
             runCatching { NativeDriveEndSummaryStore.record(applicationContext, summary) }
         }
         completedStopSummary = summary
-        startCompletionLedger.record(requestId, summary)
+        startRegistry.recordCompletion(requestId, summary)
         NativeMediaReconciliationEpoch.invalidate()
         clearStartAdmission(requestId)
         terminalStatusSealed = true
@@ -434,7 +367,7 @@ class DriveForegroundService : LifecycleService() {
             runCatching { NativeDriveEndSummaryStore.record(applicationContext, summary) }
         }
         completedStopSummary = summary
-        startCompletionLedger.record(startRequestId, summary)
+        startRegistry.recordCompletion(startRequestId, summary)
         NativeMediaReconciliationEpoch.invalidate()
         clearStartAdmission(startRequestId)
         terminalStatusSealed = true
@@ -469,7 +402,7 @@ class DriveForegroundService : LifecycleService() {
             reason = "Stopped",
             startRequestId = activeRequest ?: requestedStart
         )
-        startCompletionLedger.record(requestedStart, summary)
+        startRegistry.recordCompletion(requestedStart, summary)
         clearStartAdmission(requestedStart)
         runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
         stopSelf(startId)
@@ -1513,11 +1446,8 @@ class DriveForegroundService : LifecycleService() {
                         cameraManager?.setAnalyzerSamplingEnabled(false)
                         publish(inferenceSuspendedStatus(message))
                     } else {
-                        publish(if (error.fatal) message else "$message · frame saved for later")
-                        if (error.fatal && !isStopping) withContext(Dispatchers.Main) {
-                            stopDriveSession(message)
-                        }
-                        if (!error.fatal) error.retryAfterMs?.let { delay(it) }
+                        publish("$message · frame saved for later")
+                        error.retryAfterMs?.let { delay(it) }
                     }
                 } catch (error: Exception) {
                     publish("Detection retrying: ${error.message ?: "temporary error"}")
@@ -2199,7 +2129,7 @@ class DriveForegroundService : LifecycleService() {
                             terminalStatusSealed = true
                             mainHandler.removeCallbacks(deferredStatusRunnable)
                             deferredStatusDispatch = false
-                            startCompletionLedger.record(endedStartRequest, completion.summary)
+                            startRegistry.recordCompletion(endedStartRequest, completion.summary)
                             // Delivery failures are recoverable through the durable terminal
                             // result and are not camera/service teardown failures.
                             runCatching { onDriveEndedListener?.invoke(completion.summary) }
@@ -2676,7 +2606,7 @@ class DriveForegroundService : LifecycleService() {
                 if (activeService === this@DriveForegroundService) activeService = null
                 NativeMediaReconciliationEpoch.invalidate()
                 if (completion.won) {
-                    startCompletionLedger.record(destroyedStartRequest, completion.summary)
+                    startRegistry.recordCompletion(destroyedStartRequest, completion.summary)
                     runCatching { onDriveEndedListener?.invoke(completion.summary) }
                     completion.callbacks.forEach { callback ->
                         runCatching { callback(completion.summary) }

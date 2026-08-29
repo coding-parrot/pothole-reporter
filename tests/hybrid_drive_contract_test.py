@@ -14,6 +14,7 @@ SERVICE = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholerepor
 INTERLOCK = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeCaptureInterlock.kt").read_text()
 CAMERA_ACCESS = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeCameraAccessPolicy.kt").read_text()
 QUOTA = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeMediaStorageQuota.kt").read_text()
+VIDEO_STORAGE = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeVideoSegmentStorage.kt").read_text()
 DISCARDED_MEDIA = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeDiscardedMediaCleanup.kt").read_text()
 KEYFRAME_FILES = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeKeyframeFiles.kt").read_text()
 IMAGE_POLICY = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeStoredImagePolicy.kt").read_text()
@@ -24,7 +25,7 @@ INFERENCE = "\n".join(
     for name in (
         "NativeInferenceEngine.kt",
         "NativeInferenceEvidenceStore.kt",
-        "NativeInferenceProtocol.kt",
+        "NativeInferenceRequest.kt",
         "NativeInferenceTransport.kt",
         "NativeDetectionContract.kt",
     )
@@ -172,15 +173,17 @@ check("video quota charges exact disk bytes and shares the free-space floor with
       and "freeSpaceReservations.tryReserve(" in QUOTA
       and "freeSpaceReservations.release(entry.freeSpaceReservation)" in QUOTA
       and "actualBytes > entry.bytes" in QUOTA
-      and "if (commitReservedVideoFile(segment, bytes))" in CAMERA
+      and "if (segment.storage.commit(bytes))" in CAMERA
       and "clip exceeded its 80 MB storage reservation" in CAMERA
       and CAMERA.count(".delete()") == 0
       and DISCARDED_MEDIA.count("candidate.delete()") == 1
-      and CAMERA.count("discardReservedVideoFile(") >= 6
-      and "segment.terminalState == VideoSegmentTerminalState.DISCARDED" in CAMERA
-      and "segment.discardedMediaCleanup.reconcile(segment.file)" in CAMERA
-      and "noteUnexpectedExistingFile(result.addedBytes)" in CAMERA
-      and "noteDeletion(result.removedBytes)" in CAMERA)
+      and CAMERA.count(".storage.discard()") >= 6
+      and "segment.storage.isDiscarded()" in CAMERA
+      and "quota.commit(reservation, bytes)" in VIDEO_STORAGE
+      and "quota.release(reservation)" in VIDEO_STORAGE
+      and "discardedFile.reconcile(file, deleteFile)" in VIDEO_STORAGE
+      and "quota.noteUnexpectedExistingFile(result.addedBytes)" in VIDEO_STORAGE
+      and "quota.noteDeletion(result.removedBytes)" in VIDEO_STORAGE)
 check("saved report and repair evidence is bridge-size bounded before disk write",
       "fun bitmapToBoundedJpegBytes(" in QUALITY
       and "maxBytes = NativeStoredImagePolicy.MAX_BRIDGE_IMAGE_BYTES" in INFERENCE

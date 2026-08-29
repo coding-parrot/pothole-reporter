@@ -8,7 +8,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 DRIVE = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive"
 ENGINE = (DRIVE / "NativeInferenceEngine.kt").read_text()
-PROTOCOL = (DRIVE / "NativeInferenceProtocol.kt").read_text()
+EVIDENCE_STORE = (DRIVE / "NativeInferenceEvidenceStore.kt").read_text()
 SERVICE = (DRIVE / "DriveForegroundService.kt").read_text()
 REPORT_STORAGE = (DRIVE / "NativeReportEvidenceStorage.kt").read_text()
 failures = []
@@ -26,20 +26,20 @@ repair = ENGINE[ENGINE.index("suspend fun verifyRepair("):
                 ENGINE.index("private fun prepareDetectionImages(")]
 worker = SERVICE[SERVICE.index("private fun startInferenceWorker()"):
                  SERVICE.index("private fun startSessionLimitLoop()")]
-handoff = PROTOCOL[PROTOCOL.index("internal object NativeInferenceEvidenceOwnership"):]
+handoff = EVIDENCE_STORE[EVIDENCE_STORE.index("internal fun publishEvidence"):]
 
 check(
     "report evidence is handed off immediately after commit and before fallible allocation",
     "onEvidenceSaved: (String) -> Unit" in analysis
     and analysis.index("evidenceStore.saveDetection(")
-        < analysis.index("NativeInferenceEvidenceOwnership.handOff(photoFile, onEvidenceSaved)")
+        < analysis.index("publishEvidence(photoFile, onEvidenceSaved)")
         < analysis.index("evidenceStore.thumbnailDataUrl("),
 )
 check(
     "repair evidence is handed off before result construction",
     "onEvidenceSaved: (String) -> Unit" in repair
     and repair.index("evidenceStore.saveRepair(")
-        < repair.index("NativeInferenceEvidenceOwnership.handOff(currentPhoto, onEvidenceSaved)")
+        < repair.index("publishEvidence(currentPhoto, onEvidenceSaved)")
         < repair.index("RepairVerificationResult("),
 )
 check(

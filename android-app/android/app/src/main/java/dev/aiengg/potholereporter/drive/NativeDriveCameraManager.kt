@@ -70,22 +70,14 @@ class NativeDriveCameraManager(
     private val onRecordingStateChange: (enabled: Boolean, recording: Boolean, supported: Boolean, message: String?) -> Unit,
     private val onSegmentFinalized: (NativeVideoSegment) -> Unit
 ) {
-    private enum class VideoSegmentTerminalState {
-        ACTIVE,
-        COMMITTED,
-        DISCARDED
-    }
-
     private data class ActiveVideoSegment(
         val sequence: Int,
         val file: File,
         val startedAtMs: Long,
         val completion: CompletableDeferred<NativeVideoSegment?>,
-        val storageReservation: NativeMediaStorageQuota.Reservation,
+        val storage: NativeVideoSegmentStorage,
         var recording: Recording? = null,
-        var stopRequested: Boolean = false,
-        var terminalState: VideoSegmentTerminalState = VideoSegmentTerminalState.ACTIVE,
-        val discardedMediaCleanup: NativeDiscardedMediaCleanup = NativeDiscardedMediaCleanup()
+        var stopRequested: Boolean = false
     )
 
     private data class PreparedStorage(
@@ -833,7 +825,11 @@ class NativeDriveCameraManager(
         val file = File(footageRoot, "segment_${sequence.toString().padStart(4, '0')}.mp4")
         val completion = CompletableDeferred<NativeVideoSegment?>()
         val segment = ActiveVideoSegment(
-            sequence, file, System.currentTimeMillis(), completion, reservation
+            sequence = sequence,
+            file = file,
+            startedAtMs = System.currentTimeMillis(),
+            completion = completion,
+            storage = NativeVideoSegmentStorage(file, reservation, storageQuota)
         )
         activeVideoSegment = segment
         val options = FileOutputOptions.Builder(file)
@@ -847,7 +843,7 @@ class NativeDriveCameraManager(
                 }
         } catch (error: Exception) {
             if (activeVideoSegment === segment) activeVideoSegment = null
-            val discarded = discardReservedVideoFile(segment)
+            val discarded = segment.storage.discard()
             if (!discarded) storageBlocked = true
             completion.complete(null)
             isVideoRecording = false
@@ -874,11 +870,9 @@ class NativeDriveCameraManager(
             // stop()/close() may time out before CameraX emits Finalize. The recorder can
             // extend or recreate its output after our first cleanup attempt, so reconcile
             // the discarded writer again instead of silently returning with stale quota.
-            val wasDiscarded = synchronized(segment) {
-                segment.terminalState == VideoSegmentTerminalState.DISCARDED
-            }
+            val wasDiscarded = segment.storage.isDiscarded()
             if (wasDiscarded) {
-                val discarded = discardReservedVideoFile(segment)
+                val discarded = segment.storage.discard()
                 if (!discarded) {
                     storageBlocked = true
                     if (!fullyClosed) onRecordingStateChange(
@@ -918,18 +912,18 @@ class NativeDriveCameraManager(
         ) else null
         var quotaRejected = false
         if (result != null) {
-            if (commitReservedVideoFile(segment, bytes)) {
+            if (segment.storage.commit(bytes)) {
                 onSegmentFinalized(result)
             } else {
                 // CameraX's file-size limit may be crossed by a final encoded sample.
                 // Such a file must never silently exceed the shared Drive-media cap.
                 quotaRejected = true
                 storageBlocked = true
-                discardReservedVideoFile(segment)
+                segment.storage.discard()
                 result = null
             }
         } else {
-            discardReservedVideoFile(segment)
+            segment.storage.discard()
         }
         segment.completion.complete(result)
 
@@ -979,7 +973,7 @@ class NativeDriveCameraManager(
         if (!shouldRequestStop) return active.completion
         runCatching { active.recording?.stop() }.onFailure {
             if (activeVideoSegment === active) activeVideoSegment = null
-            val discarded = discardReservedVideoFile(active)
+            val discarded = active.storage.discard()
             if (!discarded) storageBlocked = true
             active.completion.complete(null)
             onRecordingStateChange(
@@ -1002,7 +996,7 @@ class NativeDriveCameraManager(
             if (active?.completion === completion) {
                 activeVideoSegment = null
                 runCatching { active.recording?.close() }
-                val discarded = discardReservedVideoFile(active)
+                val discarded = active.storage.discard()
                 if (!discarded) storageBlocked = true
                 message = if (discarded)
                     "Video finalization timed out; the incomplete clip was discarded"
@@ -1133,43 +1127,9 @@ class NativeDriveCameraManager(
             if (shouldRequestStop) runCatching { active.recording?.stop() }
             runCatching { active.recording?.close() }
             if (!active.completion.isCompleted) {
-                discardReservedVideoFile(active)
+                active.storage.discard()
                 active.completion.complete(null)
             }
-        }
-    }
-
-    private fun commitReservedVideoFile(segment: ActiveVideoSegment, bytes: Long): Boolean =
-        synchronized(segment) {
-            if (segment.terminalState != VideoSegmentTerminalState.ACTIVE) {
-                return@synchronized false
-            }
-            if (!storageQuota.commit(segment.storageReservation, bytes)) {
-                return@synchronized false
-            }
-            segment.terminalState = VideoSegmentTerminalState.COMMITTED
-            true
-        }
-
-    /**
-     * Releases the reservation once and reconciles every later cleanup attempt by delta.
-     * This remains safe when a late CameraX Finalize follows a failed stop or timeout.
-     */
-    private fun discardReservedVideoFile(segment: ActiveVideoSegment): Boolean {
-        return synchronized(segment) {
-            when (segment.terminalState) {
-                VideoSegmentTerminalState.COMMITTED -> return true
-                VideoSegmentTerminalState.ACTIVE -> {
-                    segment.terminalState = VideoSegmentTerminalState.DISCARDED
-                    storageQuota.release(segment.storageReservation)
-                }
-                VideoSegmentTerminalState.DISCARDED -> Unit
-            }
-
-            val result = segment.discardedMediaCleanup.reconcile(segment.file)
-            storageQuota.noteDeletion(result.removedBytes)
-            storageQuota.noteUnexpectedExistingFile(result.addedBytes)
-            result.deleted
         }
     }
 

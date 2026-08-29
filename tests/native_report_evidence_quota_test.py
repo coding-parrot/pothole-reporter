@@ -10,7 +10,6 @@ DRIVE = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter
 STORAGE = (DRIVE / "NativeReportEvidenceStorage.kt").read_text()
 INFERENCE = (DRIVE / "NativeInferenceEngine.kt").read_text()
 EVIDENCE_STORE = (DRIVE / "NativeInferenceEvidenceStore.kt").read_text()
-PROTOCOL = (DRIVE / "NativeInferenceProtocol.kt").read_text()
 SERVICE = (DRIVE / "DriveForegroundService.kt").read_text()
 PLUGIN = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/plugin/DriveModePlugin.kt").read_text()
 DAO = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/db/Daos.kt").read_text()
@@ -89,7 +88,7 @@ check(
 check(
     "both inference saves and all uncommitted cleanup are quota-aware",
     "NativeReportEvidenceStorage.saveJpegAtomically(" in EVIDENCE_STORE
-    and "NativeReportEvidenceStorage.deleteVerified(file)" in PROTOCOL
+    and "NativeReportEvidenceStorage.deleteVerified(file)" in EVIDENCE_STORE
     and SERVICE.count("NativeReportEvidenceStorage.deleteVerified(File(it))") >= 2,
 )
 check(

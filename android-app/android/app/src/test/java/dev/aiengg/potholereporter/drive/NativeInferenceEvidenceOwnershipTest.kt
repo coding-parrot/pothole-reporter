@@ -14,7 +14,7 @@ class NativeInferenceEvidenceOwnershipTest {
             val file = directory.resolve("evidence.jpg").apply { writeBytes(byteArrayOf(1, 2, 3)) }
             var receivedPath: String? = null
 
-            NativeInferenceEvidenceOwnership.handOff(file) { receivedPath = it }
+            publishEvidence(file) { receivedPath = it }
 
             assertEquals(file.absolutePath, receivedPath)
             assertTrue(file.isFile)
@@ -32,7 +32,7 @@ class NativeInferenceEvidenceOwnershipTest {
             var thrown: Throwable? = null
 
             try {
-                NativeInferenceEvidenceOwnership.handOff(file) { throw failure }
+                publishEvidence(file) { throw failure }
             } catch (error: Throwable) {
                 thrown = error
             }

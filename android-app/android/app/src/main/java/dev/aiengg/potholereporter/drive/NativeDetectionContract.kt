@@ -1,8 +1,5 @@
 package dev.aiengg.potholereporter.drive
 
-import org.json.JSONArray
-import org.json.JSONObject
-
 /** Single source of truth for the native Drive detection prompt and structured schema. */
 internal object NativeDetectionContract {
     const val PROMPT_VERSION = "pothole-binary-v10"
@@ -87,10 +84,8 @@ internal object NativeDetectionContract {
           }
         }
         """.trimIndent()
-}
 
-internal object NativeDetectionPromptFactory {
-    fun build(language: String, imageCount: Int, primaryIndex: Int): String {
+    fun buildPrompt(language: String, imageCount: Int, primaryIndex: Int): String {
         require(imageCount >= 2) { "Detection requires context plus at least one road crop" }
         val languageSuffix = when (language) {
             "kn" -> "\n- Write the description field in formal Kannada (ಕನ್ನಡ ಭಾಷೆಯಲ್ಲಿ ಬರೆಯಿರಿ)."
@@ -101,78 +96,6 @@ internal object NativeDetectionPromptFactory {
         val layout = "\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. " +
             "Images 2-$imageCount are orientation-aware road-region crops in chronological order; " +
             "the sharpest crop is chronological frame ${primaryIndex + 1}."
-        return NativeDetectionContract.DETECT_PROMPT + layout + languageSuffix
-    }
-}
-
-internal class NativeDetectionRequestFactory(
-    private val model: String,
-    private val detail: String
-) {
-    internal data class Spec(
-        val model: String,
-        val detail: String,
-        val imageUrls: List<String>,
-        val prompt: String,
-        val schemaName: String,
-        val schemaJson: String,
-        val stream: Boolean,
-        val store: Boolean,
-        val maxOutputTokens: Int,
-        val reasoningEffort: String
-    )
-
-    fun spec(imageUrls: List<String>, prompt: String): Spec = Spec(
-        model = model,
-        detail = detail,
-        imageUrls = imageUrls.toList(),
-        prompt = prompt,
-        schemaName = "pothole_binary_assessment",
-        schemaJson = NativeDetectionContract.SCHEMA_JSON,
-        stream = true,
-        store = false,
-        maxOutputTokens = NativeDetectionContract.MAX_OUTPUT_TOKENS,
-        reasoningEffort = if (model == "gpt-5.6") "low" else "minimal"
-    )
-
-    fun build(imageUrls: List<String>, prompt: String): JSONObject {
-        val spec = spec(imageUrls, prompt)
-        val content = JSONArray()
-        spec.imageUrls.forEach { url ->
-            content.put(JSONObject().apply {
-                put("type", "input_image")
-                put("image_url", url)
-                put("detail", spec.detail)
-            })
-        }
-        content.put(JSONObject().apply {
-            put("type", "input_text")
-            put(
-                "text",
-                "${spec.prompt}\n\nThe ${spec.imageUrls.size} supplied image(s) are ordered exactly as labelled by the capture pipeline."
-            )
-        })
-
-        val format = JSONObject().apply {
-            put("type", "json_schema")
-            put("name", spec.schemaName)
-            put("strict", true)
-            put("schema", JSONObject(spec.schemaJson))
-        }
-        return JSONObject().apply {
-            put("model", spec.model)
-            put("input", JSONArray().put(JSONObject().apply {
-                put("role", "user")
-                put("content", content)
-            }))
-            put("text", JSONObject().apply {
-                put("format", format)
-                put("verbosity", "low")
-            })
-            put("stream", spec.stream)
-            put("store", spec.store)
-            put("max_output_tokens", spec.maxOutputTokens)
-            put("reasoning", JSONObject().put("effort", spec.reasoningEffort))
-        }
+        return DETECT_PROMPT + layout + languageSuffix
     }
 }
