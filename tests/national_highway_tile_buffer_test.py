@@ -73,8 +73,12 @@ for tile_id, own in geometry.items():
         if neighbour is None:
             continue
         for segment in neighbour:
-            values = (segment[axis], segment[axis + 2])
-            degrees = min(abs(values[0] - edge), abs(values[1] - edge))
+            near, far = segment[axis], segment[axis + 2]
+            # A segment that straddles the edge sits on it, however far apart its ends are.
+            if (near - edge) * (far - edge) <= 0:
+                degrees = 0.0
+            else:
+                degrees = min(abs(near - edge), abs(far - edge))
             metres_per_degree = LAT_METRES_PER_DEGREE if axis else (
                 LNG_METRES_PER_DEGREE * math.cos(math.radians(south + TILE_SIZE / 2)))
             if degrees * metres_per_degree > MATCH_DISTANCE:
