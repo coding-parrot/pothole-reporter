@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline guard that Web, native Drive and evaluator share one binary v10 contract."""
+"""Offline guard that Web, native Drive and evaluator share one binary v12 contract."""
 import importlib.util, json, pathlib, re, sys, tempfile, textwrap
 from PIL import Image
 
@@ -243,13 +243,25 @@ check("temporary traffic surface is an explicit schema value",
 check("prompt explicitly distinguishes speed breakers",
       "speed breaker" in road_eval.prompts()["baseline"].lower())
 check("prompt makes ambiguity a negative",
-      "any ambiguity must be no" in road_eval.prompts()["baseline"].lower())
+      "ambiguous geometry is no" in road_eval.prompts()["baseline"].lower())
+check("Drive motion proves use of an unsealed traffic path",
+      "coherent forward motion along a continuous wheel path" in web_prompt.lower()
+      and "proves this use even when no second vehicle is visible" in web_prompt.lower())
+check("one-open-side cavity remains eligible without admitting generic roughness",
+      all(term in web_prompt.lower() for term in (
+          "it does not mean a closed circular rim",
+          "one boundary blending into surrounding failed material",
+          "road-wide grading, corrugation, broad roughness",
+          "do not turn it into general roughness",
+      )))
+check("partial temporal visibility is not treated as contradiction",
+      "at least two show the same footprint" in web_prompt.lower()
+      and "leaving the final crop is not disagreement" in web_prompt.lower())
 check("drivable lane-edge cavities remain eligible without admitting roadside damage",
       all(term in web_prompt.lower() for term in (
-          "opening intrudes into the drivable surface",
-          "cavity footprint inside the active traffic surface",
-          "damage confined to a kerb, gutter, drain, footpath, shoulder, verge",
-          "broken edge outside the active traffic surface",
+          "opening removes part of the flat traffic surface",
+          "creates a wheel-reachable drop",
+          "an intact kerb or gutter separates the entire opening from traffic",
       ))
       and ", road edge," not in web_prompt.lower())
 check("prompt defines every fallback size band",
@@ -299,6 +311,13 @@ check("evaluator disables response storage like both shipped runtimes",
 check("mini rejects unsupported original detail",
       road_eval.build_request(["one"], "P", "gpt-5-mini", "original")
       ["input"][0]["content"][0]["detail"] == "high")
+evaluator_source = pathlib.Path(road_eval.__file__).read_text()
+check("evaluator defaults mirror the two production paths",
+      road_eval.DRIVE_DEFAULT_MODEL == "gpt-5.6"
+      and road_eval.MANUAL_DEFAULT_MODEL == "gpt-5-mini")
+check("explicit unsupported evaluator models fail instead of changing silently",
+      "unsupported model(s)" in evaluator_source
+      and "unknown_models" in evaluator_source)
 photo_suffix = road_eval.client_template_constant("PHOTO_ONLY_PROMPT_SUFFIX")
 check("manual evaluator attaches the exact shipped Photo-only scope",
       road_eval.effective_prompt("BASE", "manual", "NOTE")
@@ -309,7 +328,7 @@ check("evaluator records the shipped mode-specific prompt version",
       road_eval.effective_prompt_version("drive") == road_eval.PROMPT_VERSION
       and road_eval.effective_prompt_version("manual")
       == road_eval.client_string_constant("PHOTO_PROMPT_VERSION")
-      == "pothole-photo-only-v3")
+      == "pothole-photo-only-v4")
 
 good = {"is_pothole": True, "looks_like_speed_breaker": False,
         "image_quality": "usable", "surface_type": "bituminous_asphalt",
@@ -382,10 +401,11 @@ except ValueError:
 check("event selector fails on unknown IDs", missing_event_fails)
 speed_breaker_events = [entry for entry in labels
                         if entry.get("event_id") == "tester-second-speed-breaker-2026-08-25"]
-check("tester speed breaker is retained as a verified negative event",
+check("tester speed breaker is retained as owner-labelled semantic ground truth",
       len(speed_breaker_events) == 1
       and speed_breaker_events[0].get("label") == "not_pothole"
       and speed_breaker_events[0].get("labelled_by") == "owner"
+      and speed_breaker_events[0].get("accuracy_eligible") is False
       and len(speed_breaker_events[0].get("frames", [])) == 3)
 native_cadence_breaker = speed_breaker_events[0]
 native_cadence_timestamps = native_cadence_breaker.get("source_timestamps_seconds", [])
@@ -393,7 +413,7 @@ native_cadence_spacing = [
     round((right - left) * 1000)
     for left, right in zip(native_cadence_timestamps, native_cadence_timestamps[1:])
 ]
-check("tester speed breaker uses the exact neutral native-cadence fixture",
+check("tester speed breaker preserves the sampled external-recording fixture",
       native_cadence_breaker.get("path")
       == "tester-speed-breaker-native-cadence/later/f1.jpg"
       and native_cadence_breaker.get("frames") == [
@@ -406,8 +426,9 @@ check("tester speed breaker uses the exact neutral native-cadence fixture",
           "de6f0e9e37f20cabdba7e7287de2c4aad1556694dc607eae9941ac4d83d6a32f",
           "90428d428e900d448cb145020848b5b4b1f5b5c5954520ad0428e97805efa1ba",
       ]
-      and "whatsapp" not in json.dumps(native_cadence_breaker).lower())
-check("tester speed breaker records production request cadence",
+      and native_cadence_breaker.get("capture_provenance")
+          == "external_recording_of_test_device")
+check("tester speed breaker records its 267 ms source-video spacing",
       native_cadence_breaker.get("capture_cadence_ms") == 250
       and native_cadence_breaker.get("selected_source_indices") == [0, 1, 2]
       and native_cadence_breaker.get("observed_source_spacing_ms") == [267, 267]
@@ -433,9 +454,15 @@ check("all three supplied traffic-calming intervals are retained as negative bur
       and all(entry.get("labelled_by") == "owner"
               for entry in traffic_calming_events
               if entry.get("event_id") != "tester-opening-grid-calming-marking-2026-08-25"))
+check("external tester recordings cannot inflate production accuracy",
+      all(entry.get("capture_provenance") == "external_recording_of_test_device"
+              and entry.get("accuracy_eligible") is False
+              for entry in traffic_calming_events)
+      and 'row.get("accuracy_eligible") is True'
+          in pathlib.Path(road_eval.__file__).read_text())
 production_bursts = [entry for entry in labels
                      if entry.get("mode") == "drive" and len(entry.get("frames", [])) == 3]
-check("every labelled drive burst is reproducible at production analyzer cadence",
+check("every labelled Drive burst records the configured 250 ms sample spacing",
       bool(production_bursts)
       and all(
           entry.get("capture_cadence_ms") == 250
@@ -454,11 +481,36 @@ check("every labelled drive burst is reproducible at production analyzer cadence
           for entry in production_bursts))
 corrected_b_events = [entry for entry in labels
                       if entry.get("event_id") == "owner-construction-drive-2026-08-28-b"]
-check("broad shallow segment_0001 event B is retained as a strict negative",
+check("unresolved segment_0001 event B stays outside accuracy rates",
       len(corrected_b_events) == 1
-      and corrected_b_events[0].get("label") == "not_pothole"
+      and corrected_b_events[0].get("label") == "disputed"
       and "broad disturbed patch" in corrected_b_events[0].get("notes", "").lower()
-      and "requires no" in corrected_b_events[0].get("notes", "").lower())
+      and "owner label" in corrected_b_events[0].get("notes", "").lower())
+owner_clip_positives = [entry for entry in labels
+                        if entry.get("event_id") in {
+                            "owner-construction-drive-2026-08-28-a",
+                            "owner-construction-drive-2026-08-28-segment-2-second-4",
+                        }]
+check("both owner-confirmed clip moments are positive Drive bursts",
+      len(owner_clip_positives) == 2
+      and all(entry.get("mode") == "drive"
+              and entry.get("label") == "pothole"
+              and entry.get("labelled_by") == "owner"
+              and entry.get("capture_provenance") == "native_mediarecorder_reconstruction"
+              for entry in owner_clip_positives))
+segment_two_second_four = next(
+    (entry for entry in owner_clip_positives
+     if entry.get("event_id") == "owner-construction-drive-2026-08-28-segment-2-second-4"),
+    {})
+check("segment_0002 second 4 retains the reconstructed native-video burst",
+      segment_two_second_four.get("source_interval_seconds") == [3.8, 5.4]
+      and segment_two_second_four.get("source_timestamps_seconds")
+          == [4.533333, 4.8, 5.066667]
+      and segment_two_second_four.get("fixture_sha256") == [
+          "5b212ccd4a7de01a998873735faef6effafcf190749190a62fe19d46ccb893b5",
+          "7d79d4c5d7bfdce996ae14eacd99129eb95adeebb200a26cbd68acf05ad04991",
+          "307755fd21a78a777364215b1fd2e926e32259b90b4aee8ef2b1a207d70a5695",
+      ])
 kanjur_events = [entry for entry in labels
                  if entry.get("event_id") == "owner-kanjur-drivable-edge-pothole-2026-08-25"]
 check("owner-confirmed Kanjur drivable-edge cavity is a manual positive",

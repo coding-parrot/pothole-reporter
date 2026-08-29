@@ -18,7 +18,7 @@ closed instead of silently running a different subset.
 `OPENAI_API_KEY` comes from the environment or the repo-root `.env`. Use
 `--dry-run` to validate transforms and request configuration without making calls.
 
-Drive replay uses the shipped orientation-aware 1920 px road region plus a 768 px
+Drive replay uses the shipped orientation-aware, downscale-only 1280 px road region plus a 768 px
 full-context view: portrait keeps 40%–66% of frame height, landscape keeps 48%–78%,
 and near-square keeps 40%–70%. An entry can provide a three-frame event with `frames` and `primary_index`;
 legacy entries with one `path` still work. Manual replay uses the shipped full-frame
@@ -69,9 +69,14 @@ Ordinary gravel texture, corrugation, ruts, broad breakup, puddle ambiguity, sho
 and construction beds remain negative.
 
 The current set is not a release gate. It has seven owner-verified positive photos, two
-owner-verified speed-breaker intervals, one independently reviewed traffic-calming
-interval, two independently reviewed Drive positives, an independently reviewed
-ambiguous-patch negative and one representative burst from an all-negative second clip.
+owner-confirmed Drive positives at the exact reported moments, other independently
+reviewed Drive events, one unresolved ambiguous patch and one local negative burst near
+second 44 of the second clip. The two Drive positives are reconstructed
+from the app's native MediaRecorder segments; they prove saved-video coverage but are not
+pixel-identical to the separate CameraX ImageAnalysis frames used live. The tester's traffic-calming footage is
+an external recording of the test phone, not raw CameraX evidence; it remains semantic
+ground truth but is excluded from production-accuracy rates until unobstructed app frames
+are available.
 Other labels remain unverified, and historical result files
 predate this contract. Do not choose a model or claim accuracy from this set alone. First
 collect fully audited drives with diverse positive and negative events, keep adjacent
@@ -98,7 +103,7 @@ control cannot silently drift from what ships. Every `.txt` file in
 `eval/prompts/` becomes an additional arm named after the file.
 
 Everything below is a historical log for retired detector contracts. It explains past
-choices but is not directly comparable with the binary v8 result.
+choices but is not directly comparable with the binary v12 result.
 
 ## Results log
 

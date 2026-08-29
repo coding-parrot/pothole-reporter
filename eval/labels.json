@@ -1,5 +1,5 @@
 {
- "_comment": "Binary pothole benchmark labels. Images are NOT committed: see eval/README.md. Owner-verified cases include seven manual pothole photos and the two speed-breaker intervals identified by the tester as negatives; the opening traffic-calming interval is independently reviewed. The 28 Aug construction-road clips contain two definite pothole events (A and mid), one ambiguous broad patch (B) labelled negative under the strict false-positive policy, and an all-negative second segment. Those drive-video labels were independently frame-reviewed, not owner-verified. Other negatives remain assistant-judged and UNVERIFIED; disputed and unlabelled images are excluded from rates. This small set is still not a release gate.",
+ "_comment": "Binary pothole benchmark labels. Images are NOT committed: see eval/README.md. Owner-verified cases include seven manual pothole photos and the exact Drive potholes identified at segment 1 second 35 and segment 2 second 4. Two tester-identified speed breakers remain owner-labelled semantic negatives, but all three traffic-calming fixtures are external recordings of the test phone and are excluded from production-accuracy rates until raw CameraX frames are available. Other Drive events remain independently reviewed or unverified as stated; disputed and unlabelled images are excluded from rates. This small set is still not a release gate.",
  "images": [
   {
    "path": "seed/IMG20260720144314.jpg",
@@ -172,7 +172,8 @@
    "notes": "Definite event A in construction-drive-segment-1 (visible about 33.6-35.8 seconds, strongest about 34.8-35.6): a localized water-filled cavity on the left side of the temporary surface actively carrying traffic. Distinct from general construction-road roughness.",
    "source": "private drive video supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
-   "labelled_by": "independent assistant frame review"
+   "capture_provenance": "native_mediarecorder_reconstruction",
+   "labelled_by": "owner"
   },
   {
    "event_id": "owner-construction-drive-2026-08-28-mid",
@@ -213,7 +214,7 @@
    ],
    "primary_index": 1,
    "mode": "drive",
-   "label": "not_pothole",
+   "label": "disputed",
    "source_file": "construction-drive-segment-1",
    "source_interval_seconds": [53.3, 55.8],
    "source_timestamps_seconds": [55.066667, 55.333333, 55.6],
@@ -227,10 +228,40 @@
     "9f6dff0e9990bd3865ae9f849daa1348b4d0a83580d49d57e6142a7f1d5bdb09",
     "94e5a28072e95ed082eda85f45f444ac9fe000af33198dd14d2aa30c55a41519"
    ],
-   "notes": "Ambiguous broad disturbed patch B in construction-drive-segment-1 (visible about 53.3-55.8 seconds). It is shallow and lacks a defensible bounded cavity across the burst, so the strict false-positive policy requires NO.",
+   "notes": "Ambiguous broad disturbed patch B in construction-drive-segment-1 (visible about 53.3-55.8 seconds). It may contain a shallow eroded depression but has no owner label, so it is excluded from accuracy until the project owner confirms whether this is a pothole.",
    "source": "private drive video supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
    "labelled_by": "independent assistant review of the complete source video"
+  },
+  {
+   "event_id": "owner-construction-drive-2026-08-28-segment-2-second-4",
+   "path": "owner-construction-drive-2026-08-28/segment-2-second-4/f1.jpg",
+   "frames": [
+    "owner-construction-drive-2026-08-28/segment-2-second-4/f0.jpg",
+    "owner-construction-drive-2026-08-28/segment-2-second-4/f1.jpg",
+    "owner-construction-drive-2026-08-28/segment-2-second-4/f2.jpg"
+   ],
+   "primary_index": 1,
+   "mode": "drive",
+   "label": "pothole",
+   "source_file": "construction-drive-segment-2",
+   "source_interval_seconds": [3.8, 5.4],
+   "source_timestamps_seconds": [4.533333, 4.8, 5.066667],
+   "source_sample_timestamps_seconds": [4.533333, 4.8, 5.066667],
+   "selected_source_indices": [0, 1, 2],
+   "capture_cadence_ms": 250,
+   "observed_source_spacing_ms": [267, 267],
+   "observed_frame_spacing_ms": [267, 267],
+   "fixture_sha256": [
+    "5b212ccd4a7de01a998873735faef6effafcf190749190a62fe19d46ccb893b5",
+    "7d79d4c5d7bfdce996ae14eacd99129eb95adeebb200a26cbd68acf05ad04991",
+    "307755fd21a78a777364215b1fd2e926e32259b90b4aee8ef2b1a207d70a5695"
+   ],
+   "notes": "Owner-confirmed pothole at about second 4 of construction-drive-segment-2: a localized jagged material-loss depression intrudes into the left wheel path of the temporary traffic surface and remains coherent as the vehicle approaches.",
+   "source": "private drive video supplied by project owner",
+   "licence": "private evaluation only; frames are not distributed",
+   "capture_provenance": "native_mediarecorder_reconstruction",
+   "labelled_by": "owner"
   },
   {
    "event_id": "owner-construction-drive-2026-08-28-borderline-negative",
@@ -244,7 +275,7 @@
    "mode": "drive",
    "label": "not_pothole",
    "source_file": "construction-drive-segment-2",
-   "source_interval_seconds": [0.0, 48.99],
+   "source_interval_seconds": [43.5, 44.8],
    "source_timestamps_seconds": [43.866667, 44.133333, 44.4],
    "source_sample_timestamps_seconds": [43.866667, 44.133333, 44.4],
    "selected_source_indices": [0, 1, 2],
@@ -256,7 +287,7 @@
     "aebf9f6c476c3a1f2b46d9714829b6bd7375aad57d5bbc936f2d1a1c4e1a1c68",
     "953283382d61164ecdc8e4dfd01680a5a2606234e66156a4bd7a7dfd29fcdf80"
    ],
-   "notes": "Representative strict negative from the all-negative construction-drive-segment-2. The clip contains roughness, gravel, joins, debris and a resurfaced patch, but no persistent bounded cavity; this burst at about 44 seconds is possible shallow spall or roughness without a defensible localized cavity and rim.",
+   "notes": "Local strict-negative burst at about second 44 of construction-drive-segment-2: possible shallow spall or roughness without a defensible localized cavity and rim. This label applies only to the stated interval, not the whole clip.",
    "source": "private drive video supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
    "labelled_by": "independent assistant frame review"
@@ -288,6 +319,8 @@
    "notes": "First traffic-calming interval in the tester clip (about 0.0-1.2 seconds): the vehicle is crossing or has just crossed a painted box-grid marking. It is not a pothole.",
    "source": "private tester demonstration supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
+   "capture_provenance": "external_recording_of_test_device",
+   "accuracy_eligible": false,
    "labelled_by": "independent assistant frame review"
   },
   {
@@ -317,6 +350,8 @@
    "notes": "Second traffic-calming interval in the tester clip (about 2.4-4.8 seconds): a clearly painted zebra-style raised speed breaker. It is not a pothole.",
    "source": "private tester demonstration supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
+   "capture_provenance": "external_recording_of_test_device",
+   "accuracy_eligible": false,
    "labelled_by": "owner"
   },
   {
@@ -343,9 +378,11 @@
     "de6f0e9e37f20cabdba7e7287de2c4aad1556694dc607eae9941ac4d83d6a32f",
     "90428d428e900d448cb145020848b5b4b1f5b5c5954520ad0428e97805efa1ba"
    ],
-   "notes": "Third traffic-calming interval in the private tester clip (about 6.1-7.8 seconds): an exact production-policy sample of a painted box-grid speed breaker or rumble table. Drive retains three consecutive source frames at least 250 ms apart and submits all three; the roughly 30 fps clip yields about 267 ms between these views.",
+   "notes": "Third traffic-calming interval in the private tester clip (about 6.1-7.8 seconds): a painted box-grid speed breaker or rumble table. The three views are sampled 267 ms apart from an external recording of the test device; they preserve semantic ground truth but do not reproduce unobstructed CameraX input.",
    "source": "private tester demonstration supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
+   "capture_provenance": "external_recording_of_test_device",
+   "accuracy_eligible": false,
    "labelled_by": "owner"
   },
   {

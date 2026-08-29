@@ -13,8 +13,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 API = "https://api.openai.com/v1/responses"
-DEFAULT_MODEL = "gpt-5-mini"
-ALLOWED_MODELS = {DEFAULT_MODEL, "gpt-5.6"}
+# Mirror each production path by default. Drive uses gpt-5.6; Photo uses mini.
+# Either model can still be selected explicitly for a comparison arm.
+DRIVE_DEFAULT_MODEL = "gpt-5.6"
+MANUAL_DEFAULT_MODEL = "gpt-5-mini"
+ALLOWED_MODELS = {DRIVE_DEFAULT_MODEL, MANUAL_DEFAULT_MODEL}
 ALLOWED_DETAILS = {"high", "original"}
 ROAD_REGION_RATIOS = {
     "portrait": {"top": 0.40, "bottom": 0.66},
@@ -24,7 +27,7 @@ ROAD_REGION_RATIOS = {
 ROAD_ORIENTATION_EPSILON = 0.10
 MAX_PREPARED_ROAD_DIMENSION = 1280
 NATIVE_DRIVE_MAX_OUTPUT_TOKENS = 1536
-PROMPT_VERSION = "pothole-binary-v10"
+PROMPT_VERSION = "pothole-binary-v12"
 SCHEMA_VERSION = 7
 
 SCHEMA = {
@@ -109,7 +112,7 @@ def effective_prompt_version(mode):
 
 
 def normalise_config(model, detail):
-    model = model if model in ALLOWED_MODELS else DEFAULT_MODEL
+    model = model if model in ALLOWED_MODELS else DRIVE_DEFAULT_MODEL
     detail = detail if detail in ALLOWED_DETAILS else "high"
     if detail == "original" and model != "gpt-5.6":
         detail = "high"
@@ -388,7 +391,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--trials", type=int, default=5)
     parser.add_argument("--arms", default="baseline", help="comma-separated prompt arms")
-    parser.add_argument("--models", default=DEFAULT_MODEL, help="comma-separated model IDs")
+    parser.add_argument(
+        "--models",
+        default="",
+        help="comma-separated model IDs (defaults to the production model for the selected mode)",
+    )
     parser.add_argument("--details", default="high", help="comma-separated high/original")
     parser.add_argument("--mode", choices=["manual", "drive"], default="drive")
     parser.add_argument("--images-root", default=str(ROOT / "eval" / "images"))
@@ -423,9 +430,16 @@ def main():
     unknown = [x for x in chosen if x not in variants]
     if unknown:
         sys.exit(f"unknown prompt arm(s): {unknown}; available: {sorted(variants)}")
+    requested_models = args.models or (
+        MANUAL_DEFAULT_MODEL if args.mode == "manual" else DRIVE_DEFAULT_MODEL
+    )
+    model_names = [value.strip() for value in requested_models.split(",") if value.strip()]
+    unknown_models = [value for value in model_names if value not in ALLOWED_MODELS]
+    if unknown_models:
+        sys.exit(f"unsupported model(s): {unknown_models}; allowed: {sorted(ALLOWED_MODELS)}")
     configs = []
     for arm in chosen:
-        for model in filter(None, args.models.split(",")):
+        for model in model_names:
             for detail in filter(None, args.details.split(",")):
                 model, detail = normalise_config(model, detail)
                 item = (f"{arm}|{model}|{detail}|{args.mode}", variants[arm], model, detail)
@@ -471,6 +485,7 @@ def main():
             rows.append({"arm": name, "event": entry.get("event_id") or entry["path"],
                          "image": entry["path"], "label": entry["label"],
                          "labelled_by": entry.get("labelled_by"), "trial": trial,
+                         "accuracy_eligible": entry.get("accuracy_eligible", True),
                          "decision": decision(result, args.mode, len(entry_paths(entry))), "cached": cached,
                          "request_hash": cache_key, "transforms": transforms, **result})
             if index % 25 == 0:
@@ -500,7 +515,8 @@ def main():
 
         provisional = rates(arm_rows)
         verified_rows = [row for row in arm_rows
-                         if str(row.get("labelled_by", "")).strip().lower() == "owner"]
+                         if str(row.get("labelled_by", "")).strip().lower() == "owner"
+                         and row.get("accuracy_eligible") is True]
         verified = rates(verified_rows)
         vp, vn, vr, vf, vc = verified
         pp, pn, pr, pf, pc = provisional

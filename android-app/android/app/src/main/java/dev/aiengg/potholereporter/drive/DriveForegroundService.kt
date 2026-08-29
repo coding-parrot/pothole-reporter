@@ -1354,7 +1354,6 @@ class DriveForegroundService : LifecycleService() {
                         onEvidenceSaved = { uncommittedReportPhoto = it },
                         requireCompleteVerdict = repairCandidate != null
                     )
-                    workLedger.completeCheck()
                     val report = outcome?.reportEntity
                     if (outcome?.accepted == true && report != null) {
                         uncommittedReportPhoto = report.photoFullPath ?: report.photoPath
@@ -1428,7 +1427,7 @@ class DriveForegroundService : LifecycleService() {
                     // Only a complete detector verdict closes durable replay. A null or
                     // deliberately incomplete result stays pending, as does any local
                     // deduplication/report-persistence failure thrown above.
-                    analysisCompleted = outcome?.analyzed == true
+                    analysisCompleted = workLedger.completeIfAnalyzed(outcome?.analyzed == true)
                     publish(if (isStopping) "Finishing queued detections" else "Scanning live")
                 } catch (cancelled: CancellationException) {
                     throw cancelled

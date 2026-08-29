@@ -9,6 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 DRIVE = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive"
 SERVICE = (DRIVE / "DriveForegroundService.kt").read_text()
+START_REGISTRY = (DRIVE / "DriveStartRegistry.kt").read_text()
 STORE = (DRIVE / "NativeDriveEndSummaryStore.kt").read_text()
 PLUGIN = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/plugin/DriveModePlugin.kt").read_text()
 WEB_PATHS = [
@@ -95,7 +96,8 @@ check(
     "accepted native Start remains observable across plugin and WebView recreation",
     "val isStarting: Boolean = false" in SERVICE
     and "fun admitStart(requestId: String)" in SERVICE
-    and "START_ADMISSION_TTL_MS" in SERVICE
+    and "private val admissionTtlMs: Long = 30_000L" in START_REGISTRY
+    and "nowMs() - current.admittedAtMs > admissionTtlMs" in START_REGISTRY
     and "DriveForegroundService.admitStart(pending.requestId)" in PLUGIN
     and 'put("isStarting", status.isStarting)' in PLUGIN
     and "if (status && status.isStarting)" in restore

@@ -4714,10 +4714,42 @@ async function analyseFootage(driveId, driveRec) {
   const sourceStartS = Number.isFinite(recordedStart) && recordedStart > 0 ? recordedStart : idStart;
   const pending = [];
   const duplicateIds = new Set();
-  let found = 0, done = 0, elapsed = 0;
-  let failed = 0, consecutive = 0, lastErr = "", aborted = false;
+  let found = 0, extracted = 0, checked = 0, done = 0, elapsed = 0;
+  let failed = 0, unreadableClips = 0, consecutive = 0, lastErr = "", aborted = false;
   const manifest = [];
   let written = 0, writeFailed = false;
+
+  function waitForVodMetadata(video, timeoutMs) {
+    if (video.readyState >= 1) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      let settled = false;
+      const timer = setTimeout(() => finish(false), timeoutMs);
+      const finish = (ready) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        video.onloadedmetadata = null;
+        video.onerror = null;
+        resolve(ready);
+      };
+      video.onloadedmetadata = () => finish(true);
+      video.onerror = () => finish(false);
+    });
+  }
+
+  async function persistFootageAnalysis(analysis) {
+    await api(`/api/drives/${encodeURIComponent(driveId)}/analysis`, {
+      method: "POST",
+      body: JSON.stringify({
+        started_at: Number.isFinite(sourceStartS) ? sourceStartS : null,
+        checked: analysis.checked, found, already: duplicateIds.size,
+        planned: analysis.planned, extracted: analysis.extracted,
+        failed: analysis.failed, skipped: analysis.skipped,
+        unreadable_clips: analysis.unreadableClips, complete: analysis.complete,
+        already_ids: [...duplicateIds],
+      }),
+    }).catch(() => {});
+  }
 
   // Open every clip first, so the total is known before the first frame is checked. The
   // count used to be discovered as the loop walked the video, so it read "1 of 2" and
@@ -4731,21 +4763,20 @@ async function analyseFootage(driveId, driveRec) {
     const url = URL.createObjectURL(clip);
     const v = document.createElement("video");
     v.muted = true; v.preload = "auto"; v.src = url;
-    const meta = await new Promise((res) => {
-      v.onloadedmetadata = () => res({ dur: v.duration });
-      v.onerror = () => res({ error: true });
-      setTimeout(() => res({ error: true }), 15000);
-    });
-    if (meta.error) { URL.revokeObjectURL(url); continue; }
+    const metadataReady = await waitForVodMetadata(v, 15000);
+    if (!metadataReady) { unreadableClips++; URL.revokeObjectURL(url); continue; }
     // MediaRecorder writes WebM with no duration in the header, so the element reports
     // Infinity until something forces it to scan. Skipping those clips meant that on any
     // device whose WebView cannot record MP4, and the Android emulator is one, every
     // recording was stored and then declared missing. Seeking past the end resolves it.
-    let dur = meta.dur;
+    let dur = v.duration;
     if (!isFinite(dur) || dur <= 0) dur = await resolveDuration(v);
-    if (!isFinite(dur) || dur <= 0) { URL.revokeObjectURL(url); continue; }
-    const times = [];
-    for (let at = Math.min(0.4, dur / 2); at < dur; at += VOD_STEP_S) times.push(at);
+    if (!isFinite(dur) || dur <= 0) {
+      unreadableClips++;
+      URL.revokeObjectURL(url);
+      continue;
+    }
+    const times = StandaloneAPI.__pure.vodSampleTimes(dur, VOD_STEP_S);
     clips.push({ url, dur, times, blob: clip, seq: clipSeq,
       sourceOffsetS: Number.isFinite(storedClip.source_offset_s) ? storedClip.source_offset_s : null,
       recordingStartedAtMs: Number.isFinite(storedClip.recording_started_at_ms)
@@ -4753,7 +4784,16 @@ async function analyseFootage(driveId, driveRec) {
     v.src = ""; // the pool opens its own elements; this one was only for the duration
   }
   const total = clips.reduce((n, c) => n + c.times.length, 0);
-  if (!total) { show("home"); alert(t("analyse_none")); return; }
+  if (!total) {
+    await persistFootageAnalysis(StandaloneAPI.__pure.summarizeFootageAnalysis({
+      planned: 0, extracted, checked, failed, unreadableClips, aborted,
+    }));
+    show("home");
+    alert(unreadableClips
+      ? "The saved video could not be decoded. No frame was checked and the footage was kept."
+      : t("analyse_none"));
+    return;
+  }
   const paint = () => {
     $("progressText").innerHTML = t("analysing", { i: done, n: total, found })
       + (duplicateIds.size ? " " + t("analysing_dup", { n: duplicateIds.size }) : "")
@@ -4772,25 +4812,24 @@ async function analyseFootage(driveId, driveRec) {
       let settled = false;
       const finish = (b) => { if (!settled) { settled = true; res(b); } };
       v.onseeked = () => {
-        const scale = Math.min(1, 2000 / Math.max(v.videoWidth, v.videoHeight));
-        canvas.width = Math.round(v.videoWidth * scale);
-        canvas.height = Math.round(v.videoHeight * scale);
-        canvas.getContext("2d").drawImage(v, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(finish, "image/jpeg", 0.85);
+        try {
+          const scale = Math.min(1, 2000 / Math.max(v.videoWidth, v.videoHeight));
+          canvas.width = Math.round(v.videoWidth * scale);
+          canvas.height = Math.round(v.videoHeight * scale);
+          canvas.getContext("2d").drawImage(v, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(finish, "image/jpeg", 0.85);
+        } catch (e) { finish(null); }
       };
       v.onerror = () => finish(null);
       // A seek that never lands must not hang the whole run.
       setTimeout(() => finish(null), 8000);
-      v.currentTime = at;
+      try { v.currentTime = at; } catch (e) { finish(null); }
     });
   }
 
   async function grabVodBurst(v, canvas, at, duration) {
-    const last = Math.max(0.001, duration - 0.001);
-    const candidates = [Math.max(0.001, at - VOD_BURST_HALF_SPAN_S), at,
-      Math.min(last, at + VOD_BURST_HALF_SPAN_S)];
-    const distinct = candidates.filter((value, index, all) =>
-      all.findIndex((other) => Math.abs(other - value) < 0.04) === index);
+    const distinct = StandaloneAPI.__pure.vodBurstTimes(
+      at, duration, VOD_BURST_HALF_SPAN_S);
     const frames = [];
     for (const time of distinct) {
       const frame = await grabFrom(v, canvas, time);
@@ -4806,6 +4845,17 @@ async function analyseFootage(driveId, driveRec) {
     return { frames, primaryIndex };
   }
 
+  async function retryVodBurst(clip, at) {
+    const v = document.createElement("video");
+    v.muted = true; v.preload = "auto"; v.src = clip.url;
+    try {
+      const ready = await waitForVodMetadata(v, 8000);
+      return ready ? await grabVodBurst(v, canvasFor(), at, clip.dur) : null;
+    } finally {
+      v.src = "";
+    }
+  }
+
   let frameNo = -1;
   for (const clip of clips) {
     if (aborted) break;
@@ -4814,8 +4864,8 @@ async function analyseFootage(driveId, driveRec) {
     for (let k = 0; k < SEEKERS; k++) {
       const v = document.createElement("video");
       v.muted = true; v.preload = "auto"; v.src = clip.url;
-      await new Promise((res) => { v.onloadedmetadata = res; v.onerror = res; });
-      pool.push({ v, canvas: canvasFor() });
+      const ready = await waitForVodMetadata(v, 8000);
+      pool.push({ v, canvas: canvasFor(), ready });
     }
 
     const base = frameNo + 1;
@@ -4845,8 +4895,23 @@ async function analyseFootage(driveId, driveRec) {
           return;
         }
         const at = clip.times[idx];
-        const burst = await grabVodBurst(slot.v, slot.canvas, at, clip.dur);
-        if (!burst) { await submitInOrder(idx, null); done++; paint(); continue; }
+        let burst = null;
+        try {
+          if (slot.ready) burst = await grabVodBurst(slot.v, slot.canvas, at, clip.dur);
+        } catch (e) {}
+        if (!burst) {
+          try { burst = await retryVodBurst(clip, at); } catch (e) {}
+        }
+        if (!burst) {
+          await submitInOrder(idx, null);
+          failed++;
+          consecutive++;
+          lastErr = "A saved-video window could not be decoded after retry; footage was kept.";
+          done++;
+          paint();
+          continue;
+        }
+        extracted++;
         const blob = burst.frames[burst.primaryIndex].blob;
         // New recordings carry their real segment start, so recorder restart/write gaps
         // stay aligned with GPS and live detections. Summed duration is legacy fallback.
@@ -4873,6 +4938,10 @@ async function analyseFootage(driveId, driveRec) {
         await submitInOrder(idx, () => {
           pending.push(api("/api/frame", { method: "POST", body: fd })
             .then(async (r) => {
+              if (!r || r.analyzed !== true) {
+                throw new Error("The detector did not return a complete frame verdict.");
+              }
+              checked++;
               consecutive = 0;
               if (r && r.found) found++;
               else if (r && r.duplicate && r.duplicate_of != null) {
@@ -4928,7 +4997,11 @@ async function analyseFootage(driveId, driveRec) {
     try { await writeManifest(driveId, manifest); } catch (e) { writeFailed = true; }
   }
   let freed = 0;
-  if (!isDebug() && !failed) {
+  const analysis = StandaloneAPI.__pure.summarizeFootageAnalysis({
+    planned: total, extracted, checked, failed, unreadableClips, aborted,
+  });
+  const complete = analysis.complete;
+  if (!isDebug() && complete) {
     try {
       const before = (await api("/api/footage").catch(() => []))
         .filter((f) => String(f.drive_id) === String(driveId))
@@ -4937,24 +5010,23 @@ async function analyseFootage(driveId, driveRec) {
       freed = before / 1048576;
     } catch (e) {}
   }
-  await api(`/api/drives/${encodeURIComponent(driveId)}/analysis`, {
-    method: "POST",
-    body: JSON.stringify({ started_at: Number.isFinite(sourceStartS) ? sourceStartS : null,
-      checked: Math.max(0, done - failed), found, already: duplicateIds.size,
-      already_ids: [...duplicateIds] }),
-  }).catch(() => {});
+  await persistFootageAnalysis(analysis);
   await loadReports();
   show("home");
   const diskNote = !saveToDisk ? ""
     : (written ? " " + t("frames_saved", { n: written, dir: `${FRAME_DIR}/${driveId}` })
                : " " + t("frames_failed"));
-  const headline = failed
-    ? t("analyse_incomplete", { failed, n: total, err: lastErr })
+  const headline = !complete
+    ? t("analyse_incomplete", {
+        failed: analysis.incompleteItems,
+        n: total,
+        err: lastErr || (unreadableClips ? "One or more clips could not be decoded." : "Analysis stopped early."),
+      })
     : t("analyse_done", { found, n: total })
       + (duplicateIds.size ? " " + t("analyse_dup", { n: duplicateIds.size }) : "");
   alert(headline
         + (freed ? " " + t("footage_freed", { mb: freed.toFixed(0) })
-                 : (isDebug() || failed ? " " + t("footage_kept") : ""))
+                 : (isDebug() || !complete ? " " + t("footage_kept") : ""))
         + diskNote);
 }
 

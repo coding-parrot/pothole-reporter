@@ -50,8 +50,8 @@
   const DRIVE_DETECTION_DETAIL = "high";
   const ALLOWED_MODELS = new Set([DEFAULT_MODEL, "gpt-5.6"]);
   const ALLOWED_DETAILS = new Set(["high", "original"]);
-  const PROMPT_VERSION = "pothole-binary-v10";
-  const PHOTO_PROMPT_VERSION = "pothole-photo-only-v3";
+  const PROMPT_VERSION = "pothole-binary-v12";
+  const PHOTO_PROMPT_VERSION = "pothole-photo-only-v4";
   const SCHEMA_VERSION = 7;
   const REPAIR_PROMPT_VERSION = "road-repair-v1";
   const REPAIR_SCHEMA_VERSION = 1;
@@ -89,6 +89,51 @@
     // `original` is intentionally an experiment arm for the newest model. Older
     // vision models do not support it, so fail safely to their highest valid setting.
     return picked === "original" && model !== "gpt-5.6" ? "high" : picked;
+  }
+
+  /** Pure accounting for saved-video analysis; no skipped work can look successful. */
+  function summarizeFootageAnalysis({
+    planned, extracted, checked, failed, unreadableClips, aborted
+  }) {
+    const count = (value) => Math.max(0, Number(value) | 0);
+    const totals = {
+      planned: count(planned),
+      extracted: count(extracted),
+      checked: count(checked),
+      failed: count(failed),
+      unreadableClips: count(unreadableClips),
+      aborted: !!aborted,
+    };
+    totals.skipped = Math.max(0, totals.planned - totals.checked - totals.failed);
+    totals.complete = !totals.aborted && totals.failed === 0 &&
+      totals.unreadableClips === 0 && totals.checked === totals.planned &&
+      totals.extracted >= totals.checked;
+    totals.incompleteItems = totals.failed + totals.skipped + totals.unreadableClips;
+    return totals;
+  }
+
+  function vodSampleTimes(durationSeconds, stepSeconds) {
+    const duration = Number(durationSeconds);
+    const step = Number(stepSeconds);
+    if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(step) || step <= 0) {
+      return [];
+    }
+    const times = [];
+    for (let at = Math.min(0.4, duration / 2); at < duration; at += step) times.push(at);
+    return times;
+  }
+
+  function vodBurstTimes(atSeconds, durationSeconds, halfSpanSeconds = 0.4) {
+    const at = Number(atSeconds);
+    const duration = Number(durationSeconds);
+    const halfSpan = Number(halfSpanSeconds);
+    if (![at, duration, halfSpan].every(Number.isFinite) || duration <= 0 || halfSpan < 0) {
+      return [];
+    }
+    const last = Math.max(0.001, duration - 0.001);
+    return [Math.max(0.001, at - halfSpan), Math.min(last, Math.max(0.001, at)),
+      Math.min(last, at + halfSpan)].filter((value, index, all) =>
+      all.findIndex((other) => Math.abs(other - value) < 0.04) === index);
   }
 
   const OFFICERS = {
@@ -393,58 +438,34 @@
     return false; // no location at all: we cannot claim to know who is responsible
   }
 
-  const DETECT_PROMPT = `You are a high-precision binary pothole detector inspecting one or more chronologically ordered road views for a civic complaint app.
+  const DETECT_PROMPT = `You are a strict binary pothole detector for a civic complaint app. Inspect the supplied road views in chronological order and return only the structured fields in the schema. False positives are more harmful than false negatives: ambiguous geometry is NO.
 
-Return one decision only: is_pothole true (YES) or false (NO). There is no confidence score, probability, probable result, review result, or general road-damage category. False positives are more harmful than false negatives, so any ambiguity must be NO.
+A pothole is a localized wheel-dropping depression caused by missing, displaced, or disintegrated road-surface material. It does not need to be round, deep, dark, fully enclosed, or surrounded by intact pavement.
 
-A pothole is a localized concave open cavity in the surface currently used by moving road traffic, with surface material visibly missing, displaced, or disintegrated. A YES requires all of these:
-- the feature is on the drivable surface used by moving traffic;
-- it has a distinct local edge, lip, or abrupt height discontinuity enclosing a depressed opening;
-- it has visible depth or localized material loss; and
-- when several chronological views are supplied, they consistently show the same concave geometry as the vehicle approaches.
+Return is_pothole true only when all are visible:
+1. The damaged footprint lies on the surface the recording vehicle is actually traversing.
+2. The footprint is lower than the adjacent wheel path and has localized material loss.
+3. At least one side has an irregular broken lip, eroded edge, or abrupt material-height drop.
+4. With multiple views, the same lower footprint moves or grows predictably as the vehicle approaches.
+5. It is not an intentional raised speed breaker, hump, or rumble strip.
 
-Position near the side of a lane is not itself a rejection. A localized cavity whose opening intrudes into the drivable surface actually used by moving traffic may be YES when every physical gate above is satisfied, including when the cavity adjoins a raised kerb or roadside slab. This exception is only for the cavity footprint inside the active traffic surface: damage confined to a kerb, gutter, drain, footpath, shoulder, verge, roadside ground, or a broken outer edge that vehicles do not traverse is NO.
+"Localized" means a stable, limited footprint within the traffic path; it does not mean a closed circular rim. On an unfinished, gravel-covered, failed, or construction-stage traffic lane, a jagged eroded depression or connected cavity cluster is YES when it occupies only part of the wheel path, is visibly lower than the adjacent path, and keeps at least one abrupt lip across the approach. Loose rubble within or beside that lower footprint and one boundary blending into surrounding failed material do not turn it into general roughness. A water-filled depression is YES when its stable edge and lower opening remain visible; the floor need not be visible. Do not reject such a feature merely because the rest of the lane is also rough.
 
-Return NO for a speed breaker, road hump, rumble strip, shadow, stain, glare, dust, loose debris, lane marking, intact patch, crack, broad surface breakup without a distinct cavity, wheel rut, smooth depression, manhole, drain, expansion joint, shoulder erosion, construction obstacle, or broken edge outside the active traffic surface. A failed patch is YES only when it now contains a distinct cavity satisfying every rule.
+General gravel texture, road-wide grading, corrugation, broad roughness with no local lower footprint, a wheel rut with smooth sides, loose debris resting on a level surface, a stain, shadow, puddle with no visible depressed boundary, intact patch, crack, seam, manhole, drain, shoulder erosion, construction obstacle, or damage outside the wheel-traversed surface is NO. A darker or rougher strip at a paved-to-loose-material transition is also NO when no interior is visibly lower than both adjacent surfaces; persistence of that flat transition across views is not depth evidence.
 
-Speed-breaker rule:
-- Set looks_like_speed_breaker true whenever the feature is or could reasonably be an intentional raised speed breaker, hump, or rumble strip. Painted rectangles or stripes, reflectors, a transverse ridge across the lane, parallel leading/trailing edges, camera pitch, and a vehicle jolt support NO, not YES.
-- A separate cavity on or beside a breaker is YES only when it is visually unambiguous and distinct from the raised ridge. If raised-versus-concave geometry is uncertain, return NO.
+Speed-breaker hard veto: set looks_like_speed_breaker true and is_pothole false whenever the feature is or could reasonably be a raised transverse ridge. Painted bands or rectangles, reflectors, parallel leading/trailing edges, a vehicle jolt, and camera pitch support a breaker. A separate cavity beside a breaker is YES only when clearly distinct from the raised ridge; raised-versus-concave ambiguity is NO.
 
-Classify surface_type as:
-- bituminous_asphalt for conventional asphalt or blacktop;
-- cement_concrete for a concrete slab;
-- mastic_asphalt only when that pavement is visually identifiable;
-- paver_blocks for interlocking paved blocks;
-- temporary_drivable_surface only for an unsealed, unfinished, or construction-stage lane that the chronological views clearly show is currently carrying road traffic;
-- unpaved_or_nonroad for a dirt or gravel shoulder, construction bed, work area, service path, roadside ground, or other non-carriageway surface; or
-- unknown whenever the material or road use is uncertain.
+Surface type:
+- bituminous_asphalt, cement_concrete, mastic_asphalt, or paver_blocks when identifiable;
+- temporary_drivable_surface for an unsealed or construction-stage path that the recording vehicle traverses. In a forward-facing Drive burst, coherent forward motion along a continuous wheel path proves this use even when no second vehicle is visible;
+- unpaved_or_nonroad for a shoulder, construction bed, work area, service path, or roadside ground not being traversed; otherwise unknown.
+unpaved_or_nonroad and unknown are always NO.
 
-Camera position alone does not prove that an unsealed surface is a traffic lane. The four named paved surfaces may be YES only when every physical gate is satisfied. For temporary_drivable_surface, distinguish a local cavity from the surrounding unfinished texture:
-- A pothole can exist inside a generally rough, failed, or gravel-covered traffic lane. Do not reject a discrete cavity merely because nearby surface is also damaged or unfinished.
-- On this surface, a broken edge or rim can be an eroded lip or abrupt localized material-height change; it need not be a fractured asphalt edge.
-- A water-filled cavity can be YES when a localized enclosing lip and depressed opening remain visible and preserve their geometry across the approach. Water or a dark patch without that independent boundary evidence is NO; the cavity floor need not be visible through opaque water.
-- Do not require dramatic depth, a black interior, or an exposed cavity floor. A shallow opening is YES only when an irregular eroded lip or abrupt material-height change bounds a visibly lower local interior and that same footprint remains coherent as it grows across the approach views. A flat discoloration, intact repair, soft shadow, loose-gravel texture, or broad unevenness without that bounded lower interior is NO.
-- A long or open-ended eroded edge, a seam or step between paver blocks and loose aggregate, missing edge blocks, and a transition between paved and unfinished material are NO. Do not reinterpret one of these boundaries as a cavity cluster merely because the same rough edge persists across the approach.
-- On loose gravel, changes in colour, aggregate density, wheel-track texture, or grading do not prove a cavity. Require a separate compact concave opening with its own localized enclosing lip and visibly lower interior; never infer either feature from aggregate texture alone.
-- Two or more adjacent discrete bowl-like material-loss openings are one connected cavity-cluster event. Do not relabel them as broad breakup when their local boundaries remain distinct.
-- Two adjacent compact oval material-loss openings may be one shallow cavity-cluster even when their floors are similar in colour to the surrounding lane. This is YES only when each opening has a stable irregular boundary and visibly lower interior across the approach; patch outlines and stains remain NO.
-- General roughness, corrugation, wheel ruts, broad breakup, loose aggregate, normal gravel texture, grading, and smooth depressions are NO.
+A cavity at a road edge may be YES when its opening removes part of the flat traffic surface or creates a wheel-reachable drop, even if rubble extends beneath a raised roadside slab. It is NO when an intact kerb or gutter separates the entire opening from traffic.
 
-Road-edge boundary interpretation:
-- A cavity at the meeting line of a flat roadway foreground and a raised roadside slab is not confined to the footpath or gutter when its broken opening removes part of that flat road edge or creates an abrupt open drop reachable by a vehicle wheel. In that case set on_drivable_surface true even when much of the visible void or rubble extends beside or underneath the slab. Reject it as confined outside the road only when an intact continuous kerb or gutter clearly separates the entire cavity opening from the traffic surface.
+Set has_localized_cavity, has_broken_edge_or_rim, and has_depth_or_surface_loss true when the physical evidence above is present. Set image_quality unusable only when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. For multiple views set temporal_consistency consistent when at least two show the same footprint; a feature leaving the final crop is not disagreement. Use single_view for one user-framed photo.
 
-unpaved_or_nonroad and unknown must always be NO.
-
-Set image_quality unusable when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. For multiple views use temporal_consistency consistent only when they agree; use inconsistent when they do not. For a single user-framed image use single_view.
-
-Only after YES, classify approximate visual size using the app's simple bands:
-- small: maximum visible opening width below 30 cm;
-- medium: 30 to 60 cm;
-- large: above 60 cm or a connected cavity cluster.
-For NO, size must be null. These are app visual classes only, not measured dimensions and not BMC, BDA, GBA, or any other authority's official categories.
-
-description must be one or two factual sentences. For YES, name the visible cavity evidence, position, and road-user hazard. For NO, briefly name the disqualifying feature. Never output a confidence percentage.`;
+After YES, set size to small below 30 cm, medium from 30 to 60 cm, or large above 60 cm or for a connected cavity cluster. For NO, size is null. These are visual app estimates, not official measurements. Keep description factual and never output confidence or probability.`;
 
   const PHOTO_ONLY_PROMPT_SUFFIX = `
 
@@ -623,6 +644,8 @@ This is a strict before/after verification, not ordinary pothole detection:
   const TEMPORARY_DRIVABLE_SURFACE = "temporary_drivable_surface";
   const REPORTABLE_SURFACES = new Set([...PAVED_SURFACES, TEMPORARY_DRIVABLE_SURFACE]);
   const KNOWN_SURFACES = new Set([...REPORTABLE_SURFACES, "unpaved_or_nonroad", "unknown"]);
+  const LEGACY_NATIVE_V10_PROMPT_VERSION = "pothole-binary-v10";
+  const LEGACY_NATIVE_V10_SCHEMA_VERSION = 7;
   const LEGACY_NATIVE_V9_PROMPT_VERSION = "pothole-binary-v9";
   const LEGACY_NATIVE_V9_SCHEMA_VERSION = 7;
   const LEGACY_NATIVE_V8_PROMPT_VERSION = "pothole-binary-v8";
@@ -636,7 +659,13 @@ This is a strict before/after verification, not ordinary pothole detection:
     if (!native || typeof native !== "object") return null;
     if (native.prompt_version === PROMPT_VERSION
         && Number(native.schema_version) === SCHEMA_VERSION) {
-      return { kind: "current_v10", surfaceTypes: REPORTABLE_SURFACES };
+      return { kind: "current_v12", surfaceTypes: REPORTABLE_SURFACES };
+    }
+    // v10 used the same strict fields and remains valid for unsynced rows captured by
+    // the previous GitHub release. Its prompt differed, so retain provenance.
+    if (native.prompt_version === LEGACY_NATIVE_V10_PROMPT_VERSION
+        && Number(native.schema_version) === LEGACY_NATIVE_V10_SCHEMA_VERSION) {
+      return { kind: "legacy_v10", surfaceTypes: REPORTABLE_SURFACES };
     }
     // v9 used the same strict fields and remains valid for unsynced rows captured by
     // the previous GitHub release. Its prompt and crop differed, so retain provenance.
@@ -10278,6 +10307,12 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       prior.analysis_checked = Math.max(0, stats.checked | 0);
       prior.analysis_found = Math.max(0, stats.found | 0);
       prior.analysis_already = Math.max(0, stats.already | 0, incomingIds.length);
+      prior.analysis_planned = Math.max(0, stats.planned | 0);
+      prior.analysis_extracted = Math.max(0, stats.extracted | 0);
+      prior.analysis_failed = Math.max(0, stats.failed | 0);
+      prior.analysis_skipped = Math.max(0, stats.skipped | 0);
+      prior.analysis_unreadable_clips = Math.max(0, stats.unreadable_clips | 0);
+      prior.analysis_complete = stats.complete === true;
       prior.analysis_at = Date.now() / 1000;
       await putDrive(prior);
       return { ok: true };
@@ -10481,6 +10516,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    binaryAssessment,
                    nativeDetectorContract,
                    damageTypeOf, assessmentOf, normaliseModel, normaliseDetail,
+                   summarizeFootageAnalysis, vodSampleTimes, vodBurstTimes,
                    DRIVE_DETECTION_MODEL, DRIVE_DETECTION_DETAIL,
                    normaliseIssueType, civicIssueName, issueFileStem,
                    buildDetectionRequest, ASSESS_SCHEMA, DETECT_PROMPT, PROMPT_VERSION,

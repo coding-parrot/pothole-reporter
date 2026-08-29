@@ -45,9 +45,12 @@ internal class NativeDriveWorkLedger {
         return removedFromQueue
     }
 
+    /** Records exactly one completed model verdict; incomplete/null work stays pending. */
     @Synchronized
-    fun completeCheck() {
+    fun completeIfAnalyzed(analyzed: Boolean): Boolean {
+        if (!analyzed) return false
         checked++
+        return true
     }
 
     @Synchronized

@@ -37,11 +37,21 @@ class NativeDriveWorkLedgerTest {
         val ledger = NativeDriveWorkLedger()
         ledger.admitLive()
         ledger.deferLive()
-        ledger.completeCheck()
+        ledger.completeIfAnalyzed(true)
 
         ledger.reset()
 
         assertEquals(NativeDriveWorkSnapshot(0, 0, 0), ledger.snapshot())
+    }
+
+    @Test
+    fun onlyCompleteModelVerdictsIncrementChecked() {
+        val ledger = NativeDriveWorkLedger()
+
+        assertFalse(ledger.completeIfAnalyzed(false))
+        assertEquals(0, ledger.completedCount())
+        assertTrue(ledger.completeIfAnalyzed(true))
+        assertEquals(1, ledger.completedCount())
     }
 
     @Test
@@ -58,7 +68,7 @@ class NativeDriveWorkLedgerTest {
                 repeat(iterations) {
                     ledger.admitLive()
                     ledger.deferLive()
-                    ledger.completeCheck()
+                    ledger.completeIfAnalyzed(true)
                 }
                 done.countDown()
             }

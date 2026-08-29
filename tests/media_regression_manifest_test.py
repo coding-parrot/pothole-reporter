@@ -35,17 +35,24 @@ EXPECTED = {
         "source_timestamps_seconds": [45.166667, 45.433333, 45.7],
     },
     "owner-construction-drive-2026-08-28-b": {
-        "label": "not_pothole",
+        "label": "disputed",
         "mode": "drive",
         "source_file": "construction-drive-segment-1",
         "source_interval_seconds": [53.3, 55.8],
         "source_timestamps_seconds": [55.066667, 55.333333, 55.6],
     },
+    "owner-construction-drive-2026-08-28-segment-2-second-4": {
+        "label": "pothole",
+        "mode": "drive",
+        "source_file": "construction-drive-segment-2",
+        "source_interval_seconds": [3.8, 5.4],
+        "source_timestamps_seconds": [4.533333, 4.8, 5.066667],
+    },
     "owner-construction-drive-2026-08-28-borderline-negative": {
         "label": "not_pothole",
         "mode": "drive",
         "source_file": "construction-drive-segment-2",
-        "source_interval_seconds": [0.0, 48.99],
+        "source_interval_seconds": [43.5, 44.8],
         "source_timestamps_seconds": [43.866667, 44.133333, 44.4],
     },
     "tester-opening-grid-calming-marking-2026-08-25": {
@@ -134,7 +141,7 @@ for event_id, expected in EXPECTED.items():
             round((right - left) * 1000)
             for left, right in zip(timestamps, timestamps[1:])
         ]
-        check(f"{event_id} is sampled at production analyzer cadence",
+        check(f"{event_id} records three views at the configured sample interval",
               len(timestamps) == 3
               and event.get("source_sample_timestamps_seconds") == timestamps
               and event.get("selected_source_indices") == [0, 1, 2]
@@ -145,13 +152,22 @@ for event_id, expected in EXPECTED.items():
                       for spacing in observed_spacing))
 
 event_b_notes = EVENTS.get("owner-construction-drive-2026-08-28-b", {}).get("notes", "").lower()
-check("ambiguous event B is documented as a strict negative",
-      "ambiguous" in event_b_notes and "strict" in event_b_notes
-      and "no" in event_b_notes)
+check("ambiguous event B explicitly awaits an owner label",
+      "ambiguous" in event_b_notes and "owner label" in event_b_notes)
 
-segment_two_notes = EVENTS.get(
+segment_two_positive = EVENTS.get(
+    "owner-construction-drive-2026-08-28-segment-2-second-4", {})
+check("segment_0002 second 4 is retained as an owner-confirmed positive",
+      segment_two_positive.get("label") == "pothole"
+      and segment_two_positive.get("labelled_by") == "owner"
+      and "second 4" in segment_two_positive.get("notes", "").lower())
+segment_two_negative_notes = EVENTS.get(
     "owner-construction-drive-2026-08-28-borderline-negative", {}).get("notes", "").lower()
-check("segment_0002 is documented as all-negative", "all-negative" in segment_two_notes)
+check("segment_0002 second 44 negative is explicitly local",
+      "local strict-negative" in segment_two_negative_notes
+      and "not the whole clip" in segment_two_negative_notes)
+check("segment_0001 second 35 is owner-confirmed",
+      EVENTS.get("owner-construction-drive-2026-08-28-a", {}).get("labelled_by") == "owner")
 
 traffic_ids = (
     "tester-opening-grid-calming-marking-2026-08-25",
@@ -160,6 +176,11 @@ traffic_ids = (
 )
 check("all three traffic-calming intervals are retained as negatives",
       all(EVENTS.get(event_id, {}).get("label") == "not_pothole"
+          for event_id in traffic_ids))
+check("external tester recordings stay out of production-accuracy rates",
+      all(EVENTS.get(event_id, {}).get("capture_provenance")
+              == "external_recording_of_test_device"
+          and EVENTS.get(event_id, {}).get("accuracy_eligible") is False
           for event_id in traffic_ids))
 check("only the two tester-identified speed breakers claim owner verification",
       EVENTS[traffic_ids[0]].get("labelled_by") == "independent assistant frame review"
@@ -172,12 +193,12 @@ later_observed_spacing = [
     round((right - left) * 1000)
     for left, right in zip(later_timestamps, later_timestamps[1:])
 ]
-check("later tester breaker uses the neutral native-cadence fixture path",
+check("later tester breaker retains its external-recording fixture path",
       later_breaker.get("path") == "tester-speed-breaker-native-cadence/later/f1.jpg"
       and all(path.startswith("tester-speed-breaker-native-cadence/later/")
               for path in later_breaker.get("frames", []))
-      and "whatsapp" not in json.dumps(later_breaker).lower())
-check("later tester breaker enforces three-source sampling and selected-view spacing",
+      and later_breaker.get("capture_provenance") == "external_recording_of_test_device")
+check("later tester breaker records sampled external-video spacing",
       later_breaker.get("capture_cadence_ms") == 250
       and later_breaker.get("selected_source_indices") == [0, 1, 2]
       and later_breaker.get("observed_source_spacing_ms") == [267, 267]

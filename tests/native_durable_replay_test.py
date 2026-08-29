@@ -54,8 +54,8 @@ check(
 )
 check(
     "native completion is checkpointed only after a complete detector verdict",
-    "analysisCompleted = outcome?.analyzed == true" in worker
-    and worker.index("analysisCompleted = outcome?.analyzed == true")
+    "analysisCompleted = workLedger.completeIfAnalyzed(outcome?.analyzed == true)" in worker
+    and worker.index("analysisCompleted = workLedger.completeIfAnalyzed(outcome?.analyzed == true)")
         < worker.index("markAnalyzed(keyframeId)"),
 )
 check(
