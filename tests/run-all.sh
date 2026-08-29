@@ -46,7 +46,7 @@ pkill -f "tests/serve_app.py --port 8765" >/dev/null 2>&1
 start_server || { echo "could not start the static server"; exit 1; }
 trap 'pkill -f "tests/serve_app.py --port 8765" >/dev/null 2>&1' EXIT
 
-TESTS="llm_contract_parity_test standalone_default_test unit_test server_client_contract_test timeout_contract_test email_only_flow_test native_email_cache_test browser_civic_cache_migration_test central_resolution_isolation_test eval_contract_test persistent_dedupe_test manual_analysis_race_test video_import_test native_video_import_bridge_test footage_metadata_test footage_backpressure_test drive_start_stop_test orphan_footage_test capture_cadence_test letter_test tender_determinism_test tender_source_registry_test national_highway_contracts_test storage_commit_test stalled_body_test
+TESTS="llm_contract_parity_test standalone_default_test unit_test server_client_contract_test timeout_contract_test email_only_flow_test native_email_cache_test browser_civic_cache_migration_test central_resolution_isolation_test eval_contract_test persistent_dedupe_test manual_analysis_race_test video_import_test native_video_import_bridge_test footage_metadata_test footage_backpressure_test drive_start_stop_test orphan_footage_test capture_cadence_test letter_test tender_determinism_test tender_source_registry_test national_highway_contracts_test national_highway_tile_buffer_test storage_commit_test stalled_body_test
        stored_xss_test public_map_test privacy_consent_test ui_text_test routing_test nh_test gis_failure_test footage_test"
 
 for t in $TESTS; do

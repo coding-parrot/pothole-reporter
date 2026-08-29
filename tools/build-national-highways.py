@@ -161,11 +161,16 @@ def tile_id(lng: int, lat: int) -> str:
 
 
 def tiles_for(points: list[tuple[float, float]]) -> Iterable[tuple[str, list[float]]]:
-    buffer_deg = TILE_BUFFER_METERS / 110_540
-    min_lng = min(point[0] for point in points) - buffer_deg
-    min_lat = min(point[1] for point in points) - buffer_deg
-    max_lng = max(point[0] for point in points) + buffer_deg
-    max_lat = max(point[1] for point in points) + buffer_deg
+    lat_buffer_deg = TILE_BUFFER_METERS / 110_540
+    # A degree of longitude spans 111_320 * cos(latitude) metres, so the east-west buffer
+    # is sized at the highest latitude the way reaches and holds along the whole way.
+    worst_lat = max(abs(point[1]) for point in points)
+    lng_buffer_deg = TILE_BUFFER_METERS / max(
+        1.0, 111_320 * math.cos(math.radians(worst_lat)))
+    min_lng = min(point[0] for point in points) - lng_buffer_deg
+    min_lat = min(point[1] for point in points) - lat_buffer_deg
+    max_lng = max(point[0] for point in points) + lng_buffer_deg
+    max_lat = max(point[1] for point in points) + lat_buffer_deg
     lng_start = math.floor(min_lng / TILE_SIZE) * TILE_SIZE
     lat_start = math.floor(min_lat / TILE_SIZE) * TILE_SIZE
     lng_end = math.floor(max_lng / TILE_SIZE) * TILE_SIZE
