@@ -12,7 +12,10 @@ DRIVE = SRC / "java/dev/aiengg/potholereporter/drive"
 CAMERA = (DRIVE / "NativeDriveCameraManager.kt").read_text()
 LOCATION = (DRIVE / "NativeDriveLocationProvider.kt").read_text()
 SERVICE = (DRIVE / "DriveForegroundService.kt").read_text()
-INFERENCE = (DRIVE / "NativeInferenceEngine.kt").read_text()
+INFERENCE = "\n".join(
+    (DRIVE / name).read_text()
+    for name in ("NativeInferenceEngine.kt", "NativeInferenceProtocol.kt", "NativeInferenceTransport.kt")
+)
 NOTIFICATION = (DRIVE / "NotificationHelper.kt").read_text()
 RECEIVER = (DRIVE / "NotificationActionReceiver.kt").read_text()
 WEB = (ROOT / "static/index.html").read_text()

@@ -50,7 +50,7 @@ check(
     "capacity = Channel.RENDEZVOUS" in SERVICE
     and "onBufferOverflow" not in SERVICE
     and "durable replay still owns the work" in SERVICE
-    and "droppedCount++" in scan[scan.index("jobChannel?.trySend(item)"):],
+    and "workLedger.deferLive()" in scan[scan.index("jobChannel?.trySend(item)"):],
 )
 check(
     "native completion is checkpointed only after a complete detector verdict",

@@ -10,7 +10,7 @@ DRIVE = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter
 PLUGIN = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/plugin"
 SERVICE = (DRIVE / "DriveForegroundService.kt").read_text()
 CAMERA = (DRIVE / "NativeDriveCameraManager.kt").read_text()
-INFERENCE = (DRIVE / "NativeInferenceEngine.kt").read_text()
+INFERENCE_PROTOCOL = (DRIVE / "NativeInferenceProtocol.kt").read_text()
 REPORT_STORAGE = (DRIVE / "NativeReportEvidenceStorage.kt").read_text()
 DISCARDED = (DRIVE / "NativeDiscardedMediaCleanup.kt").read_text()
 RETRY = (DRIVE / "NativeRetryableFileCleanup.kt").read_text()
@@ -45,7 +45,7 @@ check(
     "uncommittedReportPhoto?.let" in SERVICE
     and "uncommittedRepairPhoto?.let" in SERVICE
     and SERVICE.count("NativeReportEvidenceStorage.deleteVerified(File(it))") >= 2
-    and "NativeReportEvidenceStorage.deleteVerified(file)" in INFERENCE
+    and "NativeReportEvidenceStorage.deleteVerified(file)" in INFERENCE_PROTOCOL
     and REPORT_STORAGE.count("NativeRetryableFileCleanup.deleteVerified(") >= 2,
 )
 check(

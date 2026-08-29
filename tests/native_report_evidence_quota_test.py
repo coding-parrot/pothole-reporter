@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DRIVE = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive"
 STORAGE = (DRIVE / "NativeReportEvidenceStorage.kt").read_text()
 INFERENCE = (DRIVE / "NativeInferenceEngine.kt").read_text()
+EVIDENCE_STORE = (DRIVE / "NativeInferenceEvidenceStore.kt").read_text()
+PROTOCOL = (DRIVE / "NativeInferenceProtocol.kt").read_text()
 SERVICE = (DRIVE / "DriveForegroundService.kt").read_text()
 PLUGIN = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/plugin/DriveModePlugin.kt").read_text()
 DAO = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/db/Daos.kt").read_text()
@@ -28,7 +30,7 @@ reserve = STORAGE[STORAGE.index("suspend fun reserveInferenceCapacity("):
 analyze = INFERENCE[INFERENCE.index("suspend fun analyzeBurst("):
                     INFERENCE.index("suspend fun verifyRepair(")]
 repair = INFERENCE[INFERENCE.index("suspend fun verifyRepair("):
-                   INFERENCE.index("private fun executeOaiStreaming(")]
+                   INFERENCE.index("private fun prepareDetectionImages(")]
 pruning = STORAGE[STORAGE.index("private suspend fun pruningCandidatesLocked("):
                   STORAGE.index("private fun managedDescendant(")]
 clear_data = PLUGIN[PLUGIN.index("fun clearNativeData("):
@@ -60,10 +62,10 @@ check(
 )
 check(
     "detection and repair reserve capacity before paid requests and always release it",
-    analyze.index("reserveInferenceCapacity(context)") < analyze.index("executeOaiStreaming(")
-    < analyze.index("saveEvidenceImage(")
-    and repair.index("reserveInferenceCapacity(context)") < repair.index("executeRepairStreaming(")
-    < repair.index("saveRepairEvidenceImage(")
+    analyze.index("reserveInferenceCapacity(appContext)") < analyze.index("transport.detect(")
+    < analyze.index("evidenceStore.saveDetection(")
+    and repair.index("reserveInferenceCapacity(appContext)") < repair.index("transport.verifyRepair(")
+    < repair.index("evidenceStore.saveRepair(")
     and "releaseInferenceCapacity(evidenceLease)" in analyze
     and "releaseInferenceCapacity(evidenceLease)" in repair
     and "suspendInference = true" in reserve,
@@ -86,8 +88,8 @@ check(
 )
 check(
     "both inference saves and all uncommitted cleanup are quota-aware",
-    "NativeReportEvidenceStorage.saveJpegAtomically(" in INFERENCE
-    and "NativeReportEvidenceStorage.deleteVerified(file)" in INFERENCE
+    "NativeReportEvidenceStorage.saveJpegAtomically(" in EVIDENCE_STORE
+    and "NativeReportEvidenceStorage.deleteVerified(file)" in PROTOCOL
     and SERVICE.count("NativeReportEvidenceStorage.deleteVerified(File(it))") >= 2,
 )
 check(

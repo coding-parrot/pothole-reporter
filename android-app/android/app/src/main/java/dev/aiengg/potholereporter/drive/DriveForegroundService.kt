@@ -28,7 +28,6 @@ import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
 
 data class BurstJob(
@@ -99,11 +98,10 @@ class DriveForegroundService : LifecycleService() {
     @Volatile private var captureStopped = false
     @Volatile private var sessionRunning = false
     private var captureSeq = 0
-    @Volatile private var checkedCount = 0
+    private val workLedger = NativeDriveWorkLedger()
+    private val checkedCount: Int get() = workLedger.completedCount()
     @Volatile private var foundCount = 0
     @Volatile private var alreadyCount = 0
-    private val queuedCount = AtomicInteger(0)
-    @Volatile private var droppedCount = 0
     @Volatile private var statusText = "Idle"
     @Volatile private var recordingEnabled = false
     @Volatile private var isRecording = false
@@ -501,8 +499,8 @@ class DriveForegroundService : LifecycleService() {
         startedAtMs = System.currentTimeMillis()
         sessionId = startedAtMs.toString()
         isPaused = false; isStopping = false; captureStopped = false; sessionRunning = true
-        captureSeq = 0; checkedCount = 0; foundCount = 0; alreadyCount = 0
-        queuedCount.set(0); droppedCount = 0; duplicateIds.clear()
+        captureSeq = 0; foundCount = 0; alreadyCount = 0
+        workLedger.reset(); duplicateIds.clear()
         stopTeardownJob = null
         recordingEnabled = recordVideo; isRecording = false; videoSupported = true
         debugMode = debug
@@ -548,7 +546,7 @@ class DriveForegroundService : LifecycleService() {
             // safely defers model work to the bounded post-drive replay path.
             capacity = Channel.RENDEZVOUS,
             onUndeliveredElement = { item ->
-                recycle(item); droppedCount++; decrementQueuedCount()
+                recycle(item); workLedger.deferLive()
             }
         )
         locationProvider = NativeDriveLocationProvider(
@@ -765,13 +763,12 @@ class DriveForegroundService : LifecycleService() {
                 // A RENDEZVOUS receiver can resume before trySend returns. Increment
                 // first and roll back failed hand-offs so the public counter cannot be
                 // left at one after the worker has already consumed the burst.
-                queuedCount.incrementAndGet()
+                workLedger.admitLive()
                 if (jobChannel?.trySend(item)?.isSuccess != true) {
-                    decrementQueuedCount()
+                    workLedger.deferLive()
                     // The source JPEGs and metadata were committed before this point.
                     // Release only the raw Bitmaps; durable replay still owns the work.
                     recycle(item)
-                    droppedCount++
                 }
                 publish("Scanning live")
             }
@@ -1387,7 +1384,7 @@ class DriveForegroundService : LifecycleService() {
         val channel = jobChannel ?: return
         workerJob = lifecycleScope.launch(Dispatchers.IO) {
             for (item in channel) {
-                decrementQueuedCount()
+                workLedger.consumeLive()
                 var analysisCompleted = false
                 var uncommittedReportPhoto: String? = null
                 var uncommittedRepairPhoto: String? = null
@@ -1424,7 +1421,7 @@ class DriveForegroundService : LifecycleService() {
                         onEvidenceSaved = { uncommittedReportPhoto = it },
                         requireCompleteVerdict = repairCandidate != null
                     )
-                    checkedCount++
+                    workLedger.completeCheck()
                     val report = outcome?.reportEntity
                     if (outcome?.accepted == true && report != null) {
                         uncommittedReportPhoto = report.photoFullPath ?: report.photoPath
@@ -2380,6 +2377,7 @@ class DriveForegroundService : LifecycleService() {
     }
 
     private fun snapshot(): DriveStatusSnapshot {
+        val work = workLedger.snapshot()
         // Derive both public fields from one current decision. The cached blocker exists
         // only for transition handling and can lag one callback during permission/GPS changes.
         val capture = captureInterlockDecision()
@@ -2393,8 +2391,8 @@ class DriveForegroundService : LifecycleService() {
         val effectiveStartRequestId = startRequestId ?: pendingAdmittedStartRequestId()
         return DriveStatusSnapshot(
             sessionRunning, isPaused, pauseTransitioning, isStopping,
-            sessionId.takeIf(String::isNotBlank), checkedCount,
-            foundCount, alreadyCount, queuedCount.get(), droppedCount, visibleStatus,
+            sessionId.takeIf(String::isNotBlank), work.checked,
+            foundCount, alreadyCount, work.queued, work.deferred, visibleStatus,
             recordingEnabled, isRecording, videoSupported, segmentCount, recordedBytes,
             cameraActive,
             recordingIssue, keyframeCount, remainingDriveMs(), sessionLimitMinutes,
@@ -2409,13 +2407,6 @@ class DriveForegroundService : LifecycleService() {
     private fun inferenceSuspendedStatus(reason: String): String =
         "$reason · Detection paused; camera and local video continue. " +
             "Stop Drive, check the API key/model, then start again."
-
-    private fun decrementQueuedCount() {
-        while (true) {
-            val current = queuedCount.get()
-            if (current <= 0 || queuedCount.compareAndSet(current, current - 1)) return
-        }
-    }
 
     private fun claimStopCompletion(candidate: DriveEndSummary): StopCompletionClaim =
         synchronized(stopCallbacks) {

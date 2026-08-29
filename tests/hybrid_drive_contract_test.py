@@ -18,7 +18,17 @@ DISCARDED_MEDIA = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/poth
 KEYFRAME_FILES = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeKeyframeFiles.kt").read_text()
 IMAGE_POLICY = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeStoredImagePolicy.kt").read_text()
 QUALITY = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/FrameQualityEvaluator.kt").read_text()
-INFERENCE = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeInferenceEngine.kt").read_text()
+inference_dir = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive"
+INFERENCE = "\n".join(
+    (inference_dir / name).read_text()
+    for name in (
+        "NativeInferenceEngine.kt",
+        "NativeInferenceEvidenceStore.kt",
+        "NativeInferenceProtocol.kt",
+        "NativeInferenceTransport.kt",
+        "NativeDetectionContract.kt",
+    )
+)
 REPORT_STORAGE = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeReportEvidenceStorage.kt").read_text()
 POLICY = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/DriveSessionLimitPolicy.kt").read_text()
 PLUGIN = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/plugin/DriveModePlugin.kt").read_text()

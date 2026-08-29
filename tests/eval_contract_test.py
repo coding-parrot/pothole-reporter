@@ -9,8 +9,12 @@ road_eval = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(road_eval)
 client = (ROOT / "static" / "standalone.js").read_text()
 evaluator_source = (ROOT / "eval" / "run_eval.py").read_text()
-native = (ROOT / "android-app" / "android" / "app" / "src" / "main" / "java" /
-          "dev" / "aiengg" / "potholereporter" / "drive" / "NativeInferenceEngine.kt").read_text()
+native_dir = (ROOT / "android-app" / "android" / "app" / "src" / "main" / "java" /
+              "dev" / "aiengg" / "potholereporter" / "drive")
+native_engine = (native_dir / "NativeInferenceEngine.kt").read_text()
+native_contract = (native_dir / "NativeDetectionContract.kt").read_text()
+native_verdict = (native_dir / "NativeDetectionVerdict.kt").read_text()
+native = "\n".join((native_engine, native_contract, native_verdict))
 entities = (ROOT / "android-app" / "android" / "app" / "src" / "main" / "java" /
             "dev" / "aiengg" / "potholereporter" / "db" / "Entities.kt").read_text()
 database = (ROOT / "android-app" / "android" / "app" / "src" / "main" / "java" /
@@ -146,13 +150,12 @@ try:
 except (ValueError, json.JSONDecodeError):
     web_schema = None
 native_prompt_match = re.search(
-    r'private val DETECT_PROMPT =\s*"""(.*?)"""\.trimIndent\(\)', native, re.S
+    r'val DETECT_PROMPT =\s*"""(.*?)"""\.trimIndent\(\)', native_contract, re.S
 )
 native_prompt = (textwrap.dedent(native_prompt_match.group(1)).strip("\n")
                  if native_prompt_match else None)
 native_schema_match = re.search(
-    r'private fun buildRequestBody.*?val schemaObj = JSONObject\(\s*'
-    r'"""(.*?)"""\.trimIndent\(\)', native, re.S
+    r'val SCHEMA_JSON =\s*"""(.*?)"""\.trimIndent\(\)', native_contract, re.S
 )
 try:
     native_schema = json.loads(textwrap.dedent(native_schema_match.group(1)).strip()) \
@@ -257,7 +260,7 @@ check("native schema exposes the binary verdict",
       '"is_pothole": { "type": "boolean" }' in native and
       '"has_localized_cavity": { "type": "boolean" }' in native)
 check("native Drive rejects single-view output despite the shared schema",
-      'if (temporalConsistency != "consistent") return "reject"' in native)
+      'if (verdict.temporalConsistency != "consistent")' in native_verdict)
 check("native persists and syncs every binary physical gate",
       all(term in entities for term in ("looksLikeSpeedBreaker", "hasLocalizedCavity"))
       and all(f'put("{term}"' in plugin for term in
@@ -277,8 +280,8 @@ images = [item for item in content if item["type"] == "input_image"]
 check("request image cap", len(images) == 4)
 check("Drive evaluator uses the native output-token ceiling",
       request.get("max_output_tokens") == 1536
-      and "MAX_DETECTION_OUTPUT_TOKENS = 1_536" in native
-      and 'req.put("max_output_tokens", MAX_DETECTION_OUTPUT_TOKENS)' in native)
+      and "MAX_OUTPUT_TOKENS = 1_536" in native_contract
+      and 'put("max_output_tokens", spec.maxOutputTokens)' in native_contract)
 check("manual evaluator does not inherit the native Drive token ceiling",
       "max_output_tokens" not in road_eval.build_request(
           ["one"], "P", "gpt-5.6", "high", mode="manual"))
@@ -289,7 +292,7 @@ check("prompt once and last", len([x for x in content if x["type"] == "input_tex
       and content[-1]["type"] == "input_text")
 check("detail belongs to every image", all(x.get("detail") == "original" for x in images))
 check("evaluator disables response storage like both shipped runtimes",
-      request.get("store") is False and 'req.put("store", false)' in native
+      request.get("store") is False and 'store = false' in native_contract
       and "store: false" in client)
 check("mini rejects unsupported original detail",
       road_eval.build_request(["one"], "P", "gpt-5-mini", "original")
