@@ -83,11 +83,18 @@ internal object NativeCaptureFixQualityPolicy {
 
 /** Camera sampling cadence separated from Android location APIs for deterministic tests. */
 internal object NativeCaptureCadencePolicy {
-    const val STATIONARY_MPS = 0.25f
+    // Fused Location commonly reports tiny non-zero speeds while a parked phone jitters,
+    // but a real crawl at 0.1-0.25 m/s must not enter the eight-second parked throttle.
+    const val STATIONARY_MPS = 0.05f
+
+    fun isGenuinelyStationary(speedMps: Float?, accurateFix: Boolean): Boolean {
+        val speed = speedMps?.takeIf { it.isFinite() && it >= 0f } ?: return false
+        return accurateFix && speed <= STATIONARY_MPS
+    }
 
     fun intervalMs(speedMps: Float?, accurateFix: Boolean): Long {
         val speed = speedMps?.takeIf { it.isFinite() && it >= 0f }
-        if (accurateFix && speed != null && speed <= STATIONARY_MPS) {
+        if (isGenuinelyStationary(speed, accurateFix)) {
             return NativeDriveLocationProvider.PARKED_CAPTURE_MS
         }
         if (speed != null && speed > STATIONARY_MPS) {
@@ -99,6 +106,31 @@ internal object NativeCaptureCadencePolicy {
                 )
         }
         return NativeDriveLocationProvider.FALLBACK_CAPTURE_MS
+    }
+
+    fun isDue(
+        hasPreviousCapture: Boolean,
+        sinceLastMs: Long,
+        movedMeters: Double,
+        displacementUncertaintyM: Double,
+        speedMps: Float?,
+        accurateFix: Boolean
+    ): Boolean {
+        if (!hasPreviousCapture) return true
+        val interval = intervalMs(speedMps, accurateFix)
+        // Never trust a zero-speed flag over coordinate evidence. Initial/stale Android
+        // fixes can report 0 m/s while the car has moved materially; admitting that full
+        // window protects recall without letting ordinary parked GPS jitter bypass time.
+        if (isGenuinelyStationary(speedMps, accurateFix)) {
+            val confidentMovementMeters = if (
+                movedMeters.isFinite() && displacementUncertaintyM.isFinite() &&
+                movedMeters >= 0.0 && displacementUncertaintyM >= 0.0
+            ) (movedMeters - displacementUncertaintyM).coerceAtLeast(0.0) else 0.0
+            return confidentMovementMeters >= NativeDriveLocationProvider.TARGET_SPACING_M ||
+                sinceLastMs >= interval
+        }
+        return movedMeters >= NativeDriveLocationProvider.TARGET_SPACING_M ||
+            sinceLastMs >= interval
     }
 }
 
@@ -128,11 +160,11 @@ class NativeDriveLocationProvider(
     private var startedAtMs: Long = 0L
 
     companion object {
-        const val TARGET_SPACING_M = 6.0
-        const val MIN_CAPTURE_MS = 500L
-        const val MAX_CAPTURE_MS = 1_500L
+        const val TARGET_SPACING_M = 4.0
+        const val MIN_CAPTURE_MS = 400L
+        const val MAX_CAPTURE_MS = 650L
         const val PARKED_CAPTURE_MS = 8000L
-        const val FALLBACK_CAPTURE_MS = 750L
+        const val FALLBACK_CAPTURE_MS = 500L
         const val GPS_COARSE_M = 30f
         const val GPS_MAX_AGE_MS = 10_000L
         private const val MAX_TRACK_POINTS = 20_000
@@ -174,8 +206,8 @@ class NativeDriveLocationProvider(
             return
         }
 
-        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L)
-            .setMinUpdateIntervalMillis(500L)
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 500L)
+            .setMinUpdateIntervalMillis(250L)
             .setMinUpdateDistanceMeters(1.0f)
             .build()
 
@@ -476,15 +508,27 @@ class NativeDriveLocationProvider(
         if (!isFresh) return false
 
         val accurateFix = currentFix.accuracy?.let { it.isFinite() && it <= GPS_COARSE_M } == true
-        val cadenceMs = NativeCaptureCadencePolicy.intervalMs(currentFix.speedMps, accurateFix)
-
         if (lastCapPos == null) return true
 
         val moved = NativeDeduplicationEngine.distMeters(
             lastCapPos.lat, lastCapPos.lng,
             currentFix.lat, currentFix.lng
         )
+        // The distance between two GPS centres is not evidence of motion until it exceeds
+        // both fixes' error radii. This stops a parked ±30 m fix from manufacturing a
+        // four-metre "movement", while a good zero-speed fix can still escape promptly.
+        val displacementUncertainty = listOf(lastCapPos.accuracy, currentFix.accuracy)
+            .sumOf { accuracy ->
+                accuracy?.takeIf { it.isFinite() && it >= 0f }?.toDouble() ?: GPS_COARSE_M.toDouble()
+            }
 
-        return moved >= TARGET_SPACING_M || sinceLast >= cadenceMs
+        return NativeCaptureCadencePolicy.isDue(
+            hasPreviousCapture = true,
+            sinceLastMs = sinceLast,
+            movedMeters = moved,
+            displacementUncertaintyM = displacementUncertainty,
+            speedMps = currentFix.speedMps,
+            accurateFix = accurateFix
+        )
     }
 }

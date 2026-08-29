@@ -68,7 +68,8 @@ with a strong rim and stable geometry across a chronological burst can be positi
 Ordinary gravel texture, corrugation, ruts, broad breakup, puddle ambiguity, shoulders,
 and construction beds remain negative.
 
-The current set is not a release gate. It has seven owner-verified positive photos, two
+The general labels set is not a broad accuracy release gate; the narrow exact-media
+regression gate is documented below. The general set has seven owner-verified positive photos, two
 owner-confirmed Drive positives at the exact reported moments, other independently
 reviewed Drive events, one unresolved ambiguous patch and one local negative burst near
 second 44 of the second clip. The two Drive positives are reconstructed
@@ -95,6 +96,32 @@ copy can be verified without publishing its filename or pixels. Exact original f
 and capture times stay outside the repository. `tests/media_regression_manifest_test.py`
 guards this coverage without requiring the private image files to be committed or present
 in CI.
+
+## Exact private-media release gate
+
+`private_release_gate.json` locks the exact fingerprints and stream metadata of the two
+owner Drive segments and the tester traffic-calming clip. It also locks five source-frame
+phases for both confirmed potholes and all three negative breaker intervals. The private
+videos and generated JPEGs remain uncommitted. The positives are MediaRecorder
+reconstructions and the negatives are external recordings of the test device, so the
+manifest explicitly excludes every event from raw CameraX accuracy claims.
+
+```bash
+# Verify all source bytes, video metadata, timestamps and 75 regenerated JPEGs; no API call.
+python3 eval/private_release_gate.py --source-dir <private-video-directory> --validate-only
+
+# Run one fresh production-model decision for every event phase (25 paid calls).
+python3 eval/private_release_gate.py --source-dir <private-video-directory>
+
+# Intentionally repeat each exact phase when measuring stochastic stability.
+python3 eval/private_release_gate.py --source-dir <private-video-directory> --trials 3
+```
+
+The gate reads the current native Drive prompt, strict schema and model and blocks if the
+evaluator mirror has drifted. It exits non-zero on a missing or altered source, extraction
+or schema error, any missed positive phase, or any accepted negative phase. Use
+`--source SOURCE_ID=/path/to/video` instead of `--source-dir` when explicit mappings are
+more convenient. `--check-manifest` is the media-free, API-free CI contract check.
 
 ## Arms
 

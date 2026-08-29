@@ -57,8 +57,8 @@ refresh = SERVICE[
     SERVICE.index("private fun noteCameraState")
 ]
 check(
-    "100 ms frame scheduler polls Binder-backed prerequisites no faster than once per second",
-    "delay(100)" in scan
+    "50 ms frame scheduler polls Binder-backed prerequisites no faster than once per second",
+    "delay(50)" in scan
     and "PREREQUISITE_ACCESS_RECHECK_MS = 1_000L" in SERVICE
     and "mainHandler.post(::refreshPrerequisiteAccessState)" in scan
     and "captureAccess()" not in scan
@@ -72,6 +72,12 @@ check(
     and "hasCameraPermission()" not in decision
     and "locationProvider?.captureAccess()" in refresh
     and "hasCameraPermission()" in refresh,
+)
+check(
+    "high-accuracy fixes are requested at the dense capture pairing cadence",
+    "LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 500L)" in LOCATION
+    and ".setMinUpdateIntervalMillis(250L)" in LOCATION
+    and ".setMinUpdateDistanceMeters(1.0f)" in LOCATION,
 )
 
 stale_fix = INTERLOCK[

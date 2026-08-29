@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "sources": {
+    "construction-drive-segment-1": {
+      "sha256": "feea330adaa09a5573f7d0b379170c5a03bb6a5ae07484d44299c4703ef74686",
+      "codec": "h264",
+      "width": 480,
+      "height": 720,
+      "frames": 1780,
+      "duration_seconds": 59.991878
+    },
+    "construction-drive-segment-2": {
+      "sha256": "f9d51250ccdb955159db337490e30c46bc0f5422564aebdbe7b8b4ee48506c7d",
+      "codec": "h264",
+      "width": 480,
+      "height": 720,
+      "frames": 1470,
+      "duration_seconds": 48.990511
+    },
+    "tester-speed-breaker-clip": {
+      "sha256": "3578f285f1aa45f66ccbd039f49ce23c8c2efdf203760966aaabfdb8cedf5bce",
+      "codec": "h264",
+      "width": 1024,
+      "height": 576,
+      "frames": 338,
+      "duration_seconds": 11.25
+    }
+  },
+  "events": [
+    {
+      "id": "owner-segment-1-second-35",
+      "source": "construction-drive-segment-1",
+      "label": "pothole",
+      "capture_provenance": "native_mediarecorder_reconstruction",
+      "raw_camerax_accuracy_eligible": false,
+      "phases": [
+        {"timestamps_seconds": [35.330522, 35.497067, 35.663789], "fixture_sha256": ["7f33545285410e012d68a9b4059fe40177dedeabbd1886e34adba27abcfd748d", "fffc884bac18f0fca6de4550cab16610cb997c4ba7a18dfebf711cd93ff6ec09", "362e0079b681c34aa6cc28c2d55b10854dc656c554be58ac6b5f35ab89c9a096"]},
+        {"timestamps_seconds": [35.363956, 35.530478, 35.6972], "fixture_sha256": ["9d212a5aff13671c0cc22d53564ffec3d54daa2cabb08cddbbf48bdbda0ce585", "9677d595ff689d0aeb1833fa6f6d85555c2910af37fcee9bc038948a2098216a", "39e2e404f46556de16d84e07e11689f6dc9c899098ba2a8e28de5687babe67d0"]},
+        {"timestamps_seconds": [35.397233, 35.563889, 35.730444], "fixture_sha256": ["72816d6ec2291fa7ecd3a4e97e5388fd86a873640bf7464ef5f550b5c259322a", "0804329b1bf80103c279820cac0d9576134161b05603dc768da03b70f9ef81fe", "286d2b888c97e25307a4fcc4965e2026429ea7faa95d3c3fdfd48ca77c3f43d8"]},
+        {"timestamps_seconds": [35.430511, 35.597133, 35.763689], "fixture_sha256": ["474f4f08443befb01ffc6d0018ed8b884e30667206681290245fcbd287131aaa", "a7ef38ee11c9aa954071bf3c76f80631198f5a3174f1cd6721ddb7392ebb332b", "ef968e958f9c33fda615e5f546861efe6929cf4f06132b7b5a4c1b29e0c83c20"]},
+        {"timestamps_seconds": [35.297089, 35.463789, 35.630378], "fixture_sha256": ["0bc33cf5d1ce3f1d01aba7738294a93eebb86d40f944a22bdb4612d648e99802", "cfed5b0202bd080760a0fce7c324c37f2b181c566d739ffd31407d1be0f5a5c0", "7b60212e5df6885fee65c8e2b337630cd4a4fd9709baacbac5a62ade1d8fd187"]}
+      ]
+    },
+    {
+      "id": "owner-segment-2-second-4",
+      "source": "construction-drive-segment-2",
+      "label": "pothole",
+      "capture_provenance": "native_mediarecorder_reconstruction",
+      "raw_camerax_accuracy_eligible": false,
+      "phases": [
+        {"timestamps_seconds": [4.665811, 4.832367, 4.999067], "fixture_sha256": ["30003e6ff992bfa8e0d8036550f8b6bea009089089811454a3b733a0306a5474", "7d79d4c5d7bfdce996ae14eacd99129eb95adeebb200a26cbd68acf05ad04991", "9fd54edc5e78df43d7fb1a4cde073010363b788186decc20db15aedc3e1206a0"]},
+        {"timestamps_seconds": [4.699122, 4.865678, 5.0323], "fixture_sha256": ["e5937480e4f480dd84a8aab0256a528e8c98c52a3b2f937d046e07856ba0ae6e", "9a35a3d450d835cb058fb1330b3029e608fbbdbb859c7210c9c5f82e1066afc1", "74535ce190f63dc295d6e01e928f02c0d564cb069bb3200f2d9ed05b0e6e944f"]},
+        {"timestamps_seconds": [4.565878, 4.732433, 4.898989], "fixture_sha256": ["5b212ccd4a7de01a998873735faef6effafcf190749190a62fe19d46ccb893b5", "e3958c234fd4cb0b35889c41c38a80c57bd0632478c00de8cf87be15c0de8276", "f348ef082cdcaded5ccafb3c6a1101a0ba0b3e055b9cd85d5e706d53b3d10368"]},
+        {"timestamps_seconds": [4.599189, 4.765744, 4.932411], "fixture_sha256": ["e75389398fcdadfdcbfaec5ff4de6c87c223155bf46321087b35af7dea1fdf3d", "7d0bd2c9a9e4c0c6c8370f8e1a95b4468e6dfe1c20b2467bd48f3652bf299717", "20598ab38a551b22f7177e3ba115cbc238ebc8e3d7eafb310057434d34071d1f"]},
+        {"timestamps_seconds": [4.6325, 4.799056, 4.965833], "fixture_sha256": ["cd47c67e5affdb8341099f45445a0511d1dc8e5035c059fc1b4759dd5479720e", "dde62bb9eb534f2646a970849d832a3d95e9e5962e9ad3e88e8336595c9b8af4", "60929ae0e5b494bd3e412ed18bf9a4db19a93fab1792324c6ec9b571e5c2dcd5"]}
+      ]
+    },
+    {
+      "id": "tester-opening-grid-calming",
+      "source": "tester-speed-breaker-clip",
+      "label": "not_pothole",
+      "capture_provenance": "external_recording_of_test_device",
+      "raw_camerax_accuracy_eligible": false,
+      "phases": [
+        {"timestamps_seconds": [0.305, 0.471667, 0.638333], "fixture_sha256": ["204a97808d2cd97c842847338f9888f6bdd287dd29fab1119133d92b82f48836", "48c8ce3dd00efe21a8c56aff285fb1c418777e8db37752f44060de668c0733da", "d222877b235e875fe8e40c1db83f753b07d304073e5bf25f3742a3abfbb2a6b7"]},
+        {"timestamps_seconds": [0.338333, 0.505, 0.671667], "fixture_sha256": ["3ee14e347ac44f8539a65291cb0f82a08e02cad5f017dc14ca7114d7bbfa4eb7", "d8fd5d9824b01ccf667fe414ab3c4924fc41e7ba5d897bfa79bcfb59edbc4f32", "3981c90debe595840f0a812a2ef8fbc2918ba895e02001157847adfab5d71eba"]},
+        {"timestamps_seconds": [0.371667, 0.538333, 0.705], "fixture_sha256": ["661556e91e9218d52dfb405c74430a9edd691a392f9fadd7f6d5a5258dbc5c0e", "617a86087e9d8ccbd43a47271240c90f250375db979c20ea9d4d4e96a5f3b849", "cbba91114baa77908dddf17725c15332ba793d0d1be148970ab54456146b7076"]},
+        {"timestamps_seconds": [0.405, 0.571667, 0.738333], "fixture_sha256": ["6165944843223aa2ba6b21ccf9a16b130d25ac084b47382333f5a2b95ad6f6e1", "1fcbc534bfcdd14e9199f1f1052f08ee9517dfe570333a9d4b742e7dfe952ce2", "7bda6252603ab80f406423232d0e26f4472336977fec5f5dd90a1810d64c8ef0"]},
+        {"timestamps_seconds": [0.271667, 0.438333, 0.605], "fixture_sha256": ["867690acb78a3b6761a12f10e42aee4a4941e9b2ce377e4dc4b7eba248e7b335", "60127040b4e8b0cf348257ef8e885140d20f37a8150bbd9f3f4aa39ea546b6f9", "b574e639f154089c0727b9e1af6c3eb8ea21c3db14b4cc4cfd6595a8617c95aa"]}
+      ]
+    },
+    {
+      "id": "tester-zebra-raised-speed-breaker",
+      "source": "tester-speed-breaker-clip",
+      "label": "not_pothole",
+      "capture_provenance": "external_recording_of_test_device",
+      "raw_camerax_accuracy_eligible": false,
+      "phases": [
+        {"timestamps_seconds": [3.475, 3.641667, 3.808333], "fixture_sha256": ["87629df21505263f6b7c819bd1f6e833697f891a35841af0f468756c5d920a2d", "55c664d1d0611c7b3fd626f9a943ffeae60921f18d5152e80919e22deb370810", "18494aa84b0a2d1885dca0dce5aaeee85424fe51c9a1eb8da21405be30285587"]},
+        {"timestamps_seconds": [3.508333, 3.675, 3.841667], "fixture_sha256": ["fc3cce43068b9421440519310e3d8d4da1a958861922867e07b4b5ea1f43e25b", "2d79a1aff5ef56fdfd873f33e0ef8e76a4b41c9405cd5474103bcbdf9b010071", "754430421bbb6da351dccfd42d241f8c74399c45a7552a7d2aa05a61258fe5e4"]},
+        {"timestamps_seconds": [3.375, 3.541667, 3.708333], "fixture_sha256": ["4d14965cb14e1ceb75351cda335a3f58afa6d574bc01e352ee2927f8722e0f09", "1d040462cd683450d30664a396a0554f97b8cec480370f73f626ca61250653c3", "9c1834266f95805c7a886aaf4428becac49c4be84376a96c6b7ad8d65fb9ce90"]},
+        {"timestamps_seconds": [3.408333, 3.575, 3.741667], "fixture_sha256": ["7eafbc27ac7a412a37b843cdf58f5e9ee0a8d74f829cd0fad61737e2bf06480d", "ceab23d395622e54a141b04394d0857c54386b7ccd514ce2ca6bc675bb075943", "b40f60e71b6ff04c1c9b3d3327db2c25003485559eacf796c512dba7adb57c79"]},
+        {"timestamps_seconds": [3.441667, 3.608333, 3.775], "fixture_sha256": ["d1b519ae82a33d7b71f1a8f8cbe2587849e0f5e107cba43fce8b1c4e8ad1156a", "2cb495c7ce8f14c54d72044c5bf54a2d26cb16dd4bd94e5045e72edd0698246f", "7b113a7f6b511488c210a2be855a26cb81cb7a5a97606b210e11615e24d443ab"]}
+      ]
+    },
+    {
+      "id": "tester-second-speed-breaker",
+      "source": "tester-speed-breaker-clip",
+      "label": "not_pothole",
+      "capture_provenance": "external_recording_of_test_device",
+      "raw_camerax_accuracy_eligible": false,
+      "phases": [
+        {"timestamps_seconds": [6.645, 6.811667, 6.978333], "fixture_sha256": ["6fa78eeaf240934b3755679b97c57cdf88970d98f126a710beade48608dc75de", "32143e8e50cbfec6a69ba4d91b25638f919e93862e24b6f82633a2e7bceb147e", "73848930b991ab233c77932c63dd9d89829eac36691b925c5f37df20d3fc72f6"]},
+        {"timestamps_seconds": [6.678333, 6.845, 7.011667], "fixture_sha256": ["0ebe5ba7a0803fa99581e0c6418f8cd91a11baa4827bd007cb8973b977a9149f", "de6f0e9e37f20cabdba7e7287de2c4aad1556694dc607eae9941ac4d83d6a32f", "755758844bff966a2995b29001ee6a7137a5a6f8ba56d0d8d19aec0f0984767d"]},
+        {"timestamps_seconds": [6.711667, 6.878333, 7.045], "fixture_sha256": ["c90b88d85ca5ba1f3df5eb6570e23528046691038f9c78ff1a57d0b77d2b557d", "f69d3da4b648408b318e40d81bee7ad8dce2b5506a23172ae24c9b5f4c178747", "bddf49a195ac9b7130013ea7f8d771dc7d9b7e183efeae1c66017c910ccd57c0"]},
+        {"timestamps_seconds": [6.745, 6.911667, 7.078333], "fixture_sha256": ["f0096847b7ca11b555808b2192123611ecda05b053cf715e2a0a1e4ec8edbdee", "8c6ff6283186c7769ef90461523d1c34822ec8ba9868810c448f81bd9e09e1d6", "1e6212bf7f7f189108af31d7a27ba29a1e3186cbb3030c367199b9ff6fdeab69"]},
+        {"timestamps_seconds": [6.611667, 6.778333, 6.945], "fixture_sha256": ["b92de7b49c4f33dcad58c16c3b717ec59a6bc3d23fe8d715c8e8988e99f06361", "2511de379683620bb7ff8c7b27b67384ab5713fa729603751a7430c0b9ccbafd", "11b003a26846a465816564dcd90e5828e33fade16fc556b80636e0d2aee87c2f"]}
+      ]
+    }
+  ]
+}

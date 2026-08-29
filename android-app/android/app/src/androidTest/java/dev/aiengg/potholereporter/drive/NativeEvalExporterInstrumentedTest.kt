@@ -74,9 +74,13 @@ class NativeEvalExporterInstrumentedTest {
                     destroyed = false,
                     cameraReady = true,
                     graphCurrent = true,
+                    windowFull = false,
                     sourceTimestampNs = timestampNs,
                     lastSampleTimestampNs = lastSampleTimestampNs,
-                    minimumSpacingNs = NativeRollingBurstWindow.SAMPLE_SPACING_NS
+                    deliveredFramesSinceLastSample = NativeRollingBurstWindow.SOURCE_FRAME_STRIDE,
+                    sourceFrameStride = NativeRollingBurstWindow.SOURCE_FRAME_STRIDE,
+                    minimumGapNs = NativeRollingBurstWindow.SAMPLE_SPACING_NS,
+                    maximumGapNs = NativeRollingBurstWindow.MAX_SAMPLE_GAP_NS
                 )
             ) {
                 "sourceTimestampNs violates the production analyzer cadence"
@@ -239,6 +243,8 @@ class NativeEvalExporterInstrumentedTest {
                         JSONObject()
                             .put("capacity", NativeRollingBurstWindow.CAPACITY)
                             .put("output_count", NativeRollingBurstWindow.OUTPUT_COUNT)
+                            .put("source_frame_stride", NativeRollingBurstWindow.SOURCE_FRAME_STRIDE)
+                            .put("max_sample_gap_ms", NativeRollingBurstWindow.MAX_SAMPLE_GAP_MS)
                             .put("sample_spacing_ms", NativeRollingBurstWindow.SAMPLE_SPACING_MS)
                             .put("min_window_span_ms", NativeRollingBurstWindow.MIN_WINDOW_SPAN_MS)
                             .put("max_oldest_age_ms", NativeRollingBurstWindow.MAX_OLDEST_AGE_MS)

@@ -1,7 +1,8 @@
 """National highways must refuse; city roads must still route."""
-import os
+import os, pathlib
 from dotenv import load_dotenv
-load_dotenv("/Users/gauravsen/Downloads/pothole-reporter/.env")
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+load_dotenv(ROOT / ".env")
 from playwright.sync_api import sync_playwright
 from browser_test_utils import open_app
 KEY=os.environ["OPENAI_API_KEY"]

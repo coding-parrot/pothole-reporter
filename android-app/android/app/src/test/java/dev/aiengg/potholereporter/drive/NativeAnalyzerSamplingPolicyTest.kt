@@ -11,18 +11,26 @@ class NativeAnalyzerSamplingPolicyTest {
         destroyed: Boolean = false,
         cameraReady: Boolean = true,
         graphCurrent: Boolean = true,
+        windowFull: Boolean = false,
         sourceTimestampNs: Long = 1_000_000_000L,
-        lastSampleTimestampNs: Long = 750_000_000L,
-        minimumSpacingNs: Long = 250_000_000L
+        lastSampleTimestampNs: Long = 833_333_335L,
+        deliveredFramesSinceLastSample: Int = 5,
+        sourceFrameStride: Int = 5,
+        minimumGapNs: Long = 140_000_000L,
+        maximumGapNs: Long = 166_000_000L
     ) = NativeAnalyzerSamplingPolicy.shouldConvert(
         enabled,
         requested,
         destroyed,
         cameraReady,
         graphCurrent,
+        windowFull,
         sourceTimestampNs,
         lastSampleTimestampNs,
-        minimumSpacingNs
+        deliveredFramesSinceLastSample,
+        sourceFrameStride,
+        minimumGapNs,
+        maximumGapNs
     )
 
     @Test
@@ -37,13 +45,48 @@ class NativeAnalyzerSamplingPolicyTest {
         assertFalse(shouldConvert(destroyed = true))
         assertFalse(shouldConvert(cameraReady = false))
         assertFalse(shouldConvert(graphCurrent = false))
+        assertFalse(shouldConvert(windowFull = true))
     }
 
     @Test
-    fun `first frame is immediate and later frames obey bounded spacing`() {
+    fun `first frame is immediate then every fifth delivered frame is retained`() {
         assertTrue(shouldConvert(lastSampleTimestampNs = 0L))
-        assertFalse(shouldConvert(sourceTimestampNs = 999_999_999L))
-        assertTrue(shouldConvert(sourceTimestampNs = 1_000_000_000L))
-        assertFalse(shouldConvert(sourceTimestampNs = 700_000_000L))
+        assertFalse(shouldConvert(
+            lastSampleTimestampNs = 850_000_000L,
+            deliveredFramesSinceLastSample = 4
+        ))
+        assertTrue(shouldConvert(
+            lastSampleTimestampNs = 850_000_000L,
+            deliveredFramesSinceLastSample = 5
+        ))
+        assertFalse(shouldConvert(sourceTimestampNs = 800_000_000L))
+    }
+
+    @Test
+    fun `maximum time fallback handles sparse or dropped camera callbacks`() {
+        assertFalse(shouldConvert(
+            sourceTimestampNs = 1_165_999_999L,
+            lastSampleTimestampNs = 1_000_000_000L,
+            deliveredFramesSinceLastSample = 2
+        ))
+        assertTrue(shouldConvert(
+            sourceTimestampNs = 1_166_000_000L,
+            lastSampleTimestampNs = 1_000_000_000L,
+            deliveredFramesSinceLastSample = 2
+        ))
+    }
+
+    @Test
+    fun `minimum temporal separation applies even after five callbacks`() {
+        assertFalse(shouldConvert(
+            sourceTimestampNs = 1_139_999_999L,
+            lastSampleTimestampNs = 1_000_000_000L,
+            deliveredFramesSinceLastSample = 5
+        ))
+        assertTrue(shouldConvert(
+            sourceTimestampNs = 1_140_000_000L,
+            lastSampleTimestampNs = 1_000_000_000L,
+            deliveredFramesSinceLastSample = 5
+        ))
     }
 }

@@ -140,6 +140,8 @@ check(
     prepared_eval.CAPTURE_POLICY == {
         "capacity": kotlin_constant(rolling_source, "CAPACITY"),
         "output_count": kotlin_constant(rolling_source, "OUTPUT_COUNT"),
+        "source_frame_stride": kotlin_constant(rolling_source, "SOURCE_FRAME_STRIDE"),
+        "max_sample_gap_ms": kotlin_constant(rolling_source, "MAX_SAMPLE_GAP_MS"),
         "sample_spacing_ms": kotlin_constant(rolling_source, "SAMPLE_SPACING_MS"),
         "min_window_span_ms": kotlin_constant(rolling_source, "MIN_WINDOW_SPAN_MS"),
         "max_oldest_age_ms": kotlin_constant(rolling_source, "MAX_OLDEST_AGE_MS"),
@@ -267,16 +269,16 @@ with tempfile.TemporaryDirectory(prefix="prepared-eval-contract-") as temporary:
     )
 
     wrong_capture_policy = copy.deepcopy(live_manifest)
-    wrong_capture_policy["capture_policy"]["sample_spacing_ms"] = 180
+    wrong_capture_policy["capture_policy"]["source_frame_stride"] = 6
     expect_manifest_rejection(
         "capture-policy drift is rejected", live_dir, wrong_capture_policy, "live",
         "capture policy is not production-exact",
     )
 
     too_close = copy.deepcopy(live_manifest)
-    too_close["source_timestamps_ns"] = [9_000_000_000, 9_249_000_000, 9_500_000_000]
+    too_close["source_timestamps_ns"] = [9_000_000_000, 9_139_000_000, 9_500_000_000]
     expect_manifest_rejection(
-        "sub-250ms CameraX source spacing is rejected", live_dir, too_close, "live",
+        "sub-140ms CameraX source spacing is rejected", live_dir, too_close, "live",
         "production analyzer cadence",
     )
 

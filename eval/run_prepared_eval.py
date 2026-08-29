@@ -27,9 +27,11 @@ ROLLING_SOURCE_FRAME_INDICES = [0, 1, 2]
 CAPTURE_POLICY = {
     "capacity": 3,
     "output_count": 3,
-    "sample_spacing_ms": 250,
-    "min_window_span_ms": 400,
-    "max_oldest_age_ms": 1_250,
+    "source_frame_stride": 5,
+    "max_sample_gap_ms": 166,
+    "sample_spacing_ms": 140,
+    "min_window_span_ms": 280,
+    "max_oldest_age_ms": 900,
 }
 DURABLE_PERSISTENCE = {
     "image_count": 3,

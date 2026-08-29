@@ -5,7 +5,7 @@ phone shows Maps or a call; one tap on **Photo** opens the camera for a pothole 
 prepares evidence for an official complaint channel. Reports remain on the phone, and
 nothing is filed automatically. There is no project-operated backend or account system.
 
-Current release: [v1.36.5](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.36.5)
+Current release: [v1.36.6](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.36.6)
 
 <p>
   <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
@@ -32,7 +32,7 @@ submitted automatically.
 
 ## How it works
 
-- **Drive** shows a live road view and counters while Maps or a call is open. Optional silent recording pairs local video with a sharper 720p frame at most every two seconds, keeps only one raw burst waiting for live AI, and can retry unfinished frames after the drive with nearby before/after context.
+- **Drive** shows a live road view and counters while Maps or a call is open. At a typical 30 fps it samples about every fifth delivered camera frame, with a 166 ms timestamp fallback threshold, into durable three-view windows. It keeps only one raw burst waiting for live AI and retries unfinished saved windows after the drive.
 - A selectable 15/30/60/90-minute active-time battery limit stops Drive automatically; paused time does not count. The default is 30 minutes.
 - On a new install, **Settings** appears first so the API key and capture preferences are
   configured before Drive and Photo are shown. **Photo** is one tap and pothole-only.

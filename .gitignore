@@ -20,3 +20,4 @@ android-app/android/*.keystore
 .DS_Store
 eval/images/
 eval/results/
+eval/.private-release-gate/

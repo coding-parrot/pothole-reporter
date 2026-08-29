@@ -2,7 +2,7 @@
 """A write whose transaction aborts must reject, not report success."""
 import os, sys, pathlib
 from dotenv import load_dotenv
-ROOT = pathlib.Path("/Users/gauravsen/Downloads/pothole-reporter")
+ROOT = pathlib.Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 from playwright.sync_api import sync_playwright
 

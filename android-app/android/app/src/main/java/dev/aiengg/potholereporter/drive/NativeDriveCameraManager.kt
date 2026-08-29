@@ -105,6 +105,7 @@ class NativeDriveCameraManager(
     private val rollingFrameLock = Any()
     private val rollingFrames = ArrayDeque<CapturedFrame>(NativeRollingBurstWindow.CAPACITY)
     private var lastRollingSourceTimestampNs = 0L
+    private var deliveredFramesSinceRollingSample = 0
     @Volatile private var analyzerSamplingEnabled = true
     private val analyzerSamplingGeneration = NativeGenerationGate()
     @Volatile private var analyzerFatalError: OutOfMemoryError? = null
@@ -398,6 +399,7 @@ class NativeDriveCameraManager(
             analyzerSamplingGeneration.invalidate()
             if (!enabled) {
                 lastRollingSourceTimestampNs = 0L
+                deliveredFramesSinceRollingSample = 0
                 discardedFrames = rollingFrames.toList()
                 rollingFrames.clear()
             }
@@ -415,19 +417,35 @@ class NativeDriveCameraManager(
                 ?: System.nanoTime()
             val shouldSample = synchronized(rollingFrameLock) {
                 samplingGeneration = analyzerSamplingGeneration.current()
+                val eligibleFrameCount = if (lastRollingSourceTimestampNs == 0L) 0 else {
+                    (deliveredFramesSinceRollingSample + 1)
+                        .coerceAtMost(NativeRollingBurstWindow.SOURCE_FRAME_STRIDE)
+                }
                 if (NativeAnalyzerSamplingPolicy.shouldConvert(
                         enabled = analyzerSamplingEnabled,
                         requested = requested,
                         destroyed = destroyed,
                         cameraReady = isCameraReady,
                         graphCurrent = cameraGraphGeneration.isCurrent(sourceGraphGeneration),
+                        // Never overwrite a complete due window. Preview and optional
+                        // video keep flowing while the persistence loop takes ownership.
+                        windowFull = rollingFrames.size >= NativeRollingBurstWindow.CAPACITY,
                         sourceTimestampNs = sourceTimestampNs,
                         lastSampleTimestampNs = lastRollingSourceTimestampNs,
-                        minimumSpacingNs = NativeRollingBurstWindow.SAMPLE_SPACING_NS
+                        deliveredFramesSinceLastSample = eligibleFrameCount,
+                        sourceFrameStride = NativeRollingBurstWindow.SOURCE_FRAME_STRIDE,
+                        minimumGapNs = NativeRollingBurstWindow.SAMPLE_SPACING_NS,
+                        maximumGapNs = NativeRollingBurstWindow.MAX_SAMPLE_GAP_NS
                     )) {
-                    lastRollingSourceTimestampNs = sourceTimestampNs
                     true
-                } else false
+                } else {
+                    if (analyzerSamplingEnabled && requested && !destroyed && isCameraReady &&
+                        cameraGraphGeneration.isCurrent(sourceGraphGeneration) &&
+                        sourceTimestampNs > lastRollingSourceTimestampNs &&
+                        rollingFrames.size < NativeRollingBurstWindow.CAPACITY
+                    ) deliveredFramesSinceRollingSample = eligibleFrameCount
+                    false
+                }
             }
             if (!shouldSample) return
             val raw = imageProxy.toBitmap()
@@ -456,11 +474,16 @@ class NativeDriveCameraManager(
                     !requested || destroyed || !isCameraReady ||
                     !cameraGraphGeneration.isCurrent(sourceGraphGeneration)
                 ) false else {
-                    rollingFrames.addLast(frame)
-                    while (rollingFrames.size > NativeRollingBurstWindow.CAPACITY) {
-                        rollingFrames.removeFirst().bitmap.recycleSafely()
+                    if (rollingFrames.size >= NativeRollingBurstWindow.CAPACITY) false
+                    else {
+                        rollingFrames.addLast(frame)
+                        // Sampling state commits only after Bitmap conversion and ring
+                        // retention succeed. A failed conversion retries on the next
+                        // delivered frame instead of silently skipping another stride.
+                        lastRollingSourceTimestampNs = sourceTimestampNs
+                        deliveredFramesSinceRollingSample = 0
+                        true
                     }
-                    true
                 }
             }
             if (retained) {
@@ -516,21 +539,33 @@ class NativeDriveCameraManager(
                 analyzerFatalError = null
                 throw error
             }
+            var discarded: List<CapturedFrame> = emptyList()
             val selected = synchronized(rollingFrameLock) {
                 val sourceFrames = rollingFrames.toList()
                 val generation = sourceFrames.firstOrNull()?.cameraGeneration
                     ?: return@synchronized null
-                val sourceIndexes = NativeRollingBurstWindow.selectSourceIndexes(
-                    sourceFrames.map {
+                val sampleMetadata = sourceFrames.map {
                         NativeRollingBurstWindow.Sample(
                             it.capturedAtElapsedMs,
                             it.sourceTimestampNs,
                             it.cameraGeneration
                         )
-                    },
+                    }
+                val disposition = NativeRollingBurstWindow.disposition(
+                    sampleMetadata,
                     nowElapsedMs = SystemClock.elapsedRealtime(),
                     expectedGeneration = generation
-                ) ?: return@synchronized null
+                )
+                if (disposition != NativeRollingBurstWindow.Disposition.READY) {
+                    if (disposition == NativeRollingBurstWindow.Disposition.DISCARD) {
+                        discarded = sourceFrames
+                        rollingFrames.clear()
+                        lastRollingSourceTimestampNs = 0L
+                        deliveredFramesSinceRollingSample = 0
+                    }
+                    return@synchronized null
+                }
+                val sourceIndexes = sourceFrames.indices.toList()
                 // The selector currently requires and returns the complete three-frame
                 // ring. Transfer those Bitmaps to the caller instead of cloning another
                 // ~11 MB on every admission. The analyzer immediately starts refilling a
@@ -538,8 +573,11 @@ class NativeDriveCameraManager(
                 val transferred = sourceIndexes.map(sourceFrames::get)
                 rollingFrames.clear()
                 lastRollingSourceTimestampNs = 0L
+                deliveredFramesSinceRollingSample = 0
                 transferred
-            } ?: return@withLock null
+            }
+            discarded.forEach { it.bitmap.recycleSafely() }
+            selected ?: return@withLock null
             var ownershipTransferred = false
             try {
                 val burstFrames = selected.map { frame ->
@@ -568,6 +606,10 @@ class NativeDriveCameraManager(
                 }
             }
         }
+    }
+
+    fun hasCompleteBurst(): Boolean = synchronized(rollingFrameLock) {
+        rollingFrames.size == NativeRollingBurstWindow.CAPACITY
     }
 
     private fun Bitmap.recycleSafely() {
@@ -1153,6 +1195,7 @@ class NativeDriveCameraManager(
     private fun clearRollingFrames() {
         val frames = synchronized(rollingFrameLock) {
             lastRollingSourceTimestampNs = 0L
+            deliveredFramesSinceRollingSample = 0
             rollingFrames.toList().also { rollingFrames.clear() }
         }
         frames.forEach { it.bitmap.recycleSafely() }

@@ -77,19 +77,21 @@ check("Android 10 never receives the Android 11 camera foreground-service bit",
 check("native detection requires at least two real source frames",
       "MIN_DETECTION_SOURCE_FRAMES = 2" in CAMERA
       and "NativeRollingBurstWindow.CAPACITY" in CAMERA
-      and "NativeRollingBurstWindow.selectSourceIndexes(" in CAMERA
+      and "NativeRollingBurstWindow.disposition(" in CAMERA
       and "burstFrames.size < MIN_DETECTION_SOURCE_FRAMES" in CAMERA
       and "burstFrames.size !in NativeDriveCameraManager.MIN_DETECTION_SOURCE_FRAMES.." in INFERENCE
       and "NativeRollingBurstWindow.OUTPUT_COUNT" in INFERENCE)
 check("native capture samples a bounded three-frame source burst only when due",
       "const val CAPACITY = 3" in (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeRollingBurstWindow.kt").read_text()
-      and "return samples.indices.toList()" in
+      and "samples.indices.toList()" in
           (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeRollingBurstWindow.kt").read_text()
       and "ArrayDeque<CapturedFrame>(NativeRollingBurstWindow.CAPACITY)" in CAMERA
       and "NativeAnalyzerSamplingPolicy.shouldConvert(" in CAMERA
-      and "sourceTimestampNs - lastSampleTimestampNs >= minimumSpacingNs" in ANALYZER_POLICY
-      and "while (rollingFrames.size > NativeRollingBurstWindow.CAPACITY)" in CAMERA
-      and "NativeRollingBurstWindow.selectSourceIndexes(" in CAMERA
+      and "deliveredFramesSinceLastSample >= sourceFrameStride" in ANALYZER_POLICY
+      and "elapsedNs >= maximumGapNs" in ANALYZER_POLICY
+      and "windowFull = rollingFrames.size >= NativeRollingBurstWindow.CAPACITY" in CAMERA
+      and "removeFirst()" not in CAMERA
+      and "NativeRollingBurstWindow.disposition(" in CAMERA
       and "pendingFrameRequest" not in CAMERA
       and "ArrayDeque<BurstFrame>" not in CAMERA)
 capture_burst = CAMERA[CAMERA.index("suspend fun captureBurst()"):
@@ -231,11 +233,11 @@ check("hybrid status is explicit and all shipped web copies match",
           == (ROOT / "static/index.html").read_bytes()
       and (ROOT / "android-app/android/app/src/main/assets/public/index.html").read_bytes()
           == (ROOT / "static/index.html").read_bytes())
-check("Android release identity is 1.36.5 code 60 everywhere",
-      re.search(r"versionCode\s+60\b", GRADLE)
-      and re.search(r'versionName\s+"1\.36\.5"', GRADLE)
-      and 'android:versionCode="60"' in RELEASE
-      and 'android:versionName="1.36.5"' in RELEASE)
+check("Android release identity is 1.36.6 code 61 everywhere",
+      re.search(r"versionCode\s+61\b", GRADLE)
+      and re.search(r'versionName\s+"1\.36\.6"', GRADLE)
+      and 'android:versionCode="61"' in RELEASE
+      and 'android:versionName="1.36.6"' in RELEASE)
 
 if failures:
     print(f"\nFAIL: {len(failures)} hybrid Drive contract check(s) failed")

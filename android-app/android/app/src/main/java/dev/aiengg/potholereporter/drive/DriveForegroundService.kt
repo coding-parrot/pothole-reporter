@@ -576,10 +576,9 @@ class DriveForegroundService : LifecycleService() {
         scanJob?.cancel()
         scanJob = lifecycleScope.launch(Dispatchers.Default) {
             while (isActive && sessionRunning && !isStopping) {
-                // The analyzer produces at most one retained source every 250 ms and GPS
-                // admission is never faster than 500 ms. Polling at 100 ms stays ahead of
-                // both without hammering permission/LocationManager/notification Binder.
-                delay(100)
+                // A complete moving three-view window is persisted immediately; only a
+                // genuinely parked camera keeps the slower duplicate-saving cadence.
+                delay(50)
                 val accessCheckNow = SystemClock.elapsedRealtime()
                 if (accessCheckNow - lastPrerequisiteAccessCheckElapsedMs >=
                     PREREQUISITE_ACCESS_RECHECK_MS
@@ -606,7 +605,21 @@ class DriveForegroundService : LifecycleService() {
                 // optional local video alive, but stop creating pending inference bursts
                 // until the user starts a new Drive with corrected settings/app code.
                 if (inferenceSuspendedReason != null) continue
-                if (!cam.isCameraReady || !loc.shouldTriggerCapture(lastCapFix, lastCapTimeMs, fix)) continue
+                if (!cam.isCameraReady) continue
+                val hasCompleteWindow = cam.hasCompleteBurst()
+                val accurateFix = fix.accuracy?.let {
+                    it.isFinite() && it <= NativeDriveLocationProvider.GPS_COARSE_M
+                } == true
+                val cadenceDue = if (hasCompleteWindow) {
+                    loc.shouldTriggerCapture(lastCapFix, lastCapTimeMs, fix)
+                } else false
+                if (!NativeCompleteBurstAdmissionPolicy.shouldAttempt(
+                        hasCompleteWindow,
+                        fix.speedMps,
+                        accurateFix,
+                        cadenceDue
+                    )
+                ) continue
                 val captureAdmissionElapsedMs = SystemClock.elapsedRealtime()
                 val accessEpochBeforeCapture = captureAccessEpoch.snapshot()
                 val burst = try {
