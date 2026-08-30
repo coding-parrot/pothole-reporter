@@ -5,7 +5,7 @@ phone shows Maps or a call; one tap on **Photo** opens the camera for a pothole 
 prepares evidence for an official complaint channel. Reports remain on the phone, and
 nothing is filed automatically. There is no project-operated backend or account system.
 
-Current release: [v1.36.7](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.36.7)
+Current release: [v1.36.8](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.36.8)
 
 <p>
   <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
@@ -40,9 +40,9 @@ submitted automatically.
 - On a new install, **Settings** appears first so the API key and capture preferences are
   configured before Drive and Photo are shown. **Photo** is one tap and pothole-only.
 - OpenAI vision returns only **Pothole: Yes/No**, never a user-facing confidence score.
-  A Yes requires a localized cavity, distinct broken rim, visible material loss, usable
-  imagery, and consistent Drive views. An actively used temporary traffic surface is
-  eligible only with the same cavity persisting across the burst; gravel texture, ruts,
+  A Yes requires a localized cavity, an eroded edge or material-height transition,
+  visible surface loss, usable imagery, and consistent Drive views. Shallow concave
+  potholes remain eligible; flat patches, utility-cover repairs, gravel texture, ruts,
   broad breakup, puddle ambiguity, construction beds, and speed breakers are No.
 - Each decision records the surface type and strict defect type. Accepted potholes may
   receive a small/medium/large **app visual estimate**; physical dimensions remain unknown

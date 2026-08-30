@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "index_sha256": "5fb978ed8c281d85d126ad212d2158c62d121ccd9f5f5f8fd92faec09d78bdd7",
+  "method": "Two-pass Codex visual review of all three original complete frames; no crops, boxes or regions were supplied to the detector.",
+  "limitations": "RAD RoadDamages is broad. Only visually unequivocal events are locked; this small AI-reviewed subset is a release regression gate, not a universal accuracy claim.",
+  "diagnostic_exclusions": [
+    {
+      "event_id": "45_12-06-2023_mp4:47-49",
+      "status": "ambiguous",
+      "reason": "A utility-cover repair is clear, but a nearby hood-occluded rough zone may contain shallow material loss; the near-identical viewpoints cannot establish or rule out cavity depth."
+    }
+  ],
+  "events": [
+    {
+      "event_id": "145_10-07-2023_mp4:3-5",
+      "label": "pothole",
+      "status": "locked",
+      "reviewer": "Codex independent plus primary full-frame review, 2026-08-30",
+      "note": "Localized broken-edged depressed cavity on travelled asphalt remains consistent through all three frames."
+    },
+    {
+      "event_id": "174_10-07-2023_mp4:26-28",
+      "label": "pothole",
+      "status": "locked",
+      "reviewer": "Codex independent plus primary full-frame review, 2026-08-30",
+      "note": "Localized cavities with material loss and depressed centres remain visible through all three frames."
+    },
+    {
+      "event_id": "215_10-07-2023_mp4:17-19",
+      "label": "not_pothole",
+      "status": "locked",
+      "reviewer": "Codex independent plus primary full-frame review, 2026-08-30",
+      "note": "Manhole or utility cover, not a localized wheel-dropping cavity."
+    },
+    {
+      "event_id": "30_13-06-2023_mp4:22-24",
+      "label": "not_pothole",
+      "status": "locked",
+      "reviewer": "Codex independent plus primary full-frame review, 2026-08-30",
+      "note": "Resurfacing or patch seam without a localized cavity."
+    },
+    {
+      "event_id": "83_10-07-2023_mp4:45-47",
+      "label": "not_pothole",
+      "status": "locked",
+      "reviewer": "Codex independent plus primary full-frame review, 2026-08-30",
+      "note": "Transverse joint or crack without localized material loss."
+    },
+    {
+      "event_id": "49_13-06-2023_mp4:2-4",
+      "label": "not_pothole",
+      "status": "locked",
+      "reviewer": "Codex independent plus primary full-frame review, 2026-08-30",
+      "note": "Patchy resurfaced asphalt without a localized cavity."
+    },
+    {
+      "event_id": "60_13-06-2023_mp4:33-35",
+      "label": "not_pothole",
+      "status": "locked",
+      "reviewer": "Codex independent plus primary full-frame review, 2026-08-30",
+      "note": "Longitudinal resurfacing patch."
+    }
+  ]
+}

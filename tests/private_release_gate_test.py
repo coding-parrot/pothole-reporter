@@ -47,7 +47,8 @@ check("every phase locks a chronological three-JPEG burst",
 contract = gate.load_production_contract()
 check("gate reads the current native production contract",
       contract["model"] == "gpt-5.6"
-      and contract["prompt_version"] == "pothole-binary-v13"
+      and contract["detail"] == "original"
+      and contract["prompt_version"] == "pothole-binary-v15"
       and contract["schema_version"] == 7
       and contract["schema"] == gate.production_eval.SCHEMA)
 prepare_event_source = inspect.getsource(gate.production_eval.prepare_event)

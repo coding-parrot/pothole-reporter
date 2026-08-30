@@ -218,7 +218,7 @@ check("UI wires timer and idempotent saved-frame analysis",
           < analysis.index("() => plugin.markKeyframeAnalyzed"))
 check("native Drive uses the live-regression model independent of Photo settings",
       'const NATIVE_DRIVE_DETECTION_MODEL = "gpt-5.6"' in WEB
-      and 'const NATIVE_DRIVE_DETECTION_DETAIL = "high"' in WEB
+      and 'const NATIVE_DRIVE_DETECTION_DETAIL = "original"' in WEB
       and "model: NATIVE_DRIVE_DETECTION_MODEL" in WEB
       and "detail: NATIVE_DRIVE_DETECTION_DETAIL" in WEB
       and 'private val model: String = "gpt-5.6"' in INFERENCE
@@ -233,11 +233,11 @@ check("hybrid status is explicit and all shipped web copies match",
           == (ROOT / "static/index.html").read_bytes()
       and (ROOT / "android-app/android/app/src/main/assets/public/index.html").read_bytes()
           == (ROOT / "static/index.html").read_bytes())
-check("Android release identity is 1.36.7 code 62 everywhere",
-      re.search(r"versionCode\s+62\b", GRADLE)
-      and re.search(r'versionName\s+"1\.36\.7"', GRADLE)
-      and 'android:versionCode="62"' in RELEASE
-      and 'android:versionName="1.36.7"' in RELEASE)
+check("Android release identity is 1.36.8 code 63 everywhere",
+      re.search(r"versionCode\s+63\b", GRADLE)
+      and re.search(r'versionName\s+"1\.36\.8"', GRADLE)
+      and 'android:versionCode="63"' in RELEASE
+      and 'android:versionName="1.36.8"' in RELEASE)
 
 if failures:
     print(f"\nFAIL: {len(failures)} hybrid Drive contract check(s) failed")

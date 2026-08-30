@@ -2,7 +2,7 @@ package dev.aiengg.potholereporter.drive
 
 /** Single source of truth for the native Drive detection prompt and structured schema. */
 internal object NativeDetectionContract {
-    const val PROMPT_VERSION = "pothole-binary-v13"
+    const val PROMPT_VERSION = "pothole-binary-v15"
     const val SCHEMA_VERSION = 7
     const val MAX_OUTPUT_TOKENS = 1_536
 
@@ -22,9 +22,13 @@ internal object NativeDetectionContract {
 
         "Localized" means a stable, limited footprint within the traffic path; it does not mean a closed circular rim. On an unfinished, gravel-covered, failed, or construction-stage traffic lane, a jagged eroded depression or connected cavity cluster is YES when it occupies only part of the wheel path, is visibly lower than the adjacent path, and keeps at least one abrupt lip across the approach. Loose rubble within or beside that lower footprint and one boundary blending into surrounding failed material do not turn it into general roughness. A water-filled depression is YES when its stable edge and lower opening remain visible; the floor need not be visible. Do not reject such a feature merely because the rest of the lane is also rough.
 
+        A shallow pothole is still YES when an irregular, bounded area is visibly concave or sunken relative to the surrounding traffic surface and that geometry persists through the approach. A worn or rounded eroded lip, exposed aggregate, or a stable material-height transition is sufficient; do not demand a steep wall, deep dark interior, or sharp rim. A flat patch remains NO: colour, texture, or a repair outline without a concave centre or surface-height loss is not a pothole.
+
         General gravel texture, road-wide grading, corrugation, broad roughness with no local lower footprint, a wheel rut with smooth sides, loose debris resting on a level surface, a stain, shadow, puddle with no visible depressed boundary, intact patch, crack, seam, manhole, drain, shoulder erosion, construction obstacle, or damage outside the wheel-traversed surface is NO. A darker or rougher strip at a paved-to-loose-material transition is also NO when no interior is visibly lower than both adjacent surfaces; persistence of that flat transition across views is not depth evidence.
 
         Speed-breaker hard veto: set looks_like_speed_breaker true and is_pothole false whenever the feature is or could reasonably be a raised transverse ridge. Painted bands or rectangles, reflectors, parallel leading/trailing edges, a vehicle jolt, and camera pitch support a breaker. A separate cavity beside a breaker is YES only when clearly distinct from the raised ridge; raised-versus-concave ambiguity is NO.
+
+        Utility-reinstatement veto: a circular manhole or utility-cover ring, collar, rectangular trench patch, or linear reinstatement around an intact cover is NO even when its repair material is rough, cracked, or slightly sunken. Return YES only for a separate irregular wheel-dropping cavity that clearly extends beyond the utility repair footprint and independently satisfies every pothole condition.
 
         Surface type:
         - bituminous_asphalt, cement_concrete, mastic_asphalt, or paver_blocks when identifiable;

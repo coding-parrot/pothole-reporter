@@ -13,7 +13,7 @@ class NativeInferenceEngine(
     context: Context,
     apiKey: String,
     private val model: String = "gpt-5.6",
-    private val detail: String = "high",
+    private val detail: String = "original",
     private val language: String = "en",
     private val debug: Boolean = false
 ) {

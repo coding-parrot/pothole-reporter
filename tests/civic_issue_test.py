@@ -468,7 +468,8 @@ async ({authorities, pixel}) => {
     const tx = db.transaction("reports", "readwrite");
     tx.objectStore("reports").clear();
     const common = {
-      created_at: 1787470200, photo: pixel, human_label: "pothole_cavity",
+      created_at: 1787470200, photo: pixel, photo_full: pixel,
+      human_label: "pothole_cavity",
       status: "draft", damage_type: "pothole_cavity", decision: "accept",
     };
     tx.objectStore("reports").put({...common, id: 89001});

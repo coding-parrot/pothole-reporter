@@ -172,14 +172,18 @@ def load_production_contract() -> dict[str, Any]:
         r'val SCHEMA_JSON\s*=\s*"""(.*?)"""\.trimIndent\(\)', contract_source, re.S)
     version_match = re.search(r'const val PROMPT_VERSION = "([^"]+)"', contract_source)
     model_match = re.search(r'private val model: String = "([^"]+)"', engine_source)
-    if not all((prompt_match, schema_match, version_match, model_match)):
-        raise GateError("native production prompt, schema, version or model could not be read")
+    detail_match = re.search(r'private val detail: String = "([^"]+)"', engine_source)
+    if not all((prompt_match, schema_match, version_match, model_match, detail_match)):
+        raise GateError(
+            "native production prompt, schema, version, model or image detail could not be read"
+        )
     try:
         native_schema = json.loads(_kotlin_trim_indent(schema_match.group(1)))
     except json.JSONDecodeError as error:
         raise GateError("native production schema is invalid JSON") from error
     native_prompt = _kotlin_trim_indent(prompt_match.group(1))
     native_model = model_match.group(1)
+    native_detail = detail_match.group(1)
     native_version = version_match.group(1)
     native_schema_version = integer_constant("SCHEMA_VERSION")
     native_max_tokens = integer_constant("MAX_OUTPUT_TOKENS")
@@ -189,6 +193,8 @@ def load_production_contract() -> dict[str, Any]:
         live_prompt == native_prompt
         and production_eval.SCHEMA == native_schema
         and production_eval.DRIVE_DEFAULT_MODEL == native_model
+        and production_eval.DRIVE_DEFAULT_DETAIL == native_detail
+        and production_eval.client_string_constant("DRIVE_DETECTION_DETAIL") == native_detail
         and production_eval.PROMPT_VERSION == native_version
         and production_eval.SCHEMA_VERSION == native_schema_version
         and production_eval.NATIVE_DRIVE_MAX_OUTPUT_TOKENS == native_max_tokens
@@ -199,6 +205,7 @@ def load_production_contract() -> dict[str, Any]:
         "prompt": native_prompt,
         "schema": native_schema,
         "model": native_model,
+        "detail": native_detail,
         "prompt_version": native_version,
         "schema_version": native_schema_version,
         "max_output_tokens": native_max_tokens,
@@ -333,7 +340,7 @@ def build_production_request(fixture: dict[str, Any], contract: dict[str, Any]) 
     views, _transforms, layout_note = production_eval.prepare_event(entry, Path("/"), "drive")
     prompt = production_eval.effective_prompt(contract["prompt"], "drive", layout_note)
     body = production_eval.build_request(
-        views, prompt, contract["model"], "high", mode="drive")
+        views, prompt, contract["model"], contract["detail"], mode="drive")
     body_schema = body.get("text", {}).get("format", {}).get("schema")
     if (body.get("model") != contract["model"]
             or body.get("reasoning") != {"effort": "low"}

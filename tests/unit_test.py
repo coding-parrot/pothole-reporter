@@ -27,6 +27,9 @@ CASES = r"""
   eq("full frame: current Drive evidence may use its complete working frame",
      P.fullFramePhoto({photo:"current", capture_source:"drive_live",
        prompt_version:P.PROMPT_VERSION}), "current");
+  eq("full frame: v13 Drive evidence remains complete after the detector upgrade",
+     P.fullFramePhoto({photo:"v13-complete", capture_source:"drive_live",
+       prompt_version:"pothole-binary-v13"}), "v13-complete");
   eq("full frame: legacy Drive crop is rejected when no complete evidence exists",
      P.fullFramePhoto({photo:"legacy-crop", capture_source:"drive_live",
        prompt_version:"pothole-binary-v12"}), null);
@@ -213,9 +216,13 @@ CASES = r"""
   eq("decision: YES without size is NO", P.decisionFor({...good, size:null}), "reject");
 
   // ---- native detector upgrade bridge ----
+  const nativeV15 = P.nativeDetectorContract({prompt_version:"pothole-binary-v15", schema_version:7});
+  ok("native bridge: v15 is the current complete-frame contract",
+     nativeV15 && nativeV15.kind === "current_v15"
+       && nativeV15.surfaceTypes.has("temporary_drivable_surface"));
   const nativeV13 = P.nativeDetectorContract({prompt_version:"pothole-binary-v13", schema_version:7});
-  ok("native bridge: v13 is the current complete-frame contract",
-     nativeV13 && nativeV13.kind === "current_v13"
+  ok("native bridge: legacy v13 complete-frame rows remain importable",
+     nativeV13 && nativeV13.kind === "legacy_v13"
        && nativeV13.surfaceTypes.has("temporary_drivable_surface"));
   const nativeV12 = P.nativeDetectorContract({prompt_version:"pothole-binary-v12", schema_version:7});
   ok("native bridge: legacy v12 rows remain importable",
@@ -330,7 +337,7 @@ CASES = r"""
   eq("settings: arbitrary model fails safe", P.normaliseModel("gpt-made-up"), "gpt-5-mini");
   eq("settings: original falls back on mini", P.normaliseDetail("original", "gpt-5-mini"), "high");
   eq("Drive: accuracy-tested model is pinned", P.DRIVE_DETECTION_MODEL, "gpt-5.6");
-  eq("Drive: accuracy-tested detail is pinned", P.DRIVE_DETECTION_DETAIL, "high");
+  eq("Drive: accuracy-tested detail is pinned", P.DRIVE_DETECTION_DETAIL, "original");
 
   // ---- saved-video accounting: only completed model verdicts count ----
   eq("footage: every planned verdict completed is a truthful success",

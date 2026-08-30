@@ -18,6 +18,49 @@ closed instead of silently running a different subset.
 `OPENAI_API_KEY` comes from the environment or the repo-root `.env`. Use
 `--dry-run` to validate transforms and request configuration without making calls.
 
+## RAD v3 full-frame pipeline
+
+The source is the official [RAD—Road Anomaly Detection Kaggle dataset](https://www.kaggle.com/datasets/rohitsuresh15/radroad-anomaly-detection), version 3. Its [Kaggle metadata](https://www.kaggle.com/api/v1/datasets/metadata/rohitsuresh15/radroad-anomaly-detection) reports an MIT licence; the related dataset paper is available at [DOI 10.1007/978-981-97-2004-0_34](https://doi.org/10.1007/978-981-97-2004-0_34). The exact source and index audit is recorded in `rad_v3_source_receipt.json`.
+
+RAD's `RoadDamages` class combines multiple anomaly types. It is a review queue, not pothole ground truth, and never enters a pothole accuracy result without a named audit overlay. The published train/valid/test folders also leak source videos across splits, so the adapter ignores those folders for evaluation splitting and groups complete frames by source video. Ambiguous duplicate video basenames are excluded from chronological events.
+
+```bash
+# Download only images/**, verify every listed path and byte count, then build an index.
+python3 eval/rad_dataset.py download --root eval/.rad-data
+python3 eval/rad_dataset.py verify --root eval/.rad-data
+python3 eval/rad_dataset.py index --root eval/.rad-data --out eval/.rad-data/index.json
+
+# Validate source bytes and the exact production Drive contract without an API call.
+python3 eval/run_rad_eval.py --manifest eval/.rad-data/index.json \
+  --dataset-root eval/.rad-data --validate-only
+
+# An audit overlay must be pinned to the index hash before pothole metrics are valid.
+python3 eval/run_rad_eval.py --manifest eval/.rad-data/index.json \
+  --audit-manifest <audit.json> --dataset-root eval/.rad-data --dry-run
+python3 eval/run_rad_eval.py --manifest eval/.rad-data/index.json \
+  --audit-manifest <audit.json> --dataset-root eval/.rad-data \
+  --split validation --label pothole,not_pothole,speed_breaker \
+  --paid-run --max-calls <exact-selected-event-count> --gate
+```
+
+Release runs reject standalone fixtures and require the exact official, complete v3 index
+identity, source counts, derived index counts and audited content seal. `--allow-incomplete`
+is for adapter test fixtures only and can never enter `--gate`. Kaggle's file inventory
+supplies byte lengths, not per-file content hashes: download verification therefore checks
+paths and byte counts. The deterministic index separately hashes every selected full-frame
+model input and seals the derived annotations, chronology and source-video split; duplicate
+Roboflow variants that are not model inputs contribute fail-closed target semantics but are
+not described as individually byte-sealed. The full-archive hash in
+`rad_v3_source_receipt.json` is an audit receipt, not a hash supplied by the downloader.
+
+The default gate requires 100% recall on the selected locked potholes, zero accepted
+audited non-potholes, zero accepted speed breakers and zero errors. Cached responses are
+accepted only after the exact production request is rebuilt and its hash matches; resumed
+rows are rebound to their immutable event, label, audit and full-frame transform data.
+That is a reproducible gate on the audited subset, not a claim of universal or 100%
+real-world pothole accuracy.
+The shipped v15 Drive contract uses `gpt-5.6` with `original` image detail; `rad_v3_release_receipt.json` records the exact validation and sealed-test result hashes.
+
 Drive replay uses a 768 px full-frame context plus as many as three chronological,
 downscale-only 1280 px full frames. No live, replay, evaluation, training-data or
 evidence path may crop, tile, mask or extract a road region. An entry can provide a

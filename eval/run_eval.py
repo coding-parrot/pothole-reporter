@@ -16,12 +16,13 @@ API = "https://api.openai.com/v1/responses"
 # Mirror each production path by default. Drive uses gpt-5.6; Photo uses mini.
 # Either model can still be selected explicitly for a comparison arm.
 DRIVE_DEFAULT_MODEL = "gpt-5.6"
+DRIVE_DEFAULT_DETAIL = "original"
 MANUAL_DEFAULT_MODEL = "gpt-5-mini"
 ALLOWED_MODELS = {DRIVE_DEFAULT_MODEL, MANUAL_DEFAULT_MODEL}
 ALLOWED_DETAILS = {"high", "original"}
 MAX_PREPARED_FRAME_DIMENSION = 1280
 NATIVE_DRIVE_MAX_OUTPUT_TOKENS = 1536
-PROMPT_VERSION = "pothole-binary-v13"
+PROMPT_VERSION = "pothole-binary-v15"
 SCHEMA_VERSION = 7
 
 SCHEMA = {
@@ -367,7 +368,11 @@ def main():
         default="",
         help="comma-separated model IDs (defaults to the production model for the selected mode)",
     )
-    parser.add_argument("--details", default="high", help="comma-separated high/original")
+    parser.add_argument(
+        "--details",
+        default=DRIVE_DEFAULT_DETAIL,
+        help="comma-separated high/original (defaults to the production Drive detail)",
+    )
     parser.add_argument("--mode", choices=["manual", "drive"], default="drive")
     parser.add_argument("--images-root", default=str(ROOT / "eval" / "images"))
     parser.add_argument("--labels", default=str(ROOT / "eval" / "labels.json"))

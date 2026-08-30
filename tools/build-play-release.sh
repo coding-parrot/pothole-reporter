@@ -179,8 +179,8 @@ fi
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="dev.aiengg.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="62"' "$BUNDLE_MANIFEST" || fail "expected versionCode 62"
-grep -Fq 'android:versionName="1.36.7"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.36.7"
+grep -Fq 'android:versionCode="63"' "$BUNDLE_MANIFEST" || fail "expected versionCode 63"
+grep -Fq 'android:versionName="1.36.8"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.36.8"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"

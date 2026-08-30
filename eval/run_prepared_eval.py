@@ -240,7 +240,7 @@ def main():
             views,
             run_eval.effective_prompt(prompt, "drive", note),
             "gpt-5.6",
-            "high",
+            run_eval.DRIVE_DEFAULT_DETAIL,
         )
         body["reasoning"] = {"effort": args.reasoning}
         for trial in range(args.trials):

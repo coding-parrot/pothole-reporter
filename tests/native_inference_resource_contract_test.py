@@ -64,8 +64,8 @@ check(
     and "imageUrls.clear()" in repair_stream,
 )
 check(
-    "v13 detection and v2 repair contracts require complete uncropped camera frames",
-    'PROMPT_VERSION = "pothole-binary-v13"' in DETECTION_CONTRACT
+    "v15 detection and v2 repair contracts require complete uncropped camera frames",
+    'PROMPT_VERSION = "pothole-binary-v15"' in DETECTION_CONTRACT
     and 'PROMPT_VERSION = "road-repair-v2"' in REPAIR_CONTRACT
     and "complete camera frames" in DETECTION_CONTRACT
     and "complete current camera" in REPAIR_CONTRACT

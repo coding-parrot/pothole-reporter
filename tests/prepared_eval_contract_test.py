@@ -178,7 +178,7 @@ check(
 )
 check(
     "prepared-eval uses the current complete-frame detection contract",
-    prepared_eval.run_eval.PROMPT_VERSION == "pothole-binary-v13"
+    prepared_eval.run_eval.PROMPT_VERSION == "pothole-binary-v15"
     and "leaving the final full frame" in prepared_eval.run_eval.prompts()["baseline"]
     and "leaving the final crop" not in prepared_eval.run_eval.prompts()["baseline"],
 )
@@ -478,9 +478,9 @@ with tempfile.TemporaryDirectory(prefix="prepared-eval-contract-") as temporary:
               and request.get("reasoning") == {"effort": "low"}
               and request.get("store") is False
               and request.get("max_output_tokens") == 1536)
-        check(f"{mode} sends every exported JPEG unchanged at high detail",
+        check(f"{mode} sends every exported JPEG unchanged at original detail",
               len(request_images) == len(raw_images)
-              and all(item.get("detail") == "high" for item in request_images)
+              and all(item.get("detail") == "original" for item in request_images)
               and [base64.b64decode(item["image_url"].split(",", 1)[1])
                    for item in request_images] == raw_images)
         expected_prompt = prepared_eval.run_eval.effective_prompt(

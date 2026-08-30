@@ -1,0 +1,81 @@
+{
+  "schema_version": "rad-v3-release-gate-v1",
+  "created_at": "2026-08-30T06:34:19.405965+00:00",
+  "evaluation_worktree_base_commit": "0781449a5081a28d59aafc975061ec157e40a897",
+  "dataset": {
+    "name": "RAD—Road Anomaly Detection",
+    "version": 3,
+    "index_schema_version": "rad-dataset-index-v2",
+    "index_sha256": "5fb978ed8c281d85d126ad212d2158c62d121ccd9f5f5f8fd92faec09d78bdd7",
+    "index_file_sha256": "b3821fcac76a42dd84e29c3025f7b85ebfa95e311daa77581da0e0e600362512",
+    "audit_manifest_sha256": "ed0f63d644aab2affbcb04c818a81f81666523c59c4f0b95290bfcf2979c69e2",
+    "excluded_ambiguous_source_videos": 29,
+    "excluded_ambiguous_audit_events": 1,
+    "full_source_images": 8394,
+    "sealed_three_frame_events": 5079
+  },
+  "production_contract": {
+    "model": "gpt-5.6",
+    "image_detail": "original",
+    "prompt_version": "pothole-binary-v15",
+    "prompt_sha256": "621866cba94700717358426bba70b274c8f23df081ae2da7db6e9199c97e1c98",
+    "schema_version": 7,
+    "schema_sha256": "4a71363f4a78f0da8af8cdc58301c688bd434308733664680a5f5ef59d14945a",
+    "production_eval_sha256": "5c66ca7b458310ff574218a5048e05db0dc9b52a8abcbab863cb19397a4f8e30",
+    "rad_eval_sha256": "c5681fbe35d73232e08555d95f4820259b895fe26ffe5961b5a8583416383198",
+    "rad_dataset_sha256": "6c69364206c36bcd104c578f4ed36301ab2bfa79350ac69d3b4670497a6c1505",
+    "full_frame_only": true,
+    "chronological_full_frames_per_event": 3,
+    "spatial_crops_tiles_masks_or_rois": 0
+  },
+  "validation": {
+    "selected_events": 102,
+    "locked_potholes": {"accepted": 1, "total": 1},
+    "locked_non_potholes": {"accepted": 0, "rejected": 3, "total": 3},
+    "speed_breakers": {"accepted": 0, "rejected": 98, "total": 98},
+    "errors": 0,
+    "gate_passed": true,
+    "raw_rows_sha256": "375f3ebf9357bcef7e123acef67a6d7b34cb9494829694f4b6cd6cf911a0a5e9",
+    "run_provenance_sha256": "aa4cbd7afd8a2a64b8cbb92a95203ebb9afa8522370b039162285ea8151af5d7",
+    "summary_sha256": "a143a8d0dbaf868117bed5ba12aa9f8b7d8f8f19e6b216caf45b18db7b52ca22"
+  },
+  "sealed_test": {
+    "selected_events": 23,
+    "locked_potholes": {"accepted": 1, "total": 1},
+    "locked_non_potholes": {"accepted": 0, "rejected": 2, "total": 2},
+    "speed_breakers": {"accepted": 0, "rejected": 20, "total": 20},
+    "errors": 0,
+    "gate_passed": true,
+    "raw_rows_sha256": "0911f3c4f50b757abdfafd0ec1af479f832b88690f947e655a965e3e4f0efb0c",
+    "run_provenance_sha256": "b099df3be961702998d29d2f87f1bc0bab3305576a983639139e49dab625cadf",
+    "summary_sha256": "74e866cef0ced9888db843d10ec5ce3d2e2738ab5993e05c9612515ae07654f1"
+  },
+  "combined_release_gate": {
+    "selected_events": 125,
+    "locked_potholes": {"accepted": 2, "rejected": 0, "total": 2},
+    "locked_non_potholes": {"accepted": 0, "rejected": 5, "total": 5},
+    "speed_breakers": {"accepted": 0, "rejected": 118, "total": 118},
+    "errors": 0,
+    "required_locked_pothole_recall": 1.0,
+    "maximum_accepted_non_potholes": 0,
+    "maximum_accepted_speed_breakers": 0,
+    "maximum_errors": 0,
+    "gate_passed": true,
+    "raw_rows_sha256": "a2bf7483fec2c74d249bd61e40707e1b3ec446f88db14347a84974fa2ba20ca5",
+    "run_provenance_sha256": "0bb81340829fa2b94b8f0dce0cea3f807b1e51d1035f9515670348bc34cb965d",
+    "summary_sha256": "cf4d12ae9e8acc8af3b171c5d53f60b9a8e09e62f58c9feda5cb8ba9aa05ee74"
+  },
+  "eval_driven_changes": [
+    "Use original image detail for Drive full-frame requests after high detail missed the shallow validation pothole.",
+    "Recognize shallow concave depressions with worn eroded lips while retaining a flat-patch veto.",
+    "Reject intact manhole and utility-cover reinstatement rings unless a separate cavity independently satisfies every pothole condition.",
+    "Fail the release gate for any accepted locked non-pothole, accepted speed breaker, API error or schema error.",
+    "Exclude one mixed manhole-repair event whose hood occlusion and near-identical viewpoints cannot establish or rule out a separate shallow cavity."
+  ],
+  "claim_limitations": {
+    "rad_road_damages_is_binary_pothole_truth": false,
+    "audit_type": "Two-pass Codex full-frame visual review",
+    "universal_or_real_world_100_percent_accuracy_claimed": false,
+    "result_scope": "The 125 selected locked validation and sealed-test events only."
+  }
+}

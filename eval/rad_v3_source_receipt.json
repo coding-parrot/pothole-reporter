@@ -1,0 +1,88 @@
+{
+  "schema_version": "rad-v3-source-receipt-v1",
+  "dataset": {
+    "name": "RAD—Road Anomaly Detection",
+    "kaggle_ref": "rohitsuresh15/radroad-anomaly-detection",
+    "version": 3,
+    "source_url": "https://www.kaggle.com/datasets/rohitsuresh15/radroad-anomaly-detection",
+    "metadata_url": "https://www.kaggle.com/api/v1/datasets/metadata/rohitsuresh15/radroad-anomaly-detection",
+    "paper_doi": "10.1007/978-981-97-2004-0_34",
+    "paper_url": "https://doi.org/10.1007/978-981-97-2004-0_34",
+    "license": {
+      "reported_by_kaggle_metadata": "MIT",
+      "license_file_present_in_archive": false
+    }
+  },
+  "full_archive": {
+    "bytes": 7849199282,
+    "sha256": "5c59d2be95220cf919d30482260ef688f825ad61cde29d866b27015785d9bfe3",
+    "files": 17153,
+    "mp4_files": 364
+  },
+  "image_annotation_subset": {
+    "images": 8394,
+    "labels": 8394,
+    "boxes": 29941,
+    "empty_labels": 91,
+    "published_folder_image_counts": {
+      "train": 5843,
+      "valid": 1288,
+      "test": 1263
+    },
+    "class_box_counts": {
+      "HMV": 4431,
+      "LMV": 14392,
+      "Pedestrian": 3563,
+      "RoadDamages": 6463,
+      "SpeedBump": 499,
+      "UnsurfacedRoad": 593
+    },
+    "frame_counts": {
+      "road_damage": 3184,
+      "speed_breaker": 439,
+      "pure_speed_breaker": 341,
+      "road_damage_and_speed_breaker": 98
+    }
+  },
+  "source_split_audit": {
+    "published_splits_are_accepted_for_evaluation": false,
+    "reason": "Source videos and source frames leak across the published train, valid and test folders.",
+    "unambiguous_test_source_videos": 132,
+    "unambiguous_test_source_videos_also_in_train": 132,
+    "unambiguous_source_videos_in_all_three_published_splits": 127,
+    "source_frame_ids_crossing_published_splits": 99,
+    "source_frame_ids_crossing_train_and_test": 46,
+    "ambiguous_duplicate_video_basenames": 29,
+    "adapter_policy": "Deterministically split by source video and exclude ambiguous duplicate basenames from chronological events."
+  },
+  "sealed_index": {
+    "schema_version": "rad-dataset-index-v2",
+    "sha256": "5fb978ed8c281d85d126ad212d2158c62d121ccd9f5f5f8fd92faec09d78bdd7",
+    "file_sha256": "b3821fcac76a42dd84e29c3025f7b85ebfa95e311daa77581da0e0e600362512",
+    "source_images": 8394,
+    "unique_source_frames": 7185,
+    "source_videos": 167,
+    "three_frame_events": 5079,
+    "skipped_repeated_pixel_windows": 0,
+    "source_dataset_complete": true,
+    "full_frame_only": true
+  },
+  "duplicate_variant_audit": {
+    "unique_source_frame_groups": 7185,
+    "duplicate_source_frame_groups": 1137,
+    "extra_variants": 1209,
+    "maximum_variants_per_group": 3,
+    "groups_with_conflicting_target_semantics": 446,
+    "first_path_selections_omitting_a_target": 241,
+    "selected_speed_bump_with_other_variant_road_damage": 9,
+    "changed_unambiguous_frames": 0,
+    "changed_chronological_event_semantics": 0,
+    "adapter_policy": "Union RoadDamages and SpeedBump semantics across variants before assigning evaluation labels; retain one untouched complete frame as model input."
+  },
+  "accuracy_limitations": {
+    "road_damages_label_is_pothole_ground_truth": false,
+    "road_damages_scope": "Broad road-anomaly class that can include non-pothole defects.",
+    "pothole_metrics_require_named_audit_overlay": true,
+    "universal_pothole_accuracy_claimed": false
+  }
+}
