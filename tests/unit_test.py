@@ -16,16 +16,26 @@ CASES = r"""
   const eq = (name, got, want) => out.push([name, JSON.stringify(got) === JSON.stringify(want), got, want]);
   const ok = (name, cond, detail) => out.push([name, !!cond, detail === undefined ? cond : detail, true]);
 
-  // ---- orientation-aware Drive road region; manual Photo bypasses this transform ----
-  eq("road region: portrait excludes sky and dashboard", P.selectRoadRegion(480, 720),
-     {x:0, y:288, width:480, height:187});
-  eq("road region: landscape excludes sky and dashboard", P.selectRoadRegion(1280, 720),
-     {x:0, y:346, width:1280, height:216});
-  eq("road region: near-square uses its explicit geometry", P.selectRoadRegion(1000, 1000),
-     {x:0, y:400, width:1000, height:300});
-  let invalidRoadRegionThrows = false;
-  try { P.selectRoadRegion(0, 720); } catch (_) { invalidRoadRegionThrows = true; }
-  ok("road region: invalid dimensions fail closed", invalidRoadRegionThrows);
+  // ---- complete-frame invariant ----
+  ok("full frame: no crop selector is exposed", !("selectRoadRegion" in P));
+  ok("full frame: Drive prompt reasons about the complete field of view",
+     P.DETECT_PROMPT.includes("leaving the final full frame")
+       && !P.DETECT_PROMPT.includes("leaving the final crop"));
+  ok("full frame: repair prompt requires complete current frames",
+     P.REPAIR_PROMPT.includes("complete current camera frame")
+       && P.REPAIR_PROMPT.includes("No current image is cropped, tiled, masked"));
+  eq("full frame: current Drive evidence may use its complete working frame",
+     P.fullFramePhoto({photo:"current", capture_source:"drive_live",
+       prompt_version:P.PROMPT_VERSION}), "current");
+  eq("full frame: legacy Drive crop is rejected when no complete evidence exists",
+     P.fullFramePhoto({photo:"legacy-crop", capture_source:"drive_live",
+       prompt_version:"pothole-binary-v12"}), null);
+  eq("full frame: explicit complete evidence wins for a legacy Drive report",
+     P.fullFramePhoto({photo:"legacy-crop", photo_full:"complete",
+       capture_source:"drive_live", prompt_version:"pothole-binary-v12"}), "complete");
+  eq("full frame: a manually framed source remains complete evidence",
+     P.fullFramePhoto({photo:"manual", capture_source:"manual_camera",
+       prompt_version:P.PHOTO_PROMPT_VERSION}), "manual");
 
   // ---- distMeters: the dedupe radius and the 8 m capture spacing both rest on this ----
   const d = P.distMeters(12.9115, 77.6427, 12.9115, 77.6427);
@@ -203,9 +213,13 @@ CASES = r"""
   eq("decision: YES without size is NO", P.decisionFor({...good, size:null}), "reject");
 
   // ---- native detector upgrade bridge ----
+  const nativeV13 = P.nativeDetectorContract({prompt_version:"pothole-binary-v13", schema_version:7});
+  ok("native bridge: v13 is the current complete-frame contract",
+     nativeV13 && nativeV13.kind === "current_v13"
+       && nativeV13.surfaceTypes.has("temporary_drivable_surface"));
   const nativeV12 = P.nativeDetectorContract({prompt_version:"pothole-binary-v12", schema_version:7});
-  ok("native bridge: v12 accepts the temporary traffic-surface vocabulary",
-     nativeV12 && nativeV12.kind === "current_v12"
+  ok("native bridge: legacy v12 rows remain importable",
+     nativeV12 && nativeV12.kind === "legacy_v12"
        && nativeV12.surfaceTypes.has("temporary_drivable_surface"));
   const nativeV11 = P.nativeDetectorContract({prompt_version:"pothole-binary-v11", schema_version:7});
   ok("native bridge: unshipped v11 rows stay unsupported", nativeV11 === null);
@@ -304,6 +318,15 @@ CASES = r"""
      content.filter((x) => x.type === "input_image").every((x) => x.detail === "original"), content);
   ok("request: prompt appears once and last", content.at(-1).type === "input_text" &&
      content.filter((x) => x.type === "input_text").length === 1, content);
+  const repairReq = P.buildDetectionRequest(
+    ["historical","context","frame-0","frame-1","frame-2","extra"],
+    P.REPAIR_PROMPT, "gpt-5.6", "high", "road_repair_verification", P.REPAIR_SCHEMA);
+  const repairImages = repairReq.input[0].content
+    .filter((x) => x.type === "input_image").map((x) => x.image_url);
+  eq("repair request: historical, context and every full frame remain ordered",
+     repairImages, ["historical","context","frame-0","frame-1","frame-2"]);
+  eq("repair request: separate cap keeps all three chronological frames",
+     P.MAX_REPAIR_IMAGES, 5);
   eq("settings: arbitrary model fails safe", P.normaliseModel("gpt-made-up"), "gpt-5-mini");
   eq("settings: original falls back on mini", P.normaliseDetail("original", "gpt-5-mini"), "high");
   eq("Drive: accuracy-tested model is pinned", P.DRIVE_DETECTION_MODEL, "gpt-5.6");

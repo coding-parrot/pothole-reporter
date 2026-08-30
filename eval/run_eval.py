@@ -19,15 +19,9 @@ DRIVE_DEFAULT_MODEL = "gpt-5.6"
 MANUAL_DEFAULT_MODEL = "gpt-5-mini"
 ALLOWED_MODELS = {DRIVE_DEFAULT_MODEL, MANUAL_DEFAULT_MODEL}
 ALLOWED_DETAILS = {"high", "original"}
-ROAD_REGION_RATIOS = {
-    "portrait": {"top": 0.40, "bottom": 0.66},
-    "landscape": {"top": 0.48, "bottom": 0.78},
-    "square": {"top": 0.40, "bottom": 0.70},
-}
-ROAD_ORIENTATION_EPSILON = 0.10
-MAX_PREPARED_ROAD_DIMENSION = 1280
+MAX_PREPARED_FRAME_DIMENSION = 1280
 NATIVE_DRIVE_MAX_OUTPUT_TOKENS = 1536
-PROMPT_VERSION = "pothole-binary-v12"
+PROMPT_VERSION = "pothole-binary-v13"
 SCHEMA_VERSION = 7
 
 SCHEMA = {
@@ -170,7 +164,7 @@ def apply_detection_enhancement(image, plan):
 
 
 def adaptive_lift(image):
-    """Enhance the already-cropped/resized view with the cross-runtime pixel kernel."""
+    """Enhance the already-resized full frame with the cross-runtime pixel kernel."""
     plan = detection_enhancement_plan(image)
     return apply_detection_enhancement(image, plan), plan
 
@@ -180,38 +174,12 @@ def positive_half_up(value):
     return math.floor(value + .5)
 
 
-def select_road_region(frame_width, frame_height):
-    """Mirror Android/WebView RoadRegionSelector pixel-for-pixel."""
-    if frame_width <= 0 or frame_height <= 0:
-        raise ValueError("Frame dimensions must be positive")
-    aspect_ratio = frame_width / frame_height
-    if aspect_ratio < 1 - ROAD_ORIENTATION_EPSILON:
-        orientation = "portrait"
-    elif aspect_ratio > 1 + ROAD_ORIENTATION_EPSILON:
-        orientation = "landscape"
-    else:
-        orientation = "square"
-    ratios = ROAD_REGION_RATIOS[orientation]
-    # Kotlin roundToInt and JavaScript Math.round round a positive half upward;
-    # Python's built-in round uses ties-to-even and would drift at .5 boundaries.
-    top = min(frame_height - 1, max(0, positive_half_up(frame_height * ratios["top"])))
-    bottom = min(frame_height, max(top + 1,
-        positive_half_up(frame_height * ratios["bottom"])))
-    return {"x": 0, "y": top, "width": frame_width, "height": bottom - top,
-            "orientation": orientation, "top_ratio": ratios["top"],
-            "bottom_ratio": ratios["bottom"]}
-
-
-def encode_view(path, max_dim, quality=85, road_crop=False, enhance=False):
+def encode_view(path, max_dim, quality=85, enhance=False):
     from PIL import Image
     image = Image.open(path).convert("RGB")
     source = {"width": image.width, "height": image.height}
-    road_region = select_road_region(image.width, image.height) if road_crop else None
-    if road_region:
-        x, y = road_region["x"], road_region["y"]
-        image = image.crop((x, y, x + road_region["width"], y + road_region["height"]))
-    # Match both native live analysis and WebView saved-frame replay: crop first,
-    # then downscale only. Upscaling cannot recover road detail and changes the request.
+    # Match native live analysis and WebView replay: preserve the complete frame and
+    # downscale only. No spatial crop, tile, mask, or region of interest is permitted.
     scale = min(1.0, max_dim / max(image.size))
     if scale != 1:
         image = image.resize((positive_half_up(image.width * scale),
@@ -224,7 +192,7 @@ def encode_view(path, max_dim, quality=85, road_crop=False, enhance=False):
     raw = buf.getvalue()
     return "data:image/jpeg;base64," + base64.b64encode(raw).decode(), {
         "source": source, "output": {"width": image.width, "height": image.height},
-        "max_dim": max_dim, "jpeg_quality": quality, "road_region": road_region,
+        "max_dim": max_dim, "jpeg_quality": quality, "full_frame": True,
         **light, "bytes_sha256": sha(raw),
     }
 
@@ -245,20 +213,23 @@ def prepare_event(entry, root, mode):
     primary = primary if 0 <= primary < len(paths) else 0
     views, transforms = [], []
     if mode == "manual":
-        view, meta = encode_view(paths[primary], 2000, 85, False, True)
+        view, meta = encode_view(paths[primary], 2000, 85, True)
         views.append(view); transforms.append(meta)
         note = "\n- Capture layout: one user-framed full image."
     else:
-        context, meta = encode_view(paths[primary], 768, 82, False, False)
+        context, meta = encode_view(paths[primary], 768, 82, False)
         views.append(context); transforms.append({"role": "primary_context", **meta})
         for index, path in enumerate(paths):
             view, meta = encode_view(
-                path, MAX_PREPARED_ROAD_DIMENSION, 85, True, True
+                path, MAX_PREPARED_FRAME_DIMENSION, 85, True
             )
-            views.append(view); transforms.append({"role": "chronological_road_crop", "frame_index": index, **meta})
-        note = (f"\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. "
-                f"Images 2-{len(views)} are orientation-aware road-region crops in chronological order; "
-                f"the sharpest crop is chronological frame {primary + 1}.")
+            views.append(view); transforms.append({
+                "role": "chronological_full_frame", "frame_index": index, **meta
+            })
+        note = (f"\n- Capture layout: image 1 is downscaled full-frame context from the "
+                f"sharpest burst frame. Images 2-{len(views)} are complete camera frames "
+                f"in chronological order; chronological frame {primary + 1} is the sharpest. "
+                "No image is cropped, tiled, masked, or limited to a region of interest.")
     return views, transforms, note
 
 

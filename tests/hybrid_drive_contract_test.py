@@ -233,11 +233,11 @@ check("hybrid status is explicit and all shipped web copies match",
           == (ROOT / "static/index.html").read_bytes()
       and (ROOT / "android-app/android/app/src/main/assets/public/index.html").read_bytes()
           == (ROOT / "static/index.html").read_bytes())
-check("Android release identity is 1.36.6 code 61 everywhere",
-      re.search(r"versionCode\s+61\b", GRADLE)
-      and re.search(r'versionName\s+"1\.36\.6"', GRADLE)
-      and 'android:versionCode="61"' in RELEASE
-      and 'android:versionName="1.36.6"' in RELEASE)
+check("Android release identity is 1.36.7 code 62 everywhere",
+      re.search(r"versionCode\s+62\b", GRADLE)
+      and re.search(r'versionName\s+"1\.36\.7"', GRADLE)
+      and 'android:versionCode="62"' in RELEASE
+      and 'android:versionName="1.36.7"' in RELEASE)
 
 if failures:
     print(f"\nFAIL: {len(failures)} hybrid Drive contract check(s) failed")

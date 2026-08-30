@@ -120,9 +120,13 @@ check(
     and "replayState && replayState.done" in WEB,
 )
 check(
-    "browser burst selection uses the same production orientation-aware road region",
-    "StandaloneAPI.__pure.selectRoadRegion" in quality
-    and "region.x, region.y, region.width, region.height" in quality
+    "browser burst selection scores the complete frame with its aspect ratio preserved",
+    "const scale = Math.min(1, 160 / video.videoWidth, 96 / video.videoHeight);" in quality
+    and "Math.round(video.videoWidth * scale)" in quality
+    and "Math.round(video.videoHeight * scale)" in quality
+    and "video.videoWidth, video.videoHeight, 0, 0, width, height" in quality
+    and "StandaloneAPI.__pure.selectRoadRegion" not in quality
+    and "region." not in quality
     and "video.videoHeight - sourceH" not in quality,
 )
 

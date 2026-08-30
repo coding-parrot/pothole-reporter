@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Evaluate JPEGs exported by NativeEvalExporterInstrumentedTest without re-encoding.
 
-The exporter has already applied Android's production crop, resize, enhancement and JPEG
+The exporter has already applied Android's production full-frame resize, enhancement and JPEG
 pipeline. Reprocessing those files would invalidate the parity check, so this runner sends
 their bytes in manifest order and otherwise reuses the shipped prompt, schema and decision
 gate from run_eval.py.
@@ -69,11 +69,11 @@ def load_event(path, source_mode="live"):
         sequence = ",".join(str(item) for item in expected_orders)
         raise ValueError(f"{path.name}: image order must be the unique sequence {sequence}")
     images = sorted(raw_images, key=lambda item: item["order"])
-    expected_roles = ["context"] + ["road_band"] * (expected_image_count - 1)
+    expected_roles = ["context"] + ["full_frame"] * (expected_image_count - 1)
     if [item.get("role") for item in images] != expected_roles:
-        road_count = expected_image_count - 1
+        frame_count = expected_image_count - 1
         raise ValueError(
-            f"{path.name}: expected one context and {road_count} road-band images"
+            f"{path.name}: expected one context and {frame_count} complete-frame images"
         )
     live_primary = manifest.get("live_primary_index")
     if type(live_primary) is not int or live_primary not in {0, 1, 2}:
@@ -196,9 +196,10 @@ def load_event(path, source_mode="live"):
             raise ValueError(f"{path.name}: SHA-256 mismatch for {filename}")
         views.append(data_url(raw))
     final_image = len(images)
-    note = ("\n- Capture layout: image 1 is full-frame context from the sharpest selected frame. "
-            f"Images 2-{final_image} are orientation-aware road-region crops in chronological order; "
-            f"the sharpest crop is chronological frame {primary + 1}.")
+    note = ("\n- Capture layout: image 1 is downscaled full-frame context from the "
+            f"sharpest selected frame. Images 2-{final_image} are complete camera frames "
+            f"in chronological order; chronological frame {primary + 1} is the sharpest. "
+            "No image is cropped, tiled, masked, or limited to a region of interest.")
     return manifest, manifest_bytes, views, note
 
 

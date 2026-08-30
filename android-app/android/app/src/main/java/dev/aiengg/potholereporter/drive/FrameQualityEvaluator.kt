@@ -37,50 +37,7 @@ internal object NativeBitmapOwnership {
     }
 }
 
-/**
- * Pixel bounds for the part of a forward-facing camera frame that contains the
- * near/mid road. The bounds deliberately stop above the bottom of the image so a
- * dashboard or bonnet cannot dominate either quality selection or inference.
- */
-internal data class RoadRegion(
-    val x: Int,
-    val y: Int,
-    val width: Int,
-    val height: Int
-) {
-    val bottomExclusive: Int get() = y + height
-}
-
-internal object RoadRegionSelector {
-    private const val PORTRAIT_TOP = 0.40f
-    // The supplied 480x720 road clips place the closest cavities down to about
-    // 64% of frame height, while the bonnet begins around 66%. Keep that near
-    // road evidence without returning to the old dashboard-heavy lower crop.
-    private const val PORTRAIT_BOTTOM = 0.66f
-    private const val LANDSCAPE_TOP = 0.48f
-    private const val LANDSCAPE_BOTTOM = 0.78f
-    private const val SQUARE_TOP = 0.40f
-    private const val SQUARE_BOTTOM = 0.70f
-    private const val ORIENTATION_EPSILON = 0.10f
-
-    fun select(frameWidth: Int, frameHeight: Int): RoadRegion {
-        require(frameWidth > 0 && frameHeight > 0) { "Frame dimensions must be positive" }
-
-        val aspectRatio = frameWidth.toFloat() / frameHeight.toFloat()
-        val (topRatio, bottomRatio) = when {
-            aspectRatio < 1f - ORIENTATION_EPSILON -> PORTRAIT_TOP to PORTRAIT_BOTTOM
-            aspectRatio > 1f + ORIENTATION_EPSILON -> LANDSCAPE_TOP to LANDSCAPE_BOTTOM
-            else -> SQUARE_TOP to SQUARE_BOTTOM
-        }
-        val top = (frameHeight * topRatio).roundToInt().coerceIn(0, frameHeight - 1)
-        val bottom = (frameHeight * bottomRatio)
-            .roundToInt()
-            .coerceIn(top + 1, frameHeight)
-        return RoadRegion(x = 0, y = top, width = frameWidth, height = bottom - top)
-    }
-}
-
-/** Pure, downscale-only dimension policy shared by context and road-band preparation. */
+/** Pure, downscale-only dimension policy shared by every full-frame preparation path. */
 internal object NativePreparedImageScale {
     fun downscaleOnly(width: Int, height: Int, maxDimension: Int): Pair<Int, Int> {
         require(width > 0 && height > 0) { "Image dimensions must be positive" }
@@ -194,7 +151,7 @@ internal object DetectionImageEnhancement {
 }
 
 object FrameQualityEvaluator {
-    internal const val MAX_PREPARED_ROAD_DIMENSION = 1280
+    internal const val MAX_PREPARED_FRAME_DIMENSION = 1280
 
     fun scoreRoadPixels(pixels: IntArray, width: Int, height: Int): QualityScore {
         val gray = FloatArray(width * height)
@@ -235,31 +192,16 @@ object FrameQualityEvaluator {
         return QualityScore(sharpness, luminance, clipped, score)
     }
 
-    fun evaluateRoadFrameQuality(fullBitmap: Bitmap): QualityScore {
-        val width = 160
-        val height = 96
-        val roadRegion = RoadRegionSelector.select(fullBitmap.width, fullBitmap.height)
-
-        val cropped = Bitmap.createBitmap(
-            fullBitmap,
-            roadRegion.x,
-            roadRegion.y,
-            roadRegion.width,
-            roadRegion.height
+    fun evaluateFrameQuality(fullBitmap: Bitmap): QualityScore {
+        // Quality selection obeys the same invariant as inference: inspect the complete
+        // field of view. Downscaling preserves every source pixel without choosing an ROI.
+        val (width, height) = NativePreparedImageScale.downscaleOnly(
+            fullBitmap.width,
+            fullBitmap.height,
+            160
         )
-        val scaled = try {
-            if (cropped.width == width && cropped.height == height) cropped
-            else Bitmap.createScaledBitmap(cropped, width, height, true)
-        } catch (error: Throwable) {
-            NativeBitmapOwnership.recycleIfOwned(cropped, fullBitmap) {
-                if (!it.isRecycled) it.recycle()
-            }
-            throw error
-        }
-        NativeBitmapOwnership.recycleIfOwned(cropped, fullBitmap, scaled) {
-            if (!it.isRecycled) it.recycle()
-        }
-
+        val scaled = if (fullBitmap.width == width && fullBitmap.height == height) fullBitmap
+        else Bitmap.createScaledBitmap(fullBitmap, width, height, true)
         try {
             val pixels = IntArray(width * height)
             scaled.getPixels(pixels, 0, width, 0, 0, width, height)
@@ -282,48 +224,26 @@ object FrameQualityEvaluator {
         return best
     }
 
-    fun prepareRoadBandDataUrl(
+    fun prepareDetectionFrameDataUrl(
         bitmap: Bitmap,
         maxDim: Int = 1024,
         quality: Int = 85,
         boost: Boolean = true,
         maxBytes: Long = NativeStoredImagePolicy.MAX_MODEL_IMAGE_BYTES
     ): String {
-        val roadRegion = RoadRegionSelector.select(bitmap.width, bitmap.height)
-        val cropped = Bitmap.createBitmap(
-            bitmap,
-            roadRegion.x,
-            roadRegion.y,
-            roadRegion.width,
-            roadRegion.height
-        )
-
-        val sw = cropped.width
-        val sh = cropped.height
-        // Camera analysis is already bounded to the useful source resolution. Upscaling a
-        // 1280-wide (or smaller) crop creates a much larger ARGB bitmap without inventing
-        // road detail, and materially raises peak memory during three-frame inference.
-        val preparedMaxDimension = min(maxDim, MAX_PREPARED_ROAD_DIMENSION)
+        val sw = bitmap.width
+        val sh = bitmap.height
+        // Preserve the complete field of view. Downscaling and compression are permitted;
+        // spatial cropping, tiling, masks, and region-of-interest extraction are not.
+        val preparedMaxDimension = min(maxDim, MAX_PREPARED_FRAME_DIMENSION)
         val (targetW, targetH) = NativePreparedImageScale.downscaleOnly(
             sw,
             sh,
             preparedMaxDimension
         )
 
-        val scaled = try {
-            if (targetW == sw && targetH == sh) cropped
-            else Bitmap.createScaledBitmap(cropped, targetW, targetH, true)
-        } catch (error: Throwable) {
-            NativeBitmapOwnership.recycleIfOwned(cropped, bitmap) {
-                if (!it.isRecycled) it.recycle()
-            }
-            throw error
-        }
-        // createScaledBitmap may return its input for an identity transform. Keep the
-        // crop alive when it is also the scaled working bitmap.
-        NativeBitmapOwnership.recycleIfOwned(cropped, bitmap, scaled) {
-            if (!it.isRecycled) it.recycle()
-        }
+        val scaled = if (targetW == sw && targetH == sh) bitmap
+        else Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
 
         try {
             val finalBitmap = if (boost) applyDetectionEnhancement(scaled) else scaled
@@ -333,7 +253,7 @@ object FrameQualityEvaluator {
                     maxBytes,
                     preparedMaxDimension,
                     quality
-                ) ?: throw IllegalStateException("Road image could not fit the model byte limit")
+                ) ?: throw IllegalStateException("Full-frame image could not fit the model byte limit")
                 return "data:image/jpeg;base64,${Base64.encodeToString(jpeg, Base64.NO_WRAP)}"
             } finally {
                 NativeBitmapOwnership.recycleIfOwned(finalBitmap, bitmap, scaled) {
@@ -341,8 +261,8 @@ object FrameQualityEvaluator {
                 }
             }
         } finally {
-            // Encoding and enhancement can fail under memory pressure. The temporary
-            // crop must still be released so the next Drive burst can recover.
+            // Encoding and enhancement can fail under memory pressure. Release only the
+            // temporary whole-frame working bitmap; the caller continues to own the source.
             NativeBitmapOwnership.recycleIfOwned(scaled, bitmap) {
                 if (!it.isRecycled) it.recycle()
             }

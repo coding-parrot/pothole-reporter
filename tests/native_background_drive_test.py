@@ -888,15 +888,25 @@ with sync_playwright() as playwright:
         {method: "POST", body: JSON.stringify(legacyV10)});
       const v10Second = await api("/api/native-report",
         {method: "POST", body: JSON.stringify(legacyV10)});
-      // The current v12/schema7 contract follows the same import path.
-      const currentV12 = {...native, id: 101, lat: 28.6250, lng: 77.2850,
+      // Existing v12/schema7 rows used cropped temporal views. They must remain
+      // importable and idempotent after the complete-frame contract ships.
+      const legacyV12 = {...native, id: 101, lat: 28.6250, lng: 77.2850,
         surface_type: "temporary_drivable_surface",
         prompt_version: "pothole-binary-v12", schema_version: 7,
         drive_id: "native-import-v12", source_event_key: "live:native-import-v12:1"};
       const v12First = await api("/api/native-report",
-        {method: "POST", body: JSON.stringify(currentV12)});
+        {method: "POST", body: JSON.stringify(legacyV12)});
       const v12Second = await api("/api/native-report",
-        {method: "POST", body: JSON.stringify(currentV12)});
+        {method: "POST", body: JSON.stringify(legacyV12)});
+      // v13/schema7 is the current complete-frame contract.
+      const currentV13 = {...native, id: 102, lat: 28.7041, lng: 77.1025,
+        surface_type: "temporary_drivable_surface",
+        prompt_version: "pothole-binary-v13", schema_version: 7,
+        drive_id: "native-import-v13", source_event_key: "live:native-import-v13:1"};
+      const v13First = await api("/api/native-report",
+        {method: "POST", body: JSON.stringify(currentV13)});
+      const v13Second = await api("/api/native-report",
+        {method: "POST", body: JSON.stringify(currentV13)});
       const obsolete = {...native, id: 92, prompt_version: "road-damage-v4", schema_version: 4,
         source_event_key: "live:native-import:obsolete"};
       const ignored = await api("/api/native-report", {method: "POST", body: JSON.stringify(obsolete)});
@@ -915,26 +925,27 @@ with sync_playwright() as playwright:
         {method: "POST", body: JSON.stringify(value)}));
       const reports = await api("/api/reports");
       return {first, second, v8First, v8Second, v9First, v9Second, v10First, v10Second,
-        v12First, v12Second, ignored,
+        v12First, v12Second, v13First, v13Second, ignored,
         invalidResults, count: reports.length, reports};
     }""")
-    if imported["count"] != 5 or not imported["second"]["duplicate"]:
+    if imported["count"] != 6 or not imported["second"]["duplicate"]:
         failures.append(f"native report retry was not idempotent: {imported}")
     for version, first_key, second_key in (
         ("pothole-binary-v8", "v8First", "v8Second"),
         ("pothole-binary-v9", "v9First", "v9Second"),
         ("pothole-binary-v10", "v10First", "v10Second"),
         ("pothole-binary-v12", "v12First", "v12Second"),
+        ("pothole-binary-v13", "v13First", "v13Second"),
     ):
         if imported[first_key].get("duplicate") or not imported[second_key].get("duplicate"):
             failures.append(f"{version} native import was not idempotent: {imported}")
     reports_by_version = {report.get("prompt_version"): report for report in imported["reports"]}
     for version in ("pothole-binary-v6", "pothole-binary-v8", "pothole-binary-v9",
-                    "pothole-binary-v10", "pothole-binary-v12"):
+                    "pothole-binary-v10", "pothole-binary-v12", "pothole-binary-v13"):
         report = reports_by_version.get(version)
         if not report or not report.get("authority_id") or report.get("status") != "draft":
             failures.append(f"{version} native report did not use the existing authority router: {imported}")
-    if imported["ignored"].get("ignored") is not True or imported["count"] != 5:
+    if imported["ignored"].get("ignored") is not True or imported["count"] != 6:
         failures.append(f"obsolete non-binary native report was imported: {imported}")
     if any(result.get("ignored") is not True for result in imported["invalidResults"]):
         failures.append(f"native report bypassed a persisted binary gate: {imported}")

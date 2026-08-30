@@ -2,6 +2,7 @@
 """Offline contract for the exact private-media release gate."""
 
 import copy
+import inspect
 import os
 import subprocess
 import sys
@@ -46,9 +47,15 @@ check("every phase locks a chronological three-JPEG burst",
 contract = gate.load_production_contract()
 check("gate reads the current native production contract",
       contract["model"] == "gpt-5.6"
-      and contract["prompt_version"] == "pothole-binary-v12"
+      and contract["prompt_version"] == "pothole-binary-v13"
       and contract["schema_version"] == 7
       and contract["schema"] == gate.production_eval.SCHEMA)
+prepare_event_source = inspect.getsource(gate.production_eval.prepare_event)
+check("production evaluator sends full frames and rejects crop-specific preparation",
+      gate.production_eval.MAX_PREPARED_FRAME_DIMENSION == 1280
+      and not hasattr(gate.production_eval, "select_road_region")
+      and "complete camera frames" in prepare_event_source
+      and "No image is cropped, tiled, masked, or limited to a region of interest." in prepare_event_source)
 check("one strict trial is the safe default", gate.make_parser().parse_args([]).trials == 1)
 
 valid_positive = {

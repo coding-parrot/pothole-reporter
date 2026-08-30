@@ -26,7 +26,7 @@ internal data class RepairModelAssessment(
 )
 
 internal object NativeRepairContract {
-    const val PROMPT_VERSION = "road-repair-v1"
+    const val PROMPT_VERSION = "road-repair-v2"
     const val SCHEMA_VERSION = 1
     const val MAX_OUTPUT_TOKENS = 768
 
@@ -64,8 +64,10 @@ internal object NativeRepairContract {
     fun buildPrompt(language: String, imageCount: Int, primaryIndex: Int): String {
         require(imageCount >= 3) { "Repair verification requires historical and current evidence" }
         val layout = "\n- Input layout: image 1 is historical evidence; image 2 is " +
-            "current full-frame context; images 3-$imageCount are the complete current " +
-            "lower-road burst in chronological order; its sharpest crop is image ${primaryIndex + 3}."
+            "current full-frame context; images 3-$imageCount are complete current camera " +
+            "frames in chronological order. Chronological frame ${primaryIndex + 1} is the " +
+            "sharpest current view. No current image is cropped, tiled, masked, or limited " +
+            "to a region of interest."
         val languageNote = when (language) {
             "kn" -> "\n- Write description in formal Kannada."
             "mr" -> "\n- Write description in clear formal Marathi."

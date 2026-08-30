@@ -2,7 +2,7 @@ package dev.aiengg.potholereporter.drive
 
 /** Single source of truth for the native Drive detection prompt and structured schema. */
 internal object NativeDetectionContract {
-    const val PROMPT_VERSION = "pothole-binary-v12"
+    const val PROMPT_VERSION = "pothole-binary-v13"
     const val SCHEMA_VERSION = 7
     const val MAX_OUTPUT_TOKENS = 1_536
 
@@ -34,7 +34,7 @@ internal object NativeDetectionContract {
 
         A cavity at a road edge may be YES when its opening removes part of the flat traffic surface or creates a wheel-reachable drop, even if rubble extends beneath a raised roadside slab. It is NO when an intact kerb or gutter separates the entire opening from traffic.
 
-        Set has_localized_cavity, has_broken_edge_or_rim, and has_depth_or_surface_loss true when the physical evidence above is present. Set image_quality unusable only when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. For multiple views set temporal_consistency consistent when at least two show the same footprint; a feature leaving the final crop is not disagreement. Use single_view for one user-framed photo.
+        Set has_localized_cavity, has_broken_edge_or_rim, and has_depth_or_surface_loss true when the physical evidence above is present. Set image_quality unusable only when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. For multiple views set temporal_consistency consistent when at least two show the same footprint; a feature leaving the final full frame is not disagreement. Use single_view for one user-framed photo.
 
         After YES, set size to small below 30 cm, medium from 30 to 60 cm, or large above 60 cm or for a connected cavity cluster. For NO, size is null. These are visual app estimates, not official measurements. Keep description factual and never output confidence or probability.
         """.trimIndent()
@@ -62,16 +62,17 @@ internal object NativeDetectionContract {
         """.trimIndent()
 
     fun buildPrompt(language: String, imageCount: Int, primaryIndex: Int): String {
-        require(imageCount >= 2) { "Detection requires context plus at least one road crop" }
+        require(imageCount >= 3) { "Detection requires context plus at least two complete frames" }
         val languageSuffix = when (language) {
             "kn" -> "\n- Write the description field in formal Kannada (ಕನ್ನಡ ಭಾಷೆಯಲ್ಲಿ ಬರೆಯಿರಿ)."
             "mr" -> "\n- Write the description field in clear formal Marathi (मराठी भाषेत लिहा)."
             "bn" -> "\n- Write the description field in clear formal Bengali (পরিষ্কার, প্রমিত বাংলায় লিখুন)."
             else -> ""
         }
-        val layout = "\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. " +
-            "Images 2-$imageCount are orientation-aware road-region crops in chronological order; " +
-            "the sharpest crop is chronological frame ${primaryIndex + 1}."
+        val layout = "\n- Capture layout: image 1 is downscaled full-frame context from the " +
+            "sharpest burst frame. Images 2-$imageCount are complete camera frames in " +
+            "chronological order; chronological frame ${primaryIndex + 1} is the sharpest. " +
+            "No image is cropped, tiled, masked, or limited to a region of interest."
         return DETECT_PROMPT + layout + languageSuffix
     }
 }

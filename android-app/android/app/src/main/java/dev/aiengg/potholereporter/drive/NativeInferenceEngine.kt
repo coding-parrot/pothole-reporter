@@ -168,11 +168,12 @@ class NativeInferenceEngine(
         primaryFrame: BurstFrame
     ): MutableList<String> = ArrayList<String>(burstFrames.size + 1).apply {
         add(FrameQualityEvaluator.prepareContextDataUrl(primaryFrame.bitmap, 768, 82))
-        // Sequential preparation bounds peak bitmap/Base64 memory.
+        // Every chronological view is the complete frame. Sequential preparation bounds
+        // peak bitmap/Base64 memory without introducing any crop or region of interest.
         burstFrames.forEach { frame ->
-            add(FrameQualityEvaluator.prepareRoadBandDataUrl(
+            add(FrameQualityEvaluator.prepareDetectionFrameDataUrl(
                 frame.bitmap,
-                FrameQualityEvaluator.MAX_PREPARED_ROAD_DIMENSION,
+                FrameQualityEvaluator.MAX_PREPARED_FRAME_DIMENSION,
                 85,
                 true
             ))
@@ -189,9 +190,9 @@ class NativeInferenceEngine(
             add(historical)
             add(FrameQualityEvaluator.prepareContextDataUrl(primaryFrame.bitmap, 768, 82))
             burstFrames.forEach { frame ->
-                add(FrameQualityEvaluator.prepareRoadBandDataUrl(
+                add(FrameQualityEvaluator.prepareDetectionFrameDataUrl(
                     frame.bitmap,
-                    FrameQualityEvaluator.MAX_PREPARED_ROAD_DIMENSION,
+                    FrameQualityEvaluator.MAX_PREPARED_FRAME_DIMENSION,
                     85,
                     true
                 ))

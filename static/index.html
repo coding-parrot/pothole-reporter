@@ -2115,10 +2115,6 @@ async function shareEvidence(r) {
       try { await P.Filesystem.mkdir({ path: SHARE_CACHE_DIR, directory: "CACHE", recursive: true }); } catch (_) {}
       const wide = await P.Filesystem.writeFile({ path: `${SHARE_CACHE_DIR}/${evidence.name}`, data: evidence.base64, directory: "CACHE" });
       const files = [wide.uri];
-      if (evidence.crop_base64 && evidence.crop_name) {
-        const crop = await P.Filesystem.writeFile({ path: `${SHARE_CACHE_DIR}/${evidence.crop_name}`, data: evidence.crop_base64, directory: "CACHE" });
-        files.push(crop.uri);
-      }
       await P.Share.share({ title: evidence.name, text: evidence.text, files,
                             dialogTitle: t("share_evidence_btn") });
     } else {
@@ -3336,7 +3332,7 @@ function captureFrame(video) {
   return grabPreview(video);
 }
 
-// Scores only the road region. A high-frequency but completely black/white image is
+// Scores the complete camera frame. A high-frequency but completely black/white image is
 // penalised by exposure clipping, and ties keep the earliest frame deterministically.
 function scoreRoadPixels(rgba, width, height) {
   const gray = new Float32Array(width * height);
@@ -3364,19 +3360,13 @@ function scoreRoadPixels(rgba, width, height) {
 }
 
 function roadFrameQuality(video) {
-  const width = 160, height = 96;
+  const scale = Math.min(1, 160 / video.videoWidth, 96 / video.videoHeight);
+  const width = Math.max(1, Math.round(video.videoWidth * scale));
+  const height = Math.max(1, Math.round(video.videoHeight * scale));
   const c = document.createElement("canvas");
   c.width = width; c.height = height;
   const ctx = c.getContext("2d", { willReadFrequently: true });
-  const selector = window.StandaloneAPI && StandaloneAPI.__pure &&
-    StandaloneAPI.__pure.selectRoadRegion;
-  if (typeof selector !== "function") throw new Error("Road-region selector unavailable");
-  const region = selector(video.videoWidth, video.videoHeight);
-  if (!region || region.width <= 0 || region.height <= 0) {
-    throw new Error("Road-region selector returned an invalid region");
-  }
-  ctx.drawImage(video, region.x, region.y, region.width, region.height,
-                0, 0, width, height);
+  ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, 0, 0, width, height);
   return scoreRoadPixels(ctx.getImageData(0, 0, width, height).data, width, height);
 }
 

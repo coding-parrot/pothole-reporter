@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline guard that Web, native Drive and evaluator share one binary v12 contract."""
+"""Offline guard that Web, native Drive and evaluator share one binary v13 contract."""
 import importlib.util, json, pathlib, re, sys, tempfile, textwrap
 from PIL import Image
 
@@ -27,7 +27,7 @@ fails = []
 
 
 drive_preprocessing = re.search(
-    r"let imageInputs, dataUrl, roadViews = null, contextDataUrl = null;"
+    r"let imageInputs, dataUrl, fullViews = null, contextDataUrl = null;"
     r"\s*if \(driveMode\) \{(?P<body>.*?)\n\s*\} else \{",
     client,
     re.DOTALL,
@@ -49,7 +49,7 @@ def drive_preprocessing_is_sequential():
         return False
     body = drive_preprocessing.group("body")
     return ("for (const p of photos)" in body
-            and "MAX_PREPARED_ROAD_DIMENSION" in body
+            and "MAX_PREPARED_FRAME_DIMENSION" in body
             and "1920" not in body
             and "Promise.all(photos.map" not in body)
 
@@ -174,14 +174,12 @@ def check(name, condition):
 check("schema version", 'const SCHEMA_VERSION = 7;' in client and road_eval.SCHEMA_VERSION == 7)
 check("prompt version", f'const PROMPT_VERSION = "{road_eval.PROMPT_VERSION}";' in client)
 check("native prompt version", f'PROMPT_VERSION = "{road_eval.PROMPT_VERSION}"' in native)
-check("Web Drive preprocesses burst crops sequentially to bound peak memory",
+check("Web Drive preprocesses complete burst frames sequentially to bound peak memory",
       drive_preprocessing_is_sequential())
-check("Web and evaluator use the native 1280px downscale-only road transform",
-      "const MAX_PREPARED_ROAD_DIMENSION = 1280;" in client
+check("Web and evaluator use the native 1280px downscale-only full-frame transform",
+      "const MAX_PREPARED_FRAME_DIMENSION = 1280;" in client
       and "const scale = Math.min(1, maxDim / Math.max(sw, sh));" in to_data_url_source
-      and "ROAD_CROP_MAX_UPSCALE" not in client
-      and road_eval.MAX_PREPARED_ROAD_DIMENSION == 1280
-      and "ROAD_CROP_MAX_UPSCALE" not in evaluator_source)
+      and road_eval.MAX_PREPARED_FRAME_DIMENSION == 1280)
 check("Web Drive serializes preparation globally and releases the gate on errors",
       drive_preparation_gate_is_safe())
 check("Web image preprocessing always releases bitmap and canvas backing storage",
@@ -193,39 +191,24 @@ check("Web assessment schema is parsed from the shipped JavaScript",
 check("native, Web and evaluator use the exact same assessment schema",
       web_schema is not None and native_schema == web_schema == road_eval.SCHEMA)
 layout_contract_fragments = (
-    "Capture layout: image 1 is full-frame context from the sharpest burst frame.",
-    "orientation-aware road-region crops in chronological order;",
-    "the sharpest crop is chronological frame",
+    "complete camera frames",
+    "chronological frame",
+    "No image is cropped, tiled, masked, or limited to a region of interest.",
 )
 check("native, Web and evaluator describe the Drive image layout identically",
       all(all(fragment in source for fragment in layout_contract_fragments)
           for source in (client, native, evaluator_source))
-      and "lower-road crops in chronological order" not in native)
-expected_road_regions = {
-    "portrait": {"top": .40, "bottom": .66},
-    "landscape": {"top": .48, "bottom": .78},
-    "square": {"top": .40, "bottom": .70},
-}
-check("orientation-aware road-region ratios",
-      road_eval.ROAD_REGION_RATIOS == expected_road_regions
-      and 'portrait: Object.freeze({ top: 0.40, bottom: 0.66 })' in client
-      and 'landscape: Object.freeze({ top: 0.48, bottom: 0.78 })' in client
-      and 'square: Object.freeze({ top: 0.40, bottom: 0.70 })' in client)
-check("portrait road-region geometry",
-      road_eval.select_road_region(480, 720) == {
-          "x": 0, "y": 288, "width": 480, "height": 187,
-          "orientation": "portrait", "top_ratio": .40, "bottom_ratio": .66})
-check("landscape road-region geometry",
-      road_eval.select_road_region(1280, 720) == {
-          "x": 0, "y": 346, "width": 1280, "height": 216,
-          "orientation": "landscape", "top_ratio": .48, "bottom_ratio": .78})
-check("square road-region geometry",
-      road_eval.select_road_region(1000, 1000) == {
-          "x": 0, "y": 400, "width": 1000, "height": 300,
-          "orientation": "square", "top_ratio": .40, "bottom_ratio": .70})
-retired_fixed_band_name = "ROAD_" + "BAND"
-check("retired fixed bottom-band transform is absent",
-      retired_fixed_band_name not in client and not hasattr(road_eval, retired_fixed_band_name))
+      and "road-region" not in native.lower())
+check("spatial crop machinery is absent from every current detection implementation",
+      all(term not in client for term in (
+          "selectRoadRegion", "ROAD_REGION_RATIOS", "cropRoad",
+          "MAX_PREPARED_ROAD_DIMENSION"))
+      and all(term not in evaluator_source for term in (
+          "select_road_region", "ROAD_REGION_RATIOS", "road_crop",
+          "MAX_PREPARED_ROAD_DIMENSION"))
+      and all(term not in native for term in (
+          "RoadRegionSelector", "prepareRoadBandDataUrl",
+          "MAX_PREPARED_ROAD_DIMENSION")))
 check("schema has no model-confidence gate", "confidence" not in road_eval.SCHEMA["properties"])
 check("schema has one binary pothole verdict",
       road_eval.SCHEMA["properties"].get("is_pothole") == {"type": "boolean"})
@@ -256,7 +239,7 @@ check("one-open-side cavity remains eligible without admitting generic roughness
       )))
 check("partial temporal visibility is not treated as contradiction",
       "at least two show the same footprint" in web_prompt.lower()
-      and "leaving the final crop is not disagreement" in web_prompt.lower())
+      and "leaving the final full frame is not disagreement" in web_prompt.lower())
 check("drivable lane-edge cavities remain eligible without admitting roadside damage",
       all(term in web_prompt.lower() for term in (
           "opening removes part of the flat traffic surface",
@@ -523,9 +506,7 @@ check("manual and drive sets stay separate",
       road_eval.entry_mode({"source": "project owner, dashcam frame"}) == "drive"
       and road_eval.entry_mode({"source": "project owner, own camera"}) == "manual")
 
-# Low-light decisions must be taken from the cropped/resized production view. This
-# caught the evaluator enhancing the original first and measuring it with a different
-# grayscale formula.
+# Low-light decisions must be taken from the full-frame resized production view.
 observed = {}
 real_lift = road_eval.adaptive_lift
 def observe_lift(image):
@@ -535,28 +516,28 @@ road_eval.adaptive_lift = observe_lift
 with tempfile.TemporaryDirectory() as tmp:
     path = pathlib.Path(tmp) / "dark.jpg"
     Image.new("RGB", (2000, 1000), (30, 30, 30)).save(path, quality=100)
-    _, transform = road_eval.encode_view(path, 1000, 85, True, True)
+    _, transform = road_eval.encode_view(path, 1000, 85, True)
 road_eval.adaptive_lift = real_lift
-check("evaluator crops and resizes before luminance", observed.get("size") == (1000, 150))
-check("evaluator records landscape road-region transform",
-      transform["road_region"] == {
-          "x": 0, "y": 480, "width": 2000, "height": 300,
-          "orientation": "landscape", "top_ratio": .48, "bottom_ratio": .78})
+check("evaluator preserves the full field of view before luminance",
+      observed.get("size") == (1000, 500)
+      and transform["full_frame"] is True
+      and transform["source"] == {"width": 2000, "height": 1000})
 check("dark resized view is enhanced", transform["enhanced"] is True)
 with tempfile.TemporaryDirectory() as tmp:
     path = pathlib.Path(tmp) / "small-drive.jpg"
     Image.new("RGB", (480, 720), (90, 90, 90)).save(path, quality=100)
     _, drive_transform = road_eval.encode_view(
-        path, road_eval.MAX_PREPARED_ROAD_DIMENSION, 85, True, False
+        path, road_eval.MAX_PREPARED_FRAME_DIMENSION, 85, False
     )
-check("small Drive road crop is not upscaled beyond its real pixels",
-      drive_transform["output"] == {"width": 480, "height": 187})
+check("small Drive frame remains complete and is not upscaled",
+      drive_transform["full_frame"] is True
+      and drive_transform["output"] == {"width": 480, "height": 720})
 with tempfile.TemporaryDirectory() as tmp:
     path = pathlib.Path(tmp) / "manual.jpg"
     Image.new("RGB", (480, 720), (80, 80, 80)).save(path, quality=100)
-    _, manual_transform = road_eval.encode_view(path, 2000, 85, False, False)
+    _, manual_transform = road_eval.encode_view(path, 2000, 85, False)
 check("manual Photo remains full-frame",
-      manual_transform["road_region"] is None
+      manual_transform["full_frame"] is True
       and manual_transform["output"] == {"width": 480, "height": 720})
 _, green = real_lift(Image.new("RGB", (32, 32), (0, 101, 0)))
 check("evaluator uses client RGB luma weights", green["enhanced"] is False)

@@ -583,7 +583,7 @@ class NativeDriveCameraManager(
                 val burstFrames = selected.map { frame ->
                     BurstFrame(
                         frame.bitmap,
-                        FrameQualityEvaluator.evaluateRoadFrameQuality(frame.bitmap),
+                        FrameQualityEvaluator.evaluateFrameQuality(frame.bitmap),
                         frame.capturedAtMs,
                         frame.sourceTimestampNs,
                         frame.cameraGeneration,

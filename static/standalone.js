@@ -50,12 +50,13 @@
   const DRIVE_DETECTION_DETAIL = "high";
   const ALLOWED_MODELS = new Set([DEFAULT_MODEL, "gpt-5.6"]);
   const ALLOWED_DETAILS = new Set(["high", "original"]);
-  const PROMPT_VERSION = "pothole-binary-v12";
+  const PROMPT_VERSION = "pothole-binary-v13";
   const PHOTO_PROMPT_VERSION = "pothole-photo-only-v4";
   const SCHEMA_VERSION = 7;
-  const REPAIR_PROMPT_VERSION = "road-repair-v1";
+  const REPAIR_PROMPT_VERSION = "road-repair-v2";
   const REPAIR_SCHEMA_VERSION = 1;
   const MAX_DETECTION_IMAGES = 4;
+  const MAX_REPAIR_IMAGES = 5;
   // Detection still examines every burst. Only after a burst is accepted do we group it
   // with a road-damage event already saved at the same place. This preserves capture
   // recall while stopping adjacent bursts and later drives from creating repeat drafts.
@@ -463,7 +464,7 @@ unpaved_or_nonroad and unknown are always NO.
 
 A cavity at a road edge may be YES when its opening removes part of the flat traffic surface or creates a wheel-reachable drop, even if rubble extends beneath a raised roadside slab. It is NO when an intact kerb or gutter separates the entire opening from traffic.
 
-Set has_localized_cavity, has_broken_edge_or_rim, and has_depth_or_surface_loss true when the physical evidence above is present. Set image_quality unusable only when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. For multiple views set temporal_consistency consistent when at least two show the same footprint; a feature leaving the final crop is not disagreement. Use single_view for one user-framed photo.
+Set has_localized_cavity, has_broken_edge_or_rim, and has_depth_or_surface_loss true when the physical evidence above is present. Set image_quality unusable only when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. For multiple views set temporal_consistency consistent when at least two show the same footprint; a feature leaving the final full frame is not disagreement. Use single_view for one user-framed photo.
 
 After YES, set size to small below 30 cm, medium from 30 to 60 cm, or large above 60 cm or for a connected cavity cluster. For NO, size is null. These are visual app estimates, not official measurements. Keep description factual and never output confidence or probability.`;
 
@@ -496,7 +497,7 @@ Photo feature scope: detect potholes only. Garbage, litter, dumped waste, open o
   };
   const REPAIR_PROMPT = `Compare a saved pothole photograph with new road views from a later live drive.
 
-Image 1 is the older saved road-damage evidence. Image 2 is the current full-frame context. The remaining images are current orientation-aware road-region crops.
+Image 1 is the older saved road-damage evidence. Image 2 is the current full-frame context. Every remaining image is a complete current camera frame in chronological order. No current image is cropped, tiled, masked, or limited to a region of interest.
 
 This is a strict before/after verification, not ordinary pothole detection:
 - Set same_location_visible true only when stable road geometry and surrounding features show that the old damaged footprint itself is visible in the current views. Nearby clean asphalt, a different lane, or a similar-looking road is not the same footprint.
@@ -644,6 +645,8 @@ This is a strict before/after verification, not ordinary pothole detection:
   const TEMPORARY_DRIVABLE_SURFACE = "temporary_drivable_surface";
   const REPORTABLE_SURFACES = new Set([...PAVED_SURFACES, TEMPORARY_DRIVABLE_SURFACE]);
   const KNOWN_SURFACES = new Set([...REPORTABLE_SURFACES, "unpaved_or_nonroad", "unknown"]);
+  const LEGACY_NATIVE_V12_PROMPT_VERSION = "pothole-binary-v12";
+  const LEGACY_NATIVE_V12_SCHEMA_VERSION = 7;
   const LEGACY_NATIVE_V10_PROMPT_VERSION = "pothole-binary-v10";
   const LEGACY_NATIVE_V10_SCHEMA_VERSION = 7;
   const LEGACY_NATIVE_V9_PROMPT_VERSION = "pothole-binary-v9";
@@ -659,7 +662,13 @@ This is a strict before/after verification, not ordinary pothole detection:
     if (!native || typeof native !== "object") return null;
     if (native.prompt_version === PROMPT_VERSION
         && Number(native.schema_version) === SCHEMA_VERSION) {
-      return { kind: "current_v12", surfaceTypes: REPORTABLE_SURFACES };
+      return { kind: "current_v13", surfaceTypes: REPORTABLE_SURFACES };
+    }
+    // v12 used the same strict schema with cropped temporal views. Existing accepted and
+    // pending rows remain importable, but all new inference uses complete camera frames.
+    if (native.prompt_version === LEGACY_NATIVE_V12_PROMPT_VERSION
+        && Number(native.schema_version) === LEGACY_NATIVE_V12_SCHEMA_VERSION) {
+      return { kind: "legacy_v12", surfaceTypes: REPORTABLE_SURFACES };
     }
     // v10 used the same strict fields and remains valid for unsynced rows captured by
     // the previous GitHub release. Its prompt differed, so retain provenance.
@@ -706,7 +715,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     // if the model contradicts the prompt and calls it reportable.
     if (a.surface_type === TEMPORARY_DRIVABLE_SURFACE && !driveMode) return "reject";
     if (driveMode) {
-      // A full scene and a crop of the same frame are not temporal corroboration.
+      // Repeated encodings of one frame are not temporal corroboration.
       if (a.temporal_consistency !== "consistent" || sourceViewCount < 2) return "reject";
     } else if (a.temporal_consistency !== "consistent" && a.temporal_consistency !== "single_view") {
       return "reject";
@@ -911,9 +920,10 @@ This is a strict before/after verification, not ordinary pothole detection:
                                  formatName = "pothole_binary_assessment", schema = ASSESS_SCHEMA) {
     const selectedModel = normaliseModel(model);
     const selectedDetail = normaliseDetail(detail, selectedModel);
+    const imageLimit = schema === REPAIR_SCHEMA ? MAX_REPAIR_IMAGES : MAX_DETECTION_IMAGES;
     const images = (Array.isArray(imageInputs) ? imageInputs : [imageInputs])
       .filter((x) => x && (typeof x === "string" ? x : x.url))
-      .slice(0, MAX_DETECTION_IMAGES);
+      .slice(0, imageLimit);
     if (!images.length) throw new Error("No usable image supplied for detection.");
     const content = [];
     for (let i = 0; i < images.length; i++) {
@@ -8102,9 +8112,18 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
   const MAX_REPAIR_TARGET_IMAGE_BYTES = 4 * 1024 * 1024;
   const MAX_REPAIR_TARGET_TOTAL_BYTES = 512 * 1024 * 1024;
 
+  function fullFramePhoto(report) {
+    if (!report) return null;
+    if (report.photo_full) return report.photo_full;
+    if (isManualCaptureSource(report.capture_source)) return report.photo || null;
+    // v13 is the first Drive contract that guarantees every working and evidence image is
+    // a complete frame. Older Web Drive rows may store a crop in `photo`, so fail closed.
+    return report.prompt_version === PROMPT_VERSION ? report.photo || null : null;
+  }
+
   function eligibleRepairTarget(report) {
     if (!acceptedReport(report) || conditionStatus(report) === "fixed"
-        || report.debug_capture || report.dedupe_eligible === false || !report.photo
+        || report.debug_capture || report.dedupe_eligible === false || !fullFramePhoto(report)
         || report.capture_source === "manual_import"
         || !finiteCoord(report.lat) || !finiteCoord(report.lng)
         || !Number.isFinite(eventTime(report))
@@ -8139,7 +8158,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         if (!cursor || ids.length >= MAX_REPAIR_TARGETS) return;
         const report = cursor.value;
         const id = Number(report && report.id);
-        const photoBytes = repairTargetPhotoBytes(report && report.photo);
+        const photoBytes = repairTargetPhotoBytes(fullFramePhoto(report));
         if (Number.isSafeInteger(id) && id > 0 && eligibleRepairTarget(report)
             && Number.isFinite(photoBytes) && photoBytes > 0
             && photoBytes <= MAX_REPAIR_TARGET_IMAGE_BYTES
@@ -8171,7 +8190,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       if (!report || Number(report.id) !== ids[index] || !eligibleRepairTarget(report)) {
         throw new Error("Repair history changed while its native cache was being refreshed.");
       }
-      const photoBytes = repairTargetPhotoBytes(report.photo);
+      const photoBytes = repairTargetPhotoBytes(fullFramePhoto(report));
       if (!Number.isFinite(photoBytes) || photoBytes <= 0
           || photoBytes > MAX_REPAIR_TARGET_IMAGE_BYTES) {
         throw new Error("A repair target photo exceeds the 4 MB native cache limit.");
@@ -8183,7 +8202,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         gps_accuracy: report.gps_accuracy,
         heading: Number.isFinite(report.heading) ? report.heading : null,
         capture_source: report.capture_source || null,
-        photo_data_url: await blobToDataUrl(report.photo),
+        photo_data_url: await blobToDataUrl(fullFramePhoto(report)),
         last_damage_observed_at: eventTime(report),
         damage_type: storedDamageType(report),
         condition_status: conditionStatus(report),
@@ -8192,18 +8211,17 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     return targets;
   }
 
-  async function verifyRepairCandidate(prior, contextDataUrl, roadViews, primaryIndex,
+  async function verifyRepairCandidate(prior, contextDataUrl, fullViews, primaryIndex,
                                        model, detail) {
-    const oldEvidence = await blobToDataUrl(prior && prior.photo);
-    if (!oldEvidence || !contextDataUrl || !Array.isArray(roadViews) || !roadViews.length) {
+    const oldEvidence = await blobToDataUrl(fullFramePhoto(prior));
+    if (!oldEvidence || !contextDataUrl || !Array.isArray(fullViews) || !fullViews.length) {
       return null;
     }
-    const current = [roadViews[primaryIndex]];
-    for (let i = 0; i < roadViews.length && current.length < 2; i++) {
-      if (i !== primaryIndex) current.push(roadViews[i]);
-    }
+    // Preserve camera time exactly. Primary-frame quality is already communicated by the
+    // layout note; moving it to the front would make the promised chronology false.
+    const current = fullViews.filter(Boolean);
     const images = [{ url: oldEvidence }, { url: contextDataUrl },
-      ...current.filter(Boolean).map((url) => ({ url }))];
+      ...current.map((url) => ({ url }))];
     const language = LANG() === "kn"
       ? "\n- Write description in formal Kannada."
       : LANG() === "mr" ? "\n- Write description in formal Marathi."
@@ -8214,33 +8232,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
 
   // ---------- image ----------
 
-  // Drive frames use the same orientation-aware road region as native Android. Both
-  // quality enhancement and inference therefore inspect near/mid road while excluding
-  // sky and the dashboard/bonnet. Manual Photo remains full-frame because the person
-  // has already aimed the camera at the defect.
-  const ROAD_REGION_RATIOS = Object.freeze({
-    portrait: Object.freeze({ top: 0.40, bottom: 0.66 }),
-    landscape: Object.freeze({ top: 0.48, bottom: 0.78 }),
-    square: Object.freeze({ top: 0.40, bottom: 0.70 }),
-  });
-  const ROAD_ORIENTATION_EPSILON = 0.10;
-  const MAX_PREPARED_ROAD_DIMENSION = 1280;
-
-  function selectRoadRegion(frameWidth, frameHeight) {
-    if (!Number.isFinite(frameWidth) || !Number.isFinite(frameHeight)
-        || frameWidth <= 0 || frameHeight <= 0) {
-      throw new Error("Frame dimensions must be positive");
-    }
-    const width = Math.round(frameWidth), height = Math.round(frameHeight);
-    if (width <= 0 || height <= 0) throw new Error("Frame dimensions must be positive");
-    const aspectRatio = width / height;
-    const orientation = aspectRatio < 1 - ROAD_ORIENTATION_EPSILON ? "portrait"
-      : aspectRatio > 1 + ROAD_ORIENTATION_EPSILON ? "landscape" : "square";
-    const ratios = ROAD_REGION_RATIOS[orientation];
-    const top = Math.max(0, Math.min(height - 1, Math.round(height * ratios.top)));
-    const bottom = Math.max(top + 1, Math.min(height, Math.round(height * ratios.bottom)));
-    return { x: 0, y: top, width, height: bottom - top };
-  }
+  // Every detection view preserves the camera's complete field of view. Only whole-frame
+  // downscaling, compression, orientation correction, and enhancement are permitted.
+  const MAX_PREPARED_FRAME_DIMENSION = 1280;
 
   function detectionEnhancementPlan(data, width, height) {
     if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0
@@ -8299,22 +8293,19 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     return detectionEnhancementPlan(ctx.getImageData(0, 0, width, height).data, width, height);
   }
 
-  async function toDataUrl(blob, maxDim, quality = 0.85, boost = false, cropRoad = false) {
+  async function toDataUrl(blob, maxDim, quality = 0.85, boost = false) {
     const bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
     let c = null;
     try {
-      const region = cropRoad ? selectRoadRegion(bmp.width, bmp.height)
-        : { x: 0, y: 0, width: bmp.width, height: bmp.height };
-      const sx = region.x, sy = region.y, sw = region.width, sh = region.height;
-      // Match native live detection: crop first, then downscale only. Upscaling a small
-      // saved frame invents no road detail, costs heap/bridge time, and made replay use
-      // materially different pixels from the same burst's live request.
+      const sw = bmp.width, sh = bmp.height;
+      // Match native live detection: preserve the full frame and downscale only. Upscaling
+      // invents no detail and would make replay use different pixels from live inference.
       const scale = Math.min(1, maxDim / Math.max(sw, sh));
       c = document.createElement("canvas");
       c.width = Math.round(sw * scale);
       c.height = Math.round(sh * scale);
       const ctx = c.getContext("2d");
-      ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, c.width, c.height);
+      ctx.drawImage(bmp, 0, 0, sw, sh, 0, 0, c.width, c.height);
       // Enhancement follows the pixels, not the wall clock. Fixed evening hours boosted
       // bright street-lit frames and amplified noise. Preserve the original evidence copy;
       // this is only the small image used for detection.
@@ -8437,31 +8428,30 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     // video, so interrupted saved-frame checks can be retried later with nearby temporal
     // context. Single shots stay at full size:
     // one photo, someone waiting, and no footage behind it.
-    // Drive Mode supplies one short burst. The model sees a full context view of the
-    // sharpest frame plus three orientation-aware road-region crops in chronological order. Context keeps
-    // lane/edge geometry; the crops give a distant defect enough pixels to judge. A
-    // manual photo remains one full-resolution view because the user already aimed it.
-    let imageInputs, dataUrl, roadViews = null, contextDataUrl = null;
+    // Drive Mode supplies one short burst. The model sees a full context encoding of the
+    // sharpest frame plus three complete camera frames in chronological order. No model
+    // input is cropped, tiled, masked, or limited to a region of interest.
+    let imageInputs, dataUrl, fullViews = null, contextDataUrl = null;
     if (driveMode) {
       const prepared = await withDriveImagePreparation(async () => {
-        // Build the three road crops one at a time, preserving chronological order.
-        const orderedRoadViews = [];
+        // Build the three complete frames one at a time, preserving chronological order.
+        const orderedFullViews = [];
         for (const p of photos) {
-          orderedRoadViews.push(await toDataUrl(
-            p, MAX_PREPARED_ROAD_DIMENSION, 0.85, true, true
+          orderedFullViews.push(await toDataUrl(
+            p, MAX_PREPARED_FRAME_DIMENSION, 0.85, true
           ));
         }
         return {
-          roadViews: orderedRoadViews,
-          contextDataUrl: await toDataUrl(photo, 768, 0.82, false, false),
+          fullViews: orderedFullViews,
+          contextDataUrl: await toDataUrl(photo, 768, 0.82, false),
         };
       });
-      roadViews = prepared.roadViews;
+      fullViews = prepared.fullViews;
       contextDataUrl = prepared.contextDataUrl;
-      imageInputs = [{ url: contextDataUrl }, ...roadViews.map((url) => ({ url }))];
-      dataUrl = roadViews[primaryIndex];
+      imageInputs = [{ url: contextDataUrl }, ...fullViews.map((url) => ({ url }))];
+      dataUrl = fullViews[primaryIndex];
     } else {
-      dataUrl = await toDataUrl(photo, 2000, 0.85, true, false);
+      dataUrl = await toDataUrl(photo, 2000, 0.85, true);
       imageInputs = [{ url: dataUrl }];
     }
     // A waiting single-shot user benefits from speculative geocoding. Drive Mode rejects
@@ -8488,7 +8478,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
           : null)
           .catch(() => null);
     const sequenceNote = driveMode
-      ? `\n- Capture layout: image 1 is full-frame context from the sharpest burst frame. Images 2-${imageInputs.length} are orientation-aware road-region crops in chronological order; the sharpest crop is chronological frame ${primaryIndex + 1}.`
+      ? `\n- Capture layout: image 1 is downscaled full-frame context from the sharpest burst frame. Images 2-${imageInputs.length} are complete camera frames in chronological order; chronological frame ${primaryIndex + 1} is the sharpest. No image is cropped, tiled, masked, or limited to a region of interest.`
       : "\n- Capture layout: one user-framed full image.";
     const promptVersion = driveMode ? PROMPT_VERSION : PHOTO_PROMPT_VERSION;
     const detectPrompt = DETECT_PROMPT + (driveMode ? "" : PHOTO_ONLY_PROMPT_SUFFIX)
@@ -8522,15 +8512,15 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       if (repairCandidate && clearAbsenceForRepair(a)) {
         progress(pmsg("repair"));
         const comparison = await verifyRepairCandidate(repairCandidate, contextDataUrl,
-          roadViews, primaryIndex, detectionModel, detectionDetail).catch(() => null);
+          fullViews, primaryIndex, detectionModel, detectionDetail).catch(() => null);
         const provenCondition = repairConditionFor(comparison);
         if (provenCondition) {
           if (commitTurn) await commitTurn.wait;
           const repairResult = await applyRepairObservation(repairCandidate.id, {
             ...repairObservationBase,
             ...comparison,
-            // Keep the full scene, not only the orientation-aware road working crop, so a later
-            // reviewer can audit that the before/after frames show the same footprint.
+            // Preserve the full scene so a later reviewer can audit whether the before/after
+            // frames show the same footprint.
             current_photo_data_url: contextDataUrl,
             detection_model: detectionModel,
             image_detail: detectionDetail,
@@ -8585,9 +8575,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         }) : null;
     const subject = complaint ? complaint.email_subject : null;
     const body = complaint ? complaint.email_body : null;
-    // The evidence copy: what the officer receives. Detection works on a small
-    // frame for speed and token cost, but the complaint deserves the full capture,
-    // unmodified. Only kept for reports that can be handed to a supported authority.
+    // The evidence copy: what the officer receives. Detection works on a smaller encoding
+    // for speed and token cost, but the complaint keeps the complete camera field of view.
+    // Only kept for reports that can be handed to a supported authority.
     const photoFull = accepted && covered ? await toDataUrl(photo, 4000, 0.92, false) : null;
 
     const rec = {
@@ -8775,7 +8765,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       ? "user_selected_before_capture" : "user_selected_for_import";
 
     progress(pmsg("compress"));
-    const dataUrl = await toDataUrl(photo, 2000, 0.85, true, false);
+    const dataUrl = await toDataUrl(photo, 2000, 0.85, true);
     progress(pmsg("finalize"));
     const geo = lat != null ? await reverseGeocode(lat, lng).catch(() => null) : null;
     const address = (geo && geo.short) || null;
@@ -10014,12 +10004,11 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       throw new Error("Only an accepted report has shareable evidence.");
     }
     rec = migrateLegacyComplaintRecord(rec);
-    const source = await dataUrlToBlob(rec.photo_full || rec.photo);
-    const wideUrl = await toDataUrl(source, 1280, 0.86, false, false);
-    const cropUrl = rec.capture_source && !isManualCaptureSource(rec.capture_source)
-      ? await toDataUrl(source, 1280, 0.86, false, true) : null;
+    const fullSource = fullFramePhoto(rec);
+    if (!fullSource) throw new Error("A complete full-frame evidence image is unavailable for this legacy report.");
+    const source = await dataUrlToBlob(fullSource);
+    const wideUrl = await toDataUrl(source, 1280, 0.86, false);
     const base64 = wideUrl && wideUrl.split(",")[1];
-    const cropBase64 = cropUrl && cropUrl.split(",")[1];
     if (!base64) throw new Error("The report photo could not be read.");
     const safeId = String(rec.id || "report").replace(/[^a-zA-Z0-9_-]/g, "");
     const recordedAt = Number.isFinite(rec.captured_at) ? rec.captured_at : rec.created_at;
@@ -10052,9 +10041,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       rec.email_subject || `${civicIssueName(rec.issue_type)} report`,
       bodyWithEvidence,
     ].filter(Boolean).join("\n\n");
-    return { name: `${issueStem}-${safeId}.jpg`, base64,
-             crop_name: cropBase64 ? `${issueStem}-${safeId}-road-crop.jpg` : null,
-             crop_base64: cropBase64, text: meta };
+    return { name: `${issueStem}-${safeId}.jpg`, base64, text: meta };
   }
 
   // ---------- dataset export ----------
@@ -10123,10 +10110,13 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const labelled = (await allReports()).filter((r) =>
       normaliseIssueType(r.issue_type) === "road_damage" && r.human_label);
     if (!labelled.length) throw new Error("Nothing labelled yet. Open Review frames and tag some first.");
+    if (labelled.some((report) => !fullFramePhoto(report))) {
+      throw new Error("A labelled legacy row has no provable full-frame image; remove its label or recapture it before export.");
+    }
     const files = [], index = [];
     for (const r of labelled) {
       const name = `images/frame-${r.id}.jpg`;
-      files.push({ name, data: b64ToBytes(await photoToBase64(r.photo)) });
+      files.push({ name, data: b64ToBytes(await photoToBase64(fullFramePhoto(r))) });
       index.push({
         path: name,
         label: r.human_label,
@@ -10523,8 +10513,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    PHOTO_ONLY_PROMPT_SUFFIX, PHOTO_PROMPT_VERSION,
                    REPAIR_SCHEMA, REPAIR_PROMPT, REPAIR_PROMPT_VERSION,
                    REPAIR_SCHEMA_VERSION, clearAbsenceForRepair, repairConditionFor,
-                   SCHEMA_VERSION, MAX_DETECTION_IMAGES, ROAD_REGION_RATIOS,
-                   selectRoadRegion, averageLuminance,
+                   SCHEMA_VERSION, MAX_DETECTION_IMAGES, MAX_REPAIR_IMAGES,
+                   MAX_PREPARED_FRAME_DIMENSION,
+                   averageLuminance,
                    detectionEnhancementPlan, applyDetectionEnhancement,
                    distMeters, roadEventMatch, sameRoadEvent, repairTargetMatch,
                    findRepairCandidateFromReports, findDuplicateReport,
@@ -10545,6 +10536,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
                    optionalCatalogResult, startLowerCatalogMatches,
                    preferredLowerCatalogMatch, OPTIONAL_CATALOG_TIMEOUT_MS,
                    mumbaiWardFromName, mumbaiFromGeocode, evidenceForReport,
+                   fullFramePhoto,
                    normaliseAuthorityValue, validateAuthorityRegistry,
                    validateOfficialHandoffRegistry,
                    matchedMmrAuthorities, containingMmrAuthorities, bmcWardFromBoundary,

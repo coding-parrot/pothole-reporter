@@ -189,7 +189,7 @@ with sync_playwright() as p:
         same_location_visible: true, completed_repair_visible: true,
         description: "The same footprint is covered by intact asphalt.",
         detection_model: "gpt-5-mini", image_detail: "high",
-        prompt_version: "road-repair-v1", schema_version: 1,
+        prompt_version: "road-repair-v2", schema_version: 1,
       };
       const validEvidence = await repairDataUrl();
       const missingTimestamp = await StandaloneAPI.handle("/api/native-repair", {

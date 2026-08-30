@@ -43,20 +43,34 @@ call_gate = TRANSPORT[TRANSPORT.index("private val activeCalls"):
                       TRANSPORT.index("fun detect(")]
 
 check(
-    "road-band preparation is downscale-only and capped at 1280",
-    "MAX_PREPARED_ROAD_DIMENSION = 1280" in QUALITY
+    "complete-frame preparation is downscale-only and capped at 1280",
+    "MAX_PREPARED_FRAME_DIMENSION = 1280" in QUALITY
     and "NativePreparedImageScale.downscaleOnly(" in QUALITY
+    and "MAX_PREPARED_ROAD_DIMENSION" not in QUALITY
     and "ROAD_CROP_MAX_UPSCALE" not in QUALITY
-    and ENGINE.count("FrameQualityEvaluator.MAX_PREPARED_ROAD_DIMENSION") >= 2
+    and "RoadRegionSelector" not in QUALITY
+    and QUALITY.count("Bitmap.createBitmap(") == 1
+    and "Bitmap.createBitmap(src.width, src.height" in QUALITY
+    and ENGINE.count("FrameQualityEvaluator.MAX_PREPARED_FRAME_DIMENSION") >= 2
     and "1920" not in analysis
     and "1920" not in repair,
 )
 check(
     "burst transforms run sequentially and Base64 input lists are released before response wait",
     ENGINE.count("burstFrames.forEach { frame ->") >= 2
-    and "burstFrames.map { FrameQualityEvaluator.prepareRoadBandDataUrl" not in INFERENCE
+    and ENGINE.count("FrameQualityEvaluator.prepareDetectionFrameDataUrl(") >= 2
+    and "prepareRoadBandDataUrl" not in INFERENCE
     and "imageUrls.clear()" in detect_stream
     and "imageUrls.clear()" in repair_stream,
+)
+check(
+    "v13 detection and v2 repair contracts require complete uncropped camera frames",
+    'PROMPT_VERSION = "pothole-binary-v13"' in DETECTION_CONTRACT
+    and 'PROMPT_VERSION = "road-repair-v2"' in REPAIR_CONTRACT
+    and "complete camera frames" in DETECTION_CONTRACT
+    and "complete current camera" in REPAIR_CONTRACT
+    and "No image is cropped, tiled, masked, or limited to a region of interest." in DETECTION_CONTRACT
+    and "No current image is cropped, tiled, masked, or limited" in REPAIR_CONTRACT,
 )
 check(
     "raw inference queue is rendezvous-only and defers work from durable evidence",

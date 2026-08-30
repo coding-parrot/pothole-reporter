@@ -58,12 +58,12 @@ def source_frame_manifest(event_dir):
 
 def make_manifest(event_dir, mode, timestamps, live_primary, request_sources, primary, raws):
     primary_source = prepared_eval.ROLLING_SOURCE_FRAME_INDICES[live_primary]
-    roles = ["context"] + ["road_band"] * len(request_sources)
+    roles = ["context"] + ["full_frame"] * len(request_sources)
     sources = [f"f{primary_source}.jpg"] + [f"f{index}.jpg" for index in request_sources]
     images = []
     for order, (role, source, raw) in enumerate(zip(roles, sources, raws)):
         source_index = source.removeprefix("f").removesuffix(".jpg")
-        suffix = "context-primary" if role == "context" else "road-band"
+        suffix = "context-primary" if role == "context" else "full-frame"
         filename = f"{order:02d}-{suffix}-f{source_index}.jpg"
         (event_dir / filename).write_bytes(raw)
         images.append({
@@ -176,6 +176,12 @@ check(
         "initial_quality": kotlin_constant(service_source, "KEYFRAME_JPEG_QUALITY"),
     },
 )
+check(
+    "prepared-eval uses the current complete-frame detection contract",
+    prepared_eval.run_eval.PROMPT_VERSION == "pothole-binary-v13"
+    and "leaving the final full frame" in prepared_eval.run_eval.prompts()["baseline"]
+    and "leaving the final crop" not in prepared_eval.run_eval.prompts()["baseline"],
+)
 
 
 with tempfile.TemporaryDirectory(prefix="prepared-eval-contract-") as temporary:
@@ -190,9 +196,9 @@ with tempfile.TemporaryDirectory(prefix="prepared-eval-contract-") as temporary:
     # not decode or re-encode Android's already-prepared JPEGs.
     live_bytes = [
         b"\xff\xd8\xfflive-context-primary\xff\xd9",
-        b"\xff\xd8\xfflive-road-f0\xff\xd9",
-        b"\xff\xd8\xfflive-road-f1\xff\xd9",
-        b"\xff\xd8\xfflive-road-f2\xff\xd9",
+        b"\xff\xd8\xfflive-full-f0\xff\xd9",
+        b"\xff\xd8\xfflive-full-f1\xff\xd9",
+        b"\xff\xd8\xfflive-full-f2\xff\xd9",
     ]
     live_manifest = make_manifest(
         live_dir,
@@ -206,9 +212,9 @@ with tempfile.TemporaryDirectory(prefix="prepared-eval-contract-") as temporary:
 
     durable_bytes = [
         b"\xff\xd8\xffdurable-context-primary\xff\xd9",
-        b"\xff\xd8\xffdurable-reencoded-road-f0\xff\xd9",
-        b"\xff\xd8\xffdurable-reencoded-road-f1\xff\xd9",
-        b"\xff\xd8\xffdurable-reencoded-road-f2\xff\xd9",
+        b"\xff\xd8\xffdurable-reencoded-full-f0\xff\xd9",
+        b"\xff\xd8\xffdurable-reencoded-full-f1\xff\xd9",
+        b"\xff\xd8\xffdurable-reencoded-full-f2\xff\xd9",
     ]
     durable_manifest = make_manifest(
         durable_dir,
@@ -224,7 +230,8 @@ with tempfile.TemporaryDirectory(prefix="prepared-eval-contract-") as temporary:
     decoded_live = [base64.b64decode(view.split(",", 1)[1]) for view in live_views]
     check("live manifest order controls prepared byte order", decoded_live == live_bytes)
     check("live primary is reflected in the Drive layout note",
-          "sharpest crop is chronological frame 2" in live_note)
+          "chronological frame 2 is the sharpest" in live_note
+          and "No image is cropped, tiled, masked" in live_note)
 
     _, _, durable_views, durable_note = prepared_eval.load_event(
         durable_dir, "durable-burst"
@@ -236,7 +243,8 @@ with tempfile.TemporaryDirectory(prefix="prepared-eval-contract-") as temporary:
           durable_manifest["source_frame_indices"] == [0, 1, 2]
           and durable_manifest["primary_index"] == 2
           and "Images 2-4" in durable_note
-          and "sharpest crop is chronological frame 3" in durable_note)
+          and "chronological frame 3 is the sharpest" in durable_note
+          and "No image is cropped, tiled, masked" in durable_note)
 
     expect_manifest_rejection(
         "live and durable prepared roots cannot be confused",
@@ -251,7 +259,7 @@ with tempfile.TemporaryDirectory(prefix="prepared-eval-contract-") as temporary:
     next(item for item in bad_role["images"] if item["order"] == 1)["role"] = "context"
     expect_manifest_rejection(
         "wrong live role sequence is rejected", live_dir, bad_role, "live",
-        "one context and 3 road-band images",
+        "one context and 3 complete-frame images",
     )
 
     duplicate_order = copy.deepcopy(live_manifest)

@@ -126,7 +126,7 @@ class NativeEvalExporterInstrumentedTest {
             ) ?: error("Production rolling-window policy rejected the evaluator samples")
             val selectedFrames = rollingSourceIndexes.map(frames::get)
             val selectedTimestampsMs = rollingSourceIndexes.map(capturedAtElapsedMs::get)
-            val qualities = selectedFrames.map(FrameQualityEvaluator::evaluateRoadFrameQuality)
+            val qualities = selectedFrames.map(FrameQualityEvaluator::evaluateFrameQuality)
             val livePrimaryIndex = FrameQualityEvaluator.selectBestBurstIndex(qualities)
             val primarySourceIndex = rollingSourceIndexes[livePrimaryIndex]
 
@@ -147,8 +147,8 @@ class NativeEvalExporterInstrumentedTest {
             }
 
             try {
-                // Keep these calls identical to the relevant production path: full-frame
-                // context from the primary, then request road bands in camera-time order.
+                // Keep these calls identical to production: downscaled full-frame context
+                // from the primary, then complete frames in camera-time order.
                 val prepared = mutableListOf<PreparedImage>()
                 prepared += PreparedImage(
                     role = "context",
@@ -159,11 +159,11 @@ class NativeEvalExporterInstrumentedTest {
                 )
                 request.frames.forEachIndexed { index, bitmap ->
                     prepared += PreparedImage(
-                        role = "road_band",
+                        role = "full_frame",
                         sourceIndex = request.sourceIndexes[index],
-                        dataUrl = FrameQualityEvaluator.prepareRoadBandDataUrl(
+                        dataUrl = FrameQualityEvaluator.prepareDetectionFrameDataUrl(
                             bitmap,
-                            maxDim = FrameQualityEvaluator.MAX_PREPARED_ROAD_DIMENSION,
+                            maxDim = FrameQualityEvaluator.MAX_PREPARED_FRAME_DIMENSION,
                             quality = 85,
                             boost = true
                         )
@@ -175,7 +175,7 @@ class NativeEvalExporterInstrumentedTest {
                     val jpeg = decodeJpegDataUrl(image.dataUrl)
                     val filename = when (image.role) {
                         "context" -> "%02d-context-primary-f%d.jpg".format(order, image.sourceIndex)
-                        else -> "%02d-road-band-f%d.jpg".format(order, image.sourceIndex)
+                        else -> "%02d-full-frame-f%d.jpg".format(order, image.sourceIndex)
                     }
                     File(outputDir, filename).writeBytes(jpeg)
                     val decoded = BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size)
@@ -199,9 +199,9 @@ class NativeEvalExporterInstrumentedTest {
 
                 val requestTimestampsMs = request.sourceIndexes.map(capturedAtElapsedMs::get)
                 val imageOrder = if (sourceMode == SourceMode.LIVE) {
-                    "primary context, then selected f0/f1/f2 road bands"
+                    "primary context, then selected f0/f1/f2 full frames"
                 } else {
-                    "reloaded primary context, then persisted burst road bands in camera-time order"
+                    "reloaded primary context, then persisted burst full frames in camera-time order"
                 }
                 val sourceFrameManifest = JSONArray()
                 val exportedSourceDir = File(outputDir, "source")

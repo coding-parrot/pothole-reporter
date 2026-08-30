@@ -18,14 +18,15 @@ closed instead of silently running a different subset.
 `OPENAI_API_KEY` comes from the environment or the repo-root `.env`. Use
 `--dry-run` to validate transforms and request configuration without making calls.
 
-Drive replay uses the shipped orientation-aware, downscale-only 1280 px road region plus a 768 px
-full-context view: portrait keeps 40%–66% of frame height, landscape keeps 48%–78%,
-and near-square keeps 40%–70%. An entry can provide a three-frame event with `frames` and `primary_index`;
-legacy entries with one `path` still work. Manual replay uses the shipped full-frame
-2000 px path. Pixel-triggered low-light enhancement, model, image detail, prompt,
-schema and decision policy are recorded in each run.
+Drive replay uses a 768 px full-frame context plus as many as three chronological,
+downscale-only 1280 px full frames. No live, replay, evaluation, training-data or
+evidence path may crop, tile, mask or extract a road region. An entry can provide a
+three-frame event with `frames` and `primary_index`; legacy entries with one `path`
+still work. Manual replay uses the shipped full-frame 2000 px path. Pixel-triggered
+low-light enhancement, model, image detail, prompt, schema and decision policy are
+recorded in each run.
 
-The replay follows the production operation order—crop, resize, sample luminance,
+The replay follows the production operation order—whole-frame resize, sample luminance,
 then conditionally enhance. Pillow and an Android WebView do not use byte-identical
 resamplers/JPEG codecs, so hashes are reproducibility identifiers for evaluator runs,
 not a claim that Python emits the exact browser JPEG bytes.
@@ -130,7 +131,7 @@ control cannot silently drift from what ships. Every `.txt` file in
 `eval/prompts/` becomes an additional arm named after the file.
 
 Everything below is a historical log for retired detector contracts. It explains past
-choices but is not directly comparable with the binary v12 result.
+choices but is not directly comparable with the binary v13 result.
 
 ## Results log
 
@@ -211,12 +212,10 @@ What this does not fix: the detector still describes this damage as a pothole, a
 that has lost its surface is really a different complaint. The letter wording has not been
 changed to match, and should be, once someone decides what that complaint says.
 
-## 28 Aug 2026: orientation-aware Drive road region, ACCEPTED
+## 28 Aug 2026: orientation-aware Drive road region, RETIRED
 
-The retired fixed bottom crop included the dashboard exactly when a nearby cavity became
-large enough to judge. It also treated portrait and landscape mounts as though their road
-geometry were interchangeable. Production now selects one bounded region by source-image
-orientation:
+This was a short-lived experiment, not the current contract. It replaced a fixed bottom
+crop with one bounded region selected by source-image orientation:
 
 | Orientation | Retained vertical interval | Purpose |
 |---|---:|---|
@@ -224,11 +223,7 @@ orientation:
 | Landscape | 48%–78% | keeps near/mid carriageway without the usual bonnet-dominated bottom strip |
 | Near-square (aspect ratio 0.9–1.1) | 40%–70% | gives ambiguous orientations an explicit, deterministic fallback |
 
-The region is selected before resize, luminance sampling and conditional enhancement, so
-the quality signal and the inference image describe the same road pixels. Pixel bounds use
-positive half-up rounding to match Kotlin and JavaScript exactly; evaluator results record
-the selected orientation, ratios and pixel rectangle under `road_region`.
-
-This transform applies only to Drive Mode working images and generated Drive evidence
-crops. Manual Photo analysis stays full-frame because the user has deliberately framed the
-defect, and the full-resolution complaint evidence stays full-frame for human review.
+This was retired because it could discard a pothole outside the chosen band and made the
+detector depend on mount orientation. Binary v13 always supplies complete edge-to-edge
+frames. The old interval table remains only to explain historical result files; none of
+these regions may be used by current live, replay, evaluation, evidence or dataset paths.

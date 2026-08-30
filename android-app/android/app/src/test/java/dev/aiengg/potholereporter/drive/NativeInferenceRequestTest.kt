@@ -47,8 +47,12 @@ class NativeInferenceRequestTest {
             "image 1 is historical evidence"
         ))
         assertTrue(content.getJSONObject(5).getString("text").contains(
-            "sharpest crop is image 4"
+            "Chronological frame 2 is the sharpest current view"
         ))
+        assertTrue(content.getJSONObject(5).getString("text").contains(
+            "No current image is cropped, tiled, masked, or limited to a region of interest"
+        ))
+        assertFalse(content.getJSONObject(5).getString("text").contains("sharpest crop"))
         assertEquals("road_repair_assessment", request.schema().getString("name"))
         assertEquals(768, request.getInt("max_output_tokens"))
         assertEquals("none", request.getJSONObject("reasoning").getString("effort"))
