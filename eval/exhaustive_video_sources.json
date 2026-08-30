@@ -1,0 +1,74 @@
+{
+  "schema_version": "private-exhaustive-video-sources-v1",
+  "suite_id": "owner-downloads-segments-2026-08-28",
+  "description": "Exact owner-supplied Downloads segment_0001.mp4 and segment_0002.mp4. Media remains private and uncommitted.",
+  "privacy": {
+    "media_committed": false,
+    "absolute_paths_stored": false,
+    "capture_provenance": "native_mediarecorder_reconstruction",
+    "raw_camerax_accuracy_eligible": false,
+    "production_detector_output_may_create_annotations": false
+  },
+  "sampling": {
+    "center_start_seconds": 0.4,
+    "center_step_seconds": 0.5,
+    "burst_half_span_seconds": 0.4,
+    "boundary_epsilon_seconds": 0.001,
+    "dedupe_tolerance_seconds": 0.04,
+    "sample_function": "static/standalone.js:vodSampleTimes",
+    "burst_function": "static/standalone.js:vodBurstTimes",
+    "frame_selection": "first decoded presentation frame whose PTS is at or after the requested timestamp; clamp beyond final PTS to the final frame"
+  },
+  "production_contract": {
+    "model": "gpt-5.6",
+    "detail": "original",
+    "prompt_version": "pothole-binary-v15",
+    "schema_version": 7,
+    "max_output_tokens": 1536,
+    "prompt_sha256": "621866cba94700717358426bba70b274c8f23df081ae2da7db6e9199c97e1c98",
+    "schema_sha256": "4a71363f4a78f0da8af8cdc58301c688bd434308733664680a5f5ef59d14945a"
+  },
+  "inventory": {
+    "source_count": 2,
+    "total_bytes": 33999011,
+    "total_frames": 3250,
+    "total_duration_seconds": 108.982389,
+    "expected_windows": 218,
+    "expected_frame_references": 654,
+    "source_inventory_sha256": "e9969f40d5df1a7cc902bc335fd8f616c55778c54f71e3966875ed05e2134014"
+  },
+  "sources": [
+    {
+      "source_id": "downloads-segment-0001",
+      "expected_basename": "segment_0001.mp4",
+      "sha256": "feea330adaa09a5573f7d0b379170c5a03bb6a5ae07484d44299c4703ef74686",
+      "codec": "h264",
+      "coded_width": 480,
+      "coded_height": 720,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": 0.0,
+      "frames": 1780,
+      "avg_frame_rate": "160200000/5399269",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.991878,
+      "bytes": 18743739
+    },
+    {
+      "source_id": "downloads-segment-0002",
+      "expected_basename": "segment_0002.mp4",
+      "sha256": "f9d51250ccdb955159db337490e30c46bc0f5422564aebdbe7b8b4ee48506c7d",
+      "codec": "h264",
+      "coded_width": 480,
+      "coded_height": 720,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": 0.0,
+      "frames": 1470,
+      "avg_frame_rate": "9450000/314939",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 48.990511,
+      "bytes": 15255272
+    }
+  ]
+}

@@ -1,0 +1,298 @@
+{
+  "schema_version": "private-exhaustive-video-labels-v2",
+  "suite_id": "owner-downloads-segments-2026-08-28",
+  "policy": {
+    "owner_event_labels_are_human_confirmed": true,
+    "window_annotations_are_independent_assistant_review": true,
+    "assistant_candidate_events_are_ground_truth": false,
+    "assistant_window_annotations_are_ground_truth": false,
+    "production_detector_output_used_as_annotation": false,
+    "unlabelled_windows_are_not_negatives": true,
+    "metric_unit": "physical_event",
+    "event_detection_rule": "A labelled pothole event is detected when at least one explicitly bound production VOD window is accepted."
+  },
+  "reviews": [
+    {
+      "source_id": "downloads-segment-0001",
+      "source_sha256": "feea330adaa09a5573f7d0b379170c5a03bb6a5ae07484d44299c4703ef74686",
+      "all_source_frames_decoded": true,
+      "decoded_frames": 1780,
+      "production_windows_reviewed": 120,
+      "whole_video_review_fps": 4,
+      "focused_review_ranges": [
+        {"interval_seconds": [32.0, 39.0], "fps": 10},
+        {"interval_seconds": [42.0, 48.0], "fps": 10},
+        {"interval_seconds": [52.0, 58.0], "fps": 10}
+      ],
+      "whole_frame_only": true,
+      "spatial_crop_tile_mask_or_roi": false,
+      "distinct_owner_confirmed_potholes": 1,
+      "distinct_assistant_candidate_potholes": 0,
+      "positive_windows": 3,
+      "negative_windows": 110,
+      "abstain_windows": 7,
+      "review_provenance": "independent_assistant_full_video_review"
+    },
+    {
+      "source_id": "downloads-segment-0002",
+      "source_sha256": "f9d51250ccdb955159db337490e30c46bc0f5422564aebdbe7b8b4ee48506c7d",
+      "all_source_frames_decoded": true,
+      "decoded_frames": 1470,
+      "production_windows_reviewed": 98,
+      "whole_video_review_fps": 4,
+      "focused_review_ranges": [
+        {"interval_seconds": [3.0, 6.4], "fps": 10}
+      ],
+      "whole_frame_only": true,
+      "spatial_crop_tile_mask_or_roi": false,
+      "distinct_owner_confirmed_potholes": 1,
+      "distinct_assistant_candidate_potholes": 0,
+      "positive_windows": 4,
+      "negative_windows": 90,
+      "abstain_windows": 4,
+      "review_provenance": "independent_assistant_full_video_review"
+    }
+  ],
+  "events": [
+    {
+      "event_id": "owner-construction-drive-2026-08-28-a",
+      "source_id": "downloads-segment-0001",
+      "source_sha256": "feea330adaa09a5573f7d0b379170c5a03bb6a5ae07484d44299c4703ef74686",
+      "source_interval_seconds": [33.6, 35.8],
+      "label": "pothole",
+      "evidence_tier": "owner_ground_truth",
+      "label_provenance": "owner_confirmed",
+      "review_kind": "human_visual_review",
+      "origin_manifest": "eval/labels.json",
+      "origin_event_id": "owner-construction-drive-2026-08-28-a",
+      "capture_provenance": "native_mediarecorder_reconstruction",
+      "raw_camerax_accuracy_eligible": false
+    },
+    {
+      "event_id": "owner-construction-drive-2026-08-28-segment-2-second-4",
+      "source_id": "downloads-segment-0002",
+      "source_sha256": "f9d51250ccdb955159db337490e30c46bc0f5422564aebdbe7b8b4ee48506c7d",
+      "source_interval_seconds": [3.8, 5.4],
+      "label": "pothole",
+      "evidence_tier": "owner_ground_truth",
+      "label_provenance": "owner_confirmed",
+      "review_kind": "human_visual_review",
+      "origin_manifest": "eval/labels.json",
+      "origin_event_id": "owner-construction-drive-2026-08-28-segment-2-second-4",
+      "capture_provenance": "native_mediarecorder_reconstruction",
+      "raw_camerax_accuracy_eligible": false
+    }
+  ],
+  "window_ranges": [
+    {
+      "source_id": "downloads-segment-0001",
+      "window_indices_inclusive": [0, 7],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "clear_paved_approach_with_barriers_and_traffic",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg1-hn-clear-approach",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0001",
+      "window_indices_inclusive": [8, 47],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "unsealed_roadworks_gravel_piles_and_vehicles",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg1-hn-roadworks-gravel-1",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0001",
+      "window_indices_inclusive": [48, 67],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "unsealed_roadworks_and_flat_utility_cover",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg1-hn-roadworks-utility-cover-1",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0001",
+      "window_indices_inclusive": [68, 68],
+      "visual_label": null,
+      "expected_decision": null,
+      "semantic_class": "pothole_leading_visibility_boundary",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg1-boundary-pothole-001-leading",
+      "uncertainty_reason": "Only a late burst frame may show the owner-confirmed event."
+    },
+    {
+      "source_id": "downloads-segment-0001",
+      "window_indices_inclusive": [69, 71],
+      "visual_label": "pothole",
+      "expected_decision": "accept",
+      "semantic_class": "pothole",
+      "label_provenance": "owner_confirmed_event_with_independent_assistant_window_extent",
+      "physical_event_or_hard_negative_group_id": "owner-construction-drive-2026-08-28-a",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0001",
+      "window_indices_inclusive": [72, 72],
+      "visual_label": null,
+      "expected_decision": null,
+      "semantic_class": "pothole_trailing_visibility_boundary",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg1-boundary-pothole-001-trailing",
+      "uncertainty_reason": "Only an early burst frame may show the owner-confirmed event."
+    },
+    {
+      "source_id": "downloads-segment-0001",
+      "window_indices_inclusive": [73, 87],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "unsealed_gravel_fill_and_barriers",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg1-hn-roadworks-gravel-2",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0001",
+      "window_indices_inclusive": [88, 93],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "flat_circular_utility_repairs_or_covers",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg1-hn-flat-utility-covers",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0001",
+      "window_indices_inclusive": [94, 106],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "narrow_dusty_construction_lane_with_vehicle_occlusion",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg1-hn-narrow-lane-occlusion",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0001",
+      "window_indices_inclusive": [107, 111],
+      "visual_label": null,
+      "expected_decision": null,
+      "semantic_class": "eroded_unsealed_crossing_or_construction_scar",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg1-uncertain-unsealed-crossing",
+      "uncertainty_reason": "An open cavity cannot be distinguished from an unsealed construction scar."
+    },
+    {
+      "source_id": "downloads-segment-0001",
+      "window_indices_inclusive": [112, 119],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "unsealed_surface_and_roadside_debris",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg1-hn-unsealed-debris",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0002",
+      "window_indices_inclusive": [0, 5],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "temporary_surface_before_confirmed_event",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg2-hn-opening",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0002",
+      "window_indices_inclusive": [6, 6],
+      "visual_label": null,
+      "expected_decision": null,
+      "semantic_class": "pothole_leading_visibility_boundary",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg2-boundary-pothole-001-leading",
+      "uncertainty_reason": "Only the final requested frame touches the reviewed event boundary."
+    },
+    {
+      "source_id": "downloads-segment-0002",
+      "window_indices_inclusive": [7, 10],
+      "visual_label": "pothole",
+      "expected_decision": "accept",
+      "semantic_class": "pothole",
+      "label_provenance": "owner_confirmed_event_with_independent_assistant_window_extent",
+      "physical_event_or_hard_negative_group_id": "owner-construction-drive-2026-08-28-segment-2-second-4",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0002",
+      "window_indices_inclusive": [11, 37],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "rough_temporary_surface_without_localized_cavity",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg2-hn-temporary-surface-1",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0002",
+      "window_indices_inclusive": [38, 42],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "loose_debris_on_rough_temporary_surface",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg2-hn-debris-19-22s",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0002",
+      "window_indices_inclusive": [43, 72],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "temporary_surface_without_localized_cavity",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg2-hn-temporary-surface-2",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0002",
+      "window_indices_inclusive": [73, 84],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "loose_aggregate_and_broad_construction_roughness",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg2-hn-rough-aggregate-37-43s",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0002",
+      "window_indices_inclusive": [85, 93],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "flat_patch_transition_and_junction_surface_without_cavity",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg2-hn-flat-patch-junction-43-47s",
+      "uncertainty_reason": null
+    },
+    {
+      "source_id": "downloads-segment-0002",
+      "window_indices_inclusive": [94, 96],
+      "visual_label": null,
+      "expected_decision": null,
+      "semantic_class": "foreground_vehicle_occlusion",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg2-uncertain-occlusion",
+      "uncertainty_reason": "A foreground vehicle obscures part of the immediate drivable surface."
+    },
+    {
+      "source_id": "downloads-segment-0002",
+      "window_indices_inclusive": [97, 97],
+      "visual_label": "not_pothole",
+      "expected_decision": "reject",
+      "semantic_class": "visible_paved_junction_without_localized_cavity",
+      "label_provenance": "independent_assistant_full_video_review",
+      "physical_event_or_hard_negative_group_id": "seg2-hn-closing-junction",
+      "uncertainty_reason": null
+    }
+  ]
+}

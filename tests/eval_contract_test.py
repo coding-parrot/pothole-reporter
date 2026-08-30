@@ -469,6 +469,12 @@ check("unresolved segment_0001 event B stays outside accuracy rates",
       and corrected_b_events[0].get("label") == "disputed"
       and "broad disturbed patch" in corrected_b_events[0].get("notes", "").lower()
       and "owner label" in corrected_b_events[0].get("notes", "").lower())
+mid_events = [entry for entry in labels
+              if entry.get("event_id") == "owner-construction-drive-2026-08-28-mid"]
+check("conflicting assistant reviews keep segment_0001 event M outside accuracy rates",
+      len(mid_events) == 1
+      and mid_events[0].get("label") == "disputed"
+      and "no owner label" in mid_events[0].get("notes", "").lower())
 owner_clip_positives = [entry for entry in labels
                         if entry.get("event_id") in {
                             "owner-construction-drive-2026-08-28-a",

@@ -28,7 +28,7 @@ EXPECTED = {
         "source_timestamps_seconds": [35.266667, 35.533333, 35.8],
     },
     "owner-construction-drive-2026-08-28-mid": {
-        "label": "pothole",
+        "label": "disputed",
         "mode": "drive",
         "source_file": "construction-drive-segment-1",
         "source_interval_seconds": [44.3, 45.8],

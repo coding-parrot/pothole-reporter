@@ -1,0 +1,159 @@
+{
+  "accepted_candidate_clustering": {
+    "clusters": [
+      {
+        "accepted_window_indices": [
+          65,
+          66,
+          68,
+          69,
+          70
+        ],
+        "assistant_abstain_semantic_classes": [
+          "pothole_leading_visibility_boundary"
+        ],
+        "assistant_candidate_event_ids": [],
+        "assistant_expected_reject_semantic_classes": [
+          "unsealed_roadworks_and_flat_utility_cover"
+        ],
+        "owner_event_ids": [
+          "owner-construction-drive-2026-08-28-a"
+        ],
+        "source_id": "downloads-segment-0001",
+        "status": "contains_owner_confirmed_event"
+      },
+      {
+        "accepted_window_indices": [
+          89,
+          90,
+          91
+        ],
+        "assistant_abstain_semantic_classes": [],
+        "assistant_candidate_event_ids": [],
+        "assistant_expected_reject_semantic_classes": [
+          "flat_circular_utility_repairs_or_covers"
+        ],
+        "owner_event_ids": [],
+        "source_id": "downloads-segment-0001",
+        "status": "unconfirmed_review_candidate"
+      },
+      {
+        "accepted_window_indices": [
+          8,
+          9
+        ],
+        "assistant_abstain_semantic_classes": [],
+        "assistant_candidate_event_ids": [],
+        "assistant_expected_reject_semantic_classes": [],
+        "owner_event_ids": [
+          "owner-construction-drive-2026-08-28-segment-2-second-4"
+        ],
+        "source_id": "downloads-segment-0002",
+        "status": "contains_owner_confirmed_event"
+      },
+      {
+        "accepted_window_indices": [
+          73,
+          74,
+          75
+        ],
+        "assistant_abstain_semantic_classes": [],
+        "assistant_candidate_event_ids": [],
+        "assistant_expected_reject_semantic_classes": [
+          "loose_aggregate_and_broad_construction_roughness"
+        ],
+        "owner_event_ids": [],
+        "source_id": "downloads-segment-0002",
+        "status": "unconfirmed_review_candidate"
+      }
+    ],
+    "max_adjacent_window_index_gap": 2
+  },
+  "assistant_diagnostics": {
+    "abstain_windows": 11,
+    "abstain_windows_accepted": 1,
+    "assistant_candidate_events": [],
+    "expected_reject_windows": 200,
+    "expected_reject_windows_accepted": 8,
+    "ground_truth": false,
+    "positive_windows": 7,
+    "positive_windows_accepted": 4
+  },
+  "constraints": {
+    "absolute_private_paths_stored": false,
+    "assistant_annotations_are_ground_truth": false,
+    "model_free_text_committed": false,
+    "private_media_committed": false,
+    "production_detector_output_used_as_annotation": false,
+    "response_ids_committed": false,
+    "spatial_crop_tile_mask_or_roi": false,
+    "whole_frame_only": true
+  },
+  "dataset_id": "195f83b69974df3a5d4ccd621615248b2e9f55ac26b68a764eb0afce2c5fadbc",
+  "execution": {
+    "accepted_windows": 13,
+    "complete": true,
+    "completed_requests": 218,
+    "error_windows": 0,
+    "full_frame_references": 654,
+    "production_windows": 218,
+    "rejected_windows": 205,
+    "source_frames_fully_decoded": 3250,
+    "source_videos": 2,
+    "unique_full_frames_retained": 651
+  },
+  "owner_confirmed_event_recall": {
+    "events": [
+      {
+        "accepted_window_ids": [
+          "downloads-segment-0001--w00069--c0034900",
+          "downloads-segment-0001--w00070--c0035400"
+        ],
+        "candidate_window_ids": [
+          "downloads-segment-0001--w00069--c0034900",
+          "downloads-segment-0001--w00070--c0035400",
+          "downloads-segment-0001--w00071--c0035900"
+        ],
+        "detected": true,
+        "event_id": "owner-construction-drive-2026-08-28-a"
+      },
+      {
+        "accepted_window_ids": [
+          "downloads-segment-0002--w00008--c0004400",
+          "downloads-segment-0002--w00009--c0004900"
+        ],
+        "candidate_window_ids": [
+          "downloads-segment-0002--w00007--c0003900",
+          "downloads-segment-0002--w00008--c0004400",
+          "downloads-segment-0002--w00009--c0004900",
+          "downloads-segment-0002--w00010--c0005400"
+        ],
+        "detected": true,
+        "event_id": "owner-construction-drive-2026-08-28-segment-2-second-4"
+      }
+    ],
+    "passed": true,
+    "physical_potholes": 2,
+    "physical_potholes_detected": 2
+  },
+  "production_contract": {
+    "detail": "original",
+    "max_output_tokens": 1536,
+    "model": "gpt-5.6",
+    "prompt_sha256": "621866cba94700717358426bba70b274c8f23df081ae2da7db6e9199c97e1c98",
+    "prompt_version": "pothole-binary-v15",
+    "schema_sha256": "4a71363f4a78f0da8af8cdc58301c688bd434308733664680a5f5ef59d14945a",
+    "schema_version": 7
+  },
+  "receipts": {
+    "assistant_annotation_manifest_sha256": "ebc228bcedbacb97eeac78d761e9e709cbb2c7e45902859e346db6e937b89d8c",
+    "detector_results_receipt_sha256": "0a15ce7c2d8f9db5896a4f0bd2827656c6d823450c61075badc7bb4e6e2619bd",
+    "event_bindings_sha256": "3a4536a6f2269d807fd8124f92197051c74483ba3e14e8bb2763ffe8552b5c84",
+    "materialized_windows_sha256": "02862514f15ed9040d8efef9f0504bcc5a922b24e3561eaa0df1c2c910e50967",
+    "normalized_private_results_sha256": "6987692f31da4798cb2eac88bf0ddcc47bfb668ba91f143dc0c68bc1314b9515",
+    "source_manifest_sha256": "3f41b678bef4f1fe9e5a6ec90244aa684420643c419a9b6639b564a2f4fd91b5"
+  },
+  "schema_version": "private-exhaustive-video-audit-v2",
+  "suite_id": "owner-downloads-segments-2026-08-28",
+  "suite_identity": "c3fdc95dfe511ff20cb0a5e6311074a673978d0e7c83e7d4ad51c112d1547e0d"
+}

@@ -167,6 +167,75 @@ or schema error, any missed positive phase, or any accepted negative phase. Use
 `--source SOURCE_ID=/path/to/video` instead of `--source-dir` when explicit mappings are
 more convenient. `--check-manifest` is the media-free, API-free CI contract check.
 
+## Exhaustive owner-video replay
+
+`exhaustive_video_sources.json` pins the exact hashes, stream metadata and production VOD
+cadence for the owner's two `segment_0001.mp4` / `segment_0002.mp4` files. The separate
+`exhaustive_video_visual_labels.json` keeps two kinds of evidence separate: two physical
+potholes explicitly confirmed by the owner, and an independent assistant review that decoded
+every source frame and visually covered the full duration plus all 218 production windows
+(7 owner-event positive windows, 200 expected-reject windows and 11 abstentions). The schema
+can also record newly discovered
+assistant candidates without promoting them to owner ground truth; this review recorded no
+additional candidate events. Production-detector output can never create or change an
+annotation.
+
+```bash
+# Source-free, API-free CI check.
+python3 eval/exhaustive_video_eval.py --check-manifest
+
+# Resolve the exact videos by hash, decode every frame and materialize all 218 windows.
+python3 eval/exhaustive_video_eval.py --materialize \
+  --source-dir "/path/containing/segment_0001-and-segment_0002"
+
+# Re-hash every retained full frame and rebuild all 218 production requests offline.
+python3 eval/exhaustive_video_eval.py --validate-materialized
+
+# Optional explicit paid run. Resume reuses only exact validated request-bound results.
+python3 eval/exhaustive_video_eval.py --paid-run --max-calls 218 --gate
+python3 eval/exhaustive_video_eval.py --paid-run --max-calls 218 --gate --resume
+
+# A label/provenance-only correction may import responses from an older run, but only
+# when every window ID, production request hash, response schema and decision validate.
+python3 eval/exhaustive_video_eval.py --paid-run --max-calls 0 --gate \
+  --reuse-cache-from eval/.private-drive-corpus/downloads-exhaustive/runs/OLD_DATASET_ID
+
+# After a complete run, derive the content-free committed result receipt and audit.
+python3 eval/exhaustive_video_eval.py --seal-run
+
+# CI/source-free verification. Supplying --dataset-root additionally re-hashes pixels and
+# rebuilds every exact production request against the committed content seal.
+python3 eval/exhaustive_video_eval.py --verify-audit
+python3 eval/exhaustive_video_eval.py --verify-audit \
+  --dataset-root eval/.private-drive-corpus/downloads-exhaustive/datasets/SUITE_ID
+```
+
+Generated full-frame JPEGs, window indexes and paid results stay under ignored
+`eval/.private-drive-corpus/downloads-exhaustive/`; private source paths are never written
+to committed metadata. Custom private paths inside a Git worktree are rejected unless a
+tracked `.gitignore` protects them. Every window stores the source hash, requested timestamps,
+selected frame indexes and PTS values, JPEG hashes, complete-frame geometry, preparation
+transforms and exact production-request hash. The materialized content ID seals the complete
+window index and event bindings, separately from the source/label/contract suite identity.
+The optional gate requires both owner-confirmed physical events to be detected and all
+requests to complete. It separately reports outcomes for assistant annotations; they never
+become ground-truth accuracy claims without human confirmation.
+
+The committed `exhaustive_video_results.json` contains all 218 exact request hashes,
+decision-driving structured fields, decisions and assessment hashes, but no images, requests,
+response IDs, model free text or private paths. `exhaustive_video_audit.json` is derived
+deterministically from those rows instead of trusting hand-entered totals. It records 218/218
+completed windows, 13 accepted, 205 rejected and 0 errors. Both owner-confirmed physical
+potholes were detected (2/2 event recall). The accepts form four temporal candidate clusters;
+two contain those confirmed events and two remain unconfirmed review candidates. Eight
+accepts conflict with assistant expected-reject annotations and one falls inside an assistant
+abstention. Those nine conflicts are not owner-confirmed false positives, so they are retained
+for human review rather than used to tune the production prompt.
+
+The committed SHA-256 source and request fingerprints are reproducibility/correlation
+identifiers, not anonymization: someone who already possesses an exact private file can match
+its hash. The receipts disclose no media bytes or filesystem location.
+
 ## Private Desktop drive corpus
 
 `private_drive_corpus.json` turns all 30 supplied Desktop segments into a permanent,

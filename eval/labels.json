@@ -185,7 +185,7 @@
    ],
    "primary_index": 1,
    "mode": "drive",
-   "label": "pothole",
+   "label": "disputed",
    "source_file": "construction-drive-segment-1",
    "source_interval_seconds": [44.3, 45.8],
    "source_timestamps_seconds": [45.166667, 45.433333, 45.7],
@@ -199,7 +199,7 @@
     "4398267128c6931f519e307d099312839aabd82f277fc0da34eb68d26caf01d8",
     "e712847a4b5dee8cb2d0bf48442cd734564a4669a0f50658ddeb4360e2253ca1"
    ],
-   "notes": "Definite event M in construction-drive-segment-1 (visible about 44.3-45.8 seconds, strongest about 44.5-45.5): two to three adjacent shallow, rough-edged material-loss cavities on the left side of the travelled strip. Treat the cluster as one physical report.",
+   "notes": "Disputed event M in construction-drive-segment-1 (about 44.3-45.8 seconds): one assistant review saw shallow material-loss cavities, while the later exhaustive full-video review saw flat circular utility repairs or covers. It has no owner label and remains excluded from accuracy.",
    "source": "private drive video supplied by project owner",
    "licence": "private evaluation only; frames are not distributed",
    "labelled_by": "independent assistant frame review"
