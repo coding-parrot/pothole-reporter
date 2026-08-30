@@ -1699,7 +1699,7 @@ This is a strict before/after verification, not ordinary pothole detection:
   // Contract context is optional and must never make an accepted report feel stuck.
   // The required routing packs retain their longer timeout; these catalogs get a short
   // network deadline and the matcher also bounds the complete lookup below.
-  const OPTIONAL_CATALOG_TIMEOUT_MS = 5000;
+  const OPTIONAL_CATALOG_TIMEOUT_MS = 1500;
   let _statePackManifest = null, _statePackManifestPromise = null;
   const _statePackMemory = new Map(), _statePackPromises = new Map();
 
@@ -2663,7 +2663,10 @@ This is a strict before/after verification, not ordinary pothole detection:
     const task = (async () => {
       const manifest = await getStatePackManifest();
       const resource = manifest && manifest.resources[packId];
-      if (!resource) return null;
+      // Routing data includes contacts and official handoff metadata, not only durable
+      // polygons. Once its declared review window expires, fail closed until a refreshed
+      // signed pack is published rather than silently sending citizens to a stale desk.
+      if (!resource || !catalogResourceWithinReview(resource)) return null;
       const cacheKey = statePackCacheKey(resource);
       const memory = _statePackMemory.get(packId);
       if (memory && memory.cache_key === cacheKey) return memory.pack;
@@ -5671,17 +5674,22 @@ This is a strict before/after verification, not ordinary pothole detection:
   }
 
   function trustedContractStateCode(route, geocodeStateCode) {
-    if (!route || route.routed !== true
-        || !/^[A-Z]{2}$/.test(String(geocodeStateCode || ""))) return null;
+    if (!route || route.routed !== true) return null;
+    const geocodedState = /^[A-Z]{2}$/.test(String(geocodeStateCode || ""))
+      ? String(geocodeStateCode) : null;
     const packState = String(route.routing_pack_state_code || "");
     if (["IN", "NH"].includes(packState)) {
       if (route.region === "national-highway") {
-        return route.contract_state_code === geocodeStateCode ? geocodeStateCode : null;
+        return geocodedState && route.contract_state_code === geocodedState
+          ? geocodedState : null;
       }
-      return geocodeStateCode;
+      return geocodedState;
     }
     if (/^[A-Z]{2}$/.test(packState)) {
-      return packState === geocodeStateCode ? packState : null;
+      // A checksum-pinned State/UT polygon is jurisdiction evidence in its own right.
+      // Reverse geocoding is only a cross-check: an outage must not disable the local
+      // State catalog, while a conflicting State label still fails closed.
+      return !geocodedState || packState === geocodedState ? packState : null;
     }
     return null;
   }
@@ -5900,7 +5908,7 @@ This is a strict before/after verification, not ordinary pothole detection:
   // without procuring the works. Keep this in lockstep with tools/tender_scope.py and
   // apply it before any positive road phrase. EPC/design-and-build is intentionally not
   // rejected unless the title explicitly describes one of these non-works services.
-  const nonWorksServiceRe = /\bconsult(?:ant|ancy|ants|ing)\b|\b(?:authority|independent)\s+engineer(?:ing)?\b|\bproject\s+management\s+(?:consult(?:ant|ancy|ing)|services?)\b|\b(?:preparation|prepare|preparing|revision|review)\s+of\s+(?:a\s+|the\s+)?(?:detailed\s+project\s+report|dpr)\b|\b(?:detailed\s+project\s+report|dpr)\s+(?:preparation|consultancy|services?)\b|\b(?:feasibility|traffic)\s+(?:study|studies|survey|surveys)\b|\bsurvey\s+(?:and|&)\s+investigation\b|\bthird\s+party\s+(?:inspection|quality\s+(?:audit|monitoring))\b|\b(?:quality\s+control|proof\s+checking)\s+(?:consultancy|services?)\b|\bsupply(?:ing)?\s+of\b.*\b(?:aggregate|asphalt|bitumen|cold\s+mix|stone\s+dust)\b/;
+  const nonWorksServiceRe = /\bconsult(?:ant|ancy|ants|ing)\b|\b(?:authority|independent)\s+engineer(?:ing)?\b|\bproject\s+management\s+(?:consult(?:ant|ancy|ing)|services?)\b|\b(?:preparation|prepare|preparing|revision|review)\s+of\s+(?:a\s+|the\s+)?(?:detailed\s+project\s+report|dpr)\b|\b(?:detailed\s+project\s+report|dpr)\s+(?:preparation|consultancy|services?)\b|\b(?:feasibility|traffic)\s+(?:study|studies|survey|surveys)\b|\bsurvey\s+(?:and|&)\s+investigation\b|\bthird\s+party\s+(?:inspection|quality\s+(?:audit|monitoring))\b|\b(?:quality\s+control|proof\s+checking)\s+(?:consultancy|services?)\b|\b(?:structural\s+)?design\s+(?:and|&)\s+drawing(?:s)?\b|\btotal\s+station\s+survey\b|\broad\s+inventory\b.*\b(?:survey|condition\s+assessment)\b|\bhiring\s+of\s+(?:labou?r|machinery|plant|equipment)\b|\bsupply(?:ing)?\s+of\b.*\b(?:aggregate|asphalt|bitumen|cold\s+mix|pothole(?:s)?\s+repair\s+material|ready\s+mix|stone\s+dust)\b/;
   const roadsideVegetationRe = /\broad\s*side\s+(?:monsoon\s+)?plantations?\b|\broadside\s+(?:monsoon\s+)?plantations?\b|\bsocial\s+forestr(?:y|ies)\b|(?:\w*plantation\w*|\w*forestr\w*).*\broad\s+side\w*\b|\broad\s+side\w*\b.*(?:\w*plantation\w*|\w*forestr\w*)/;
 
   const tenderTokens = (value) => (String(value || "").toLowerCase().match(/[a-z0-9]+/g) || []);
@@ -5929,8 +5937,12 @@ This is a strict before/after verification, not ordinary pothole detection:
 
   function tenderCoversCarriageway(title, tenderNumber) {
     void tenderNumber; // category fragments such as /RD/ are not scope evidence.
-    const text = tenderTokens(title).join(" ");
+    let text = tenderTokens(title).join(" ");
     if (!text) return false;
+    const subwork = text.split(/\bsw\b/);
+    if (subwork.length > 1 && subwork[subwork.length - 1].trim()) {
+      text = subwork[subwork.length - 1].trim();
+    }
     if (nonWorksServiceRe.test(text)) return false;
     if (roadsideVegetationRe.test(text)) return false;
     const tokens = text.split(" ");
@@ -5949,7 +5961,13 @@ This is a strict before/after verification, not ordinary pothole detection:
       const after = tokens.slice(roadIndex + 1, roadIndex + 4);
       if (after.length && (ROAD_WORK_ACTIONS.has(after[0]) || ["work", "works"].includes(after[0]))) {
         const priorAssets = hasAny(tokens.slice(0, roadIndex), NON_CARRIAGEWAY_ASSETS);
-        if (!priorAssets || coordinatedRoadNoun(tokens, roadIndex)) return true;
+        const governedTail = [];
+        for (const token of tokens.slice(roadIndex + 1, roadIndex + 9)) {
+          if (["at", "from", "near", "on", "to", "via"].includes(token)) break;
+          governedTail.push(token);
+        }
+        const governedAssets = hasAny(governedTail, NON_CARRIAGEWAY_ASSETS);
+        if ((!priorAssets || coordinatedRoadNoun(tokens, roadIndex)) && !governedAssets) return true;
       }
       const start = Math.max(0, roadIndex - 12);
       let actionIndex = null;
@@ -7413,16 +7431,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
   function complaintOutputsForRecord(rec) {
     if (!rec || normaliseIssueType(rec.issue_type) !== "road_damage") return null;
     rec = migrateLegacyComplaintRecord(rec);
-    if (rec.whatsapp_text && rec.portal_copy_text && rec.portal_fields) {
-      return {
-        email_subject: rec.email_subject || "",
-        email_body: rec.email_body || "",
-        whatsapp_text: rec.whatsapp_text,
-        portal_fields: rec.portal_fields,
-        portal_copy_text: rec.portal_copy_text,
-        complaint_profile_id: rec.complaint_profile_id || null,
-      };
-    }
+    // WhatsApp and portal copy are transfer data, not an archival snapshot. Always
+    // rebuild them from the current route and today's attribution gate so refreshing a
+    // routing pack cannot leave an old authority, ward, tender, or contractor copyable.
     const route = compatibleDraftRoute({
       ...rec,
       routed: true,
@@ -7504,6 +7515,31 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     output.email_subject = rec.email_subject || output.email_subject;
     output.email_body = rec.email_body || output.email_body;
     return output;
+  }
+
+  function refreshGeneratedComplaintFields(rec) {
+    if (!rec || normaliseIssueType(rec.issue_type) !== "road_damage") return rec;
+    const savedSubject = rec.email_subject;
+    const savedBody = rec.email_body;
+    rec.email_subject = null;
+    rec.email_body = null;
+    const output = complaintOutputsForRecord(rec);
+    rec.email_subject = rec.email_user_edited === true ? savedSubject : output.email_subject;
+    rec.email_body = rec.email_user_edited === true ? savedBody : output.email_body;
+    rec.whatsapp_text = output.whatsapp_text;
+    rec.portal_fields = output.portal_fields;
+    rec.portal_copy_text = output.portal_copy_text;
+    rec.complaint_profile_id = output.complaint_profile_id;
+    rec.intake_authority_id = output.intake_authority_id;
+    rec.intake_authority_name = output.intake_authority_name;
+    rec.geographic_authority_id = output.geographic_authority_id;
+    rec.geographic_authority_name = output.geographic_authority_name;
+    rec.road_owner_id = output.road_owner_id;
+    rec.road_owner_name = output.road_owner_name;
+    rec.road_owner_status = output.road_owner_status;
+    rec.road_owner_evidence = output.road_owner_evidence;
+    rec.complaint_template_version = COMPLAINT_TEMPLATE_VERSION;
+    return rec;
   }
 
   function draftEmail(a, lat, lng, address, officerName, tender, route = null) {
@@ -7997,6 +8033,20 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       fr.readAsDataURL(v);
     });
   };
+
+  async function emailAttachmentBase64(photo) {
+    const blob = await dataUrlToBlob(photo);
+    if (!blob || typeof blob === "string") {
+      throw new Error("The saved evidence photo could not be read for attachment.");
+    }
+    // The Capacitor bridge must briefly hold the base64 string in memory. Keep the
+    // complete edge-to-edge scene, but resize/compress the email copy so a high-megapixel
+    // camera image cannot freeze or kill the WebView while opening the composer.
+    const dataUrl = await toDataUrl(blob, 1600, 0.82, false);
+    const base64 = dataUrl && dataUrl.split(",")[1];
+    if (!base64) throw new Error("The evidence attachment could not be prepared.");
+    return base64;
+  }
 
   const toDict = (r) => {
     const outward = migrateLegacyComplaintRecord(r);
@@ -8889,15 +8939,71 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     return toDict(rec);
   }
 
-  async function retryCivicRouting(rec) {
-    if (!rec || rec.status !== "unrouted"
-        || normaliseIssueType(rec.issue_type) === "road_damage") {
-      throw new Error("Only an unrouted civic report can retry routing.");
+  const ROUTE_RECORD_FIELDS = Object.freeze([
+    "officer_name", "officer_email", "authority_id", "authority_name",
+    "authority_registry_version", "delivery_channel", "ward_code", "routing_source",
+    "routing_match_field", "routing_match_value", "highway_ref", "contract_state_code",
+    "routing_pack_id", "routing_pack_version", "routing_pack_sha256",
+    "routing_pack_state_code", "region", "ownership_unverified", "handoff_name",
+    "handoff_url", "handoff_package", "alternate_handoff_name",
+    "alternate_handoff_url", "whatsapp_url", "helpline", "requires_official_reference",
+    "tender_eligible",
+  ]);
+
+  const TENDER_RECORD_FIELDS = Object.freeze({
+    tender_number: "tender_number", tender_reference_label: "reference_label",
+    tender_title: "title", contractor: "contractor", tender_note: "note",
+    tender_published: "published", tender_organisation: "organisation",
+    tender_detail_url: "detail_url", tender_bid_closing: "bid_closing",
+    tender_bid_opening: "bid_opening", tender_project_start: "project_start",
+    tender_project_completion: "project_completion", tender_agreement_number: "agreement_number",
+    tender_agreement_date: "agreement_date", tender_package_reference: "package_reference",
+    tender_highway_reference: "highway_reference", tender_published_chainage: "published_chainage",
+    tender_road_from: "road_from", tender_road_to: "road_to", tender_source_name: "source_name",
+    tender_source_url: "source_url", tender_lifecycle: "lifecycle",
+    tender_lifecycle_status: "lifecycle_status", tender_match_basis: "match_basis",
+    tender_candidate_status: "candidate_status", tender_scope_status: "scope_status",
+    tender_segment_status: "segment_status", tender_award_status: "award_status",
+    tender_dlp_status: "dlp_status", tender_responsibility_valid_from: "responsibility_valid_from",
+    tender_responsibility_valid_until: "responsibility_valid_until",
+    tender_responsible_authority_id: "responsible_authority_id",
+    tender_road_owner_id: "road_owner_id", tender_verification_evidence: "verification_evidence",
+    tender_pack_id: "tender_pack_id", tender_pack_version: "tender_pack_version",
+    tender_pack_sha256: "tender_pack_sha256", tender_pack_state_code: "tender_pack_state_code",
+  });
+
+  function applyRouteRecord(rec, route) {
+    for (const field of ROUTE_RECORD_FIELDS) {
+      rec[field] = route[field] === undefined ? null : route[field];
     }
+  }
+
+  function applyTenderRecord(rec, tender) {
+    for (const [recordField, tenderField] of Object.entries(TENDER_RECORD_FIELDS)) {
+      rec[recordField] = tender && tender[tenderField] !== undefined
+        ? tender[tenderField] : null;
+    }
+    rec.tender_scope_verified = !!(tender && tender.scope_verified);
+    rec.tender_segment_verified = !!(tender && tender.segment_verified);
+    rec.tender_award_verified = !!(tender && tender.award_verified);
+    rec.tender_dlp_verified = !!(tender && tender.dlp_verified);
+    rec.tender_responsibility_active_verified = !!(
+      tender && tender.responsibility_active_verified);
+    rec.tender_unambiguous = !!(tender && tender.unambiguous);
+  }
+
+  async function retryCivicRouting(rec) {
+    if (!rec || rec.status !== "unrouted") {
+      throw new Error("Only an unrouted report can retry routing.");
+    }
+    const roadDamage = normaliseIssueType(rec.issue_type) === "road_damage";
     if (!finiteCoord(rec.lat) || !finiteCoord(rec.lng)) {
       throw new Error("This report has no stored coordinates. Retake it with location enabled.");
     }
-    if (!["jurisdiction_unavailable", "no_address_for_body"].includes(rec.unrouted_reason)) {
+    const retryableReasons = roadDamage
+      ? ["jurisdiction_unavailable", "road_class_unknown", "no_address_for_body"]
+      : ["jurisdiction_unavailable", "no_address_for_body"];
+    if (!retryableReasons.includes(rec.unrouted_reason)) {
       throw new Error(
         "Retry cannot change this saved location or issue category. Retake the report at the correct location instead."
       );
@@ -8918,22 +9024,30 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       return toDict(rec);
     }
 
-    const [subject, body] = draftCivicComplaint(rec.issue_type, rec.lat, rec.lng,
-      rec.address, route.officer_name, route, rec.capture_source, rec.location_source);
-    const fields = [
-      "officer_name", "officer_email", "authority_id", "authority_name",
-      "authority_registry_version", "delivery_channel", "ward_code", "routing_source",
-      "routing_match_field", "routing_match_value", "routing_pack_id",
-      "routing_pack_version", "routing_pack_sha256", "routing_pack_state_code", "region",
-      "ownership_unverified", "handoff_name", "handoff_url", "handoff_package",
-      "alternate_handoff_name", "alternate_handoff_url", "whatsapp_url", "helpline",
-      "requires_official_reference",
-    ];
-    for (const field of fields) {
-      rec[field] = route[field] === undefined ? null : route[field];
+    applyRouteRecord(rec, route);
+    if (roadDamage) {
+      const tenderCandidate = canSearchTenderCatalog(route)
+        ? await matchTenderAt(rec.address, route, rec.lat, rec.lng).catch(() => null) : null;
+      const tender = normaliseTenderMatch(tenderCandidate, route);
+      applyTenderRecord(rec, tender);
+      const complaint = buildComplaintOutputs({
+        size: rec.size, surface_type: rec.surface_type,
+        measurement_provenance: rec.measurement_provenance,
+        measurement_confidence: rec.measurement_confidence,
+        description: rec.description,
+      }, rec.lat, rec.lng, rec.address, route.officer_name, tender, route, {
+        captured_at: rec.captured_at || rec.created_at,
+        gps_accuracy: rec.gps_accuracy,
+        photo_provenance: rec.capture_source === "manual_import"
+          ? "User-selected/imported photo" : "Pothole Reporter camera evidence",
+      });
+      Object.assign(rec, complaint);
+    } else {
+      const [subject, body] = draftCivicComplaint(rec.issue_type, rec.lat, rec.lng,
+        rec.address, route.officer_name, route, rec.capture_source, rec.location_source);
+      rec.email_subject = subject;
+      rec.email_body = body;
     }
-    rec.email_subject = subject;
-    rec.email_body = body;
     rec.complaint_template_version = COMPLAINT_TEMPLATE_VERSION;
     rec.status = "draft";
     rec.unrouted_reason = null;
@@ -9172,16 +9286,17 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         || rec.gps_accuracy > 30) {
       throw new Error("This saved email route cannot be verified from precise road coordinates.");
     }
+    const geo = await reverseGeocode(rec.lat, rec.lng).catch(() => null);
     const current = await routeOfficer(
-      rec.address || null, rec.lat, rec.lng, rec.gps_accuracy, rec.heading, rec.speed_mps,
-      rec.issue_type);
+      geo || rec.address || null, rec.lat, rec.lng, rec.gps_accuracy, rec.heading,
+      rec.speed_mps, rec.issue_type);
     if (!current || current.routed !== true || current.delivery_channel !== "email"
         || current.authority_id !== rec.authority_id || !current.officer_email
-        || !/^ka-lgd-[0-9]+$/.test(String(current.authority_id || ""))
-        || current.routing_pack_id !== "in-ka-routing"
-        || current.routing_pack_state_code !== "KA"
-        || current.routing_source !== "kgis"
-        || current.routing_match_field !== "lgd") {
+        || !current.routing_source || !current.routing_match_field
+        || !current.routing_match_value || !current.routing_pack_id
+        || !Number.isInteger(current.routing_pack_version)
+        || !/^[0-9a-f]{64}$/.test(String(current.routing_pack_sha256 || ""))
+        || !/^[A-Z]{2}$/.test(String(current.routing_pack_state_code || ""))) {
       throw new Error(
         "The current coordinate-bound authority does not match this saved email recipient. Review or recapture the report; the app will not address a guess."
       );
@@ -9193,9 +9308,6 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
   async function openInGmail(rec) {
     // Always the routed officer. The app never sends; the user does, in their email app.
     // No fallback recipient: an unrouted report must not borrow Bengaluru's address.
-    // Preparing a native attachment is asynchronous. Re-read only after that work, then
-    // launch without another await so a Drive repair gets the last possible veto.
-    const attachment = NATIVE ? await photoToBase64(rec.photo_full || rec.photo) : null;
     const stored = await getReport(rec.id);
     if (!stored) throw new Error("Report not found.");
     const migrated = migrateLegacyComplaintRecord(stored);
@@ -9208,7 +9320,13 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     if (!migrated.officer_email) {
       throw new Error("No responsible authority is known for this location, so there is nobody to address.");
     }
-    const verifiedRoute = await verifiedDirectEmailRoute(migrated);
+    // Route revalidation and attachment preparation are independent. Run them together
+    // so opening the composer does not pay two serial waits on a cold phone.
+    const [attachment, verifiedRoute] = await Promise.all([
+      NATIVE ? emailAttachmentBase64(migrated.photo_full || migrated.photo)
+        : Promise.resolve(null),
+      verifiedDirectEmailRoute(migrated),
+    ]);
     // Commit the migration and today's coordinate-bound recipient before launching. The
     // atomic callback rechecks repair/status after the network work above, so a concurrent
     // revisit cannot reopen a stale complaint.
@@ -9219,12 +9337,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       if (latest.status !== "draft" && latest.status !== "queued") {
         throw new Error("This report is not a sendable draft.");
       }
-      for (const field of ["officer_name", "officer_email", "authority_id", "authority_name",
-        "authority_registry_version", "routing_source", "routing_match_field",
-        "routing_match_value", "routing_pack_id", "routing_pack_version",
-        "routing_pack_sha256", "routing_pack_state_code", "region"]) {
-        latest[field] = verifiedRoute[field] === undefined ? null : verifiedRoute[field];
-      }
+      applyVerifiedHandoff(latest, verifiedRoute);
       latest.direct_email_verified_at = Date.now() / 1000;
     });
     const to = current.officer_email;
@@ -9826,7 +9939,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
   }
 
   const VERIFIED_HANDOFF_FIELDS = [
-    "officer_name", "authority_id", "authority_name", "authority_registry_version",
+    "officer_name", "officer_email", "authority_id", "authority_name",
+    "authority_registry_version", "delivery_channel", "ward_code",
     "routing_source", "region", "handoff_name", "handoff_url", "handoff_package",
     "alternate_handoff_name", "alternate_handoff_url", "whatsapp_url", "helpline",
     "requires_official_reference", "routing_pack_id", "routing_pack_version",
@@ -9842,6 +9956,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     for (const field of VERIFIED_HANDOFF_FIELDS) {
       rec[field] = verified[field] === undefined ? null : verified[field];
     }
+    refreshGeneratedComplaintFields(rec);
     return rec;
   }
 
@@ -9939,6 +10054,28 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const authorityId = legacyBmc ? "mh-bmc" : rec.authority_id;
     if (authorityId === "in-national-highway") {
       return openNationalHighwayHandoff(rec);
+    }
+    if (normaliseIssueType(rec.issue_type) === "road_damage") {
+      const highway = await nationalHighwayRoute(
+        rec.lat, rec.lng, rec.gps_accuracy, rec.heading, rec.speed_mps);
+      if (highway && highway.routed !== true) {
+        throw new Error(
+          "The road class is currently uncertain at this coordinate, so the app will not open a possibly wrong civic route. Try again with routing data available."
+        );
+      }
+      if (highway && highway.authority_id === "in-national-highway") {
+        const geo = await reverseGeocode(rec.lat, rec.lng).catch(() => null);
+        const stateHint = stateCodeForGeocode(geo)
+          || (/^[A-Z]{2}$/.test(String(rec.routing_pack_state_code || ""))
+            ? rec.routing_pack_state_code : null);
+        const contractStateCode = await exactPinnedContractStateCode(
+          stateHint, rec.lat, rec.lng, rec.gps_accuracy);
+        return routeForIssue({
+          ...toDict(rec), ...highway,
+          contract_state_code: contractStateCode,
+          tender_eligible: !!contractStateCode,
+        }, rec.issue_type);
+      }
     }
     if (/^ka-lgd-[0-9]+$/.test(String(authorityId || ""))) {
       return openBengaluruHandoff(rec);
@@ -10482,8 +10619,14 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
         return mutateReportAtomically(rec.id, (current) => {
           if (conditionStatus(current) === "fixed") throw new Error("Fixed reports cannot be edited for sending.");
           if (current.status !== "draft" && current.status !== "queued") throw new Error("Only drafts can be edited.");
-          current.email_subject = upd.email_subject;
-          current.email_body = complaintBodyWithFooter(upd.email_body, current.issue_type);
+          const subject = String(upd.email_subject || "");
+          const body = complaintBodyWithFooter(upd.email_body, current.issue_type);
+          if (subject !== String(current.email_subject || "")
+              || body !== String(current.email_body || "")) {
+            current.email_user_edited = true;
+          }
+          current.email_subject = subject;
+          current.email_body = body;
           current.complaint_template_version = COMPLAINT_TEMPLATE_VERSION;
         });
       }

@@ -366,7 +366,7 @@
     },
     "in-ka-tenders": {
       "adapter": "karnataka-carriageway-indexed-v2",
-      "bytes": 1255791,
+      "bytes": 1245286,
       "coverage_scope": "Karnataka municipal procurement records",
       "kind": "tenders",
       "licenses": [
@@ -374,15 +374,15 @@
       ],
       "pack_id": "in-ka-tenders",
       "pack_version": 1,
-      "path": "packs/v1/states/ka/tenders-41ee71070680df1b00aa4acd56af9caa7cee03f52adb78aa0348708d9805eb5a.json",
-      "records": 5362,
+      "path": "packs/v1/states/ka/tenders-ad072cfd097b3bad2aa736af8f3fb8ed67d7faf46f4a7d1165f1e95cc01c0cd4.json",
+      "records": 5321,
       "review_after": "2026-11-21",
       "schema_version": 1,
-      "sha256": "41ee71070680df1b00aa4acd56af9caa7cee03f52adb78aa0348708d9805eb5a",
+      "sha256": "ad072cfd097b3bad2aa736af8f3fb8ed67d7faf46f4a7d1165f1e95cc01c0cd4",
       "source_retrieved_at": "2026-08-21",
       "state_code": "KA",
       "statewide": true,
-      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ka/tenders-41ee71070680df1b00aa4acd56af9caa7cee03f52adb78aa0348708d9805eb5a.json"
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/states/ka/tenders-ad072cfd097b3bad2aa736af8f3fb8ed67d7faf46f4a7d1165f1e95cc01c0cd4.json"
     },
     "in-kl-routing": {
       "adapter": "statewide-general-v1",

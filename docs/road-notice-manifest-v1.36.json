@@ -17,7 +17,7 @@
   "resources": {
     "in-road-notices-an": {
       "adapter": "official-road-notices-v2",
-      "bytes": 7263,
+      "bytes": 5479,
       "candidate_only": true,
       "kind": "road_procurement_notices",
       "licenses": [
@@ -26,17 +26,17 @@
       "lifecycle": "procurement_notice",
       "pack_id": "in-road-notices-an",
       "pack_version": 1,
-      "path": "packs/v1/road-notices/an/notices-99a57ea06821fdeefe06fea336b1f7374dea95fad17ffca91ab29552782f3641.json",
-      "records": 8,
+      "path": "packs/v1/road-notices/an/notices-038b96cd7ac3f751733b9ffd3cb98bb656719bb725f48f14bee0a1b77cbe5b47.json",
+      "records": 6,
       "review_after": "2026-09-02",
-      "rows_excluded_by_scope": 209,
+      "rows_excluded_by_scope": 211,
       "rows_scanned": 217,
       "schema_version": 1,
-      "sha256": "99a57ea06821fdeefe06fea336b1f7374dea95fad17ffca91ab29552782f3641",
+      "sha256": "038b96cd7ac3f751733b9ffd3cb98bb656719bb725f48f14bee0a1b77cbe5b47",
       "source_retrieved_at": "2026-08-26",
       "sources": 1,
       "state_code": "AN",
-      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/an/notices-99a57ea06821fdeefe06fea336b1f7374dea95fad17ffca91ab29552782f3641.json"
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/an/notices-038b96cd7ac3f751733b9ffd3cb98bb656719bb725f48f14bee0a1b77cbe5b47.json"
     },
     "in-road-notices-ar": {
       "adapter": "official-road-notices-v2",
@@ -132,7 +132,7 @@
     },
     "in-road-notices-ch": {
       "adapter": "official-road-notices-v2",
-      "bytes": 7297,
+      "bytes": 6455,
       "candidate_only": true,
       "kind": "road_procurement_notices",
       "licenses": [
@@ -141,17 +141,17 @@
       "lifecycle": "procurement_notice",
       "pack_id": "in-road-notices-ch",
       "pack_version": 1,
-      "path": "packs/v1/road-notices/ch/notices-773ae9ef7b2613d7bb16f6311a7b8af36ddf384305717781a0369c2aa0eaf607.json",
-      "records": 8,
+      "path": "packs/v1/road-notices/ch/notices-ef5d02b5f5dad38e8d080c9e6788f376e134ae91ae53608ac80c7e3f797aacd4.json",
+      "records": 7,
       "review_after": "2026-09-02",
-      "rows_excluded_by_scope": 246,
+      "rows_excluded_by_scope": 247,
       "rows_scanned": 254,
       "schema_version": 1,
-      "sha256": "773ae9ef7b2613d7bb16f6311a7b8af36ddf384305717781a0369c2aa0eaf607",
+      "sha256": "ef5d02b5f5dad38e8d080c9e6788f376e134ae91ae53608ac80c7e3f797aacd4",
       "source_retrieved_at": "2026-08-26",
       "sources": 1,
       "state_code": "CH",
-      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/ch/notices-773ae9ef7b2613d7bb16f6311a7b8af36ddf384305717781a0369c2aa0eaf607.json"
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/ch/notices-ef5d02b5f5dad38e8d080c9e6788f376e134ae91ae53608ac80c7e3f797aacd4.json"
     },
     "in-road-notices-dh": {
       "adapter": "official-road-notices-v2",
@@ -477,7 +477,7 @@
     },
     "in-road-notices-mp": {
       "adapter": "official-road-notices-v2",
-      "bytes": 557609,
+      "bytes": 551514,
       "candidate_only": true,
       "kind": "road_procurement_notices",
       "licenses": [
@@ -486,17 +486,17 @@
       "lifecycle": "procurement_notice",
       "pack_id": "in-road-notices-mp",
       "pack_version": 1,
-      "path": "packs/v1/road-notices/mp/notices-7f300e66fd0d2b5f482d38c2dd3893e980a04efa73d67f6711e92a57e381659a.json",
-      "records": 675,
+      "path": "packs/v1/road-notices/mp/notices-9f41f9ef6e1f2fd094b98d54d0a6ba3177b45b8b87c8321f6e5df7f38886517e.json",
+      "records": 668,
       "review_after": "2026-09-02",
-      "rows_excluded_by_scope": 4887,
+      "rows_excluded_by_scope": 4894,
       "rows_scanned": 5562,
       "schema_version": 1,
-      "sha256": "7f300e66fd0d2b5f482d38c2dd3893e980a04efa73d67f6711e92a57e381659a",
+      "sha256": "9f41f9ef6e1f2fd094b98d54d0a6ba3177b45b8b87c8321f6e5df7f38886517e",
       "source_retrieved_at": "2026-08-26",
       "sources": 1,
       "state_code": "MP",
-      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/mp/notices-7f300e66fd0d2b5f482d38c2dd3893e980a04efa73d67f6711e92a57e381659a.json"
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/mp/notices-9f41f9ef6e1f2fd094b98d54d0a6ba3177b45b8b87c8321f6e5df7f38886517e.json"
     },
     "in-road-notices-mz": {
       "adapter": "official-road-notices-v2",
@@ -615,7 +615,7 @@
     },
     "in-road-notices-rj": {
       "adapter": "official-road-notices-v2",
-      "bytes": 395407,
+      "bytes": 392509,
       "candidate_only": true,
       "kind": "road_procurement_notices",
       "licenses": [
@@ -624,17 +624,17 @@
       "lifecycle": "procurement_notice",
       "pack_id": "in-road-notices-rj",
       "pack_version": 1,
-      "path": "packs/v1/road-notices/rj/notices-5efdbfd9ec6316c5e7714d391d31ecbf949d26fe16716064e4c3ce119368119d.json",
-      "records": 512,
+      "path": "packs/v1/road-notices/rj/notices-ef7aa684380d099bbc9fc491c6ee13bb6517375c0ce2a189145b2eb98e6f5e59.json",
+      "records": 508,
       "review_after": "2026-09-02",
-      "rows_excluded_by_scope": 5033,
+      "rows_excluded_by_scope": 5037,
       "rows_scanned": 5545,
       "schema_version": 1,
-      "sha256": "5efdbfd9ec6316c5e7714d391d31ecbf949d26fe16716064e4c3ce119368119d",
+      "sha256": "ef7aa684380d099bbc9fc491c6ee13bb6517375c0ce2a189145b2eb98e6f5e59",
       "source_retrieved_at": "2026-08-26",
       "sources": 1,
       "state_code": "RJ",
-      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/rj/notices-5efdbfd9ec6316c5e7714d391d31ecbf949d26fe16716064e4c3ce119368119d.json"
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/rj/notices-ef7aa684380d099bbc9fc491c6ee13bb6517375c0ce2a189145b2eb98e6f5e59.json"
     },
     "in-road-notices-sk": {
       "adapter": "official-road-notices-v2",
@@ -661,7 +661,7 @@
     },
     "in-road-notices-tg": {
       "adapter": "official-road-notices-v2",
-      "bytes": 96531,
+      "bytes": 94395,
       "candidate_only": true,
       "kind": "road_procurement_notices",
       "licenses": [
@@ -670,17 +670,17 @@
       "lifecycle": "procurement_notice",
       "pack_id": "in-road-notices-tg",
       "pack_version": 1,
-      "path": "packs/v1/road-notices/tg/notices-6727262b196938fd81f310daf9fe1c0ecb01ab48f81b27c92fde1f17a24f2c20.json",
-      "records": 132,
+      "path": "packs/v1/road-notices/tg/notices-a52ae7e263faf9a7483150a0b211b9c571ce0f2969f12fd9242a9f3528d8acbe.json",
+      "records": 129,
       "review_after": "2026-09-02",
-      "rows_excluded_by_scope": 1962,
+      "rows_excluded_by_scope": 1965,
       "rows_scanned": 2094,
       "schema_version": 1,
-      "sha256": "6727262b196938fd81f310daf9fe1c0ecb01ab48f81b27c92fde1f17a24f2c20",
+      "sha256": "a52ae7e263faf9a7483150a0b211b9c571ce0f2969f12fd9242a9f3528d8acbe",
       "source_retrieved_at": "2026-08-26",
       "sources": 1,
       "state_code": "TG",
-      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/tg/notices-6727262b196938fd81f310daf9fe1c0ecb01ab48f81b27c92fde1f17a24f2c20.json"
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/tg/notices-a52ae7e263faf9a7483150a0b211b9c571ce0f2969f12fd9242a9f3528d8acbe.json"
     },
     "in-road-notices-tn": {
       "adapter": "official-road-notices-v2",
@@ -753,7 +753,7 @@
     },
     "in-road-notices-up": {
       "adapter": "official-road-notices-v2",
-      "bytes": 673776,
+      "bytes": 657509,
       "candidate_only": true,
       "kind": "road_procurement_notices",
       "licenses": [
@@ -762,21 +762,21 @@
       "lifecycle": "procurement_notice",
       "pack_id": "in-road-notices-up",
       "pack_version": 1,
-      "path": "packs/v1/road-notices/up/notices-74b81c0db021f85999d05effdc153872a5306f37655eddd90f1251c6bbef1a7e.json",
-      "records": 831,
+      "path": "packs/v1/road-notices/up/notices-c7f48b9642b955039f1788831b52203da39647c5d1b4952f3869cd556599ad06.json",
+      "records": 811,
       "review_after": "2026-09-02",
-      "rows_excluded_by_scope": 6831,
+      "rows_excluded_by_scope": 6851,
       "rows_scanned": 7662,
       "schema_version": 1,
-      "sha256": "74b81c0db021f85999d05effdc153872a5306f37655eddd90f1251c6bbef1a7e",
+      "sha256": "c7f48b9642b955039f1788831b52203da39647c5d1b4952f3869cd556599ad06",
       "source_retrieved_at": "2026-08-26",
       "sources": 1,
       "state_code": "UP",
-      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/up/notices-74b81c0db021f85999d05effdc153872a5306f37655eddd90f1251c6bbef1a7e.json"
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/up/notices-c7f48b9642b955039f1788831b52203da39647c5d1b4952f3869cd556599ad06.json"
     },
     "in-road-notices-wb": {
       "adapter": "official-road-notices-v2",
-      "bytes": 406270,
+      "bytes": 404501,
       "candidate_only": true,
       "kind": "road_procurement_notices",
       "licenses": [
@@ -785,17 +785,17 @@
       "lifecycle": "procurement_notice",
       "pack_id": "in-road-notices-wb",
       "pack_version": 1,
-      "path": "packs/v1/road-notices/wb/notices-134bcafc10688fb13a6fc3ea03456aedf90c743903fd8c57b7561fea2ff5db16.json",
-      "records": 498,
+      "path": "packs/v1/road-notices/wb/notices-bef967738a9c89c0303547e5b03c16dd8080957b57dd81da9e1aef7afec87dbf.json",
+      "records": 496,
       "review_after": "2026-09-02",
-      "rows_excluded_by_scope": 8004,
+      "rows_excluded_by_scope": 8006,
       "rows_scanned": 8502,
       "schema_version": 1,
-      "sha256": "134bcafc10688fb13a6fc3ea03456aedf90c743903fd8c57b7561fea2ff5db16",
+      "sha256": "bef967738a9c89c0303547e5b03c16dd8080957b57dd81da9e1aef7afec87dbf",
       "source_retrieved_at": "2026-08-26",
       "sources": 2,
       "state_code": "WB",
-      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/wb/notices-134bcafc10688fb13a6fc3ea03456aedf90c743903fd8c57b7561fea2ff5db16.json"
+      "url": "https://coding-parrot.github.io/pothole-reporter/packs/v1/road-notices/wb/notices-bef967738a9c89c0303547e5b03c16dd8080957b57dd81da9e1aef7afec87dbf.json"
     }
   },
   "schema_version": 1

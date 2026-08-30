@@ -148,6 +148,12 @@ async () => {
       P.trustedContractStateCode({routed:true, region:"national-highway",
         routing_pack_state_code:"IN", contract_state_code:"GJ"}, "MH"),
     ],
+    trustedPolygonStates: [
+      P.trustedContractStateCode({routed:true, region:"maharashtra",
+        routing_pack_state_code:"MH"}, null),
+      P.trustedContractStateCode({routed:true, region:"maharashtra",
+        routing_pack_state_code:"MH"}, "GJ"),
+    ],
     optionalRuntime: {
       timeoutResult,
       elapsed: timeoutElapsed,
@@ -225,6 +231,11 @@ def main() -> None:
         failures.append(
             f"National Highway State trust bypassed containment: "
             f"{result['trustedHighwayStates']!r}"
+        )
+    if result["trustedPolygonStates"] != ["MH", None]:
+        failures.append(
+            f"State polygon was not authoritative during geocoder outage/conflict: "
+            f"{result['trustedPolygonStates']!r}"
         )
     runtime = result["optionalRuntime"]
     expected_manifests = sorted([

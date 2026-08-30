@@ -5,7 +5,7 @@ phone shows Maps or a call; one tap on **Photo** opens the camera for a pothole 
 prepares evidence for an official complaint channel. Reports remain on the phone, and
 nothing is filed automatically. There is no project-operated backend or account system.
 
-Current release: [v1.36.9](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.36.9)
+Current release: [v1.36.10](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.36.10)
 
 <p>
   <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
@@ -67,7 +67,9 @@ submitted automatically.
 - Complaint intake and road ownership are separate fields. A boundary can select where to
   start a complaint without claiming that the same authority owns or maintains the road.
 - Email, short WhatsApp, and copyable portal fields always retain coordinates, map link,
-  and routing. Karnataka, NHAI/MoRTH/NHIDCL, PMGSY, and State/UT procurement records may
+  and routing. Portal fields are regenerated and copied immediately before the verified
+  official service opens; direct email includes a compressed full-frame evidence photo.
+  Karnataka, NHAI/MoRTH/NHIDCL, PMGSY, and State/UT procurement records may
   produce a local **research lead**, but it is not included in complaint copy. Tender and
   contractor details appear only when official evidence verifies the exact road segment,
   carriageway scope, award, road owner, and active DLP/maintenance responsibility. If any

@@ -119,7 +119,12 @@ _NON_WORKS_SERVICE_PATTERNS = tuple(re.compile(pattern) for pattern in (
     r"\bsurvey\s+(?:and|&)\s+investigation\b",
     r"\bthird\s+party\s+(?:inspection|quality\s+(?:audit|monitoring))\b",
     r"\b(?:quality\s+control|proof\s+checking)\s+(?:consultancy|services?)\b",
-    r"\bsupply(?:ing)?\s+of\b.*\b(?:aggregate|asphalt|bitumen|cold\s+mix|stone\s+dust)\b",
+    r"\b(?:structural\s+)?design\s+(?:and|&)\s+drawing(?:s)?\b",
+    r"\btotal\s+station\s+survey\b",
+    r"\broad\s+inventory\b.*\b(?:survey|condition\s+assessment)\b",
+    r"\bhiring\s+of\s+(?:labou?r|machinery|plant|equipment)\b",
+    r"\bsupply(?:ing)?\s+of\b.*\b(?:aggregate|asphalt|bitumen|cold\s+mix|pothole(?:s)?\s+"
+    r"repair\s+material|ready\s+mix|stone\s+dust)\b",
 ))
 
 # Vegetation beside a road is not carriageway work. Keep this narrow enough that a
@@ -188,6 +193,13 @@ def is_road_surface_contract(title: object, tender_number: object = None) -> boo
     if not text:
         return False
 
+    # Several portals prefix a specific sub-work with the parent road project followed
+    # by ``SW``. The sub-work is the procured scope: parent resurfacing words must not
+    # rescue a sea-wall survey/design or another unrelated package.
+    subwork = re.split(r"\bsw\b", text)
+    if len(subwork) > 1 and subwork[-1].strip():
+        text = subwork[-1].strip()
+
     if any(pattern.search(text) for pattern in _NON_WORKS_SERVICE_PATTERNS):
         return False
 
@@ -233,7 +245,14 @@ def is_road_surface_contract(title: object, tender_number: object = None) -> boo
             # describe why the non-road work is happening; they do not award the road
             # work itself.  An explicit conjunction ("UGD with road development") does.
             prior_assets = set(tokens[:road_index]) & _NON_CARRIAGEWAY_ASSETS
-            if not prior_assets or _is_coordinated_road_noun(tokens, road_index):
+            governed_tail: list[str] = []
+            for governed_token in tokens[road_index + 1 : road_index + 9]:
+                if governed_token in {"at", "from", "near", "on", "to", "via"}:
+                    break
+                governed_tail.append(governed_token)
+            governed_assets = set(governed_tail) & _NON_CARRIAGEWAY_ASSETS
+            if (not prior_assets or _is_coordinated_road_noun(tokens, road_index)) \
+                    and not governed_assets:
                 return True
 
         # Work verb before the road noun, permitting names such as "Kotekani Inner Road".

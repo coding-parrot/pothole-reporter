@@ -11,7 +11,7 @@ FOOTER = (
 )
 
 JS = r"""
-(() => {
+(async () => {
   const P = StandaloneAPI.__pure;
   const raw = {
     is_pothole: true,
@@ -126,8 +126,11 @@ JS = r"""
     image_quality: "usable",
     size: accepted.size,
     surface_type: accepted.surface_type,
+    measurement_provenance: accepted.measurement_provenance,
+    measurement_confidence: accepted.measurement_confidence,
     lat: 12.912345,
     lng: 77.612345,
+    gps_accuracy: 8,
     address: "17th Main Road, HSR Layout, Bengaluru, 560102",
     photo: "data:image/png;base64,iVBORw0KGgo=",
     authority_id: southRoute.authority_id,
@@ -160,6 +163,25 @@ JS = r"""
     portal_fields: {listed_contractor: "Wrong Person"},
   });
   P.complaintOutputsForRecord = originalComplaintOutputsForRecord;
+
+  const realWatchPosition = navigator.geolocation.watchPosition.bind(navigator.geolocation);
+  const realClearWatch = navigator.geolocation.clearWatch.bind(navigator.geolocation);
+  let locationCallback = null, clearedWatch = null;
+  navigator.geolocation.watchPosition = (ok) => { locationCallback = ok; return 812; };
+  navigator.geolocation.clearWatch = (id) => { clearedWatch = id; };
+  const sampler = startCapturePositionSampler();
+  const capturedAtMs = 1787625000000;
+  locationCallback({timestamp: capturedAtMs - 200,
+    coords: {latitude: 12.91, longitude: 77.64, accuracy: 85, speed: null, heading: null}});
+  locationCallback({timestamp: capturedAtMs - 80,
+    coords: {latitude: 12.912345, longitude: 77.612345, accuracy: 9, speed: 0, heading: 90}});
+  const captureFix = await sampler.positionAt(capturedAtMs);
+  navigator.geolocation.watchPosition = realWatchPosition;
+  navigator.geolocation.clearWatch = realClearWatch;
+  const roadRetryable = canRetryRouting({
+    issue_type: "road_damage", lat: 12.912345, lng: 77.612345,
+    unrouted_reason: "road_class_unknown",
+  });
 
   const profileRoutes = [
     ["mh-bmc", "Brihanmumbai Municipal Corporation (BMC)"],
@@ -218,6 +240,9 @@ JS = r"""
     detailActions,
     portalUi,
     unsafeStoredFallback,
+    captureFix,
+    clearedWatch,
+    roadRetryable,
   };
 })()
 """
@@ -370,6 +395,15 @@ def main():
           portal_ui["text"] == outputs["portal_copy_text"], portal_ui["text"])
     check(failures, "UI never revives stale contract text when validation fails",
           result["unsafeStoredFallback"] is None, result["unsafeStoredFallback"])
+    check(failures, "manual shutter chooses the precise timestamp-nearest GPS fix",
+          result["captureFix"] == {
+              "lat": 12.912345, "lng": 77.612345, "accuracy": 9,
+              "speed": 0, "heading": 90, "observed_at_ms": 1787624999920,
+          }, result["captureFix"])
+    check(failures, "manual shutter clears its GPS watcher",
+          result["clearedWatch"] == 812, result["clearedWatch"])
+    check(failures, "temporary road-class failure exposes saved-report retry",
+          result["roadRetryable"] is True, result["roadRetryable"])
 
     if failures:
         print(f"\n{len(failures)} complaint profile check(s) failed")

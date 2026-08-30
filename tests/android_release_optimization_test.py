@@ -25,6 +25,9 @@ DRIVE_PLUGIN = (
     ROOT
     / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/plugin/DriveModePlugin.kt"
 ).read_text()
+FILE_PROVIDER_PATHS = (
+    ROOT / "android-app/android/app/src/main/res/xml/file_paths.xml"
+).read_text()
 SOURCE_CAPACITOR_CONFIG = json.loads(
     (ROOT / "android-app/capacitor.config.json").read_text()
 )
@@ -86,6 +89,9 @@ check("Android bridge logging cannot expose API keys in logcat",
       SOURCE_CAPACITOR_CONFIG.get("android", {}).get("loggingBehavior") == "none"
       and PACKAGED_CAPACITOR_CONFIG.get("android", {}).get("loggingBehavior") == "none"
       and SOURCE_CAPACITOR_CONFIG == PACKAGED_CAPACITOR_CONFIG)
+check("email evidence cache is exposed through the app FileProvider",
+      '<external-cache-path name="email_composer_attachments" path="email_composer/" />'
+      in FILE_PROVIDER_PATHS)
 
 
 def load_asset_verifier():

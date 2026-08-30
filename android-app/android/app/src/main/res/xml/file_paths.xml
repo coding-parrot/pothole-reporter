@@ -3,4 +3,6 @@
     <files-path name="drive_footage" path="footage/" />
     <external-files-path name="my_images" path="." />
     <cache-path name="my_cache_images" path="." />
+    <!-- capacitor-email-composer materialises base64 evidence here before sharing it. -->
+    <external-cache-path name="email_composer_attachments" path="email_composer/" />
 </paths>

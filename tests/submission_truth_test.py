@@ -401,6 +401,18 @@ async ({pixel}) => {
       alternate_handoff_url: "https://example.invalid/stale-top50-andhra-pradesh-alternate",
       helpline: "0000", requires_official_reference: true,
     },
+    {
+      ...base, id: 71022, created_at: base.created_at + 21, status: "unrouted",
+      issue_type: "road_damage", address: "Shivajinagar, Pune",
+      lat: 18.5308, lng: 73.8475, gps_accuracy: 8,
+      surface_type: "bituminous_asphalt",
+      measurement_provenance: "visual_estimate_no_scale",
+      measurement_confidence: "low",
+      email_subject: null, email_body: null, delivery_channel: null,
+      officer_name: null, officer_email: null, authority_id: null, authority_name: null,
+      routing_source: null, routing_match_field: null, routing_match_value: null,
+      unrouted_reason: "road_class_unknown", unrouted_body: null,
+    },
   ];
 
   const db = await new Promise((resolve, reject) => {
@@ -1112,24 +1124,33 @@ async ({pixel}) => {
   eq("suggested email route: cancelling confirmation leaves the report draft",
      councilAfterCancel.status, "draft");
 
-  // A saved email inferred only from a town label predates coordinate-bound Karnataka
-  // routing. It must now fail closed rather than opening an old recipient.
+  // A legacy Maharashtra email record may predate polygon provenance. Re-resolve its
+  // precise coordinate against the current signed pack, replace every saved routing
+  // field, and only then open the current recipient.
   const originalAnchorClick = HTMLAnchorElement.prototype.click;
   const mailtoLaunches = [];
   HTMLAnchorElement.prototype.click = function () { mailtoLaunches.push(this.href); };
   const councilRouteError = await errorFrom(StandaloneAPI.handle(
     "/api/reports/71006/send", {method: "POST"}));
   HTMLAnchorElement.prototype.click = originalAnchorClick;
-  ok("suggested email route: stale non-coordinate recipient is blocked",
-     /current coordinate-bound authority does not match/i.test(councilRouteError || ""),
-     councilRouteError);
-  eq("suggested email route: blocked recipient opens no mail composer",
-     mailtoLaunches.length, 0);
-  const councilAfterBlockedRoute = await byId(71006);
-  eq("suggested email route: blocked recipient remains draft",
-     councilAfterBlockedRoute.status, "draft");
-  eq("suggested email route: blocked recipient records no handoff time",
-     councilAfterBlockedRoute.handoff_opened_at, undefined);
+  eq("suggested email route: current coordinate-bound recipient is accepted",
+     councilRouteError, null);
+  ok("suggested email route: addressed mail composer opens exactly once",
+     mailtoLaunches.length === 1
+       && /coud\.ambernath%40maharashtra\.gov\.in/i.test(mailtoLaunches[0]),
+     mailtoLaunches);
+  const councilAfterVerifiedRoute = await byId(71006);
+  eq("suggested email route: verified composer handoff remains user-sendable",
+     councilAfterVerifiedRoute.status, "queued");
+  ok("suggested email route: verified handoff records its open time",
+     Number.isFinite(councilAfterVerifiedRoute.handoff_opened_at),
+     councilAfterVerifiedRoute.handoff_opened_at);
+  eq("suggested email route: legacy metadata is replaced by current polygon provenance",
+     [councilAfterVerifiedRoute.routing_source,
+      councilAfterVerifiedRoute.routing_match_field,
+      councilAfterVerifiedRoute.routing_pack_id,
+      councilAfterVerifiedRoute.routing_pack_state_code],
+     ["osm_ulb_boundary", "boundary", "in-mh-routing", "MH"]);
 
   // Email also requires an explicit citizen confirmation, but unlike BMC it has no
   // official grievance ID to record.
@@ -1139,6 +1160,20 @@ async ({pixel}) => {
   eq("email confirmation: explicit confirmation marks sent", emailSubmitted.status, "sent");
   eq("email confirmation: no grievance ID is invented",
      emailSubmitted.official_grievance_id, null);
+
+  const retriedRoad = await StandaloneAPI.handle(
+    "/api/reports/71022/retry-routing", {method: "POST"});
+  eq("road retry: a saved pothole recovers after temporary routing failure",
+     [retriedRoad.status, retriedRoad.authority_id, retriedRoad.delivery_channel],
+     ["draft", "mh-pmc", "official_handoff"]);
+  ok("road retry: recovered complaint keeps coordinate and intake invariants",
+     /18\.530800, 73\.847500/.test(retriedRoad.portal_copy_text || "")
+       && /Pune Municipal Corporation/.test(retriedRoad.portal_copy_text || ""),
+     retriedRoad.portal_copy_text);
+  ok("road retry: unverified contract identity is still omitted",
+     /No verified exact-road public contract found/.test(retriedRoad.portal_copy_text || "")
+       && !/listed contractor:/i.test(retriedRoad.portal_copy_text || ""),
+     retriedRoad.portal_copy_text);
 
   return checks;
 }

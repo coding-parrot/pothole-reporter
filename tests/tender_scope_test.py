@@ -20,7 +20,7 @@ def row(case: dict[str, str], index: int) -> dict[str, str]:
         "tn": case["tn"],
         "t": case["title"],
         "loc": "Test municipal body",
-        "c": f"Contractor {index}",
+        "c": "",
         "d": "21-08-2026",
         "b": "BLR",
     }

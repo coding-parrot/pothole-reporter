@@ -2380,7 +2380,11 @@ def _validate_raw_payload(
                 not isinstance(row["tn"], str) or not row["tn"] or len(row["tn"]) > 100
                 or not isinstance(row["t"], str) or not row["t"] or len(row["t"]) > 500
                 or not isinstance(row["loc"], str) or len(row["loc"]) > 200
-                or not isinstance(row["c"], str) or len(row["c"]) > 200
+                # Contractor names in the public snapshot are not proof that the
+                # observed GPS road segment is assigned to that contractor. Runtime
+                # packs must therefore carry an empty value until segment-level award
+                # and active-responsibility evidence exists.
+                or row["c"] != ""
                 or not isinstance(row["d"], str) or re.fullmatch(r"\d{2}-\d{2}-\d{4}", row["d"]) is None
                 or not isinstance(row["b"], str) or re.fullmatch(r"(?:BLR|\d{3,12})", row["b"]) is None
             ):
@@ -2631,7 +2635,7 @@ def build_all() -> list[Path]:
         )
         if spec.kind == "tenders":
             payload = [
-                row for row in payload
+                {**row, "c": ""} for row in payload
                 if isinstance(row, dict) and row.get("b")
                 and is_road_surface_contract(row.get("t"), row.get("tn"))
             ]
