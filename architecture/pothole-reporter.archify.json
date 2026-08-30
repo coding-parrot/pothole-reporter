@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Pothole Reporter",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/coding-parrot/pothole-reporter",
+      "revision": "c23e8b71562acb20c262985b53cf227418479924"
+    },
+    "viewBox": [1540, 760]
+  },
+  "components": [
+    {
+      "id": "driver",
+      "type": "external",
+      "label": "Driver",
+      "pos": [30, 300],
+      "size": [140, 72]
+    },
+    {
+      "id": "app",
+      "type": "frontend",
+      "label": "Android App",
+      "sources": [
+        {
+          "path": "static/standalone.js",
+          "line": 9059,
+          "end_line": 9062,
+          "label": "Web/native boundary"
+        }
+      ],
+      "pos": [215, 300],
+      "size": [170, 72]
+    },
+    {
+      "id": "capture",
+      "type": "backend",
+      "label": "Full-frame Capture",
+      "sources": [
+        {
+          "path": "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/DriveForegroundService.kt",
+          "line": 458,
+          "end_line": 489,
+          "label": "Drive capture"
+        },
+        {
+          "path": "static/standalone.js",
+          "line": 8439,
+          "end_line": 8520,
+          "label": "Photo and Drive frames"
+        }
+      ],
+      "pos": [430, 300],
+      "size": [190, 72]
+    },
+    {
+      "id": "evidence",
+      "type": "database",
+      "label": "Local Evidence",
+      "sources": [
+        {
+          "path": "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/DriveForegroundService.kt",
+          "line": 667,
+          "end_line": 701,
+          "label": "Durable keyframes"
+        },
+        {
+          "path": "static/standalone.js",
+          "line": 7653,
+          "end_line": 7764,
+          "label": "Report database"
+        }
+      ],
+      "pos": [665, 300],
+      "size": [180, 72]
+    },
+    {
+      "id": "vision",
+      "type": "cloud",
+      "label": "OpenAI Vision",
+      "sources": [
+        {
+          "path": "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeInferenceEngine.kt",
+          "line": 24,
+          "end_line": 105,
+          "label": "Native inference"
+        },
+        {
+          "path": "static/standalone.js",
+          "line": 931,
+          "end_line": 992,
+          "label": "Web inference"
+        }
+      ],
+      "pos": [665, 85],
+      "size": [180, 72]
+    },
+    {
+      "id": "router",
+      "type": "backend",
+      "label": "Local Router",
+      "sources": [
+        {
+          "path": "static/standalone.js",
+          "line": 8614,
+          "end_line": 8639,
+          "label": "Route and draft"
+        }
+      ],
+      "pos": [900, 300],
+      "size": [185, 72]
+    },
+    {
+      "id": "packs",
+      "type": "cloud",
+      "label": "Verified Data Packs",
+      "sources": [
+        {
+          "path": "static/standalone.js",
+          "line": 2518,
+          "end_line": 2536,
+          "label": "Checksum gate"
+        },
+        {
+          "path": ".github/workflows/refresh-public-road-catalogs.yml",
+          "line": 124,
+          "end_line": 141,
+          "label": "Pack publishing"
+        }
+      ],
+      "pos": [900, 85],
+      "size": [185, 72]
+    },
+    {
+      "id": "geo",
+      "type": "external",
+      "label": "Geocoding + GIS",
+      "sources": [
+        {
+          "path": "static/standalone.js",
+          "line": 1013,
+          "end_line": 1048,
+          "label": "Reverse geocoding"
+        }
+      ],
+      "pos": [900, 515],
+      "size": [185, 72]
+    },
+    {
+      "id": "draft",
+      "type": "backend",
+      "label": "Complaint Draft",
+      "sources": [
+        {
+          "path": "static/standalone.js",
+          "line": 8631,
+          "end_line": 8640,
+          "label": "Complaint output"
+        }
+      ],
+      "pos": [1130, 300],
+      "size": [185, 72]
+    },
+    {
+      "id": "channel",
+      "type": "external",
+      "label": "Official Channel",
+      "pos": [1360, 300],
+      "size": [155, 72]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "Android phone · no project backend",
+      "wraps": ["app", "capture", "evidence", "router", "draft"],
+      "pad": 24
+    }
+  ],
+  "connections": [
+    {
+      "from": "driver",
+      "to": "app",
+      "label": "start",
+      "variant": "emphasis"
+    },
+    {
+      "from": "app",
+      "to": "capture",
+      "label": "Drive / Photo",
+      "labelAt": [408, 386],
+      "variant": "emphasis"
+    },
+    {
+      "from": "capture",
+      "to": "evidence",
+      "label": "full frames + GPS",
+      "labelAt": [643, 386],
+      "variant": "emphasis"
+    },
+    {
+      "from": "evidence",
+      "to": "vision",
+      "label": "selected views",
+      "variant": "default",
+      "fromSide": "left",
+      "toSide": "left"
+    },
+    {
+      "from": "vision",
+      "to": "evidence",
+      "label": "Yes / No",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "right"
+    },
+    {
+      "from": "evidence",
+      "to": "router",
+      "label": "accepted pothole",
+      "labelAt": [873, 386],
+      "variant": "emphasis"
+    },
+    {
+      "from": "packs",
+      "to": "router",
+      "label": "checksummed coverage",
+      "labelAt": [993, 171],
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "geo",
+      "to": "router",
+      "label": "address + ownership checks",
+      "variant": "default",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "from": "router",
+      "to": "draft",
+      "label": "verified route",
+      "labelAt": [1108, 386],
+      "variant": "emphasis"
+    },
+    {
+      "from": "draft",
+      "to": "channel",
+      "label": "user reviews + sends",
+      "labelAt": [1338, 296],
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Private by design",
+      "items": [
+        "The API key is stored locally; reports and evidence are retained on the phone",
+        "Images go directly to OpenAI; coordinates go to routing services",
+        "No project-operated server or account system"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Fail-closed routing",
+      "items": [
+        "National Highway first, then exact authority, then State/UT",
+        "Checksums, GPS containment and road scope are verified",
+        "Ambiguous ownership or contractor claims are omitted"
+      ]
+    }
+  ]
+}

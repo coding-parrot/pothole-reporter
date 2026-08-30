@@ -59,6 +59,8 @@ submitted automatically.
   road-specific channel where one exists.
 - English, Kannada, Marathi, and Bengali are supported.
 
+[![Pothole Reporter architecture](docs/architecture.png)](docs/architecture.png)
+
 ### Complaint output
 
 - BMC and the Bengaluru Central, East, North, South, and West city corporations have
