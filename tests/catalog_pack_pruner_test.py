@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import pathlib
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -26,6 +27,8 @@ def snapshot(root: pathlib.Path) -> dict[str, bytes | None]:
     result: dict[str, bytes | None] = {}
     for path in sorted(root.rglob("*")):
         relative = path.relative_to(root).as_posix()
+        if relative == ".git" or relative.startswith(".git/"):
+            continue
         if path.is_symlink():
             result[relative] = f"symlink:{os.readlink(path)}".encode()
         elif path.is_file():
@@ -80,6 +83,25 @@ def create_roots(root: pathlib.Path) -> None:
         (root / family.pack_root_relative_path).mkdir(parents=True, exist_ok=True)
 
 
+def create_release_tag(root: pathlib.Path, tag: str = "v1.0.0") -> None:
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    subprocess.run(
+        ["git", "-C", str(root), "config", "user.name", "Pruner Test"], check=True
+    )
+    subprocess.run(
+        ["git", "-C", str(root), "config", "user.email", "pruner@example.test"],
+        check=True,
+    )
+    subprocess.run(["git", "-C", str(root), "add", "--", "."], check=True)
+    subprocess.run(
+        ["git", "-C", str(root), "commit", "-q", "--no-gpg-sign", "-m", "release"],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(root), "tag", "--no-sign", tag], check=True
+    )
+
+
 class CatalogPackPrunerTest(unittest.TestCase):
     def test_check_preserves_referenced_and_reports_stale_without_mutating(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -98,6 +120,7 @@ class CatalogPackPrunerTest(unittest.TestCase):
                     ]
                 },
             )
+            create_release_tag(root)
             before = snapshot(root)
 
             plan = PRUNER.plan_prune(root)
@@ -128,6 +151,7 @@ class CatalogPackPrunerTest(unittest.TestCase):
                 root,
                 {family.name: [(live_manifest_path, live_digest, "dl")]},
             )
+            create_release_tag(root)
 
             plan = PRUNER.apply_prune(root)
 
@@ -140,12 +164,102 @@ class CatalogPackPrunerTest(unittest.TestCase):
             self.assertFalse(empty_leaf.exists())
             self.assertEqual(PRUNER.main(["--check", "--project-root", str(root)]), 0)
 
+    def test_apply_preserves_pack_referenced_only_by_a_release_tag(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            create_roots(root)
+            family = PRUNER.FAMILIES[1]
+            released_path, released_manifest_path, released_digest = add_pack(
+                root, family, "wb", "released"
+            )
+            never_released_path, _, _ = add_pack(root, family, "wb", "orphan")
+            write_manifests(
+                root,
+                {
+                    family.name: [
+                        (released_manifest_path, released_digest, "wb"),
+                    ]
+                },
+            )
+            create_release_tag(root, "v1.36.0")
+
+            live_path, live_manifest_path, live_digest = add_pack(
+                root, family, "wb", "live"
+            )
+            write_manifests(
+                root,
+                {family.name: [(live_manifest_path, live_digest, "wb")]},
+            )
+
+            plan = PRUNER.apply_prune(root)
+
+            self.assertTrue(released_path.is_file())
+            self.assertTrue(live_path.is_file())
+            self.assertFalse(never_released_path.exists())
+            self.assertEqual(
+                {pack.manifest_path for pack in plan.referenced},
+                {released_manifest_path, live_manifest_path},
+            )
+            self.assertEqual(
+                [pack.disk_relative_path for pack in plan.stale],
+                [never_released_path.relative_to(root)],
+            )
+
+    def test_apply_refuses_when_v1_release_tags_are_unavailable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            create_roots(root)
+            family = PRUNER.FAMILIES[0]
+            stale_path, _, _ = add_pack(root, family, "mh", "orphan")
+            write_manifests(root, {})
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            before = snapshot(root)
+
+            with self.assertRaisesRegex(PRUNER.PruneError, r"no released v1\.\* Git tags"):
+                PRUNER.apply_prune(root)
+
+            self.assertTrue(stale_path.exists())
+            self.assertEqual(snapshot(root), before)
+
+    def test_apply_refuses_a_shallow_release_checkout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = pathlib.Path(directory)
+            source = base / "source"
+            source.mkdir()
+            create_roots(source)
+            family = PRUNER.FAMILIES[0]
+            add_pack(source, family, "mh", "orphan")
+            write_manifests(source, {})
+            create_release_tag(source)
+
+            checkout = base / "checkout"
+            subprocess.run(
+                [
+                    "git",
+                    "clone",
+                    "-q",
+                    "--depth",
+                    "1",
+                    source.as_uri(),
+                    str(checkout),
+                ],
+                check=True,
+            )
+            before = snapshot(checkout)
+
+            with self.assertRaisesRegex(PRUNER.PruneError, "release history is shallow"):
+                PRUNER.apply_prune(checkout)
+
+            self.assertEqual(snapshot(checkout), before)
+
     def test_rejects_manifest_path_traversal_before_any_mutation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             create_roots(root)
             family = PRUNER.FAMILIES[0]
             stale_path, _, _ = add_pack(root, family, "mh", "old")
+            write_manifests(root, {})
+            create_release_tag(root)
             digest = "a" * 64
             write_manifests(
                 root,
@@ -172,8 +286,9 @@ class CatalogPackPrunerTest(unittest.TestCase):
             target = root / "outside.json"
             target.write_text("do not touch\n", encoding="utf-8")
             symlink = root / family.pack_root_relative_path / "dl"
-            symlink.symlink_to(target)
             write_manifests(root, {})
+            create_release_tag(root)
+            symlink.symlink_to(target)
             before = snapshot(root)
 
             with self.assertRaisesRegex(PRUNER.PruneError, "symlink"):
@@ -198,6 +313,7 @@ class CatalogPackPrunerTest(unittest.TestCase):
             family = PRUNER.FAMILIES[0]
             stale_path, _, _ = add_pack(root, family, "mh", "old")
             write_manifests(root, {})
+            create_release_tag(root)
             manifest = root / family.manifest_relative_path
             manifest.unlink()
             outside = root / "outside-manifest.json"
@@ -217,11 +333,12 @@ class CatalogPackPrunerTest(unittest.TestCase):
             root = pathlib.Path(directory)
             create_roots(root)
             family = PRUNER.FAMILIES[2]
+            write_manifests(root, {})
+            create_release_tag(root)
             state_dir = root / family.pack_root_relative_path / "up"
             state_dir.mkdir(parents=True)
             corrupted = state_dir / f"{family.filename_prefix}-{'a' * 64}.json"
             corrupted.write_text('{"not":"the named digest"}\n', encoding="utf-8")
-            write_manifests(root, {})
             before = snapshot(root)
 
             with self.assertRaisesRegex(PRUNER.PruneError, "filename digest"):

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Safely report or remove superseded content-addressed catalog packs.
 
-The catalog builders intentionally leave old content-addressed files behind.  This
-tool treats the three production manifests as the complete live reference set and
-only considers a file removable after the manifest and the whole managed pack tree
-have passed strict validation.
+The catalog builders intentionally leave old content-addressed files behind. This
+tool protects packs referenced by the current manifests or by a manifest in any
+released ``v1.*`` Git tag. A file is only removable after the release history,
+manifests, and whole managed pack tree have passed strict validation.
 
 Running without a mode flag is the same as ``--check`` and never mutates the
 checkout.  Use ``--apply`` explicitly to remove validated orphan packs.
@@ -18,6 +18,7 @@ import json
 import os
 import re
 import stat
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -53,6 +54,18 @@ class Family:
             rf"^{re.escape(self.manifest_path_prefix)}/"
             rf"(?P<state>[a-z]{{2}})/"
             rf"{re.escape(self.filename_prefix)}-(?P<digest>[0-9a-f]{{64}})\.json$"
+        )
+
+    @property
+    def released_manifest_pattern(self) -> re.Pattern[str]:
+        name = self.manifest_relative_path.name
+        prefix, separator, _ = name.rpartition("-v")
+        if not separator:
+            raise AssertionError(f"versioned manifest path required: {name}")
+        parent = self.manifest_relative_path.parent.as_posix()
+        return re.compile(
+            rf"^{re.escape(parent)}/{re.escape(prefix)}-v"
+            rf"[0-9]+(?:\.[0-9]+)*\.json$"
         )
 
 
@@ -200,20 +213,20 @@ def _parse_manifest_path(family: Family, value: Any, label: str) -> tuple[str, s
     return match.group("state"), PurePosixPath(value).name, match.group("digest")
 
 
-def _manifest_references(project_root: Path, family: Family) -> dict[str, PackFile]:
-    manifest_path = project_root / family.manifest_relative_path
-    manifest = _read_json_without_following_symlinks(manifest_path, f"{family.name} manifest")
+def _references_from_manifest(
+    manifest: Any, family: Family, source_label: str
+) -> dict[str, PackFile]:
     if not isinstance(manifest, dict):
-        raise _error(f"{family.name} manifest must be a JSON object")
+        raise _error(f"{source_label} must be a JSON object")
     resources = manifest.get("resources")
     if not isinstance(resources, dict):
-        raise _error(f"{family.name} manifest resources must be an object")
+        raise _error(f"{source_label} resources must be an object")
 
     references: dict[str, PackFile] = {}
     for resource_id, resource in sorted(resources.items()):
-        label = f"{family.name} manifest resource {resource_id!r}"
+        label = f"{source_label} resource {resource_id!r}"
         if not isinstance(resource_id, str) or not resource_id:
-            raise _error(f"{family.name} manifest resource IDs must be non-empty strings")
+            raise _error(f"{source_label} resource IDs must be non-empty strings")
         if not isinstance(resource, dict):
             raise _error(f"{label} must be an object")
         state, filename, digest = _parse_manifest_path(family, resource.get("path"), label)
@@ -227,13 +240,112 @@ def _manifest_references(project_root: Path, family: Family) -> dict[str, PackFi
             raise _error(f"{label}.state_code does not match its path")
         manifest_relative = resource["path"]
         if manifest_relative in references:
-            raise _error(f"duplicate pack path in {family.name} manifest: {manifest_relative}")
+            raise _error(f"duplicate pack path in {source_label}: {manifest_relative}")
         references[manifest_relative] = PackFile(
             family=family,
             manifest_path=manifest_relative,
             state=state,
             filename=filename,
         )
+    return references
+
+
+def _manifest_references(project_root: Path, family: Family) -> dict[str, PackFile]:
+    manifest_path = project_root / family.manifest_relative_path
+    label = f"{family.name} manifest"
+    manifest = _read_json_without_following_symlinks(manifest_path, label)
+    return _references_from_manifest(manifest, family, label)
+
+
+def _run_git(project_root: Path, *arguments: str) -> bytes:
+    try:
+        result = subprocess.run(
+            ["git", "-C", os.fspath(project_root), *arguments],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+    except OSError as exc:
+        raise _error(f"could not inspect Git release history: {exc}") from exc
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        suffix = f": {detail}" if detail else ""
+        raise _error(f"could not inspect Git release history{suffix}")
+    return result.stdout
+
+
+def _released_manifest_references(
+    project_root: Path,
+) -> dict[str, dict[str, PackFile]]:
+    """Load every managed-pack reference preserved by a released v1 tag."""
+
+    top_level = _run_git(project_root, "rev-parse", "--show-toplevel")
+    try:
+        git_root = Path(top_level.decode("utf-8").strip()).absolute()
+    except UnicodeDecodeError as exc:
+        raise _error("Git project root is not valid UTF-8") from exc
+    try:
+        same_root = os.path.samefile(git_root, project_root)
+    except OSError as exc:
+        raise _error(f"could not compare Git project root: {exc}") from exc
+    if not same_root:
+        raise _error(
+            f"project root is not the Git checkout root: {project_root} (Git: {git_root})"
+        )
+
+    shallow = _run_git(project_root, "rev-parse", "--is-shallow-repository")
+    if shallow.strip() != b"false":
+        raise _error("release history is shallow; fetch complete history and v1 tags first")
+
+    raw_refs = _run_git(
+        project_root,
+        "for-each-ref",
+        "--format=%(refname)",
+        "refs/tags/v1.*",
+    )
+    try:
+        release_tags = tuple(
+            line for line in raw_refs.decode("utf-8").splitlines() if line
+        )
+    except UnicodeDecodeError as exc:
+        raise _error("Git release tag names are not valid UTF-8") from exc
+    if not release_tags:
+        raise _error("no released v1.* Git tags found; refusing to prune")
+
+    references = {family.name: {} for family in FAMILIES}
+    for release_tag in release_tags:
+        raw_paths = _run_git(
+            project_root,
+            "ls-tree",
+            "-r",
+            "-z",
+            "--name-only",
+            release_tag,
+            "--",
+            "docs",
+        )
+        try:
+            paths = raw_paths.decode("utf-8").split("\0")
+        except UnicodeDecodeError as exc:
+            raise _error(f"Git paths in {release_tag} are not valid UTF-8") from exc
+        for family in FAMILIES:
+            for manifest_path in paths:
+                if family.released_manifest_pattern.fullmatch(manifest_path) is None:
+                    continue
+                raw_manifest = _run_git(
+                    project_root,
+                    "cat-file",
+                    "blob",
+                    f"{release_tag}:{manifest_path}",
+                )
+                label = f"{family.name} release manifest {release_tag}:{manifest_path}"
+                try:
+                    manifest = json.loads(raw_manifest.decode("utf-8"))
+                except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                    raise _error(f"invalid UTF-8 JSON in {label}: {exc}") from exc
+                references[family.name].update(
+                    _references_from_manifest(manifest, family, label)
+                )
     return references
 
 
@@ -341,6 +453,7 @@ def plan_prune(project_root: Path = PROJECT_ROOT) -> PrunePlan:
     """Validate all managed inputs and return an immutable prune plan."""
 
     project_root = Path(project_root).absolute()
+    released_references = _released_manifest_references(project_root)
     referenced: list[PackFile] = []
     stale: list[PackFile] = []
     empty_after_prune: list[EmptyLeaf] = []
@@ -350,6 +463,7 @@ def plan_prune(project_root: Path = PROJECT_ROOT) -> PrunePlan:
         # manifest beneath it; a symlink in a parent must never be traversed.
         _validate_directory_chain(project_root, family.pack_root_relative_path)
         manifest_references = _manifest_references(project_root, family)
+        manifest_references.update(released_references[family.name])
         disk_packs, files_by_state = _scan_family(project_root, family)
         missing = sorted(set(manifest_references) - set(disk_packs))
         if missing:

@@ -1,6 +1,6 @@
 # Dev and test tooling only. The app itself runs entirely on the phone;
-# there is no server. See e2e scripts in the session scratchpad and
-# make_tenders_json.py / make_icons.py for the build utilities.
+# there is no server. These packages support browser/evaluation checks and
+# the make_icons.py artwork utility.
 playwright>=1.40
 python-dotenv>=1.0.0
 Pillow>=10.0.0

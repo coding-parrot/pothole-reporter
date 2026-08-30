@@ -30,6 +30,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          fetch-tags: true
           persist-credentials: true
 
       - name: Set up Python
