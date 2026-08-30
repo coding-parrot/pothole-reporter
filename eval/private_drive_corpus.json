@@ -1,0 +1,2281 @@
+{
+  "schema_version": "private-drive-corpus-v1",
+  "created_at_utc": "2026-08-30T18:30:00Z",
+  "corpus": {
+    "name": "Owner-provided Desktop drive corpus",
+    "media_committed": false,
+    "absolute_paths_stored": false,
+    "capture_provenance": "native_mediarecorder_reconstruction",
+    "raw_camerax_accuracy_eligible": false,
+    "gps_or_session_metadata_present": false,
+    "source_video_count": 30,
+    "source_inventory_sha256": "f27d04faa327a2d4ddeff34c1a2668093778a5e65bdf5d783c87cfc8f2087467",
+    "total_bytes": 473009755,
+    "total_frames": 49736,
+    "total_duration_seconds": 1657.639381,
+    "expected_vod_windows": 3314,
+    "curated_case_count": 17,
+    "curated_phase_count": 50,
+    "label_policy": "Curated cases are conservative visible-input hard negatives selected by independent full-frame visual review. Occlusion and lighting cases mean insufficient visible evidence and do not claim that hidden roadway is defect-free. No Desktop clip is labelled positive. These saved MP4 reconstructions do not claim raw CameraX accuracy.",
+    "source_sequence_note": "The supplied folder contains segment_0002 through segment_0016, segment_0020 through segment_0027, and segment_0031 through segment_0037. Segment IDs 0001, 0017-0019, and 0028-0030 were not present.",
+    "whole_folder_visual_review": {
+      "sampling_reviewed": [
+        "2 fps whole-frame sheets",
+        "0.5 fps overview sheets",
+        "targeted 4 Hz whole-frame ambiguous intervals"
+      ],
+      "important_limitation": "The review and every detector fixture below use uncropped, autorotated complete frames. Sampling does not prove that an event absent between reviewed frames never occurred.",
+      "high_confidence_visible_potholes_found": 0
+    }
+  },
+  "production_contract": {
+    "model": "gpt-5.6",
+    "detail": "original",
+    "prompt_version": "pothole-binary-v15",
+    "schema_version": 7,
+    "max_output_tokens": 1536,
+    "prompt_sha256": "621866cba94700717358426bba70b274c8f23df081ae2da7db6e9199c97e1c98",
+    "schema_sha256": "4a71363f4a78f0da8af8cdc58301c688bd434308733664680a5f5ef59d14945a"
+  },
+  "sampling": {
+    "center_start_seconds": 0.4,
+    "center_step_seconds": 0.5,
+    "burst_half_span_seconds": 0.4,
+    "requested_burst_rule": "[max(0.001, center - 0.4), center, min(duration - 0.001, center + 0.4)]",
+    "sample_function": "standalone.js vodSampleTimes",
+    "burst_function": "standalone.js vodBurstTimes"
+  },
+  "extraction": {
+    "fixture_hash_kind": "raw_ffmpeg_extracted_autorotated_full_frame_jpeg",
+    "command_template": "ffmpeg -hide_banner -loglevel error -nostdin -i SOURCE -map 0:v:0 -fps_mode passthrough -q:v 2 -start_number 0 -n f%05d.jpg",
+    "selection": "first decoded PTS >= requested time; clamp duration boundary to final decoded frame",
+    "selected_frame_index_base": 0,
+    "ffmpeg_default_autorotate": true,
+    "whole_frame_only": true,
+    "spatial_crop_tile_mask_or_roi": false,
+    "coded_dimensions": [
+      720,
+      480
+    ],
+    "presented_dimensions": [
+      480,
+      720
+    ],
+    "source_rotation_degrees": -90.0,
+    "prepared_model_input_hashes_in_this_manifest": false,
+    "note": "The phase hashes cover the raw extracted complete JPEG frames. A runner must validate these bytes first, then independently apply the current production whole-frame transforms before inference."
+  },
+  "audit_receipt": {
+    "kind": "exhaustive_production_contract_model_scan",
+    "repository_commit": "251e1b25478c8ffd51eaad0ab053539d9a81579e",
+    "dryrun_manifest_sha256": "38c38fdb17e7dfbc7a7d86a1aefe53de96d0e168a9e046cc64e14cede34d2c67",
+    "fixture_receipts_sha256": "47ba2e81024825ebc859cf2c6cf22d9e9ec4952be25f4bd0cf912915efec7dd2",
+    "canonical_direct_records_sha256": "9532b7c6a62f917a850a6a30f46a37b26bb2e4d2b8c0322389c22c6e41bdf4ab",
+    "result_analysis_sha256": "49eb5f866e9a1e86af8f20c6b8fc91b85048e67ac8863e25b15a79bfbdd3adb8",
+    "aggregate_request_stream_sha256": "be3c437f5bb03f128f737451c5d979a720c1dd9da2fd920ec13c96aa7e2983b8",
+    "requests": 3314,
+    "raw_frames_extracted": 9942,
+    "embedded_images": 13256,
+    "valid_responses": 3314,
+    "accepted_windows": 0,
+    "rejected_windows": 3314,
+    "error_windows": 0,
+    "speed_breaker_flags": 25,
+    "unusable_image_flags": 721,
+    "complete": true,
+    "model_output_is_ground_truth": false,
+    "interpretation": "This records what the pinned production detector returned on every sampled window. It is reproducibility and failure-mining evidence only. Human labels below are independent of the model output; 0 accepted windows must not be presented as proof that the corpus contains no potholes."
+  },
+  "companion_suite": {
+    "owner_confirmed_drive_positives": {
+      "manifest": "private_release_gate.json",
+      "event_ids": [
+        "owner-segment-1-second-35",
+        "owner-segment-2-second-4"
+      ],
+      "sources": [
+        {
+          "source_id": "construction-drive-segment-1",
+          "sha256": "feea330adaa09a5573f7d0b379170c5a03bb6a5ae07484d44299c4703ef74686"
+        },
+        {
+          "source_id": "construction-drive-segment-2",
+          "sha256": "f9d51250ccdb955159db337490e30c46bc0f5422564aebdbe7b8b4ee48506c7d"
+        }
+      ],
+      "note": "These are the owner-confirmed Downloads positives. They are intentionally referenced rather than copied or conflated with similarly named Desktop clips."
+    },
+    "owner_confirmed_manual_positives": {
+      "manifest": "labels.json",
+      "paths": [
+        "seed/IMG20260720144314.jpg",
+        "seed/IMG20260720144404.jpg",
+        "seed/IMG20260720144405.jpg",
+        "seed/IMG20260720144447.jpg",
+        "seed/IMG20260720144450.jpg",
+        "seed/IMG20260720144618.jpg",
+        "owner-kanjur-village-road-photo-2026-08-25/photo.jpg"
+      ]
+    },
+    "desktop_corpus_role": "hard_negative_and_abstention_regression_only"
+  },
+  "sources": [
+    {
+      "source_id": "segment_0002",
+      "sha256": "8616fb7e27a9a37e28e2f7c11c2f03442b8b7a4878bf12409f3c873f1f3513b1",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "81000000/2699561",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.990244,
+      "bytes": 18746260
+    },
+    {
+      "source_id": "segment_0003",
+      "sha256": "1ffedc0e8fdefda005f88d2a51234811d17a0b4c35a7928fe8eff96ba7aacb7d",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "81000000/2698897",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.975489,
+      "bytes": 18738719
+    },
+    {
+      "source_id": "segment_0004",
+      "sha256": "031548d93338724dd60b9ef2bf8147bedf94496b575a6c2e314d6150ae35664a",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1799,
+      "avg_frame_rate": "963750/32129",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.974133,
+      "bytes": 18707400
+    },
+    {
+      "source_id": "segment_0005",
+      "sha256": "53507f295f4cf58ea636af8ff8fe3d55718959e017487b35bb4b3138ae1a55bb",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "54000000/1799591",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.986367,
+      "bytes": 18764625
+    },
+    {
+      "source_id": "segment_0006",
+      "sha256": "247e8a12d8e89d803338dac8e524ae57ff551062c1bd1d135f39f4b931fe3d50",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "162000000/5398979",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.988656,
+      "bytes": 18718920
+    },
+    {
+      "source_id": "segment_0007",
+      "sha256": "d497e4b3b4f10adeab720fa2b67d946a9dec4cd3d0de022f05ff6e8fe6ea3ac8",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1014,
+      "avg_frame_rate": "11407500/380167",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 33.792622,
+      "bytes": 10563648
+    },
+    {
+      "source_id": "segment_0008",
+      "sha256": "46d4944cab24f73e24e97b476888090cf538d04c4776685c04754e68d1bfdf70",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 886,
+      "avg_frame_rate": "39870000/1330217",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 29.560378,
+      "bytes": 9246511
+    },
+    {
+      "source_id": "segment_0009",
+      "sha256": "cf1132efa2275d9ff5c842b94729c111d2c5ca69d941f7440aa373207ac4a49e",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1799,
+      "avg_frame_rate": "53970000/1799531",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.984367,
+      "bytes": 15468067
+    },
+    {
+      "source_id": "segment_0010",
+      "sha256": "a5b55f7d83a8098d3b6510dde98cd0d511441cdad0ddf4700b52b2c4f9699354",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "162000000/5399189",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.990989,
+      "bytes": 18399193
+    },
+    {
+      "source_id": "segment_0011",
+      "sha256": "1eb4d4578e6c28d9d19e276e34daecad9b52641d012022a004096d608d6967ad",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1554,
+      "avg_frame_rate": "2331000/77683",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 51.788667,
+      "bytes": 12990102
+    },
+    {
+      "source_id": "segment_0012",
+      "sha256": "68daedcdb7cfd19ef21ed024e796f770d61b3bc191cedfbce0da475980ae51de",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 886,
+      "avg_frame_rate": "39870000/1330217",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 29.560378,
+      "bytes": 7416662
+    },
+    {
+      "source_id": "segment_0013",
+      "sha256": "f128e536c974f5141f8eb8709903b604afe48603a0330ef529e9b43142ea7be2",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1799,
+      "avg_frame_rate": "53970000/1799639",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.987967,
+      "bytes": 18067135
+    },
+    {
+      "source_id": "segment_0014",
+      "sha256": "d48d7c3df1bffe83eac978f203a9d4797f279b6746783cfd00b873a9be60044d",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "162000000/5398777",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.986411,
+      "bytes": 17467466
+    },
+    {
+      "source_id": "segment_0015",
+      "sha256": "d7993b434b1cb2f4b7786da06cf8cf0d00cb4c575d92b763ac959cddf6bf558a",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "54000000/1799627",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.987567,
+      "bytes": 16796448
+    },
+    {
+      "source_id": "segment_0016",
+      "sha256": "bd30d8172d38dfc2189de38af9298d4dfeaf858a4a11f7a955990aaa846f9ac8",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "27000000/899809",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.987267,
+      "bytes": 18480010
+    },
+    {
+      "source_id": "segment_0020",
+      "sha256": "713961c4e015720b145583bb8d92be18c998c65fc2a73881308c67983a830004",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "6750000/224953",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.987467,
+      "bytes": 15375795
+    },
+    {
+      "source_id": "segment_0021",
+      "sha256": "c60987f700655a83c3863093ee09534d5adcbf04a6e0cbcb0b7bf26818d7a737",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "81000000/2699429",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.987311,
+      "bytes": 17726907
+    },
+    {
+      "source_id": "segment_0022",
+      "sha256": "5bfc12245ebfa5ca4a2a9ff71d940d7e0d5c7a50333c56870f00ce958e876eef",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "5062500/168709",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.985422,
+      "bytes": 17594046
+    },
+    {
+      "source_id": "segment_0023",
+      "sha256": "f28091d60b1fa933aa9a454268eeae3d5d6ff9ee91b2ba70132b5d6ef4f91c53",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "54000000/1799627",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.987567,
+      "bytes": 15029256
+    },
+    {
+      "source_id": "segment_0024",
+      "sha256": "bf7cf11c7a6762782b10772ad2ac96059632ae4bf8c0935db04636480ed51c7e",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "40500000/1349711",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.987156,
+      "bytes": 15154667
+    },
+    {
+      "source_id": "segment_0025",
+      "sha256": "4c63ac0a126454386f7763a66b398c26686b5da6d4104ea1329730f45e2b4136",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "54000000/1799627",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.987567,
+      "bytes": 18678145
+    },
+    {
+      "source_id": "segment_0026",
+      "sha256": "cd1fd4bdf7e8613827de5790249675f2320dd9066ea9d9c1ca5c7799b2729514",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "32400000/1079437",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.968722,
+      "bytes": 16687205
+    },
+    {
+      "source_id": "segment_0027",
+      "sha256": "9adeaa37ff1d72a00462f04f8fb007ee141e5160ba43ff4a75810dd949d028b1",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 930,
+      "avg_frame_rate": "3348000/111577",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 30.993611,
+      "bytes": 9001118
+    },
+    {
+      "source_id": "segment_0031",
+      "sha256": "754113832550aab48161e5cd345e73544ab79d505a81fdf11846da64e9398fca",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "20250000/674857",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.987289,
+      "bytes": 16527645
+    },
+    {
+      "source_id": "segment_0032",
+      "sha256": "5882a4a7043655b779f66a13c4cb51592915bd220625bd42518b4cd9cca315eb",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "27000000/899773",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.984867,
+      "bytes": 17145743
+    },
+    {
+      "source_id": "segment_0033",
+      "sha256": "53e21623a772311d8b5aff76389c11ee5886e434a97677da75e787a996a1fb5b",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1340,
+      "avg_frame_rate": "24120000/803849",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 44.658278,
+      "bytes": 11193158
+    },
+    {
+      "source_id": "segment_0034",
+      "sha256": "c7825a0df272aafba6ab2a5ad79c72ee97b211a0a5add0a612c4a0338c169eb4",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "2000000/66653",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.9877,
+      "bytes": 18709902
+    },
+    {
+      "source_id": "segment_0035",
+      "sha256": "8aa3e137e73e60271c522dc492cbc5a1208a492f12d74c16e3248cf66efd0f34",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "27000000/899807",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.987133,
+      "bytes": 15979873
+    },
+    {
+      "source_id": "segment_0036",
+      "sha256": "3e5d6d7211a94644ff549e94b364302a3d437aef177d51f8b844a86d0cabf069",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1800,
+      "avg_frame_rate": "162000000/5398829",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 59.986989,
+      "bytes": 15192665
+    },
+    {
+      "source_id": "segment_0037",
+      "sha256": "65a64c1b664df7cba381f95e81af3babc5afcc24bd1163e6cb320497fb448152",
+      "codec": "h264",
+      "coded_width": 720,
+      "coded_height": 480,
+      "presented_width": 480,
+      "presented_height": 720,
+      "rotation_degrees": -90.0,
+      "frames": 1729,
+      "avg_frame_rate": "1080625/36013",
+      "r_frame_rate": "30/1",
+      "duration_seconds": 57.6208,
+      "bytes": 14442464
+    }
+  ],
+  "cases": [
+    {
+      "id": "desktop-rumble-strips-segment-0021",
+      "source_id": "segment_0021",
+      "expected_is_pothole": false,
+      "semantic_class": "speed_breaker_or_rumble_strips",
+      "evidence_status": "independent_full_frame_visual_review",
+      "ground_truth_scope": "visible_scene",
+      "source_interval_seconds": [
+        25.8,
+        27.4
+      ],
+      "rationale": "Multiple deliberate, parallel transverse traffic-calming bars cross the lane. They are raised or painted road furniture, not a localized material-loss cavity.",
+      "phases": [
+        {
+          "custom_id": "segment_0021--w00052--c0026400",
+          "center_seconds": 26.4,
+          "requested_timestamps_seconds": [
+            26.0,
+            26.4,
+            26.8
+          ],
+          "selected_frame_indices": [
+            781,
+            793,
+            805
+          ],
+          "selected_pts_seconds": [
+            26.027989,
+            26.427856,
+            26.827833
+          ],
+          "full_frame_jpeg_sha256": [
+            "6909a96a2dbd43330f6659db5172e2b882e5cae7b7edc46424e0c09faee49a43",
+            "5e67c7a5b76f739c6a749752d6a28031bf0c499eaebe9902eb716964649ef3e6",
+            "1d2753e8c3d65ae677da9cd16db88787c85f6fed465eebd29a2b1f8ab93a1646"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0021--w00053--c0026900",
+          "center_seconds": 26.9,
+          "requested_timestamps_seconds": [
+            26.5,
+            26.9,
+            27.3
+          ],
+          "selected_frame_indices": [
+            796,
+            808,
+            820
+          ],
+          "selected_pts_seconds": [
+            26.527822,
+            26.9278,
+            27.327667
+          ],
+          "full_frame_jpeg_sha256": [
+            "f1a3a801220019afb46191303aca674b50ab1e19ed0ae7d3975eb35a4e1fcb49",
+            "e5cb1abc8e4f0f49df0c42ab9a8cfc9f746cdc71be435e8b51edb4f4dd38a9b7",
+            "171424c6f7fb51862c8fa8aaf73333b860a40212ee50b124f544e9540247c489"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-raised-debris-segment-0014",
+      "source_id": "segment_0014",
+      "expected_is_pothole": false,
+      "semantic_class": "raised_loose_debris",
+      "evidence_status": "independent_full_frame_visual_review",
+      "ground_truth_scope": "visible_scene",
+      "source_interval_seconds": [
+        42.5,
+        44.9
+      ],
+      "rationale": "A small dark object moves toward the camera on otherwise level pavement. Its apparent geometry is raised debris, with no depressed centre, broken rim, or material-loss cavity.",
+      "phases": [
+        {
+          "custom_id": "segment_0014--w00086--c0043400",
+          "center_seconds": 43.4,
+          "requested_timestamps_seconds": [
+            43.0,
+            43.4,
+            43.8
+          ],
+          "selected_frame_indices": [
+            1291,
+            1303,
+            1315
+          ],
+          "selected_pts_seconds": [
+            43.024122,
+            43.4241,
+            43.823967
+          ],
+          "full_frame_jpeg_sha256": [
+            "4ce022c9949be15e428f1044e011532a5573e3771612bd404b9262251ee5f117",
+            "a47fbf08ac6eadef492359d934f443dc7ca0885aecd26b48ef182312907230f9",
+            "84a4ca782cd6d7dff4c26cdbdceeefdb05edb3e6a2bac103bc5b8e32294e2595"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0014--w00087--c0043900",
+          "center_seconds": 43.9,
+          "requested_timestamps_seconds": [
+            43.5,
+            43.9,
+            44.3
+          ],
+          "selected_frame_indices": [
+            1306,
+            1318,
+            1330
+          ],
+          "selected_pts_seconds": [
+            43.524067,
+            43.923933,
+            44.323911
+          ],
+          "full_frame_jpeg_sha256": [
+            "6625a71bc1672ddb3bb2b3dc7fc7e92e9bf7a0b72f4ad02a11957c9bb251219d",
+            "b5ae9a3be00d0957d1d8cace7e35614392ae7287ff84635114dfa9a458248f39",
+            "6ba4d35ed0d1f938f89ba4964543b582a53d89bb7f556ed6348316a9c6febc41"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0014--w00088--c0044400",
+          "center_seconds": 44.4,
+          "requested_timestamps_seconds": [
+            44.0,
+            44.4,
+            44.8
+          ],
+          "selected_frame_indices": [
+            1321,
+            1333,
+            1345
+          ],
+          "selected_pts_seconds": [
+            44.0239,
+            44.423878,
+            44.823744
+          ],
+          "full_frame_jpeg_sha256": [
+            "8430cdf14fdca028cfa3a5b21304176fef00fb06704a2baa629185a3248d0236",
+            "c2192d98e07b90c1f1c03cbb7a08dad8d91474a79af20bd15aba802e434855f8",
+            "33b8e6bb8402d3b1702a2e459c3530398b3a395fa6273a4a52611777b76dbf24"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-traffic-cone-segment-0004",
+      "source_id": "segment_0004",
+      "expected_is_pothole": false,
+      "semantic_class": "traffic_cone_or_marker",
+      "evidence_status": "independent_full_frame_visual_review",
+      "ground_truth_scope": "visible_scene",
+      "source_interval_seconds": [
+        43.5,
+        44.9
+      ],
+      "rationale": "An orange traffic cone or marker appears in the lane. It is a raised object and must not be reported as a pothole.",
+      "phases": [
+        {
+          "custom_id": "segment_0004--w00087--c0043900",
+          "center_seconds": 43.9,
+          "requested_timestamps_seconds": [
+            43.5,
+            43.9,
+            44.3
+          ],
+          "selected_frame_indices": [
+            1305,
+            1317,
+            1329
+          ],
+          "selected_pts_seconds": [
+            43.507689,
+            43.907556,
+            44.307533
+          ],
+          "full_frame_jpeg_sha256": [
+            "c3f254ca4ede3baa707311d4e7d315a79ed18beabdeec898cbd2c177b29222d1",
+            "02f59f5315d9dc0b3439104054cd99a882cf7b16d4d24829eb6e7a4f716eba16",
+            "319b53990ac8592d6a6360af37e4d15318a3b4bf769a59d75b40a1298fde7061"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0004--w00088--c0044400",
+          "center_seconds": 44.4,
+          "requested_timestamps_seconds": [
+            44.0,
+            44.4,
+            44.8
+          ],
+          "selected_frame_indices": [
+            1320,
+            1332,
+            1344
+          ],
+          "selected_pts_seconds": [
+            44.007522,
+            44.4075,
+            44.807067
+          ],
+          "full_frame_jpeg_sha256": [
+            "ff07510d65bda948238f05bb4387332bf939f3c6655b6ac2a10cfe9134babe29",
+            "16f4af5fa3ecc0b2411009a7190e8e4add79fec1bbd5a55473cba5a575ae9073",
+            "331bece712abedc9d496042362f38f7b13e3ff86b93b2a6856c8ffa6c7482850"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-rough-dusty-surface-segment-0002",
+      "source_id": "segment_0002",
+      "expected_is_pothole": false,
+      "semantic_class": "rough_or_patchy_surface_without_cavity",
+      "evidence_status": "independent_full_frame_visual_review",
+      "ground_truth_scope": "visible_scene",
+      "source_interval_seconds": [
+        39.0,
+        52.9
+      ],
+      "rationale": "Dust, colour variation, seams, and broad surface wear are visible, but the reviewed phases do not show a defensible localized depression with a broken rim and surface loss.",
+      "phases": [
+        {
+          "custom_id": "segment_0002--w00078--c0039400",
+          "center_seconds": 39.4,
+          "requested_timestamps_seconds": [
+            39.0,
+            39.4,
+            39.8
+          ],
+          "selected_frame_indices": [
+            1171,
+            1183,
+            1195
+          ],
+          "selected_pts_seconds": [
+            39.0266,
+            39.424967,
+            39.823411
+          ],
+          "full_frame_jpeg_sha256": [
+            "0452ccf8600ab0ba2a852d8543be060feab15a26f35b98c2b4aee88e773ed660",
+            "74f5c1d186996cfd3b8c6cfbe3a27983604b91f0f6626cf95e1936c1668f69e5",
+            "3aaab46dcd4947c2a5fe6daee68719ce38bf1cd255d1a644dfbf40457ce5a37a"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0002--w00092--c0046400",
+          "center_seconds": 46.4,
+          "requested_timestamps_seconds": [
+            46.0,
+            46.4,
+            46.8
+          ],
+          "selected_frame_indices": [
+            1381,
+            1393,
+            1405
+          ],
+          "selected_pts_seconds": [
+            46.027489,
+            46.427389,
+            46.827356
+          ],
+          "full_frame_jpeg_sha256": [
+            "8615938c4e28ad7f1fb4035afb218feda452ecee21ebd922d1c1ac0993c64f19",
+            "3250fbf14010fed75e1f0554fc6147ec61ff41bea3e314f94a6b307eedd48861",
+            "ea8c1b17a7e9f4d287e74b3167d0323c7b7da00e29819ff50557fe0996ee9069"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0002--w00104--c0052400",
+          "center_seconds": 52.4,
+          "requested_timestamps_seconds": [
+            52.0,
+            52.4,
+            52.8
+          ],
+          "selected_frame_indices": [
+            1561,
+            1573,
+            1585
+          ],
+          "selected_pts_seconds": [
+            52.026567,
+            52.426633,
+            52.826611
+          ],
+          "full_frame_jpeg_sha256": [
+            "fef4b904e87bec198df94b7e6e5b987e6134f8d05a1258fbb422a067f51dead7",
+            "d5a2d562afa85a4c5996d51bf38bdf6dec59eb60d4769d91a1312e85129d7287",
+            "08e35db6d87421d44f46a91d8ea367c9003786c75a10337bd84973bf97f60133"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-roadworks-segment-0003",
+      "source_id": "segment_0003",
+      "expected_is_pothole": false,
+      "semantic_class": "temporary_roadworks_surface",
+      "evidence_status": "independent_full_frame_visual_review",
+      "ground_truth_scope": "visible_scene",
+      "source_interval_seconds": [
+        27.5,
+        31.9
+      ],
+      "rationale": "A construction-stage unsealed road, excavation, dirt, and machinery produce broad unevenness; no discrete lower cavity with a stable broken lip is visible in these phases.",
+      "phases": [
+        {
+          "custom_id": "segment_0003--w00055--c0027900",
+          "center_seconds": 27.9,
+          "requested_timestamps_seconds": [
+            27.5,
+            27.9,
+            28.3
+          ],
+          "selected_frame_indices": [
+            826,
+            838,
+            850
+          ],
+          "selected_pts_seconds": [
+            27.528411,
+            27.928389,
+            28.328511
+          ],
+          "full_frame_jpeg_sha256": [
+            "d8e76ff929ccf267c6a93748cce30601833451668b864af9d309c93f44fafb9e",
+            "e7320fdbd3a4b30583c848920439903399ffaf02b78422192c48d8b881a0c29c",
+            "332b7b3f5a8c85eb4a838a73f35645be5b74213237db71b78634599ea5425c64"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0003--w00056--c0028400",
+          "center_seconds": 28.4,
+          "requested_timestamps_seconds": [
+            28.0,
+            28.4,
+            28.8
+          ],
+          "selected_frame_indices": [
+            841,
+            853,
+            865
+          ],
+          "selected_pts_seconds": [
+            28.028356,
+            28.428556,
+            28.828478
+          ],
+          "full_frame_jpeg_sha256": [
+            "f754ddfb354e3be2d95800c1a97d2a55b22a3779bf62d2f15da7cdb80da9570d",
+            "427391e70110d3f446d81073ba752d4983278376021860e52759878f787aec69",
+            "b7b9a064265c387df0cd92e36d653cf3460988af2af29257e8d7db8e56d930b5"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0003--w00062--c0031400",
+          "center_seconds": 31.4,
+          "requested_timestamps_seconds": [
+            31.0,
+            31.4,
+            31.8
+          ],
+          "selected_frame_indices": [
+            931,
+            943,
+            955
+          ],
+          "selected_pts_seconds": [
+            31.028233,
+            31.428011,
+            31.827867
+          ],
+          "full_frame_jpeg_sha256": [
+            "50f20ea5fdcc4f46abd85e3a0c5e334feda13962e5eb50ba42dc09aadd6846ef",
+            "e3a389938460fd1d4b7143a824854a341d3ac9718dc423ba49d86900af633c7b",
+            "1df69792574381a991a61b90489816abf63f2422a7b4797c3344d4fdb4a95d67"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-roadworks-tractor-segment-0023",
+      "source_id": "segment_0023",
+      "expected_is_pothole": false,
+      "semantic_class": "roadworks_vehicle_and_broad_surface_transition",
+      "evidence_status": "independent_full_frame_visual_review",
+      "ground_truth_scope": "visible_scene",
+      "source_interval_seconds": [
+        3.5,
+        7.9
+      ],
+      "rationale": "A tractor and trailer cross a dusty roadworks area. Broad grading and paved-edge transitions are present, but no localized cavity is established.",
+      "phases": [
+        {
+          "custom_id": "segment_0023--w00007--c0003900",
+          "center_seconds": 3.9,
+          "requested_timestamps_seconds": [
+            3.5,
+            3.9,
+            4.3
+          ],
+          "selected_frame_indices": [
+            106,
+            118,
+            130
+          ],
+          "selected_pts_seconds": [
+            3.532656,
+            3.932633,
+            4.3325
+          ],
+          "full_frame_jpeg_sha256": [
+            "b59742891c984921a4d4d45d7f9fc8b9adff4d74fc7c9fb30c97f1ea328fea87",
+            "63765320d283e1930094c40d6054cceb2fecf851a0a83c09f03d637cbff39994",
+            "735c1f0a20726aee5ece8b1e36e5b1742d7e52eef9cd8401b61a129e273c98a1"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0023--w00008--c0004400",
+          "center_seconds": 4.4,
+          "requested_timestamps_seconds": [
+            4.0,
+            4.4,
+            4.8
+          ],
+          "selected_frame_indices": [
+            121,
+            133,
+            145
+          ],
+          "selected_pts_seconds": [
+            4.0326,
+            4.432467,
+            4.832333
+          ],
+          "full_frame_jpeg_sha256": [
+            "6be0bd291ddb73141f7544a40f01a84bfab10ec66d7a5cd6d62091fe611e448d",
+            "5fc180616ce14bbedc8db6676e2b3a85396468df779083bb9d3c468327c654db",
+            "800ea24e2fe7224f65de9d41936b942bcb6c4952df9c00343c932e43533926a9"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0023--w00014--c0007400",
+          "center_seconds": 7.4,
+          "requested_timestamps_seconds": [
+            7.0,
+            7.4,
+            7.8
+          ],
+          "selected_frame_indices": [
+            211,
+            223,
+            235
+          ],
+          "selected_pts_seconds": [
+            7.031822,
+            7.4318,
+            7.831778
+          ],
+          "full_frame_jpeg_sha256": [
+            "c0ce18546178ea310e214a53159c380866e3a6d1982843babd3e4c4971310802",
+            "eb75586caeb0e78986d8f9246ed582db4cfb4252395fd89bb80003999f172029",
+            "ff452fbfa4e0c1da154476f2c7181a8f393abfa321ad2fb655e1e1133247b118"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-tunnel-transition-segment-0022",
+      "source_id": "segment_0022",
+      "expected_is_pothole": false,
+      "semantic_class": "tunnel_glare_and_low_light_transition",
+      "evidence_status": "strict_negative_due_to_insufficient_visible_evidence",
+      "ground_truth_scope": "visible_input_only_not_hidden_road_condition",
+      "source_interval_seconds": [
+        55.0,
+        59.85
+      ],
+      "rationale": "Rapid exposure changes at a tunnel entrance and exit obscure fine road geometry. The detector must fail closed rather than invent a cavity.",
+      "phases": [
+        {
+          "custom_id": "segment_0022--w00110--c0055400",
+          "center_seconds": 55.4,
+          "requested_timestamps_seconds": [
+            55.0,
+            55.4,
+            55.8
+          ],
+          "selected_frame_indices": [
+            1651,
+            1663,
+            1675
+          ],
+          "selected_pts_seconds": [
+            55.021867,
+            55.420389,
+            55.813167
+          ],
+          "full_frame_jpeg_sha256": [
+            "940759b356ae22b582b92cea73d44132273791a11d4de3c6b45af5275dee532b",
+            "1d1f8448dc03c41566d5eae5564291f0eff1e312f74373c8062e091ad981cd6d",
+            "4a7ae5db1d63f231c3b5adb7a2c4d8edc72c27169921a778c3c227a9b5dc0736"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0022--w00114--c0057400",
+          "center_seconds": 57.4,
+          "requested_timestamps_seconds": [
+            57.0,
+            57.4,
+            57.8
+          ],
+          "selected_frame_indices": [
+            1711,
+            1723,
+            1735
+          ],
+          "selected_pts_seconds": [
+            57.002167,
+            57.402144,
+            57.802011
+          ],
+          "full_frame_jpeg_sha256": [
+            "cca24b907f5ad2c5d8c02e9bade628e870d8c29b7c56451fabb6ee0f829d2d3d",
+            "3b69f1dbc12eadcae1fc00ea2432b172cdcde6dd1db74306df6ec7136f2c2cc9",
+            "bb95efe5c503ad7aded1bfaa38b6a2e9353943b22096b2e402b2c924cb98c5ed"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0022--w00118--c0059400",
+          "center_seconds": 59.4,
+          "requested_timestamps_seconds": [
+            59.0,
+            59.4,
+            59.8
+          ],
+          "selected_frame_indices": [
+            1771,
+            1783,
+            1795
+          ],
+          "selected_pts_seconds": [
+            59.0025,
+            59.413322,
+            59.817611
+          ],
+          "full_frame_jpeg_sha256": [
+            "6fd763e843afe95e8edb0781ccd4e53d46927cab9ce282691d899079460039b6",
+            "2e9064a8d5deae056bc3c1d891cf93a6814e1b6352bf9393a15823b917029fb6",
+            "98081c5f58bb007f1ac0a9faafdcdeb650bb9dd043de805c4bad50494b4efa89"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-tunnel-transition-segment-0026",
+      "source_id": "segment_0026",
+      "expected_is_pothole": false,
+      "semantic_class": "tunnel_glare_and_low_light_transition",
+      "evidence_status": "strict_negative_due_to_insufficient_visible_evidence",
+      "ground_truth_scope": "visible_input_only_not_hidden_road_condition",
+      "source_interval_seconds": [
+        57.0,
+        59.85
+      ],
+      "rationale": "Low light and exit glare reduce visible surface evidence near the end of the clip. No positive report is justified from these frames.",
+      "phases": [
+        {
+          "custom_id": "segment_0026--w00114--c0057400",
+          "center_seconds": 57.4,
+          "requested_timestamps_seconds": [
+            57.0,
+            57.4,
+            57.8
+          ],
+          "selected_frame_indices": [
+            1711,
+            1723,
+            1735
+          ],
+          "selected_pts_seconds": [
+            57.021022,
+            57.419956,
+            57.802556
+          ],
+          "full_frame_jpeg_sha256": [
+            "cc3f9b647cdd5298293f619b58b1b15a84f897e7fe691b9e0942d3e1dff8f677",
+            "b203276b9e2a65737fd3de47d1be8c9811d726eebc5173aa02cf972072267688",
+            "e0a3bf62c8dfce61aa13a0668f3731fbcc46dfa5fa6162380a2f3cdcc94ac7f5"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0026--w00116--c0058400",
+          "center_seconds": 58.4,
+          "requested_timestamps_seconds": [
+            58.0,
+            58.4,
+            58.8
+          ],
+          "selected_frame_indices": [
+            1741,
+            1753,
+            1765
+          ],
+          "selected_pts_seconds": [
+            58.002489,
+            58.402356,
+            58.802333
+          ],
+          "full_frame_jpeg_sha256": [
+            "40de11b91109150fb5bd44e51485b31888b36f69f64e52d81bea9c7a227a0557",
+            "65d4cbe0cee858e85fe7e480d85458d9f73746dbe9af8a638f5529207c1c8f5c",
+            "61099ac2c4a8fa3c123c15b0e03ffca247192359db7d520e12698606303ef9cc"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0026--w00118--c0059400",
+          "center_seconds": 59.4,
+          "requested_timestamps_seconds": [
+            59.0,
+            59.4,
+            59.8
+          ],
+          "selected_frame_indices": [
+            1771,
+            1783,
+            1795
+          ],
+          "selected_pts_seconds": [
+            59.002267,
+            59.402244,
+            59.802111
+          ],
+          "full_frame_jpeg_sha256": [
+            "53b77ce92197f749814bac0530ad5b25a55343373fd3545f2d6b104356a62372",
+            "70588cdc6d8ec0c6762c00cb57200f60bdf7a8a528853e831ad069bc1a5ecb79",
+            "1ed41a5c2b963fbe3fc728fcf2e9ba3cfa072bf2bc7bb5b65e35456f5bbbc7dd"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-tunnel-transition-segment-0031",
+      "source_id": "segment_0031",
+      "expected_is_pothole": false,
+      "semantic_class": "tunnel_glare_and_low_light_transition",
+      "evidence_status": "strict_negative_due_to_insufficient_visible_evidence",
+      "ground_truth_scope": "visible_input_only_not_hidden_road_condition",
+      "source_interval_seconds": [
+        51.0,
+        54.9
+      ],
+      "rationale": "A tunnel or underpass lighting transition creates dark roadway and bright exit glare. Ambiguous contrast must not become a pothole.",
+      "phases": [
+        {
+          "custom_id": "segment_0031--w00102--c0051400",
+          "center_seconds": 51.4,
+          "requested_timestamps_seconds": [
+            51.0,
+            51.4,
+            51.8
+          ],
+          "selected_frame_indices": [
+            1531,
+            1543,
+            1555
+          ],
+          "selected_pts_seconds": [
+            51.022078,
+            51.421322,
+            51.802656
+          ],
+          "full_frame_jpeg_sha256": [
+            "f620b653323c3bc1ecf42077de359dfb37c9a5016e25a74b7ab913e2527d44cd",
+            "284712e239a53e761f813c42f07b96715f82cae1d6ae40bcd126d937506f0665",
+            "c9733cd5e0030fcded85ca568ac767ba04553b5f66998f8e1ceb99a1c351cb86"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0031--w00104--c0052400",
+          "center_seconds": 52.4,
+          "requested_timestamps_seconds": [
+            52.0,
+            52.4,
+            52.8
+          ],
+          "selected_frame_indices": [
+            1561,
+            1573,
+            1585
+          ],
+          "selected_pts_seconds": [
+            52.002589,
+            52.402456,
+            52.802433
+          ],
+          "full_frame_jpeg_sha256": [
+            "b2f7c0a5934efd8e14238226f3d6572afe08562dfcf5df048efccb20e5464c45",
+            "fd352e31ae3465c7ef5c8e56a351e919639c2c69c2d7122e10551303399b795e",
+            "72ae5fdd0167dc525d045eccd4df0295e14e850773d750c2eaf0cfe8642803bd"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0031--w00107--c0053900",
+          "center_seconds": 53.9,
+          "requested_timestamps_seconds": [
+            53.5,
+            53.9,
+            54.3
+          ],
+          "selected_frame_indices": [
+            1606,
+            1618,
+            1630
+          ],
+          "selected_pts_seconds": [
+            53.5058,
+            53.917733,
+            54.319233
+          ],
+          "full_frame_jpeg_sha256": [
+            "cecb431ec5fe0204745e3baf22941a032911661c8e990fb197dfc20a638da3ea",
+            "1921d11916526c63f0ebd2a4bbd6f6f79fe727689f65ae3fc5e66fdef8c29d36",
+            "4f229674281248f64ed92fb3e11978d3a53b19c9bbcf71ee56b5d4c510d7c70d"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0031--w00108--c0054400",
+          "center_seconds": 54.4,
+          "requested_timestamps_seconds": [
+            54.0,
+            54.4,
+            54.8
+          ],
+          "selected_frame_indices": [
+            1621,
+            1633,
+            1645
+          ],
+          "selected_pts_seconds": [
+            54.018322,
+            54.420144,
+            54.821378
+          ],
+          "full_frame_jpeg_sha256": [
+            "28f560441efa1d0405e1d4dbf5c760c5c5d8a77da155a4393628264728f3b92f",
+            "04a5545691ee97eef0d21f8e38b51cf7fa0497d575a8acb87bfcbd2c3463b4a4",
+            "b8b8994dca7841b4e5aab1f2e016e54d6b02c09af8bb65c3251102a1fb4bdf4a"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-occlusion-segment-0007",
+      "source_id": "segment_0007",
+      "expected_is_pothole": false,
+      "semantic_class": "road_occluded_by_lead_vehicle",
+      "evidence_status": "strict_negative_due_to_insufficient_visible_evidence",
+      "ground_truth_scope": "visible_input_only_not_hidden_road_condition",
+      "source_interval_seconds": [
+        10.0,
+        30.9
+      ],
+      "rationale": "A lead vehicle and the dashboard hide most of the travelled surface. The label means no visible pothole evidence, not that the hidden road is defect-free.",
+      "phases": [
+        {
+          "custom_id": "segment_0007--w00020--c0010400",
+          "center_seconds": 10.4,
+          "requested_timestamps_seconds": [
+            10.0,
+            10.4,
+            10.8
+          ],
+          "selected_frame_indices": [
+            301,
+            313,
+            325
+          ],
+          "selected_pts_seconds": [
+            10.0311,
+            10.431078,
+            10.830944
+          ],
+          "full_frame_jpeg_sha256": [
+            "24c87c82b15e50c0314fbf62e80667f4db240dd34f278385306410238020ea6e",
+            "75733b58dbfec48eb145e351d1ae78be060e0e393df5bb8de19167663b904414",
+            "897305868876fbf273d896b3cf96a84991cbfa73c0a314c2a69c4429df9317b8"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0007--w00040--c0020400",
+          "center_seconds": 20.4,
+          "requested_timestamps_seconds": [
+            20.0,
+            20.4,
+            20.8
+          ],
+          "selected_frame_indices": [
+            601,
+            613,
+            625
+          ],
+          "selected_pts_seconds": [
+            20.028989,
+            20.428856,
+            20.828833
+          ],
+          "full_frame_jpeg_sha256": [
+            "2ceb19b13ea49f00907d7d508e6182dc1e807a96936e6772e41d0dc8f386324f",
+            "f69531fbdc8489e7ef528a8901c37a1b50373e3f40d13a0af3da51591ab2251f",
+            "30b0973937389ba3c5118c624d327f4859a047c7c7b87f7618aecf6b5e7bd842"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0007--w00060--c0030400",
+          "center_seconds": 30.4,
+          "requested_timestamps_seconds": [
+            30.0,
+            30.4,
+            30.8
+          ],
+          "selected_frame_indices": [
+            901,
+            913,
+            925
+          ],
+          "selected_pts_seconds": [
+            30.026767,
+            30.426744,
+            30.826611
+          ],
+          "full_frame_jpeg_sha256": [
+            "c8ea6ce5652348d0256edb80da528beccfc8667b2f647042d6d87438918f660c",
+            "947647143c97e69be3ad390cb052b9593960db0721594f23d5891b291f7363d9",
+            "c4bbe1cac77f86241e99aabada6e0ed32a17706b0bad076fbe83965d14dd03ec"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-occlusion-segment-0008",
+      "source_id": "segment_0008",
+      "expected_is_pothole": false,
+      "semantic_class": "road_occluded_by_traffic",
+      "evidence_status": "strict_negative_due_to_insufficient_visible_evidence",
+      "ground_truth_scope": "visible_input_only_not_hidden_road_condition",
+      "source_interval_seconds": [
+        5.0,
+        25.9
+      ],
+      "rationale": "Traffic and the dashboard substantially occlude the road. The detector must return no pothole when cavity geometry cannot be seen.",
+      "phases": [
+        {
+          "custom_id": "segment_0008--w00010--c0005400",
+          "center_seconds": 5.4,
+          "requested_timestamps_seconds": [
+            5.0,
+            5.4,
+            5.8
+          ],
+          "selected_frame_indices": [
+            150,
+            162,
+            174
+          ],
+          "selected_pts_seconds": [
+            5.032222,
+            5.432089,
+            5.832067
+          ],
+          "full_frame_jpeg_sha256": [
+            "b2da460817b948ac9ef9730791e2241b127c81a156637fe6402f426fb17bd516",
+            "0308a5bf3b2e42e5c6c2332ccd5496d9d1bdd6f933ee454002960c45c4c100f7",
+            "bf0743af76d488ba7487c7412c80744f89ae0b83d59f30b61e2c3ea966cb88c8"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0008--w00030--c0015400",
+          "center_seconds": 15.4,
+          "requested_timestamps_seconds": [
+            15.0,
+            15.4,
+            15.8
+          ],
+          "selected_frame_indices": [
+            450,
+            462,
+            474
+          ],
+          "selected_pts_seconds": [
+            15.030111,
+            15.429978,
+            15.829956
+          ],
+          "full_frame_jpeg_sha256": [
+            "a0673be4c8a36d5811c070e22ed36a5de7b1d5d4c78e2ab3d50b08a55440d208",
+            "d8d946eabfdfefd13d66073a34dcabe7ab203488d1b62f2c5350aa525f6302a3",
+            "7d55e775bf27431e4a994f85fa430ee2771545032173fc573d237a427ad27237"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0008--w00050--c0025400",
+          "center_seconds": 25.4,
+          "requested_timestamps_seconds": [
+            25.0,
+            25.4,
+            25.8
+          ],
+          "selected_frame_indices": [
+            750,
+            762,
+            774
+          ],
+          "selected_pts_seconds": [
+            25.028,
+            25.427867,
+            25.827844
+          ],
+          "full_frame_jpeg_sha256": [
+            "4b9246776b6aab477bb5f94634e375aa4f0a8709c3ad52199ac1501494172d08",
+            "dfab4ee154e789e552e8695e1dd7d331b3f744a8857b425c9eae72a6e5e9991a",
+            "933b7832f2c8e06945af749cf058f5483adc786fce03f0fd4f330db6645b750b"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-occlusion-segment-0012",
+      "source_id": "segment_0012",
+      "expected_is_pothole": false,
+      "semantic_class": "road_occluded_by_traffic",
+      "evidence_status": "strict_negative_due_to_insufficient_visible_evidence",
+      "ground_truth_scope": "visible_input_only_not_hidden_road_condition",
+      "source_interval_seconds": [
+        5.0,
+        25.9
+      ],
+      "rationale": "The forward road is repeatedly hidden by close traffic. This is an abstention regression: no visible cavity means no report.",
+      "phases": [
+        {
+          "custom_id": "segment_0012--w00010--c0005400",
+          "center_seconds": 5.4,
+          "requested_timestamps_seconds": [
+            5.0,
+            5.4,
+            5.8
+          ],
+          "selected_frame_indices": [
+            150,
+            162,
+            174
+          ],
+          "selected_pts_seconds": [
+            5.032222,
+            5.4322,
+            5.832067
+          ],
+          "full_frame_jpeg_sha256": [
+            "3c35051d01b009de524d5c8c5766147a84a150ef18916a1562f7b55133b31c56",
+            "0b8fc8489c59ccb1886ea3a88c5907318815e36ec59809c72be7afd71fc48e00",
+            "80e9481a9f8f70e31d61f44ff10cfaff94211a94f537ab64bfc44ecd94985607"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0012--w00030--c0015400",
+          "center_seconds": 15.4,
+          "requested_timestamps_seconds": [
+            15.0,
+            15.4,
+            15.8
+          ],
+          "selected_frame_indices": [
+            450,
+            462,
+            474
+          ],
+          "selected_pts_seconds": [
+            15.030111,
+            15.430089,
+            15.829956
+          ],
+          "full_frame_jpeg_sha256": [
+            "c699bedf275c7cab80cd57aca661a6875a2c17d969ed1fdb5b52dfa748abb6b7",
+            "43320b40870896eb346f7cbe9e7e3fa0887b168140af5a179d9851f8abc7044c",
+            "4973e93b6200c6913c353ea49eca326d39786e21f7fb245f92436b74088c9fc4"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0012--w00050--c0025400",
+          "center_seconds": 25.4,
+          "requested_timestamps_seconds": [
+            25.0,
+            25.4,
+            25.8
+          ],
+          "selected_frame_indices": [
+            750,
+            762,
+            774
+          ],
+          "selected_pts_seconds": [
+            25.028,
+            25.427978,
+            25.827844
+          ],
+          "full_frame_jpeg_sha256": [
+            "6bdeebdc507d25dbfc96bee2e91797c9c319ddadda3a8d92a18282ae47f9f4c9",
+            "659e3c68300883bcb21af28e3b894b86e7326e33c81ffc67926b276442b20006",
+            "6b36a7be65f40e195207b8129b59a2d3140785e69fd3c83ed8d95e83903396e3"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-unpaved-shoulder-segment-0037",
+      "source_id": "segment_0037",
+      "expected_is_pothole": false,
+      "semantic_class": "unpaved_or_dusty_shoulder_beside_intact_lane",
+      "evidence_status": "independent_full_frame_visual_review",
+      "ground_truth_scope": "visible_scene",
+      "source_interval_seconds": [
+        49.0,
+        56.9
+      ],
+      "rationale": "Rough dusty ground is confined to the roadside shoulder beside the paved traffic lane; it is not a pothole on the traversed surface.",
+      "phases": [
+        {
+          "custom_id": "segment_0037--w00098--c0049400",
+          "center_seconds": 49.4,
+          "requested_timestamps_seconds": [
+            49.0,
+            49.4,
+            49.8
+          ],
+          "selected_frame_indices": [
+            1471,
+            1483,
+            1495
+          ],
+          "selected_pts_seconds": [
+            49.022556,
+            49.422422,
+            49.8224
+          ],
+          "full_frame_jpeg_sha256": [
+            "c02807ab762b8ec5cfad5cb0ef9b31c8dcf613484f9ed2021cb154595090cc6d",
+            "57614a76ed9c3b7c40e4fedec005caeedd6d19359725b5611cc4362fb8dc0a6d",
+            "9397d9742bf7e3d9fa8c71b6f25564719ce95ed810b3c72db5a5a6afc04e7745"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0037--w00104--c0052400",
+          "center_seconds": 52.4,
+          "requested_timestamps_seconds": [
+            52.0,
+            52.4,
+            52.8
+          ],
+          "selected_frame_indices": [
+            1561,
+            1573,
+            1585
+          ],
+          "selected_pts_seconds": [
+            52.022,
+            52.421867,
+            52.821844
+          ],
+          "full_frame_jpeg_sha256": [
+            "c4e0a65415b12c787bf49d4682dccce321f67e7074a99b45719958ca2f8becd0",
+            "0f271b834e673b2c0c6bdcfd885ce889fbbe68d54f0b9a1115626cdb07421b01",
+            "03d966af4456ec2b002080271c18fcf15f37d978b4650b4d2a6f9231cd710cd3"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0037--w00112--c0056400",
+          "center_seconds": 56.4,
+          "requested_timestamps_seconds": [
+            56.0,
+            56.4,
+            56.8
+          ],
+          "selected_frame_indices": [
+            1681,
+            1693,
+            1705
+          ],
+          "selected_pts_seconds": [
+            56.021111,
+            56.421089,
+            56.820956
+          ],
+          "full_frame_jpeg_sha256": [
+            "50d9b4fb7958815442db2ab0bdbe7aa2a08e4347b01a1446597fc9b61a819335",
+            "b066f43cb818b5737e5eab1b4033a221c00240e306cfcd1ae15a83f8376075a3",
+            "246c8bd5c8ce70e041e34f6f5bf3487b2b6145704fda02cd4be6986adc24e4ce"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-clear-road-segment-0024",
+      "source_id": "segment_0024",
+      "expected_is_pothole": false,
+      "semantic_class": "clear_paved_road",
+      "evidence_status": "independent_full_frame_visual_review",
+      "ground_truth_scope": "visible_scene",
+      "source_interval_seconds": [
+        5.0,
+        15.9
+      ],
+      "rationale": "Usable views of a paved multilane road show no localized cavity, broken edge, or surface loss.",
+      "phases": [
+        {
+          "custom_id": "segment_0024--w00010--c0005400",
+          "center_seconds": 5.4,
+          "requested_timestamps_seconds": [
+            5.0,
+            5.4,
+            5.8
+          ],
+          "selected_frame_indices": [
+            151,
+            163,
+            175
+          ],
+          "selected_pts_seconds": [
+            5.032211,
+            5.432078,
+            5.832056
+          ],
+          "full_frame_jpeg_sha256": [
+            "bfb826ebbc9ecf5a3264bbf57d4da3dc74c5e6d0d6f1b6db23c78ad7d0c1e13c",
+            "d5a5ea455da13684924e7a5a427671bcdc44784fba09015664cf32d6afc24721",
+            "df5ae83edb809f2e64a77ede93f9bd7683af2b9609fba69ae436f0495ef324f0"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0024--w00020--c0010400",
+          "center_seconds": 10.4,
+          "requested_timestamps_seconds": [
+            10.0,
+            10.4,
+            10.8
+          ],
+          "selected_frame_indices": [
+            301,
+            313,
+            325
+          ],
+          "selected_pts_seconds": [
+            10.0312,
+            10.431067,
+            10.830933
+          ],
+          "full_frame_jpeg_sha256": [
+            "dd30cc00c6e4e30605346a5b7b3b1a39fd2cd13a093428c156c7ba4c46aa7da2",
+            "32e7989e1530d6922b9eef3f964ed04dc2fdb578990b3931dbe67399ec5f3dc7",
+            "c4436ef975c6f704f65af0c098e964972510e43c5f54bd619f292ad8b1ee8351"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0024--w00030--c0015400",
+          "center_seconds": 15.4,
+          "requested_timestamps_seconds": [
+            15.0,
+            15.4,
+            15.8
+          ],
+          "selected_frame_indices": [
+            451,
+            463,
+            475
+          ],
+          "selected_pts_seconds": [
+            15.030522,
+            15.430433,
+            15.830278
+          ],
+          "full_frame_jpeg_sha256": [
+            "98e4c649fc12d5b331ad0ec327cc5aeef81e7a4f556e15152d166e162bd0eae2",
+            "cf91b9b3cdcd0fcd80468face25431d09d9630ff38a096df0ee4021402aa2f09",
+            "c42aabc884355adea6d6f91263310ba0dcae4ae2f7e547b4747eaa0b49175624"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-clear-road-segment-0036",
+      "source_id": "segment_0036",
+      "expected_is_pothole": false,
+      "semantic_class": "clear_paved_road",
+      "evidence_status": "independent_full_frame_visual_review",
+      "ground_truth_scope": "visible_scene",
+      "source_interval_seconds": [
+        36.0,
+        44.9
+      ],
+      "rationale": "The exposed paved bridge roadway is clear enough to inspect and contains no localized pothole geometry.",
+      "phases": [
+        {
+          "custom_id": "segment_0036--w00072--c0036400",
+          "center_seconds": 36.4,
+          "requested_timestamps_seconds": [
+            36.0,
+            36.4,
+            36.8
+          ],
+          "selected_frame_indices": [
+            1081,
+            1093,
+            1105
+          ],
+          "selected_pts_seconds": [
+            36.025644,
+            36.425511,
+            36.825489
+          ],
+          "full_frame_jpeg_sha256": [
+            "47a4e8158a78a68c1cf2e196f542f265449af39c0b2d1c787cdc0674472b6050",
+            "1b0d0dde297a1d3a70cdfefb05071308e60d7abcb29e633dd6e79484a6c99c60",
+            "10b7151b4a60f0632b85bda485399d4cca241d0604909caec50a6e5dc370cb58"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0036--w00080--c0040400",
+          "center_seconds": 40.4,
+          "requested_timestamps_seconds": [
+            40.0,
+            40.4,
+            40.8
+          ],
+          "selected_frame_indices": [
+            1201,
+            1213,
+            1225
+          ],
+          "selected_pts_seconds": [
+            40.024756,
+            40.424733,
+            40.8246
+          ],
+          "full_frame_jpeg_sha256": [
+            "a03e52dc2c98aa2494eba78cdcd088145e0007641402593f6046f482f68de8cc",
+            "59641c6e47223ffa66765f02c20c5c5a17a541c02d3f3e64859ca1f41720ccb4",
+            "072c2dfdf3fc748c594b100ea6160354e83d0f4ba6f95a254534093ef68350c5"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0036--w00088--c0044400",
+          "center_seconds": 44.4,
+          "requested_timestamps_seconds": [
+            44.0,
+            44.4,
+            44.8
+          ],
+          "selected_frame_indices": [
+            1321,
+            1333,
+            1345
+          ],
+          "selected_pts_seconds": [
+            44.023867,
+            44.423844,
+            44.823711
+          ],
+          "full_frame_jpeg_sha256": [
+            "0e67c333ef6acdbaea87670432c2400dc0a2acb2885ab51f233778a2f28978e2",
+            "d0afe01e2ac356e5b5bdb0cb4c0b99a80d49c6cba42f723e10fdf79faa04f75b",
+            "b100b515dc109efe7bd12de4e332158abe97d61193e689814d57c8103b3b8255"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-clear-road-before-rumble-strips-segment-0021",
+      "source_id": "segment_0021",
+      "expected_is_pothole": false,
+      "semantic_class": "clear_paved_road",
+      "evidence_status": "independent_full_frame_visual_review",
+      "ground_truth_scope": "visible_scene",
+      "source_interval_seconds": [
+        18.0,
+        20.9
+      ],
+      "rationale": "The lane before the later rumble strips is clearly visible and shows no localized cavity.",
+      "phases": [
+        {
+          "custom_id": "segment_0021--w00036--c0018400",
+          "center_seconds": 18.4,
+          "requested_timestamps_seconds": [
+            18.0,
+            18.4,
+            18.8
+          ],
+          "selected_frame_indices": [
+            541,
+            553,
+            565
+          ],
+          "selected_pts_seconds": [
+            18.029544,
+            18.429522,
+            18.8295
+          ],
+          "full_frame_jpeg_sha256": [
+            "1f65184d55fd0a6060bf4bc89b0a0cd7d84328d429e3427f3c4448f53da95e88",
+            "389a7b05442a0dc28b70c4e90af3287bedd4acc077978838f5c852e6faa469bc",
+            "a9ced63517c624e5962d70a9668bb18f0c3782fbc57505c25fda46d71521e40b"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0021--w00040--c0020400",
+          "center_seconds": 20.4,
+          "requested_timestamps_seconds": [
+            20.0,
+            20.4,
+            20.8
+          ],
+          "selected_frame_indices": [
+            601,
+            613,
+            625
+          ],
+          "selected_pts_seconds": [
+            20.029211,
+            20.429189,
+            20.829056
+          ],
+          "full_frame_jpeg_sha256": [
+            "47fe039f17e52026aa21dee6e1696623a89c863e77155a62563c962a889dfaa6",
+            "ff7ea277242dd1c11f3d5733aef1a567c4dd70f5d78bc7513c058f9aebb680e0",
+            "8606a58bc443ddd5e4f255828e3d8c7523dee467a02651b865853baa78e6a3e2"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "desktop-flat-transverse-marking-segment-0025",
+      "source_id": "segment_0025",
+      "expected_is_pothole": false,
+      "semantic_class": "flat_transverse_marking_or_shadow",
+      "evidence_status": "independent_full_frame_visual_review",
+      "ground_truth_scope": "visible_scene",
+      "source_interval_seconds": [
+        0.0,
+        5.9
+      ],
+      "rationale": "A pale transverse line or shadow crosses a level road surface. It has no localized depressed centre, broken rim, or material loss.",
+      "phases": [
+        {
+          "custom_id": "segment_0025--w00000--c0000400",
+          "center_seconds": 0.4,
+          "requested_timestamps_seconds": [
+            0.001,
+            0.4,
+            0.8
+          ],
+          "selected_frame_indices": [
+            1,
+            13,
+            25
+          ],
+          "selected_pts_seconds": [
+            0.033322,
+            0.433189,
+            0.833167
+          ],
+          "full_frame_jpeg_sha256": [
+            "9f0e26467e7fdaaed23010ad7d6931adfc5756a1d2712edc8978f2c795647633",
+            "6baeb27b07ab2c7a06427523ab45d4c4f557aa763d7caae804a2c0805180104c",
+            "07eb0a1cf6f065b53897e621608a076c152aaffc96a9488ad612fd124dce05df"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0025--w00002--c0001400",
+          "center_seconds": 1.4,
+          "requested_timestamps_seconds": [
+            1.0,
+            1.4,
+            1.8
+          ],
+          "selected_frame_indices": [
+            31,
+            43,
+            55
+          ],
+          "selected_pts_seconds": [
+            1.0331,
+            1.432967,
+            1.832944
+          ],
+          "full_frame_jpeg_sha256": [
+            "6ef1fe0ddd8fd53c436203193e33d88a9a14f845997aa9d1b2836794da4bbc4f",
+            "3c09f956e6319409be1c2f6210ef02cd8e3571ff86eb383065524aa308b01e0c",
+            "ad74661ddbb6d356a1d95d8a2a12c0e3a077a7e138d2d131060694776d1b73c0"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0025--w00007--c0003900",
+          "center_seconds": 3.9,
+          "requested_timestamps_seconds": [
+            3.5,
+            3.9,
+            4.3
+          ],
+          "selected_frame_indices": [
+            106,
+            118,
+            130
+          ],
+          "selected_pts_seconds": [
+            3.532489,
+            3.932467,
+            4.332333
+          ],
+          "full_frame_jpeg_sha256": [
+            "507a0d332d7a13d3f2958045c68669f0b6c84427f9466be575cb5fa91100adc3",
+            "a9b57d90909bc096e1673982ed9869f3bb7d7b5deb2668738043331e46a663d1",
+            "d03582cb9047f63910b0f0656cbe76ca4f7df69f5a138036c37ede388d750108"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "custom_id": "segment_0025--w00010--c0005400",
+          "center_seconds": 5.4,
+          "requested_timestamps_seconds": [
+            5.0,
+            5.4,
+            5.8
+          ],
+          "selected_frame_indices": [
+            151,
+            163,
+            175
+          ],
+          "selected_pts_seconds": [
+            5.032211,
+            5.432078,
+            5.831944
+          ],
+          "full_frame_jpeg_sha256": [
+            "7d2a65adfa6c48550ec77d5888de9300e3102267faa3b0fc2192e636772fe877",
+            "04126bd908125ba4432261080356fc4d5c8ccc7712f4894a806fd28354ee3f6c",
+            "fcf7fc56f850c9315df7b1af48cf4ead1121950017645d79c7d8decefdfe5f97"
+          ],
+          "duration_boundary_clamped": [
+            false,
+            false,
+            false
+          ]
+        }
+      ]
+    }
+  ]
+}

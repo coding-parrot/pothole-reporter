@@ -21,6 +21,7 @@ android-app/android/*.keystore
 eval/images/
 eval/results/
 eval/.private-release-gate/
+eval/.private-drive-corpus/
 eval/.rad-data/
 eval/.rad-cache/
 eval/rad-data/

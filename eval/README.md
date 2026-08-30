@@ -167,6 +167,29 @@ or schema error, any missed positive phase, or any accepted negative phase. Use
 `--source SOURCE_ID=/path/to/video` instead of `--source-dir` when explicit mappings are
 more convenient. `--check-manifest` is the media-free, API-free CI contract check.
 
+## Private Desktop drive corpus
+
+`private_drive_corpus.json` turns all 30 supplied Desktop segments into a permanent,
+metadata-only corpus: source hashes, stream metadata, the exact 3,314-window VOD cadence,
+and 50 reviewed hard-negative or abstention phases. Videos and generated frames stay local.
+The exhaustive model output is recorded only as an audit receipt; it is not a label.
+These MP4 reconstructions test saved-video behavior and do not claim raw CameraX accuracy.
+
+```bash
+# Normal source-free check (also runs in tests/run-all.sh).
+python3 eval/private_drive_corpus.py --check-manifest
+
+# Verify all exact source bytes, decode every video, and regenerate all 150 full frames.
+python3 eval/private_drive_corpus.py --source-dir "/path/to/pothole video segments" --validate-only
+
+# Optional, explicit, bounded and resumable production-model gate (50 phases today).
+python3 eval/private_drive_corpus.py --source-dir "/path/to/pothole video segments" \
+  --paid-run --max-calls 50
+```
+
+The Desktop cases test false-positive rejection and abstention. Recall remains gated by
+the separate owner-confirmed positives in `private_release_gate.json` and the RAD suite.
+
 ## Arms
 
 `baseline` is read live from `DETECT_PROMPT` in `static/standalone.js`, so the
