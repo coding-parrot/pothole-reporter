@@ -1,0 +1,122 @@
+{
+  "schema_version": "private-eval-ground-truth-v1",
+  "label_policy": "Only explicit owner/tester labels enter owner_ground_truth. Assistant-reviewed material remains diagnostic or excluded.",
+  "release_events": [
+    {
+      "event_id": "owner-segment-1-second-35",
+      "physical_event_group_id": "owner-drive-pothole-segment-1-second-35",
+      "semantic_class": "pothole",
+      "label_provenance": "owner_confirmed"
+    },
+    {
+      "event_id": "owner-segment-2-second-4",
+      "physical_event_group_id": "owner-drive-pothole-segment-2-second-4",
+      "semantic_class": "pothole",
+      "label_provenance": "owner_confirmed"
+    },
+    {
+      "event_id": "tester-zebra-raised-speed-breaker",
+      "physical_event_group_id": "owner-speed-breaker-zebra",
+      "semantic_class": "speed_breaker_or_traffic_calming",
+      "label_provenance": "owner_confirmed"
+    },
+    {
+      "event_id": "tester-second-speed-breaker",
+      "physical_event_group_id": "owner-speed-breaker-second",
+      "semantic_class": "speed_breaker_or_traffic_calming",
+      "label_provenance": "owner_confirmed"
+    }
+  ],
+  "excluded_release_events": [
+    {
+      "event_id": "tester-opening-grid-calming",
+      "reason": "independent assistant label; not owner-confirmed"
+    }
+  ],
+  "manual_images": [
+    {
+      "id": "owner-manual-pothole-001",
+      "sha256": "07a0c490c4151f4e24c83e62bf865743422839260a72d0d86f29b4c030a9d264",
+      "width": 2304,
+      "height": 4096,
+      "label": "pothole",
+      "semantic_class": "pothole",
+      "label_provenance": "owner_confirmed",
+      "capture_provenance": "owner_manual_camera",
+      "raw_camerax_accuracy_eligible": false,
+      "rationale": "Owner-confirmed medium pothole with loose stones near the kerb."
+    },
+    {
+      "id": "owner-manual-pothole-002",
+      "sha256": "059cf4b031e58e837e18fadf30bfa608c34df61a233885efaedbf5acb477e330",
+      "width": 2304,
+      "height": 4096,
+      "label": "pothole",
+      "semantic_class": "pothole",
+      "label_provenance": "owner_confirmed",
+      "capture_provenance": "owner_manual_camera",
+      "raw_camerax_accuracy_eligible": false,
+      "rationale": "Owner-confirmed eroded patches and open potholes near the lane line."
+    },
+    {
+      "id": "owner-manual-pothole-003",
+      "sha256": "cb3269835e0f5ba863e143bf013a3bdfaa51097fd50624954114e5340760442d",
+      "width": 2304,
+      "height": 4096,
+      "label": "pothole",
+      "semantic_class": "pothole",
+      "label_provenance": "owner_confirmed",
+      "capture_provenance": "owner_manual_camera",
+      "raw_camerax_accuracy_eligible": false,
+      "rationale": "Owner-confirmed close-range pothole."
+    },
+    {
+      "id": "owner-manual-pothole-004",
+      "sha256": "139a5bd42c77a873960f771dbcd402568c5d6e4f5cab53e52c984d10af150a93",
+      "width": 2304,
+      "height": 4096,
+      "label": "pothole",
+      "semantic_class": "pothole",
+      "label_provenance": "owner_confirmed",
+      "capture_provenance": "owner_manual_camera",
+      "raw_camerax_accuracy_eligible": false,
+      "rationale": "Owner-confirmed close-range pothole."
+    },
+    {
+      "id": "owner-manual-pothole-005",
+      "sha256": "5118965d17c99b5b08b894d426a390b1fa6f460f209740fe93b74517b622fc7b",
+      "width": 2304,
+      "height": 4096,
+      "label": "pothole",
+      "semantic_class": "pothole",
+      "label_provenance": "owner_confirmed",
+      "capture_provenance": "owner_manual_camera",
+      "raw_camerax_accuracy_eligible": false,
+      "rationale": "Owner-confirmed close-range pothole."
+    },
+    {
+      "id": "owner-manual-pothole-006",
+      "sha256": "eb0981f639f2c97e17eea43b716216c496af32ad03476803a1b8931a72c1b470",
+      "width": 2304,
+      "height": 4096,
+      "label": "pothole",
+      "semantic_class": "pothole",
+      "label_provenance": "owner_confirmed",
+      "capture_provenance": "owner_manual_camera",
+      "raw_camerax_accuracy_eligible": false,
+      "rationale": "Owner-confirmed broken asphalt and loose aggregate across the lane."
+    },
+    {
+      "id": "owner-kanjur-drivable-edge-pothole-2026-08-25",
+      "sha256": "e56538191e6775cbd83c5e1fa95c16d3bee3f5a13a5417ccb6853b191cb1fbc3",
+      "width": 960,
+      "height": 1280,
+      "label": "pothole",
+      "semantic_class": "drivable_surface_edge_pothole",
+      "label_provenance": "owner_confirmed",
+      "capture_provenance": "app_manual_camera",
+      "raw_camerax_accuracy_eligible": false,
+      "rationale": "Owner-confirmed road-edge cavity on the drivable surface beside a raised slab."
+    }
+  ]
+}

@@ -190,6 +190,36 @@ python3 eval/private_drive_corpus.py --source-dir "/path/to/pothole video segmen
 The Desktop cases test false-positive rejection and abstention. Recall remains gated by
 the separate owner-confirmed positives in `private_release_gate.json` and the RAD suite.
 
+### Materialized private eval
+
+The committed manifests can be converted into a real, persistent local image eval. The
+export contains 67 owner-ground-truth images across 27 cases and 11 physical events
+(two video potholes, two confirmed speed breakers and seven manual pothole photos), plus
+150 separately marked diagnostic expected-reject frames. It excludes the assistant-labelled
+opening-grid event. `desktop_pool.jsonl` also retains all 3,314 Desktop windows: 50 point
+to diagnostic cases and the other 3,264 remain explicitly unlabelled. Model results never
+become labels.
+
+```bash
+python3 eval/materialize_private_eval.py \
+  --desktop-source-dir "/path/to/pothole video segments" \
+  --release-source-dir "/path/containing/private/release/videos" \
+  --manual-source-dir eval/images \
+  --export-dataset
+
+# Later integrity check; source videos and API access are not needed.
+python3 eval/materialize_private_eval.py --check-dataset
+```
+
+The ignored `eval/.private-drive-corpus/dataset/` directory contains content-addressed,
+uncropped JPEGs, `labels.jsonl`, `bursts.jsonl`, `desktop_pool.jsonl` and a sealed
+`dataset.json`. Production-accuracy consumers must filter to both
+`eval_tier=owner_ground_truth` and `accuracy_metric_eligible=true`, then group metrics by
+`physical_event_group_id`; external phone recordings remain semantic regressions only.
+Desktop diagnostics have `label=null` and only an
+`expected_decision=reject`; they are not ground-truth negatives. All records preserve the
+capture provenance and explicitly avoid raw CameraX accuracy claims.
+
 ## Arms
 
 `baseline` is read live from `DETECT_PROMPT` in `static/standalone.js`, so the
