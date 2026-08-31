@@ -25,6 +25,8 @@ import dev.aiengg.potholereporter.drive.DriveEndSummary
 import dev.aiengg.potholereporter.drive.DriveForegroundService
 import dev.aiengg.potholereporter.drive.DriveSessionLimitPolicy
 import dev.aiengg.potholereporter.drive.NativeDriveEndSummaryStore
+import dev.aiengg.potholereporter.drive.NativeFrameSourceConfig
+import dev.aiengg.potholereporter.drive.NativeFrameSourceKind
 import dev.aiengg.potholereporter.drive.NativeKeyframeFiles
 import dev.aiengg.potholereporter.drive.NativeMediaFilesystemMutation
 import dev.aiengg.potholereporter.drive.NativeMediaReconciliationEpoch
@@ -232,6 +234,10 @@ class DriveModePlugin : Plugin() {
                 put("maxDurationMinutes", status.maxDurationMinutes)
                 put("captureBlocked", status.captureBlocked)
                 put("captureIssue", status.captureIssue)
+                put("captureSource", status.captureSource)
+                put("sourceActive", status.sourceActive)
+                put("sourceState", status.sourceState)
+                put("sourceIssue", status.sourceIssue)
             }
             notifyListeners("driveStatusChange", data)
         }
@@ -263,18 +269,27 @@ class DriveModePlugin : Plugin() {
             DriveSessionLimitPolicy.MIN_LIMIT_MINUTES,
             DriveSessionLimitPolicy.MAX_LIMIT_MINUTES
         )
+        val sourceConfig = NativeFrameSourceConfig.create(
+            call.getString("captureSource"),
+            call.getString("dashcamRtspUrl")
+        ).getOrElse { error ->
+            call.reject(error.message ?: "The video source is invalid")
+            return
+        }
 
         if (synchronized(pendingStartLock) { nativeClearInProgress }) {
             call.reject("App data deletion is in progress")
             return
         }
 
-        if (!hasDrivePermissions()) {
-            call.reject("Camera and Precise Location permission are required before Drive Mode can start")
+        if (!hasDrivePermissions(sourceConfig.kind)) {
+            call.reject(if (sourceConfig.kind == NativeFrameSourceKind.DASHCAM)
+                "Precise Location permission is required before dashcam Drive Mode can start"
+            else "Camera and Precise Location permission are required before Drive Mode can start")
             return
         }
         if (!hasNotificationPermission()) {
-            call.reject("Enable Pothole Reporter notifications in Android Settings so camera use is always visible")
+            call.reject("Enable Pothole Reporter notifications in Android Settings so Drive capture is always visible")
             return
         }
         if (apiKey.isBlank()) {
@@ -298,7 +313,7 @@ class DriveModePlugin : Plugin() {
             return
         }
         if (!activityIsVisibleForDriveStart()) {
-            call.reject("Return to Pothole Reporter and tap Drive again. Android only allows camera Drive Mode to start while the app is visible")
+            call.reject("Return to Pothole Reporter and tap Drive again. Android only allows Drive Mode to start while the app is visible")
             return
         }
         val callerStartRequestId = call.getString("startRequestId")?.let { candidate ->
@@ -320,7 +335,7 @@ class DriveModePlugin : Plugin() {
                 else "Drive Mode is already starting")
             return
         }
-        if (!DriveForegroundService.admitStart(pending.requestId)) {
+        if (!DriveForegroundService.admitStart(pending.requestId, sourceConfig.kind)) {
             synchronized(pendingStartLock) {
                 if (pendingStart === pending) pendingStart = null
             }
@@ -336,6 +351,10 @@ class DriveModePlugin : Plugin() {
             putExtra(DriveForegroundService.EXTRA_LANGUAGE, language)
             putExtra(DriveForegroundService.EXTRA_DEBUG, debug)
             putExtra(DriveForegroundService.EXTRA_RECORD_VIDEO, recordVideo)
+            putExtra(DriveForegroundService.EXTRA_CAPTURE_SOURCE, sourceConfig.kind.wireValue)
+            sourceConfig.rtspUrl?.let {
+                putExtra(DriveForegroundService.EXTRA_DASHCAM_RTSP_URL, it)
+            }
             putExtra(DriveForegroundService.EXTRA_MAX_DRIVE_MINUTES, maxDurationMinutes)
             putExtra(DriveForegroundService.EXTRA_START_REQUEST_ID, pending.requestId)
         }
@@ -565,7 +584,9 @@ class DriveModePlugin : Plugin() {
             already = status.already,
             discarded = discardData,
             reason = status.status,
-            startRequestId = status.startRequestId
+            startRequestId = status.startRequestId,
+            captureSource = NativeFrameSourceKind.fromWireValue(status.captureSource)
+                ?: NativeFrameSourceKind.PHONE_CAMERA
         )
 
     @PluginMethod
@@ -689,9 +710,16 @@ class DriveModePlugin : Plugin() {
 
     @PluginMethod
     fun requestDrivePermissions(call: PluginCall) {
-        val aliases = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            arrayOf("camera", "location", "notifications")
-        } else arrayOf("camera", "location")
+        val sourceKind = NativeFrameSourceKind.fromWireValue(call.getString("captureSource"))
+        if (sourceKind == null) {
+            call.reject("captureSource must be phone_camera or dashcam")
+            return
+        }
+        val aliases = buildList {
+            if (sourceKind.requiresCameraPermission) add("camera")
+            add("location")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add("notifications")
+        }.toTypedArray()
         requestPermissionForAliases(aliases, call, "drivePermissionsResult")
     }
 
@@ -700,8 +728,10 @@ class DriveModePlugin : Plugin() {
     @Keep
     @PermissionCallback
     fun drivePermissionsResult(call: PluginCall) {
+        val sourceKind = NativeFrameSourceKind.fromWireValue(call.getString("captureSource"))
+            ?: NativeFrameSourceKind.PHONE_CAMERA
         val ret = JSObject().apply {
-            put("granted", hasDrivePermissions())
+            put("granted", hasDrivePermissions(sourceKind))
             put("notificationsGranted", Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
         }
@@ -2056,8 +2086,12 @@ class DriveModePlugin : Plugin() {
         return arr
     }
 
-    private fun hasDrivePermissions(): Boolean =
-        ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+    private fun hasDrivePermissions(
+        sourceKind: NativeFrameSourceKind = NativeFrameSourceKind.PHONE_CAMERA
+    ): Boolean =
+        (!sourceKind.requiresCameraPermission ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED) &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
                 PackageManager.PERMISSION_GRANTED
 
@@ -2091,6 +2125,10 @@ class DriveModePlugin : Plugin() {
         put("maxDurationMinutes", status.maxDurationMinutes)
         put("captureBlocked", status.captureBlocked)
         put("captureIssue", status.captureIssue)
+        put("captureSource", status.captureSource)
+        put("sourceActive", status.sourceActive)
+        put("sourceState", status.sourceState)
+        put("sourceIssue", status.sourceIssue)
     }
 
     private suspend fun nearbyVideoFrameDataUrls(
@@ -2193,6 +2231,7 @@ class DriveModePlugin : Plugin() {
         put("discarded", summary.discarded)
         put("reason", summary.reason)
         put("startRequestId", summary.startRequestId)
+        put("captureSource", summary.captureSource.wireValue)
     }
 
     private sealed class BridgeImageSource {

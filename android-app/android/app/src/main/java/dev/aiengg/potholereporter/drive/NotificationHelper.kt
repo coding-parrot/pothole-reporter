@@ -68,7 +68,8 @@ object NotificationHelper {
         videoSupported: Boolean = true,
         recordingIssue: String? = null,
         cameraActive: Boolean = false,
-        captureStopped: Boolean = false
+        captureStopped: Boolean = false,
+        captureSource: NativeFrameSourceKind = NativeFrameSourceKind.PHONE_CAMERA
     ): Notification {
         val openAppIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -97,25 +98,38 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val cameraStarting = !cameraActive && (statusText?.contains("starting", ignoreCase = true) == true ||
+        val dashcam = captureSource == NativeFrameSourceKind.DASHCAM
+        val sourceStarting = !cameraActive && (statusText?.contains("starting", ignoreCase = true) == true ||
             statusText?.contains("waiting", ignoreCase = true) == true)
         val title = when {
-            isStopping && captureStopped -> "Drive Mode · Camera Off · Saving"
+            isStopping && captureStopped -> if (dashcam)
+                "Drive Mode · Dashcam Off · Saving" else "Drive Mode · Camera Off · Saving"
             isStopping -> "Drive Mode Stopping Safely"
-            isPausing -> "Drive Mode Pausing · Camera Stopping"
-            isPaused -> "Drive Mode Paused · Camera Off"
-            cameraStarting -> "Drive Mode · Camera Starting"
-            !cameraActive -> "Drive Mode · Camera Interrupted"
+            isPausing -> if (dashcam)
+                "Drive Mode Pausing · Dashcam Disconnecting" else "Drive Mode Pausing · Camera Stopping"
+            isPaused -> if (dashcam)
+                "Drive Mode Paused · Dashcam Off" else "Drive Mode Paused · Camera Off"
+            sourceStarting -> if (dashcam)
+                "Drive Mode · Dashcam Connecting" else "Drive Mode · Camera Starting"
+            !cameraActive -> if (dashcam)
+                "Drive Mode · Dashcam Interrupted" else "Drive Mode · Camera Interrupted"
+            dashcam -> "Drive Mode · Dashcam Active"
             isRecording -> "Drive Mode · Recording Video"
             recordingEnabled && !recordingIssue.isNullOrBlank() -> "Drive Mode · Video Not Recording"
             else -> "Drive Mode · Camera Active"
         }
         val captureDisclosure = when {
-            isStopping && captureStopped -> "Camera off · finalizing saved data"
-            isPausing -> "Camera and video are stopping safely"
-            isPaused -> "Camera off"
-            cameraStarting -> "Camera starting · persistent status remains visible"
-            !cameraActive -> "Camera unavailable · detection and video are paused"
+            isStopping && captureStopped -> if (dashcam)
+                "Dashcam off · finalizing saved data" else "Camera off · finalizing saved data"
+            isPausing -> if (dashcam)
+                "Dashcam stream is stopping safely" else "Camera and video are stopping safely"
+            isPaused -> if (dashcam) "Dashcam off" else "Camera off"
+            sourceStarting -> if (dashcam)
+                "Dashcam connecting · persistent status remains visible"
+            else "Camera starting · persistent status remains visible"
+            !cameraActive -> if (dashcam)
+                "Dashcam unavailable · detection is paused" else "Camera unavailable · detection and video are paused"
+            dashcam -> "Dashcam active · selected complete frames saved · audio off"
             isRecording -> "Camera active · video saved locally"
             recordingEnabled && !recordingIssue.isNullOrBlank() -> "Camera active · video not recording"
             recordingEnabled && !videoSupported -> "Camera active · video unavailable"

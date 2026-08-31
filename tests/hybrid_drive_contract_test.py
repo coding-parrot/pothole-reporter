@@ -62,10 +62,13 @@ check("camera privacy uses public AppOps and releases capture until access retur
       and "releaseCamera = true" in INTERLOCK[INTERLOCK.index("cameraAccessBlocked -> blocked("):])
 start_session = SERVICE[SERVICE.index("private fun startDriveSession("):
                         SERVICE.index("private fun startForegroundNow()")]
-check("startup waits for a fresh GPS fix before CameraX is opened",
+check("startup waits for a fresh GPS fix before the selected video source is opened",
       "manager.startCamera" not in start_session
       and "accessCameraReleased = true" in start_session
-      and start_session.index("cameraManager = NativeDriveCameraManager(")
+      and "frameSource = when (captureSourceKind)" in start_session
+      and "NativeFrameSourceKind.PHONE_CAMERA -> NativeDriveCameraManager(" in start_session
+      and "NativeFrameSourceKind.DASHCAM -> NativeRtspFrameSource(" in start_session
+      and start_session.index("frameSource = when (captureSourceKind)")
           < start_session.index("refreshCaptureInterlock()"))
 check("Android 10 never receives the Android 11 camera foreground-service bit",
       "Build.VERSION.SDK_INT >= Build.VERSION_CODES.R" in SERVICE
@@ -75,11 +78,12 @@ check("Android 10 never receives the Android 11 camera foreground-service bit",
       and SERVICE.index("FOREGROUND_SERVICE_TYPE_CAMERA")
           < SERVICE.index("Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q"))
 check("native detection requires at least two real source frames",
-      "MIN_DETECTION_SOURCE_FRAMES = 2" in CAMERA
+      "const val MIN_INFERENCE_FRAMES = 2" in
+          (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeFrameSource.kt").read_text()
       and "NativeRollingBurstWindow.CAPACITY" in CAMERA
       and "NativeRollingBurstWindow.disposition(" in CAMERA
-      and "burstFrames.size < MIN_DETECTION_SOURCE_FRAMES" in CAMERA
-      and "burstFrames.size !in NativeDriveCameraManager.MIN_DETECTION_SOURCE_FRAMES.." in INFERENCE
+      and "burstFrames.size < NativeFrameBurstContract.MIN_INFERENCE_FRAMES" in CAMERA
+      and "burstFrames.size !in NativeFrameBurstContract.MIN_INFERENCE_FRAMES.." in INFERENCE
       and "NativeRollingBurstWindow.OUTPUT_COUNT" in INFERENCE)
 check("native capture samples a bounded three-frame source burst only when due",
       "const val CAPACITY = 3" in (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeRollingBurstWindow.kt").read_text()
@@ -114,12 +118,12 @@ check("analyzer allocation failure reaches the service instead of killing captur
       and "ownedBitmap?.recycleSafely()" in process_proxy)
 check("native Drive refuses approximate-only location before camera startup",
       "Camera and Precise Location permission are required" in PLUGIN
-      and "private fun hasDrivePermissions()" in PLUGIN
+      and "private fun hasDrivePermissions(" in PLUGIN
       and "Manifest.permission.ACCESS_FINE_LOCATION" in
-          PLUGIN[PLUGIN.index("private fun hasDrivePermissions()"):
+          PLUGIN[PLUGIN.index("private fun hasDrivePermissions("):
                  PLUGIN.index("private fun hasNotificationPermission()")]
       and "Manifest.permission.ACCESS_COARSE_LOCATION" not in
-          PLUGIN[PLUGIN.index("private fun hasDrivePermissions()"):
+          PLUGIN[PLUGIN.index("private fun hasDrivePermissions("):
                  PLUGIN.index("private fun hasNotificationPermission()")])
 runtime_location_permission = LOCATION[LOCATION.index("private fun hasLocationPermission()"):
                                        LOCATION.index("private fun locationServicesEnabled()")]
@@ -233,11 +237,11 @@ check("hybrid status is explicit and all shipped web copies match",
           == (ROOT / "static/index.html").read_bytes()
       and (ROOT / "android-app/android/app/src/main/assets/public/index.html").read_bytes()
           == (ROOT / "static/index.html").read_bytes())
-check("Android release identity is 1.36.10 code 65 everywhere",
-      re.search(r"versionCode\s+65\b", GRADLE)
-      and re.search(r'versionName\s+"1\.36\.10"', GRADLE)
-      and 'android:versionCode="65"' in RELEASE
-      and 'android:versionName="1.36.10"' in RELEASE)
+check("Android release identity is 1.37.0 code 66 everywhere",
+      re.search(r"versionCode\s+66\b", GRADLE)
+      and re.search(r'versionName\s+"1\.37\.0"', GRADLE)
+      and 'android:versionCode="66"' in RELEASE
+      and 'android:versionName="1.37.0"' in RELEASE)
 
 if failures:
     print(f"\nFAIL: {len(failures)} hybrid Drive contract check(s) failed")

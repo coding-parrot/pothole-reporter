@@ -35,6 +35,16 @@ class DriveStartRegistryTest {
     }
 
     @Test
+    fun pendingStartPreservesItsSelectedCaptureSource() {
+        val registry = DriveStartRegistry(nowMs = { 100L })
+
+        assertTrue(registry.admit("dashcam-start", NativeFrameSourceKind.DASHCAM))
+        assertEquals(NativeFrameSourceKind.DASHCAM, registry.pendingCaptureSource())
+        registry.clear("dashcam-start")
+        assertNull(registry.pendingCaptureSource())
+    }
+
+    @Test
     fun staleAdmissionExpiresUsingTheInjectedClock() {
         var now = 100L
         val registry = DriveStartRegistry(nowMs = { now }, admissionTtlMs = 30L)

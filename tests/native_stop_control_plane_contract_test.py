@@ -55,8 +55,8 @@ check(
     and PLUGIN.count('put("captureStopped", status.captureStopped)') == 2,
 )
 check(
-    "only successful normal or emergency CameraX closure publishes camera-off",
-    "manager?.stopCameraSafely()" in camera_task
+    "only successful normal or emergency frame-source closure publishes capture-off",
+    "manager?.stopSafely()" in camera_task
     and "cameraStoppedCleanly = true" in camera_task
     and "manager?.closeImmediately()" in camera_task
     and "cameraStoppedCleanly = closed.isSuccess" in camera_task
@@ -64,7 +64,7 @@ check(
     and camera_task.index("if (cameraStoppedCleanly)")
         < camera_task.index("captureStopped = true")
     and camera_task.index("captureStopped = true")
-        < camera_task.index('publish("Camera off · finalizing saved data")'),
+        < camera_task.index('publish(sourceOffStatus("finalizing saved data"))'),
 )
 check(
     "camera-off status precedes persistence while Stop callbacks remain after durability",
@@ -118,10 +118,10 @@ check(
     and 'recordStopError("A Stop callback failed"' not in stop,
 )
 check(
-    "a failed CameraX close remains reachable and keeps foreground disclosure visible",
+    "a failed frame-source close remains reachable and keeps foreground disclosure visible",
     "cameraStoppedCleanly = emergencyClosed.isSuccess" in stop
     and stop.count("cameraStoppedCleanly = emergencyClosed.isSuccess") >= 2
-    and stop.count("if (cameraStoppedCleanly) {\n                        cameraManager = null") >= 1
+    and stop.count("if (cameraStoppedCleanly) {\n                        frameSource = null") >= 1
     and "if (!cameraStoppedCleanly) {\n                            val emergencyClosed" in stop
     and "if (cameraManager != null)" not in stop[
         stop.index("unexpected failure in the normal NonCancellable cleanup"):
@@ -148,8 +148,9 @@ check(
 )
 check(
     "notification stays foreground and truthfully distinguishes both Stop phases",
-    'isStopping && captureStopped -> "Drive Mode · Camera Off · Saving"' in NOTIFICATION
-    and 'isStopping && captureStopped -> "Camera off · finalizing saved data"' in NOTIFICATION
+    '"Drive Mode · Dashcam Off · Saving"' in NOTIFICATION
+    and '"Drive Mode · Camera Off · Saving"' in NOTIFICATION
+    and '"Dashcam off · finalizing saved data" else "Camera off · finalizing saved data"' in NOTIFICATION
     and "if (!isStopping && !isPausing)" in NOTIFICATION
     and 'builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop"' in NOTIFICATION,
 )

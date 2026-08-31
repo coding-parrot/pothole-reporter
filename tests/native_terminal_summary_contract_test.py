@@ -95,10 +95,14 @@ check(
 check(
     "accepted native Start remains observable across plugin and WebView recreation",
     "val isStarting: Boolean = false" in SERVICE
-    and "fun admitStart(requestId: String)" in SERVICE
+    and "fun admitStart(" in SERVICE
+    and "captureSource: NativeFrameSourceKind" in SERVICE[
+        SERVICE.index("fun admitStart("):
+        SERVICE.index("fun cancelStartAdmission")
+    ]
     and "private val admissionTtlMs: Long = 30_000L" in START_REGISTRY
     and "nowMs() - current.admittedAtMs > admissionTtlMs" in START_REGISTRY
-    and "DriveForegroundService.admitStart(pending.requestId)" in PLUGIN
+    and "DriveForegroundService.admitStart(pending.requestId, sourceConfig.kind)" in PLUGIN
     and 'put("isStarting", status.isStarting)' in PLUGIN
     and "if (status && status.isStarting)" in restore
     and "driveStarting && currentDrive && !currentDrive.stopping && !observedSession" in restore
@@ -140,6 +144,19 @@ check(
     and "committedDrive.captureStopped = false" in WEB,
 )
 check(
+    "terminal summaries preserve their exact phone-camera or dashcam source",
+    "val captureSource: NativeFrameSourceKind = NativeFrameSourceKind.PHONE_CAMERA" in SERVICE
+    and 'put("captureSource", summary.captureSource.wireValue)' in STORE
+    and 'value.optNullableString("captureSource")' in STORE
+    and 'put("captureSource", summary.captureSource.wireValue)' in PLUGIN
+    and "val endedCaptureSource = captureSourceKind" in SERVICE
+    and "captureSource = endedCaptureSource" in SERVICE
+    and "val destroyedCaptureSource = captureSourceKind" in SERVICE
+    and "captureSource = destroyedCaptureSource" in abnormal_completion
+    and "foreground dashcam service" in SERVICE
+    and "summary && summary.captureSource" in finish,
+)
+check(
     "Photo claims its reentry guard before waiting for initial restore",
     photo_click.index("photoCaptureStarting = true")
         < photo_click.index("await nativeInitialRestorePromise.catch")
@@ -171,6 +188,7 @@ check(
     "MAX_ENTRIES = 32" in STORE
     and "Context.MODE_PRIVATE" in STORE
     and "discarded" in STORE and "reason" in STORE and "error" in STORE
+    and "captureSource" in STORE
     and "editor.commit()" in STORE
     and "NativeDriveEndSummaryStore.clear(context)" in clear_data,
 )

@@ -165,10 +165,10 @@ python3 "$RELEASE_ASSET_VERIFIER" \
 same_json "$SOURCE_CAPACITOR_CONFIG" "$PACKAGED_CAPACITOR_CONFIG" \
   "packaged Capacitor runtime config"
 
-echo "2/7 building signed release bundle and APK"
+echo "2/7 linting and building signed release bundle and APK"
 rm -f "$AAB_PATH" "$APK_PATH"
 (cd "$ANDROID_ROOT" && ./gradlew --no-daemon --offline \
-  :app:bundleRelease :app:assembleRelease -q)
+  :app:lintRelease :app:bundleRelease :app:assembleRelease -q)
 [ -s "$AAB_PATH" ] || fail "Gradle produced no non-empty AAB"
 [ -s "$APK_PATH" ] || fail "Gradle produced no non-empty release APK"
 [ -s "$R8_MAPPING_PATH" ] || fail "R8 mapping is missing; release code shrinking is not active"
@@ -179,9 +179,11 @@ fi
 
 echo "3/7 validating release identity and manifest policy"
 grep -Fq 'package="dev.aiengg.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="65"' "$BUNDLE_MANIFEST" || fail "expected versionCode 65"
-grep -Fq 'android:versionName="1.36.10"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.36.10"
+grep -Fq 'android:versionCode="66"' "$BUNDLE_MANIFEST" || fail "expected versionCode 66"
+grep -Fq 'android:versionName="1.37.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.37.0"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
+grep -Fq 'android:dataExtractionRules="@xml/data_extraction_rules"' "$BUNDLE_MANIFEST" || fail "data extraction exclusions are missing"
+grep -Fq 'android:fullBackupContent="@xml/backup_rules"' "$BUNDLE_MANIFEST" || fail "legacy backup exclusions are missing"
 grep -Fq 'com.bmc.potholequickfix' "$BUNDLE_MANIFEST" || fail "BMC Pothole QuickFix package query is missing"
 grep -Fq 'com.newnmmc.app' "$BUNDLE_MANIFEST" || fail "My NMMC package query is missing"
 grep -Fq 'com.nyatitechnologies.pmcroadmitra' "$BUNDLE_MANIFEST" || fail "PMC Road Mitra package query is missing"
@@ -204,7 +206,7 @@ grep -Fq 'com.bpsms.jansamadhan' "$BUNDLE_MANIFEST" || fail "official Bihar Jan 
 grep -Fq 'com.sociomatic.janasunani' "$BUNDLE_MANIFEST" || fail "official Odisha Jana Sunani app package query is missing"
 grep -Fq 'com.google.android.apps.maps' "$BUNDLE_MANIFEST" || fail "Google Maps package query is missing"
 grep -Fq 'dev.aiengg.potholereporter.drive.DriveForegroundService' "$BUNDLE_MANIFEST" || fail "native Drive foreground service is missing"
-grep -Fq 'android:foregroundServiceType="camera|location"' "$BUNDLE_MANIFEST" || fail "Drive foreground service types are wrong"
+grep -Fq 'android:foregroundServiceType="camera|connectedDevice|location"' "$BUNDLE_MANIFEST" || fail "Drive foreground service types are wrong"
 
 if grep -Eq 'android:(debuggable|testOnly)="true"' "$BUNDLE_MANIFEST"; then
   fail "release manifest is debuggable or test-only"
@@ -214,7 +216,7 @@ if grep -Fq 'android:requestLegacyExternalStorage=' "$BUNDLE_MANIFEST"; then
 fi
 
 actual_permissions=$(sed -n 's/.*<uses-permission android:name="\([^"]*\)".*/\1/p' "$BUNDLE_MANIFEST" | sort -u)
-expected_permissions=$'android.permission.ACCESS_COARSE_LOCATION\nandroid.permission.ACCESS_FINE_LOCATION\nandroid.permission.ACCESS_NETWORK_STATE\nandroid.permission.CAMERA\nandroid.permission.FOREGROUND_SERVICE\nandroid.permission.FOREGROUND_SERVICE_CAMERA\nandroid.permission.FOREGROUND_SERVICE_LOCATION\nandroid.permission.INTERNET\nandroid.permission.POST_NOTIFICATIONS\nandroid.permission.WAKE_LOCK\ndev.aiengg.potholereporter.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+expected_permissions=$'android.permission.ACCESS_COARSE_LOCATION\nandroid.permission.ACCESS_FINE_LOCATION\nandroid.permission.ACCESS_NETWORK_STATE\nandroid.permission.CAMERA\nandroid.permission.CHANGE_NETWORK_STATE\nandroid.permission.FOREGROUND_SERVICE\nandroid.permission.FOREGROUND_SERVICE_CAMERA\nandroid.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE\nandroid.permission.FOREGROUND_SERVICE_LOCATION\nandroid.permission.INTERNET\nandroid.permission.POST_NOTIFICATIONS\nandroid.permission.WAKE_LOCK\ndev.aiengg.potholereporter.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
 if [ "$actual_permissions" != "$expected_permissions" ]; then
   echo "Expected permissions:" >&2
   printf '%s\n' "$expected_permissions" >&2

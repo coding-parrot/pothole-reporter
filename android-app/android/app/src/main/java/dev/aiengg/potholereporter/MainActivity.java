@@ -1,13 +1,16 @@
 package dev.aiengg.potholereporter;
 
 import android.graphics.Color;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import androidx.camera.view.PreviewView;
 import dev.aiengg.potholereporter.drive.DriveForegroundService;
+import dev.aiengg.potholereporter.drive.NativeDashcamPreviewListener;
 import dev.aiengg.potholereporter.plugin.DriveModePlugin;
 import com.getcapacitor.BridgeActivity;
 
@@ -18,6 +21,9 @@ public class MainActivity extends BridgeActivity {
 
     private FrameLayout drivePreviewHost;
     private PreviewView drivePreview;
+    private ImageView driveDashcamPreview;
+    private Bitmap displayedDashcamFrame;
+    private NativeDashcamPreviewListener dashcamPreviewListener;
     private long drivePreviewRequestGeneration = 0L;
 
     @Override
@@ -35,11 +41,23 @@ public class MainActivity extends BridgeActivity {
 
         drivePreview = new PreviewView(this);
         drivePreview.setImplementationMode(PreviewView.ImplementationMode.COMPATIBLE);
-        drivePreview.setScaleType(PreviewView.ScaleType.FILL_CENTER);
+        // The transparent phone preview shows the same complete field of view used by
+        // analysis. Letterbox when necessary; never visually imply an edge crop.
+        drivePreview.setScaleType(PreviewView.ScaleType.FIT_CENTER);
         drivePreview.setBackgroundColor(Color.BLACK);
         drivePreviewHost = new FrameLayout(this);
         drivePreviewHost.setBackgroundColor(Color.BLACK);
         drivePreviewHost.addView(drivePreview, new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+        driveDashcamPreview = new ImageView(this);
+        // FIT_CENTER preserves the complete dashboard-camera field of view. Any unused
+        // space remains black instead of removing the edges of the decoded frame.
+        driveDashcamPreview.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        driveDashcamPreview.setBackgroundColor(Color.BLACK);
+        driveDashcamPreview.setVisibility(View.GONE);
+        drivePreviewHost.addView(driveDashcamPreview, new FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         ));
@@ -123,6 +141,35 @@ public class MainActivity extends BridgeActivity {
             callback.onComplete(false);
             return;
         }
+        if (service.isDashcamSource()) {
+            drivePreview.setVisibility(View.GONE);
+            driveDashcamPreview.setVisibility(View.VISIBLE);
+            NativeDashcamPreviewListener listener = new NativeDashcamPreviewListener() {
+                @Override
+                public void onFrame(Bitmap frame) {
+                    runOnUiThread(() -> {
+                        if (dashcamPreviewListener != this || drivePreviewHost == null ||
+                            drivePreviewHost.getVisibility() != View.VISIBLE) {
+                            if (!frame.isRecycled()) frame.recycle();
+                            return;
+                        }
+                        Bitmap previous = displayedDashcamFrame;
+                        displayedDashcamFrame = frame;
+                        driveDashcamPreview.setImageBitmap(frame);
+                        if (previous != null && previous != frame && !previous.isRecycled()) {
+                            previous.recycle();
+                        }
+                    });
+                }
+            };
+            dashcamPreviewListener = listener;
+            boolean attachment = service.attachDashcamPreview(listener);
+            if (!attachment) drivePreviewHost.setVisibility(View.GONE);
+            callback.onComplete(attachment);
+            return;
+        }
+        driveDashcamPreview.setVisibility(View.GONE);
+        drivePreview.setVisibility(View.VISIBLE);
         Boolean attachment = service.attachPreview(drivePreview.getSurfaceProvider());
         if (Boolean.FALSE.equals(attachment)) {
             drivePreviewHost.setVisibility(View.GONE);
@@ -140,6 +187,13 @@ public class MainActivity extends BridgeActivity {
             if (service != null && drivePreview != null) {
                 service.detachPreview(drivePreview.getSurfaceProvider());
             }
+            NativeDashcamPreviewListener listener = dashcamPreviewListener;
+            dashcamPreviewListener = null;
+            if (service != null && listener != null) service.detachDashcamPreview(listener);
+            if (driveDashcamPreview != null) driveDashcamPreview.setImageDrawable(null);
+            Bitmap previous = displayedDashcamFrame;
+            displayedDashcamFrame = null;
+            if (previous != null && !previous.isRecycled()) previous.recycle();
             if (drivePreviewHost != null) drivePreviewHost.setVisibility(View.GONE);
         });
     }

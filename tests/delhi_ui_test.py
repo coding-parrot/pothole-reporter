@@ -21,8 +21,8 @@ async () => {
     name, !!value, detail === undefined ? value : detail, true,
   ]);
 
-  ok("privacy: background-drive disclosure forces fresh consent",
-     /v15-background-drive-storage$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
+  ok("privacy: dashcam-network disclosure forces fresh consent",
+     /v17-dashcam-network$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
   for (const [lang, dictionary] of Object.entries(I18N)) {
     ok(`scope: ${lang} describes India-wide State/UT coverage`, /India|ಭಾರತ|भारत|ভারত/.test(
       dictionary.outside_coverage_help), dictionary.outside_coverage_help);

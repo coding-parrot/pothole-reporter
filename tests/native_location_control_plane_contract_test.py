@@ -54,7 +54,7 @@ decision = SERVICE[
 ]
 refresh = SERVICE[
     SERVICE.index("private fun refreshPrerequisiteAccessState"):
-    SERVICE.index("private fun noteCameraState")
+    SERVICE.index("private fun noteFrameSourceState")
 ]
 check(
     "50 ms frame scheduler polls Binder-backed prerequisites no faster than once per second",

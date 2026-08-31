@@ -5370,6 +5370,15 @@ This is a strict before/after verification, not ordinary pothole detection:
     if (lat == null || lng == null || Number.isNaN(lat) || Number.isNaN(lng)) {
       return routeForIssue(unroutedRoute("no_location"), issueType);
     }
+    // RTSP supplies decoder-delivery time, not the dashcam sensor's capture instant.
+    // Native dashcam evidence therefore sends an explicit unknown accuracy until that
+    // exact camera/phone pair is latency-calibrated. Never turn such coordinates into an
+    // authority, officer or tender claim; phone-camera and manual flows keep their normal
+    // finite-accuracy route.
+    if (gpsAccuracy !== undefined && (gpsAccuracy === null || !Number.isFinite(gpsAccuracy)
+        || gpsAccuracy < 0 || gpsAccuracy > 30)) {
+      return routeForIssue(unroutedRoute("location_uncertain"), issueType);
+    }
 
     const geo = geoOrAddress && typeof geoOrAddress === "object" ? geoOrAddress : null;
     const geocodeStateCode = stateCodeForGeocode(geo);
@@ -9090,7 +9099,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       throw new Error("Native report location is invalid.");
     }
     const sourceEventKey = String(native.source_event_key || `native:${nativeId}`).slice(0, 180);
-    const gpsAccuracy = Number(native.gps_accuracy);
+    const gpsAccuracy = native.gps_accuracy == null ? null : Number(native.gps_accuracy);
     const speed = Number(native.speed_mps);
     const heading = Number(native.heading);
     const geo = await reverseGeocode(lat, lng).catch(() => null);

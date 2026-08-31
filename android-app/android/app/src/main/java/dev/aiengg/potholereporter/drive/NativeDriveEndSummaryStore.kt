@@ -39,6 +39,7 @@ internal object NativeDriveEndSummaryStore {
             put("discarded", summary.discarded)
             put("reason", summary.reason ?: JSONObject.NULL)
             put("startRequestId", summary.startRequestId ?: JSONObject.NULL)
+            put("captureSource", summary.captureSource.wireValue)
         }.toString()
         repeat(3) {
             val editor = preferences.edit()
@@ -66,7 +67,13 @@ internal object NativeDriveEndSummaryStore {
                 error = value.optNullableString("error"),
                 discarded = value.optBoolean("discarded", false),
                 reason = value.optNullableString("reason"),
-                startRequestId = value.optNullableString("startRequestId")
+                startRequestId = value.optNullableString("startRequestId"),
+                // Summaries from pre-dashcam builds have no source field and were always
+                // phone-camera sessions. Unknown/corrupt values also use that safe legacy
+                // default instead of flowing unvalidated text across the native bridge.
+                captureSource = NativeFrameSourceKind.fromWireValue(
+                    value.optNullableString("captureSource")
+                ) ?: NativeFrameSourceKind.PHONE_CAMERA
             )
         }.getOrNull()
     }

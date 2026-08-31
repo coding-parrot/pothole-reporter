@@ -60,7 +60,7 @@ data class NativeVideoSegment(
  * as unavailable when this app itself opens it. CameraX CameraState is scoped to our use
  * case and reports when a higher-priority client, such as a video call, takes the camera.
  */
-class NativeDriveCameraManager(
+internal class NativeDriveCameraManager(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
     initialVideoRecordingEnabled: Boolean,
@@ -69,7 +69,7 @@ class NativeDriveCameraManager(
     private val onCameraRecoveryRequired: (NativeCameraRecoveryAction, String) -> Unit,
     private val onRecordingStateChange: (enabled: Boolean, recording: Boolean, supported: Boolean, message: String?) -> Unit,
     private val onSegmentFinalized: (NativeVideoSegment) -> Unit
-) {
+) : NativeFrameSource {
     private data class ActiveVideoSegment(
         val sequence: Int,
         val file: File,
@@ -125,15 +125,15 @@ class NativeDriveCameraManager(
     private var storagePreparationGeneration = 0L
 
     @Volatile
-    var isVideoRecordingEnabled: Boolean = initialVideoRecordingEnabled
+    override var isVideoRecordingEnabled: Boolean = initialVideoRecordingEnabled
         private set
 
     @Volatile
-    var isVideoRecording: Boolean = false
+    override var isVideoRecording: Boolean = false
         private set
 
     @Volatile
-    var isVideoSupported: Boolean = true
+    override var isVideoSupported: Boolean = true
         private set
 
     private var recordingSequence = 0
@@ -144,6 +144,13 @@ class NativeDriveCameraManager(
     var isCameraReady: Boolean = false
         private set
 
+    override val kind: NativeFrameSourceKind = NativeFrameSourceKind.PHONE_CAMERA
+    override val isReady: Boolean get() = isCameraReady
+    @Volatile override var state: NativeFrameSourceState = NativeFrameSourceState.IDLE
+        private set
+    @Volatile override var issue: String? = "Waiting for camera"
+        private set
+
     private var requested = false
     private var destroyed = false
     private var lastSignalledRecoveryErrorCode: Int? = null
@@ -151,8 +158,6 @@ class NativeDriveCameraManager(
     private val permanentCloseLock = Any()
 
     companion object {
-        const val BURST_COUNT = 3
-        const val MIN_DETECTION_SOURCE_FRAMES = 2
         private const val RECORDING_SEGMENT_MS = 60_000L
         private const val RECORDING_RESTART_DELAY_MS = 1_000L
         private const val RECORDING_FINALIZE_TIMEOUT_MS = 12_000L
@@ -165,6 +170,8 @@ class NativeDriveCameraManager(
             return
         }
         requested = true
+        state = NativeFrameSourceState.CONNECTING
+        issue = "Waiting for camera"
         val startToken = cameraStartGeneration.issue()
         val future = ProcessCameraProvider.getInstance(context)
         future.addListener({
@@ -383,6 +390,16 @@ class NativeDriveCameraManager(
 
     private fun publishState(available: Boolean, reason: String?) {
         isCameraReady = available
+        issue = reason
+        state = when {
+            available -> NativeFrameSourceState.STREAMING
+            destroyed -> NativeFrameSourceState.STOPPED
+            !requested -> NativeFrameSourceState.PAUSED
+            reason?.contains("restart", ignoreCase = true) == true ||
+                reason?.contains("interrupted", ignoreCase = true) == true ->
+                NativeFrameSourceState.RECONNECTING
+            else -> NativeFrameSourceState.CONNECTING
+        }
         onCameraStateChange(available, reason)
     }
 
@@ -532,7 +549,7 @@ class NativeDriveCameraManager(
         }
     }
 
-    suspend fun captureBurst(): Pair<List<BurstFrame>, Int>? {
+    override suspend fun captureBurst(): Pair<List<BurstFrame>, Int>? {
         if (!isCameraReady || !requested || destroyed) return null
         return captureMutex.withLock {
             analyzerFatalError?.let { error ->
@@ -590,7 +607,7 @@ class NativeDriveCameraManager(
                         frame.capturedAtElapsedMs
                     )
                 }
-                if (burstFrames.size < MIN_DETECTION_SOURCE_FRAMES) {
+                if (burstFrames.size < NativeFrameBurstContract.MIN_INFERENCE_FRAMES) {
                     burstFrames.forEach { it.bitmap.recycleSafely() }
                     return@withLock null
                 }
@@ -608,7 +625,7 @@ class NativeDriveCameraManager(
         }
     }
 
-    fun hasCompleteBurst(): Boolean = synchronized(rollingFrameLock) {
+    override fun hasCompleteBurst(): Boolean = synchronized(rollingFrameLock) {
         rollingFrames.size == NativeRollingBurstWindow.CAPACITY
     }
 
@@ -624,7 +641,7 @@ class NativeDriveCameraManager(
         val cameraGeneration: Long
     )
 
-    suspend fun setVideoRecordingEnabled(enabled: Boolean) = cameraOperationMutex.withLock {
+    override suspend fun setVideoRecordingEnabled(enabled: Boolean) = cameraOperationMutex.withLock {
         val transition = withContext(Dispatchers.Main.immediate) {
             val changed = isVideoRecordingEnabled != enabled
             isVideoRecordingEnabled = enabled
@@ -1066,7 +1083,7 @@ class NativeDriveCameraManager(
         awaitFinalization(completion)
         withContext(Dispatchers.Main.immediate) {
             releaseCameraUseCases()
-            onCameraStateChange(false, "Paused")
+            publishState(false, "Paused")
         }
     }
 
@@ -1114,7 +1131,7 @@ class NativeDriveCameraManager(
     }
 
     /** Best-effort process teardown. Explicit Stop and Pause use the awaited methods above. */
-    fun closeImmediately() {
+    override fun closeImmediately() {
         closeCameraPermanently(abandonActiveRecording = true)
     }
 
@@ -1151,6 +1168,8 @@ class NativeDriveCameraManager(
                 if (released) {
                     cameraProvider = null
                     fullyClosed = true
+                    state = NativeFrameSourceState.STOPPED
+                    issue = null
                 }
             }
         }
@@ -1215,28 +1234,38 @@ class NativeDriveCameraManager(
     }
 
     /** Reserves bytes from the shared MP4 + keyframe cap before a file is created. */
-    internal suspend fun reserveMediaBytes(bytes: Long): NativeMediaStorageQuota.Reservation? {
+    override suspend fun reserveMediaBytes(bytes: Long): NativeMediaStorageQuota.Reservation? {
         ensureStorageInventory()
         return storageQuota.tryReserve(bytes, context.filesDir.usableSpace)
     }
 
-    internal fun commitMediaBytes(
+    override fun commitMediaBytes(
         reservation: NativeMediaStorageQuota.Reservation,
         actualBytes: Long
     ) = storageQuota.commit(reservation, actualBytes)
 
-    internal fun releaseMediaBytes(reservation: NativeMediaStorageQuota.Reservation) =
+    override fun releaseMediaBytes(reservation: NativeMediaStorageQuota.Reservation) =
         storageQuota.release(reservation)
 
-    internal fun noteDeletedMediaBytes(bytes: Long) = storageQuota.noteDeletion(bytes)
+    override fun noteDeletedMediaBytes(bytes: Long) = storageQuota.noteDeletion(bytes)
 
-    internal fun noteUnexpectedMediaBytes(bytes: Long) =
+    override fun noteUnexpectedMediaBytes(bytes: Long) =
         storageQuota.noteUnexpectedExistingFile(bytes)
 
     /**
      * Returns a recorder only after this manager has inventoried disk. When it has not,
      * the deletion mutex makes the later inventory observe the post-delete filesystem.
      */
-    internal fun mediaDeletionRecorderIfReconciled(): ((Long) -> Unit)? =
+    override fun mediaDeletionRecorderIfReconciled(): ((Long) -> Unit)? =
         if (storageQuota.isReconciled()) storageQuota::noteDeletion else null
+
+    override fun start(onReady: (Boolean) -> Unit) = startCamera(onReady)
+
+    override fun setSamplingEnabled(enabled: Boolean) = setAnalyzerSamplingEnabled(enabled)
+
+    override suspend fun pauseSafely() = pauseCameraSafely()
+
+    override fun resume(onReady: (Boolean) -> Unit) = resumeCamera(onReady)
+
+    override suspend fun stopSafely() = stopCameraSafely()
 }

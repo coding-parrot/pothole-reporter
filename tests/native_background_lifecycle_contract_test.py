@@ -35,10 +35,13 @@ drive_service = next(
     if node.get(android + "name") == ".drive.DriveForegroundService"
 )
 check(
-    "Drive is a non-exported camera/location foreground service that survives task switches",
-    drive_service.get(android + "foregroundServiceType") == "camera|location"
+    "Drive is a non-exported source-specific location foreground service that survives task switches",
+    drive_service.get(android + "foregroundServiceType") == "camera|connectedDevice|location"
     and drive_service.get(android + "exported") == "false"
-    and drive_service.get(android + "stopWithTask") == "false",
+    and drive_service.get(android + "stopWithTask") == "false"
+    and "FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE" in SERVICE
+    and "FOREGROUND_SERVICE_TYPE_CAMERA" in SERVICE
+    and "captureSourceKind == NativeFrameSourceKind.DASHCAM" in SERVICE,
 )
 
 start_method = PLUGIN[PLUGIN.index("fun startDrive(call: PluginCall)"):

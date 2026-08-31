@@ -72,7 +72,7 @@
   <header>
     <p class="meta">Pothole Reporter · Android package <code>dev.aiengg.potholereporter</code></p>
     <h1>Privacy Policy</h1>
-    <p class="meta">Effective and last updated: 26 August 2026</p>
+    <p class="meta">Effective and last updated: 31 August 2026</p>
     <nav aria-label="Related pages">
       <a href="sources.html">Data sources</a>
       <a href="https://github.com/coding-parrot/pothole-reporter">Source code</a>
@@ -83,7 +83,7 @@
   <section>
     <h2>Summary</h2>
     <div class="summary">
-      <p>Pothole Reporter has no project-operated server, advertising network, or app account system. Reports and any recordings you choose to create are kept on your device.</p>
+      <p>Pothole Reporter has no project-operated server, advertising network, or app account system. Reports, recordings you choose to create, and a saved dashcam RTSP address stay on your device.</p>
       <p>It is not fully offline: selected pothole images are sent directly to OpenAI for analysis. Precise coordinates are sent to OpenStreetMap Nominatim; Karnataka locations also query Karnataka GIS, and exact Hyderabad CURE checks query Telangana GIS. Downloaded state-boundary containment, including Uttar Pradesh, Chhattisgarh, and Rajasthan, is checked locally.</p>
       <p>Routing/contact and optional National Highway, PMGSY, official State/UT procurement-notice, and Karnataka KPPP candidate data is downloaded only when needed as a versioned State/UT pack or 2° National Highway tile from this project's GitHub Pages site and then cached locally. That request contains no report, photo, or exact coordinates, but GitHub can receive an IP address, standard connection metadata, and the requested URL, which identifies the selected state, the top-50 city pack, or an approximate 2° tile. Downloaded bytes are checked against a checksum pinned in the app before use. Remote candidate packs do not enter the APK; the three catalog manifests add about 100 KB to a future build. These repository changes do not alter the already-submitted Play closed-test binary.</p>
       <p>Reports are not filed automatically. Only when you choose a handoff does the app open an official app or portal, place prefilled text in WhatsApp, open the dialler, share compressed evidence, or hand an editable draft to your email app. You must review and complete the complaint in that external service.</p>
@@ -106,7 +106,7 @@
         <tbody>
           <tr>
             <td>Pothole photos and video frames</td>
-            <td>A pothole photo, or selected still frames sampled during Drive Mode or from saved drive evidence, is resized and sent to the OpenAI API. When optional recording is enabled, Android stores local video and a 720p evidence frame at most every two seconds; an explicit post-drive pass can send an unfinished evidence frame with nearby frames from just before and after it. On a precise later live-drive revisit, the saved earlier damage photo and current views may be sent together for a separate before/after repair check. Images are not blurred first and may contain faces, number plates, people, vehicles, or shopfronts. The complete saved video file is not uploaded by the app.</td>
+            <td>A pothole photo, or selected complete still frames sampled during Drive Mode or from saved drive evidence, is resized and sent to the OpenAI API. Drive can use either the phone camera or a user-configured H.264 RTSP dashcam stream. The RTSP address, including any credentials, is saved only in app storage on the device; audio is disabled. The whole dashcam stream is neither saved nor uploaded. When optional phone-camera recording is enabled, Android stores local video and a 720p evidence frame at most every two seconds; an explicit post-drive pass can send an unfinished evidence frame with nearby frames from just before and after it. On a precise later live-drive revisit, the saved earlier damage photo and current views may be sent together for a separate before/after repair check. Images are not blurred first and may contain faces, number plates, people, vehicles, or shopfronts. The complete saved video file is not uploaded by the app.</td>
             <td>Assess visible potholes and create an editable local report.</td>
           </tr>
           <tr>
@@ -136,7 +136,7 @@
           </tr>
           <tr>
             <td>Name, settings, reports, labels, photos, footage, and drive summaries</td>
-            <td>These are stored on the device. A verified or review-needed repair revisit also stores its current evidence photo and physical-condition status locally, separately from complaint-submission status. Your name is placed in the complaint signature. An official grievance/reference ID is stored locally only if you enter it to mark an official-channel report submitted. Settings include language, model, image detail, recording, Drive battery limit, frame-saving, and debug choices.</td>
+            <td>These are stored on the device. A verified or review-needed repair revisit also stores its current evidence photo and physical-condition status locally, separately from complaint-submission status. Your name is placed in the complaint signature. An official grievance/reference ID is stored locally only if you enter it to mark an official-channel report submitted. Settings include language, model, image detail, Drive video source, the optional RTSP address, recording, Drive battery limit, frame-saving, and debug choices.</td>
             <td>Run the app, preserve history, allow review, and prepare complaint drafts.</td>
           </tr>
           <tr>
@@ -178,24 +178,24 @@
   <section>
     <h2>Permissions</h2>
     <ul>
-      <li><strong>Camera</strong> captures a manual pothole photo or Drive Mode frames. While Android Drive Mode is active, the camera remains in use in the background—even when this app is not visible or in use and another app, such as Google Maps or the phone-call screen, is visible—under a persistent foreground-service notification.</li>
-      <li><strong>Precise or approximate location</strong> locates and routes a report and records a drive track. While Drive Mode is active, location remains in use in the background under the same persistent foreground-service notification, including when this app is not visible or in use.</li>
-      <li><strong>Internet</strong> reaches the external services described above.</li>
+      <li><strong>Camera</strong> captures a manual pothole photo or Phone camera Drive frames. Dashcam Drive does not request or use the phone camera. While Phone camera Drive is active, the camera remains in use in the background—even when this app is not visible or in use and another app, such as Google Maps or the phone-call screen, is visible—under a persistent foreground-service notification.</li>
+      <li><strong>Precise or approximate location</strong> locates and routes a report and records a drive track. With either Drive source, location remains in use in the background under the same persistent foreground-service notification, including when this app is not visible or in use.</li>
+      <li><strong>Internet and network access</strong> reach the external services described above and the RTSP endpoint on a dashcam network selected by the user.</li>
     </ul>
-    <p>The app does not request Android's separate background-location permission. Android Drive Mode nevertheless uses camera and location in the background while its visible foreground service is active, including when this app is not visible or in use and Google Maps or the phone-call screen is visible. It can be paused or stopped from the app or persistent notification. A video call or another higher-priority camera user can temporarily interrupt camera sampling; the app attempts to resume automatically when the camera is released. Mount the phone before moving and do not interact with it while driving.</p>
+    <p>The app does not request Android's separate background-location permission. Android Drive Mode nevertheless uses location and the selected video source in the background while its visible foreground service is active, including when this app is not visible or in use and Google Maps or the phone-call screen is visible. It can be paused or stopped from the app or persistent notification. A video call or another higher-priority camera user can temporarily interrupt Phone camera sampling; a dashcam or Wi-Fi interruption triggers bounded reconnection attempts. RTSP does not expose the dashcam sensor's true capture time, so an uncalibrated dashcam detection keeps its evidence and observed coordinate but does not automatically select an authority, tender, or repair match; Phone camera is required for that automatic routing until the exact dashcam/phone pair is calibrated. Mount the phone or dashcam before moving and do not interact with it while driving.</p>
   </section>
 
   <section>
     <h2>Retention and deletion</h2>
     <ul>
-      <li>Drive recording is off by default. If you enable it, silent 60-second clips and sparse 720p evidence frames are written to app-private storage; the live screen and persistent notification state when video is being saved. Recording stops instead of deleting older clips when total footage reaches 4 GB or free space approaches 500 MB.</li>
+      <li>Phone camera Drive recording is off by default. If you enable it, silent 60-second clips and sparse 720p evidence frames are written to app-private storage; the live screen and persistent notification state when video is being saved. Recording stops instead of deleting older clips when total footage reaches 4 GB or free space approaches 500 MB. Dashcam Drive stores selected evidence frames but does not save the whole RTSP stream.</li>
       <li>Drive has a selectable 15, 30, 60, or 90-minute active-time battery limit and defaults to 30 minutes. When the active-time limit expires, camera, location, recording, inference, and the foreground service stop through the normal Drive shutdown; paused time does not consume the limit.</li>
       <li>Reports, original and repair-evidence photos, sparse Drive frames, physical-condition history, drive summaries, and recorded footage remain in app-private storage until the app deletes them automatically or you delete them.</li>
       <li>An official grievance/reference ID you enter remains in the local report until that report or all app data is deleted.</li>
       <li>Sharing report evidence or an exported dataset creates temporary files in the app's dedicated cache folder. Android may clear cache automatically, and <strong>Delete all app data</strong> removes that folder. Copies already handed to another app are controlled by that destination.</li>
       <li>For browser fallback recording, successfully analysed footage is deleted when analysis completes without failed frame requests and Debug is off. Native Android clips and sparse frames remain until you delete that drive's footage from History or delete all app data.</li>
       <li>Verified routing, project/procurement, and highway packs are cached locally after download. On a subsequent pack use, entries past their unused limits or above the shared cache-size limit are pruned automatically and can be downloaded again when needed.</li>
-      <li><strong>Delete all app data</strong> clears local reports, photos, drive summaries, app-held footage, downloaded packs and highway tiles, the API key, sender name, settings, and the app's <code>Documents/pothole-frames</code> folder.</li>
+      <li><strong>Delete all app data</strong> clears local reports, photos, drive summaries, app-held footage, downloaded packs and highway tiles, the API key, sender name, RTSP address, settings, and the app's <code>Documents/pothole-frames</code> folder.</li>
       <li>Files already exported, shared, attached, copied elsewhere, or sent are outside the app's control and must be deleted from their destination separately.</li>
       <li>Data already processed by OpenAI, OpenStreetMap services, Karnataka GIS, Telangana GIS, GitHub Pages, Google Play, WhatsApp, an email or sharing provider, or an official complaint service is subject to that recipient's retention and deletion process.</li>
     </ul>
@@ -204,8 +204,8 @@
 
   <section>
     <h2>Security and your choices</h2>
-    <p>Network calls in the current app use HTTPS. Each downloaded pack has a version, expected byte length, and SHA-256 checksum pinned in a local manifest. The complete download is verified before parsing or caching. If required routing data is unavailable, malformed, or different from the pinned checksum, authority routing stops; failure of optional project/procurement data only omits candidate context. Highway matching also refuses weak GPS, ambiguous parallel references, and conflicting driving direction. State/UT and exact municipal polygon routes never fall back to a place name; enclave territories retain their own pinned boundaries. The specific My Cure route requires a successful official Telangana GIS check and excludes an accuracy envelope intersecting Secunderabad Cantonment. Detection, geocoding, Karnataka GIS, and exact CURE checks still require their own network services.</p>
-    <p>Local app data is protected by Android's device and application storage controls, but the app does not add separate at-rest encryption to the OpenAI key stored in WebView storage. Protect your device, use a revocable key with appropriate spending limits, and revoke it through OpenAI if the device or key may be compromised.</p>
+    <p>Internet calls in the current app use HTTPS. A dashcam's local <code>rtsp://</code> stream is commonly unencrypted, so use the dashcam's own trusted Wi-Fi and a camera password where supported; the app never places that address or password in Drive status or logs. Each downloaded pack has a version, expected byte length, and SHA-256 checksum pinned in a local manifest. The complete download is verified before parsing or caching. If required routing data is unavailable, malformed, or different from the pinned checksum, authority routing stops; failure of optional project/procurement data only omits candidate context. Highway matching also refuses weak GPS, ambiguous parallel references, and conflicting driving direction. State/UT and exact municipal polygon routes never fall back to a place name; enclave territories retain their own pinned boundaries. The specific My Cure route requires a successful official Telangana GIS check and excludes an accuracy envelope intersecting Secunderabad Cantonment. Detection, geocoding, Karnataka GIS, and exact CURE checks still require their own network services.</p>
+    <p>Local app data is protected by Android's device and application storage controls, but the app does not add separate at-rest encryption to the OpenAI key or dashcam RTSP address and credentials stored in WebView storage. Local RTSP is also normally unencrypted in transit, so use only a trusted dashcam Wi-Fi. Protect your device, use revocable credentials with appropriate limits, and revoke them if the device or a credential may be compromised.</p>
     <ul>
       <li>You can deny camera or location permission, but the corresponding capture or routing feature will not work.</li>
       <li>You can choose whether to enable drive recording, Debug retention, or saved analysis frames in Settings.</li>

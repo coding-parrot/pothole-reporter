@@ -1,11 +1,11 @@
 # Pothole Reporter
 
-An independent Android app for potholes. **Drive** detects visible potholes while the
-phone shows Maps or a call; one tap on **Photo** opens the camera for a pothole check and
+An independent Android app for potholes. **Drive** uses either the mounted phone camera
+or an H.264 RTSP-over-TCP dashcam while the phone shows Maps or a call; one tap on **Photo** opens the camera for a pothole check and
 prepares evidence for an official complaint channel. Reports remain on the phone, and
 nothing is filed automatically. There is no project-operated backend or account system.
 
-Current release: [v1.36.10](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.36.10)
+Current release: [v1.37.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.37.0)
 
 <p>
   <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
@@ -33,6 +33,13 @@ submitted automatically.
 ## How it works
 
 - **Drive** shows a live road view and counters while Maps or a call is open. At a typical 30 fps it samples about every fifth delivered camera frame, with a 166 ms timestamp fallback threshold, into durable three-view windows. It keeps only one raw burst waiting for live AI and retries unfinished saved windows after the drive.
+- Dashcam mode keeps RTSP on the dashcam Wi-Fi while Maps, geocoding, and OpenAI remain
+  free to use the phone's default internet route. It uses phone GPS, disables audio,
+  saves selected complete frames, and never saves or uploads the whole dashcam stream.
+- RTSP does not expose the dashcam sensor's true capture time. Until an exact camera/phone
+  pair is latency-calibrated, dashcam detections save evidence but deliberately omit
+  automatic authority/tender routing and repair verification; Phone camera keeps the
+  existing precise route. This prevents delayed video from being assigned to the next road.
 - Every detection, saved-video replay, and repair view preserves the complete edge-to-edge
   camera frame. The app may downscale or compress the whole image, but never crops, tiles,
   masks, or substitutes a road region for model evidence.
@@ -120,8 +127,8 @@ selected state or an approximate 2° highway tile. See the
 
 1. Install the APK attached to the
    [latest release](https://github.com/coding-parrot/pothole-reporter/releases/latest).
-2. On first launch, enter your OpenAI API key in Settings.
-   Allow camera and location access; Drive also needs notification access.
+2. On first launch, enter your OpenAI API key in Settings and choose Phone camera or
+   Dashcam. Phone mode needs camera access; both modes need precise location and notifications.
 3. Capture while safely stopped, or securely mount the phone before starting **Drive**.
 4. Review the image, location, authority, wording, and contract-verification status before
    choosing an external complaint channel.
@@ -130,6 +137,9 @@ selected state or an approximate 2° highway tile. See the
 
 - AI can miss damage or produce false positives. No field-validated accuracy percentage is
   claimed.
+- Dashcam mode requires a reachable H.264 RTSP-over-TCP stream. Vendor URLs, authentication, Wi-Fi
+  behaviour, decoder support, and camera-side delay vary; test the exact dashcam/phone pair
+  before relying on its GPS routing.
 - Android may temporarily take the camera for a video call or another higher-priority app;
   Drive pauses camera sampling and resumes automatically. Normal audio calls do not require
   the camera. Device-specific battery managers can still stop long-running services.

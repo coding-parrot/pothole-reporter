@@ -48,13 +48,13 @@ sampling_refresh = SERVICE[
 ]
 assert "decision.canCapture" in sampling_refresh
 assert "inferenceSuspendedReason == null" in sampling_refresh
-assert "setAnalyzerSamplingEnabled(enabled)" in sampling_refresh
+assert "frameSource?.setSamplingEnabled(enabled)" in sampling_refresh
 interlock_refresh = SERVICE[
     SERVICE.index("private fun refreshCaptureInterlock"):
     SERVICE.index("private suspend fun persistSelectedBurst")
 ]
 assert "updateAnalyzerSampling(decision)" in interlock_refresh
-assert "cameraManager?.setAnalyzerSamplingEnabled(false)" in SERVICE[
+assert "frameSource?.setSamplingEnabled(false)" in SERVICE[
     SERVICE.index("catch (error: NativeInferenceException)"):
     SERVICE.index("catch (error: Exception)", SERVICE.index("catch (error: NativeInferenceException)"))
 ]

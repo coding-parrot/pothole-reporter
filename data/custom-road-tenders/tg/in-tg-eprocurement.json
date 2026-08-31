@@ -28,7 +28,6 @@
     "GREATER HYDERABAD MUNICIPAL CORPORATION-Turkayamjal Municipality",
     "GREATER WARANGAL MUNICIPAL CORPORATION-Executive Engineer - III, Nakkalagutta division",
     "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Makthal Municipality",
-    "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagara Panchyath, Kalwakurthy",
     "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagarapanchayat Peddapalli Karimnagarr",
     "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-SIDDIPET URBAN DEVELOPMENT AUTHORITY",
     "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-municipal council kohir",
@@ -71,10 +70,10 @@
     "cyberabad municipal corporation-the superintending engineer HQ STSQM"
   ],
   "rows_scanned": 2094,
-  "rows_excluded_by_scope": 1962,
+  "rows_excluded_by_scope": 1965,
   "rows_excluded_by_deadline": 0,
   "rows_excluded_invalid": 0,
-  "records_kept": 132,
+  "records_kept": 129,
   "notices": [
     {
       "bid_submission_start_at": "2026-08-19T13:30:00Z",
@@ -4331,120 +4330,6 @@
       "tender_id": "726420",
       "tender_reference": "BID No:I-212/2026-27/TGNPDCL/CE(PROJ)/KNR",
       "title": "Proposal for Shifting of 33KV Chigurumamidi feeder and 11KV Chigurumamidi feeder passing through locations CHI207 to CHI253 which is obstructing 4 Lane road widening works from Husnabad to Kothapally on the request of R and B Department in Operation section Chigurumamidi of Nustulapur Subdivision of Operation Division Rural Karimnagar in Karimnagar Circle"
-    },
-    {
-      "bid_submission_start_at": "2026-08-24T06:00:00Z",
-      "closing_at": "2026-09-01T11:30:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagara Panchyath, Kalwakurthy",
-      "organisation_path": [
-        "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagara Panchyath, Kalwakurthy"
-      ],
-      "official_fields": {
-        "department_name": "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagara Panchyath,  Kalwakurthy",
-        "tender_id": "727858",
-        "tender_reference": "E1/Devlopments/2026/001",
-        "tender_category": "WORKS",
-        "title": "Laying of CC Roads Construction of CC Drains and Construction of Under Ground Drains from ward no 01 to 07 in Kalwakurthy Municipality under General Fund 2026-27",
-        "estimated_contract_value": "2814201.00",
-        "published_date_time": "24/08/2026 10:11 AM",
-        "bid_submission_start_date_time": "24/08/2026 11:30 AM",
-        "bid_submission_closing_date_time": "01/09/2026 05:00 PM",
-        "detail_action_arguments": [
-          662857,
-          101,
-          662847
-        ]
-      },
-      "published_at": "2026-08-24T04:41:00Z",
-      "retrieved_at": "2026-08-26T06:34:28Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "727858",
-      "tender_reference": "E1/Devlopments/2026/001",
-      "title": "Laying of CC Roads Construction of CC Drains and Construction of Under Ground Drains from ward no 01 to 07 in Kalwakurthy Municipality under General Fund 2026-27"
-    },
-    {
-      "bid_submission_start_at": "2026-08-24T06:00:00Z",
-      "closing_at": "2026-09-01T11:30:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagara Panchyath, Kalwakurthy",
-      "organisation_path": [
-        "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagara Panchyath, Kalwakurthy"
-      ],
-      "official_fields": {
-        "department_name": "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagara Panchyath,  Kalwakurthy",
-        "tender_id": "727883",
-        "tender_reference": "E1/Devlopments/2026/002",
-        "tender_category": "WORKS",
-        "title": "Laying of CC Roads Construction of CC Drains and Construction of Under Ground Drains from Ward no 08 to 14 in Kalwakurthy Municipality under General Fund 2026-27",
-        "estimated_contract_value": "2785969.00",
-        "published_date_time": "24/08/2026 10:10 AM",
-        "bid_submission_start_date_time": "24/08/2026 11:30 AM",
-        "bid_submission_closing_date_time": "01/09/2026 05:00 PM",
-        "detail_action_arguments": [
-          662882,
-          101,
-          662872
-        ]
-      },
-      "published_at": "2026-08-24T04:40:00Z",
-      "retrieved_at": "2026-08-26T06:34:28Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "727883",
-      "tender_reference": "E1/Devlopments/2026/002",
-      "title": "Laying of CC Roads Construction of CC Drains and Construction of Under Ground Drains from Ward no 08 to 14 in Kalwakurthy Municipality under General Fund 2026-27"
-    },
-    {
-      "bid_submission_start_at": "2026-08-24T06:00:00Z",
-      "closing_at": "2026-09-01T11:30:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagara Panchyath, Kalwakurthy",
-      "organisation_path": [
-        "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagara Panchyath, Kalwakurthy"
-      ],
-      "official_fields": {
-        "department_name": "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagara Panchyath,  Kalwakurthy",
-        "tender_id": "727899",
-        "tender_reference": "E1/Devlopments/2026/003",
-        "tender_category": "WORKS",
-        "title": "Laying of CC Roads Construction of CC Drains and Construction of under Ground drains from Ward No 15 to 22 in Kalwakurthy Municipality General fund 2026-27",
-        "estimated_contract_value": "3218747.00",
-        "published_date_time": "24/08/2026 10:09 AM",
-        "bid_submission_start_date_time": "24/08/2026 11:30 AM",
-        "bid_submission_closing_date_time": "01/09/2026 05:00 PM",
-        "detail_action_arguments": [
-          662898,
-          101,
-          662888
-        ]
-      },
-      "published_at": "2026-08-24T04:39:00Z",
-      "retrieved_at": "2026-08-26T06:34:28Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "727899",
-      "tender_reference": "E1/Devlopments/2026/003",
-      "title": "Laying of CC Roads Construction of CC Drains and Construction of under Ground drains from Ward No 15 to 22 in Kalwakurthy Municipality General fund 2026-27"
     },
     {
       "bid_submission_start_at": "2026-08-22T18:15:00Z",

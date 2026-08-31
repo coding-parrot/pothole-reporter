@@ -31,6 +31,8 @@ web = read("static/index.html")
 quality = (NATIVE / "FrameQualityEvaluator.kt").read_text()
 engine = (NATIVE / "NativeInferenceEngine.kt").read_text()
 camera = (NATIVE / "NativeDriveCameraManager.kt").read_text()
+rtsp = (NATIVE / "NativeRtspFrameSource.kt").read_text()
+activity = read("android-app/android/app/src/main/java/dev/aiengg/potholereporter/MainActivity.java")
 detect_contract = (NATIVE / "NativeDetectionContract.kt").read_text()
 repair_contract = (NATIVE / "NativeRepairContract.kt").read_text()
 evaluator_source = read("eval/run_eval.py")
@@ -56,7 +58,7 @@ forbidden_identifiers = (
     "cropRoad",
     "road_crop",
 )
-current_implementations = "\n".join((client, web, quality, engine, camera, evaluator_source))
+current_implementations = "\n".join((client, web, quality, engine, camera, rtsp, evaluator_source))
 require("current implementations contain no crop or road-band machinery",
         all(term not in current_implementations for term in forbidden_identifiers))
 require("native CameraX acquisition does not configure a crop or viewport",
@@ -64,6 +66,19 @@ require("native CameraX acquisition does not configure a crop or viewport",
             "UseCaseGroup", "ViewPort", "setCropAspectRatio", "cropRect",
         ))
         and "Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, matrix, true)" in camera)
+require("native RTSP acquisition rejects partial decoder frames and preserves the full view",
+        "image.cropRect.left != 0" in rtsp
+        and "image.cropRect.top != 0" in rtsp
+        and "image.cropRect.right != image.width" in rtsp
+        and "image.cropRect.bottom != image.height" in rtsp
+        and "setVideoScalingMode(C.VIDEO_SCALING_MODE_SCALE_TO_FIT)" in rtsp
+        and "VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING" not in rtsp
+        and "for (row in 0 until outputHeight)" in rtsp
+        and "for (column in 0 until outputWidth)" in rtsp
+        and "sourceRow = row * (height - 1) / (outputHeight - 1)" in rtsp
+        and "sourceColumn = column * (width - 1) / (outputWidth - 1)" in rtsp
+        and "PreviewView.ScaleType.FIT_CENTER" in activity
+        and "ImageView.ScaleType.FIT_CENTER" in activity)
 require("manual camera disables interactive cropping",
         'const shot = await camera.getPhoto({' in web and "allowEditing: false" in web)
 require("Web preprocessing draws the entire source into an aspect-preserving target",

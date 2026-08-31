@@ -49,7 +49,12 @@ data class DriveStatusSnapshot(
     val captureBlocked: Boolean = false, val captureIssue: String? = null,
     val captureStopped: Boolean = false,
     val isStarting: Boolean = false,
-    val startRequestId: String? = null
+    val startRequestId: String? = null,
+    val captureSource: String = NativeFrameSourceKind.PHONE_CAMERA.wireValue,
+    val sourceActive: Boolean = cameraActive,
+    val sourceState: String = if (cameraActive) NativeFrameSourceState.STREAMING.wireValue
+        else NativeFrameSourceState.IDLE.wireValue,
+    val sourceIssue: String? = null
 )
 
 data class DriveEndSummary(
@@ -60,12 +65,13 @@ data class DriveEndSummary(
     val error: String? = null,
     val discarded: Boolean = false,
     val reason: String? = null,
-    val startRequestId: String? = null
+    val startRequestId: String? = null,
+    val captureSource: NativeFrameSourceKind = NativeFrameSourceKind.PHONE_CAMERA
 )
 
 class DriveForegroundService : LifecycleService() {
     private var wakeLock: PowerManager.WakeLock? = null
-    private var cameraManager: NativeDriveCameraManager? = null
+    private var frameSource: NativeFrameSource? = null
     private var locationProvider: NativeDriveLocationProvider? = null
     private var inferenceEngine: NativeInferenceEngine? = null
     private var dedupeEngine: NativeDeduplicationEngine? = null
@@ -92,6 +98,9 @@ class DriveForegroundService : LifecycleService() {
     @Volatile private var recordedBytes = 0L
     @Volatile private var cameraActive = false
     @Volatile private var cameraIssue: String? = "Waiting for camera"
+    @Volatile private var captureSourceKind = NativeFrameSourceKind.PHONE_CAMERA
+    @Volatile private var sourceState = NativeFrameSourceState.IDLE
+    @Volatile private var sourceIssue: String? = "Waiting for camera"
     @Volatile private var cameraAccessBlocked = false
     @Volatile private var accessCameraReleased = false
     @Volatile private var captureBlocker = NativeCaptureBlocker.NONE
@@ -173,7 +182,8 @@ class DriveForegroundService : LifecycleService() {
         val videoSupported: Boolean,
         val recordingIssue: String?,
         val cameraActive: Boolean,
-        val captureStopped: Boolean
+        val captureStopped: Boolean,
+        val captureSource: NativeFrameSourceKind
     )
 
     private var lastNotificationState: DriveNotificationState? = null
@@ -189,6 +199,8 @@ class DriveForegroundService : LifecycleService() {
         const val EXTRA_LANGUAGE = "extra_language"
         const val EXTRA_DEBUG = "extra_debug"
         const val EXTRA_RECORD_VIDEO = "extra_record_video"
+        const val EXTRA_CAPTURE_SOURCE = "extra_capture_source"
+        const val EXTRA_DASHCAM_RTSP_URL = "extra_dashcam_rtsp_url"
         const val EXTRA_MAX_DRIVE_MINUTES = "extra_max_drive_minutes"
         const val EXTRA_START_REQUEST_ID = "extra_start_request_id"
         const val EXTRA_STOP_REQUEST_ID = "extra_stop_request_id"
@@ -216,13 +228,21 @@ class DriveForegroundService : LifecycleService() {
         var onDriveEndedListener: ((DriveEndSummary) -> Unit)? = null
         fun status(): DriveStatusSnapshot = activeService?.snapshot()
             ?: startRegistry.pendingRequestId().let { pendingRequestId ->
+                val pendingSource = startRegistry.pendingCaptureSource()
+                    ?: NativeFrameSourceKind.PHONE_CAMERA
                 DriveStatusSnapshot(
-                false, false, false, false, null, 0, 0, 0, 0, 0,
-                if (pendingRequestId != null) "Starting camera and GPS" else "Idle",
+                    false, false, false, false, null, 0, 0, 0, 0, 0,
+                if (pendingRequestId != null && pendingSource == NativeFrameSourceKind.DASHCAM)
+                    "Connecting to dashcam and GPS"
+                else if (pendingRequestId != null) "Starting camera and GPS" else "Idle",
                 false, false, true, 0, 0, false, null, 0, 0,
                 DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES,
                 isStarting = pendingRequestId != null,
-                startRequestId = pendingRequestId
+                startRequestId = pendingRequestId,
+                captureSource = pendingSource.wireValue,
+                sourceState = if (pendingRequestId != null)
+                    NativeFrameSourceState.CONNECTING.wireValue
+                else NativeFrameSourceState.IDLE.wireValue
             )
             }
         fun activeStartRequestId(): String? = activeService?.startRequestId
@@ -235,7 +255,10 @@ class DriveForegroundService : LifecycleService() {
          * therefore distinguish an accepted start from true Idle instead of hiding a
          * camera session that Android is still launching.
          */
-        fun admitStart(requestId: String): Boolean = startRegistry.admit(requestId)
+        fun admitStart(
+            requestId: String,
+            captureSource: NativeFrameSourceKind = NativeFrameSourceKind.PHONE_CAMERA
+        ): Boolean = startRegistry.admit(requestId, captureSource)
 
         fun cancelStartAdmission(requestId: String, discardData: Boolean): Boolean =
             startRegistry.cancel(requestId, discardData)
@@ -249,9 +272,12 @@ class DriveForegroundService : LifecycleService() {
 
         private fun pendingAdmittedStartRequestId(): String? = startRegistry.pendingRequestId()
 
+        private fun pendingAdmittedCaptureSource(): NativeFrameSourceKind? =
+            startRegistry.pendingCaptureSource()
+
         /** Called only while [NativeMediaFilesystemMutation.mutex] is held. */
         internal fun externalMediaDeletionRecorderIfReconciled(): ((Long) -> Unit)? =
-            activeService?.cameraManager?.mediaDeletionRecorderIfReconciled()
+            activeService?.frameSource?.mediaDeletionRecorderIfReconciled()
     }
 
     override fun onCreate() {
@@ -292,7 +318,11 @@ class DriveForegroundService : LifecycleService() {
                         ) ?: DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES).coerceIn(
                             DriveSessionLimitPolicy.MIN_LIMIT_MINUTES,
                             DriveSessionLimitPolicy.MAX_LIMIT_MINUTES
-                        )
+                        ),
+                        NativeFrameSourceConfig.create(
+                            intent?.getStringExtra(EXTRA_CAPTURE_SOURCE),
+                            intent?.getStringExtra(EXTRA_DASHCAM_RTSP_URL)
+                        ).getOrThrow()
                     )
                     // startDriveSession marks the service running before this admission
                     // is released, so observers can never see an Idle gap in between.
@@ -311,6 +341,7 @@ class DriveForegroundService : LifecycleService() {
 
     private fun completeCancelledStart(startId: Int, discardData: Boolean) {
         val requestId = startRequestId
+        val cancelledCaptureSource = pendingAdmittedCaptureSource() ?: captureSourceKind
         var summary = DriveEndSummary(
             sessionId = requestId?.let { "start-$it" }
                 ?: "start-${System.currentTimeMillis()}",
@@ -319,7 +350,8 @@ class DriveForegroundService : LifecycleService() {
             already = 0,
             discarded = discardData,
             reason = "Drive start cancelled",
-            startRequestId = requestId
+            startRequestId = requestId,
+            captureSource = cancelledCaptureSource
         )
         if (!runCatching {
                 NativeDriveEndSummaryStore.record(applicationContext, summary)
@@ -356,7 +388,8 @@ class DriveForegroundService : LifecycleService() {
             error = message,
             discarded = true,
             reason = "Start failed",
-            startRequestId = startRequestId
+            startRequestId = startRequestId,
+            captureSource = captureSourceKind
         )
         val terminalStored = runCatching {
             NativeDriveEndSummaryStore.record(applicationContext, summary)
@@ -400,7 +433,8 @@ class DriveForegroundService : LifecycleService() {
             already = alreadyCount,
             discarded = discardData,
             reason = "Stopped",
-            startRequestId = activeRequest ?: requestedStart
+            startRequestId = activeRequest ?: requestedStart,
+            captureSource = pendingAdmittedCaptureSource() ?: captureSourceKind
         )
         startRegistry.recordCompletion(requestedStart, summary)
         clearStartAdmission(requestedStart)
@@ -415,7 +449,8 @@ class DriveForegroundService : LifecycleService() {
         language: String,
         debug: Boolean,
         recordVideo: Boolean,
-        maxDriveMinutes: Int
+        maxDriveMinutes: Int,
+        sourceConfig: NativeFrameSourceConfig
     ) {
         // A new producer lifetime invalidates any bridge inventory completed before it.
         // The epoch cannot be overwritten by an older reconciliation pass racing here.
@@ -427,7 +462,8 @@ class DriveForegroundService : LifecycleService() {
         pendingCameraRecoveryIsUserState = false
         criticalCameraRetryBudget.reset()
         lastLocationAccess = null
-        cameraPermissionGranted = hasCameraPermission()
+        captureSourceKind = sourceConfig.kind
+        cameraPermissionGranted = !captureSourceKind.requiresCameraPermission || hasCameraPermission()
         lastPrerequisiteAccessCheckElapsedMs = 0L
         startedAtMs = System.currentTimeMillis()
         sessionId = startedAtMs.toString()
@@ -435,7 +471,9 @@ class DriveForegroundService : LifecycleService() {
         captureSeq = 0; foundCount = 0; alreadyCount = 0
         workLedger.reset(); duplicateIds.clear()
         stopTeardownJob = null
-        recordingEnabled = recordVideo; isRecording = false; videoSupported = true
+        recordingEnabled = recordVideo && captureSourceKind == NativeFrameSourceKind.PHONE_CAMERA
+        isRecording = false
+        videoSupported = captureSourceKind == NativeFrameSourceKind.PHONE_CAMERA
         debugMode = debug
         segmentCount = 0; recordedBytes = 0L; pauseTransitioning = false
         terminalStatusSealed = false
@@ -453,21 +491,31 @@ class DriveForegroundService : LifecycleService() {
         synchronized(sessionPersistErrors) { sessionPersistErrors.clear() }
         synchronized(sessionPersistJobs) { sessionPersistTail = null }
         cameraActive = false
-        cameraIssue = "Waiting for camera"
-        startCameraAccessMonitoring()
+        sourceState = NativeFrameSourceState.IDLE
+        cameraIssue = if (captureSourceKind == NativeFrameSourceKind.DASHCAM)
+            "Waiting for dashcam stream" else "Waiting for camera"
+        sourceIssue = cameraIssue
+        if (captureSourceKind.requiresCameraPermission) startCameraAccessMonitoring()
+        else {
+            stopCameraAccessMonitoring()
+            cameraAccessBlocked = false
+        }
         // CameraX must not bind until the location provider supplies a genuinely fresh
         // fix. This starts true because no camera use case has been opened yet.
         accessCameraReleased = true
         lastCameraRestartAttemptElapsedMs = Long.MIN_VALUE
         captureBlocker = NativeCaptureBlocker.NONE
-        recordingIssue = null
+        recordingIssue = if (recordVideo && captureSourceKind == NativeFrameSourceKind.DASHCAM)
+            "Local video recording is unavailable for dashcam streams" else null
         inferenceSuspendedReason = null
         notificationStopRequested = false; lastNotificationCheckMs = 0L
         notificationStartedElapsedMs = 0L; notificationMissingChecks = 0
         notificationQueryFailureChecks = 0
         lastNotificationState = null
         lastCapFix = null; lastCapTimeMs = 0L
-        statusText = "Waiting for a fresh, precise GPS fix (30 m or better). Camera, detection, and video are paused."
+        statusText = if (captureSourceKind == NativeFrameSourceKind.DASHCAM)
+            "Waiting for a fresh, precise GPS fix (30 m or better). Detection is paused; the dashcam stream is connecting."
+        else "Waiting for a fresh, precise GPS fix (30 m or better). Camera, detection, and video are paused."
         startForegroundNow()
         acquireWakeLock()
 
@@ -489,18 +537,8 @@ class DriveForegroundService : LifecycleService() {
                 mainHandler.post { noteLocationAccess(access) }
             }
         ).also { it.startUpdates(startedAtMs) }
-        cameraManager = NativeDriveCameraManager(
-            context = this,
-            lifecycleOwner = this,
-            initialVideoRecordingEnabled = recordVideo,
-            sessionId = sessionId,
-            onCameraStateChange = { available, reason ->
-                mainHandler.post { noteCameraState(available, reason) }
-            },
-            onCameraRecoveryRequired = { action, reason ->
-                mainHandler.post { handleCriticalCameraRecovery(action, reason) }
-            },
-            onRecordingStateChange = { enabled, recording, supported, message ->
+        val recordingStateListener =
+            { enabled: Boolean, recording: Boolean, supported: Boolean, message: String? ->
                 recordingEnabled = enabled
                 isRecording = recording
                 videoSupported = supported
@@ -516,9 +554,57 @@ class DriveForegroundService : LifecycleService() {
                     val interlock = captureInterlockDecision()
                     publish(if (interlock.canCapture) message else interlock.message)
                 }
-            },
-            onSegmentFinalized = ::persistVideoSegment
-        )
+            }
+        frameSource = when (captureSourceKind) {
+            NativeFrameSourceKind.PHONE_CAMERA -> NativeDriveCameraManager(
+                context = this,
+                lifecycleOwner = this,
+                initialVideoRecordingEnabled = recordVideo,
+                sessionId = sessionId,
+                onCameraStateChange = { available, reason ->
+                    mainHandler.post {
+                        val source = frameSource
+                        noteFrameSourceState(
+                            available,
+                            source?.state ?: if (available) NativeFrameSourceState.STREAMING
+                            else NativeFrameSourceState.CONNECTING,
+                            reason
+                        )
+                    }
+                },
+                onCameraRecoveryRequired = { action, reason ->
+                    mainHandler.post { handleCriticalCameraRecovery(action, reason) }
+                },
+                onRecordingStateChange = recordingStateListener,
+                onSegmentFinalized = ::persistVideoSegment
+            )
+            NativeFrameSourceKind.DASHCAM -> NativeRtspFrameSource(
+                context = applicationContext,
+                rtspUrl = requireNotNull(sourceConfig.rtspUrl),
+                initialVideoRecordingEnabled = recordVideo,
+                onStateChange = { available, state, reason ->
+                    mainHandler.post { noteFrameSourceState(available, state, reason) }
+                },
+                onRecordingStateChange = recordingStateListener,
+                onFatalError = { reason ->
+                    mainHandler.post {
+                        if (sessionRunning && !isStopping) {
+                            stopDriveSession("Stopped: $reason")
+                        }
+                    }
+                }
+            )
+        }
+
+        // An RTSP dashcam is not the handset camera. Keep its foreground-service
+        // connection and transparent preview alive while GPS is unavailable or stale;
+        // only analyzer sampling is gated on a fresh, precise fix. Closing the stream on
+        // every GPS freshness transition made previews freeze and forced needless RTSP
+        // reconnects even though no evidence was being accepted.
+        if (captureSourceKind == NativeFrameSourceKind.DASHCAM) {
+            accessCameraReleased = false
+            frameSource?.start()
+        }
 
         // Evaluate only after both providers exist. With GPS disabled, unavailable, or
         // stale this publishes the explicit pause reason and leaves CameraX unopened.
@@ -540,19 +626,25 @@ class DriveForegroundService : LifecycleService() {
             isRecording = isRecording,
             videoSupported = videoSupported,
             recordingIssue = recordingIssue,
-            cameraActive = cameraActive
+            cameraActive = cameraActive,
+            captureSource = captureSourceKind
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val sourceType = if (captureSourceKind == NativeFrameSourceKind.DASHCAM)
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            else ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA
             startForeground(
                 NotificationHelper.NOTIFICATION_ID, notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                sourceType or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
             )
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10 supports typed foreground services, but the camera type was
-            // introduced only in Android 11. Passing the newer bit on API 29 is invalid.
+            val sourceType = if (captureSourceKind == NativeFrameSourceKind.DASHCAM)
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0
+            // Android 10 supports connected-device and location types, but the camera
+            // type was introduced only in Android 11.
             startForeground(
                 NotificationHelper.NOTIFICATION_ID, notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                sourceType or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
             )
         } else startForeground(NotificationHelper.NOTIFICATION_ID, notification)
         notificationStartedElapsedMs = SystemClock.elapsedRealtime()
@@ -599,13 +691,13 @@ class DriveForegroundService : LifecycleService() {
                     continue
                 }
                 val fix = loc.latestFix ?: continue
-                val cam = cameraManager ?: continue
+                val cam = frameSource ?: continue
                 // A deterministic API/configuration rejection cannot be repaired by
                 // retrying the same request. Keep the transparent camera preview and
                 // optional local video alive, but stop creating pending inference bursts
                 // until the user starts a new Drive with corrected settings/app code.
                 if (inferenceSuspendedReason != null) continue
-                if (!cam.isCameraReady) continue
+                if (!cam.isReady) continue
                 val hasCompleteWindow = cam.hasCompleteBurst()
                 val accurateFix = fix.accuracy?.let {
                     it.isFinite() && it <= NativeDriveLocationProvider.GPS_COARSE_M
@@ -723,7 +815,7 @@ class DriveForegroundService : LifecycleService() {
 
     private fun validatedPostBurstFix(
         accessEpochBeforeCapture: Long,
-        camera: NativeDriveCameraManager,
+        camera: NativeFrameSource,
         primaryCapturedAtElapsedMs: Long,
         candidateFix: GpsFix?
     ): GpsFix? {
@@ -731,14 +823,15 @@ class DriveForegroundService : LifecycleService() {
         // can be claimed on a Binder/worker thread while the main thread is busy; reject
         // the burst immediately instead of waiting for the posted teardown runnable.
         if (notificationStopRequested) return null
-        val liveCameraAccessBlocked = effectiveCameraAppOpMode()
-            ?.let(NativeCameraAccessPolicy::isBlocked)
-            ?: cameraAccessBlocked
+        val liveCameraAccessBlocked = if (captureSourceKind.requiresCameraPermission) {
+            effectiveCameraAppOpMode()?.let(NativeCameraAccessPolicy::isBlocked)
+                ?: cameraAccessBlocked
+        } else false
         val decision = captureInterlockDecision(liveCameraAccessBlocked)
         val running = sessionRunning
         val paused = isPaused
         val stopping = isStopping
-        val cameraReady = camera.isCameraReady
+        val cameraReady = camera.isReady
         val cameraReleased = accessCameraReleased
         // Read this last: a transition concurrent with the state reads makes the token
         // differ and rejects the burst rather than pairing it with stale coordinates.
@@ -758,7 +851,7 @@ class DriveForegroundService : LifecycleService() {
     }
 
     private fun isBurstAccessStillValid(item: BurstJob): Boolean {
-        val camera = cameraManager ?: return false
+        val camera = frameSource ?: return false
         return validatedPostBurstFix(
             item.accessEpoch,
             camera,
@@ -789,7 +882,7 @@ class DriveForegroundService : LifecycleService() {
             return
         }
         if (!sessionRunning || isStopping) return
-        val cameraPermissionNow = hasCameraPermission()
+        val cameraPermissionNow = !captureSourceKind.requiresCameraPermission || hasCameraPermission()
         val locationAccessNow = locationProvider?.captureAccess() ?: NativeLocationAccess(
             permissionGranted = false,
             servicesEnabled = false,
@@ -808,16 +901,24 @@ class DriveForegroundService : LifecycleService() {
         if (cameraChanged || locationChanged) refreshCaptureInterlock()
     }
 
-    private fun noteCameraState(available: Boolean, reason: String?) {
+    private fun noteFrameSourceState(
+        available: Boolean,
+        nextState: NativeFrameSourceState,
+        reason: String?
+    ) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
-            mainHandler.post { noteCameraState(available, reason) }
+            mainHandler.post { noteFrameSourceState(available, nextState, reason) }
             return
         }
         // Repeated CameraState emissions are harmless invalidations and close the narrow
         // race where a critical code follows a PENDING_OPEN event with the same Boolean.
         captureAccessEpoch.invalidate()
         cameraActive = available
-        cameraIssue = if (available) null else reason ?: "Camera access is unavailable"
+        sourceState = nextState
+        sourceIssue = if (available) null else reason
+        cameraIssue = if (available) null else reason ?: if (
+            captureSourceKind == NativeFrameSourceKind.DASHCAM
+        ) "Dashcam stream is unavailable" else "Camera access is unavailable"
         if (available) {
             pendingCriticalCameraRecoveryReason = null
             pendingCameraRecoveryIsUserState = false
@@ -834,7 +935,9 @@ class DriveForegroundService : LifecycleService() {
             mainHandler.post { handleCriticalCameraRecovery(action, reason) }
             return
         }
-        if (!sessionRunning || isPaused || isStopping) return
+        if (!sessionRunning || isPaused || isStopping ||
+            captureSourceKind != NativeFrameSourceKind.PHONE_CAMERA
+        ) return
         captureAccessEpoch.invalidate()
         cameraActive = false
         cameraIssue = reason
@@ -887,7 +990,7 @@ class DriveForegroundService : LifecycleService() {
                         stopDriveSession("Stopped because $terminal")
                         return@launch
                     }
-                    val manager = cameraManager
+                    val manager = frameSource
                     if (manager == null) {
                         stopDriveSession("Stopped because the camera service was unavailable")
                         return@launch
@@ -903,7 +1006,7 @@ class DriveForegroundService : LifecycleService() {
                     }
                     publish(cameraIssue!!)
                     try {
-                        manager.pauseCameraSafely()
+                        manager.pauseSafely()
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (_: Exception) {
@@ -928,7 +1031,7 @@ class DriveForegroundService : LifecycleService() {
                     captureAccessEpoch.invalidate()
                     accessCameraReleased = false
                     var bindAccepted: Boolean? = null
-                    manager.resumeCamera { ready ->
+                    manager.resume { ready ->
                         bindAccepted = ready
                         if (!ready && sessionRunning && !isPaused && !isStopping) {
                             captureAccessEpoch.invalidate()
@@ -1030,7 +1133,9 @@ class DriveForegroundService : LifecycleService() {
             mainHandler.post(::refreshCameraAccessState)
             return
         }
-        val blocked = effectiveCameraAppOpMode()?.let(NativeCameraAccessPolicy::isBlocked) ?: false
+        val blocked = if (captureSourceKind.requiresCameraPermission) {
+            effectiveCameraAppOpMode()?.let(NativeCameraAccessPolicy::isBlocked) ?: false
+        } else false
         val changed = blocked != cameraAccessBlocked
         if (changed) captureAccessEpoch.invalidate()
         cameraAccessBlocked = blocked
@@ -1051,7 +1156,8 @@ class DriveForegroundService : LifecycleService() {
             cameraReady = cameraActive,
             cameraIssue = cameraIssue,
             location = location,
-            cameraAccessBlocked = cameraAccessBlockedNow
+            cameraAccessBlocked = cameraAccessBlockedNow,
+            sourceKind = captureSourceKind
         )
     }
 
@@ -1063,7 +1169,7 @@ class DriveForegroundService : LifecycleService() {
         val enabled = sessionRunning && !isStopping && !isPaused &&
             !accessCameraReleased && decision.canCapture &&
             inferenceSuspendedReason == null
-        cameraManager?.setAnalyzerSamplingEnabled(enabled)
+        frameSource?.setSamplingEnabled(enabled)
     }
 
     /**
@@ -1106,6 +1212,25 @@ class DriveForegroundService : LifecycleService() {
         if (priorBlocker != decision.blocker) captureAccessEpoch.invalidate()
         updateAnalyzerSampling(decision)
 
+        if (captureSourceKind == NativeFrameSourceKind.DASHCAM) {
+            // Dashcam preview/transport is intentionally independent of location. An
+            // explicit user pause/stop owns closing it; a temporary location blocker only
+            // makes sampling false above. This also prevents the GPS freshness timer from
+            // repeatedly releasing an otherwise healthy RTSP decoder surface.
+            if (accessCameraReleased) {
+                accessCameraReleased = false
+                frameSource?.resume()
+            }
+            if (decision.canCapture) {
+                if (priorBlocker != NativeCaptureBlocker.NONE || statusText != "Scanning live") {
+                    publish("Scanning live")
+                }
+            } else {
+                publish(decision.message)
+            }
+            return
+        }
+
         val prerequisitesRestored = decision.blocker == NativeCaptureBlocker.CAMERA_UNAVAILABLE
         if (accessCameraReleased && prerequisitesRestored &&
             accessTransitionJob?.isActive != true &&
@@ -1118,21 +1243,27 @@ class DriveForegroundService : LifecycleService() {
             lastCameraRestartAttemptElapsedMs = now
             captureAccessEpoch.invalidate()
             accessCameraReleased = false
-            cameraIssue = "Camera restarting after GPS/location recovery"
+            cameraIssue = if (captureSourceKind == NativeFrameSourceKind.DASHCAM)
+                "Connecting to dashcam after GPS/location recovery"
+            else "Camera restarting after GPS/location recovery"
+            sourceIssue = cameraIssue
+            sourceState = NativeFrameSourceState.CONNECTING
             publish(cameraIssue!!)
-            val manager = cameraManager
+            val manager = frameSource
             if (manager == null) {
                 accessCameraReleased = true
-                publish("Camera could not restart. Detection and video remain paused.")
+                publish("Video source could not restart. Detection remains paused.")
                 return
             }
-            manager.resumeCamera { ready ->
+            manager.resume { ready ->
                 if (!ready && sessionRunning && !isPaused && !isStopping) {
                     // An immediate bind/configuration failure cannot be left stuck in the
                     // non-released state. Retry with a small backoff; CameraX's ordinary
                     // PENDING_OPEN path remains bound and recovers without this branch.
                     accessCameraReleased = true
-                    cameraIssue = "Camera could not restart. Detection and video remain paused."
+                    cameraIssue = "Video source could not restart. Detection remains paused."
+                    sourceIssue = cameraIssue
+                    sourceState = NativeFrameSourceState.ERROR
                     publish(cameraIssue!!)
                     mainHandler.postDelayed(::refreshCaptureInterlock, CAMERA_RESTART_RETRY_MS)
                 }
@@ -1151,18 +1282,20 @@ class DriveForegroundService : LifecycleService() {
         if (!decision.shouldReleaseCamera || accessCameraReleased ||
             accessTransitionJob?.isActive == true) return
 
-        val manager = cameraManager ?: return
+        val manager = frameSource ?: return
         captureAccessEpoch.invalidate()
         accessCameraReleased = true
         accessTransitionJob = lifecycleScope.launch(start = CoroutineStart.UNDISPATCHED) {
             try {
-                manager.pauseCameraSafely()
+                manager.pauseSafely()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
                 // CameraX may already have closed itself after permission/privacy loss.
             } finally {
                 cameraActive = false
+                sourceState = NativeFrameSourceState.PAUSED
+                sourceIssue = captureInterlockDecision().message
                 if (!isStopping && !isPaused) publish(captureInterlockDecision().message)
                 mainHandler.post(::refreshCaptureInterlock)
             }
@@ -1202,7 +1335,7 @@ class DriveForegroundService : LifecycleService() {
                 expectedBytes <= 0L || expectedBytes > NativeMediaStorageQuota.MAX_KEYFRAME_BYTES
             ) return@withContext null
 
-            val storage = cameraManager ?: return@withContext null
+            val storage = frameSource ?: return@withContext null
             val reservation = storage.reserveMediaBytes(expectedBytes)
                 ?: return@withContext null
             val directory = File(filesDir, "footage/$sessionId/keyframes")
@@ -1267,7 +1400,10 @@ class DriveForegroundService : LifecycleService() {
                             sourceOffsetMs = (frame.capturedAtMs - startedAtMs).coerceAtLeast(0L),
                             lat = item.fix.lat,
                             lng = item.fix.lng,
-                            gpsAccuracy = item.fix.accuracy,
+                            gpsAccuracy = NativeEvidenceLocationPolicy.gpsAccuracyForEvidence(
+                                captureSourceKind,
+                                item.fix.accuracy
+                            ),
                             speedMps = item.fix.speedMps,
                             heading = item.fix.heading,
                             width = frame.bitmap.width,
@@ -1303,7 +1439,7 @@ class DriveForegroundService : LifecycleService() {
         }.getOrDefault(false)
 
     private fun cleanFailedKeyframeWrite(
-        storage: NativeDriveCameraManager,
+        storage: NativeFrameSource,
         reservation: NativeMediaStorageQuota.Reservation,
         committedFiles: List<File>,
         temporaryFiles: List<File>,
@@ -1347,11 +1483,17 @@ class DriveForegroundService : LifecycleService() {
                     if (inferenceSuspendedReason != null) continue
                     // Looking up a candidate is local and fail-closed. If Room has a
                     // transient problem, ordinary damage detection must still proceed.
-                    val repairCandidate = if (debugMode) null else try {
+                    val evidenceGpsAccuracy = NativeEvidenceLocationPolicy.gpsAccuracyForEvidence(
+                        captureSourceKind,
+                        item.fix.accuracy
+                    )
+                    val repairCandidate = if (debugMode ||
+                        !NativeEvidenceLocationPolicy.canVerifyRepair(captureSourceKind)
+                    ) null else try {
                         repairEngine?.findCandidate(
                             item.fix.lat,
                             item.fix.lng,
-                            item.fix.accuracy,
+                            evidenceGpsAccuracy,
                             item.fix.speedMps,
                             item.fix.heading,
                             item.capturedAtMs / 1000,
@@ -1363,7 +1505,7 @@ class DriveForegroundService : LifecycleService() {
                     val outcome = inferenceEngine?.analyzeBurst(
                         item.burstFrames, item.primaryIndex, item.fix.lat, item.fix.lng,
                         sessionId, item.captureSeq, item.capturedAtMs, item.sourceOffsetMs,
-                        item.fix.accuracy, item.fix.speedMps, item.fix.heading,
+                        evidenceGpsAccuracy, item.fix.speedMps, item.fix.heading,
                         onEvidenceSaved = { uncommittedReportPhoto = it },
                         requireCompleteVerdict = repairCandidate != null
                     )
@@ -1455,7 +1597,7 @@ class DriveForegroundService : LifecycleService() {
                     val message = error.message ?: "Detection temporarily failed"
                     if (error.suspendInference) {
                         inferenceSuspendedReason = message
-                        cameraManager?.setAnalyzerSamplingEnabled(false)
+                        frameSource?.setSamplingEnabled(false)
                         publish(inferenceSuspendedStatus(message))
                     } else {
                         publish("$message · frame saved for later")
@@ -1588,7 +1730,7 @@ class DriveForegroundService : LifecycleService() {
                 criticalRecovery?.join()
                 accessTransition?.join()
                 recordingTransition?.join()
-                cameraManager?.pauseCameraSafely()
+                frameSource?.pauseSafely()
             } catch (error: Exception) {
                 if (error !is CancellationException) {
                     recordingIssue = error.message ?: "Camera could not finish pausing cleanly"
@@ -1651,11 +1793,16 @@ class DriveForegroundService : LifecycleService() {
         isPaused = false; acquireWakeLock(); locationProvider?.resumeUpdates()
         refreshCameraAccessState()
         cameraActive = false
-        cameraIssue = "Waiting for a fresh, precise GPS fix"
-        publish("Waiting for a fresh, precise GPS fix (30 m or better). Camera, detection, and video are paused.")
-        val manager = cameraManager
+        cameraIssue = if (captureSourceKind == NativeFrameSourceKind.DASHCAM)
+            "Waiting for dashcam stream and a fresh, precise GPS fix"
+        else "Waiting for a fresh, precise GPS fix"
+        publish(if (captureSourceKind == NativeFrameSourceKind.DASHCAM)
+            "Dashcam stream is connecting; detection is waiting for a fresh, precise GPS fix (30 m or better)."
+        else "Waiting for a fresh, precise GPS fix (30 m or better). Camera, detection, and video are paused.")
+        val manager = frameSource
         if (manager == null) {
-            stopDriveSession("Camera could not resume")
+            stopDriveSession(if (captureSourceKind == NativeFrameSourceKind.DASHCAM)
+                "Dashcam could not resume" else "Camera could not resume")
             runCatching { onComplete?.invoke(snapshot()) }
             return
         } else startScanLoop()
@@ -1668,11 +1815,22 @@ class DriveForegroundService : LifecycleService() {
 
     fun attachPreview(surfaceProvider: Preview.SurfaceProvider): Boolean? {
         if (!sessionRunning || isStopping) return false
-        return cameraManager?.attachPreview(surfaceProvider)
+        return (frameSource as? NativeDriveCameraManager)?.attachPreview(surfaceProvider) ?: false
     }
 
     fun detachPreview(surfaceProvider: Preview.SurfaceProvider) {
-        cameraManager?.detachPreview(surfaceProvider)
+        (frameSource as? NativeDriveCameraManager)?.detachPreview(surfaceProvider)
+    }
+
+    fun isDashcamSource(): Boolean = captureSourceKind == NativeFrameSourceKind.DASHCAM
+
+    fun attachDashcamPreview(listener: NativeDashcamPreviewListener): Boolean {
+        if (!sessionRunning || isStopping) return false
+        return (frameSource as? NativeRtspFrameSource)?.attachPreview(listener) ?: false
+    }
+
+    fun detachDashcamPreview(listener: NativeDashcamPreviewListener) {
+        (frameSource as? NativeRtspFrameSource)?.detachPreview(listener)
     }
 
     fun controlsNotificationSession(expectedSessionId: String?): Boolean =
@@ -1695,7 +1853,7 @@ class DriveForegroundService : LifecycleService() {
         recordingTransitionJob = lifecycleScope.launch(start = CoroutineStart.UNDISPATCHED) {
             try {
                 previousTransition?.join()
-                cameraManager?.setVideoRecordingEnabled(enabled)
+                frameSource?.setVideoRecordingEnabled(enabled)
             } catch (cancelled: CancellationException) {
                 // Stop owns camera finalization once teardown begins. The bridge still
                 // receives a final status instead of being left with a pending call.
@@ -1743,7 +1901,8 @@ class DriveForegroundService : LifecycleService() {
                 sessionId, checkedCount, foundCount, alreadyCount,
                 discarded = discardDataOnStop,
                 reason = reason,
-                startRequestId = startRequestId
+                startRequestId = startRequestId,
+                captureSource = captureSourceKind
             )
             val callbacks = synchronized(stopCallbacks) {
                 stopCallbacks.toList().also { stopCallbacks.clear() }
@@ -1787,10 +1946,11 @@ class DriveForegroundService : LifecycleService() {
             .onFailure { recordStopError("Could not stop location updates", it) }
         runCatching { releaseWakeLock() }
             .onFailure { recordStopError("Could not release the Drive Mode wake lock", it) }
-        val manager = cameraManager
+        val manager = frameSource
         val engine = inferenceEngine
         val endedSession = sessionId
         val endedStartRequest = startRequestId
+        val endedCaptureSource = captureSourceKind
         // Stop owns camera and persistence teardown even if Android destroys the
         // LifecycleService mid-flight. A process-owned job is tracked by onDestroy and
         // keeps destructive bridge calls fenced until every producer has actually ended.
@@ -1869,7 +2029,7 @@ class DriveForegroundService : LifecycleService() {
                 }
                 if (!cancelled) recordStopError("$label persistence did not stop cleanly")
                 if (!cancelled) {
-                    publish("Camera off · waiting for saved data")
+                    publish(sourceOffStatus("waiting for saved data"))
                     // Cancellation is only a request. Room/file ownership may be inside
                     // NonCancellable code, so never release Stop/clear callbacks until
                     // the jobs have really reached a terminal state.
@@ -1883,7 +2043,7 @@ class DriveForegroundService : LifecycleService() {
                     accessTransition?.join()
                     recordingTransition?.join()
                     cameraTransitionJob?.join()
-                    manager?.stopCameraSafely()
+                    manager?.stopSafely()
                     cameraStoppedCleanly = true
                 } catch (cancelled: CancellationException) {
                     throw cancelled
@@ -1905,7 +2065,7 @@ class DriveForegroundService : LifecycleService() {
                             cameraActive = false
                             isRecording = false
                             captureStopped = true
-                            publish("Camera off · finalizing saved data")
+                            publish(sourceOffStatus("finalizing saved data"))
                         }
                     }
                 }
@@ -1952,7 +2112,7 @@ class DriveForegroundService : LifecycleService() {
                         .onFailure { recordStopError("Could not stop camera scheduling", it) }
                     if (scanningJob?.isCompleted != true && !stopScannerWithinLimit(3_000L)) {
                         recordStopError("Camera scheduling remained active after Stop")
-                        publish("Camera off · waiting for saved data")
+                        publish(sourceOffStatus("waiting for saved data"))
                         scanningJob?.join()
                     }
                     runCatching { drainingChannel?.cancel() }
@@ -1964,7 +2124,7 @@ class DriveForegroundService : LifecycleService() {
                             .onFailure { recordStopError("Could not cancel the detection worker", it) }
                         if (!stopWorkerWithinLimit(5_000L)) {
                             recordStopError("Detection worker remained active after Stop")
-                            publish("Camera off · waiting for saved data")
+                            publish(sourceOffStatus("waiting for saved data"))
                             workerJob?.join()
                         }
                     }
@@ -1983,7 +2143,7 @@ class DriveForegroundService : LifecycleService() {
                         cameraStoppedCleanly = emergencyClosed.isSuccess
                     }
                     if (cameraStoppedCleanly) {
-                        cameraManager = null
+                        frameSource = null
                         cameraActive = false
                         isRecording = false
                     }
@@ -2016,7 +2176,7 @@ class DriveForegroundService : LifecycleService() {
                             } == true
                             if (!savedWithinSoftLimit) {
                                 recordStopError("Saving the final drive summary exceeded the Stop limit")
-                                publish("Camera off · waiting for saved data")
+                                publish(sourceOffStatus("waiting for saved data"))
                             }
                             // Timeout only changes the visible status. It never proves a
                             // Room write ended and therefore cannot release Stop/clear.
@@ -2035,7 +2195,8 @@ class DriveForegroundService : LifecycleService() {
                         error = summaryError,
                         discarded = discarded,
                         reason = reason,
-                        startRequestId = endedStartRequest
+                        startRequestId = endedStartRequest,
+                        captureSource = endedCaptureSource
                     )
                     } catch (error: Throwable) {
                         recordStopError("Final Drive teardown failed", error)
@@ -2060,7 +2221,7 @@ class DriveForegroundService : LifecycleService() {
                             cameraStoppedCleanly = emergencyClosed.isSuccess
                         }
                         if (cameraStoppedCleanly) {
-                            cameraManager = null
+                            frameSource = null
                             cameraActive = false
                             isRecording = false
                         }
@@ -2098,7 +2259,8 @@ class DriveForegroundService : LifecycleService() {
                             },
                             discarded = discardDataOnStop,
                             reason = reason,
-                            startRequestId = endedStartRequest
+                            startRequestId = endedStartRequest,
+                            captureSource = endedCaptureSource
                         )
                         val currentStopError = synchronized(stopErrors) {
                             stopErrors.takeIf { it.isNotEmpty() }?.joinToString("; ")
@@ -2165,7 +2327,7 @@ class DriveForegroundService : LifecycleService() {
     }
 
     private fun persistVideoSegment(segment: NativeVideoSegment) {
-        val storageLedger = cameraManager
+        val storageLedger = frameSource
         val job = lifecycleScope.launch(Dispatchers.IO) {
             var rowCommitted = false
             try {
@@ -2331,24 +2493,44 @@ class DriveForegroundService : LifecycleService() {
         // admitted request token into this instance. Preserve ownership across that
         // observable gap so a recreated WebView never adopts an anonymous Start.
         val effectiveStartRequestId = startRequestId ?: pendingAdmittedStartRequestId()
+        val starting = !sessionRunning && !isStopping && hasAdmittedStart()
+        val effectiveCaptureSource = if (starting) {
+            pendingAdmittedCaptureSource() ?: captureSourceKind
+        } else captureSourceKind
+        val effectiveVisibleStatus = if (starting && effectiveCaptureSource ==
+            NativeFrameSourceKind.DASHCAM
+        ) "Connecting to dashcam and GPS" else if (starting) "Starting camera and GPS"
+        else visibleStatus
         return DriveStatusSnapshot(
             sessionRunning, isPaused, pauseTransitioning, isStopping,
             sessionId.takeIf(String::isNotBlank), work.checked,
-            foundCount, alreadyCount, work.queued, work.deferred, visibleStatus,
+            foundCount, alreadyCount, work.queued, work.deferred, effectiveVisibleStatus,
             recordingEnabled, isRecording, videoSupported, segmentCount, recordedBytes,
             cameraActive,
             recordingIssue, keyframeCount, remainingDriveMs(), sessionLimitMinutes,
-            !capture.canCapture,
-            capture.takeIf { !it.canCapture }?.message,
+            !starting && !capture.canCapture,
+            capture.takeIf { !starting && !it.canCapture }?.message,
             captureStopped,
-            isStarting = !sessionRunning && !isStopping && hasAdmittedStart(),
-            startRequestId = effectiveStartRequestId
+            isStarting = starting,
+            startRequestId = effectiveStartRequestId,
+            captureSource = effectiveCaptureSource.wireValue,
+            sourceActive = cameraActive,
+            sourceState = if (starting) NativeFrameSourceState.CONNECTING.wireValue
+                else sourceState.wireValue,
+            sourceIssue = if (starting) null else sourceIssue
         )
     }
 
-    private fun inferenceSuspendedStatus(reason: String): String =
-        "$reason · Detection paused; camera and local video continue. " +
-            "Stop Drive, check the API key/model, then start again."
+    private fun inferenceSuspendedStatus(reason: String): String = if (
+        captureSourceKind == NativeFrameSourceKind.DASHCAM
+    ) "$reason · Detection paused; the dashcam preview continues. " +
+        "Stop Drive, check the API key/model, then start again."
+    else "$reason · Detection paused; camera and local video continue. " +
+        "Stop Drive, check the API key/model, then start again."
+
+    private fun sourceOffStatus(suffix: String): String = if (
+        captureSourceKind == NativeFrameSourceKind.DASHCAM
+    ) "Dashcam off · $suffix" else "Camera off · $suffix"
 
     private fun claimStopCompletion(candidate: DriveEndSummary): StopCompletionClaim =
         synchronized(stopCallbacks) {
@@ -2408,7 +2590,7 @@ class DriveForegroundService : LifecycleService() {
                 sessionId, isPaused, isStopping, pauseTransitioning,
                 checkedCount, foundCount, alreadyCount, notificationStatus,
                 recordingEnabled, isRecording, videoSupported, recordingIssue,
-                cameraActive, captureStopped
+                cameraActive, captureStopped, captureSourceKind
             )
             if (notificationState != lastNotificationState) {
                 runCatching {
@@ -2422,7 +2604,8 @@ class DriveForegroundService : LifecycleService() {
                         videoSupported = videoSupported,
                         recordingIssue = recordingIssue,
                         cameraActive = cameraActive,
-                        captureStopped = captureStopped
+                        captureStopped = captureStopped,
+                        captureSource = captureSourceKind
                     )
                     (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                         .notify(NotificationHelper.NOTIFICATION_ID, notification)
@@ -2455,6 +2638,7 @@ class DriveForegroundService : LifecycleService() {
         val wasActive = sessionRunning || isStopping
         val destroyedSessionId = sessionId
         val destroyedStartRequest = startRequestId
+        val destroyedCaptureSource = captureSourceKind
         val abnormalTeardown = wasActive && completedStopSummary == null
         val jobsToJoin = if (abnormalTeardown) {
             buildList {
@@ -2499,7 +2683,7 @@ class DriveForegroundService : LifecycleService() {
             // OEM CameraX implementations can throw from unbindAll during process or
             // Task-Manager teardown. One failure must never skip GPS, network, wakelock,
             // or LifecycleService cleanup.
-            val cameraClosed = runCatching { cameraManager?.closeImmediately() }.isSuccess
+            val cameraClosed = runCatching { frameSource?.closeImmediately() }.isSuccess
             if (cameraClosed) {
                 cameraActive = false
                 isRecording = false
@@ -2511,7 +2695,7 @@ class DriveForegroundService : LifecycleService() {
             runCatching { releaseWakeLock() }
             if (abnormalTeardown) {
                 statusText = if (cameraClosed) {
-                    "Camera off · finalizing interrupted drive data"
+                    sourceOffStatus("finalizing interrupted drive data")
                 } else {
                     "Android ended Drive Mode · finalizing interrupted drive data"
                 }
@@ -2521,6 +2705,7 @@ class DriveForegroundService : LifecycleService() {
                 finalizeAbnormalTeardown(
                     destroyedSessionId,
                     destroyedStartRequest,
+                    destroyedCaptureSource,
                     jobsToJoin
                 )
             } else {
@@ -2535,6 +2720,7 @@ class DriveForegroundService : LifecycleService() {
     private fun finalizeAbnormalTeardown(
         destroyedSessionId: String,
         destroyedStartRequest: String?,
+        destroyedCaptureSource: NativeFrameSourceKind,
         jobsToJoin: List<Job>
     ) {
         abnormalTeardownScope.launch {
@@ -2551,7 +2737,7 @@ class DriveForegroundService : LifecycleService() {
             if (!jobsFinishedWithinSoftLimit) {
                 teardownErrors += "Interrupted Drive ownership barrier exceeded its limit"
                 withContext(NonCancellable + Dispatchers.Main.immediate) {
-                    statusText = "Camera off · waiting for safe data finalization"
+                    statusText = sourceOffStatus("waiting for safe data finalization")
                     runCatching { onStatusListener?.invoke(snapshot()) }
                 }
                 // A timeout is not completion. Keep activeService as the protected
@@ -2590,7 +2776,11 @@ class DriveForegroundService : LifecycleService() {
                 teardownErrors += "Interrupted Drive summary exceeded its save limit"
             }
 
-            val reason = "Drive Mode stopped because Android ended the foreground camera service."
+            val reason = if (destroyedCaptureSource == NativeFrameSourceKind.DASHCAM) {
+                "Drive Mode stopped because Android ended the foreground dashcam service."
+            } else {
+                "Drive Mode stopped because Android ended the foreground camera service."
+            }
             withContext(NonCancellable + Dispatchers.Main.immediate) {
                 var summary = DriveEndSummary(
                     sessionId = destroyedSessionId,
@@ -2600,7 +2790,8 @@ class DriveForegroundService : LifecycleService() {
                     error = (listOf(reason) + teardownErrors).distinct().joinToString("; "),
                     discarded = discardDataOnStop,
                     reason = reason,
-                    startRequestId = destroyedStartRequest
+                    startRequestId = destroyedStartRequest,
+                    captureSource = destroyedCaptureSource
                 )
                 val terminalStored = runCatching {
                     NativeDriveEndSummaryStore.record(applicationContext, summary)

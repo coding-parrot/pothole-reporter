@@ -36,7 +36,7 @@ class NativeInferenceEngine(
         onEvidenceSaved: (String) -> Unit,
         requireCompleteVerdict: Boolean = false
     ): InferenceOutcome = withContext(Dispatchers.IO) {
-        if (burstFrames.size !in NativeDriveCameraManager.MIN_DETECTION_SOURCE_FRAMES..
+        if (burstFrames.size !in NativeFrameBurstContract.MIN_INFERENCE_FRAMES..
             NativeRollingBurstWindow.OUTPUT_COUNT
         ) {
             return@withContext InferenceOutcome(

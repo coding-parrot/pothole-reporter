@@ -63,11 +63,11 @@ check(
     and CAMERA.index("if (released)") < CAMERA.index("fullyClosed = true", CAMERA.index("if (released)")),
 )
 check(
-    "Stop joins a cancelled GPS privacy camera-release transition",
+    "Stop joins a cancelled GPS privacy source-release transition",
     "val accessTransition = accessTransitionJob" in stop
     and "accessTransition?.cancel()" in stop
     and "accessTransition?.join()" in stop
-    and stop.index("accessTransition?.join()") < stop.index("manager?.stopCameraSafely()"),
+    and stop.index("accessTransition?.join()") < stop.index("manager?.stopSafely()"),
 )
 preview_reconcile = CAMERA[
     CAMERA.index("private fun reconcilePreviewSurfaceProvider"):
@@ -218,8 +218,8 @@ rear_camera = next(
     if node.get(android + "name") == "android.hardware.camera"
 )
 check(
-    "Play filters devices without the required rear camera",
-    rear_camera.get(android + "required") == "true"
+    "dashcam-only devices remain installable while phone capture rejects a missing rear camera",
+    rear_camera.get(android + "required") == "false"
     and "provider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA)" in CAMERA,
 )
 

@@ -283,7 +283,7 @@ check("manual evaluator does not inherit the native Drive token ceiling",
       "max_output_tokens" not in road_eval.build_request(
           ["one"], "P", "gpt-5.6", "high", mode="manual"))
 check("native Drive fails closed outside the bounded production burst",
-      "burstFrames.size !in NativeDriveCameraManager.MIN_DETECTION_SOURCE_FRAMES.." in native
+      "burstFrames.size !in NativeFrameBurstContract.MIN_INFERENCE_FRAMES.." in native
       and "NativeRollingBurstWindow.OUTPUT_COUNT" in native)
 check("prompt once and last", len([x for x in content if x["type"] == "input_text"]) == 1
       and content[-1]["type"] == "input_text")

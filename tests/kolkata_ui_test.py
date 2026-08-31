@@ -27,7 +27,7 @@ async () => {
   const enKeys = Object.keys(I18N.en).sort();
   const bnKeys = Object.keys(I18N.bn || {}).sort();
   eq("i18n: Bengali has exactly the English key set", bnKeys, enKeys);
-  eq("i18n: Bengali key count is pinned", bnKeys.length, 240);
+  eq("i18n: Bengali key count is pinned", bnKeys.length, 251);
   for (const key of enKeys) {
     eq(`i18n placeholder parity: ${key}`,
        placeholders(I18N.bn[key]), placeholders(I18N.en[key]));
@@ -45,8 +45,8 @@ async () => {
      /OpenAI/.test(document.getElementById("privacyBody").textContent)
        && /ক্যামেরা/.test(document.getElementById("privacyBody").textContent),
      document.getElementById("privacyBody").textContent);
-  ok("privacy: background-drive disclosure forces fresh consent",
-     /v15-background-drive-storage$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
+  ok("privacy: dashcam-network disclosure forces fresh consent",
+     /v17-dashcam-network$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
 
   const P = StandaloneAPI.__pure;
   const complaintFooter = "Pothole Reporter একটি স্বাধীন অ্যাপ। প্রস্তাবিত কর্তৃপক্ষ, ওয়ার্ড, "

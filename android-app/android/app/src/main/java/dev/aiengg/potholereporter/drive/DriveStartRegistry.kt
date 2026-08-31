@@ -8,6 +8,7 @@ internal class DriveStartRegistry(
     private data class Admission(
         val requestId: String,
         val admittedAtMs: Long,
+        val captureSource: NativeFrameSourceKind,
         val cancelled: Boolean = false,
         val discardData: Boolean = false
     )
@@ -16,10 +17,13 @@ internal class DriveStartRegistry(
     private val completions = LinkedHashMap<String, DriveEndSummary>()
 
     @Synchronized
-    fun admit(requestId: String): Boolean {
+    fun admit(
+        requestId: String,
+        captureSource: NativeFrameSourceKind = NativeFrameSourceKind.PHONE_CAMERA
+    ): Boolean {
         expireAdmission()
         if (admission != null) return false
-        admission = Admission(requestId, nowMs())
+        admission = Admission(requestId, nowMs(), captureSource)
         return true
     }
 
@@ -54,6 +58,12 @@ internal class DriveStartRegistry(
     fun pendingRequestId(): String? {
         expireAdmission()
         return admission?.requestId
+    }
+
+    @Synchronized
+    fun pendingCaptureSource(): NativeFrameSourceKind? {
+        expireAdmission()
+        return admission?.captureSource
     }
 
     @Synchronized
