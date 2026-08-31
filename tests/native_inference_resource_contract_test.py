@@ -11,8 +11,10 @@ ENGINE = (DRIVE / "NativeInferenceEngine.kt").read_text()
 TRANSPORT = (DRIVE / "NativeInferenceTransport.kt").read_text()
 REQUEST = (DRIVE / "NativeInferenceRequest.kt").read_text()
 DETECTION_CONTRACT = (DRIVE / "NativeDetectionContract.kt").read_text()
+RETRY_POLICY = (DRIVE / "NativeDetectionRetryPolicy.kt").read_text()
 REPAIR_CONTRACT = (DRIVE / "NativeRepairContract.kt").read_text()
-INFERENCE = "\n".join((ENGINE, TRANSPORT, REQUEST, DETECTION_CONTRACT, REPAIR_CONTRACT))
+INFERENCE = "\n".join((ENGINE, TRANSPORT, REQUEST, DETECTION_CONTRACT,
+                       RETRY_POLICY, REPAIR_CONTRACT))
 QUALITY = (DRIVE / "FrameQualityEvaluator.kt").read_text()
 SERVICE = (DRIVE / "DriveForegroundService.kt").read_text()
 failures = []
@@ -64,8 +66,8 @@ check(
     and "imageUrls.clear()" in repair_stream,
 )
 check(
-    "v15 detection and v2 repair contracts require complete uncropped camera frames",
-    'PROMPT_VERSION = "pothole-binary-v15"' in DETECTION_CONTRACT
+    "v19 detection and v2 repair contracts require complete uncropped camera frames",
+    'PROMPT_VERSION = "pothole-binary-v19"' in DETECTION_CONTRACT
     and 'PROMPT_VERSION = "road-repair-v2"' in REPAIR_CONTRACT
     and "complete camera frames" in DETECTION_CONTRACT
     and "complete current camera" in REPAIR_CONTRACT
@@ -73,9 +75,26 @@ check(
     and "No current image is cropped, tiled, masked, or limited" in REPAIR_CONTRACT,
 )
 check(
-    "raw inference queue is rendezvous-only and defers work from durable evidence",
+    "temporary-surface decisions use a bounded complete-frame majority",
+    "const val MAX_ATTEMPTS = 3" in RETRY_POLICY
+    and "isVoteEligible" in RETRY_POLICY
+    and "runBoundedDetectionAttempts {" in analysis
+    and "prepareDetectionImages(burstFrames, primaryFrame)" in analysis
+    and "allowEarlyReject = allowEarlyReject" in analysis
+    and "allowEarlyReject = repairCandidate == null" in SERVICE
+    and "NativeDetectionRetryPolicy.shouldRetry(attempts)" in RETRY_POLICY
+    and "NativeDetectionRetryPolicy.acceptedByMajority(attempts)" in RETRY_POLICY
+    and "asUnconfirmedTemporarySurface()" in RETRY_POLICY
+    and "while (true)" not in analysis
+    and "while (true)" not in RETRY_POLICY,
+)
+check(
+    "raw inference is rendezvous-only, bounded to two consumers, and durably deferred",
     "capacity = Channel.RENDEZVOUS" in SERVICE
     and "BufferOverflow.DROP_OLDEST" not in SERVICE
+    and "repeat(NativeLiveInferencePolicy.MAX_CONCURRENT_BURSTS)" in SERVICE
+    and "const val MAX_CONCURRENT_BURSTS = 2" in
+        (DRIVE / "NativeLiveInferencePolicy.kt").read_text()
     and "durable replay still owns the work" in SERVICE,
 )
 check(

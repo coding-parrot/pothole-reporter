@@ -11,6 +11,7 @@ internal data class DetectionModelVerdict(
     val surfaceType: String,
     val onDrivableSurface: Boolean,
     val hasLocalizedCavity: Boolean,
+    val hasUnambiguousLowerInterior: Boolean,
     val hasBrokenEdgeOrRim: Boolean,
     val hasDepthOrSurfaceLoss: Boolean,
     val temporalConsistency: String,
@@ -25,6 +26,7 @@ internal enum class DetectionRejectionReason {
     IMAGE_UNUSABLE,
     OFF_DRIVABLE_SURFACE,
     NO_LOCALIZED_CAVITY,
+    NO_UNAMBIGUOUS_LOWER_INTERIOR,
     NO_BROKEN_EDGE_OR_RIM,
     NO_DEPTH_OR_SURFACE_LOSS,
     TEMPORAL_NOT_CONSISTENT,
@@ -44,6 +46,7 @@ data class AssessmentResult(
     val measurementConfidence: String,
     val onDrivableSurface: Boolean,
     val hasLocalizedCavity: Boolean,
+    val hasUnambiguousLowerInterior: Boolean,
     val hasBrokenEdgeOrRim: Boolean,
     val hasDepthOrSurfaceLoss: Boolean,
     val temporalConsistency: String,
@@ -62,6 +65,9 @@ internal fun DetectionModelVerdict.rejectionReasons(): List<DetectionRejectionRe
     if (imageQuality != "usable") add(DetectionRejectionReason.IMAGE_UNUSABLE)
     if (!onDrivableSurface) add(DetectionRejectionReason.OFF_DRIVABLE_SURFACE)
     if (!hasLocalizedCavity) add(DetectionRejectionReason.NO_LOCALIZED_CAVITY)
+    if (surfaceType == "temporary_drivable_surface" && !hasUnambiguousLowerInterior) {
+        add(DetectionRejectionReason.NO_UNAMBIGUOUS_LOWER_INTERIOR)
+    }
     if (!hasBrokenEdgeOrRim) add(DetectionRejectionReason.NO_BROKEN_EDGE_OR_RIM)
     if (!hasDepthOrSurfaceLoss) add(DetectionRejectionReason.NO_DEPTH_OR_SURFACE_LOSS)
     if (temporalConsistency != "consistent") {
@@ -87,6 +93,7 @@ internal fun DetectionModelVerdict.toAssessment(): AssessmentResult {
         measurementConfidence = if (accepted) "low" else "not_applicable",
         onDrivableSurface = onDrivableSurface,
         hasLocalizedCavity = hasLocalizedCavity,
+        hasUnambiguousLowerInterior = hasUnambiguousLowerInterior,
         hasBrokenEdgeOrRim = hasBrokenEdgeOrRim,
         hasDepthOrSurfaceLoss = hasDepthOrSurfaceLoss,
         temporalConsistency = temporalConsistency,
@@ -118,6 +125,8 @@ internal fun parseDetectionVerdict(text: String): DetectionModelVerdict? {
             surfaceType = surfaceType,
             onDrivableSurface = json.get("on_drivable_surface") as? Boolean ?: return null,
             hasLocalizedCavity = json.get("has_localized_cavity") as? Boolean ?: return null,
+            hasUnambiguousLowerInterior =
+                json.get("has_unambiguous_lower_interior") as? Boolean ?: return null,
             hasBrokenEdgeOrRim = json.get("has_broken_edge_or_rim") as? Boolean ?: return null,
             hasDepthOrSurfaceLoss =
                 json.get("has_depth_or_surface_loss") as? Boolean ?: return null,
@@ -131,21 +140,26 @@ internal fun parseDetectionVerdict(text: String): DetectionModelVerdict? {
 }
 
 /**
- * The two cheap hard-negative checks worth cancelling early. All other responses finish and use
- * the normal JSON parser, keeping the streaming path understandable.
+ * Cancel obvious hard negatives without hiding a complete temporary-surface near miss from the
+ * bounded vote. Schema key order guarantees that the eligibility fields precede is_pothole.
  */
 internal fun findEarlyRejection(text: String): DetectionRejectionReason? {
+    val speedBreaker = SPEED_BREAKER_PATTERN.matcher(text)
+    if (speedBreaker.find() && speedBreaker.group(1) == "true") {
+        return DetectionRejectionReason.SPEED_BREAKER
+    }
     val modelDecision = IS_POTHOLE_PATTERN.matcher(text)
     if (!modelDecision.find()) return null
-    if (modelDecision.group(1) == "false") return DetectionRejectionReason.MODEL_NO
-
-    val speedBreaker = SPEED_BREAKER_PATTERN.matcher(text)
-    return if (speedBreaker.find() && speedBreaker.group(1) == "true") {
-        DetectionRejectionReason.SPEED_BREAKER
-    } else {
-        null
-    }
+    if (modelDecision.group(1) == "true") return null
+    return if (hasTemporaryVotePrefix(text)) null else DetectionRejectionReason.MODEL_NO
 }
+
+private fun hasTemporaryVotePrefix(text: String): Boolean =
+    IMAGE_USABLE_PATTERN.matcher(text).find() &&
+        TEMPORARY_SURFACE_PATTERN.matcher(text).find() &&
+        ON_DRIVABLE_PATTERN.matcher(text).find() &&
+        TEMPORAL_CONSISTENT_PATTERN.matcher(text).find() &&
+        SPEED_BREAKER_FALSE_PATTERN.matcher(text).find()
 
 internal fun completeDetectionAssessment(
     text: String,
@@ -174,6 +188,7 @@ private fun earlyRejectedAssessment(reason: DetectionRejectionReason): Assessmen
         measurementConfidence = "not_applicable",
         onDrivableSurface = false,
         hasLocalizedCavity = false,
+        hasUnambiguousLowerInterior = false,
         hasBrokenEdgeOrRim = false,
         hasDepthOrSurfaceLoss = false,
         temporalConsistency = "not_applicable",
@@ -199,3 +214,13 @@ private val REPORTABLE_SURFACES = VALID_SURFACES - setOf("unknown", "unpaved_or_
 private val IS_POTHOLE_PATTERN = Pattern.compile("\"is_pothole\"\\s*:\\s*(true|false)")
 private val SPEED_BREAKER_PATTERN =
     Pattern.compile("\"looks_like_speed_breaker\"\\s*:\\s*(true|false)")
+private val IMAGE_USABLE_PATTERN =
+    Pattern.compile("\"image_quality\"\\s*:\\s*\"usable\"")
+private val TEMPORARY_SURFACE_PATTERN =
+    Pattern.compile("\"surface_type\"\\s*:\\s*\"temporary_drivable_surface\"")
+private val ON_DRIVABLE_PATTERN =
+    Pattern.compile("\"on_drivable_surface\"\\s*:\\s*true")
+private val TEMPORAL_CONSISTENT_PATTERN =
+    Pattern.compile("\"temporal_consistency\"\\s*:\\s*\"consistent\"")
+private val SPEED_BREAKER_FALSE_PATTERN =
+    Pattern.compile("\"looks_like_speed_breaker\"\\s*:\\s*false")

@@ -62,7 +62,9 @@ class NativeInferenceTransportTest {
     @Test
     fun intentionalEarlyNoSurvivesCallCancellation() {
         enqueueSse(
-            delta("{\"is_pothole\":false"),
+            delta("{\"image_quality\":\"usable\",\"surface_type\":\"bituminous_asphalt\"," +
+                "\"on_drivable_surface\":true,\"temporal_consistency\":\"consistent\"," +
+                "\"looks_like_speed_breaker\":false,\"is_pothole\":false"),
             JSONObject().put("type", "ignored").put("padding", "x".repeat(8_000)).toString()
         )
 
@@ -166,12 +168,13 @@ class NativeInferenceTransportTest {
 
     companion object {
         private const val ACCEPTED_JSON =
-            "{\"is_pothole\":true,\"looks_like_speed_breaker\":false," +
-                "\"image_quality\":\"usable\",\"surface_type\":\"bituminous_asphalt\"," +
-                "\"on_drivable_surface\":true,\"has_localized_cavity\":true," +
+            "{\"image_quality\":\"usable\",\"surface_type\":\"bituminous_asphalt\"," +
+                "\"on_drivable_surface\":true,\"temporal_consistency\":\"consistent\"," +
+                "\"looks_like_speed_breaker\":false,\"is_pothole\":true," +
+                "\"has_localized_cavity\":true," +
+                "\"has_unambiguous_lower_interior\":true," +
                 "\"has_broken_edge_or_rim\":true,\"has_depth_or_surface_loss\":true," +
-                "\"temporal_consistency\":\"consistent\",\"size\":\"large\"," +
-                "\"description\":\"A visible cavity.\"}"
+                "\"size\":\"large\",\"description\":\"A visible cavity.\"}"
 
         private const val REPAIR_JSON =
             "{\"current_condition\":\"repaired\",\"assessment\":\"clear\"," +

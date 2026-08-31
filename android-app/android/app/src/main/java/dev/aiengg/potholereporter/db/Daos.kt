@@ -7,6 +7,9 @@ data class ReportMediaRef(
     val id: Long,
     val photoPath: String?,
     val photoFullPath: String?,
+    val photoDataUrlChars: Long?,
+    val driveId: String?,
+    val sourceEventKey: String?,
     val syncedToWeb: Boolean
 )
 
@@ -35,6 +38,7 @@ data class ReportSyncCandidate(
     val imageQuality: String?,
     val onDrivableSurface: Boolean,
     val hasLocalizedCavity: Boolean,
+    val hasUnambiguousLowerInterior: Boolean,
     val hasBrokenEdgeOrRim: Boolean,
     val hasDepthOrSurfaceLoss: Boolean,
     val temporalConsistency: String?,
@@ -103,19 +107,34 @@ interface ReportDao {
     @Query("SELECT * FROM reports WHERE id = :id")
     suspend fun getReportById(id: Long): ReportEntity?
 
-    @Query("""SELECT id, photoPath, photoFullPath, syncedToWeb
+    @Query("""SELECT id, photoPath, photoFullPath, length(photoDataUrl) AS photoDataUrlChars,
+        driveId, sourceEventKey, syncedToWeb
         FROM reports ORDER BY id ASC""")
     suspend fun getAllReportMediaRefs(): List<ReportMediaRef>
 
-    @Query("""SELECT id, photoPath, photoFullPath, syncedToWeb
+    @Query("""SELECT id, photoPath, photoFullPath, length(photoDataUrl) AS photoDataUrlChars,
+        driveId, sourceEventKey, syncedToWeb
         FROM reports WHERE id IN (:ids)""")
     suspend fun getReportMediaRefs(ids: List<Long>): List<ReportMediaRef>
+
+    @Query("SELECT id FROM reports ORDER BY id DESC LIMIT 1")
+    suspend fun getNewestReportMediaId(): Long?
+
+    @Query("""SELECT id, photoPath, photoFullPath, length(photoDataUrl) AS photoDataUrlChars,
+        driveId, sourceEventKey, syncedToWeb FROM reports
+        WHERE id > :afterId AND id <= :throughId ORDER BY id ASC LIMIT :limit""")
+    suspend fun getReportMediaRefPage(
+        afterId: Long,
+        throughId: Long,
+        limit: Int
+    ): List<ReportMediaRef>
 
     @Query("""SELECT id, createdAt, lat, lng, address, photoPath, photoFullPath,
         length(photoDataUrl) AS photoDataUrlChars,
         isReportable, isPothole, looksLikeSpeedBreaker, damageType, surfaceType,
         defectType, measurementProvenance, measurementConfidence, assessment, imageQuality,
-        onDrivableSurface, hasLocalizedCavity, hasBrokenEdgeOrRim, hasDepthOrSurfaceLoss,
+        onDrivableSurface, hasLocalizedCavity, hasUnambiguousLowerInterior,
+        hasBrokenEdgeOrRim, hasDepthOrSurfaceLoss,
         temporalConsistency, size, decision, description, emailSubject, emailBody, status,
         detectionModel, imageDetail, promptVersion, schemaVersion, evidenceCount, driveId,
         captureSource, sourceEventKey, capturedAt, sourceOffsetS, gpsAccuracy, speedMps,
@@ -149,6 +168,9 @@ interface ReportDao {
 
     @Query("DELETE FROM reports")
     suspend fun clearAll()
+
+    @Query("DELETE FROM reports WHERE id = :id")
+    suspend fun deleteReport(id: Long): Int
 }
 
 @Dao
@@ -294,6 +316,13 @@ interface DriveKeyframeDao {
     @Query("SELECT * FROM drive_keyframes WHERE id = :id")
     suspend fun getKeyframe(id: Long): DriveKeyframeEntity?
 
+    @Query("""SELECT * FROM drive_keyframes
+        WHERE sessionId = :sessionId AND captureSeq = :captureSeq LIMIT 1""")
+    suspend fun getBySessionAndCaptureSeq(
+        sessionId: String,
+        captureSeq: Int
+    ): DriveKeyframeEntity?
+
     @Query("SELECT * FROM drive_keyframes WHERE sessionId = :sessionId ORDER BY captureSeq ASC LIMIT :limit")
     suspend fun getForSession(sessionId: String, limit: Int): List<DriveKeyframeEntity>
 
@@ -364,6 +393,9 @@ interface DriveKeyframeDao {
 
     @Query("UPDATE drive_keyframes SET liveAnalyzed = 1 WHERE id = :id")
     suspend fun markAnalyzed(id: Long)
+
+    @Query("UPDATE drive_keyframes SET liveAnalyzed = 0 WHERE id = :id")
+    suspend fun markPending(id: Long)
 
     @Query("DELETE FROM drive_keyframes WHERE id = :id")
     suspend fun deleteKeyframe(id: Long)

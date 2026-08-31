@@ -32,7 +32,7 @@ def kotlin_trim_indent(value: str) -> str:
 
 def migration_sql(name: str) -> list[str]:
     match = re.search(
-        rf"private val {re.escape(name)}\b(?P<body>[\s\S]*?)"
+        rf"(?:private|internal) val {re.escape(name)}\b(?P<body>[\s\S]*?)"
         r"(?=\n\s*(?:private|internal) val MIGRATION_|\n\s*fun getDatabase\()",
         DATABASE,
     )
@@ -165,7 +165,33 @@ def main() -> int:
     require('@ColumnInfo(defaultValue = "0")\n    val hasLocalizedCavity' in ENTITIES,
             "Room entity cavity default diverges from MIGRATION_4_5")
 
-    print("ROOM MIGRATION 3->4 AND 4->5 TEST PASS")
+    lower_interior_statements = migration_sql("MIGRATION_6_7")
+    require(len(lower_interior_statements) == 1,
+            "MIGRATION_6_7 must add exactly the lower-interior evidence column")
+    lower_interior_connection = sqlite3.connect(":memory:")
+    lower_interior_connection.execute(
+        "CREATE TABLE reports (id INTEGER PRIMARY KEY NOT NULL, promptVersion TEXT)"
+    )
+    lower_interior_connection.execute(
+        "INSERT INTO reports (id, promptVersion) VALUES (1, 'pothole-binary-v15')"
+    )
+    for statement in lower_interior_statements:
+        lower_interior_connection.execute(statement)
+    lower_columns = {
+        row[1]: (row[2].upper(), row[3], str(row[4]))
+        for row in lower_interior_connection.execute("PRAGMA table_info('reports')")
+    }
+    require(lower_columns.get("hasUnambiguousLowerInterior") == ("INTEGER", 1, "0"),
+            "lower-interior migration column must fail closed for old rows")
+    migrated_lower = lower_interior_connection.execute(
+        "SELECT hasUnambiguousLowerInterior, promptVersion FROM reports WHERE id = 1"
+    ).fetchone()
+    require(migrated_lower == (0, "pothole-binary-v15"),
+            f"v6 report provenance was not preserved: {migrated_lower}")
+    require('@ColumnInfo(defaultValue = "0")\n    val hasUnambiguousLowerInterior' in ENTITIES,
+            "Room entity lower-interior default diverges from MIGRATION_6_7")
+
+    print("ROOM MIGRATION 3->4, 4->5 AND 6->7 TEST PASS")
     return 0
 
 

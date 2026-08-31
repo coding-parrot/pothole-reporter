@@ -10,7 +10,11 @@ import org.junit.Test
 class NativeDetectionStreamTest {
     @Test
     fun modelNoCanFinishImmediately() {
-        val reason = findEarlyRejection("{\"is_pothole\":false")
+        val reason = findEarlyRejection(
+            "{\"image_quality\":\"usable\",\"surface_type\":\"bituminous_asphalt\"," +
+                "\"on_drivable_surface\":true,\"temporal_consistency\":\"consistent\"," +
+                "\"looks_like_speed_breaker\":false,\"is_pothole\":false"
+        )
         val assessment = completeDetectionAssessment(
             text = "",
             streamCompleted = false,
@@ -25,12 +29,33 @@ class NativeDetectionStreamTest {
     @Test
     fun speedBreakerCanFinishImmediately() {
         val reason = findEarlyRejection(
-            "{\"is_pothole\":true,\"looks_like_speed_breaker\":true"
+            "{\"image_quality\":\"usable\",\"surface_type\":\"bituminous_asphalt\"," +
+                "\"on_drivable_surface\":true,\"temporal_consistency\":\"consistent\"," +
+                "\"looks_like_speed_breaker\":true"
         )
         val assessment = completeDetectionAssessment("", false, reason)
 
         assertEquals(DetectionRejectionReason.SPEED_BREAKER, reason)
         assertTrue(assessment.looksLikeSpeedBreaker)
+        assertEquals("reject", assessment.decision)
+    }
+
+    @Test
+    fun eligibleTemporaryNoCompletesForBoundedVoting() {
+        val rejected = ACCEPTED_JSON
+            .replace("\"is_pothole\":true", "\"is_pothole\":false")
+            .replace("\"has_localized_cavity\":true", "\"has_localized_cavity\":false")
+            .replace("\"has_unambiguous_lower_interior\":true",
+                "\"has_unambiguous_lower_interior\":false")
+            .replace("\"has_broken_edge_or_rim\":true", "\"has_broken_edge_or_rim\":false")
+            .replace("\"has_depth_or_surface_loss\":true",
+                "\"has_depth_or_surface_loss\":false")
+            .replace("\"size\":\"large\"", "\"size\":null")
+
+        assertNull(findEarlyRejection(rejected))
+        val assessment = completeDetectionAssessment(rejected, true, null)
+        assertEquals("temporary_drivable_surface", assessment.surfaceType)
+        assertEquals("consistent", assessment.temporalConsistency)
         assertEquals("reject", assessment.decision)
     }
 
@@ -73,11 +98,12 @@ class NativeDetectionStreamTest {
 
     companion object {
         private const val ACCEPTED_JSON =
-            "{\"is_pothole\":true,\"looks_like_speed_breaker\":false," +
-                "\"image_quality\":\"usable\",\"surface_type\":\"temporary_drivable_surface\"," +
-                "\"on_drivable_surface\":true,\"has_localized_cavity\":true," +
+            "{\"image_quality\":\"usable\",\"surface_type\":\"temporary_drivable_surface\"," +
+                "\"on_drivable_surface\":true,\"temporal_consistency\":\"consistent\"," +
+                "\"looks_like_speed_breaker\":false,\"is_pothole\":true," +
+                "\"has_localized_cavity\":true," +
+                "\"has_unambiguous_lower_interior\":true," +
                 "\"has_broken_edge_or_rim\":true,\"has_depth_or_surface_loss\":true," +
-                "\"temporal_consistency\":\"consistent\",\"size\":\"large\"," +
-                "\"description\":\"A cavity.\"}"
+                "\"size\":\"large\",\"description\":\"A cavity.\"}"
     }
 }

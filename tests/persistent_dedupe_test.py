@@ -22,6 +22,7 @@ ACCEPTED = {
     "surface_type": "bituminous_asphalt",
     "on_drivable_surface": True,
     "has_localized_cavity": True,
+    "has_unambiguous_lower_interior": True,
     "has_broken_edge_or_rim": True,
     "has_depth_or_surface_loss": True,
     "temporal_consistency": "consistent",
@@ -364,9 +365,15 @@ with sync_playwright() as p:
     reload_navigations = []
     page.on("framenavigated", lambda frame: reload_navigations.append(frame.url)
             if frame == page.main_frame else None)
-    page.reload(wait_until="load")
+    # Wait for the app's startup network/restore work, not merely the document load event.
+    # Beginning a long evaluate while that lifecycle is still replacing its execution
+    # context makes the persistence regression test itself race the reload it requested.
+    page.reload(wait_until="networkidle")
     page.wait_for_function("""async () => {
-      if (document.readyState !== "complete" || typeof StandaloneAPI === "undefined") return false;
+      if (document.readyState !== "complete" || typeof StandaloneAPI === "undefined" ||
+          (typeof nativeInitialRestorePending !== "undefined" && nativeInitialRestorePending)) {
+        return false;
+      }
       try {
         const reports = await StandaloneAPI.handle("/api/reports", { method: "GET" });
         return Array.isArray(reports) && reports.length === 2;

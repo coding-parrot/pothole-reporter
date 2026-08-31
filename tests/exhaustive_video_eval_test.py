@@ -31,7 +31,7 @@ def check(name: str, condition: bool) -> None:
         FAILURES.append(name)
 
 
-source_manifest, source_raw = exhaustive.load_source_manifest(
+source_manifest, source_raw = exhaustive.load_historical_v15_source_manifest(
     ROOT / "eval" / "exhaustive_video_sources.json")
 labels, label_raw = exhaustive.load_label_manifest(
     ROOT / "eval" / "exhaustive_video_visual_labels.json", source_manifest)
@@ -103,20 +103,39 @@ check("final production bursts stay inside each exact source",
           < source["duration_seconds"]
           for source, source_centers in zip(sources, centers)))
 
-contract, receipt = exhaustive.current_contract()
-results, results_raw = exhaustive.load_results_receipt(
-    ROOT / "eval" / "exhaustive_video_results.json",
-    source_manifest, source_raw, labels, label_raw, receipt)
-audit = exhaustive.load_audit_receipt(
-    ROOT / "eval" / "exhaustive_video_audit.json",
-    results, results_raw, source_manifest, source_raw, labels, label_raw, receipt)
-check("manifest is sealed to the current production detector contract",
-      source_manifest["production_contract"] == receipt
-      and receipt["model"] == "gpt-5.6"
-      and receipt["detail"] == "original"
-      and receipt["prompt_version"] == "pothole-binary-v15"
-      and receipt["schema_version"] == 7)
-check("committed exhaustive receipts record a complete 218-window detector run",
+archive_contract, archive_receipt = exhaustive.historical_v15_contract()
+results, results_raw = exhaustive.load_historical_v15_results_receipt(
+    source_manifest, source_raw, labels, label_raw,
+    ROOT / "eval" / "exhaustive_video_results.json")
+audit = exhaustive.load_historical_v15_audit_receipt(
+    results, results_raw, source_manifest, source_raw, labels, label_raw,
+    ROOT / "eval" / "exhaustive_video_audit.json")
+check("immutable v15 prompt and schema recompute the committed archive receipt",
+      source_manifest["production_contract"] == archive_receipt
+      and archive_receipt["model"] == "gpt-5.6"
+      and archive_receipt["detail"] == "original"
+      and archive_receipt["prompt_version"] == "pothole-binary-v15"
+      and archive_receipt["schema_version"] == 7
+      and archive_receipt["prompt_sha256"] ==
+          "621866cba94700717358426bba70b274c8f23df081ae2da7db6e9199c97e1c98"
+      and archive_receipt["schema_sha256"] ==
+          "4a71363f4a78f0da8af8cdc58301c688bd434308733664680a5f5ef59d14945a")
+try:
+    exhaustive.load_source_manifest(ROOT / "eval" / "exhaustive_video_sources.json")
+    current_source_loader_rejected_archive = False
+except exhaustive.ExhaustiveEvalError:
+    current_source_loader_rejected_archive = True
+current_contract, current_receipt = exhaustive.current_contract()
+try:
+    exhaustive.validate_results_receipt(
+        results, source_manifest, source_raw, labels, label_raw, current_receipt,
+        contract=current_contract)
+    current_results_loader_rejected_archive = False
+except exhaustive.ExhaustiveEvalError:
+    current_results_loader_rejected_archive = True
+check("current-v19 source and result validators reject every v15 receipt",
+      current_source_loader_rejected_archive and current_results_loader_rejected_archive)
+check("archived exhaustive receipts record the historical 218-window detector run",
       audit["dataset_id"] == results["dataset_id"]
       and audit["execution"]["completed_requests"] == 218
       and audit["execution"]["accepted_windows"] == 13
@@ -125,7 +144,7 @@ check("committed exhaustive receipts record a complete 218-window detector run",
       and audit["owner_confirmed_event_recall"]["physical_potholes"] == 2
       and audit["owner_confirmed_event_recall"]["physical_potholes_detected"] == 2
       and audit["owner_confirmed_event_recall"]["passed"] is True)
-check("all 218 exact detector decisions are committed without private payloads",
+check("all 218 archived decisions remain committed without private payloads",
       len(results["results"]) == 218
       and results["constraints"]["response_ids_committed"] is False
       and results["constraints"]["model_free_text_committed"] is False
@@ -141,6 +160,9 @@ check("audit keeps eight assistant conflicts diagnostic instead of inventing tru
       audit["assistant_diagnostics"]["ground_truth"] is False
       and audit["assistant_diagnostics"]["expected_reject_windows_accepted"] == 8
       and audit["constraints"]["assistant_annotations_are_ground_truth"] is False)
+
+# All executable request/cache checks below use the current production contract.
+contract, receipt = current_contract, current_receipt
 
 policy = labels["policy"]
 check("owner truth and assistant diagnostics remain separate from detector predictions",
@@ -280,9 +302,9 @@ tampered_audit = copy.deepcopy(audit)
 tampered_audit["accepted_candidate_clustering"]["clusters"][0][
     "accepted_window_indices"].pop()
 try:
-    exhaustive.validate_audit_receipt(
+    exhaustive.validate_historical_v15_audit_receipt(
         tampered_audit, results, results_raw, source_manifest, source_raw,
-        labels, label_raw, receipt)
+        labels, label_raw)
     incomplete_audit_rejected = False
 except exhaustive.ExhaustiveEvalError:
     incomplete_audit_rejected = True
@@ -291,8 +313,8 @@ check("audit rejects an omitted accepted detector window", incomplete_audit_reje
 tampered_results = copy.deepcopy(results)
 tampered_results["results"][0]["decision"] = "accept"
 try:
-    exhaustive.validate_results_receipt(
-        tampered_results, source_manifest, source_raw, labels, label_raw, receipt)
+    exhaustive.validate_historical_v15_results_receipt(
+        tampered_results, source_manifest, source_raw, labels, label_raw)
     inconsistent_decision_rejected = False
 except exhaustive.ExhaustiveEvalError:
     inconsistent_decision_rejected = True
@@ -302,8 +324,8 @@ check("result receipt rejects a decision inconsistent with its sealed inputs",
 duplicated_results = copy.deepcopy(results)
 duplicated_results["results"][1] = copy.deepcopy(duplicated_results["results"][0])
 try:
-    exhaustive.validate_results_receipt(
-        duplicated_results, source_manifest, source_raw, labels, label_raw, receipt)
+    exhaustive.validate_historical_v15_results_receipt(
+        duplicated_results, source_manifest, source_raw, labels, label_raw)
     duplicate_result_rejected = False
 except exhaustive.ExhaustiveEvalError:
     duplicate_result_rejected = True
@@ -312,7 +334,9 @@ check("result receipt rejects duplicate or reordered production windows",
 
 check("audit generation is deterministic and derives all four exact candidate clusters",
       exhaustive.build_audit_receipt(
-          results, results_raw, source_manifest, source_raw, labels, label_raw, receipt) == audit
+          results, results_raw, source_manifest, source_raw, labels, label_raw,
+          archive_receipt, contract=archive_contract,
+          decision_function=exhaustive.historical_contracts.v15_decision) == audit
       and [cluster["accepted_window_indices"] for cluster in
            audit["accepted_candidate_clustering"]["clusters"]]
       == [[65, 66, 68, 69, 70], [89, 90, 91], [8, 9], [73, 74, 75]])
@@ -334,7 +358,7 @@ for private_locator in (
     tampered_sources = copy.deepcopy(source_manifest)
     tampered_sources["description"] = private_locator
     try:
-        exhaustive.validate_source_manifest(tampered_sources)
+        exhaustive.validate_historical_v15_source_manifest(tampered_sources)
         private_locators_rejected = False
     except exhaustive.ExhaustiveEvalError:
         pass
@@ -420,33 +444,38 @@ offline_check = subprocess.run(
      "--results-receipt", "/does/not/exist/results.json"],
     cwd=ROOT, env=environment, text=True, capture_output=True,
 )
-check("manifest lifecycle is not blocked by missing old run receipts",
-      offline_check.returncode == 0
-      and "218 WINDOWS; NO MEDIA OR API" in offline_check.stdout)
+check("current manifest CLI rejects the v15 archive before receipts or API access",
+      offline_check.returncode != 0
+      and "drifted from production" in offline_check.stderr
+      and "OPENAI_API_KEY" not in offline_check.stderr)
 
 offline_audit = subprocess.run(
     [sys.executable, str(ROOT / "eval" / "exhaustive_video_eval.py"), "--verify-audit"],
     cwd=ROOT, env=environment, text=True, capture_output=True,
 )
-check("source-free CLI verifies the exact committed result and audit receipts",
-      offline_audit.returncode == 0
-      and "SOURCE-FREE RECEIPTS" in offline_audit.stdout)
+check("current audit CLI cannot present the v15 archive as v19 coverage",
+      offline_audit.returncode != 0
+      and "drifted from production" in offline_audit.stderr
+      and "OPENAI_API_KEY" not in offline_audit.stderr)
 
 unbounded_paid = subprocess.run(
     [sys.executable, str(ROOT / "eval" / "exhaustive_video_eval.py"), "--paid-run"],
     cwd=ROOT, env=environment, text=True, capture_output=True,
 )
-check("paid replay fails closed before dataset or API access without an explicit ceiling",
+check("paid replay rejects archived input before budget, media, or API access",
       unbounded_paid.returncode != 0
-      and "non-negative --max-calls ceiling" in unbounded_paid.stderr
+      and "drifted from production" in unbounded_paid.stderr
       and "OPENAI_API_KEY" not in unbounded_paid.stderr)
 
 paid_args = exhaustive.make_parser().parse_args(
-    ["--paid-run", "--max-calls", "218", "--resume",
+    ["--paid-run", "--max-calls", "654", "--resume",
      "--reuse-cache-from", "/private/old-run"])
-check("paid replay exposes an explicit 218-call bound and resumable mode",
-      paid_args.paid_run and paid_args.max_calls == 218 and paid_args.resume
+check("paid replay exposes the exact 2-of-3 worst-case bound and resumable mode",
+      paid_args.paid_run and paid_args.max_calls == 654 and paid_args.resume
       and paid_args.reuse_cache_from == Path("/private/old-run"))
+check("exhaustive preflight accounts for every possible policy attempt",
+      exhaustive.maximum_policy_calls(218) == 654
+      and exhaustive.maximum_policy_calls(0) == 0)
 
 with tempfile.TemporaryDirectory(prefix="exhaustive-cache-rebind-") as temporary:
     cache_path = Path(temporary) / "result.json"
@@ -465,6 +494,7 @@ with tempfile.TemporaryDirectory(prefix="exhaustive-cache-rebind-") as temporary
             "surface_type": "bituminous_asphalt",
             "on_drivable_surface": True,
             "has_localized_cavity": False,
+            "has_unambiguous_lower_interior": False,
             "has_broken_edge_or_rim": False,
             "has_depth_or_surface_loss": False,
             "temporal_consistency": "consistent",
@@ -472,7 +502,13 @@ with tempfile.TemporaryDirectory(prefix="exhaustive-cache-rebind-") as temporary
             "description": "No localized cavity is visible.",
         },
         "decision": "reject",
+        "attempt_count": 1,
     }
+    compatible_record["attempts"] = [{
+        "attempt_number": 1,
+        "response_id": compatible_record["response_id"],
+        "assessment": compatible_record["assessment"],
+    }]
     cache_path.write_text(json.dumps(compatible_record))
     try:
         exhaustive._load_cached(cache_path, cache_index, cache_window, contract["schema"])
@@ -486,6 +522,82 @@ check("compatible-cache reuse requires an exact request before rebinding content
       strict_dataset_rejected and rebound is not None
       and rebound["dataset_id"] == cache_index["dataset_id"]
       and rebound["request_sha256"] == cache_window["request_sha256"])
+
+temporary_yes = {
+    **compatible_record["assessment"],
+    "is_pothole": True,
+    "surface_type": "temporary_drivable_surface",
+    "has_localized_cavity": True,
+    "has_unambiguous_lower_interior": True,
+    "has_broken_edge_or_rim": True,
+    "has_depth_or_surface_loss": True,
+    "size": "medium",
+}
+temporary_no = {
+    **temporary_yes,
+    "is_pothole": False,
+    "has_localized_cavity": False,
+    "has_unambiguous_lower_interior": False,
+    "has_broken_edge_or_rim": False,
+    "has_depth_or_surface_loss": False,
+    "size": None,
+}
+
+
+def bounded_cache_record(assessments):
+    remaining = list(assessments)
+    outcome = exhaustive.production_eval.run_bounded_detection_policy(
+        lambda: remaining.pop(0), mode="drive", source_view_count=3)
+    attempts = [{
+        "attempt_number": number,
+        "response_id": f"resp_{number}",
+        "assessment": assessment,
+    } for number, assessment in enumerate(assessments, 1)]
+    representative = next((
+        item for item in reversed(attempts)
+        if item["assessment"] == outcome.assessment), attempts[-1])
+    return {
+        "schema_version": exhaustive.RESULT_SCHEMA,
+        "dataset_id": cache_index["dataset_id"],
+        "window_id": cache_window["window_id"],
+        "request_sha256": cache_window["request_sha256"],
+        "response_id": representative["response_id"],
+        "assessment": outcome.assessment,
+        "decision": outcome.decision,
+        "attempt_count": outcome.attempts_started,
+        "attempts": attempts,
+    }
+
+
+bounded_records_valid = True
+for assessments in (
+        [temporary_yes, temporary_yes],
+        [temporary_no, temporary_no],
+        [temporary_yes, temporary_no, temporary_yes],
+        [temporary_no, temporary_yes, temporary_no]):
+    try:
+        exhaustive.validate_result_record(
+            bounded_cache_record(assessments), cache_index, cache_window,
+            contract["schema"])
+    except exhaustive.ExhaustiveEvalError:
+        bounded_records_valid = False
+check("cached exhaustive results preserve 2-call agreement and 3-call split votes",
+      bounded_records_valid)
+
+incomplete_vote = bounded_cache_record([temporary_yes, temporary_yes])
+incomplete_vote["attempts"] = incomplete_vote["attempts"][:1]
+incomplete_vote["attempt_count"] = 1
+incomplete_vote["assessment"] = {**temporary_yes, "is_pothole": False, "size": None}
+incomplete_vote["decision"] = "reject"
+incomplete_vote["response_id"] = "resp_1"
+try:
+    exhaustive.validate_result_record(
+        incomplete_vote, cache_index, cache_window, contract["schema"])
+    incomplete_vote_rejected = False
+except exhaustive.ExhaustiveEvalError:
+    incomplete_vote_rejected = True
+check("one eligible temporary result cannot masquerade as a complete cached vote",
+      incomplete_vote_rejected)
 event_coverage = [
     {"event_passed": True, "accuracy_metric_eligible": True},
     {"event_passed": True, "accuracy_metric_eligible": True},
@@ -497,6 +609,42 @@ check("release gate uses only human-confirmed physical-event recall",
           "event_passed": False, "accuracy_metric_eligible": True}]) is False
       and exhaustive.accuracy_gate_passes(1, event_coverage) is False
       and exhaustive.accuracy_gate_passes(0, []) is False)
+regression_rows = [
+    {"window_id": window_id, "status": "ok", "decision": "reject"}
+    for window_id in exhaustive.REQUIRED_ASSISTANT_REGRESSION_WINDOW_IDS
+]
+check("release gate separately requires named assistant-reviewed hard negatives",
+      exhaustive.required_regression_gate_passes(regression_rows) is True
+      and exhaustive.required_regression_gate_passes([
+          {**row, "decision": "accept"} if index == 0 else row
+          for index, row in enumerate(regression_rows)
+      ]) is False
+      and exhaustive.release_gate_passes(0, event_coverage, regression_rows) is True
+      and exhaustive.release_gate_passes(0, event_coverage, regression_rows[:-1]) is False)
+regression_windows = [{
+    "window_id": window_id,
+    "visual_label": {
+        "label": "not_pothole",
+        "expected_decision": "reject",
+        "label_provenance": "independent_assistant_full_video_review",
+        "physical_event_or_hard_negative_group_id":
+            "seg2-hn-rough-aggregate-37-43s",
+    },
+} for window_id in exhaustive.REQUIRED_ASSISTANT_REGRESSION_WINDOW_IDS]
+try:
+    exhaustive.validate_required_regression_labels(regression_windows)
+    exact_regression_labels_valid = True
+except exhaustive.ExhaustiveEvalError:
+    exact_regression_labels_valid = False
+invalid_regression_windows = copy.deepcopy(regression_windows)
+invalid_regression_windows[0]["visual_label"]["label_provenance"] = "owner_confirmed"
+try:
+    exhaustive.validate_required_regression_labels(invalid_regression_windows)
+    overstated_regression_rejected = False
+except exhaustive.ExhaustiveEvalError:
+    overstated_regression_rejected = True
+check("named hard negatives are bound to independent review provenance",
+      exact_regression_labels_valid and overstated_regression_rejected)
 
 ignore_check = subprocess.run(
     ["git", "check-ignore", "-q", str(exhaustive.DEFAULT_WORK_ROOT / "sentinel")],
@@ -557,7 +705,7 @@ check("privacy roots require the exact ignore rule committed in repository histo
       committed_ignore_allowed and working_only_ignore_rejected
       and local_only_ignore_rejected)
 
-suite_id = exhaustive.suite_identity(source_raw, label_raw, receipt)
+suite_id = exhaustive.suite_identity(source_raw, label_raw, archive_receipt)
 windows_hash = results["receipts"]["materialized_windows_sha256"]
 bindings_hash = results["receipts"]["event_bindings_sha256"]
 content_id = exhaustive.materialized_identity(suite_id, windows_hash, bindings_hash)

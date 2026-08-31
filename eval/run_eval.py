@@ -8,6 +8,7 @@ import argparse, base64, hashlib, io, json, math, os, random, re, subprocess, sy
 import urllib.request
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,28 +23,32 @@ ALLOWED_MODELS = {DRIVE_DEFAULT_MODEL, MANUAL_DEFAULT_MODEL}
 ALLOWED_DETAILS = {"high", "original"}
 MAX_PREPARED_FRAME_DIMENSION = 1280
 NATIVE_DRIVE_MAX_OUTPUT_TOKENS = 1536
-PROMPT_VERSION = "pothole-binary-v15"
-SCHEMA_VERSION = 7
+TEMPORARY_SURFACE_MAX_ATTEMPTS = 3
+PROMPT_VERSION = "pothole-binary-v19"
+SCHEMA_VERSION = 9
 
 SCHEMA = {
     "type": "object", "additionalProperties": False,
-    "required": ["is_pothole", "looks_like_speed_breaker", "image_quality", "surface_type",
-                 "on_drivable_surface", "has_localized_cavity", "has_broken_edge_or_rim",
-                 "has_depth_or_surface_loss", "temporal_consistency", "size", "description"],
+    "required": ["image_quality", "surface_type", "on_drivable_surface",
+                 "temporal_consistency", "looks_like_speed_breaker", "is_pothole",
+                 "has_localized_cavity",
+                 "has_unambiguous_lower_interior", "has_broken_edge_or_rim",
+                 "has_depth_or_surface_loss", "size", "description"],
     "properties": {
-        "is_pothole": {"type": "boolean"},
-        "looks_like_speed_breaker": {"type": "boolean"},
         "image_quality": {"type": "string", "enum": ["usable", "unusable"]},
         "surface_type": {"type": "string", "enum": ["bituminous_asphalt",
             "cement_concrete", "mastic_asphalt", "paver_blocks",
             "temporary_drivable_surface",
             "unpaved_or_nonroad", "unknown"]},
         "on_drivable_surface": {"type": "boolean"},
-        "has_localized_cavity": {"type": "boolean"},
-        "has_broken_edge_or_rim": {"type": "boolean"},
-        "has_depth_or_surface_loss": {"type": "boolean"},
         "temporal_consistency": {"type": "string", "enum": ["consistent", "single_view",
             "inconsistent", "not_applicable"]},
+        "looks_like_speed_breaker": {"type": "boolean"},
+        "is_pothole": {"type": "boolean"},
+        "has_localized_cavity": {"type": "boolean"},
+        "has_unambiguous_lower_interior": {"type": "boolean"},
+        "has_broken_edge_or_rim": {"type": "boolean"},
+        "has_depth_or_surface_loss": {"type": "boolean"},
         "size": {"type": ["string", "null"], "enum": ["small", "medium", "large", None]},
         "description": {"type": "string"},
     },
@@ -198,6 +203,48 @@ def encode_view(path, max_dim, quality=85, enhance=False):
     }
 
 
+def frame_quality_score(path):
+    """Mirror the native full-frame 160 px sharpness/exposure selector."""
+    from PIL import Image
+    image = Image.open(path).convert("RGB")
+    scale = min(1.0, 160 / max(image.size))
+    if scale != 1:
+        image = image.resize((positive_half_up(image.width * scale),
+                              positive_half_up(image.height * scale)),
+                             Image.Resampling.BILINEAR)
+    width, height = image.size
+    rgb = list(image.getdata())
+    gray = [0.2126 * red + 0.7152 * green + 0.0722 * blue
+            for red, green, blue in rgb]
+    total = sum(gray)
+    dark = sum(value < 12 for value in gray)
+    bright = sum(value > 245 for value in gray)
+    edge_total = 0.0
+    samples = 0
+    for y in range(1, height - 1):
+        row = y * width
+        for x in range(1, width - 1):
+            index = row + x
+            edge_total += abs(4 * gray[index] - gray[index - 1] - gray[index + 1]
+                              - gray[index - width] - gray[index + width])
+            samples += 1
+    count = max(1, width * height)
+    luminance = total / count
+    clipped = (dark + bright) / count
+    sharpness = edge_total / samples if samples else 0.0
+    if clipped > .70 or luminance < 18 or luminance > 238:
+        return -100.0
+    return sharpness - abs(luminance - 115) * .055 - clipped * 45
+
+
+def select_best_burst_index(paths):
+    """Choose the same complete-frame quality winner used by CameraX and RTSP."""
+    if not paths:
+        return 0
+    scores = [frame_quality_score(path) for path in paths]
+    return max(range(len(scores)), key=scores.__getitem__)
+
+
 def entry_paths(entry):
     return (entry.get("frames") or [entry["path"]])[:3]
 
@@ -210,7 +257,8 @@ def entry_mode(entry):
 
 def prepare_event(entry, root, mode):
     paths = [root / path for path in entry_paths(entry)]
-    primary = int(entry.get("primary_index", 0))
+    primary = int(entry["primary_index"]) if "primary_index" in entry else (
+        select_best_burst_index(paths) if mode == "drive" else 0)
     primary = primary if 0 <= primary < len(paths) else 0
     views, transforms = [], []
     if mode == "manual":
@@ -253,6 +301,7 @@ def build_request(views, prompt, model, detail, mode="drive"):
         # Match the shipped native streaming request. An eval completion that needs
         # more output than production permits is not a valid production result.
         request["max_output_tokens"] = NATIVE_DRIVE_MAX_OUTPUT_TOKENS
+        request["stream"] = True
     return request
 
 
@@ -270,6 +319,11 @@ def decision(result, mode="drive", source_view_count=3):
         return "reject"
     if result.get("has_localized_cavity") is not True:
         return "reject"
+    if not isinstance(result.get("has_unambiguous_lower_interior"), bool):
+        return "reject"
+    if (surface_type == "temporary_drivable_surface" and
+            result.get("has_unambiguous_lower_interior") is not True):
+        return "reject"
     if result.get("has_broken_edge_or_rim") is not True or result.get("has_depth_or_surface_loss") is not True:
         return "reject"
     # A temporary traffic surface needs the corroborating chronology that separates a
@@ -286,6 +340,140 @@ def decision(result, mode="drive", source_view_count=3):
     return "accept"
 
 
+def temporary_surface_vote_eligible(result, mode="drive"):
+    """Whether one complete decision may participate in the bounded temporary vote."""
+    return (mode == "drive"
+            and result.get("looks_like_speed_breaker") is False
+            and result.get("image_quality") == "usable"
+            and result.get("surface_type") == "temporary_drivable_surface"
+            and result.get("on_drivable_surface") is True
+            and result.get("temporal_consistency") == "consistent")
+
+
+def should_retry_temporary_surface(attempts, mode="drive", source_view_count=3):
+    """Stop as soon as two complete eligible decisions agree, with three calls maximum."""
+    if (not attempts or len(attempts) >= TEMPORARY_SURFACE_MAX_ATTEMPTS
+            or any(not temporary_surface_vote_eligible(item, mode) for item in attempts)):
+        return False
+    accepts = sum(decision(item, mode, source_view_count) == "accept" for item in attempts)
+    rejects = len(attempts) - accepts
+    return accepts < 2 and rejects < 2
+
+
+def confirms_temporary_surface(attempts, mode="drive", source_view_count=3):
+    """Require a strict two-YES majority from complete eligible temporary decisions."""
+    return (len(attempts) >= 2
+            and all(temporary_surface_vote_eligible(item, mode) for item in attempts)
+            and sum(decision(item, mode, source_view_count) == "accept"
+                    for item in attempts) >= 2)
+
+
+@dataclass(frozen=True)
+class DetectionPolicyOutcome:
+    """Auditable result of the shipped bounded temporary-surface vote."""
+
+    assessment: dict
+    decision: str
+    assessments: tuple
+    attempts_started: int
+    confirmation_failed: bool
+
+
+def _final_detection_policy_assessment(attempts, final_decision, mode,
+                                       source_view_count):
+    matching = [item for item in attempts
+                if decision(item, mode, source_view_count) == final_decision]
+    if matching:
+        return matching[-1]
+    # A failed or ineligible confirmation after one or more YES results is the
+    # native fail-closed path. Preserve the structured evidence but make the
+    # representative result unambiguously negative.
+    return {
+        **attempts[-1],
+        "is_pothole": False,
+        "size": None,
+        "description": "Temporary-surface pothole was not independently confirmed.",
+    }
+
+
+def run_bounded_detection_policy(get_assessment, mode="drive", source_view_count=3):
+    """Execute the native/Web 2-of-3 policy with exact attempt accounting.
+
+    The first request is allowed to raise because no detector decision exists. Once
+    an eligible temporary-surface decision exists, a failed confirmation is a
+    conservative reject, exactly like the native service.
+    """
+    attempts_started = 1
+    attempts = [get_assessment()]
+    confirmation_failed = False
+    while should_retry_temporary_surface(attempts, mode, source_view_count):
+        attempts_started += 1
+        try:
+            attempts.append(get_assessment())
+        except Exception:
+            confirmation_failed = True
+            break
+
+    first_is_eligible = temporary_surface_vote_eligible(attempts[0], mode)
+    if not first_is_eligible:
+        final_decision = decision(attempts[0], mode, source_view_count)
+    elif confirmation_failed:
+        final_decision = "reject"
+    elif confirms_temporary_surface(attempts, mode, source_view_count):
+        final_decision = "accept"
+    else:
+        # This includes two NO votes, a 2-of-3 NO majority, and any subsequent
+        # ineligible/safety-gate result. All are fail-closed in production.
+        final_decision = "reject"
+    assessment = _final_detection_policy_assessment(
+        attempts, final_decision, mode, source_view_count)
+    return DetectionPolicyOutcome(
+        assessment=assessment,
+        decision=final_decision,
+        assessments=tuple(attempts),
+        attempts_started=attempts_started,
+        confirmation_failed=confirmation_failed,
+    )
+
+
+def parse_api_response(raw, streaming):
+    """Parse either a Responses JSON body or the native-equivalent SSE body."""
+    if not streaming:
+        payload = json.loads(raw)
+        message = next(item for item in payload.get("output", [])
+                       if item.get("type") == "message")
+        text = next(item for item in message["content"]
+                    if item.get("type") == "output_text")["text"]
+        return json.loads(text), payload.get("id")
+
+    output = []
+    completed = False
+    response_id = None
+    for raw_line in raw.decode().splitlines():
+        line = raw_line.strip()
+        if not line.startswith("data:"):
+            continue
+        data = line[5:].strip()
+        if not data or data == "[DONE]":
+            continue
+        event = json.loads(data)
+        event_type = event.get("type")
+        response = event.get("response")
+        if isinstance(response, dict) and isinstance(response.get("id"), str):
+            response_id = response["id"]
+        if event_type == "response.output_text.delta":
+            output.append(event.get("delta", ""))
+        elif event_type == "response.completed":
+            completed = True
+    if not completed:
+        raise ValueError("stream ended before response.completed")
+    return json.loads("".join(output)), response_id
+
+
+def parse_api_result(raw, streaming):
+    return parse_api_response(raw, streaming)[0]
+
+
 def call(key, body, cache_dir, cache_slot):
     # Each stochastic repetition has its own stable slot. Caching identical body bytes
     # into one file would make five "trials" five copies of the first response.
@@ -300,16 +488,31 @@ def call(key, body, cache_dir, cache_slot):
     for attempt in range(3):
         try:
             with urllib.request.urlopen(request, timeout=120) as response:
-                payload = json.loads(response.read())
-            message = next(o for o in payload.get("output", []) if o.get("type") == "message")
-            text = next(c for c in message["content"] if c.get("type") == "output_text")["text"]
-            result = json.loads(text)
+                result = parse_api_result(response.read(), body.get("stream") is True)
             break
         except Exception as error:
             if attempt == 2:
                 result = {"error": str(error)[:200]}
     cached.write_text(json.dumps(result, indent=1))
     return result, False, cache_key
+
+
+def call_with_detection_policy(key, body, cache_dir, cache_slot, mode, source_view_count):
+    """Apply the shipped bounded vote using a distinct fresh request per attempt."""
+    calls = []
+
+    def get_assessment():
+        attempt_number = len(calls) + 1
+        item = call(
+            key, body, cache_dir,
+            f"{cache_slot}|policy-attempt-{attempt_number}")
+        calls.append(item)
+        return item[0]
+
+    outcome = run_bounded_detection_policy(
+        get_assessment, mode, source_view_count)
+    return (outcome.assessment, all(item[1] for item in calls),
+            [item[2] for item in calls])
 
 
 def binary_label(label):
@@ -453,17 +656,20 @@ def main():
     cache_dir = outdir / "cache"; cache_dir.mkdir(exist_ok=True)
     rows = []
     with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
-        results = pool.map(lambda job: call(key, job[3], cache_dir,
-                                            f"{job[0]}|{job[1].get('event_id') or job[1]['path']}|{job[2]}"), jobs)
+        results = pool.map(lambda job: call_with_detection_policy(
+            key, job[3], cache_dir,
+            f"{job[0]}|{job[1].get('event_id') or job[1]['path']}|{job[2]}",
+            args.mode, len(entry_paths(job[1]))), jobs)
         for index, (job, returned) in enumerate(zip(jobs, results), 1):
             name, entry, trial, body, transforms = job
-            result, cached, cache_key = returned
+            result, cached, cache_keys = returned
             rows.append({"arm": name, "event": entry.get("event_id") or entry["path"],
                          "image": entry["path"], "label": entry["label"],
                          "labelled_by": entry.get("labelled_by"), "trial": trial,
                          "accuracy_eligible": entry.get("accuracy_eligible", True),
                          "decision": decision(result, args.mode, len(entry_paths(entry))), "cached": cached,
-                         "request_hash": cache_key, "transforms": transforms, **result})
+                         "request_hash": cache_keys[-1], "request_hashes": cache_keys,
+                         "attempts": len(cache_keys), "transforms": transforms, **result})
             if index % 25 == 0:
                 print(f"  {index}/{len(jobs)}")
 

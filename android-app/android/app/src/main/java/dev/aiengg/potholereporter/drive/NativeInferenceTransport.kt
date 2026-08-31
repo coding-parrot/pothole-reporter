@@ -8,6 +8,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
 import org.json.JSONObject
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.TimeUnit
 
 internal class NativeInferenceException(
@@ -26,7 +27,9 @@ internal class NativeInferenceTransport(
     private val endpoint: String = OAI_URL,
     private val okHttpClient: OkHttpClient = defaultClient()
 ) {
-    private var consecutiveRetryableFailures = 0
+    // Live Drive can issue two bounded requests concurrently. Backoff state is shared by
+    // that transport, so increments/resets must not race or lose updates.
+    private val consecutiveRetryableFailures = AtomicInteger(0)
     private val activeCalls = mutableSetOf<Call>()
     private val activeCallsLock = Any()
     @Volatile private var closed = false
@@ -88,7 +91,7 @@ internal class NativeInferenceTransport(
                         "OpenAI detection response was incomplete"
                     )
                 }
-                consecutiveRetryableFailures = 0
+                consecutiveRetryableFailures.set(0)
                 assessment
             }
         }
@@ -138,7 +141,7 @@ internal class NativeInferenceTransport(
                         "OpenAI repair-check response was incomplete"
                     )
                 }
-                consecutiveRetryableFailures = 0
+                consecutiveRetryableFailures.set(0)
                 assessment
             }
         }
@@ -245,7 +248,7 @@ internal class NativeInferenceTransport(
             }
         }
         val retryDelay = if (isTransientInferenceFailure(code)) {
-            inferenceRetryDelay(code, retryAfter, consecutiveRetryableFailures++)
+            inferenceRetryDelay(code, retryAfter, consecutiveRetryableFailures.getAndIncrement())
         } else {
             null
         }
@@ -261,7 +264,11 @@ internal class NativeInferenceTransport(
         cause: Throwable? = null
     ): NativeInferenceException = NativeInferenceException(
         message,
-        retryAfterMs = inferenceRetryDelay(0, null, consecutiveRetryableFailures++),
+        retryAfterMs = inferenceRetryDelay(
+            0,
+            null,
+            consecutiveRetryableFailures.getAndIncrement()
+        ),
         cause = cause
     )
 

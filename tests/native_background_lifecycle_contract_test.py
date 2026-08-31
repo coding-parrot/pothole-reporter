@@ -63,7 +63,7 @@ check(
     "try {" in on_start and "failDriveStart(startId)" in on_start
     and "startRegistry.recordCompletion(startRequestId, summary)" in failed_start
     and "fun recordCompletion(requestId: String?, summary: DriveEndSummary)" in START_REGISTRY
-    and "stopForeground(STOP_FOREGROUND_REMOVE)" in failed_start
+    and "scheduleForegroundNotificationRemoval()" in failed_start
     and "stopSelf(startId)" in failed_start,
 )
 check(
@@ -79,6 +79,8 @@ check(
     and "controlsNotificationSession(expectedSession)" in RECEIVER
     and "EXTRA_SESSION_ID" in NOTIFICATION
     and '.appendPath(sessionId)' in NOTIFICATION
+    and "(sessionRunning || isStopping)" in SERVICE
+    and "!terminalStatusSealed" in SERVICE
     and "expectedSessionId == sessionId" in SERVICE,
 )
 
@@ -224,8 +226,20 @@ dispatch_status = SERVICE[
     SERVICE.index("private fun dispatchStatus()"):
     SERVICE.index("private fun recycle(item: BurstJob)")
 ]
+notification_worker = SERVICE[
+    SERVICE.index("private fun startNotificationWorker()"):
+    SERVICE.index("private fun acquireWakeLock()")
+]
+post_notify_cleanup = notification_worker[
+    notification_worker.index(".notify(stateNotificationId, notification)"):
+    notification_worker.index("completion.complete(NotificationBinderCompletion(failure))")
+]
+notification_watchdog = SERVICE[
+    SERVICE.index("private fun notificationStillVisible()"):
+    SERVICE.index("private fun claimNotificationStop")
+]
 check(
-    "unchanged status callbacks do not repost the foreground notification every second",
+    "notification Binder work is conflated off Main and stale sessions cannot repost",
     "private data class DriveNotificationState(" in SERVICE
     and "private var lastNotificationState: DriveNotificationState? = null" in SERVICE
     and "lastNotificationState = null" in SERVICE[
@@ -237,8 +251,44 @@ check(
     and dispatch_status.index("Looper.myLooper() != Looper.getMainLooper()")
         < dispatch_status.index("val notificationState = DriveNotificationState(")
     and "if (notificationState != lastNotificationState)" in dispatch_status
-    and dispatch_status.index(".notify(NotificationHelper.NOTIFICATION_ID, notification)")
-        < dispatch_status.index("lastNotificationState = notificationState"),
+    and "notificationUpdateChannel.trySend(notificationState)" in dispatch_status
+    and ".notify(NotificationHelper.NOTIFICATION_ID, notification)" not in dispatch_status
+    and "Channel<DriveNotificationState>(Channel.CONFLATED)" in SERVICE
+    and "lifecycleScope.launch(Dispatchers.IO)" in notification_worker
+    and "notificationBinderScope.launch" in notification_worker
+    and "withTimeoutOrNull(NOTIFICATION_BINDER_DEADLINE_MS)" in notification_worker
+    and "notificationBinderMutex.withLock" in notification_worker
+    and "state.sessionId != sessionId" in notification_worker
+    and "notificationStopRequested" in notification_worker
+    and ".notify(stateNotificationId, notification)" in notification_worker
+    and ".cancel(stateNotificationId)" in notification_worker
+    and "notificationStopRequested" not in post_notify_cleanup
+    and "notificationUpdatesEnabled" not in post_notify_cleanup
+    and "activeService !== this@DriveForegroundService" in post_notify_cleanup
+    and "foregroundNotificationId = NotificationHelper.notificationIdForSession(sessionId)"
+        in SERVICE
+    and "private val notificationBinderMutex = Mutex()" in SERVICE[
+        SERVICE.index("companion object {"):
+        SERVICE.index("@Volatile var activeService")
+    ]
+    and "private suspend fun removeForegroundNotification()" in notification_worker
+    and "scheduleForegroundNotificationRemoval()" in notification_worker
+    and "notificationBinderScope.async" in notification_worker,
+)
+check(
+    "notification visibility Binder queries have an independent off-Main deadline",
+    "private fun notificationStillVisible()" in notification_watchdog
+    and "@Synchronized\n    private fun notificationStillVisible()" not in SERVICE
+    and "queryNotificationHealthWithDeadline(queryActive)" in notification_watchdog
+    and "notificationBinderScope.async" in notification_worker
+    and "activeNotifications.any" in notification_worker
+    and "withTimeoutOrNull(NOTIFICATION_BINDER_DEADLINE_MS)" in notification_worker
+    and "Android did not respond while verifying" in notification_watchdog
+    and "withContext(Dispatchers.Main.immediate)" in notification_watchdog
+    and "NotificationHelper.canShowDriveNotification(this)" not in SERVICE[
+        SERVICE.index("fun resumeDrive("):
+        SERVICE.index("fun attachPreview(")
+    ],
 )
 
 if failures:

@@ -26,6 +26,7 @@ from typing import Any, Callable
 
 from PIL import Image, UnidentifiedImageError
 
+import historical_detection_contracts as historical_contracts
 import private_release_gate as release_gate
 import run_eval as production_eval
 
@@ -132,7 +133,8 @@ def current_contract_receipt() -> tuple[dict[str, Any], dict[str, Any]]:
     return contract, receipt
 
 
-def validate_manifest(value: Any) -> dict[str, Any]:
+def _validate_manifest_for_receipt(value: Any,
+                                   expected_receipt: dict[str, Any]) -> dict[str, Any]:
     manifest = require_keys(value, {
         "schema_version", "created_at_utc", "corpus", "production_contract",
         "sampling", "extraction", "audit_receipt", "companion_suite", "sources", "cases",
@@ -380,9 +382,30 @@ def validate_manifest(value: Any) -> dict[str, Any]:
     if companion["desktop_corpus_role"] != "hard_negative_and_abstention_regression_only":
         raise CorpusError("Desktop corpus cannot replace the positive recall suites")
 
-    _contract, actual_receipt = current_contract_receipt()
-    if manifest["production_contract"] != actual_receipt:
+    if manifest["production_contract"] != expected_receipt:
         raise CorpusError("private corpus production contract has drifted")
+    return manifest
+
+
+def validate_manifest(value: Any) -> dict[str, Any]:
+    """Validate a manifest for current execution; archived v15 is rejected."""
+    _contract, current_receipt = current_contract_receipt()
+    return _validate_manifest_for_receipt(value, current_receipt)
+
+
+def validate_historical_v15_manifest(value: Any) -> dict[str, Any]:
+    """Authenticate the committed v15 archive without enabling current execution."""
+    try:
+        receipt = historical_contracts.v15_contract_receipt()
+        historical_contracts.v15_contract()
+    except historical_contracts.HistoricalContractError as error:
+        raise CorpusError("historical v15 contract seal is invalid") from error
+    manifest = _validate_manifest_for_receipt(value, receipt)
+    audit = manifest["audit_receipt"]
+    if (audit["model_output_is_ground_truth"] is not False
+            or audit["complete"] is not True
+            or "must not" not in audit["interpretation"].lower()):
+        raise CorpusError("historical v15 audit limitations have drifted")
     return manifest
 
 
@@ -391,6 +414,14 @@ def load_manifest(path: Path) -> dict[str, Any]:
         return validate_manifest(json.loads(path.read_text()))
     except (OSError, json.JSONDecodeError) as error:
         raise CorpusError(f"cannot load private drive corpus: {error}") from error
+
+
+def load_historical_v15_manifest(path: Path = DEFAULT_MANIFEST) -> dict[str, Any]:
+    """Load only the immutable v15 archive; never called by CLI or paid paths."""
+    try:
+        return validate_historical_v15_manifest(json.loads(path.read_text()))
+    except (OSError, json.JSONDecodeError) as error:
+        raise CorpusError(f"cannot load historical private drive corpus: {error}") from error
 
 
 def run_json(command: list[str], error_message: str) -> dict[str, Any]:
@@ -555,22 +586,34 @@ def validate_phase(case: dict[str, Any], phase_index: int, phase: dict[str, Any]
     return fixture, request
 
 
-def cache_path(work_root: Path, phase: dict[str, Any], request_hash: str) -> Path:
+def cache_path(work_root: Path, phase: dict[str, Any], request_hash: str,
+               attempt_number: int = 1) -> Path:
+    if attempt_number < 1 or attempt_number > production_eval.TEMPORARY_SURFACE_MAX_ATTEMPTS:
+        raise CorpusError("private-corpus policy attempt is outside the production bound")
     safe_id = re.sub(r"[^A-Za-z0-9_.-]+", "_", phase["custom_id"])
-    return work_root / "cache" / f"{safe_id}-{request_hash[:16]}.json"
+    return (work_root / "cache" /
+            f"{safe_id}-{request_hash[:16]}-attempt-{attempt_number}.json")
 
 
 def validate_cached_record(value: Any, phase: dict[str, Any], request_hash: str,
-                           schema: dict[str, Any]) -> dict[str, Any]:
+                           schema: dict[str, Any], attempt_number: int = 1) -> dict[str, Any]:
     """Accept only a cache entry created for this exact phase and request contract."""
-    record = require_keys(value, {
-        "format_version", "custom_id", "request_sha256", "response_id", "assessment",
-    }, "cached private-corpus response")
-    if set(record) != {
-            "format_version", "custom_id", "request_sha256", "response_id", "assessment"}:
+    if not isinstance(value, dict):
+        raise CorpusError("cached private-corpus response must be an object")
+    version = value.get("format_version")
+    expected = ({"format_version", "custom_id", "request_sha256", "response_id",
+                 "assessment"} if version == 1 else
+                {"format_version", "custom_id", "request_sha256", "attempt_number",
+                 "response_id", "assessment"})
+    if set(value) != expected:
         raise CorpusError("cached private-corpus response has unexpected fields")
-    if record["format_version"] != 1:
+    record = require_keys(value, expected, "cached private-corpus response")
+    if version not in {1, 2}:
         raise CorpusError("cached private-corpus response has an unsupported format version")
+    if version == 1 and attempt_number != 1:
+        raise CorpusError("legacy cache records cannot satisfy confirmation attempts")
+    if version == 2 and record["attempt_number"] != attempt_number:
+        raise CorpusError("cached private-corpus response belongs to another policy attempt")
     if record["custom_id"] != phase["custom_id"]:
         raise CorpusError("cached private-corpus response belongs to a different phase")
     if record["request_sha256"] != request_hash:
@@ -586,14 +629,15 @@ def validate_cached_record(value: Any, phase: dict[str, Any], request_hash: str,
 
 def cached_or_fresh_assessment(work_root: Path, phase: dict[str, Any], request: dict[str, Any],
                                contract: dict[str, Any], api_key: str,
-                               timeout: int) -> tuple[dict[str, Any], bool]:
+                               timeout: int, attempt_number: int = 1
+                               ) -> tuple[dict[str, Any], bool]:
     request_hash = sha256_bytes(canonical_json(request).encode())
-    path = cache_path(work_root, phase, request_hash)
+    path = cache_path(work_root, phase, request_hash, attempt_number)
     if path.is_file():
         try:
             cached = json.loads(path.read_text())
             assessment = validate_cached_record(
-                cached, phase, request_hash, contract["schema"])
+                cached, phase, request_hash, contract["schema"], attempt_number)
             return assessment, True
         except (OSError, json.JSONDecodeError) as error:
             raise CorpusError("cached private-corpus response is unreadable") from error
@@ -604,8 +648,9 @@ def cached_or_fresh_assessment(work_root: Path, phase: dict[str, Any], request: 
         raise CorpusError("fresh private-corpus inference failed") from error
     path.parent.mkdir(parents=True, exist_ok=True)
     record = {
-        "format_version": 1, "custom_id": phase["custom_id"],
-        "request_sha256": request_hash, "response_id": response_id,
+        "format_version": 2, "custom_id": phase["custom_id"],
+        "request_sha256": request_hash, "attempt_number": attempt_number,
+        "response_id": response_id,
         "assessment": assessment,
     }
     temporary = path.with_suffix(".tmp")
@@ -671,6 +716,13 @@ def make_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def maximum_policy_calls(decisions: int) -> int:
+    """Worst-case paid-call ceiling for the shipped bounded vote."""
+    if decisions < 0:
+        raise CorpusError("decision count cannot be negative")
+    return decisions * production_eval.TEMPORARY_SURFACE_MAX_ATTEMPTS
+
+
 def main(argv: list[str] | None = None) -> int:
     args = make_parser().parse_args(argv)
     manifest = load_manifest(args.manifest)
@@ -691,41 +743,60 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     phase_total = sum(len(case["phases"]) for case in manifest["cases"])
+    worst_case_calls = maximum_policy_calls(phase_total)
     if args.max_calls is None or args.max_calls < 1:
         raise CorpusError("--paid-run requires a positive --max-calls ceiling")
-    if phase_total > args.max_calls:
+    if worst_case_calls > args.max_calls:
         raise CorpusError(
-            f"paid run needs {phase_total} calls but --max-calls is {args.max_calls}")
+            f"paid run may need {worst_case_calls} policy attempts for {phase_total} "
+            f"decisions but --max-calls is {args.max_calls}; nothing was sent")
     try:
         api_key = release_gate.load_api_key()
     except release_gate.GateError as error:
         raise CorpusError("OPENAI_API_KEY is required for the paid corpus gate") from error
     paid_contract, _receipt = current_contract_receipt()
     failures: list[str] = []
-    completed = cached_count = 0
+    completed = cached_count = policy_attempts = 0
 
     def run_phase(case: dict[str, Any], phase_index: int, phase: dict[str, Any],
                   _fixture: dict[str, Any], request: dict[str, Any]) -> None:
-        nonlocal completed, cached_count
-        assessment, cached = cached_or_fresh_assessment(
-            args.work_root, phase, request, paid_contract,
-            api_key, args.api_timeout)
-        actual = production_eval.decision(assessment, "drive", source_view_count=3)
+        nonlocal completed, cached_count, policy_attempts
+        attempt_cached: list[bool] = []
+
+        def get_assessment() -> dict[str, Any]:
+            attempt_number = len(attempt_cached) + 1
+            assessment, cached = cached_or_fresh_assessment(
+                args.work_root, phase, request, paid_contract,
+                api_key, args.api_timeout, attempt_number)
+            attempt_cached.append(cached)
+            return assessment
+
+        outcome = production_eval.run_bounded_detection_policy(
+            get_assessment, mode="drive", source_view_count=3)
+        actual = outcome.decision
         expected = "accept" if case["expected_is_pothole"] else "reject"
         completed += 1
-        cached_count += int(cached)
+        policy_attempts += outcome.attempts_started
+        cached_count += sum(attempt_cached)
         status = "PASS" if actual == expected else "FAIL"
-        print(f"{status} {case['id']} phase={phase_index} expected={expected} actual={actual}"
-              + (" cached" if cached else ""))
-        if actual != expected:
+        print(f"{status} {case['id']} phase={phase_index} expected={expected} actual={actual} "
+              f"attempts={outcome.attempts_started} cached={sum(attempt_cached)}")
+        if outcome.confirmation_failed:
+            failures.append(f"{case['id']} phase {phase_index} confirmation failed")
+        elif actual != expected:
             failures.append(f"{case['id']} phase {phase_index}")
 
     validate_media(manifest, args.source_dir, args.work_root, run_phase)
     if failures:
+        fresh_calls = policy_attempts - cached_count
         raise CorpusError(
             f"private drive corpus blocked: {len(failures)} of {completed} decisions failed; "
-            + ", ".join(failures))
-    print(f"PRIVATE DRIVE CORPUS GATE PASS ({completed} decisions, {cached_count} resumed)")
+            f"{policy_attempts} policy attempts, {fresh_calls} fresh, "
+            f"{cached_count} resumed; " + ", ".join(failures))
+    fresh_calls = policy_attempts - cached_count
+    print(f"PRIVATE DRIVE CORPUS GATE PASS ({completed} decisions, "
+          f"{policy_attempts} policy attempts, {fresh_calls} fresh, "
+          f"{cached_count} resumed)")
     return 0
 
 

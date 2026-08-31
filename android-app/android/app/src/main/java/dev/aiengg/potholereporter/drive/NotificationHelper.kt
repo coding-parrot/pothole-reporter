@@ -24,6 +24,16 @@ object NotificationHelper {
     const val ACTION_STOP = "dev.aiengg.potholereporter.ACTION_STOP"
     const val ACTION_DISMISS = "dev.aiengg.potholereporter.ACTION_DISMISS"
     const val EXTRA_SESSION_ID = "dev.aiengg.potholereporter.extra.SESSION_ID"
+    const val EXTRA_NOTIFICATION_ID = "dev.aiengg.potholereporter.extra.NOTIFICATION_ID"
+
+    /**
+     * A service generation owns its own notification ID. A late Binder return from an older
+     * generation can therefore be cancelled without overwriting or removing the current Drive.
+     */
+    fun notificationIdForSession(sessionId: String): Int {
+        if (sessionId.isBlank()) return NOTIFICATION_ID
+        return 0x10000000 or (sessionId.hashCode() and 0x0fffffff)
+    }
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -80,19 +90,21 @@ object NotificationHelper {
         )
 
         val pauseResumeAction = if (isPaused) ACTION_RESUME else ACTION_PAUSE
-        val pauseResumeIntent = controlIntent(context, pauseResumeAction, sessionId)
+        val notificationId = notificationIdForSession(sessionId)
+        val pauseResumeIntent = controlIntent(
+            context, pauseResumeAction, sessionId, notificationId)
         val pauseResumePendingIntent = PendingIntent.getBroadcast(
             context, 1, pauseResumeIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val stopIntent = controlIntent(context, ACTION_STOP, sessionId)
+        val stopIntent = controlIntent(context, ACTION_STOP, sessionId, notificationId)
         val stopPendingIntent = PendingIntent.getBroadcast(
             context, 2, stopIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val dismissIntent = controlIntent(context, ACTION_DISMISS, sessionId)
+        val dismissIntent = controlIntent(context, ACTION_DISMISS, sessionId, notificationId)
         val dismissPendingIntent = PendingIntent.getBroadcast(
             context, 3, dismissIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -161,7 +173,11 @@ object NotificationHelper {
                 builder.addAction(android.R.drawable.ic_media_pause, "Pause", pauseResumePendingIntent)
             }
         }
-        builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
+        // The first Stop is idempotent in the service, but exposing another Stop control
+        // during teardown invites stale PendingIntent delivery and misleading UI.
+        if (!isStopping) {
+            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
+        }
 
         return builder.build()
     }
@@ -170,7 +186,12 @@ object NotificationHelper {
      * The session is part of PendingIntent identity as well as its extras. A button from
      * an old notification can therefore never control a newer Drive session.
      */
-    private fun controlIntent(context: Context, action: String, sessionId: String) =
+    private fun controlIntent(
+        context: Context,
+        action: String,
+        sessionId: String,
+        notificationId: Int
+    ) =
         Intent(context, NotificationActionReceiver::class.java).apply {
             this.action = action
             data = Uri.Builder()
@@ -180,5 +201,6 @@ object NotificationHelper {
                 .appendPath(action.substringAfterLast('.'))
                 .build()
             putExtra(EXTRA_SESSION_ID, sessionId)
+            putExtra(EXTRA_NOTIFICATION_ID, notificationId)
         }
 }

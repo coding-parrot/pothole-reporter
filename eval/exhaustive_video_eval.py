@@ -27,6 +27,7 @@ from uuid import uuid4
 
 from PIL import Image, UnidentifiedImageError
 
+import historical_detection_contracts as historical_contracts
 import private_drive_corpus as media
 import private_release_gate as release_gate
 import run_eval as production_eval
@@ -44,11 +45,16 @@ LABEL_SCHEMA = "private-exhaustive-video-labels-v2"
 DATASET_SCHEMA = "private-exhaustive-video-materialized-v2"
 WINDOW_SCHEMA = "private-exhaustive-video-window-v1"
 LABEL_BINDING_SCHEMA = "private-exhaustive-video-label-binding-v1"
-RESULT_SCHEMA = "private-exhaustive-video-result-v1"
+RESULT_SCHEMA = "private-exhaustive-video-result-v2"
 PUBLIC_RESULTS_SCHEMA = "private-exhaustive-video-results-v1"
 PUBLIC_RESULT_ROW_SCHEMA = "private-exhaustive-video-result-receipt-row-v1"
 AUDIT_SCHEMA = "private-exhaustive-video-audit-v2"
 HEX_64 = re.compile(r"^[0-9a-f]{64}$")
+REQUIRED_ASSISTANT_REGRESSION_WINDOW_IDS = frozenset({
+    "downloads-segment-0002--w00073--c0036900",
+    "downloads-segment-0002--w00074--c0037400",
+    "downloads-segment-0002--w00075--c0037900",
+})
 
 
 class ExhaustiveEvalError(RuntimeError):
@@ -124,7 +130,18 @@ def current_contract() -> tuple[dict[str, Any], dict[str, Any]]:
         raise ExhaustiveEvalError("production detector contract is unavailable or drifted") from error
 
 
-def validate_source_manifest(value: Any) -> dict[str, Any]:
+def historical_v15_contract() -> tuple[dict[str, Any], dict[str, Any]]:
+    """Return the sealed archive contract; never selected by current execution."""
+    try:
+        return (historical_contracts.v15_contract(),
+                historical_contracts.v15_contract_receipt())
+    except historical_contracts.HistoricalContractError as error:
+        raise ExhaustiveEvalError("historical v15 contract seal is invalid") from error
+
+
+def _validate_source_manifest_for_receipt(
+    value: Any, expected_receipt: dict[str, Any], archive: bool,
+) -> dict[str, Any]:
     manifest = _exact_object(value, {
         "schema_version", "suite_id", "description", "privacy", "sampling",
         "production_contract", "inventory", "sources",
@@ -169,10 +186,9 @@ def validate_source_manifest(value: Any) -> dict[str, Any]:
     if "first decoded presentation frame" not in str(sampling["frame_selection"]):
         raise ExhaustiveEvalError("frame-selection semantics are not explicit")
 
-    contract, receipt = current_contract()
-    del contract
-    if manifest["production_contract"] != receipt:
-        raise ExhaustiveEvalError("committed source receipt has drifted from production")
+    if manifest["production_contract"] != expected_receipt:
+        target = "historical v15 archive" if archive else "production"
+        raise ExhaustiveEvalError(f"committed source receipt has drifted from {target}")
 
     sources = manifest["sources"]
     if not isinstance(sources, list) or len(sources) != 2:
@@ -228,9 +244,28 @@ def validate_source_manifest(value: Any) -> dict[str, Any]:
     return manifest
 
 
+def validate_source_manifest(value: Any) -> dict[str, Any]:
+    """Validate only for current execution; archived v15 is rejected."""
+    _contract, receipt = current_contract()
+    return _validate_source_manifest_for_receipt(value, receipt, archive=False)
+
+
+def validate_historical_v15_source_manifest(value: Any) -> dict[str, Any]:
+    """Authenticate only the immutable v15 source archive."""
+    _contract, receipt = historical_v15_contract()
+    return _validate_source_manifest_for_receipt(value, receipt, archive=True)
+
+
 def load_source_manifest(path: Path) -> tuple[dict[str, Any], bytes]:
     value, raw = _read_json(path, "exhaustive source manifest")
     return validate_source_manifest(value), raw
+
+
+def load_historical_v15_source_manifest(
+    path: Path = DEFAULT_SOURCE_MANIFEST,
+) -> tuple[dict[str, Any], bytes]:
+    value, raw = _read_json(path, "historical v15 exhaustive source manifest")
+    return validate_historical_v15_source_manifest(value), raw
 
 
 def validate_label_manifest(value: Any, sources: dict[str, Any]) -> dict[str, Any]:
@@ -1139,7 +1174,7 @@ def validate_result_record(value: Any, index: dict[str, Any], window: dict[str, 
                            allow_compatible_dataset: bool = False) -> dict[str, Any]:
     record = _exact_object(value, {
         "schema_version", "dataset_id", "window_id", "request_sha256", "response_id",
-        "assessment", "decision",
+        "assessment", "decision", "attempt_count", "attempts",
     }, "cached exhaustive result")
     if (record["schema_version"] != RESULT_SCHEMA
             or not isinstance(record["dataset_id"], str)
@@ -1150,13 +1185,43 @@ def validate_result_record(value: Any, index: dict[str, Any], window: dict[str, 
             or record["request_sha256"] != window["request_sha256"]
             or not isinstance(record["response_id"], str) or not record["response_id"]):
         raise ExhaustiveEvalError("cached exhaustive result identity drifted")
-    try:
-        assessment = release_gate.validate_assessment(record["assessment"], schema)
-    except release_gate.GateError as error:
-        raise ExhaustiveEvalError("cached exhaustive assessment violates production schema") from error
-    decision = production_eval.decision(assessment, "drive", source_view_count=3)
-    if record["decision"] != decision:
-        raise ExhaustiveEvalError("cached exhaustive decision does not match production logic")
+    raw_attempts = record["attempts"]
+    if (not isinstance(raw_attempts, list)
+            or record["attempt_count"] != len(raw_attempts)
+            or not 1 <= len(raw_attempts) <= production_eval.TEMPORARY_SURFACE_MAX_ATTEMPTS):
+        raise ExhaustiveEvalError("cached exhaustive policy attempt count drifted")
+    assessments: list[dict[str, Any]] = []
+    for ordinal, raw_attempt in enumerate(raw_attempts, 1):
+        attempt = _exact_object(
+            raw_attempt, {"attempt_number", "response_id", "assessment"},
+            f"cached exhaustive policy attempt {ordinal}")
+        if (attempt["attempt_number"] != ordinal
+                or not isinstance(attempt["response_id"], str)
+                or not attempt["response_id"]):
+            raise ExhaustiveEvalError("cached exhaustive policy attempt identity drifted")
+        try:
+            assessments.append(release_gate.validate_assessment(
+                attempt["assessment"], schema))
+        except release_gate.GateError as error:
+            raise ExhaustiveEvalError(
+                "cached exhaustive policy assessment violates production schema") from error
+
+    pending = list(assessments)
+
+    def replay_assessment() -> dict[str, Any]:
+        return pending.pop(0)
+
+    outcome = production_eval.run_bounded_detection_policy(
+        replay_assessment, mode="drive", source_view_count=3)
+    if (outcome.confirmation_failed or pending
+            or record["decision"] != outcome.decision
+            or record["assessment"] != outcome.assessment):
+        raise ExhaustiveEvalError("cached exhaustive bounded vote does not match production logic")
+    representative = next((attempt for attempt in reversed(raw_attempts)
+                           if attempt["assessment"] == outcome.assessment),
+                          raw_attempts[-1])
+    if record["response_id"] != representative["response_id"]:
+        raise ExhaustiveEvalError("cached exhaustive representative response drifted")
     return record
 
 
@@ -1219,11 +1284,58 @@ def accuracy_gate_passes(error_count: int, coverage: list[dict[str, Any]]) -> bo
         item["event_passed"] for item in eligible)
 
 
+def required_regression_gate_passes(
+    rows: list[dict[str, Any]],
+    required_ids: frozenset[str] = REQUIRED_ASSISTANT_REGRESSION_WINDOW_IDS,
+) -> bool:
+    """Gate named assistant-reviewed regressions without calling them ground truth."""
+    decisions = {
+        row.get("window_id"): row.get("decision")
+        for row in rows if row.get("status") == "ok"
+    }
+    return bool(required_ids) and all(decisions.get(window_id) == "reject"
+                                      for window_id in required_ids)
+
+
+def validate_required_regression_labels(windows: list[dict[str, Any]]) -> None:
+    by_id = {window.get("window_id"): window for window in windows}
+    for window_id in REQUIRED_ASSISTANT_REGRESSION_WINDOW_IDS:
+        window = by_id.get(window_id)
+        label = window.get("visual_label") if isinstance(window, dict) else None
+        if (not isinstance(label, dict)
+                or label.get("label") != "not_pothole"
+                or label.get("expected_decision") != "reject"
+                or label.get("label_provenance") !=
+                    "independent_assistant_full_video_review"
+                or label.get("physical_event_or_hard_negative_group_id") !=
+                    "seg2-hn-rough-aggregate-37-43s"):
+            raise ExhaustiveEvalError(
+                f"required independent regression label drifted: {window_id}"
+            )
+
+
+def release_gate_passes(
+    error_count: int,
+    coverage: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
+) -> bool:
+    return (accuracy_gate_passes(error_count, coverage)
+            and required_regression_gate_passes(rows))
+
+
+def maximum_policy_calls(decisions: int) -> int:
+    """Worst-case API calls for the shipped bounded temporary-surface vote."""
+    if decisions < 0:
+        raise ExhaustiveEvalError("decision count cannot be negative")
+    return decisions * production_eval.TEMPORARY_SURFACE_MAX_ATTEMPTS
+
+
 def run_paid(dataset_root: Path, index: dict[str, Any], windows: list[dict[str, Any]],
              bindings: list[dict[str, Any]], out: Path, max_calls: int,
              resume: bool, concurrency: int, timeout: int, gate: bool,
              reuse_cache_from: Path | None = None) -> dict[str, Any]:
     contract, _receipt = current_contract()
+    validate_required_regression_labels(windows)
     if out.exists() and not resume and any(out.iterdir()):
         raise ExhaustiveEvalError("paid output already exists; use --resume or a new --out")
     out.mkdir(parents=True, exist_ok=True)
@@ -1244,10 +1356,11 @@ def run_paid(dataset_root: Path, index: dict[str, Any], windows: list[dict[str, 
             pending.append(window)
         else:
             cached[window["window_id"]] = record
-    if len(pending) > max_calls:
+    worst_case_calls = maximum_policy_calls(len(pending))
+    if worst_case_calls > max_calls:
         raise ExhaustiveEvalError(
-            f"paid run needs {len(pending)} uncached calls, above --max-calls={max_calls}; "
-            "nothing was sent")
+            f"paid run may need {worst_case_calls} policy attempts for {len(pending)} "
+            f"uncached decisions, above --max-calls={max_calls}; nothing was sent")
     if not pending and not resume and compatible_cache_imports == 0:
         raise ExhaustiveEvalError("all exact requests are cached; use --resume to verify them")
     try:
@@ -1256,21 +1369,43 @@ def run_paid(dataset_root: Path, index: dict[str, Any], windows: list[dict[str, 
         raise ExhaustiveEvalError("OPENAI_API_KEY is required for uncached paid calls") from error
 
     def worker(window: dict[str, Any]) -> dict[str, Any]:
+        attempts_started = 0
         try:
             request = _request_for_window(dataset_root, window, contract)
-            assessment, response_id = release_gate.fresh_api_assessment(
-                api_key, request, timeout, contract["schema"])
-            if not response_id:
-                raise ExhaustiveEvalError("OpenAI response did not include an ID")
+            attempts: list[dict[str, Any]] = []
+
+            def get_assessment() -> dict[str, Any]:
+                nonlocal attempts_started
+                attempts_started += 1
+                assessment, response_id = release_gate.fresh_api_assessment(
+                    api_key, request, timeout, contract["schema"])
+                if not response_id:
+                    raise ExhaustiveEvalError("OpenAI response did not include an ID")
+                attempts.append({
+                    "attempt_number": attempts_started,
+                    "response_id": response_id,
+                    "assessment": assessment,
+                })
+                return assessment
+
+            outcome = production_eval.run_bounded_detection_policy(
+                get_assessment, mode="drive", source_view_count=3)
+            if outcome.confirmation_failed:
+                raise ExhaustiveEvalError(
+                    "temporary-surface confirmation request failed closed")
+            representative = next((
+                item for item in reversed(attempts)
+                if item["assessment"] == outcome.assessment), attempts[-1])
             record = {
                 "schema_version": RESULT_SCHEMA,
                 "dataset_id": index["dataset_id"],
                 "window_id": window["window_id"],
                 "request_sha256": window["request_sha256"],
-                "response_id": response_id,
-                "assessment": assessment,
-                "decision": production_eval.decision(
-                    assessment, "drive", source_view_count=3),
+                "response_id": representative["response_id"],
+                "assessment": outcome.assessment,
+                "decision": outcome.decision,
+                "attempt_count": outcome.attempts_started,
+                "attempts": attempts,
             }
             validate_result_record(record, index, window, contract["schema"])
             _atomic_write(_cache_path(out, window), (
@@ -1286,6 +1421,7 @@ def run_paid(dataset_root: Path, index: dict[str, Any], windows: list[dict[str, 
                 "window_id": window["window_id"],
                 "request_sha256": window["request_sha256"],
                 "status": "error",
+                "attempt_count": attempts_started,
                 "error_type": type(error).__name__,
                 "error": message[:1000],
             }
@@ -1307,6 +1443,9 @@ def run_paid(dataset_root: Path, index: dict[str, Any], windows: list[dict[str, 
                       "cache_hit": window["window_id"] in cached}
         rows.append(record)
     errors = [row for row in rows if row["status"] != "ok"]
+    policy_attempts = sum(int(row.get("attempt_count", 0)) for row in rows)
+    cached_policy_attempts = sum(
+        int(row.get("attempt_count", 0)) for row in rows if row.get("cache_hit") is True)
     accepted = sum(row.get("decision") == "accept" for row in rows)
     coverage = _coverage(bindings, rows)
     owner_coverage = [item for item in coverage
@@ -1333,7 +1472,9 @@ def run_paid(dataset_root: Path, index: dict[str, Any], windows: list[dict[str, 
             "accepted": accepted,
             "rejected": len(windows) - len(errors) - accepted,
             "errors": len(errors),
-            "fresh_calls": len(pending),
+            "fresh_calls": policy_attempts - cached_policy_attempts,
+            "policy_attempts": policy_attempts,
+            "cached_policy_attempts": cached_policy_attempts,
             "cache_hits": len(cached),
             "compatible_cache_imports": compatible_cache_imports,
         },
@@ -1362,8 +1503,11 @@ def run_paid(dataset_root: Path, index: dict[str, Any], windows: list[dict[str, 
         "production_detector_output_used_as_annotation": False,
         "gate": {
             "enabled": gate,
-            "passed": accuracy_gate_passes(len(errors), coverage)
+            "passed": release_gate_passes(len(errors), coverage, rows)
             if gate else None,
+            "required_independent_regression_window_ids":
+                sorted(REQUIRED_ASSISTANT_REGRESSION_WINDOW_IDS),
+            "independent_regressions_are_owner_ground_truth": False,
         },
     }
     _atomic_write(out / "raw.jsonl", _jsonl_bytes(rows))
@@ -1377,6 +1521,17 @@ def run_paid(dataset_root: Path, index: dict[str, Any], windows: list[dict[str, 
         failures = []
         if missed:
             failures.append("missed owner event(s): " + ", ".join(missed))
+        failed_regressions = sorted(
+            window_id for window_id in REQUIRED_ASSISTANT_REGRESSION_WINDOW_IDS
+            if next((row.get("decision") for row in rows
+                     if row.get("window_id") == window_id and row.get("status") == "ok"), None)
+            != "reject"
+        )
+        if failed_regressions:
+            failures.append(
+                "accepted/missing independent regression window(s): " +
+                ", ".join(failed_regressions)
+            )
         raise ExhaustiveEvalError("human-reviewed accuracy gate failed: " + "; ".join(failures))
     return summary
 
@@ -1417,7 +1572,9 @@ def _validate_decision_inputs(value: Any, schema: dict[str, Any],
 
 def validate_results_receipt(value: Any, source_manifest: dict[str, Any],
                              source_raw: bytes, labels: dict[str, Any], label_raw: bytes,
-                             contract_receipt: dict[str, Any]) -> dict[str, Any]:
+                             contract_receipt: dict[str, Any], *,
+                             contract: dict[str, Any] | None = None,
+                             decision_function=None) -> dict[str, Any]:
     receipt = _exact_object(value, {
         "schema_version", "suite_id", "suite_identity",
         "dataset_id", "production_contract", "receipts", "counts", "results",
@@ -1488,7 +1645,10 @@ def validate_results_receipt(value: Any, source_manifest: dict[str, Any],
     if not isinstance(rows, list) or len(rows) != len(expected_stubs):
         raise ExhaustiveEvalError("detector-results receipt has the wrong denominator")
     accepted = 0
-    contract, _current = current_contract()
+    if contract is None:
+        contract, _current = current_contract()
+    if decision_function is None:
+        decision_function = production_eval.decision
     for ordinal, (raw_row, stub) in enumerate(zip(rows, expected_stubs)):
         row = _exact_object(raw_row, {
             "schema_version", "window_id", "source_id", "window_index",
@@ -1509,7 +1669,7 @@ def validate_results_receipt(value: Any, source_manifest: dict[str, Any],
         inputs = _validate_decision_inputs(
             row["decision_inputs"], contract["schema"],
             f"detector-results row {ordinal} decision inputs")
-        expected_decision = production_eval.decision(inputs, "drive", source_view_count=3)
+        expected_decision = decision_function(inputs, "drive", source_view_count=3)
         if row["decision"] != expected_decision:
             raise ExhaustiveEvalError(
                 f"detector-results row {ordinal} decision is inconsistent")
@@ -1524,10 +1684,37 @@ def validate_results_receipt(value: Any, source_manifest: dict[str, Any],
 
 def load_results_receipt(path: Path, source_manifest: dict[str, Any], source_raw: bytes,
                          labels: dict[str, Any], label_raw: bytes,
-                         contract_receipt: dict[str, Any]) -> tuple[dict[str, Any], bytes]:
+                         contract_receipt: dict[str, Any], *,
+                         contract: dict[str, Any] | None = None,
+                         decision_function=None) -> tuple[dict[str, Any], bytes]:
     value, raw = _read_json(path, "exhaustive detector-results receipt")
     return validate_results_receipt(
-        value, source_manifest, source_raw, labels, label_raw, contract_receipt), raw
+        value, source_manifest, source_raw, labels, label_raw, contract_receipt,
+        contract=contract, decision_function=decision_function), raw
+
+
+def validate_historical_v15_results_receipt(
+    value: Any, source_manifest: dict[str, Any], source_raw: bytes,
+    labels: dict[str, Any], label_raw: bytes,
+) -> dict[str, Any]:
+    """Authenticate archived v15 rows without making them current-run cache data."""
+    contract, receipt = historical_v15_contract()
+    if source_manifest.get("production_contract") != receipt:
+        raise ExhaustiveEvalError("historical results require the exact v15 source archive")
+    return validate_results_receipt(
+        value, source_manifest, source_raw, labels, label_raw, receipt,
+        contract=contract, decision_function=historical_contracts.v15_decision)
+
+
+def load_historical_v15_results_receipt(
+    source_manifest: dict[str, Any], source_raw: bytes,
+    labels: dict[str, Any], label_raw: bytes,
+    path: Path = DEFAULT_RESULTS_RECEIPT,
+) -> tuple[dict[str, Any], bytes]:
+    """Authenticate archived v15 result rows; never usable as a current cache."""
+    value, raw = _read_json(path, "historical v15 exhaustive detector-results receipt")
+    return validate_historical_v15_results_receipt(
+        value, source_manifest, source_raw, labels, label_raw), raw
 
 
 def _event_candidate_window_ids(labels: dict[str, Any],
@@ -1616,9 +1803,12 @@ def _accepted_clusters(labels: dict[str, Any], source_manifest: dict[str, Any],
 def build_audit_receipt(results_receipt: dict[str, Any], results_raw: bytes,
                         source_manifest: dict[str, Any], source_raw: bytes,
                         labels: dict[str, Any], label_raw: bytes,
-                        contract_receipt: dict[str, Any]) -> dict[str, Any]:
+                        contract_receipt: dict[str, Any], *,
+                        contract: dict[str, Any] | None = None,
+                        decision_function=None) -> dict[str, Any]:
     validated = validate_results_receipt(
-        results_receipt, source_manifest, source_raw, labels, label_raw, contract_receipt)
+        results_receipt, source_manifest, source_raw, labels, label_raw, contract_receipt,
+        contract=contract, decision_function=decision_function)
     rows = validated["results"]
     result_by_id = {row["window_id"]: row for row in rows}
     owner_events = _event_audit(
@@ -1693,10 +1883,13 @@ def build_audit_receipt(results_receipt: dict[str, Any], results_raw: bytes,
 def validate_audit_receipt(value: Any, results_receipt: dict[str, Any],
                            results_raw: bytes, source_manifest: dict[str, Any],
                            source_raw: bytes, labels: dict[str, Any], label_raw: bytes,
-                           contract_receipt: dict[str, Any]) -> dict[str, Any]:
+                           contract_receipt: dict[str, Any], *,
+                           contract: dict[str, Any] | None = None,
+                           decision_function=None) -> dict[str, Any]:
     expected = build_audit_receipt(
         results_receipt, results_raw, source_manifest, source_raw,
-        labels, label_raw, contract_receipt)
+        labels, label_raw, contract_receipt,
+        contract=contract, decision_function=decision_function)
     if value != expected:
         raise ExhaustiveEvalError(
             "exhaustive audit is not the exact deterministic derivation of its result rows")
@@ -1706,11 +1899,42 @@ def validate_audit_receipt(value: Any, results_receipt: dict[str, Any],
 def load_audit_receipt(path: Path, results_receipt: dict[str, Any],
                        results_raw: bytes, source_manifest: dict[str, Any],
                        source_raw: bytes, labels: dict[str, Any], label_raw: bytes,
-                       contract_receipt: dict[str, Any]) -> dict[str, Any]:
+                       contract_receipt: dict[str, Any], *,
+                       contract: dict[str, Any] | None = None,
+                       decision_function=None) -> dict[str, Any]:
     value, _raw = _read_json(path, "exhaustive audit receipt")
     return validate_audit_receipt(
         value, results_receipt, results_raw, source_manifest, source_raw,
-        labels, label_raw, contract_receipt)
+        labels, label_raw, contract_receipt,
+        contract=contract, decision_function=decision_function)
+
+
+def validate_historical_v15_audit_receipt(
+    value: Any, results_receipt: dict[str, Any], results_raw: bytes,
+    source_manifest: dict[str, Any], source_raw: bytes,
+    labels: dict[str, Any], label_raw: bytes,
+) -> dict[str, Any]:
+    """Authenticate the v15 audit while keeping it outside current release coverage."""
+    contract, receipt = historical_v15_contract()
+    if source_manifest.get("production_contract") != receipt:
+        raise ExhaustiveEvalError("historical audit requires the exact v15 source archive")
+    return validate_audit_receipt(
+        value, results_receipt, results_raw, source_manifest, source_raw,
+        labels, label_raw, receipt,
+        contract=contract, decision_function=historical_contracts.v15_decision)
+
+
+def load_historical_v15_audit_receipt(
+    results_receipt: dict[str, Any], results_raw: bytes,
+    source_manifest: dict[str, Any], source_raw: bytes,
+    labels: dict[str, Any], label_raw: bytes,
+    path: Path = DEFAULT_AUDIT_RECEIPT,
+) -> dict[str, Any]:
+    """Authenticate the deterministic v15 audit, never as current release coverage."""
+    value, _raw = _read_json(path, "historical v15 exhaustive audit receipt")
+    return validate_historical_v15_audit_receipt(
+        value, results_receipt, results_raw, source_manifest, source_raw,
+        labels, label_raw)
 
 
 def validate_results_against_materialized(results_receipt: dict[str, Any],
@@ -1757,7 +1981,7 @@ def seal_run(run_root: Path, index: dict[str, Any], windows: list[dict[str, Any]
     for ordinal, (raw_row, window) in enumerate(zip(raw_rows, windows)):
         allowed = {
             "schema_version", "dataset_id", "window_id", "request_sha256", "response_id",
-            "assessment", "decision", "status", "cache_hit",
+            "assessment", "decision", "attempt_count", "attempts", "status", "cache_hit",
         }
         if not isinstance(raw_row, dict) or set(raw_row) != allowed:
             raise ExhaustiveEvalError(f"private raw result row {ordinal} has unexpected fields")
@@ -1765,7 +1989,7 @@ def seal_run(run_root: Path, index: dict[str, Any], windows: list[dict[str, Any]
             raise ExhaustiveEvalError(f"private raw result row {ordinal} is not complete")
         base_record = {key: raw_row[key] for key in (
             "schema_version", "dataset_id", "window_id", "request_sha256", "response_id",
-            "assessment", "decision")}
+            "assessment", "decision", "attempt_count", "attempts")}
         validated = validate_result_record(
             base_record, index, window, contract["schema"])
         normalized_private_rows.append({
@@ -1774,6 +1998,10 @@ def seal_run(run_root: Path, index: dict[str, Any], windows: list[dict[str, Any]
             "request_sha256": validated["request_sha256"],
             "assessment": validated["assessment"],
             "decision": validated["decision"],
+            "attempt_count": validated["attempt_count"],
+            "attempt_assessment_sha256": [sha256_bytes(
+                canonical_json(item["assessment"]).encode())
+                for item in validated["attempts"]],
         })
         public_rows.append({
             "schema_version": PUBLIC_RESULT_ROW_SCHEMA,
@@ -1889,7 +2117,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--api-timeout", type=int, default=120)
     parser.add_argument("--gate", action="store_true",
-                        help="require every owner-labelled physical pothole event to be detected")
+                        help="require owner-event recall and named independent regressions")
     return parser
 
 

@@ -31,6 +31,10 @@
     {
       "event_id": "tester-opening-grid-calming",
       "reason": "independent assistant label; not owner-confirmed"
+    },
+    {
+      "event_id": "assistant-segment-2-construction-roughness-37s",
+      "reason": "independent assistant full-video regression; not owner-confirmed ground truth"
     }
   ],
   "manual_images": [

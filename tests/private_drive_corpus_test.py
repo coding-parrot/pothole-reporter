@@ -27,10 +27,27 @@ def check(name, condition):
 
 
 manifest_path = ROOT / "eval" / "private_drive_corpus.json"
-manifest = corpus_runner.load_manifest(manifest_path)
+manifest = corpus_runner.load_historical_v15_manifest(manifest_path)
 sources = manifest["sources"]
 cases = manifest["cases"]
 phases = [phase for case in cases for phase in case["phases"]]
+
+archive_contract = corpus_runner.historical_contracts.v15_contract()
+archive_receipt = corpus_runner.historical_contracts.v15_contract_receipt()
+check("immutable v15 prompt and schema recompute the committed archive receipt",
+      manifest["production_contract"] == archive_receipt
+      and archive_contract["prompt_version"] == "pothole-binary-v15"
+      and archive_receipt["prompt_sha256"] ==
+          "621866cba94700717358426bba70b274c8f23df081ae2da7db6e9199c97e1c98"
+      and archive_receipt["schema_sha256"] ==
+          "4a71363f4a78f0da8af8cdc58301c688bd434308733664680a5f5ef59d14945a")
+try:
+    corpus_runner.load_manifest(manifest_path)
+    current_loader_rejected_archive = False
+except corpus_runner.CorpusError:
+    current_loader_rejected_archive = True
+check("current-v19 loader rejects the archived v15 corpus",
+      current_loader_rejected_archive)
 
 check("all 30 private source fingerprints are retained", len(sources) == 30)
 check("source IDs and source hashes are unique",
@@ -117,7 +134,7 @@ check("generated private media and responses stay under an ignored work root",
 bad_absolute = copy.deepcopy(manifest)
 bad_absolute["corpus"]["private_path"] = "/Users/example/private.mp4"
 try:
-    corpus_runner.validate_manifest(bad_absolute)
+    corpus_runner.validate_historical_v15_manifest(bad_absolute)
     absolute_rejected = False
 except corpus_runner.CorpusError:
     absolute_rejected = True
@@ -126,7 +143,7 @@ check("manifest validation rejects absolute private paths", absolute_rejected)
 bad_hash = copy.deepcopy(manifest)
 bad_hash["cases"][0]["phases"][0]["full_frame_jpeg_sha256"][0] = "bad"
 try:
-    corpus_runner.validate_manifest(bad_hash)
+    corpus_runner.validate_historical_v15_manifest(bad_hash)
     bad_hash_rejected = False
 except corpus_runner.CorpusError:
     bad_hash_rejected = True
@@ -135,7 +152,7 @@ check("manifest validation fails closed on an invalid fixture hash", bad_hash_re
 bad_interval = copy.deepcopy(manifest)
 bad_interval["cases"][0]["source_interval_seconds"] = [0.0, 1.0]
 try:
-    corpus_runner.validate_manifest(bad_interval)
+    corpus_runner.validate_historical_v15_manifest(bad_interval)
     bad_interval_rejected = False
 except corpus_runner.CorpusError:
     bad_interval_rejected = True
@@ -145,7 +162,7 @@ check("manifest validation rejects a phase outside its reviewed interval",
 invented_positive = copy.deepcopy(manifest)
 invented_positive["cases"][0]["expected_is_pothole"] = True
 try:
-    corpus_runner.validate_manifest(invented_positive)
+    corpus_runner.validate_historical_v15_manifest(invented_positive)
     invented_positive_rejected = False
 except corpus_runner.CorpusError:
     invented_positive_rejected = True
@@ -158,19 +175,23 @@ manifest_check = subprocess.run(
     [sys.executable, str(ROOT / "eval" / "private_drive_corpus.py"), "--check-manifest"],
     cwd=ROOT, env=environment, text=True, capture_output=True,
 )
-check("normal manifest check needs no private media or API key",
-      manifest_check.returncode == 0
-      and "NO MEDIA OR API" in manifest_check.stdout)
+check("current CLI refuses to present the v15 archive as a current manifest",
+      manifest_check.returncode != 0
+      and "production contract has drifted" in manifest_check.stderr
+      and "OPENAI_API_KEY" not in manifest_check.stderr)
 
 unbounded_paid = subprocess.run(
     [sys.executable, str(ROOT / "eval" / "private_drive_corpus.py"),
      "--paid-run", "--source-dir", str(ROOT / "does-not-exist")],
     cwd=ROOT, env=environment, text=True, capture_output=True,
 )
-check("paid inference cannot start without an explicit call ceiling",
+check("paid inference rejects the archived manifest before budget or API access",
       unbounded_paid.returncode != 0
-      and "positive --max-calls ceiling" in unbounded_paid.stderr
+      and "production contract has drifted" in unbounded_paid.stderr
       and "OPENAI_API_KEY" not in unbounded_paid.stderr)
+check("paid preflight reserves the exact bounded 2-of-3 worst case",
+      corpus_runner.maximum_policy_calls(len(phases)) == 150
+      and corpus_runner.maximum_policy_calls(0) == 0)
 
 contract, _receipt = corpus_runner.current_contract_receipt()
 phase = phases[0]
@@ -181,6 +202,7 @@ valid_assessment = {
     "surface_type": "bituminous_asphalt",
     "on_drivable_surface": True,
     "has_localized_cavity": False,
+    "has_unambiguous_lower_interior": False,
     "has_broken_edge_or_rim": False,
     "has_depth_or_surface_loss": False,
     "temporal_consistency": "consistent",
@@ -201,6 +223,22 @@ try:
 except corpus_runner.CorpusError:
     valid_cache_accepted = False
 check("paid-run cache accepts only the current sealed record shape", valid_cache_accepted)
+
+attempt_two_cache = {
+    **valid_cache,
+    "format_version": 2,
+    "attempt_number": 2,
+}
+try:
+    corpus_runner.validate_cached_record(
+        attempt_two_cache, phase, "a" * 64, contract["schema"], 2)
+    distinct_attempt_cache_accepted = True
+except corpus_runner.CorpusError:
+    distinct_attempt_cache_accepted = False
+check("confirmation caches are attempt-bound and cannot replay attempt one",
+      distinct_attempt_cache_accepted
+      and corpus_runner.cache_path(Path("work"), phase, "a" * 64, 1)
+      != corpus_runner.cache_path(Path("work"), phase, "a" * 64, 2))
 
 cache_mutations = []
 for field, replacement in (
@@ -241,15 +279,19 @@ check("paid-run converts API failures into a clean corpus failure", fresh_failur
 
 with patch.object(
         corpus_runner.release_gate, "load_api_key",
-        side_effect=corpus_runner.release_gate.GateError("simulated missing key")):
+        side_effect=corpus_runner.release_gate.GateError("must not be called")) as load_key:
     try:
         corpus_runner.main([
-            "--paid-run", "--source-dir", "missing", "--max-calls", str(len(phases)),
+            "--paid-run", "--source-dir", "missing", "--max-calls",
+            str(corpus_runner.maximum_policy_calls(len(phases))),
         ])
-        key_failure_is_clean = False
-    except corpus_runner.CorpusError:
-        key_failure_is_clean = True
-check("paid-run converts API-key failures into a clean corpus failure", key_failure_is_clean)
+        archived_paid_path_rejected = False
+    except corpus_runner.CorpusError as error:
+        archived_paid_path_rejected = (
+            "production contract has drifted" in str(error)
+            and load_key.call_count == 0)
+check("historical archive API cannot be routed into the current paid path",
+      archived_paid_path_rejected)
 
 if FAILURES:
     raise SystemExit(f"\n{len(FAILURES)} private drive corpus check(s) failed")

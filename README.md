@@ -5,7 +5,7 @@ or an H.264 RTSP-over-TCP dashcam while the phone shows Maps or a call; one tap 
 prepares evidence for an official complaint channel. Reports remain on the phone, and
 nothing is filed automatically. There is no project-operated backend or account system.
 
-Current release: [v1.37.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.37.0)
+Current release: [v1.38.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.38.0)
 
 <p>
   <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>

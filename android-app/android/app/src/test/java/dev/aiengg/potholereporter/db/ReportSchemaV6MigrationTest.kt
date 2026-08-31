@@ -49,7 +49,41 @@ class ReportSchemaV6MigrationTest {
         assertEquals("not_pothole", report.defectType)
         assertEquals("not_applicable", report.measurementProvenance)
         assertEquals("not_applicable", report.measurementConfidence)
-        assertEquals("pothole-binary-v10", report.promptVersion)
-        assertEquals(7, report.schemaVersion)
+        assertEquals(false, report.hasUnambiguousLowerInterior)
+        assertEquals("pothole-binary-v19", report.promptVersion)
+        assertEquals(9, report.schemaVersion)
+    }
+
+    @Test
+    fun migrationToV7AddsFailClosedLowerInteriorEvidence() {
+        val statements = mutableListOf<String>()
+        val database = Proxy.newProxyInstance(
+            SupportSQLiteDatabase::class.java.classLoader,
+            arrayOf(SupportSQLiteDatabase::class.java)
+        ) { _, method, args ->
+            if (method.name == "execSQL") {
+                statements += args?.firstOrNull() as String
+                Unit
+            } else {
+                when (method.returnType) {
+                    java.lang.Boolean.TYPE -> false
+                    java.lang.Integer.TYPE -> 0
+                    java.lang.Long.TYPE -> 0L
+                    else -> null
+                }
+            }
+        } as SupportSQLiteDatabase
+
+        PotholeDatabase.MIGRATION_6_7.migrate(database)
+
+        assertEquals(6, PotholeDatabase.MIGRATION_6_7.startVersion)
+        assertEquals(7, PotholeDatabase.MIGRATION_6_7.endVersion)
+        assertEquals(
+            listOf(
+                "ALTER TABLE `reports` ADD COLUMN `hasUnambiguousLowerInterior` " +
+                    "INTEGER NOT NULL DEFAULT 0"
+            ),
+            statements
+        )
     }
 }

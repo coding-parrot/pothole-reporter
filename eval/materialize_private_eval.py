@@ -786,7 +786,10 @@ def make_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = make_parser().parse_args(argv)
-    desktop_manifest = desktop_corpus.load_manifest(args.desktop_manifest)
+    # The Desktop corpus is a sealed v15 media/annotation archive. It remains useful
+    # as private holdout provenance, but must never be presented to current v19 paid
+    # execution as a current detector receipt.
+    desktop_manifest = desktop_corpus.load_historical_v15_manifest(args.desktop_manifest)
     try:
         release_manifest = release_gate.load_manifest(args.release_manifest)
     except release_gate.GateError as error:

@@ -61,7 +61,7 @@ def validate_manifest(manifest: Any) -> dict[str, Any]:
     if not isinstance(manifest, dict):
         raise GateError("manifest must be a JSON object")
     _require_keys(manifest, {"version", "sources", "events"}, "manifest")
-    if manifest["version"] != 1:
+    if manifest["version"] != 2:
         raise GateError("unsupported private release gate manifest version")
     sources = manifest["sources"]
     events = manifest["events"]
@@ -91,7 +91,8 @@ def validate_manifest(manifest: Any) -> dict[str, Any]:
         where = f"event {event_index}"
         if not isinstance(event, dict):
             raise GateError(f"{where} must be an object")
-        _require_keys(event, {"id", "source", "label", "capture_provenance",
+        _require_keys(event, {"id", "source", "label", "evidence_tier",
+                              "label_provenance", "capture_provenance",
                               "raw_camerax_accuracy_eligible", "phases"}, where)
         event_id = event["id"]
         if not isinstance(event_id, str) or not event_id or event_id in seen_ids:
@@ -102,12 +103,27 @@ def validate_manifest(manifest: Any) -> dict[str, Any]:
         if event["label"] not in label_counts:
             raise GateError(f"event {event_id} has an unsupported binary label")
         label_counts[event["label"]] += 1
-        expected_provenance = (
-            "native_mediarecorder_reconstruction" if event["label"] == "pothole"
-            else "external_recording_of_test_device"
-        )
-        if event["capture_provenance"] != expected_provenance:
-            raise GateError(f"event {event_id} has incorrect capture provenance")
+        evidence_tier = event["evidence_tier"]
+        label_provenance = event["label_provenance"]
+        if evidence_tier == "owner_ground_truth":
+            if label_provenance != "owner_confirmed":
+                raise GateError(f"event {event_id} has incorrect owner label provenance")
+            expected_capture = (
+                "native_mediarecorder_reconstruction" if event["label"] == "pothole"
+                else "external_recording_of_test_device"
+            )
+            if event["capture_provenance"] != expected_capture:
+                raise GateError(f"event {event_id} has incorrect capture provenance")
+        elif evidence_tier == "independent_assistant_regression":
+            if (event["label"] != "not_pothole"
+                    or label_provenance != "independent_assistant_full_video_review"
+                    or event["capture_provenance"] not in {
+                        "native_mediarecorder_reconstruction",
+                        "external_recording_of_test_device",
+                    }):
+                raise GateError(f"event {event_id} has invalid independent regression provenance")
+        else:
+            raise GateError(f"event {event_id} has an unsupported evidence tier")
         if event["raw_camerax_accuracy_eligible"] is not False:
             raise GateError(f"event {event_id} must not claim raw CameraX accuracy eligibility")
         phases = event["phases"]
@@ -154,9 +170,13 @@ def load_production_contract() -> dict[str, Any]:
                      "dev" / "aiengg" / "potholereporter" / "drive" /
                      "NativeDetectionContract.kt")
     engine_path = contract_path.with_name("NativeInferenceEngine.kt")
+    request_path = contract_path.with_name("NativeInferenceRequest.kt")
+    retry_path = contract_path.with_name("NativeDetectionRetryPolicy.kt")
     try:
         contract_source = contract_path.read_text()
         engine_source = engine_path.read_text()
+        request_source = request_path.read_text()
+        retry_source = retry_path.read_text()
     except OSError as error:
         raise GateError("native production detection contract is unavailable") from error
 
@@ -187,6 +207,10 @@ def load_production_contract() -> dict[str, Any]:
     native_version = version_match.group(1)
     native_schema_version = integer_constant("SCHEMA_VERSION")
     native_max_tokens = integer_constant("MAX_OUTPUT_TOKENS")
+    retry_match = re.search(r"const val MAX_ATTEMPTS = ([0-9_]+)", retry_source)
+    if not retry_match:
+        raise GateError("native production retry limit is unavailable")
+    retry_max_attempts = int(retry_match.group(1).replace("_", ""))
 
     live_prompt = production_eval.prompts().get("baseline")
     parity = (
@@ -198,6 +222,13 @@ def load_production_contract() -> dict[str, Any]:
         and production_eval.PROMPT_VERSION == native_version
         and production_eval.SCHEMA_VERSION == native_schema_version
         and production_eval.NATIVE_DRIVE_MAX_OUTPUT_TOKENS == native_max_tokens
+        and production_eval.TEMPORARY_SURFACE_MAX_ATTEMPTS == retry_max_attempts
+        and 'put("stream", true)' in request_source
+        and "allowEarlyReject = allowEarlyReject" in engine_source
+        and 'assessment.surfaceType == "temporary_drivable_surface"' in retry_source
+        and 'assessment.temporalConsistency == "consistent"' in retry_source
+        and "NativeDetectionRetryPolicy.shouldRetry(attempts)" in retry_source
+        and "NativeDetectionRetryPolicy.acceptedByMajority(attempts)" in retry_source
     )
     if not parity:
         raise GateError("native and evaluator production contracts have drifted; release blocked")
@@ -209,6 +240,7 @@ def load_production_contract() -> dict[str, Any]:
         "prompt_version": native_version,
         "schema_version": native_schema_version,
         "max_output_tokens": native_max_tokens,
+        "retry_max_attempts": retry_max_attempts,
     }
 
 
@@ -334,7 +366,6 @@ def build_production_request(fixture: dict[str, Any], contract: dict[str, Any]) 
     entry = {
         "path": str(frame_paths[1]),
         "frames": [str(path) for path in frame_paths],
-        "primary_index": 1,
         "mode": "drive",
     }
     views, _transforms, layout_note = production_eval.prepare_event(entry, Path("/"), "drive")
@@ -345,6 +376,7 @@ def build_production_request(fixture: dict[str, Any], contract: dict[str, Any]) 
     if (body.get("model") != contract["model"]
             or body.get("reasoning") != {"effort": "low"}
             or body.get("store") is not False
+            or body.get("stream") is not True
             or body.get("max_output_tokens") != contract["max_output_tokens"]
             or body_schema != contract["schema"]):
         raise GateError("generated request is not the current production detection contract")
@@ -383,21 +415,19 @@ def fresh_api_assessment(api_key: str, body: dict[str, Any], timeout: int,
     })
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            payload = json.loads(response.read())
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+            assessment, response_id = production_eval.parse_api_response(
+                response.read(), body.get("stream") is True)
+    except (urllib.error.URLError, TimeoutError, ValueError, TypeError,
+            StopIteration, json.JSONDecodeError) as error:
         raise GateError("fresh OpenAI request failed or returned invalid JSON") from error
-    if not isinstance(payload, dict) or payload.get("error"):
-        raise GateError("fresh OpenAI request returned an API error")
-    try:
-        messages = [item for item in payload["output"] if item.get("type") == "message"]
-        texts = [content["text"] for message in messages for content in message["content"]
-                 if content.get("type") == "output_text"]
-        if len(texts) != 1:
-            raise GateError("API response did not contain exactly one structured output")
-        assessment = json.loads(texts[0])
-    except (KeyError, TypeError, json.JSONDecodeError) as error:
-        raise GateError("API response could not be parsed as the strict assessment") from error
-    return validate_assessment(assessment, schema), payload.get("id")
+    return validate_assessment(assessment, schema), response_id
+
+
+def production_decision_with_retries(get_assessment) -> tuple[str, int]:
+    """Execute the native bounded temporary-surface vote on complete gate responses."""
+    outcome = production_eval.run_bounded_detection_policy(
+        get_assessment, mode="drive", source_view_count=3)
+    return outcome.decision, outcome.attempts_started
 
 
 def load_api_key() -> str:
@@ -427,7 +457,7 @@ def make_parser() -> argparse.ArgumentParser:
                         help="find the exact private videos in this directory by SHA-256")
     parser.add_argument("--work-root", type=Path, default=DEFAULT_WORK_ROOT)
     parser.add_argument("--trials", type=int, default=1)
-    parser.add_argument("--api-timeout", type=int, default=120)
+    parser.add_argument("--api-timeout", type=int, default=30)
     parser.add_argument("--check-manifest", action="store_true",
                         help="offline metadata and production-contract check only")
     parser.add_argument("--validate-only", action="store_true",
@@ -461,18 +491,24 @@ def main(argv: list[str] | None = None) -> int:
     api_key = load_api_key()
     failures: list[str] = []
     completed = 0
+    api_calls = 0
     for fixture in fixtures:
         event = fixture["event"]
         expected = expected_decision(event["label"])
         body = build_production_request(fixture, contract)
         for trial in range(args.trials):
-            assessment, _response_id = fresh_api_assessment(
-                api_key, body, args.api_timeout, contract["schema"])
-            actual = production_eval.decision(assessment, "drive", source_view_count=3)
+            def get_assessment():
+                nonlocal api_calls
+                api_calls += 1
+                assessment, _response_id = fresh_api_assessment(
+                    api_key, body, args.api_timeout, contract["schema"])
+                return assessment
+
+            actual, attempts = production_decision_with_retries(get_assessment)
             completed += 1
             status = "PASS" if actual == expected else "FAIL"
             print(f"{status} {event['id']} phase={fixture['phase_index']} trial={trial + 1} "
-                  f"expected={expected} actual={actual}")
+                  f"attempts={attempts} expected={expected} actual={actual}")
             if actual != expected:
                 failures.append(
                     f"{event['id']} phase {fixture['phase_index']} trial {trial + 1}"
@@ -482,7 +518,8 @@ def main(argv: list[str] | None = None) -> int:
             f"release blocked: {len(failures)} of {completed} strict decisions failed; "
             + ", ".join(failures)
         )
-    print(f"PRIVATE RELEASE GATE PASS ({completed} fresh decisions)")
+    print(f"PRIVATE RELEASE GATE PASS ({completed} production decisions, "
+          f"{api_calls} fresh API calls)")
     return 0
 
 

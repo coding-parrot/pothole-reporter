@@ -26,6 +26,7 @@ with sync_playwright() as playwright:
         surface_type: "bituminous_asphalt",
         on_drivable_surface: true,
         has_localized_cavity: true,
+        has_unambiguous_lower_interior: true,
         has_broken_edge_or_rim: true,
         has_depth_or_surface_loss: true,
         temporal_consistency: "consistent",

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline guard that Web, native Drive and evaluator share one binary v13 contract."""
+"""Offline guard that Web, native Drive and evaluator share one binary v16 contract."""
 import importlib.util, json, pathlib, re, sys, tempfile, textwrap
 from PIL import Image
 
@@ -171,7 +171,7 @@ def check(name, condition):
         fails.append(name)
 
 
-check("schema version", 'const SCHEMA_VERSION = 7;' in client and road_eval.SCHEMA_VERSION == 7)
+check("schema version", 'const SCHEMA_VERSION = 9;' in client and road_eval.SCHEMA_VERSION == 9)
 check("prompt version", f'const PROMPT_VERSION = "{road_eval.PROMPT_VERSION}";' in client)
 check("native prompt version", f'PROMPT_VERSION = "{road_eval.PROMPT_VERSION}"' in native)
 check("Web Drive preprocesses complete burst frames sequentially to bound peak memory",
@@ -230,12 +230,14 @@ check("prompt makes ambiguity a negative",
 check("Drive motion proves use of an unsealed traffic path",
       "coherent forward motion along a continuous wheel path" in web_prompt.lower()
       and "proves this use even when no second vehicle is visible" in web_prompt.lower())
-check("one-open-side cavity remains eligible without admitting generic roughness",
+check("temporary-surface gate requires visible lower geometry",
       all(term in web_prompt.lower() for term in (
           "it does not mean a closed circular rim",
-          "one boundary blending into surrounding failed material",
-          "road-wide grading, corrugation, broad roughness",
-          "do not turn it into general roughness",
+          "compact depression or connected cavity cluster",
+          "persistent broken lip or occlusion boundary",
+          "never for colour, texture, stones, shadow, or coherent growth alone",
+          "roughness, rubble, and a boundary line are never sufficient",
+          "construction scar with no compact repeatable downward opening",
       )))
 check("partial temporal visibility is not treated as contradiction",
       "at least two show the same footprint" in web_prompt.lower()
@@ -254,18 +256,22 @@ check("native prompt defines the same fallback size bands",
       all(term in native.lower() for term in ("below 30 cm", "30 to 60 cm", "above 60 cm")))
 check("native schema exposes the binary verdict",
       '"is_pothole": { "type": "boolean" }' in native and
-      '"has_localized_cavity": { "type": "boolean" }' in native)
+      '"has_localized_cavity": { "type": "boolean" }' in native and
+      '"has_unambiguous_lower_interior": { "type": "boolean" }' in native)
 check("native Drive rejects single-view output despite the shared schema",
       'if (temporalConsistency != "consistent")' in native_verdict)
 check("native persists and syncs every binary physical gate",
-      all(term in entities for term in ("looksLikeSpeedBreaker", "hasLocalizedCavity"))
+      all(term in entities for term in (
+          "looksLikeSpeedBreaker", "hasLocalizedCavity", "hasUnambiguousLowerInterior"))
       and all(f'put("{term}"' in plugin for term in
-              ("looks_like_speed_breaker", "has_localized_cavity"))
+              ("looks_like_speed_breaker", "has_localized_cavity",
+               "has_unambiguous_lower_interior"))
       and all(term in entities for term in
               ("surfaceType", "defectType", "measurementProvenance", "measurementConfidence"))
       and all(f'put("{term}"' in plugin for term in
               ("surface_type", "defect_type", "measurement_provenance", "measurement_confidence"))
-      and "MIGRATION_5_6" in database and "version = 6" in database)
+      and "MIGRATION_5_6" in database and "MIGRATION_6_7" in database
+      and "version = 7" in database)
 for field in road_eval.SCHEMA["required"]:
     check(f"required field {field}", f'"{field}"' in client)
 
@@ -291,6 +297,20 @@ check("detail belongs to every image", all(x.get("detail") == "original" for x i
 check("evaluator disables response storage like both shipped runtimes",
       request.get("store") is False and 'put("store", false)' in native_request
       and "store: false" in client)
+check("Drive evaluator uses the native streaming transport",
+      request.get("stream") is True and 'put("stream", true)' in native_request
+      and "stream" not in road_eval.build_request(
+          ["one"], "P", "gpt-5-mini", "high", mode="manual"))
+stream_body = b"\n".join([
+    b'data: {"type":"response.created","response":{"id":"resp_test"}}',
+    b'data: {"type":"response.output_text.delta","delta":"{\\"ok\\":"}',
+    b'data: {"type":"response.output_text.delta","delta":"true}"}',
+    b'data: {"type":"response.completed","response":{"id":"resp_test"}}',
+    b'data: [DONE]',
+])
+parsed_stream, parsed_stream_id = road_eval.parse_api_response(stream_body, True)
+check("evaluator reconstructs the native SSE completion and response identity",
+      parsed_stream == {"ok": True} and parsed_stream_id == "resp_test")
 check("mini rejects unsupported original detail",
       road_eval.build_request(["one"], "P", "gpt-5-mini", "original")
       ["input"][0]["content"][0]["detail"] == "high")
@@ -311,12 +331,13 @@ check("evaluator records the shipped mode-specific prompt version",
       road_eval.effective_prompt_version("drive") == road_eval.PROMPT_VERSION
       and road_eval.effective_prompt_version("manual")
       == road_eval.client_string_constant("PHOTO_PROMPT_VERSION")
-      == "pothole-photo-only-v4")
+      == "pothole-photo-only-v5")
 
 good = {"is_pothole": True, "looks_like_speed_breaker": False,
         "image_quality": "usable", "surface_type": "bituminous_asphalt",
         "on_drivable_surface": True,
-        "has_localized_cavity": True, "has_broken_edge_or_rim": True,
+        "has_localized_cavity": True, "has_unambiguous_lower_interior": True,
+        "has_broken_edge_or_rim": True,
         "has_depth_or_surface_loss": True, "temporal_consistency": "consistent",
         "size": "medium"}
 check("complete physical pothole is accepted", road_eval.decision(good) == "accept")
@@ -335,6 +356,11 @@ check("missing speed-breaker verdict fails closed",
                           if key != "looks_like_speed_breaker"}) == "reject")
 check("mistyped speed-breaker verdict fails closed",
       road_eval.decision({**good, "looks_like_speed_breaker": "false"}) == "reject")
+check("missing lower-interior verdict fails closed",
+      road_eval.decision({key: value for key, value in good.items()
+                          if key != "has_unambiguous_lower_interior"}) == "reject")
+check("mistyped lower-interior verdict fails closed",
+      road_eval.decision({**good, "has_unambiguous_lower_interior": "true"}) == "reject")
 check("off-road rejected", road_eval.decision({**good, "on_drivable_surface": False}) == "reject")
 check("unknown surface rejected", road_eval.decision({**good, "surface_type": "unknown"}) == "reject")
 check("unpaved/non-road surface rejected",
@@ -347,6 +373,9 @@ check("temporary surface fails closed for single Photo",
                          "manual", 1) == "reject")
 check("temporary roughness without a localized cavity is NO",
       road_eval.decision({**temporary, "has_localized_cavity": False},
+                         "drive", 3) == "reject")
+check("temporary roughness without an unambiguous lower interior is NO",
+      road_eval.decision({**temporary, "has_unambiguous_lower_interior": False},
                          "drive", 3) == "reject")
 check("surface damage without a localized cavity is NO",
       road_eval.decision({**good, "has_localized_cavity": False}) == "reject")
@@ -363,6 +392,29 @@ check("all fallback sizes are valid",
 check("decision surface is strictly binary",
       {road_eval.decision(good), road_eval.decision({**good, "image_quality": "unusable"})}
       == {"accept", "reject"})
+temporary_reject = {**temporary, "is_pothole": False, "size": None,
+                    "has_localized_cavity": False,
+                    "has_unambiguous_lower_interior": False,
+                    "has_broken_edge_or_rim": False,
+                    "has_depth_or_surface_loss": False}
+check("temporary-surface vote is bounded and fail closed",
+      road_eval.TEMPORARY_SURFACE_MAX_ATTEMPTS == 3
+      and "const val MAX_ATTEMPTS = 3" in (
+          native_dir / "NativeDetectionRetryPolicy.kt").read_text()
+      and road_eval.should_retry_temporary_surface(
+          [temporary], "drive", 3) is True
+      and road_eval.should_retry_temporary_surface(
+          [temporary, temporary], "drive", 3) is False
+      and road_eval.should_retry_temporary_surface(
+          [temporary, temporary_reject], "drive", 3) is True
+      and road_eval.should_retry_temporary_surface(
+          [{**temporary, "looks_like_speed_breaker": True}], "drive", 3) is False
+      and road_eval.confirms_temporary_surface(
+          [temporary, temporary], "drive", 3) is True
+      and road_eval.confirms_temporary_surface(
+          [temporary, temporary_reject, temporary], "drive", 3) is True
+      and road_eval.confirms_temporary_surface(
+          [temporary, temporary_reject, temporary_reject], "drive", 3) is False)
 check("legacy positive label", road_eval.binary_label("pothole") is True)
 check("non-cavity surface breakup label is negative",
       road_eval.binary_label("surface_breakup") is False)

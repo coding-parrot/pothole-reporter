@@ -18,6 +18,7 @@ import dev.aiengg.potholereporter.db.FootageSegmentEntity
 import dev.aiengg.potholereporter.db.PotholeDatabase
 import dev.aiengg.potholereporter.db.RepairObservationEntity
 import dev.aiengg.potholereporter.db.ReportDao
+import dev.aiengg.potholereporter.db.ReportMediaRef
 import dev.aiengg.potholereporter.db.ReportSyncCandidate
 import dev.aiengg.potholereporter.db.RepairTargetEntity
 import dev.aiengg.potholereporter.db.SessionEntity
@@ -27,11 +28,13 @@ import dev.aiengg.potholereporter.drive.DriveSessionLimitPolicy
 import dev.aiengg.potholereporter.drive.NativeDriveEndSummaryStore
 import dev.aiengg.potholereporter.drive.NativeFrameSourceConfig
 import dev.aiengg.potholereporter.drive.NativeFrameSourceKind
+import dev.aiengg.potholereporter.drive.NativeFrameBurstContract
 import dev.aiengg.potholereporter.drive.NativeKeyframeFiles
 import dev.aiengg.potholereporter.drive.NativeMediaFilesystemMutation
 import dev.aiengg.potholereporter.drive.NativeMediaReconciliationEpoch
 import dev.aiengg.potholereporter.drive.NativeMediaStorageQuota
 import dev.aiengg.potholereporter.drive.NativeReportEvidenceStorage
+import dev.aiengg.potholereporter.drive.NativeRollingBurstWindow
 import dev.aiengg.potholereporter.drive.NativeStoredImagePolicy
 import dev.aiengg.potholereporter.drive.NotificationHelper
 import com.getcapacitor.JSArray
@@ -1648,34 +1651,54 @@ class DriveModePlugin : Plugin() {
 
         val reportsRoot = File(context.filesDir, "reports")
         val referencedReportPhotos = HashSet<String>()
-        val syncedRowsReadyToScrub = mutableListOf<Long>()
-        // Reconciliation needs paths and sync state only. Do not hydrate every stored
-        // Base64 thumbnail when a long drive history is opened.
-        for (report in db.reportDao().getAllReportMediaRefs()) {
-            val managed = listOfNotNull(report.photoPath, report.photoFullPath)
-                .mapNotNull { path ->
-                    runCatching {
-                        NativePrivateMediaFiles.descendant(reportsRoot, path)
-                    }.getOrNull()
-                }
-                .distinctBy(File::getAbsolutePath)
-            if (report.syncedToWeb) {
-                if (NativeReportEvidenceStorage.deleteAll(managed)) {
-                    syncedRowsReadyToScrub.add(report.id)
-                } else {
-                    progress.markCleanupIncomplete()
+        // Freeze the upper id and reconcile fixed-size pages. A long report history must
+        // never become one giant startup allocation, and rows inserted after this pass are
+        // owned by the producer epoch rather than this older inventory.
+        val reportDao = db.reportDao()
+        val reportThroughId = reportDao.getNewestReportMediaId() ?: 0L
+        var reportAfterId = 0L
+        while (reportAfterId < reportThroughId) {
+            val page = reportDao.getReportMediaRefPage(
+                afterId = reportAfterId,
+                throughId = reportThroughId,
+                limit = NativeReportEvidenceRecoveryPolicy.REPORT_PAGE_SIZE
+            )
+            if (page.isEmpty()) break
+            val syncedRowsReadyToScrub = mutableListOf<Long>()
+            for (report in page) {
+                val managed = listOfNotNull(report.photoPath, report.photoFullPath)
+                    .mapNotNull { path ->
+                        runCatching {
+                            NativePrivateMediaFiles.descendant(reportsRoot, path)
+                        }.getOrNull()
+                    }
+                    .distinctBy(File::getAbsolutePath)
+                if (report.syncedToWeb) {
+                    if (NativeReportEvidenceStorage.deleteAll(managed)) {
+                        syncedRowsReadyToScrub.add(report.id)
+                    } else {
+                        progress.markCleanupIncomplete()
+                        managed.filter(File::isFile).mapTo(referencedReportPhotos) {
+                            it.canonicalPath
+                        }
+                    }
+                } else if (reportEvidenceIsBridgeable(report, reportDao, reportsRoot)) {
                     managed.filter(File::isFile).mapTo(referencedReportPhotos) {
                         it.canonicalPath
                     }
-                }
-            } else {
-                managed.filter(File::isFile).mapTo(referencedReportPhotos) {
-                    it.canonicalPath
+                } else {
+                    recoverBrokenUnsyncedReport(db, report)
                 }
             }
-        }
-        if (syncedRowsReadyToScrub.isNotEmpty()) {
-            db.reportDao().acknowledgeAndReleasePhotos(syncedRowsReadyToScrub)
+            if (syncedRowsReadyToScrub.isNotEmpty()) {
+                reportDao.acknowledgeAndReleasePhotos(syncedRowsReadyToScrub)
+            }
+            val next = page.last().id
+            if (next <= reportAfterId) {
+                progress.markCleanupIncomplete()
+                break
+            }
+            reportAfterId = next
         }
 
         // A repair observation without its current image can never be transferred to
@@ -2030,6 +2053,77 @@ class DriveModePlugin : Plugin() {
         }
     }
 
+    private suspend fun reportEvidenceIsBridgeable(
+        report: ReportMediaRef,
+        dao: ReportDao,
+        reportsRoot: File
+    ): Boolean {
+        if (!NativeReportEvidenceRecoveryPolicy.hasCompleteReferenceShape(report)) return false
+        val requiredFullPath = report.photoFullPath?.takeIf(String::isNotBlank)
+            ?: report.photoPath?.takeIf(String::isNotBlank)
+            ?: return false
+        val fullFile = runCatching {
+            NativePrivateMediaFiles.descendant(reportsRoot, requiredFullPath)
+        }.getOrNull() ?: return false
+        val fullBytes = fullFile.length()
+        if (NativeBridgeJpeg.readExact(
+                fullFile,
+                fullBytes,
+                NativeStoredImagePolicy.MAX_BRIDGE_IMAGE_BYTES
+            ) == null
+        ) return false
+
+        val thumbnailChars = report.photoDataUrlChars ?: return false
+        if (thumbnailChars <= 0L ||
+            thumbnailChars > NativeStoredImagePolicy.MAX_ROOM_THUMB_IMAGE_BYTES * 2L
+        ) return false
+        val thumbnail = dao.getUnsyncedReportPhotoDataUrl(report.id) ?: return false
+        return thumbnail.length.toLong() == thumbnailChars && isValidBridgeJpegDataUrl(thumbnail)
+    }
+
+    private suspend fun recoverBrokenUnsyncedReport(
+        db: PotholeDatabase,
+        report: ReportMediaRef
+    ) {
+        val identity = NativeReportEvidenceRecoveryPolicy.exactLiveKeyframeIdentity(report)
+        val keyframe = identity?.let {
+            db.driveKeyframeDao().getBySessionAndCaptureSeq(it.sessionId, it.captureSeq)
+        }
+        val replayableKeyframeId = keyframe?.takeIf { frame ->
+            runCatching {
+                val sessionRoot = FootagePathPolicy.sessionDirectory(context.filesDir, frame.sessionId)
+                val primary = FootagePathPolicy.keyframeFile(sessionRoot, frame.filePath)
+                val stored = NativeKeyframeFiles.readSet(primary)
+                val actualBytes = stored.files.sumOf { it.length().coerceAtLeast(0L) }
+                stored.isComplete && stored.hasTemporalContext &&
+                    stored.files.size in NativeFrameBurstContract.MIN_INFERENCE_FRAMES..
+                        NativeRollingBurstWindow.OUTPUT_COUNT &&
+                    actualBytes == frame.bytes &&
+                    actualBytes in 1..NativeStoredImagePolicy.MAX_KEYFRAME_BURST_BYTES &&
+                    stored.files.all { file ->
+                        NativeBridgeJpeg.readExact(
+                            file,
+                            file.length(),
+                            NativeStoredImagePolicy.MAX_KEYFRAME_IMAGE_BYTES
+                        ) != null
+                    }
+            }.getOrDefault(false)
+        }?.id
+
+        db.withTransaction {
+            // The process-wide media mutex already excludes acknowledgement/dedupe, but
+            // re-read sync state before deletion so this helper remains safe if reused.
+            val current = db.reportDao().getReportMediaRefs(listOf(report.id)).singleOrNull()
+                ?: return@withTransaction
+            if (current.syncedToWeb) return@withTransaction
+            db.eventSightingDao().deleteSightingsForReport(report.id)
+            check(db.reportDao().deleteReport(report.id) == 1) {
+                "Broken native report changed during recovery"
+            }
+            replayableKeyframeId?.let { db.driveKeyframeDao().markPending(it) }
+        }
+    }
+
     private suspend fun reconcileNativeStateOnce(db: PotholeDatabase) {
         val requestedEpoch = NativeMediaReconciliationEpoch.snapshot()
         if (nativeStateReconciledEpoch == requestedEpoch) return
@@ -2366,6 +2460,7 @@ class DriveModePlugin : Plugin() {
                 put("image_quality", report.imageQuality)
                 put("on_drivable_surface", report.onDrivableSurface)
                 put("has_localized_cavity", report.hasLocalizedCavity)
+                put("has_unambiguous_lower_interior", report.hasUnambiguousLowerInterior)
                 put("has_broken_edge_or_rim", report.hasBrokenEdgeOrRim)
                 put("has_depth_or_surface_loss", report.hasDepthOrSurfaceLoss)
                 put("temporal_consistency", report.temporalConsistency)

@@ -23,12 +23,21 @@ internal data class NativeDuplicateReportMergeResult(
     val priorEvidenceDisplaced: Boolean
 )
 
+internal fun requireCompleteNativeReportEvidence(candidate: ReportEntity) {
+    // Production candidates receive this reference only from the private managed evidence
+    // store. Do not accept the legacy thumbnail/path fallback as a new native candidate.
+    val managedFullPath = candidate.photoFullPath?.takeIf(String::isNotBlank)
+    require(managedFullPath != null && !candidate.photoDataUrl.isNullOrBlank()) {
+        "Native report candidates require a managed full image and thumbnail"
+    }
+}
+
 /**
  * Merges a later sighting into its canonical report without losing bridgeable evidence.
  *
  * Acknowledgement deliberately scrubs the first native photo after the WebView commits it.
- * The next accepted revisit therefore has to donate its fresh full image and thumbnail;
- * otherwise the row is marked unsynced but can never cross the native bridge again.
+ * The next accepted revisit therefore donates its fresh full image and thumbnail. The
+ * engine rejects incomplete candidates before this merge can mutate the canonical row.
  */
 internal object NativeDuplicateReportOwnership {
     fun merge(
@@ -38,6 +47,7 @@ internal object NativeDuplicateReportOwnership {
         sightingDriveIdsJson: String,
         exactReplay: Boolean
     ): NativeDuplicateReportMergeResult {
+        requireCompleteNativeReportEvidence(candidate)
         val priorHasFullImage =
             !prior.photoFullPath.isNullOrBlank() || !prior.photoPath.isNullOrBlank()
         val priorHasThumbnail = !prior.photoDataUrl.isNullOrBlank()
@@ -61,6 +71,34 @@ internal object NativeDuplicateReportOwnership {
                     prior.photoFullPath
                 },
                 photoDataUrl = if (adoptCandidateEvidence) candidateThumbnail else prior.photoDataUrl,
+                // The managed photo and these fields form one provenance unit. Keeping the
+                // canonical row's old keyframe identity after adopting a revisit photo makes
+                // evidence recovery reopen the wrong burst (or permanently lose the report).
+                driveId = if (adoptCandidateEvidence) candidate.driveId else prior.driveId,
+                captureSource = if (adoptCandidateEvidence) {
+                    candidate.captureSource
+                } else {
+                    prior.captureSource
+                },
+                sourceEventKey = if (adoptCandidateEvidence) {
+                    candidate.sourceEventKey
+                } else {
+                    prior.sourceEventKey
+                },
+                capturedAt = if (adoptCandidateEvidence) candidate.capturedAt else prior.capturedAt,
+                sourceOffsetS = if (adoptCandidateEvidence) {
+                    candidate.sourceOffsetS
+                } else {
+                    prior.sourceOffsetS
+                },
+                gpsAccuracy = if (adoptCandidateEvidence) candidate.gpsAccuracy else prior.gpsAccuracy,
+                speedMps = if (adoptCandidateEvidence) candidate.speedMps else prior.speedMps,
+                heading = if (adoptCandidateEvidence) candidate.heading else prior.heading,
+                primaryFrameIndex = if (adoptCandidateEvidence) {
+                    candidate.primaryFrameIndex
+                } else {
+                    prior.primaryFrameIndex
+                },
                 sourceEventKeysJson = sourceEventKeysJson,
                 sightingDriveIdsJson = sightingDriveIdsJson,
                 seenCount = if (exactReplay) prior.seenCount else prior.seenCount + 1,
@@ -106,11 +144,16 @@ class NativeDeduplicationEngine(
     suspend fun checkAndCommitReport(
         candidate: ReportEntity,
         sightings: List<EventSightingEntity>
-    ): DedupeResult = NativeMediaFilesystemMutation.mutex.withLock {
-        // Acknowledgement clears media columns after bridging. Hold the same process-wide
-        // lock for the read/merge transaction so a stale full-row @Update can never put
-        // an acknowledged path back into Room after its file has been deleted.
-        database.withTransaction {
+    ): DedupeResult {
+        // Reject before taking the media/Room mutation boundary. A partial candidate can
+        // neither become a new canonical row nor turn an acknowledged canonical into an
+        // unsyncable all-null outbox row.
+        requireCompleteNativeReportEvidence(candidate)
+        return NativeMediaFilesystemMutation.mutex.withLock {
+            // Acknowledgement clears media columns after bridging. Hold the same process-wide
+            // lock for the read/merge transaction so a stale full-row @Update can never put
+            // an acknowledged path back into Room after its file has been deleted.
+            database.withTransaction {
             if (!candidate.dedupeEligible || candidate.debugCapture) {
                 val newId = reportDao.insertReport(candidate)
                 val mappedSightings = sightings.map { it.copy(reportId = newId) }
@@ -209,6 +252,7 @@ class NativeDeduplicationEngine(
             sightingDao.insertSightings(mappedSightings)
 
             DedupeResult(isDuplicate = false, existingReportId = newId)
+            }
         }
     }
 

@@ -129,6 +129,15 @@ check(
     and "nativeVideoControlPending" in WEB,
 )
 check(
+    "abnormal destruction keeps disclosure until frame-source closure succeeds",
+    service_destroy.index("frameSource?.closeImmediately()")
+        < service_destroy.index("scheduleForegroundNotificationRemoval()")
+    and "if (cameraClosed)" in service_destroy[
+        service_destroy.index("frameSource?.closeImmediately()"):
+        service_destroy.index("scheduleForegroundNotificationRemoval()")
+    ],
+)
+check(
     "location registration retries and every async callback is identity plus generation guarded",
     "registrationGeneration.issue()" in LOCATION
     and LOCATION.count("registrationGeneration.isCurrent(generation)") >= 3
@@ -171,7 +180,7 @@ check(
     and "activeNotifications.any" in SERVICE
     and "notificationMissingChecks >= 2" in SERVICE
     and "requestNotificationStop(" in SERVICE
-    and "notify(NotificationHelper.NOTIFICATION_ID" in SERVICE,
+    and ".notify(stateNotificationId, notification)" in SERVICE,
 )
 notification_claim = SERVICE[
     SERVICE.index("private fun claimNotificationStop"):
@@ -204,7 +213,9 @@ check(
     and "retryAfterMs = retryDelay" in INFERENCE
     and 'throw retryableFailure("OpenAI detection connection failed", error)' in INFERENCE
     and 'throw retryableFailure("OpenAI repair-check connection failed", error)' in INFERENCE
-    and INFERENCE.count("consecutiveRetryableFailures = 0") >= 3
+    and "AtomicInteger(0)" in INFERENCE
+    and INFERENCE.count("consecutiveRetryableFailures.set(0)") >= 2
+    and "consecutiveRetryableFailures.getAndIncrement()" in INFERENCE
     and "frame saved for later" in SERVICE
     and "if (error.suspendInference)" in SERVICE
     and "camera and local video continue" in SERVICE

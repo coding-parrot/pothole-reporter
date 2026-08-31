@@ -15,6 +15,7 @@ class NativeDetectionVerdictTest {
         surfaceType = "bituminous_asphalt",
         onDrivableSurface = true,
         hasLocalizedCavity = true,
+        hasUnambiguousLowerInterior = true,
         hasBrokenEdgeOrRim = true,
         hasDepthOrSurfaceLoss = true,
         temporalConsistency = "consistent",
@@ -33,6 +34,11 @@ class NativeDetectionVerdictTest {
                 DetectionRejectionReason.OFF_DRIVABLE_SURFACE,
             pothole.copy(hasLocalizedCavity = false) to
                 DetectionRejectionReason.NO_LOCALIZED_CAVITY,
+            pothole.copy(
+                surfaceType = "temporary_drivable_surface",
+                hasUnambiguousLowerInterior = false
+            ) to
+                DetectionRejectionReason.NO_UNAMBIGUOUS_LOWER_INTERIOR,
             pothole.copy(hasBrokenEdgeOrRim = false) to
                 DetectionRejectionReason.NO_BROKEN_EDGE_OR_RIM,
             pothole.copy(hasDepthOrSurfaceLoss = false) to
@@ -92,6 +98,7 @@ class NativeDetectionVerdictTest {
         assertFalse(assessment.reportable)
         assertEquals("usable", assessment.imageQuality)
         assertFalse(assessment.hasLocalizedCavity)
+        assertFalse(assessment.hasUnambiguousLowerInterior)
         assertFalse(assessment.hasBrokenEdgeOrRim)
         assertFalse(assessment.hasDepthOrSurfaceLoss)
         assertNull(assessment.size)
@@ -128,6 +135,7 @@ class NativeDetectionVerdictTest {
               "surface_type": "bituminous_asphalt",
               "on_drivable_surface": true,
               "has_localized_cavity": true,
+              "has_unambiguous_lower_interior": true,
               "has_broken_edge_or_rim": true,
               "has_depth_or_surface_loss": true,
               "temporal_consistency": "consistent",
@@ -145,6 +153,7 @@ class NativeDetectionVerdictTest {
               "surface_type": "bituminous_asphalt",
               "on_drivable_surface": true,
               "has_localized_cavity": false,
+              "has_unambiguous_lower_interior": false,
               "has_broken_edge_or_rim": false,
               "has_depth_or_surface_loss": false,
               "temporal_consistency": "consistent",

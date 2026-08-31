@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         FootageSegmentEntity::class,
         DriveKeyframeEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class PotholeDatabase : RoomDatabase() {
@@ -158,6 +158,15 @@ abstract class PotholeDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Earlier accepted rows did not record this stricter visual fact.
+                // A fail-closed default preserves their original provenance instead
+                // of retroactively claiming that the lower interior was observed.
+                db.execSQL("ALTER TABLE `reports` ADD COLUMN `hasUnambiguousLowerInterior` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): PotholeDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -166,7 +175,7 @@ abstract class PotholeDatabase : RoomDatabase() {
                     "native_potholes.db"
                 ).addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
-                    MIGRATION_5_6
+                    MIGRATION_5_6, MIGRATION_6_7
                 ).build()
                 INSTANCE = instance
                 instance

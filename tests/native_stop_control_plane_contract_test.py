@@ -56,7 +56,8 @@ check(
 )
 check(
     "only successful normal or emergency frame-source closure publishes capture-off",
-    "manager?.stopSafely()" in camera_task
+    "CoroutineStart.LAZY" not in camera_task
+    and "manager?.stopSafely()" in camera_task
     and "cameraStoppedCleanly = true" in camera_task
     and "manager?.closeImmediately()" in camera_task
     and "cameraStoppedCleanly = closed.isSuccess" in camera_task
@@ -108,8 +109,8 @@ check(
 )
 check(
     "foreground notification removal is part of the durable terminal result",
-    "if (cameraStoppedCleanly) {\n                            runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }" in stop
-    and stop.index("stopForeground(STOP_FOREGROUND_REMOVE)")
+    "if (cameraStoppedCleanly) {\n                            runCatching { removeForegroundNotification() }" in stop
+    and stop.index("removeForegroundNotification()")
         < stop.index("val currentStopError = synchronized(stopErrors)")
         < stop.index("NativeDriveEndSummaryStore.record(applicationContext, terminalCandidate)")
     and '.onFailure { recordStopError("Could not remove the Drive Mode notification", it) }'
@@ -127,7 +128,7 @@ check(
         stop.index("unexpected failure in the normal NonCancellable cleanup"):
         stop.index("val baseSummary = completedSummary")
     ]
-    and stop.index("if (cameraStoppedCleanly) {\n                            runCatching { stopForeground")
+    and stop.index("if (cameraStoppedCleanly) {\n                            runCatching { removeForegroundNotification")
         < stop.index("val currentStopError = synchronized(stopErrors)"),
 )
 check(
@@ -152,6 +153,7 @@ check(
     and '"Drive Mode · Camera Off · Saving"' in NOTIFICATION
     and '"Dashcam off · finalizing saved data" else "Camera off · finalizing saved data"' in NOTIFICATION
     and "if (!isStopping && !isPausing)" in NOTIFICATION
+    and "if (!isStopping)" in NOTIFICATION
     and 'builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop"' in NOTIFICATION,
 )
 check(

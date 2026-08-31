@@ -18,7 +18,7 @@ internal data class NativeDetectionReportInput(
     val latitude: Double?,
     val longitude: Double?,
     val photoPath: String,
-    val thumbnailDataUrl: String?,
+    val thumbnailDataUrl: String,
     val model: String,
     val detail: String,
     val evidenceCount: Int,
@@ -38,6 +38,9 @@ internal fun createInferenceOutcome(input: NativeDetectionReportInput): Inferenc
     val assessment = input.assessment
     require(assessment.decision == "accept" && assessment.isPothole && assessment.reportable) {
         "Only accepted pothole assessments can create reports"
+    }
+    require(input.photoPath.isNotBlank() && input.thumbnailDataUrl.isNotBlank()) {
+        "Accepted pothole reports require complete bridgeable evidence"
     }
     val sourceEventKey = "live:${input.driveId}:${input.captureSeq}"
     val shortAddress = "Road coordinates (" +
@@ -63,6 +66,7 @@ internal fun createInferenceOutcome(input: NativeDetectionReportInput): Inferenc
         imageQuality = assessment.imageQuality,
         onDrivableSurface = assessment.onDrivableSurface,
         hasLocalizedCavity = assessment.hasLocalizedCavity,
+        hasUnambiguousLowerInterior = assessment.hasUnambiguousLowerInterior,
         hasBrokenEdgeOrRim = assessment.hasBrokenEdgeOrRim,
         hasDepthOrSurfaceLoss = assessment.hasDepthOrSurfaceLoss,
         temporalConsistency = assessment.temporalConsistency,

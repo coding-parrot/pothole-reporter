@@ -78,6 +78,7 @@ def accepted_assessment():
         "surface_type": "bituminous_asphalt",
         "on_drivable_surface": True,
         "has_localized_cavity": True,
+        "has_unambiguous_lower_interior": True,
         "has_broken_edge_or_rim": True,
         "has_depth_or_surface_loss": True,
         "temporal_consistency": "consistent",

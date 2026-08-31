@@ -180,34 +180,17 @@ assistant candidates without promoting them to owner ground truth; this review r
 additional candidate events. Production-detector output can never create or change an
 annotation.
 
+The committed source, result and audit JSON files are an immutable **v15 historical
+archive**. Their prompt and schema hashes are independently recomputed by the explicit
+`load_historical_v15_*` / `validate_historical_v15_*` APIs. Current loaders, the CLI and
+all paid-run paths intentionally reject these receipts; they cannot be presented as v19
+release coverage or reused as v19 model results. Current v19 release coverage is provided
+only by `private_release_gate.py` above until a separately sealed v19 exhaustive manifest
+and fresh v19 results exist.
+
 ```bash
-# Source-free, API-free CI check.
-python3 eval/exhaustive_video_eval.py --check-manifest
-
-# Resolve the exact videos by hash, decode every frame and materialize all 218 windows.
-python3 eval/exhaustive_video_eval.py --materialize \
-  --source-dir "/path/containing/segment_0001-and-segment_0002"
-
-# Re-hash every retained full frame and rebuild all 218 production requests offline.
-python3 eval/exhaustive_video_eval.py --validate-materialized
-
-# Optional explicit paid run. Resume reuses only exact validated request-bound results.
-python3 eval/exhaustive_video_eval.py --paid-run --max-calls 218 --gate
-python3 eval/exhaustive_video_eval.py --paid-run --max-calls 218 --gate --resume
-
-# A label/provenance-only correction may import responses from an older run, but only
-# when every window ID, production request hash, response schema and decision validate.
-python3 eval/exhaustive_video_eval.py --paid-run --max-calls 0 --gate \
-  --reuse-cache-from eval/.private-drive-corpus/downloads-exhaustive/runs/OLD_DATASET_ID
-
-# After a complete run, derive the content-free committed result receipt and audit.
-python3 eval/exhaustive_video_eval.py --seal-run
-
-# CI/source-free verification. Supplying --dataset-root additionally re-hashes pixels and
-# rebuilds every exact production request against the committed content seal.
-python3 eval/exhaustive_video_eval.py --verify-audit
-python3 eval/exhaustive_video_eval.py --verify-audit \
-  --dataset-root eval/.private-drive-corpus/downloads-exhaustive/datasets/SUITE_ID
+# Archive integrity is covered by the source-free regression suite.
+python3 tests/exhaustive_video_eval_test.py
 ```
 
 Generated full-frame JPEGs, window indexes and paid results stay under ignored
@@ -244,16 +227,14 @@ and 50 reviewed hard-negative or abstention phases. Videos and generated frames 
 The exhaustive model output is recorded only as an audit receipt; it is not a label.
 These MP4 reconstructions test saved-video behavior and do not claim raw CameraX accuracy.
 
+This committed manifest and its 3,314-request model-scan receipt are also a v15 historical
+archive. Only the explicit historical loader/validator may authenticate it. Current CLI and
+paid execution reject it before media, budget or API access; a paid v19 run requires a new,
+separately sealed v19 manifest.
+
 ```bash
-# Normal source-free check (also runs in tests/run-all.sh).
-python3 eval/private_drive_corpus.py --check-manifest
-
-# Verify all exact source bytes, decode every video, and regenerate all 150 full frames.
-python3 eval/private_drive_corpus.py --source-dir "/path/to/pothole video segments" --validate-only
-
-# Optional, explicit, bounded and resumable production-model gate (50 phases today).
-python3 eval/private_drive_corpus.py --source-dir "/path/to/pothole video segments" \
-  --paid-run --max-calls 50
+# Archive integrity and current-path rejection are covered by this source-free suite.
+python3 tests/private_drive_corpus_test.py
 ```
 
 The Desktop cases test false-positive rejection and abstention. Recall remains gated by

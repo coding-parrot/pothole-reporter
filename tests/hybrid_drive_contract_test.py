@@ -197,10 +197,12 @@ check("saved report and repair evidence is bridge-size bounded before disk write
       and "out.write(jpeg)" in REPORT_STORAGE
       and "bitmap.compress(Bitmap.CompressFormat.JPEG, quality, out)" not in INFERENCE)
 check("binary detector evidence has a non-destructive Room migration",
-      "version = 6" in DATABASE and "MIGRATION_4_5" in DATABASE and "MIGRATION_5_6" in DATABASE
+      "version = 7" in DATABASE and "MIGRATION_4_5" in DATABASE
+      and "MIGRATION_5_6" in DATABASE and "MIGRATION_6_7" in DATABASE
       and "ADD COLUMN `looksLikeSpeedBreaker` INTEGER NOT NULL DEFAULT 1" in DATABASE
       and "ADD COLUMN `hasLocalizedCavity` INTEGER NOT NULL DEFAULT 0" in DATABASE
-      and "ADD COLUMN `surfaceType` TEXT NOT NULL DEFAULT 'unknown'" in DATABASE)
+      and "ADD COLUMN `surfaceType` TEXT NOT NULL DEFAULT 'unknown'" in DATABASE
+      and "ADD COLUMN `hasUnambiguousLowerInterior`" in DATABASE)
 check("native bridge exposes pending keyframe replay",
       all(f"fun {method}(" in PLUGIN for method in
           ("listKeyframes", "readKeyframe", "markKeyframeAnalyzed"))
@@ -237,11 +239,11 @@ check("hybrid status is explicit and all shipped web copies match",
           == (ROOT / "static/index.html").read_bytes()
       and (ROOT / "android-app/android/app/src/main/assets/public/index.html").read_bytes()
           == (ROOT / "static/index.html").read_bytes())
-check("Android release identity is 1.37.0 code 66 everywhere",
-      re.search(r"versionCode\s+66\b", GRADLE)
-      and re.search(r'versionName\s+"1\.37\.0"', GRADLE)
-      and 'android:versionCode="66"' in RELEASE
-      and 'android:versionName="1.37.0"' in RELEASE)
+check("Android release identity is 1.38.0 code 67 everywhere",
+      re.search(r"versionCode\s+67\b", GRADLE)
+      and re.search(r'versionName\s+"1\.38\.0"', GRADLE)
+      and 'android:versionCode="67"' in RELEASE
+      and 'android:versionName="1.38.0"' in RELEASE)
 
 if failures:
     print(f"\nFAIL: {len(failures)} hybrid Drive contract check(s) failed")

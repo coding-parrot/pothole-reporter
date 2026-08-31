@@ -178,7 +178,7 @@ check(
 )
 check(
     "prepared-eval uses the current complete-frame detection contract",
-    prepared_eval.run_eval.PROMPT_VERSION == "pothole-binary-v15"
+    prepared_eval.run_eval.PROMPT_VERSION == "pothole-binary-v19"
     and "leaving the final full frame" in prepared_eval.run_eval.prompts()["baseline"]
     and "leaving the final crop" not in prepared_eval.run_eval.prompts()["baseline"],
 )

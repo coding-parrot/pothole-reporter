@@ -93,27 +93,31 @@ async () => {
     tender_reference: "DRAIN-1",
     title: "Construction of drain and footpath beside Kanjur Village Road",
   };
+  // Keep the synthetic ranking fixtures independent of the wall clock. Their fixed
+  // closing date is deliberately after this instant so failures exercise scope and
+  // ambiguity checks, rather than silently passing because the fixtures expired.
+  const syntheticNow = Date.parse("2026-08-30T00:00:00Z");
   const drainRanked = P.roadNoticeCandidates([drain],
-    "Kanjur Village Road, Kanjur West, Mumbai", testRoute);
+    "Kanjur Village Road, Kanjur West, Mumbai", testRoute, syntheticNow);
   const feeder = {...drain, record_id: "nh-feeder", tender_id: "FEEDER-1",
     tender_reference: "FEEDER-1", title: "Resurfacing feeder road from Rampur to NH-48"};
   const nhRefOnly = P.roadNoticeCandidates([feeder],
-    "Unrelated Place, Maharashtra", {...testRoute, highway_ref: "NH-48"});
+    "Unrelated Place, Maharashtra", {...testRoute, highway_ref: "NH-48"}, syntheticNow);
   const plantation = {...drain, record_id: "plantation", tender_id: "PLANT-1",
     tender_reference: "PLANT-1",
     title: "Maintenance of road side plantations in Social Forestry Range"};
   const plantationRanked = P.roadNoticeCandidates([plantation],
-    "Social Forestry Range Road, Chhattisgarh", testRoute);
+    "Social Forestry Range Road, Chhattisgarh", testRoute, syntheticNow);
   const oneWord = {...drain, record_id: "one-word", tender_id: "ONE-WORD-1",
     tender_reference: "ONE-WORD-1", title: "Resurfacing Kanjur road"};
   const oneWordRanked = P.roadNoticeCandidates([oneWord],
-    "Kanjur, Mumbai", testRoute);
+    "Kanjur, Mumbai", testRoute, syntheticNow);
   const ambiguous = P.roadNoticeCandidates([
     {...drain, record_id: "tie-a", tender_id: "TIE-A", tender_reference: "TIE-A",
       title: "Resurfacing Zoravia Merlanti Road phase one"},
     {...drain, record_id: "tie-b", tender_id: "TIE-B", tender_reference: "TIE-B",
       title: "Resurfacing Zoravia Merlanti Road phase two"},
-  ], "Zoravia Merlanti Road, Mumbai", testRoute);
+  ], "Zoravia Merlanti Road, Mumbai", testRoute, syntheticNow);
   return {
     resourceCount: resources.length,
     expectedTotal: resources.reduce((sum, resource) => sum + resource.records, 0),

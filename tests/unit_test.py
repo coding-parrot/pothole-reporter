@@ -131,11 +131,11 @@ CASES = r"""
      P.roadEventMatch({...laterDrive, size:"large"}, {...priorDrive, size:"small"}), null);
 
   // ---- streamed binary pothole contract ----
-  const accepted = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"large","description":"localized cavity"}';
-  const rejected = '{"is_pothole":false,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":false,"has_broken_edge_or_rim":false,"has_depth_or_surface_loss":false,"temporal_consistency":"not_applicable","size":null,"description":"no cavity"}';
-  const speedBreaker = '{"is_pothole":true,"looks_like_speed_breaker":true,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"painted transverse raised ridge"}';
-  const surfaceBreakup = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":false,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"broad breakup"}';
-  const temporaryCavity = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"temporary_drivable_surface","on_drivable_surface":true,"has_localized_cavity":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"persistent localized cavity in an active temporary traffic lane"}';
+  const accepted = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":true,"has_unambiguous_lower_interior":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"large","description":"localized cavity"}';
+  const rejected = '{"is_pothole":false,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":false,"has_unambiguous_lower_interior":false,"has_broken_edge_or_rim":false,"has_depth_or_surface_loss":false,"temporal_consistency":"not_applicable","size":null,"description":"no cavity"}';
+  const speedBreaker = '{"is_pothole":true,"looks_like_speed_breaker":true,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":true,"has_unambiguous_lower_interior":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"painted transverse raised ridge"}';
+  const surfaceBreakup = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"bituminous_asphalt","on_drivable_surface":true,"has_localized_cavity":false,"has_unambiguous_lower_interior":false,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"broad breakup"}';
+  const temporaryCavity = '{"is_pothole":true,"looks_like_speed_breaker":false,"image_quality":"usable","surface_type":"temporary_drivable_surface","on_drivable_surface":true,"has_localized_cavity":true,"has_unambiguous_lower_interior":true,"has_broken_edge_or_rim":true,"has_depth_or_surface_loss":true,"temporal_consistency":"consistent","size":"medium","description":"persistent localized cavity in an active temporary traffic lane"}';
   eq("peek: nothing yet", P.peekVerdict('{"is_pot'), null);
   eq("peek: YES cannot be announced before size",
      P.peekVerdict(accepted.slice(0, accepted.indexOf(',"size"'))), null);
@@ -164,7 +164,8 @@ CASES = r"""
   ok("rejectedVerdict: binary NO", rv.is_pothole === false && rv.reportable === false, rv);
   ok("rejectedVerdict: shape is complete",
      ["is_pothole","looks_like_speed_breaker","assessment","image_quality","damage_type",
-      "on_drivable_surface","has_localized_cavity","has_broken_edge_or_rim",
+      "on_drivable_surface","has_localized_cavity","has_unambiguous_lower_interior",
+      "has_broken_edge_or_rim",
       "has_depth_or_surface_loss","temporal_consistency","surface_type",
       "size","description"].every((k) => k in rv), Object.keys(rv));
 
@@ -172,6 +173,7 @@ CASES = r"""
   const good = { is_pothole:true, looks_like_speed_breaker:false,
     image_quality:"usable", surface_type:"bituminous_asphalt",
     on_drivable_surface:true, has_localized_cavity:true,
+    has_unambiguous_lower_interior:true,
     has_broken_edge_or_rim:true, has_depth_or_surface_loss:true,
     temporal_consistency:"consistent", size:"medium" };
   for (const size of ["small","medium","large"]) {
@@ -191,6 +193,11 @@ CASES = r"""
   eq("decision: missing speed-breaker field fails closed", P.decisionFor(missingBreaker), "reject");
   eq("decision: mistyped speed-breaker field fails closed",
      P.decisionFor({...good, looks_like_speed_breaker:"false"}), "reject");
+  const missingLowerInterior = {...good}; delete missingLowerInterior.has_unambiguous_lower_interior;
+  eq("decision: missing lower-interior field fails closed",
+     P.decisionFor(missingLowerInterior), "reject");
+  eq("decision: mistyped lower-interior field fails closed",
+     P.decisionFor({...good, has_unambiguous_lower_interior:"true"}), "reject");
   eq("decision: model NO rejects", P.decisionFor({...good, is_pothole:false}), "reject");
   eq("decision: unusable is NO", P.decisionFor({...good, image_quality:"unusable"}), "reject");
   eq("decision: off-road rejects", P.decisionFor({...good, on_drivable_surface:false}), "reject");
@@ -203,8 +210,31 @@ CASES = r"""
      P.decisionFor({...temporary, temporal_consistency:"single_view"}, false, 1), "reject");
   eq("decision: temporary surface needs a discrete localized cavity",
      P.decisionFor({...temporary, has_localized_cavity:false}, true, 3), "reject");
+  eq("decision: temporary surface needs an unambiguous lower interior",
+     P.decisionFor({...temporary, has_unambiguous_lower_interior:false}, true, 3), "reject");
   eq("decision: temporary surface needs a distinct broken rim",
      P.decisionFor({...temporary, has_broken_edge_or_rim:false}, true, 3), "reject");
+  ok("vote: an eligible temporary YES needs another decision",
+     P.temporarySurfaceNeedsConfirmation(temporary, true, 3));
+  const temporaryNo = {...temporary, is_pothole:false, size:null,
+    has_localized_cavity:false, has_unambiguous_lower_interior:false,
+    has_broken_edge_or_rim:false, has_depth_or_surface_loss:false};
+  ok("vote: an eligible temporary NO also needs another decision",
+     P.temporarySurfaceNeedsConfirmation(temporaryNo, true, 3));
+  ok("vote: a split decision needs one bounded tie-breaker",
+     P.temporarySurfaceVoteNeedsAnother([temporary, temporaryNo], true, 3));
+  eq("vote: two strict temporary YES decisions accept",
+     P.decisionFor(P.confirmedTemporaryAssessment(
+       temporary, temporary, true, 3), true, 3), "accept");
+  eq("vote: YES, NO, YES accepts by majority",
+     P.decisionFor(P.confirmedTemporaryAssessment(temporary,
+       temporaryNo, true, 3, temporary), true, 3), "accept");
+  eq("vote: YES, NO, NO rejects by majority",
+     P.decisionFor(P.confirmedTemporaryAssessment(temporary,
+       temporaryNo, true, 3, temporaryNo), true, 3), "reject");
+  eq("vote: a missing second decision fails closed",
+     P.decisionFor(P.confirmedTemporaryAssessment(
+       temporary, null, true, 3), true, 3), "reject");
   eq("decision: no localized cavity is NO",
      P.decisionFor({...good, has_localized_cavity:false}), "reject");
   eq("decision: missing broken rim is NO",
@@ -216,9 +246,17 @@ CASES = r"""
   eq("decision: YES without size is NO", P.decisionFor({...good, size:null}), "reject");
 
   // ---- native detector upgrade bridge ----
+  const nativeV19 = P.nativeDetectorContract({prompt_version:"pothole-binary-v19", schema_version:9});
+  ok("native bridge: v19 is the current complete-frame contract",
+     nativeV19 && nativeV19.kind === "current_v19"
+       && nativeV19.surfaceTypes.has("temporary_drivable_surface"));
+  const nativeV16 = P.nativeDetectorContract({prompt_version:"pothole-binary-v16", schema_version:8});
+  ok("native bridge: legacy v16 complete-frame rows remain importable",
+     nativeV16 && nativeV16.kind === "legacy_v16"
+       && nativeV16.surfaceTypes.has("temporary_drivable_surface"));
   const nativeV15 = P.nativeDetectorContract({prompt_version:"pothole-binary-v15", schema_version:7});
-  ok("native bridge: v15 is the current complete-frame contract",
-     nativeV15 && nativeV15.kind === "current_v15"
+  ok("native bridge: legacy v15 complete-frame rows remain importable",
+     nativeV15 && nativeV15.kind === "legacy_v15"
        && nativeV15.surfaceTypes.has("temporary_drivable_surface"));
   const nativeV13 = P.nativeDetectorContract({prompt_version:"pothole-binary-v13", schema_version:7});
   ok("native bridge: legacy v13 complete-frame rows remain importable",

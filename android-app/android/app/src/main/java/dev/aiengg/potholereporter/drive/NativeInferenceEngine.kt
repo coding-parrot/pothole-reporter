@@ -33,8 +33,8 @@ class NativeInferenceEngine(
         gpsAccuracy: Float?,
         speedMps: Float?,
         heading: Float?,
-        onEvidenceSaved: (String) -> Unit,
-        requireCompleteVerdict: Boolean = false
+        allowEarlyReject: Boolean,
+        onEvidenceSaved: (String) -> Unit
     ): InferenceOutcome = withContext(Dispatchers.IO) {
         if (burstFrames.size !in NativeFrameBurstContract.MIN_INFERENCE_FRAMES..
             NativeRollingBurstWindow.OUTPUT_COUNT
@@ -51,18 +51,24 @@ class NativeInferenceEngine(
         val evidenceLease = NativeReportEvidenceStorage.reserveInferenceCapacity(appContext)
         try {
             val primaryFrame = burstFrames.getOrElse(primaryIndex) { burstFrames[0] }
-            val imageInputs = prepareDetectionImages(burstFrames, primaryFrame)
-            val evidenceCount = imageInputs.size
+            val evidenceCount = burstFrames.size + 1
             val prompt = NativeDetectionContract.buildPrompt(
                 language = language,
                 imageCount = evidenceCount,
                 primaryIndex = primaryIndex
             )
-            val assessment = transport.detect(
-                imageUrls = imageInputs,
-                prompt = prompt,
-                allowEarlyReject = !requireCompleteVerdict
-            )
+            val assessment = runBoundedDetectionAttempts {
+                // NativeInferenceTransport takes ownership of and clears each encoded list.
+                // Re-encode from the still-owned complete bitmaps only for a bounded retry.
+                transport.detect(
+                    imageUrls = prepareDetectionImages(burstFrames, primaryFrame),
+                    prompt = prompt,
+                    // Ordinary model-NO or speed-breaker can stop immediately. Repair
+                    // revisits explicitly disable this because their separate before/after
+                    // verifier may run only after a complete usable absence verdict.
+                    allowEarlyReject = allowEarlyReject
+                )
+            }
             if (assessment.decision != "accept") {
                 return@withContext InferenceOutcome(
                     analyzed = true,
@@ -80,13 +86,18 @@ class NativeInferenceEngine(
             )
             // Transfer cleanup ownership before any thumbnail/entity allocation can fail.
             publishEvidence(photoFile, onEvidenceSaved)
+            val thumbnailDataUrl = evidenceStore.thumbnailDataUrl(primaryFrame.bitmap)
+                ?.takeIf(String::isNotBlank)
+                ?: throw NativeInferenceException(
+                    "Could not encode the report thumbnail; the saved frame remains pending"
+                )
             createInferenceOutcome(
                 NativeDetectionReportInput(
                     assessment = assessment,
                     latitude = lat,
                     longitude = lng,
                     photoPath = photoFile.absolutePath,
-                    thumbnailDataUrl = evidenceStore.thumbnailDataUrl(primaryFrame.bitmap),
+                    thumbnailDataUrl = thumbnailDataUrl,
                     model = model,
                     detail = detail,
                     evidenceCount = evidenceCount,

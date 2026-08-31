@@ -27,7 +27,8 @@ def check(name, condition):
         FAILURES.append(name)
 
 
-desktop_manifest = desktop_corpus.load_manifest(dataset.DEFAULT_DESKTOP_MANIFEST)
+desktop_manifest = desktop_corpus.load_historical_v15_manifest(
+    dataset.DEFAULT_DESKTOP_MANIFEST)
 release_manifest = release_gate.load_manifest(dataset.DEFAULT_RELEASE_MANIFEST)
 ground_truth = dataset.load_ground_truth_manifest(
     dataset.DEFAULT_GROUND_TRUTH_MANIFEST, release_manifest)

@@ -848,6 +848,7 @@ with sync_playwright() as playwright:
         measurement_provenance: "visual_estimate_no_scale", measurement_confidence: "low",
         on_drivable_surface: true,
         has_localized_cavity: true,
+        has_unambiguous_lower_interior: true,
         has_broken_edge_or_rim: true, has_depth_or_surface_loss: true,
         temporal_consistency: "consistent", size: "medium", decision: "accept",
         description: "Test native Drive detection", detection_model: "gpt-5-mini",
@@ -907,7 +908,7 @@ with sync_playwright() as playwright:
         {method: "POST", body: JSON.stringify(legacyV13)});
       const v13Second = await api("/api/native-report",
         {method: "POST", body: JSON.stringify(legacyV13)});
-      // v15/schema7 is the current original-detail complete-frame contract.
+      // v15/schema7 rows from the previous original-detail contract remain importable.
       const currentV15 = {...native, id: 103, lat: 28.5355, lng: 77.3910,
         surface_type: "temporary_drivable_surface",
         prompt_version: "pothole-binary-v15", schema_version: 7,
@@ -916,6 +917,15 @@ with sync_playwright() as playwright:
         {method: "POST", body: JSON.stringify(currentV15)});
       const v15Second = await api("/api/native-report",
         {method: "POST", body: JSON.stringify(currentV15)});
+      // v16/schema8 persists the stricter lower-interior physical gate.
+      const currentV16 = {...native, id: 104, lat: 28.6132, lng: 77.2101,
+        surface_type: "temporary_drivable_surface",
+        prompt_version: "pothole-binary-v16", schema_version: 8,
+        drive_id: "native-import-v16", source_event_key: "live:native-import-v16:1"};
+      const v16First = await api("/api/native-report",
+        {method: "POST", body: JSON.stringify(currentV16)});
+      const v16Second = await api("/api/native-report",
+        {method: "POST", body: JSON.stringify(currentV16)});
       const obsolete = {...native, id: 92, prompt_version: "road-damage-v4", schema_version: 4,
         source_event_key: "live:native-import:obsolete"};
       const ignored = await api("/api/native-report", {method: "POST", body: JSON.stringify(obsolete)});
@@ -928,16 +938,19 @@ with sync_playwright() as playwright:
           source_event_key: "live:native-import:single-view"},
         {...native, id: 96, surface_type: "unknown",
           source_event_key: "live:native-import:unknown-surface"},
+        {...currentV16, id: 105, has_unambiguous_lower_interior: false,
+          source_event_key: "live:native-import-v16:no-lower-interior"},
       ];
       const invalidResults = [];
       for (const value of invalids) invalidResults.push(await api("/api/native-report",
         {method: "POST", body: JSON.stringify(value)}));
       const reports = await api("/api/reports");
       return {first, second, v8First, v8Second, v9First, v9Second, v10First, v10Second,
-        v12First, v12Second, v13First, v13Second, v15First, v15Second, ignored,
+        v12First, v12Second, v13First, v13Second, v15First, v15Second,
+        v16First, v16Second, ignored,
         invalidResults, count: reports.length, reports};
     }""")
-    if imported["count"] != 7 or not imported["second"]["duplicate"]:
+    if imported["count"] != 8 or not imported["second"]["duplicate"]:
         failures.append(f"native report retry was not idempotent: {imported}")
     for version, first_key, second_key in (
         ("pothole-binary-v8", "v8First", "v8Second"),
@@ -946,17 +959,18 @@ with sync_playwright() as playwright:
         ("pothole-binary-v12", "v12First", "v12Second"),
         ("pothole-binary-v13", "v13First", "v13Second"),
         ("pothole-binary-v15", "v15First", "v15Second"),
+        ("pothole-binary-v16", "v16First", "v16Second"),
     ):
         if imported[first_key].get("duplicate") or not imported[second_key].get("duplicate"):
             failures.append(f"{version} native import was not idempotent: {imported}")
     reports_by_version = {report.get("prompt_version"): report for report in imported["reports"]}
     for version in ("pothole-binary-v6", "pothole-binary-v8", "pothole-binary-v9",
                     "pothole-binary-v10", "pothole-binary-v12", "pothole-binary-v13",
-                    "pothole-binary-v15"):
+                    "pothole-binary-v15", "pothole-binary-v16"):
         report = reports_by_version.get(version)
         if not report or not report.get("authority_id") or report.get("status") != "draft":
             failures.append(f"{version} native report did not use the existing authority router: {imported}")
-    if imported["ignored"].get("ignored") is not True or imported["count"] != 7:
+    if imported["ignored"].get("ignored") is not True or imported["count"] != 8:
         failures.append(f"obsolete non-binary native report was imported: {imported}")
     if any(result.get("ignored") is not True for result in imported["invalidResults"]):
         failures.append(f"native report bypassed a persisted binary gate: {imported}")

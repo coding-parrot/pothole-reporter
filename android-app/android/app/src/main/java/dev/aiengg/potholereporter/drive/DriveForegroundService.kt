@@ -24,10 +24,13 @@ import dev.aiengg.potholereporter.db.PotholeDatabase
 import dev.aiengg.potholereporter.db.SessionEntity
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
 import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.ceil
 
 data class BurstJob(
@@ -88,8 +91,11 @@ class DriveForegroundService : LifecycleService() {
     private var captureSeq = 0
     private val workLedger = NativeDriveWorkLedger()
     private val checkedCount: Int get() = workLedger.completedCount()
-    @Volatile private var foundCount = 0
-    @Volatile private var alreadyCount = 0
+    private val foundCounter = AtomicInteger(0)
+    private var foundCount: Int
+        get() = foundCounter.get()
+        set(value) { foundCounter.set(value) }
+    private val alreadyCount: Int get() = duplicateIds.size
     @Volatile private var statusText = "Idle"
     @Volatile private var recordingEnabled = false
     @Volatile private var isRecording = false
@@ -114,6 +120,8 @@ class DriveForegroundService : LifecycleService() {
     @Volatile private var notificationStartedElapsedMs = 0L
     @Volatile private var notificationMissingChecks = 0
     @Volatile private var notificationQueryFailureChecks = 0
+    @Volatile private var notificationUpdatesEnabled = false
+    @Volatile private var notificationHealthCheckInFlight = false
     @Volatile private var discardDataOnStop = false
     @Volatile private var debugMode = false
     private val duplicateIds = ConcurrentHashMap.newKeySet<Long>()
@@ -132,6 +140,11 @@ class DriveForegroundService : LifecycleService() {
     private var sessionLimitJob: Job? = null
     private var sessionLimitPolicy: DriveSessionLimitPolicy? = null
     private var pauseTimeoutJob: Job? = null
+    private var notificationWorkerJob: Job? = null
+    private var notificationHealthCheckJob: Job? = null
+    private var resumeNotificationCheckJob: Job? = null
+    private val pendingResumeNotificationCallbacks =
+        mutableListOf<(DriveStatusSnapshot) -> Unit>()
     private var pauseTimeoutPolicy = DrivePauseTimeoutPolicy()
     private var sessionLimitMinutes = DriveSessionLimitPolicy.DEFAULT_LIMIT_MINUTES
     @Volatile private var lastStatusDispatchElapsedMs = 0L
@@ -148,6 +161,8 @@ class DriveForegroundService : LifecycleService() {
     @Volatile private var lastLocationAccess: NativeLocationAccess? = null
     @Volatile private var deferredStatusDispatch = false
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val notificationUpdateChannel = Channel<DriveNotificationState>(Channel.CONFLATED)
+    private val notificationHealthLock = Any()
     private val deferredStatusRunnable = Runnable {
         deferredStatusDispatch = false
         dispatchStatus()
@@ -186,7 +201,15 @@ class DriveForegroundService : LifecycleService() {
         val captureSource: NativeFrameSourceKind
     )
 
+    private data class NotificationHealthResult(
+        val canShow: Boolean,
+        val active: Boolean?
+    )
+
+    private data class NotificationBinderCompletion(val failure: Throwable?)
+
     private var lastNotificationState: DriveNotificationState? = null
+    private var foregroundNotificationId = NotificationHelper.NOTIFICATION_ID
 
     companion object {
         const val ACTION_START = "dev.aiengg.potholereporter.ACTION_START"
@@ -216,11 +239,22 @@ class DriveForegroundService : LifecycleService() {
         private const val USER_CAMERA_STATE_RETRY_MS = 5_000L
         private const val MAX_CRITICAL_CAMERA_RETRIES = 3
         private const val ABNORMAL_TEARDOWN_JOIN_MS = 8_000L
+        private const val NOTIFICATION_BINDER_DEADLINE_MS = 4_000L
         private val startRegistry = DriveStartRegistry(SystemClock::elapsedRealtime)
         // LifecycleService cancels lifecycleScope after onDestroy. This process-owned
         // scope exists solely for a bounded ownership/session barrier when Android
         // destroys the service without going through explicit Stop.
         private val abnormalTeardownScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        // NotificationManager is a remote Binder and has blocked for tens of seconds on
+        // stressed devices. The external scope lets the service enforce a deadline even
+        // though cancelling a coroutine cannot interrupt an in-flight Binder transact.
+        // Every removal is serialized behind an in-flight update, so a late return can
+        // never leave a stale Drive notification posted.
+        private val notificationBinderScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        // All service generations share both the system notification ID namespace and this
+        // Binder lane. Per-instance mutexes cannot protect a recreated service from a late
+        // transact owned by the previous instance.
+        private val notificationBinderMutex = Mutex()
 
         @Volatile var activeService: DriveForegroundService? = null
         var onStatusListener: ((DriveStatusSnapshot) -> Unit)? = null
@@ -287,6 +321,7 @@ class DriveForegroundService : LifecycleService() {
         dedupeEngine = NativeDeduplicationEngine(database)
         repairEngine = NativeRepairStatusEngine(database)
         NotificationHelper.createNotificationChannel(this)
+        startNotificationWorker()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -365,7 +400,7 @@ class DriveForegroundService : LifecycleService() {
         clearStartAdmission(requestId)
         terminalStatusSealed = true
         runCatching { onDriveEndedListener?.invoke(summary) }
-        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+        runCatching { scheduleForegroundNotificationRemoval() }
         stopSelf(startId)
     }
 
@@ -405,7 +440,7 @@ class DriveForegroundService : LifecycleService() {
         clearStartAdmission(startRequestId)
         terminalStatusSealed = true
         runCatching { onDriveEndedListener?.invoke(summary) }
-        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+        runCatching { scheduleForegroundNotificationRemoval() }
         stopSelf(startId)
     }
 
@@ -438,7 +473,7 @@ class DriveForegroundService : LifecycleService() {
         )
         startRegistry.recordCompletion(requestedStart, summary)
         clearStartAdmission(requestedStart)
-        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+        runCatching { scheduleForegroundNotificationRemoval() }
         stopSelf(startId)
     }
 
@@ -467,8 +502,9 @@ class DriveForegroundService : LifecycleService() {
         lastPrerequisiteAccessCheckElapsedMs = 0L
         startedAtMs = System.currentTimeMillis()
         sessionId = startedAtMs.toString()
+        foregroundNotificationId = NotificationHelper.notificationIdForSession(sessionId)
         isPaused = false; isStopping = false; captureStopped = false; sessionRunning = true
-        captureSeq = 0; foundCount = 0; alreadyCount = 0
+        captureSeq = 0; foundCount = 0
         workLedger.reset(); duplicateIds.clear()
         stopTeardownJob = null
         recordingEnabled = recordVideo && captureSourceKind == NativeFrameSourceKind.PHONE_CAMERA
@@ -508,6 +544,13 @@ class DriveForegroundService : LifecycleService() {
         recordingIssue = if (recordVideo && captureSourceKind == NativeFrameSourceKind.DASHCAM)
             "Local video recording is unavailable for dashcam streams" else null
         inferenceSuspendedReason = null
+        notificationUpdatesEnabled = false
+        notificationHealthCheckJob?.cancel()
+        notificationHealthCheckJob = null
+        resumeNotificationCheckJob?.cancel()
+        resumeNotificationCheckJob = null
+        pendingResumeNotificationCallbacks.clear()
+        synchronized(notificationHealthLock) { notificationHealthCheckInFlight = false }
         notificationStopRequested = false; lastNotificationCheckMs = 0L
         notificationStartedElapsedMs = 0L; notificationMissingChecks = 0
         notificationQueryFailureChecks = 0
@@ -522,9 +565,9 @@ class DriveForegroundService : LifecycleService() {
         inferenceEngine = NativeInferenceEngine(applicationContext, apiKey, model, detail, language, debug)
         jobChannel = Channel(
             // A remote model cannot consume raw camera bursts at capture cadence. Do not
-            // retain a second ~10.5 MiB ARGB burst while one is already in inference;
-            // every selected burst is durable before this rendezvous, so a failed send
-            // safely defers model work to the bounded post-drive replay path.
+            // add a buffered ~10.5 MiB ARGB burst beyond the two explicitly bounded live
+            // consumers. Every selected burst is durable before this rendezvous, so a
+            // failed send safely defers model work to bounded post-drive replay.
             capacity = Channel.RENDEZVOUS,
             onUndeliveredElement = { item ->
                 recycle(item); workLedger.deferLive()
@@ -618,23 +661,30 @@ class DriveForegroundService : LifecycleService() {
     }
 
     private fun startForegroundNow() {
-        val notification = NotificationHelper.buildNotification(
-            this, sessionId, false, 0, 0, 0, statusText,
-            isStopping = false,
-            isPausing = false,
+        val notificationState = DriveNotificationState(
+            sessionId = sessionId,
+            paused = false,
+            stopping = false,
+            pausing = false,
+            checked = 0,
+            found = 0,
+            already = 0,
+            status = statusText,
             recordingEnabled = recordingEnabled,
-            isRecording = isRecording,
+            recording = isRecording,
             videoSupported = videoSupported,
             recordingIssue = recordingIssue,
             cameraActive = cameraActive,
+            captureStopped = false,
             captureSource = captureSourceKind
         )
+        val notification = buildDriveNotification(notificationState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val sourceType = if (captureSourceKind == NativeFrameSourceKind.DASHCAM)
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
             else ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA
             startForeground(
-                NotificationHelper.NOTIFICATION_ID, notification,
+                foregroundNotificationId, notification,
                 sourceType or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
             )
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -643,11 +693,157 @@ class DriveForegroundService : LifecycleService() {
             // Android 10 supports connected-device and location types, but the camera
             // type was introduced only in Android 11.
             startForeground(
-                NotificationHelper.NOTIFICATION_ID, notification,
+                foregroundNotificationId, notification,
                 sourceType or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
             )
-        } else startForeground(NotificationHelper.NOTIFICATION_ID, notification)
+        } else startForeground(foregroundNotificationId, notification)
+        lastNotificationState = notificationState
+        notificationUpdatesEnabled = true
         notificationStartedElapsedMs = SystemClock.elapsedRealtime()
+    }
+
+    /**
+     * Android's notification service is a remote Binder. It can stall under system pressure,
+     * so recurring foreground-notification updates must never run on the Activity main looper.
+     * A conflated channel preserves only the newest immutable state while keeping ordering simple.
+     */
+    private fun startNotificationWorker() {
+        if (notificationWorkerJob?.isActive == true) return
+        notificationWorkerJob = lifecycleScope.launch(Dispatchers.IO) {
+            for (state in notificationUpdateChannel) deliverNotificationUpdate(state)
+        }
+    }
+
+    private fun buildDriveNotification(state: DriveNotificationState) =
+        NotificationHelper.buildNotification(
+            this,
+            state.sessionId,
+            state.paused,
+            state.checked,
+            state.found,
+            state.already,
+            state.status,
+            isStopping = state.stopping,
+            isPausing = state.pausing,
+            recordingEnabled = state.recordingEnabled,
+            isRecording = state.recording,
+            videoSupported = state.videoSupported,
+            recordingIssue = state.recordingIssue,
+            cameraActive = state.cameraActive,
+            captureStopped = state.captureStopped,
+            captureSource = state.captureSource
+        )
+
+    private suspend fun deliverNotificationUpdate(state: DriveNotificationState) {
+        val notification = runCatching { buildDriveNotification(state) }.getOrElse {
+            handleNotificationDeliveryFailure(state, it)
+            return
+        }
+        val completion = CompletableDeferred<NotificationBinderCompletion>()
+        val stateNotificationId = NotificationHelper.notificationIdForSession(state.sessionId)
+        notificationBinderScope.launch {
+            val failure = runCatching {
+                notificationBinderMutex.withLock {
+                    if (!notificationUpdatesEnabled || notificationStopRequested ||
+                        terminalStatusSealed || activeService !== this@DriveForegroundService ||
+                        state.sessionId != sessionId
+                    ) return@withLock
+                    (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                        .notify(stateNotificationId, notification)
+                    // Ownership can change while the remote notify() transact is blocked.
+                    // A same-session Stop must keep disclosure visible until camera/RTSP
+                    // closure; the serialized final removal is already queued behind us.
+                    // Cancel here only when this notification belongs to an obsolete owner.
+                    if (activeService !== this@DriveForegroundService ||
+                        state.sessionId != sessionId
+                    ) {
+                        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                            .cancel(stateNotificationId)
+                    }
+                }
+            }.exceptionOrNull()
+            completion.complete(NotificationBinderCompletion(failure))
+        }
+        val bounded = withTimeoutOrNull(NOTIFICATION_BINDER_DEADLINE_MS) {
+            completion.await()
+        }
+        val failure = bounded?.failure ?: if (bounded == null) {
+            IllegalStateException("Drive Mode notification update timed out")
+        } else null
+        if (failure == null) return
+        handleNotificationDeliveryFailure(state, failure)
+    }
+
+    private suspend fun handleNotificationDeliveryFailure(
+        state: DriveNotificationState,
+        failure: Throwable
+    ) {
+        withContext(Dispatchers.Main.immediate) {
+            if (!isStopping && notificationUpdatesEnabled && !terminalStatusSealed &&
+                activeService === this@DriveForegroundService && state.sessionId == sessionId
+            ) {
+                requestNotificationStop(
+                    "Stopped because the Drive Mode notification could not be shown"
+                )
+            }
+        }
+    }
+
+    private fun scheduleForegroundNotificationRemoval(): Deferred<NotificationBinderCompletion> {
+        notificationUpdatesEnabled = false
+        val removalSessionId = sessionId
+        val removalNotificationId = foregroundNotificationId
+        return notificationBinderScope.async {
+            NotificationBinderCompletion(runCatching {
+                notificationBinderMutex.withLock {
+                    if (activeService === this@DriveForegroundService &&
+                        sessionId == removalSessionId
+                    ) {
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                    } else {
+                        // A newer service generation owns foreground state now. Remove only
+                        // the old generation's session-specific notification.
+                        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                            .cancel(removalNotificationId)
+                    }
+                }
+            }.exceptionOrNull())
+        }
+    }
+
+    /**
+     * Serializes removal after any in-flight update without blocking Main. The caller has
+     * a bounded wait; if Android's Binder is stalled, the process-owned cleanup remains
+     * queued and removes any late notification as soon as that transact returns.
+     */
+    private suspend fun removeForegroundNotification() {
+        val completion = scheduleForegroundNotificationRemoval()
+        val bounded = withTimeoutOrNull(NOTIFICATION_BINDER_DEADLINE_MS) {
+            completion.await()
+        } ?: throw IllegalStateException("Drive Mode notification removal timed out")
+        bounded.failure?.let { throw it }
+    }
+
+    private suspend fun queryNotificationHealthWithDeadline(
+        queryActiveNotification: Boolean
+    ): NotificationHealthResult? {
+        val completion = notificationBinderScope.async {
+            val canShow = runCatching {
+                NotificationHelper.canShowDriveNotification(this@DriveForegroundService)
+            }.getOrDefault(false)
+            val active = if (canShow && queryActiveNotification &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+            ) {
+                runCatching {
+                    (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                        .activeNotifications.any { it.id == foregroundNotificationId }
+                }.getOrNull()
+            } else null
+            NotificationHealthResult(canShow, active)
+        }
+        return withTimeoutOrNull(NOTIFICATION_BINDER_DEADLINE_MS) {
+            completion.await()
+        }
     }
 
     @SuppressLint("WakelockTimeout")
@@ -1465,21 +1661,30 @@ class DriveForegroundService : LifecycleService() {
         workerJob?.cancel()
         val channel = jobChannel ?: return
         workerJob = lifecycleScope.launch(Dispatchers.IO) {
-            for (item in channel) {
-                workLedger.consumeLive()
-                var analysisCompleted = false
-                var uncommittedReportPhoto: String? = null
-                var uncommittedRepairPhoto: String? = null
-                try {
-                    // Queued work may outlive the camera/GPS state that produced it. Recheck
-                    // at the worker boundary before even a local repair lookup or model call.
+            coroutineScope {
+                repeat(NativeLiveInferencePolicy.MAX_CONCURRENT_BURSTS) {
+                    launch { consumeInferenceJobs(channel) }
+                }
+            }
+        }
+    }
+
+    private suspend fun consumeInferenceJobs(channel: Channel<BurstJob>) {
+        for (item in channel) {
+            workLedger.consumeLive()
+            var analysisCompleted = false
+            var uncommittedReportPhoto: String? = null
+            var uncommittedRepairPhoto: String? = null
+            try {
+                    // A direct hand-off may wait for its consumer to resume. Recheck at
+                    // the worker boundary before even a local repair lookup or model call.
                     if (!isBurstAccessStillValid(item)) {
                         mainHandler.post(::refreshCaptureInterlock)
                         continue
                     }
-                    // One burst can already be buffered when a deterministic 4xx arrives.
-                    // Leave its durable keyframe pending for a later corrected replay, but
-                    // never issue the same known-invalid request again in this Drive.
+                    // Another bounded consumer can already own a burst when a deterministic
+                    // 4xx arrives. Leave its durable keyframe pending for corrected replay,
+                    // but never issue the same known-invalid request again in this Drive.
                     if (inferenceSuspendedReason != null) continue
                     // Looking up a candidate is local and fail-closed. If Room has a
                     // transient problem, ordinary damage detection must still proceed.
@@ -1506,8 +1711,8 @@ class DriveForegroundService : LifecycleService() {
                         item.burstFrames, item.primaryIndex, item.fix.lat, item.fix.lng,
                         sessionId, item.captureSeq, item.capturedAtMs, item.sourceOffsetMs,
                         evidenceGpsAccuracy, item.fix.speedMps, item.fix.heading,
-                        onEvidenceSaved = { uncommittedReportPhoto = it },
-                        requireCompleteVerdict = repairCandidate != null
+                        allowEarlyReject = repairCandidate == null,
+                        onEvidenceSaved = { uncommittedReportPhoto = it }
                     )
                     val report = outcome?.reportEntity
                     if (outcome?.accepted == true && report != null) {
@@ -1525,18 +1730,18 @@ class DriveForegroundService : LifecycleService() {
                         }
                         val committedResult = result
                         if (committedResult?.isDuplicate == true) {
-                            committedResult.existingReportId?.let(duplicateIds::add); alreadyCount = duplicateIds.size
+                            committedResult.existingReportId?.let(duplicateIds::add)
                         } else if (committedResult != null) {
-                            foundCount++
+                            foundCounter.incrementAndGet()
                             val reportId = committedResult.existingReportId ?: 0
                             mainHandler.post {
                                 onReportListener?.invoke(reportId, report.damageType ?: "pothole_cavity", report.address)
                             }
                         }
                     } else if (repairCandidate != null && outcome?.assessment?.let { assessment ->
-                            // This is a complete verdict because candidate presence disabled
-                            // early stream cancellation above. Even so, it is merely the gate
-                            // for a separate before/after comparison, never repair proof.
+                            // Detection always returns a complete verdict. Even so, this is
+                            // merely the gate for a separate before/after comparison, never
+                            // proof that the historical pothole was repaired.
                             !assessment.isPothole &&
                                 !assessment.looksLikeSpeedBreaker &&
                                 !assessment.reportable &&
@@ -1544,6 +1749,7 @@ class DriveForegroundService : LifecycleService() {
                                 assessment.assessment == "absent" &&
                                 assessment.imageQuality == "usable" &&
                                 !assessment.hasLocalizedCavity &&
+                                !assessment.hasUnambiguousLowerInterior &&
                                 !assessment.hasBrokenEdgeOrRim &&
                                 !assessment.hasDepthOrSurfaceLoss &&
                                 assessment.decision == "reject"
@@ -1617,7 +1823,6 @@ class DriveForegroundService : LifecycleService() {
                     }
                     recycle(item)
                 }
-            }
         }
     }
 
@@ -1695,11 +1900,21 @@ class DriveForegroundService : LifecycleService() {
         return true
     }
 
+    private fun cancelPendingResumeNotificationCheck() {
+        resumeNotificationCheckJob?.cancel()
+        resumeNotificationCheckJob = null
+        val callbacks = pendingResumeNotificationCallbacks.toList()
+        pendingResumeNotificationCallbacks.clear()
+        val current = snapshot()
+        callbacks.forEach { callback -> runCatching { callback(current) } }
+    }
+
     fun pauseDrive(onComplete: ((DriveStatusSnapshot) -> Unit)? = null) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             mainHandler.post { pauseDrive(onComplete) }
             return
         }
+        cancelPendingResumeNotificationCheck()
         if (!sessionRunning || isStopping) {
             onComplete?.invoke(snapshot())
             return
@@ -1779,11 +1994,41 @@ class DriveForegroundService : LifecycleService() {
             onComplete?.invoke(snapshot())
             return
         }
-        if (!NotificationHelper.canShowDriveNotification(this)) {
-            stopDriveSession("Stopped because Drive Mode notifications were disabled")
-            onComplete?.invoke(snapshot())
-            return
+        if (onComplete != null) pendingResumeNotificationCallbacks.add(onComplete)
+        if (resumeNotificationCheckJob?.isActive == true) return
+        val expectedSession = sessionId
+        resumeNotificationCheckJob = lifecycleScope.launch {
+            val health = queryNotificationHealthWithDeadline(queryActiveNotification = false)
+            withContext(Dispatchers.Main.immediate) {
+                resumeNotificationCheckJob = null
+                val callbacks = pendingResumeNotificationCallbacks.toList()
+                pendingResumeNotificationCallbacks.clear()
+                if (!sessionRunning || isStopping || terminalStatusSealed ||
+                    expectedSession != sessionId
+                ) {
+                    val current = snapshot()
+                    callbacks.forEach { callback -> runCatching { callback(current) } }
+                    return@withContext
+                }
+                if (health?.canShow != true) {
+                    val reason = if (health == null) {
+                        "Stopped because Android did not respond while verifying the Drive Mode notification"
+                    } else {
+                        "Stopped because Drive Mode notifications were disabled"
+                    }
+                    stopDriveSession(reason)
+                    val current = snapshot()
+                    callbacks.forEach { callback -> runCatching { callback(current) } }
+                    return@withContext
+                }
+                finishResumeDrive(callbacks)
+            }
         }
+    }
+
+    private fun finishResumeDrive(
+        callbacks: List<(DriveStatusSnapshot) -> Unit>
+    ) {
         clearPauseTimeout()
         resumeSessionLimit()
         captureAccessEpoch.invalidate()
@@ -1803,14 +2048,16 @@ class DriveForegroundService : LifecycleService() {
         if (manager == null) {
             stopDriveSession(if (captureSourceKind == NativeFrameSourceKind.DASHCAM)
                 "Dashcam could not resume" else "Camera could not resume")
-            runCatching { onComplete?.invoke(snapshot()) }
+            val current = snapshot()
+            callbacks.forEach { callback -> runCatching { callback(current) } }
             return
         } else startScanLoop()
         refreshCaptureInterlock()
         // Camera/GPS state is the control-plane result. Room durability is tracked for
         // Stop, but a slow disk must never leave the Resume bridge call hanging.
         persistSessionTracked("active", null)
-        runCatching { onComplete?.invoke(snapshot()) }
+        val current = snapshot()
+        callbacks.forEach { callback -> runCatching { callback(current) } }
     }
 
     fun attachPreview(surfaceProvider: Preview.SurfaceProvider): Boolean? {
@@ -1834,8 +2081,8 @@ class DriveForegroundService : LifecycleService() {
     }
 
     fun controlsNotificationSession(expectedSessionId: String?): Boolean =
-        sessionRunning && !isStopping && !expectedSessionId.isNullOrBlank() &&
-            expectedSessionId == sessionId
+        !terminalStatusSealed && (sessionRunning || isStopping) &&
+            !expectedSessionId.isNullOrBlank() && expectedSessionId == sessionId
 
     fun setVideoRecordingEnabled(enabled: Boolean, onComplete: ((DriveStatusSnapshot) -> Unit)? = null) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
@@ -1920,6 +2167,7 @@ class DriveForegroundService : LifecycleService() {
         fun recordStopError(prefix: String, error: Throwable) {
             recordStopError(error.message?.let { "$prefix: $it" } ?: prefix)
         }
+        cancelPendingResumeNotificationCheck()
         captureAccessEpoch.invalidate()
         pendingCriticalCameraRecoveryReason = null
         pendingCameraRecoveryIsUserState = false
@@ -1954,10 +2202,7 @@ class DriveForegroundService : LifecycleService() {
         // Stop owns camera and persistence teardown even if Android destroys the
         // LifecycleService mid-flight. A process-owned job is tracked by onDestroy and
         // keeps destructive bridge calls fenced until every producer has actually ended.
-        stopTeardownJob = abnormalTeardownScope.launch(
-            Dispatchers.Main.immediate,
-            start = CoroutineStart.UNDISPATCHED
-        ) {
+        stopTeardownJob = abnormalTeardownScope.launch(Dispatchers.Main) {
             var inferenceClosed = false
             var inferenceCloseFailure: Throwable? = null
             var cameraStoppedCleanly = false
@@ -2037,6 +2282,9 @@ class DriveForegroundService : LifecycleService() {
                 }
             }
 
+            // Start frame-source teardown immediately and let scanner/inference draining run
+            // alongside it. Stop must not leave CameraX, MediaRecorder, or RTSP active while
+            // it spends its bounded waits finishing independent model work.
             val cameraStopped = async {
                 try {
                     criticalRecovery?.join()
@@ -2248,7 +2496,7 @@ class DriveForegroundService : LifecycleService() {
                         // foreground disclosure before freezing the terminal result so an
                         // OS-level notification teardown failure cannot be reported as success.
                         if (cameraStoppedCleanly) {
-                            runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+                            runCatching { removeForegroundNotification() }
                                 .onFailure { recordStopError("Could not remove the Drive Mode notification", it) }
                         }
 
@@ -2406,43 +2654,72 @@ class DriveForegroundService : LifecycleService() {
         synchronized(sessionPersistErrors) { sessionPersistErrors.add(message) }
     }
 
-    @Synchronized
     private fun notificationStillVisible(): Boolean {
+        if (notificationStopRequested) return false
         val now = SystemClock.elapsedRealtime()
-        if (now - lastNotificationCheckMs < 2_000L) return !notificationStopRequested
-        lastNotificationCheckMs = now
-        if (!NotificationHelper.canShowDriveNotification(this)) {
+        val startCheck = synchronized(notificationHealthLock) {
+            if (notificationHealthCheckInFlight || now - lastNotificationCheckMs < 2_000L) {
+                false
+            } else {
+                notificationHealthCheckInFlight = true
+                lastNotificationCheckMs = now
+                true
+            }
+        }
+        if (startCheck) {
+            val expectedSession = sessionId
+            val queryActive = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                now - notificationStartedElapsedMs >= 4_000L
+            notificationHealthCheckJob = lifecycleScope.launch {
+                val result = queryNotificationHealthWithDeadline(queryActive)
+                withContext(Dispatchers.Main.immediate) {
+                    synchronized(notificationHealthLock) {
+                        notificationHealthCheckInFlight = false
+                    }
+                    notificationHealthCheckJob = null
+                    if (terminalStatusSealed || activeService !== this@DriveForegroundService ||
+                        expectedSession != sessionId || notificationStopRequested
+                    ) return@withContext
+                    if (result == null) {
+                        requestNotificationStop(
+                            "Stopped because Android did not respond while verifying the Drive Mode notification"
+                        )
+                        return@withContext
+                    }
+                    applyNotificationHealthResult(result, queryActive)
+                }
+            }
+        }
+        return !notificationStopRequested
+    }
+
+    /** Applies a completed off-main Binder query on Main; it never performs Binder work itself. */
+    private fun applyNotificationHealthResult(
+        result: NotificationHealthResult,
+        queriedActiveNotification: Boolean
+    ) {
+        if (!result.canShow) {
             requestNotificationStop("Stopped because Drive Mode notifications were disabled")
-            return false
+            return
         }
         // DeleteIntent handles normal Android 13+ dismissal immediately. This independent
-        // watchdog also covers OEMs that remove the active notification without delivering
-        // the delete broadcast, including while Drive is paused and scanJob is stopped.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-            now - notificationStartedElapsedMs >= 4_000L
-        ) {
-            val active = runCatching {
-                (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-                    .activeNotifications.any { it.id == NotificationHelper.NOTIFICATION_ID }
-            }.getOrNull()
-            if (active == null) {
-                notificationQueryFailureChecks++
-                if (notificationQueryFailureChecks >= 2) {
-                    requestNotificationStop(
-                        "Stopped because Android could not verify the Drive Mode notification"
-                    )
-                    return false
-                }
-                return true
+        // watchdog also covers OEMs that remove the notification without delivering it.
+        if (!queriedActiveNotification) return
+        val active = result.active
+        if (active == null) {
+            notificationQueryFailureChecks++
+            if (notificationQueryFailureChecks >= 2) {
+                requestNotificationStop(
+                    "Stopped because Android could not verify the Drive Mode notification"
+                )
             }
-            notificationQueryFailureChecks = 0
-            notificationMissingChecks = if (active) 0 else notificationMissingChecks + 1
-            if (notificationMissingChecks >= 2) {
-                requestNotificationStop("Stopped because the Drive Mode notification disappeared")
-                return false
-            }
+            return
         }
-        return true
+        notificationQueryFailureChecks = 0
+        notificationMissingChecks = if (active) 0 else notificationMissingChecks + 1
+        if (notificationMissingChecks >= 2) {
+            requestNotificationStop("Stopped because the Drive Mode notification disappeared")
+        }
     }
 
     @Synchronized
@@ -2564,8 +2841,8 @@ class DriveForegroundService : LifecycleService() {
 
     private fun dispatchStatus() {
         // Inference runs on IO while CameraX and service callbacks normally run on the
-        // main thread. Serialize the complete compare/build/notify transaction so two
-        // publishers cannot overwrite the foreground disclosure with stale state.
+        // main thread. Serialize state capture and UI delivery here; the remote Binder
+        // notification update is conflated and dispatched by the dedicated IO worker.
         if (Looper.myLooper() != Looper.getMainLooper()) {
             val sourceSessionId = sessionId
             mainHandler.post {
@@ -2593,25 +2870,11 @@ class DriveForegroundService : LifecycleService() {
                 cameraActive, captureStopped, captureSourceKind
             )
             if (notificationState != lastNotificationState) {
-                runCatching {
-                    val notification = NotificationHelper.buildNotification(
-                        this, sessionId, isPaused, checkedCount, foundCount, alreadyCount,
-                        notificationStatus,
-                        isStopping = isStopping,
-                        isPausing = pauseTransitioning,
-                        recordingEnabled = recordingEnabled,
-                        isRecording = isRecording,
-                        videoSupported = videoSupported,
-                        recordingIssue = recordingIssue,
-                        cameraActive = cameraActive,
-                        captureStopped = captureStopped,
-                        captureSource = captureSourceKind
-                    )
-                    (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-                        .notify(NotificationHelper.NOTIFICATION_ID, notification)
-                    lastNotificationState = notificationState
-                }.onFailure {
-                    if (!isStopping) requestNotificationStop(
+                // Record the queued immutable state immediately. The conflated worker may
+                // skip intermediate counter changes, but the latest disclosure is preserved.
+                lastNotificationState = notificationState
+                if (notificationUpdateChannel.trySend(notificationState).isFailure && !isStopping) {
+                    requestNotificationStop(
                         "Stopped because the Drive Mode notification could not be shown"
                     )
                 }
@@ -2658,6 +2921,8 @@ class DriveForegroundService : LifecycleService() {
         try {
             terminalStatusSealed = true
             notificationStopRequested = true
+            notificationUpdatesEnabled = false
+            synchronized(notificationHealthLock) { notificationHealthCheckInFlight = false }
             captureAccessEpoch.invalidate()
             // Abort any reconciliation pass that inventoried before teardown began. For
             // abnormal destruction, this service remains the protected producer until
@@ -2677,6 +2942,11 @@ class DriveForegroundService : LifecycleService() {
             runCatching { sessionLimitJob?.cancel() }
             runCatching { pauseTimeoutJob?.cancel() }
             pauseTimeoutJob = null
+            runCatching { notificationHealthCheckJob?.cancel() }
+            notificationHealthCheckJob = null
+            cancelPendingResumeNotificationCheck()
+            runCatching { notificationUpdateChannel.close() }
+            runCatching { notificationWorkerJob?.cancel() }
             runCatching { jobChannel?.cancel() }
             runCatching { mainHandler.removeCallbacks(deferredStatusRunnable) }
             runCatching { stopCameraAccessMonitoring() }
@@ -2688,6 +2958,8 @@ class DriveForegroundService : LifecycleService() {
                 cameraActive = false
                 isRecording = false
                 captureStopped = true
+                // Never remove the disclosure before frame-source closure succeeds.
+                runCatching { scheduleForegroundNotificationRemoval() }
             }
             runCatching { locationProvider?.stopUpdates() }
             runCatching { inferenceEngine?.close() }

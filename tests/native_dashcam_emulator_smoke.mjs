@@ -43,11 +43,20 @@ const publishUrl = option("--publish-url", null);
 const devtoolsPort = Number(option("--devtools-port", "9222"));
 const soakSeconds = Math.max(0, Number(option("--soak-seconds", "0")) || 0);
 const outageSeconds = Math.max(0, Number(option("--outage-seconds", "0")) || 0);
+const minimumChecked = Math.max(0, Number(option("--minimum-checked", "0")) || 0);
+const minimumFound = Math.max(0, Number(option("--minimum-found", "0")) || 0);
+const measureMemory = option("--measure-memory", "true") !== "false";
+const liveApiKey = String(process.env.DASHCAM_TEST_API_KEY || "").trim();
 if (!streamUrl?.startsWith("rtsp://")) {
   throw new Error("Pass an H.264 RTSP URL with --stream or DASHCAM_RTSP_URL");
 }
 if (fixtureVideo && !publishUrl?.startsWith("rtsp://")) {
   throw new Error("--fixture-video also requires an RTSP --publish-url");
+}
+if ((minimumChecked > 0 || minimumFound > 0) && !liveApiKey) {
+  throw new Error(
+    "DASHCAM_TEST_API_KEY must be set when detector-result minimums are requested",
+  );
 }
 
 function adb(...args) {
@@ -69,6 +78,14 @@ function totalPssKib() {
   const memory = adb("shell", "dumpsys", "meminfo", PACKAGE);
   const match = memory.match(/TOTAL PSS:\s+(\d+)/);
   return match ? Number(match[1]) : null;
+}
+
+function assertNoPackageAnr(stage) {
+  const events = adb("shell", "logcat", "-d", "-b", "events", "-v", "brief");
+  const packageAnr = events.split("\n").find(
+    (line) => line.includes("am_anr") && line.includes(PACKAGE),
+  );
+  if (packageAnr) throw new Error(`${stage}: app ANR recorded: ${packageAnr.trim()}`);
 }
 
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -179,6 +196,9 @@ let page = null;
 let publisherPaused = false;
 let driveStarted = false;
 try {
+  // The ANR marker lives in the events buffer. Clearing only the default buffers can
+  // falsely attribute an older run's ANR to this smoke test.
+  adb("shell", "logcat", "-b", "all", "-c");
   if (fixtureVideo) await startOwnedPublisher();
   const pid = adb("shell", "pidof", PACKAGE);
   if (!pid) throw new Error("Pothole Reporter is not running in the foreground");
@@ -199,7 +219,10 @@ try {
 
   const start = await pluginCall(page, "startDrive", {
     startRequestId: randomUUID(),
-    apiKey: "sk-test-placeholder-not-a-real-secret",
+    // The default deliberately exercises transport without making a paid request.
+    // A live gate receives its secret only through the process environment; never a
+    // command-line argument, repository file, output field, or error message.
+    apiKey: liveApiKey || "sk-test-placeholder-not-a-real-secret",
     model: "gpt-5.6",
     detail: "original",
     language: "en",
@@ -277,7 +300,11 @@ try {
     );
   }
 
-  adb("shell", "am", "start", "-W", "-n", ACTIVITY);
+  const resumedActivity = adb("shell", "am", "start", "-W", "-n", ACTIVITY);
+  const resumeTimeMs = Number(resumedActivity.match(/TotalTime:\s+(\d+)/)?.[1] || 0);
+  if (resumeTimeMs >= 5_000) {
+    throw new Error(`Activity return took ${resumeTimeMs}ms after backgrounding`);
+  }
   await sleep(2_000);
   await waitForStatus(page, (status) => status.sourceActive === true &&
     status.sourceState === "streaming", "Dashcam did not survive background/return");
@@ -291,17 +318,35 @@ try {
     return false;
   })()`);
   if (!previewRestored) throw new Error("Dashcam preview did not restore after background/return");
+  assertNoPackageAnr("background/return");
 
-  let peakPssKib = totalPssKib();
+  // dumpsys meminfo requests an explicit ART collection. Accuracy timing runs can disable
+  // that observer effect; memory soaks leave it enabled and retain the peak-PSS assertion data.
+  let peakPssKib = measureMemory ? totalPssKib() : null;
+  let detectorStatus = streaming;
   const soakDeadline = Date.now() + soakSeconds * 1_000;
   while (Date.now() < soakDeadline) {
     await sleep(Math.min(5_000, soakDeadline - Date.now()));
     const soakStatus = await pluginCall(page, "getStatus");
+    detectorStatus = soakStatus;
     if (!soakStatus.sourceActive || soakStatus.sourceState !== "streaming") {
       throw new Error(`Dashcam left streaming state during soak: ${JSON.stringify(soakStatus)}`);
     }
-    const currentPssKib = totalPssKib();
-    if (currentPssKib != null) peakPssKib = Math.max(peakPssKib || 0, currentPssKib);
+    if (measureMemory) {
+      const currentPssKib = totalPssKib();
+      if (currentPssKib != null) peakPssKib = Math.max(peakPssKib || 0, currentPssKib);
+    }
+  }
+  detectorStatus = await pluginCall(page, "getStatus");
+  if (detectorStatus.checked < minimumChecked) {
+    throw new Error(
+      `Detector completed ${detectorStatus.checked} checks; required ${minimumChecked}`,
+    );
+  }
+  if (detectorStatus.found < minimumFound) {
+    throw new Error(
+      `Detector found ${detectorStatus.found} potholes; required ${minimumFound}`,
+    );
   }
 
   if (ownedPublisher) {
@@ -343,6 +388,7 @@ try {
   if (!adb("shell", "pidof", PACKAGE)) {
     throw new Error("Stopping Drive incorrectly killed the app process");
   }
+  assertNoPackageAnr("completed dashcam smoke test");
 
   console.log(JSON.stringify({
     passed: true,
@@ -353,6 +399,10 @@ try {
     soakSeconds,
     outageSeconds,
     peakPssKib,
+    checked: detectorStatus.checked,
+    found: detectorStatus.found,
+    already: detectorStatus.already,
+    liveInferenceTested: Boolean(liveApiKey),
     publisherRecoveryTested: Boolean(fixtureVideo) || publisherPid > 1,
     stopped: !stopped.isRunning,
   }, null, 2));

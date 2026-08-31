@@ -41,6 +41,8 @@ data class ReportEntity(
     val onDrivableSurface: Boolean = true,
     @ColumnInfo(defaultValue = "0")
     val hasLocalizedCavity: Boolean = true,
+    @ColumnInfo(defaultValue = "0")
+    val hasUnambiguousLowerInterior: Boolean = false,
     val hasBrokenEdgeOrRim: Boolean = true,
     val hasDepthOrSurfaceLoss: Boolean = true,
     val temporalConsistency: String? = "consistent",
@@ -52,8 +54,8 @@ data class ReportEntity(
     val status: String = "draft",
     val detectionModel: String? = "gpt-5-mini",
     val imageDetail: String? = "high",
-    val promptVersion: String? = "pothole-binary-v10",
-    val schemaVersion: Int = 7,
+    val promptVersion: String? = "pothole-binary-v19",
+    val schemaVersion: Int = 9,
     val evidenceCount: Int = 4,
     val unroutedReason: String? = null,
     val unroutedBody: String? = null,

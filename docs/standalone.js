@@ -50,9 +50,9 @@
   const DRIVE_DETECTION_DETAIL = "original";
   const ALLOWED_MODELS = new Set([DEFAULT_MODEL, "gpt-5.6"]);
   const ALLOWED_DETAILS = new Set(["high", "original"]);
-  const PROMPT_VERSION = "pothole-binary-v15";
-  const PHOTO_PROMPT_VERSION = "pothole-photo-only-v4";
-  const SCHEMA_VERSION = 7;
+  const PROMPT_VERSION = "pothole-binary-v19";
+  const PHOTO_PROMPT_VERSION = "pothole-photo-only-v5";
+  const SCHEMA_VERSION = 9;
   const REPAIR_PROMPT_VERSION = "road-repair-v2";
   const REPAIR_SCHEMA_VERSION = 1;
   const MAX_DETECTION_IMAGES = 4;
@@ -450,9 +450,17 @@ Return is_pothole true only when all are visible:
 4. With multiple views, the same lower footprint moves or grows predictably as the vehicle approaches.
 5. It is not an intentional raised speed breaker, hump, or rumble strip.
 
-"Localized" means a stable, limited footprint within the traffic path; it does not mean a closed circular rim. On an unfinished, gravel-covered, failed, or construction-stage traffic lane, a jagged eroded depression or connected cavity cluster is YES when it occupies only part of the wheel path, is visibly lower than the adjacent path, and keeps at least one abrupt lip across the approach. Loose rubble within or beside that lower footprint and one boundary blending into surrounding failed material do not turn it into general roughness. A water-filled depression is YES when its stable edge and lower opening remain visible; the floor need not be visible. Do not reject such a feature merely because the rest of the lane is also rough.
+"Localized" means a stable, limited footprint within the traffic path; it does not mean a closed circular rim. Apply a stricter rule on an unfinished, gravel-covered, failed, or construction-stage lane. YES only when a compact depression or connected cavity cluster occupies part of a wheel path, has an abrupt irregular boundary against the adjacent traffic surface, and the same lower opening grows coherently in at least two chronological views. The floor may contain rubble or loose aggregate. It need not be fully exposed when a persistent broken lip or occlusion boundary together with visibly higher adjacent traffic surface proves the opening is lower. Set has_unambiguous_lower_interior true for that repeated geometric proof, never for colour, texture, stones, shadow, or coherent growth alone.
 
-A shallow pothole is still YES when an irregular, bounded area is visibly concave or sunken relative to the surrounding traffic surface and that geometry persists through the approach. A worn or rounded eroded lip, exposed aggregate, or a stable material-height transition is sufficient; do not demand a steep wall, deep dark interior, or sharp rim. A flat patch remains NO: colour, texture, or a repair outline without a concave centre or surface-height loss is not a pothole.
+Temporary-surface decision clarification: A connected eroded cavity cluster occupying only part of a wheel path is localized. When a persistent broken or occluding near edge, a rubble-filled lower footprint, and visibly higher adjacent running surfaces move and enlarge together, return YES even if loose aggregate visually bridges or partly hides the floor. Do not relabel that bounded wheel-dropping cluster as distributed roughness merely because the lane is unfinished. This does not relax the NO rule for road-wide gravel, uniform grading, corrugation, scattered stones, or a construction scar with no bounded lower footprint.
+
+Wet connected-cluster rule: Do not require a connected cavity cluster to be compact across the lane. A finite transverse band on the traversed temporary lane is localized when the same dark, wet, or rubble-filled concave footprint is bounded along the direction of travel by persistent irregular eroded height breaks and enlarges coherently. In that case mark all four physical evidence fields true even when water hides the floor and the cluster spans much of the lane; transverse concavity is not a raised speed breaker. Keep all four false for a flat wet band, stain, reflection, or puddle whose boundaries are only colour and have no higher approach/exit surface or eroded occluding lip.
+
+Return NO for distributed gravel texture, scattered stones, gradual grading, exposed soil, a rolling wave or smooth rut across most of the lane, or a construction scar with no compact repeatable downward opening. Roughness, rubble, and a boundary line are never sufficient without both a localized footprint and a persistent abrupt drop from higher adjacent surface.
+
+A compact water-filled opening may be YES only when a stable irregular eroded shoreline or broken lip encloses a bounded wet interior, the immediately adjacent traffic surface is visibly higher, and the same opening grows coherently through the approach. A flat puddle, reflection, wet stain, or broad water-covered low area without that stable broken boundary is NO. Water by itself never proves depth or material loss.
+
+A shallow pothole is still YES when an irregular, compact area has a visibly lower interior relative to the immediate surrounding traffic surface and that geometry persists through the approach. A worn or rounded eroded lip or exposed aggregate may support that visible depression, but neither can replace it. Do not demand a steep wall, deep dark interior, fully visible floor, or sharp closed rim. A flat patch remains NO: colour, texture, a repair outline, or a height transition without an unambiguous lower interior is not a pothole.
 
 General gravel texture, road-wide grading, corrugation, broad roughness with no local lower footprint, a wheel rut with smooth sides, loose debris resting on a level surface, a stain, shadow, puddle with no visible depressed boundary, intact patch, crack, seam, manhole, drain, shoulder erosion, construction obstacle, or damage outside the wheel-traversed surface is NO. A darker or rougher strip at a paved-to-loose-material transition is also NO when no interior is visibly lower than both adjacent surfaces; persistence of that flat transition across views is not depth evidence.
 
@@ -468,7 +476,7 @@ unpaved_or_nonroad and unknown are always NO.
 
 A cavity at a road edge may be YES when its opening removes part of the flat traffic surface or creates a wheel-reachable drop, even if rubble extends beneath a raised roadside slab. It is NO when an intact kerb or gutter separates the entire opening from traffic.
 
-Set has_localized_cavity, has_broken_edge_or_rim, and has_depth_or_surface_loss true when the physical evidence above is present. Set image_quality unusable only when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. For multiple views set temporal_consistency consistent when at least two show the same footprint; a feature leaving the final full frame is not disagreement. Use single_view for one user-framed photo.
+Set has_localized_cavity, has_unambiguous_lower_interior, has_broken_edge_or_rim, and has_depth_or_surface_loss true only when the corresponding physical evidence above is present. has_unambiguous_lower_interior means the opening is demonstrably below its immediate surroundings, either by a visible lower interior or by a persistent broken lip or occlusion boundary beside visibly higher traffic surface. Texture, loose stones, shadow, a boundary line alone, or a raised ridge cannot satisfy it. Set image_quality unusable only when blur, darkness, glare, obstruction, or distance prevents a defensible judgment. For multiple views set temporal_consistency consistent when at least two show the same footprint; a feature leaving the final full frame is not disagreement. Use single_view for one user-framed photo.
 
 After YES, set size to small below 30 cm, medium from 30 to 60 cm, or large above 60 cm or for a connected cavity cluster. For NO, size is null. These are visual app estimates, not official measurements. Keep description factual and never output confidence or probability.`;
 
@@ -476,25 +484,27 @@ After YES, set size to small below 30 cm, medium from 30 to 60 cm, or large abov
 
 Photo feature scope: detect potholes only. Garbage, litter, dumped waste, open or damaged manholes, drains, footpaths, and every other civic issue are not reportable in this feature and must return is_pothole false (NO). Never reinterpret them as another complaint category.`;
 
-  // Key order is the streaming order. The binary decision arrives first so a clear NO
-  // can stop generation immediately; a YES is accepted only after every physical gate.
+  // Key order is the streaming order. Eligibility fields precede the binary decision so
+  // ordinary NOs still stop early while a temporary-surface near miss can finish and vote.
   const ASSESS_SCHEMA = {
     type: "object", additionalProperties: false,
-    required: ["is_pothole", "looks_like_speed_breaker", "image_quality", "surface_type", "on_drivable_surface",
-      "has_localized_cavity", "has_broken_edge_or_rim", "has_depth_or_surface_loss",
-      "temporal_consistency", "size", "description"],
+    required: ["image_quality", "surface_type", "on_drivable_surface", "temporal_consistency",
+      "looks_like_speed_breaker", "is_pothole", "has_localized_cavity",
+      "has_unambiguous_lower_interior", "has_broken_edge_or_rim",
+      "has_depth_or_surface_loss", "size", "description"],
     properties: {
-      is_pothole: { type: "boolean" },
-      looks_like_speed_breaker: { type: "boolean" },
       image_quality: { type: "string", enum: ["usable", "unusable"] },
       surface_type: { type: "string", enum: ["bituminous_asphalt", "cement_concrete",
         "mastic_asphalt", "paver_blocks", "temporary_drivable_surface",
         "unpaved_or_nonroad", "unknown"] },
       on_drivable_surface: { type: "boolean" },
+      temporal_consistency: { type: "string", enum: ["consistent", "single_view", "inconsistent", "not_applicable"] },
+      looks_like_speed_breaker: { type: "boolean" },
+      is_pothole: { type: "boolean" },
       has_localized_cavity: { type: "boolean" },
+      has_unambiguous_lower_interior: { type: "boolean" },
       has_broken_edge_or_rim: { type: "boolean" },
       has_depth_or_surface_loss: { type: "boolean" },
-      temporal_consistency: { type: "string", enum: ["consistent", "single_view", "inconsistent", "not_applicable"] },
       size: { type: ["string", "null"], enum: ["small", "medium", "large", null] },
       description: { type: "string" },
     },
@@ -639,6 +649,7 @@ This is a strict before/after verification, not ordinary pothole detection:
   const SURFACE_RE = /"surface_type"\s*:\s*"(bituminous_asphalt|cement_concrete|mastic_asphalt|paver_blocks|temporary_drivable_surface|unpaved_or_nonroad|unknown)"/;
   const ROAD_RE = /"on_drivable_surface"\s*:\s*(true|false)/;
   const CAVITY_RE = /"has_localized_cavity"\s*:\s*(true|false)/;
+  const LOWER_INTERIOR_RE = /"has_unambiguous_lower_interior"\s*:\s*(true|false)/;
   const EDGE_RE = /"has_broken_edge_or_rim"\s*:\s*(true|false)/;
   const DEPTH_RE = /"has_depth_or_surface_loss"\s*:\s*(true|false)/;
   const TEMPORAL_RE = /"temporal_consistency"\s*:\s*"(consistent|single_view|inconsistent|not_applicable)"/;
@@ -649,6 +660,10 @@ This is a strict before/after verification, not ordinary pothole detection:
   const TEMPORARY_DRIVABLE_SURFACE = "temporary_drivable_surface";
   const REPORTABLE_SURFACES = new Set([...PAVED_SURFACES, TEMPORARY_DRIVABLE_SURFACE]);
   const KNOWN_SURFACES = new Set([...REPORTABLE_SURFACES, "unpaved_or_nonroad", "unknown"]);
+  const LEGACY_NATIVE_V16_PROMPT_VERSION = "pothole-binary-v16";
+  const LEGACY_NATIVE_V16_SCHEMA_VERSION = 8;
+  const LEGACY_NATIVE_V15_PROMPT_VERSION = "pothole-binary-v15";
+  const LEGACY_NATIVE_V15_SCHEMA_VERSION = 7;
   const LEGACY_NATIVE_V13_PROMPT_VERSION = "pothole-binary-v13";
   const LEGACY_NATIVE_V13_SCHEMA_VERSION = 7;
   const LEGACY_NATIVE_V12_PROMPT_VERSION = "pothole-binary-v12";
@@ -668,7 +683,15 @@ This is a strict before/after verification, not ordinary pothole detection:
     if (!native || typeof native !== "object") return null;
     if (native.prompt_version === PROMPT_VERSION
         && Number(native.schema_version) === SCHEMA_VERSION) {
-      return { kind: "current_v15", surfaceTypes: REPORTABLE_SURFACES };
+      return { kind: "current_v19", surfaceTypes: REPORTABLE_SURFACES };
+    }
+    if (native.prompt_version === LEGACY_NATIVE_V16_PROMPT_VERSION
+        && Number(native.schema_version) === LEGACY_NATIVE_V16_SCHEMA_VERSION) {
+      return { kind: "legacy_v16", surfaceTypes: REPORTABLE_SURFACES };
+    }
+    if (native.prompt_version === LEGACY_NATIVE_V15_PROMPT_VERSION
+        && Number(native.schema_version) === LEGACY_NATIVE_V15_SCHEMA_VERSION) {
+      return { kind: "legacy_v15", surfaceTypes: REPORTABLE_SURFACES };
     }
     // v13 was the first complete-frame Drive contract. Preserve accepted and pending
     // rows from the preceding release, including their complete evidence image.
@@ -721,6 +744,9 @@ This is a strict before/after verification, not ordinary pothole detection:
     if (a.image_quality !== "usable" || !REPORTABLE_SURFACES.has(a.surface_type)
         || a.on_drivable_surface !== true ||
         a.has_localized_cavity !== true) return "reject";
+    if (typeof a.has_unambiguous_lower_interior !== "boolean") return "reject";
+    if (a.surface_type === TEMPORARY_DRIVABLE_SURFACE &&
+        a.has_unambiguous_lower_interior !== true) return "reject";
     if (a.has_broken_edge_or_rim !== true || a.has_depth_or_surface_loss !== true) return "reject";
     // An unfinished surface can be distinguished from ordinary gravel/ruts only from a
     // chronological Drive burst. A single user-framed Photo must fail closed here even
@@ -759,13 +785,55 @@ This is a strict before/after verification, not ordinary pothole detection:
     };
   }
 
+  const temporarySurfaceVoteEligible = (a, driveMode = false) =>
+    !!driveMode && !!a && a.looks_like_speed_breaker === false
+      && a.image_quality === "usable"
+      && a.surface_type === TEMPORARY_DRIVABLE_SURFACE
+      && a.on_drivable_surface === true
+      && a.temporal_consistency === "consistent";
+
+  const temporarySurfaceNeedsConfirmation = (a, driveMode = false) =>
+    temporarySurfaceVoteEligible(a, driveMode);
+
+  function temporarySurfaceVoteNeedsAnother(attempts, driveMode = false,
+                                             sourceViewCount = null) {
+    if (!Array.isArray(attempts) || !attempts.length || attempts.length >= 3
+        || attempts.some((item) => !temporarySurfaceVoteEligible(item, driveMode))) return false;
+    const accepts = attempts.filter((item) =>
+      decisionFor(item, true, sourceViewCount) === "accept").length;
+    const rejects = attempts.length - accepts;
+    return accepts < 2 && rejects < 2;
+  }
+
+  function confirmedTemporaryAssessment(first, second, driveMode = false,
+                                        sourceViewCount = null, third = null) {
+    if (!temporarySurfaceVoteEligible(first, driveMode)) {
+      return binaryAssessment(first, driveMode, sourceViewCount);
+    }
+    const attempts = [first, second, third].filter(Boolean);
+    const accepts = attempts.filter((item) => temporarySurfaceVoteEligible(item, driveMode)
+      && decisionFor(item, true, sourceViewCount) === "accept");
+    if (attempts.length >= 2 && attempts.every((item) =>
+        temporarySurfaceVoteEligible(item, driveMode)) && accepts.length >= 2) {
+      return binaryAssessment(accepts[accepts.length - 1], true, sourceViewCount);
+    }
+    const basis = attempts[attempts.length - 1] || first || {};
+    return binaryAssessment({
+      ...basis,
+      is_pothole: false,
+      size: null,
+      description: "Temporary-surface pothole was not independently confirmed.",
+    }, true, sourceViewCount);
+  }
+
   const clearAbsenceForRepair = (a) => !!a
     && a.is_pothole === false
     && a.looks_like_speed_breaker === false
     && a.image_quality === "usable"
-    && !a.has_localized_cavity
-    && !a.has_broken_edge_or_rim
-    && !a.has_depth_or_surface_loss
+    && a.has_localized_cavity === false
+    && a.has_unambiguous_lower_interior === false
+    && a.has_broken_edge_or_rim === false
+    && a.has_depth_or_surface_loss === false
     && a.size == null;
 
   function repairConditionFor(observation) {
@@ -781,18 +849,31 @@ This is a strict before/after verification, not ordinary pothole detection:
   function partialAssessment(text) {
     const verdict = IS_POTHOLE_RE.exec(text);
     if (!verdict) return null;
-    if (verdict[1] === "false") return binaryAssessment({
-      is_pothole: false, looks_like_speed_breaker: false, image_quality: "usable",
-      surface_type: "unknown",
-      on_drivable_surface: false, has_localized_cavity: false, has_broken_edge_or_rim: false,
-      has_depth_or_surface_loss: false, temporal_consistency: "not_applicable", size: null,
-    });
     const breaker = SPEED_BREAKER_RE.exec(text), quality = QUALITY_RE.exec(text);
     const surface = SURFACE_RE.exec(text);
-    const road = ROAD_RE.exec(text), cavity = CAVITY_RE.exec(text);
+    const road = ROAD_RE.exec(text), temporal = TEMPORAL_RE.exec(text);
+    if (verdict[1] === "false") {
+      if (breaker && quality && surface && road && temporal
+          && breaker[1] === "false" && quality[1] === "usable"
+          && surface[1] === TEMPORARY_DRIVABLE_SURFACE && road[1] === "true"
+          && temporal[1] === "consistent") return null;
+      return binaryAssessment({
+        is_pothole: false,
+        looks_like_speed_breaker: breaker ? breaker[1] === "true" : false,
+        image_quality: quality ? quality[1] : "usable",
+        surface_type: surface ? surface[1] : "unknown",
+        on_drivable_surface: !!road && road[1] === "true",
+        has_localized_cavity: false, has_unambiguous_lower_interior: false,
+        has_broken_edge_or_rim: false, has_depth_or_surface_loss: false,
+        temporal_consistency: temporal ? temporal[1] : "not_applicable", size: null,
+      });
+    }
+    const cavity = CAVITY_RE.exec(text);
+    const lowerInterior = LOWER_INTERIOR_RE.exec(text);
     const edge = EDGE_RE.exec(text), depth = DEPTH_RE.exec(text);
-    const temporal = TEMPORAL_RE.exec(text), size = SIZE_RE.exec(text);
-    if (!breaker || !quality || !surface || !road || !cavity || !edge || !depth || !temporal || !size) return null;
+    const size = SIZE_RE.exec(text);
+    if (!breaker || !quality || !surface || !road || !cavity || !lowerInterior ||
+        !edge || !depth || !temporal || !size) return null;
     return {
       is_pothole: true,
       looks_like_speed_breaker: breaker[1] === "true",
@@ -800,6 +881,7 @@ This is a strict before/after verification, not ordinary pothole detection:
       surface_type: surface[1],
       on_drivable_surface: road[1] === "true",
       has_localized_cavity: cavity[1] === "true",
+      has_unambiguous_lower_interior: lowerInterior[1] === "true",
       has_broken_edge_or_rim: edge[1] === "true",
       has_depth_or_surface_loss: depth[1] === "true",
       temporal_consistency: temporal[1],
@@ -820,11 +902,18 @@ This is a strict before/after verification, not ordinary pothole detection:
   // Debug/evaluation calls do not enable cancellation because they need the exact full
   // verdict, including the reason for a miss.
   const peekReject = (partial, driveMode = false) => {
-    const verdict = IS_POTHOLE_RE.exec(partial);
-    if (!verdict) return false;
-    if (verdict[1] === "false") return true;
     const breaker = SPEED_BREAKER_RE.exec(partial);
     if (breaker && breaker[1] === "true") return true;
+    const verdict = IS_POTHOLE_RE.exec(partial);
+    if (!verdict) return false;
+    if (verdict[1] === "false") {
+      const quality = QUALITY_RE.exec(partial), surface = SURFACE_RE.exec(partial);
+      const road = ROAD_RE.exec(partial), temporal = TEMPORAL_RE.exec(partial);
+      const eligibleTemporaryNo = driveMode && quality && surface && road && temporal && breaker
+        && quality[1] === "usable" && surface[1] === TEMPORARY_DRIVABLE_SURFACE
+        && road[1] === "true" && temporal[1] === "consistent" && breaker[1] === "false";
+      return !eligibleTemporaryNo;
+    }
     const a = partialAssessment(partial);
     return !!a && decisionFor(a, driveMode, driveMode ? 2 : null) !== "accept";
   };
@@ -904,6 +993,7 @@ This is a strict before/after verification, not ordinary pothole detection:
     const verdict = IS_POTHOLE_RE.exec(text), breaker = SPEED_BREAKER_RE.exec(text);
     const quality = QUALITY_RE.exec(text), surface = SURFACE_RE.exec(text);
     const road = ROAD_RE.exec(text), cavity = CAVITY_RE.exec(text);
+    const lowerInterior = LOWER_INTERIOR_RE.exec(text);
     const edge = EDGE_RE.exec(text);
     const depth = DEPTH_RE.exec(text), temporal = TEMPORAL_RE.exec(text), size = SIZE_RE.exec(text);
     return binaryAssessment({
@@ -913,6 +1003,8 @@ This is a strict before/after verification, not ordinary pothole detection:
       surface_type: surface ? surface[1] : "unknown",
       on_drivable_surface: !!road && road[1] === "true",
       has_localized_cavity: !!cavity && cavity[1] === "true",
+      has_unambiguous_lower_interior:
+        !!lowerInterior && lowerInterior[1] === "true",
       has_broken_edge_or_rim: !!edge && edge[1] === "true",
       has_depth_or_surface_loss: !!depth && depth[1] === "true",
       temporal_consistency: temporal ? temporal[1] : "not_applicable",
@@ -7497,6 +7589,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       surface_type: rec.surface_type || "unknown",
       on_drivable_surface: true,
       has_localized_cavity: true,
+      has_unambiguous_lower_interior: true,
       has_broken_edge_or_rim: true,
       has_depth_or_surface_loss: true,
       temporal_consistency: rec.temporal_consistency || "single_view",
@@ -8188,8 +8281,11 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     if (report.photo_full) return report.photo_full;
     if (isManualCaptureSource(report.capture_source)) return report.photo || null;
     // v13 is the first Drive contract that guarantees every working and evidence image is
-    // a complete frame. Older Web Drive rows may store a crop in `photo`, so fail closed.
+    // a complete frame. v16 remains valid after the confirmation-policy upgrade.
+    // Older Web Drive rows may store a crop in `photo`, so fail closed.
     return (report.prompt_version === PROMPT_VERSION
+      || report.prompt_version === LEGACY_NATIVE_V16_PROMPT_VERSION
+      || report.prompt_version === LEGACY_NATIVE_V15_PROMPT_VERSION
       || report.prompt_version === LEGACY_NATIVE_V13_PROMPT_VERSION)
       ? report.photo || null : null;
   }
@@ -8574,7 +8670,25 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       ASSESS_SCHEMA, detectionModel, driveMode ? null : emitVerdict,
       driveMode && !S.debug && !repairCandidate, detectionDetail,
       driveMode ? "low" : null);
-    const a = binaryAssessment(modelAssessment, driveMode, photos.length);
+    let a = binaryAssessment(modelAssessment, driveMode, photos.length);
+    if (temporarySurfaceNeedsConfirmation(modelAssessment, driveMode)) {
+      // Complete eligible temporary-surface results use a bounded two-of-three vote.
+      // Obvious ordinary NOs still stopped in the first stream; any failed or ineligible
+      // follow-up remains fail-closed.
+      const attempts = [modelAssessment];
+      while (temporarySurfaceVoteNeedsAnother(attempts, driveMode, photos.length)) {
+        const next = await analyzeImage(
+          imageInputs, detectPrompt, "pothole_binary_assessment", ASSESS_SCHEMA,
+          detectionModel, null, driveMode && !S.debug && !repairCandidate,
+          detectionDetail, "low"
+        ).catch(() => null);
+        if (!next) break;
+        attempts.push(next);
+      }
+      a = confirmedTemporaryAssessment(
+        attempts[0], attempts[1], driveMode, photos.length, attempts[2]
+      );
+    }
     const decision = decisionFor(a, driveMode, photos.length);
     const accepted = decision === "accept";
     const detector = { model: detectionModel, detail: detectionDetail, prompt_version: promptVersion,
@@ -8671,6 +8785,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       measurement_depth_cm: a.measurement_depth_cm,
       on_drivable_surface: !!a.on_drivable_surface,
       has_localized_cavity: !!a.has_localized_cavity,
+      has_unambiguous_lower_interior: !!a.has_unambiguous_lower_interior,
       has_broken_edge_or_rim: !!a.has_broken_edge_or_rim,
       has_depth_or_surface_loss: !!a.has_depth_or_surface_loss,
       temporal_consistency: a.temporal_consistency,
@@ -8869,6 +8984,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       assessment: "manual",
       image_quality: null,
       on_drivable_surface: false,
+      has_localized_cavity: false,
+      has_unambiguous_lower_interior: false,
       has_broken_edge_or_rim: false,
       has_depth_or_surface_loss: false,
       temporal_consistency: null,
@@ -9081,12 +9198,18 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
     const nativeSurface = nativeContract && nativeContract.surfaceTypes.has(native.surface_type)
       ? native.surface_type : "unknown";
     const nativeTemporal = native.temporal_consistency;
+    const nativeLowerInterior = native.has_unambiguous_lower_interior === true;
+    const lowerInteriorContract = nativeContract &&
+      (nativeContract.kind === "current_v19" || nativeContract.kind === "legacy_v16");
     const nativePassedBinaryGate = !!nativeContract && native.decision === "accept"
       && nativeIsPothole && nativeIsReportable && native.damage_type === "pothole_cavity"
       && native.looks_like_speed_breaker === false
       && native.image_quality === "usable" && nativeContract.surfaceTypes.has(nativeSurface)
       && native.on_drivable_surface === true
       && native.has_localized_cavity === true
+      && (!lowerInteriorContract || typeof native.has_unambiguous_lower_interior === "boolean")
+      && (!lowerInteriorContract || nativeSurface !== TEMPORARY_DRIVABLE_SURFACE
+        || nativeLowerInterior)
       && native.has_broken_edge_or_rim === true && native.has_depth_or_surface_loss === true
       && nativeTemporal === "consistent" && Number(native.evidence_count) >= 3 && !!nativeSize;
     // Contracts older than v6, malformed current rows, and v6 rows claiming a v7+-only
@@ -9116,19 +9239,24 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       : null;
     const tender = normaliseTenderMatch(tenderCandidate, covered ? route : null);
     const assessment = binaryAssessment({
-      // Native v6/v7/v8 saved this row only after the same binary physical gate accepted it.
+      // Every supported native version saved this row only after its own binary physical
+      // gate accepted it. v16+ additionally persists the exact lower-interior verdict.
       is_pothole: true,
       looks_like_speed_breaker: false,
       image_quality: native.image_quality,
       surface_type: nativeSurface,
       on_drivable_surface: true,
       has_localized_cavity: true,
+      // Feed legacy accepted rows through the current derived-field helper, then restore
+      // the field to unknown below instead of inventing evidence their schema never saved.
+      has_unambiguous_lower_interior: lowerInteriorContract ? nativeLowerInterior : true,
       has_broken_edge_or_rim: true,
       has_depth_or_surface_loss: true,
       temporal_consistency: nativeTemporal,
       size: nativeSize,
       description: native.description || "Pothole detected during Drive Mode.",
     }, true, Math.max(2, Number(native.evidence_count) - 1));
+    if (!lowerInteriorContract) assessment.has_unambiguous_lower_interior = null;
     const complaint = covered
       ? buildComplaintOutputs(assessment, lat, lng, address, route.officer_name, tender, route, {
           captured_at: Number.isFinite(Number(native.captured_at)) ? Number(native.captured_at) : null,
@@ -9162,6 +9290,7 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
       measurement_depth_cm: assessment.measurement_depth_cm,
       on_drivable_surface: assessment.on_drivable_surface,
       has_localized_cavity: assessment.has_localized_cavity,
+      has_unambiguous_lower_interior: assessment.has_unambiguous_lower_interior,
       has_broken_edge_or_rim: assessment.has_broken_edge_or_rim,
       has_depth_or_surface_loss: assessment.has_depth_or_surface_loss,
       temporal_consistency: assessment.temporal_consistency,
@@ -10295,6 +10424,8 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
           measurement_depth_cm: r.measurement_depth_cm == null ? null : r.measurement_depth_cm,
           on_drivable_surface: r.on_drivable_surface == null ? null : !!r.on_drivable_surface,
           has_localized_cavity: r.has_localized_cavity == null ? null : !!r.has_localized_cavity,
+          has_unambiguous_lower_interior: r.has_unambiguous_lower_interior == null
+            ? null : !!r.has_unambiguous_lower_interior,
           has_broken_edge_or_rim: r.has_broken_edge_or_rim == null ? null : !!r.has_broken_edge_or_rim,
           has_depth_or_surface_loss: r.has_depth_or_surface_loss == null ? null : !!r.has_depth_or_surface_loss,
           temporal_consistency: r.temporal_consistency || null,
@@ -10669,7 +10800,9 @@ work on the carriageway itself is explicit. confidence is your 0 to 1 confidence
   // Pure helpers, exposed for tests. These are references, not copies: a test exercises
   // exactly the code that runs in production. Nothing here holds state or a secret.
   const __pure = { inCoverage, peekVerdict, peekReject, rejectedVerdict, decisionFor,
-                   binaryAssessment,
+                   binaryAssessment, temporarySurfaceNeedsConfirmation,
+                   temporarySurfaceVoteEligible, temporarySurfaceVoteNeedsAnother,
+                   confirmedTemporaryAssessment,
                    nativeDetectorContract,
                    damageTypeOf, assessmentOf, normaliseModel, normaliseDetail,
                    summarizeFootageAnalysis, vodSampleTimes, vodBurstTimes,

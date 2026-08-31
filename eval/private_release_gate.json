@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "sources": {
     "construction-drive-segment-1": {
       "sha256": "feea330adaa09a5573f7d0b379170c5a03bb6a5ae07484d44299c4703ef74686",
@@ -31,6 +31,8 @@
       "id": "owner-segment-1-second-35",
       "source": "construction-drive-segment-1",
       "label": "pothole",
+      "evidence_tier": "owner_ground_truth",
+      "label_provenance": "owner_confirmed",
       "capture_provenance": "native_mediarecorder_reconstruction",
       "raw_camerax_accuracy_eligible": false,
       "phases": [
@@ -45,6 +47,8 @@
       "id": "owner-segment-2-second-4",
       "source": "construction-drive-segment-2",
       "label": "pothole",
+      "evidence_tier": "owner_ground_truth",
+      "label_provenance": "owner_confirmed",
       "capture_provenance": "native_mediarecorder_reconstruction",
       "raw_camerax_accuracy_eligible": false,
       "phases": [
@@ -59,6 +63,8 @@
       "id": "tester-opening-grid-calming",
       "source": "tester-speed-breaker-clip",
       "label": "not_pothole",
+      "evidence_tier": "independent_assistant_regression",
+      "label_provenance": "independent_assistant_full_video_review",
       "capture_provenance": "external_recording_of_test_device",
       "raw_camerax_accuracy_eligible": false,
       "phases": [
@@ -73,6 +79,8 @@
       "id": "tester-zebra-raised-speed-breaker",
       "source": "tester-speed-breaker-clip",
       "label": "not_pothole",
+      "evidence_tier": "owner_ground_truth",
+      "label_provenance": "owner_confirmed",
       "capture_provenance": "external_recording_of_test_device",
       "raw_camerax_accuracy_eligible": false,
       "phases": [
@@ -87,6 +95,8 @@
       "id": "tester-second-speed-breaker",
       "source": "tester-speed-breaker-clip",
       "label": "not_pothole",
+      "evidence_tier": "owner_ground_truth",
+      "label_provenance": "owner_confirmed",
       "capture_provenance": "external_recording_of_test_device",
       "raw_camerax_accuracy_eligible": false,
       "phases": [
@@ -95,6 +105,22 @@
         {"timestamps_seconds": [6.711667, 6.878333, 7.045], "fixture_sha256": ["c90b88d85ca5ba1f3df5eb6570e23528046691038f9c78ff1a57d0b77d2b557d", "f69d3da4b648408b318e40d81bee7ad8dce2b5506a23172ae24c9b5f4c178747", "bddf49a195ac9b7130013ea7f8d771dc7d9b7e183efeae1c66017c910ccd57c0"]},
         {"timestamps_seconds": [6.745, 6.911667, 7.078333], "fixture_sha256": ["f0096847b7ca11b555808b2192123611ecda05b053cf715e2a0a1e4ec8edbdee", "8c6ff6283186c7769ef90461523d1c34822ec8ba9868810c448f81bd9e09e1d6", "1e6212bf7f7f189108af31d7a27ba29a1e3186cbb3030c367199b9ff6fdeab69"]},
         {"timestamps_seconds": [6.611667, 6.778333, 6.945], "fixture_sha256": ["b92de7b49c4f33dcad58c16c3b717ec59a6bc3d23fe8d715c8e8988e99f06361", "2511de379683620bb7ff8c7b27b67384ab5713fa729603751a7430c0b9ccbafd", "11b003a26846a465816564dcd90e5828e33fade16fc556b80636e0d2aee87c2f"]}
+      ]
+    },
+    {
+      "id": "assistant-segment-2-construction-roughness-37s",
+      "source": "construction-drive-segment-2",
+      "label": "not_pothole",
+      "evidence_tier": "independent_assistant_regression",
+      "label_provenance": "independent_assistant_full_video_review",
+      "capture_provenance": "native_mediarecorder_reconstruction",
+      "raw_camerax_accuracy_eligible": false,
+      "phases": [
+        {"timestamps_seconds": [37.025867, 37.192589, 37.359144], "fixture_sha256": ["60110d2bb2d9c5cf3a88a7ace0460109c848f24278c998ab36687c5c3fd83f7d", "f6a596a1e4956ca9a89696ad29ecba13946c849f8f718f8be30ddbcad5e185ec", "853e6a18b4ddc79267f770fe4a9787933884abfb18023bf7423e9fb0fe1ca0b0"]},
+        {"timestamps_seconds": [37.059278, 37.225833, 37.392389], "fixture_sha256": ["5fda84159b36756bd8c1e606cfbe1e5c55fdf033d4ed59201a3013e4a7b86067", "b3c042af89b2956315330beec8c38af0e7822e933a40c7639b93f1fa1b31fb53", "bfb0a4b65121b7a671dcf765a9946e1134d6973cfd4bdc3bacfb95c7b84bf1e4"]},
+        {"timestamps_seconds": [37.092522, 37.259078, 37.425789], "fixture_sha256": ["ad0299c569f2de72cbe800b6e41bb52096bc1d65e4633d3be98336fa60b7e6ad", "75a016acdeecc4cec6886b6b2a2d8ec25e653d9f7ca2f718e26daf5b651a4148", "3ea409ea115c57aa2192ed9fae6bdff945f75eb5e0b7a1121baf39cf3122999c"]},
+        {"timestamps_seconds": [37.125767, 37.292489, 37.459189], "fixture_sha256": ["133d17356d7745cffcc9e448f3fa8fd5b5e7ef375692a157e05f155dafdd836c", "114774032d6659d2fed4f8cb577b3cd8dd2bc31def6ec31613dd39e726353b18", "3d509ffc543c9d4a1a95dc1ba58cf5028321d5a7dd9c4fa5eac1ae189964fec5"]},
+        {"timestamps_seconds": [37.159178, 37.3259, 37.492444], "fixture_sha256": ["f0d2502beb622cd68dbfb8f65d522e6816db98416f1e8aba4ee88444f34c2c13", "df90c842b76818f9c21110d205bc062c94c74a0c8917296f118c4649223ab148", "b5c3bd2a1ff591228e4df99fc483e44ba8f29830b9145eca81f5220638b6ec8f"]}
       ]
     }
   ]
