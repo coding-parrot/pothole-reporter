@@ -6,6 +6,7 @@ prepares evidence for an official complaint channel. Reports remain on the phone
 nothing is filed automatically. There is no project-operated backend or account system.
 
 Current release: [v1.38.0](https://github.com/coding-parrot/pothole-reporter/releases/tag/v1.38.0)
+Download from OpenSourcePlayStore: https://opensourceplaystore.com/app/pothole-reporter/
 
 <p>
   <a href="docs/example-pothole.jpg"><img src="docs/example-pothole-thumb.jpg" width="280" alt="Pothole detected by Pothole Reporter"></a>
