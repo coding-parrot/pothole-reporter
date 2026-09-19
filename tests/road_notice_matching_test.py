@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import sys
+
 from playwright.sync_api import sync_playwright
 
 
@@ -36,6 +38,7 @@ async () => {
       rejectedScope,
     });
   }
+  const reviewAfter = resources.map((resource) => resource.review_after).sort().at(-1) || null;
   const testResource = resources.find((resource) => resource.records > 0);
   const testPack = testResource ? await P.loadRoadNoticePack(testResource.state_code) : null;
   let testPackError = null;
@@ -119,6 +122,7 @@ async () => {
       title: "Resurfacing Zoravia Merlanti Road phase two"},
   ], "Zoravia Merlanti Road, Mumbai", testRoute, syntheticNow);
   return {
+    reviewAfter,
     resourceCount: resources.length,
     expectedTotal: resources.reduce((sum, resource) => sum + resource.records, 0),
     actualTotal: loaded.reduce((sum, item) => sum + (item.actual || 0), 0),
@@ -162,6 +166,19 @@ def main() -> None:
         )
         result = page.evaluate(SCENARIO)
         browser.close()
+
+    # These packs carry a seven-day review window on purpose: the app refuses to quote a
+    # procurement notice nobody has re-verified. When that window closes the whole
+    # catalogue stops loading, which is correct behaviour and a stale-data alarm, not a
+    # code fault. Say so in one line instead of printing 34 empty packs.
+    expired = [row["state"] for row in result["failedLoads"]
+               if row["actual"] is None and not row["error"]]
+    if len(expired) == result["resourceCount"] and result["reviewAfter"]:
+        print(f"FAIL: the road-notice catalogue is past its review date "
+              f"({result['reviewAfter']}), so no notice pack loads and tender matching "
+              f"is off for everyone.\n      Regenerate it: "
+              f"python3 tools/build-gepnic-road-notice-packs.py")
+        sys.exit(1)
 
     if result["resourceCount"] < 29:
         failures.append(f"expected at least 29 public official jurisdiction packs: {result['resourceCount']}")

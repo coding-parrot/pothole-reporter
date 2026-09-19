@@ -6047,6 +6047,11 @@
         && (prior.source_event_key === candidate.source_event_key || keys.includes(candidate.source_event_key))) {
       return { kind: "same_source" };
     }
+    // A pothole verified fixed on a later drive is history. New damage at the same
+    // point is a recurrence and needs its own complaint, not another sighting on a
+    // closed record that can no longer be emailed. A repair_review record still
+    // matches, because fresh damage is exactly what reopens it.
+    if (conditionStatus(prior) === "fixed") return null;
     // A manual photo is an explicit user action. Do not silently swallow it based on
     // approximate phone GPS; automatic Drive/VOD observations are the duplicate source.
     if (isManualCaptureSource(candidate.capture_source)) return null;
@@ -7949,8 +7954,11 @@
   // Older builds used "sent" after merely opening the mail composer. Preserve those
   // records, but never present that unverified state as successful delivery.
   const publicEmailStatus = (status) => status === "sent" ? "queued" : status;
+  // repairEvidenceHtml renders the after-photo from repair_photo_url and hides the whole
+  // block without it, so a repaired pothole showed no evidence and no confirm/reopen.
   const toDict = (r) => ({ ...r, status: publicEmailStatus(r.status),
-                          photo_url: photoBlob(r.photo) });
+                          photo_url: photoBlob(r.photo),
+                          repair_photo_url: photoBlob(r.repair_photo) || null });
   // The list never renders the evidence copy, so it never receives it.
   const listDict = (r) => { const d = toDict(r); delete d.photo_full; return d; };
 
@@ -9335,6 +9343,12 @@
       if (rec.status === "duplicate" || rec.server_duplicate) {
         throw new Error("This pothole was already reported nearby, so a duplicate complaint was not created.");
       }
+      // Evidence, handoff refresh and editing already refuse for a repaired pothole.
+      // Email did not, so the one action that actually reaches an officer could still
+      // send a complaint about damage the app had verified as fixed.
+      if (conditionStatus(rec) === "fixed") {
+        throw new Error("This pothole was verified fixed on a later drive, so its old complaint cannot be emailed.");
+      }
       if (rec.status === "unrouted") {
         // Say which of the four reasons it was. "Outside the area" is wrong and
         // confusing when the real problem is that the phone never got a GPS fix.
@@ -10383,6 +10397,9 @@
       const padding = payload.endsWith("==") ? 2 : payload.endsWith("=") ? 1 : 0;
       return Math.floor(payload.length * 3 / 4) - padding;
     }
+    // Photos are stored as bytes, not Blobs: reading .size here returned NaN, so no
+    // report was ever eligible and repair revisits silently stopped happening.
+    if (storedPhoto(photo)) return photo.bytes.byteLength;
     return photo && Number.isFinite(photo.size) ? Number(photo.size) : NaN;
   }
 
@@ -10400,7 +10417,10 @@
 
   const REPAIR_EVIDENCE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-  const NATIVE_REPAIR_CONTRACT_VERSION = "road-repair-v1";
+  // Mirrors NativeRepairContract.PROMPT_VERSION. When this fell behind the Kotlin
+  // constant, every repair observation the native service sent was rejected as
+  // repair_provenance_invalid and no pothole was ever marked repaired.
+  const NATIVE_REPAIR_CONTRACT_VERSION = "road-repair-v2";
 
   const VERIFIED_HANDOFF_FIELDS = [
     "officer_name", "authority_id", "authority_name", "authority_registry_version",
@@ -11036,6 +11056,16 @@
       segment_verified: false,
       // An agreement number/date does not identify a contractor assignment in this feed.
       agreement_verified: record.agreement_verified === true,
+      // The complaint prints each of these on its own line. Folding them into
+      // tender_number alone left "Agreement: Not listed" and "Package: Not listed"
+      // beside a reference that named both, and dropped the road's own endpoints.
+      agreement_number: record.agreement_verified && record.agreement_number || null,
+      agreement_date: record.agreement_verified && record.agreement_date || null,
+      package_reference: record.reference_value || null,
+      organisation: record.district_name
+        ? `${record.district_name} district, PMGSY` : record.source_name,
+      road_from: record.road_from || null,
+      road_to: record.road_to || null,
       award_status: "unverified_contractor_assignment",
       award_verified: false,
       dlp_status: "unverified_no_maintenance_dates",

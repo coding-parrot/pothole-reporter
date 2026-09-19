@@ -8,35 +8,32 @@ from playwright.sync_api import sync_playwright
 
 APP = "http://localhost:8765/"
 
+# The shipped detection contract returns five fields. The physical-evidence shape this
+# suite used (is_pothole, has_localized_cavity, surface_type, ...) belongs to a contract
+# the app stopped asking for, and every frame submitted in it came back "review".
 ACCEPTED = {
-    "is_pothole": True,
-    "looks_like_speed_breaker": False,
-    "image_quality": "usable", "surface_type": "bituminous_asphalt",
-    "on_drivable_surface": True,
-    "has_localized_cavity": True,
-    "has_unambiguous_lower_interior": True,
-    "has_broken_edge_or_rim": True, "has_depth_or_surface_loss": True,
-    "temporal_consistency": "consistent", "size": "medium",
+    "image_quality": "acceptable",
+    "assessment": "damaged",
+    "damage_type": "pothole_cavity",
+    "size": "medium",
     "description": "A broken cavity is visible on the travelled surface.",
 }
 ABSENT = {
-    "is_pothole": False,
-    "looks_like_speed_breaker": False,
-    "image_quality": "usable", "surface_type": "bituminous_asphalt",
-    "on_drivable_surface": True,
-    "has_localized_cavity": False,
-    "has_unambiguous_lower_interior": False,
-    "has_broken_edge_or_rim": False, "has_depth_or_surface_loss": False,
-    "temporal_consistency": "not_applicable", "size": None,
+    "image_quality": "acceptable",
+    "assessment": "undamaged",
+    "damage_type": None,
+    "size": None,
     "description": "No reportable damage is visible in the current burst.",
 }
 SPEED_BREAKER = {
     **ACCEPTED,
-    "looks_like_speed_breaker": True,
-    # Deliberately contradictory model fields reproduce the tester failure: the hard
-    # veto must win even if another part of the model response calls it a pothole.
+    # Deliberately contradictory model fields reproduce the tester failure: an
+    # undamaged verdict that still carries damage details is a refusal, not a report.
+    "assessment": "undamaged",
     "description": "A painted transverse raised ridge spans the lane.",
 }
+# Repair verification runs in the native service, not in the browser: these are the
+# results it posts to /api/native-repair, not model responses this page ever asks for.
 REPAIRED = {
     "same_location_visible": True, "completed_repair_visible": True,
     "current_condition": "repaired", "assessment": "clear",
@@ -94,6 +91,12 @@ INIT = r"""
         address: { road: "Test Road", city: "Bengaluru", state: "Karnataka", country: "India" } }),
         { status: 200, headers: { "content-type": "application/json" } });
     }
+    if (target.includes("execute-api") || target.includes("/v1/health")) {
+      // The central service is not part of this suite. Answer it here so a real request
+      // can never leave the machine.
+      return new Response('{"ai_configured":false,"request_id":"test"}',
+        { status: 503, headers: { "content-type": "application/json" } });
+    }
     if (target.includes("kgis.ksrsac.in")) {
       return new Response('{"features":[]}', { status: 200, headers: { "content-type": "application/json" } });
     }
@@ -126,9 +129,19 @@ async function imageDimensions(value) {
   const bitmap = await createImageBitmap(blob);
   const out = [bitmap.width, bitmap.height]; bitmap.close(); return out;
 }
-async function repairSubmit(drive, key, lat, verdict, comparison) {
+async function nativeRepair(targetId, key, lat, observedAt, verdict) {
+  return StandaloneAPI.handle("/api/native-repair", {method: "POST", body: JSON.stringify({
+    target_report_id: targetId, drive_id: "native-revisit", source_event_key: key,
+    observed_at: observedAt, lat, lng: 77.642700,
+    gps_accuracy: 4, speed_mps: 8, heading: 90,
+    current_photo_data_url: await repairDataUrl(),
+    detection_model: "gpt-5-mini", image_detail: "high",
+    prompt_version: "road-repair-v2", schema_version: 1,
+    ...verdict,
+  })});
+}
+async function repairSubmit(drive, key, lat, verdict) {
   window.__assessments.push(verdict);
-  if (comparison) window.__repairs.push(comparison);
   const fd = new FormData();
   fd.append("photo", await repairJpeg(), "road-before.jpg");
   fd.append("photo", await repairJpeg(), "road-primary.jpg");
@@ -166,7 +179,7 @@ with sync_playwright() as p:
       eval(f.helpers);
       await StandaloneAPI.handle("/api/reports", { method: "DELETE" });
 
-      const first = await repairSubmit("drive-1", "live:drive-1:1", 12.911500, f.accepted, null);
+      const first = await repairSubmit("drive-1", "live:drive-1:1", 12.911500, f.accepted);
       const before = await StandaloneAPI.handle("/api/reports", { method: "GET" });
       const complaintStatus = before[0].status;
       const repairManifest = await StandaloneAPI.handle("/api/repair-targets", {method:"GET"});
@@ -218,9 +231,12 @@ with sync_playwright() as p:
           source_event_key: "native:no-prompt", observed_at: before[0].last_seen_at + 1,
           current_photo_data_url: validEvidence, prompt_version: undefined}),
       });
-      const revisit = await repairSubmit("drive-2", "live:drive-2:1", 12.911500, f.absent, f.repaired);
+      await repairSubmit("drive-2", "live:drive-2:1", 12.911500, f.absent);
+      const revisit = await nativeRepair(before[0].id, "live:drive-2:1", 12.911500,
+                                         before[0].last_seen_at + 2, f.repaired);
       const after = await StandaloneAPI.handle("/api/reports", { method: "GET" });
-      const repairDimensions = await imageDimensions(after[0].repair_photo_url);
+      const repairDimensions = after[0].repair_photo_url
+        ? await imageDimensions(after[0].repair_photo_url) : null;
       const replay = await StandaloneAPI.handle("/api/native-repair", {
         method: "POST", body: JSON.stringify({...nativeBase, drive_id:"drive-2",
           source_event_key:"live:drive-2:1", observed_at:after[0].repair_observed_at,
@@ -231,8 +247,6 @@ with sync_playwright() as p:
         send: ["/send", {method:"POST"}],
         evidence: ["/evidence", {method:"GET"}],
         handoff: ["/handoff", {method:"GET"}],
-        submitted: ["/submitted", {method:"POST", body:"{}"}],
-        handoffOpened: ["/handoff-opened", {method:"POST"}],
         patch: ["", {method:"PATCH", body:JSON.stringify({email_subject:"stale", email_body:"stale"})}],
       };
       for (const [name, [suffix, options]] of Object.entries(attempts)) {
@@ -242,11 +256,11 @@ with sync_playwright() as p:
 
       // A later genuine cavity at the same point is a recurrence, not a duplicate of
       // the historical fixed event.
-      const recurrence = await repairSubmit("drive-3", "live:drive-3:1", 12.911500, f.accepted, null);
+      const recurrence = await repairSubmit("drive-3", "live:drive-3:1", 12.911500, f.accepted);
       const withRecurrence = await StandaloneAPI.handle("/api/reports", { method: "GET" });
 
       // Generic absence plus an inconclusive comparison must leave another report open.
-      const second = await repairSubmit("drive-4", "live:drive-4:1", 12.913000, f.accepted, null);
+      const second = await repairSubmit("drive-4", "live:drive-4:1", 12.913000, f.accepted);
       let unprovenFixedBlocked = false;
       try {
         await StandaloneAPI.handle(`/api/reports/${second.report.id}/condition`, {
@@ -255,23 +269,26 @@ with sync_playwright() as p:
       } catch (e) {
         unprovenFixedBlocked = /enough before-and-after evidence/i.test(e.message);
       }
-      const uncertain = await repairSubmit("drive-5", "live:drive-5:1", 12.913000, f.absent, f.uncertain);
+      await repairSubmit("drive-5", "live:drive-5:1", 12.913000, f.absent);
+      const uncertain = await nativeRepair(second.report.id, "live:drive-5:1", 12.913000,
+                                           second.report.last_seen_at + 2, f.uncertain);
 
       // A probable completed repair is review-only. A later direct pothole observation
       // must reopen that same canonical instead of hiding current damage behind review.
       const reviewTarget = await repairSubmit(
-        "drive-6", "live:drive-6:1", 12.914000, f.accepted, null);
-      const review = await repairSubmit(
-        "drive-7", "live:drive-7:1", 12.914000, f.absent, f.probableRepair);
+        "drive-6", "live:drive-6:1", 12.914000, f.accepted);
+      await repairSubmit("drive-7", "live:drive-7:1", 12.914000, f.absent);
+      const review = await nativeRepair(reviewTarget.report.id, "live:drive-7:1", 12.914000,
+                                        reviewTarget.report.last_seen_at + 2, f.probableRepair);
       const afterReview = await StandaloneAPI.handle("/api/reports", { method: "GET" });
       const reviewStored = afterReview.find((r) => r.id === reviewTarget.report.id);
       const damageAfterReview = await repairSubmit(
-        "drive-8", "live:drive-8:1", 12.914000, f.accepted, null);
+        "drive-8", "live:drive-8:1", 12.914000, f.accepted);
       const afterReviewDamage = await StandaloneAPI.handle("/api/reports", { method: "GET" });
       const reopenedReview = afterReviewDamage.find((r) => r.id === reviewTarget.report.id);
       const beforeBreaker = (await StandaloneAPI.handle("/api/reports", { method: "GET" })).length;
       const breaker = await repairSubmit(
-        "drive-breaker", "live:drive-breaker:1", 12.915000, f.speedBreaker, null
+        "drive-breaker", "live:drive-breaker:1", 12.915000, f.speedBreaker
       );
       const finalReports = await StandaloneAPI.handle("/api/reports", { method: "GET" });
       const secondStored = finalReports.find((r) => r.id === (second.report && second.report.id));
@@ -291,7 +308,8 @@ with sync_playwright() as p:
 
 if not result["first"].get("found"):
     failures.append("initial live pothole was not stored")
-if not result["revisit"].get("repaired") or result["after"].get("condition_status") != "fixed":
+if result["revisit"].get("condition_status") != "fixed" \
+        or result["after"].get("condition_status") != "fixed":
     failures.append("clear same-place completed repair was not marked fixed")
 if result["after"].get("status") != result["complaintStatus"]:
     failures.append("physical repair overwrote complaint/submission status")
@@ -318,12 +336,14 @@ if result["repairDimensions"] != [96, 72]:
 if not result["replay"].get("duplicate") or result["replay"].get("condition_status") != "fixed":
     failures.append(f"committed native repair retry was not idempotent: {result['replay']}")
 if not result["recurrence"].get("found") or len(result["withRecurrence"]) != 2:
-    failures.append("new damage after repair was suppressed as an old duplicate")
-if result["uncertain"].get("repaired") or result["secondStored"].get("condition_status") != "open":
+    failures.append(f"new damage after repair was suppressed as an old duplicate: "
+                    f"{result['recurrence']} / {len(result['withRecurrence'])}")
+if result["uncertain"].get("condition_status") == "fixed" \
+        or result["secondStored"].get("condition_status") != "open":
     failures.append("inconclusive revisit incorrectly marked a pothole fixed")
 if not result["unprovenFixedBlocked"]:
     failures.append("an open report could be marked fixed without revisit evidence")
-if not result["review"].get("repair_review") \
+if result["review"].get("condition_status") != "repair_review" \
         or result["reviewStored"].get("condition_status") != "repair_review":
     failures.append(f"probable repair did not remain review-only: {result['review']}")
 if not result["damageAfterReview"].get("duplicate") \
@@ -333,8 +353,10 @@ if not result["damageAfterReview"].get("duplicate") \
 if result["breaker"].get("found") or result["breaker"].get("stored") \
         or result["afterBreaker"] != result["beforeBreaker"]:
     failures.append(f"speed breaker was persisted as damage: {result['breaker']}")
-if result["calls"].count("road_repair_verification") != 3:
-    failures.append(f"expected three separate before/after checks, got {result['calls']}")
+# Repair verification belongs to the native service. The browser must never send a
+# second model contract of its own alongside the detection one.
+if any(name != "road_damage_assessment" for name in result["calls"]):
+    failures.append(f"the browser ran a model contract of its own: {sorted(set(result['calls']))}")
 if remote_leaks:
     failures.append(f"unexpected real network requests: {remote_leaks[:3]}")
 

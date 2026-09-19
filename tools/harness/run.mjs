@@ -142,6 +142,11 @@ function tasks(group) {
     });
     all.push({
       group: "static",
+      name: "web and native agree on shared contracts",
+      command: ["node", "tools/harness/check-native-contracts.mjs"],
+    });
+    all.push({
+      group: "static",
       name: "every language defines every key",
       command: ["node", "tools/harness/check-i18n.mjs"],
     });

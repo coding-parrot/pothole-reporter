@@ -163,7 +163,8 @@ def main() -> None:
     elif actual.get("agreement_date") != result["sourceAgreementDate"]:
         failures.append(f"PMGSY candidate lost agreement date: {actual!r}")
     elif actual.get("package_reference") != result["sourcePackage"]:
-        failures.append(f"PMGSY candidate lost package reference: {actual!r}")
+        failures.append(f"PMGSY candidate lost package reference: "
+                        f"{actual.get('package_reference')!r} != {result['sourcePackage']!r}")
     elif result["sourceDistrict"] not in (actual.get("organisation") or ""):
         failures.append(f"PMGSY candidate lost district/organisation: {actual!r}")
     elif actual.get("road_from") != result["sourceRoadFrom"]:
