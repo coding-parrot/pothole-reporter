@@ -142,6 +142,16 @@ function tasks(group) {
     });
     all.push({
       group: "static",
+      name: "every language defines every key",
+      command: ["node", "tools/harness/check-i18n.mjs"],
+    });
+    all.push({
+      group: "static",
+      name: "data notice version tracks its wording",
+      command: ["python3", "tools/snapshot-data-notice.py"],
+    });
+    all.push({
+      group: "static",
       name: "web asset mirrors match",
       command: ["python3", "tools/verify-release-assets.py", "--static", "static",
         "--www", "android-app/www", "--docs", "docs",

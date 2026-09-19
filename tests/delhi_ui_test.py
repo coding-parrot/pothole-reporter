@@ -21,8 +21,10 @@ async () => {
     name, !!value, detail === undefined ? value : detail, true,
   ]);
 
-  ok("privacy: dashcam-network disclosure forces fresh consent",
-     /v17-dashcam-network$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
+  // The version itself is guarded by tools/snapshot-data-notice.py, which fails when
+  // the wording moves without a bump. Here it only has to be a dated, non-empty value.
+  ok("privacy: the data notice carries a dated version",
+     /^\d{4}-\d{2}-\d{2}-v\d+/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
   for (const [lang, dictionary] of Object.entries(I18N)) {
     ok(`scope: ${lang} describes India-wide State/UT coverage`, /India|ಭಾರತ|भारत|ভারত/.test(
       dictionary.outside_coverage_help), dictionary.outside_coverage_help);
@@ -80,21 +82,24 @@ async () => {
     whatsapp_url: route.whatsapp_url, helpline: route.helpline,
     requires_official_reference: true, official_grievance_id: null,
   };
+  // Email is the only complaint channel the app offers. The Delhi portal, WhatsApp and
+  // helpline handoffs were removed because opening another service proves nothing about
+  // whether a complaint was filed, and the detail screen must not imply that it does.
+  openDetail(report, [report]);
+  const waitingText = document.getElementById("detail").textContent;
+  ok("detail: a report still awaiting the shared-map check offers no email",
+     !document.getElementById("sendBtn")
+       && /shared-map duplicate check/i.test(waitingText), waitingText);
+
+  report.server_pothole_id = 73001;
   openDetail(report, [report]);
   const detailText = document.getElementById("detail").textContent;
-  ok("handoff UI: clearly names PWD Sewa and the Delhi route",
-     /PWD Sewa/.test(detailText) && /Delhi road grievance coordination/.test(detailText),
-     detailText);
-  ok("handoff UI: exposes PGMS, WhatsApp and 1908",
-     /Delhi PGMS/.test(detailText) && /WhatsApp/.test(detailText) && /1908/.test(detailText),
-     detailText);
-  ok("handoff UI: explains that boundary containment is not ownership",
-     /does not prove who owns this road/.test(detailText), detailText);
-  ok("handoff UI: requires an official reference before marking submitted",
-     /Official grievance\/reference ID/.test(detailText)
-       && !!document.getElementById("grievanceId"), detailText);
-  eq("handoff UI: primary button opens PWD Sewa",
-     document.getElementById("sendBtn").textContent.trim(), "Open PWD Sewa");
+  ok("detail: shows the Delhi address the complaint is about",
+     detailText.includes("India Gate, New Delhi"), detailText);
+  ok("detail: a confirmed report offers email and no second channel",
+     !!document.getElementById("sendBtn")
+       && document.getElementById("sendBtn").dataset.complaintAction === "email"
+       && !/WhatsApp|PGMS|1908|Official grievance/i.test(detailText), detailText);
 
   return checks;
 }

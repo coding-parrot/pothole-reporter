@@ -1,5 +1,5 @@
 {
-  "sourceHash": "13180150686f4ef6748d8d160af13f23ee0c7fb56d25413f506d2b2d51aedf77",
+  "sourceHash": "7778d0a4bfcb796d2442dbfca859499e2c3df890e006371ea3ec002232416da2",
   "contractVersion": 2,
   "prompts": {
     "detection": {
@@ -148,7 +148,9 @@
       "defaultLanguage": "en",
       "allowedLanguages": [
         "en",
-        "kn"
+        "kn",
+        "mr",
+        "bn"
       ]
     },
     "runtime": {

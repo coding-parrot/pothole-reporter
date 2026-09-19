@@ -5883,7 +5883,7 @@
       district_highway: "This stretch is a district highway. It is maintained by the district or state road authority, not by the city or town body, so there is no municipal officer to address.",
       rural_road: "This road is outside every town boundary, so it belongs to the state PWD or a panchayat rather than a city body. The app will not guess an office.",
       no_address_for_body: "This town's body is known, but no official email address for it has been published, so there is no verified recipient to address.",
-      outside_area: "This road damage is outside Karnataka, which is the area this app covers, so there is no authority to address.",
+      outside_area: "This road damage is outside India's verified State/UT boundaries and mapped National Highways, or exact routing data is unavailable, so there is no authority to address.",
     }[reason] || "This report could not be routed to a responsible office, so there is no verified email recipient.";
   }
 

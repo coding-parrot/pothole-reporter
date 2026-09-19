@@ -111,29 +111,24 @@ async () => {
     tx.onerror = () => {};
   });
   db.close();
+  // Email is the only complaint channel. The KMC app, WhatsApp and helpline handoffs
+  // were removed: opening another service proves nothing about whether a complaint was
+  // filed, and the detail screen must not imply otherwise.
+  openDetail(report, [report]);
+  const waitingText = document.getElementById("detail").textContent;
+  ok("detail: a report still awaiting the shared-map check offers no email",
+     !document.getElementById("sendBtn")
+       && /shared-map duplicate check/i.test(waitingText), waitingText);
+
+  report.server_pothole_id = 72001;
   openDetail(report, [report]);
   const detailText = document.getElementById("detail").textContent;
-  ok("handoff UI: names KMC and Grievance 2.0",
-     /Kolkata Municipal Corporation/.test(detailText) && /KMC Grievance 2\.0/.test(detailText),
-     detailText);
-  ok("handoff UI: Bengali warning says containment is not road ownership",
-     /রাস্তার মালিকানা প্রমাণিত হয় না/.test(detailText), detailText);
-  ok("handoff UI: asks for a generic official reference",
-     /সরকারি অভিযোগ\/রেফারেন্স নম্বর/.test(detailText)
-       && !!document.getElementById("grievanceId"), detailText);
-  ok("handoff UI: offers app, WhatsApp and helpline without claiming submission",
-     /KMC APP/.test(detailText) && /WhatsApp/.test(detailText)
-       && /18003453375/.test(detailText) && !/অভিযোগ জমা হয়েছে/.test(detailText),
-     detailText);
-
-  const confirmations = [];
-  const priorConfirm = window.confirm;
-  window.confirm = (message) => { confirmations.push(String(message)); return false; };
-  await openOfficialWhatsApp(report);
-  window.confirm = priorConfirm;
-  ok("WhatsApp: Bengali confirmation states exact location and final-send boundary",
-     confirmations.some((message) => /সঠিক অবস্থান/.test(message)
-       && /Send না চাপা পর্যন্ত কিছুই পাঠানো হবে না/.test(message)), confirmations);
+  ok("detail: shows the Kolkata address the complaint is about",
+     detailText.includes("Esplanade, Kolkata"), detailText);
+  ok("detail: a confirmed report offers email and no second channel",
+     !!document.getElementById("sendBtn")
+       && document.getElementById("sendBtn").dataset.complaintAction === "email"
+       && !/WhatsApp|KMC APP|18003453375|রেফারেন্স নম্বর/i.test(detailText), detailText);
 
   return checks;
 }

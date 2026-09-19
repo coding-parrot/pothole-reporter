@@ -11,5 +11,5 @@ export const modelConfig = Object.freeze({
   allowedImageDetails: Object.freeze(["high", "original"]),
   originalDetailModels: Object.freeze(["gpt-5.6"]),
   defaultLanguage: "en",
-  allowedLanguages: Object.freeze(["en", "kn"]),
+  allowedLanguages: Object.freeze(["en", "kn", "mr", "bn"]),
 });

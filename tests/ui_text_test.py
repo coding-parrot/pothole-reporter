@@ -10,6 +10,15 @@ import re, sys, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 fails = []
 
+# The order the dictionaries appear in, which is the order every findall returns them.
+LANGUAGES = ("English", "Kannada", "Marathi", "Bengali")
+CENTRAL_SERVICE_TERMS = ("project service", "ಯೋಜನೆಯ ಸೇವೆ", "प्रकल्प सेवे", "প্রকল্প পরিষেবা")
+RETRY_TERMS = ("retries", "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸುತ್ತದೆ", "पुन्हा प्रयत्न", "আবার চেষ্টা")
+EMAIL_ONLY_TERMS = ("Email is the only", "ಏಕೈಕ ಆಯ್ಕೆ ಇಮೇಲ್", "एकमेव पर्याय ईमेल",
+                    "একমাত্র উপায় ইমেল")
+RETRY_SCOPE_TERMS = ("accepted-metadata upload", "ಮೆಟಾಡೇಟಾ ಅಪ್‌ಲೋಡ್", "पुन्हा प्रयत्न",
+                     "আবার চেষ্টা")
+
 for name in ("static/index.html", "android-app/www/index.html", "docs/index.html"):
     s = (ROOT / name).read_text(encoding="utf-8")
 
@@ -28,45 +37,30 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
     personal_notes = re.findall(r'provider_personal_note: "([^"]+)"', s)
     settings_notes = re.findall(r'settings_note: "([^"]+)"', s)
     privacy_local = re.findall(r'privacy_local: "([^"]+)"', s)
-    if not all(len(values) == 2 for values in (
+    if not all(len(values) == 4 for values in (
             shared_notes, personal_notes, settings_notes, privacy_local)):
-        fails.append(f"{name}: expected bilingual provider and central-service notes")
+        fails.append(f"{name}: expected provider and central-service notes in four languages")
     else:
-        for idx, language in enumerate(("English", "Kannada")):
+        for idx, language in enumerate(LANGUAGES):
             if "OpenAI" not in shared_notes[idx] or "OpenAI" not in personal_notes[idx]:
                 fails.append(f"{name}: {language} provider notes do not name OpenAI")
             if "YOLO" not in shared_notes[idx]:
                 fails.append(f"{name}: {language} shared note omits the in-house detector option")
-            if "key" not in personal_notes[idx].lower() and "ಕೀ" not in personal_notes[idx]:
+            if "API" not in personal_notes[idx]:
                 fails.append(f"{name}: {language} personal note does not explain the key")
-        if "project service" not in settings_notes[0] or "image hash" not in settings_notes[0]:
-            fails.append(f"{name}: English note omits central service or image hash")
-        if "ಯೋಜನೆಯ ಸೇವೆ" not in settings_notes[1] or "ಹ್ಯಾಶ್" not in settings_notes[1]:
-            fails.append(f"{name}: Kannada note omits central service or image hash")
-        if "retries" not in settings_notes[0] or "delete that report" not in settings_notes[0]:
-            fails.append(f"{name}: English note omits durable retry/deletion behavior")
-        if "ಮತ್ತೆ ಪ್ರಯತ್ನಿಸುತ್ತದೆ" not in settings_notes[1] or "ಅಳಿಸುವವರೆಗೆ" not in settings_notes[1]:
-            fails.append(f"{name}: Kannada note omits durable retry/deletion behavior")
-        if "accepted-metadata upload" not in privacy_local[0] or "reconnects" not in privacy_local[0]:
-            fails.append(f"{name}: English consent omits accepted-only retry scope")
-        if "ಮೆಟಾಡೇಟಾ ಅಪ್‌ಲೋಡ್" not in privacy_local[1] or "ಸಂಪರ್ಕ ಮರಳಿದಾಗ" not in privacy_local[1]:
-            fails.append(f"{name}: Kannada consent omits accepted-only retry scope")
-
-    # Scope: the Kannada refusal must not still describe the Bengaluru-only build.
-    kn = re.findall(r'outside_coverage_help: "([^"]+)"', s)
-    if len(kn) == 2:
-        if "ಬೆಂಗಳೂರಿಗೆ" in kn[1] or "ಜಿಬಿಎ" in kn[1]:
-            fails.append(f"{name}: Kannada out-of-coverage text still says Bengaluru only")
-        if "ಕರ್ನಾಟಕ" not in kn[1]:
-            fails.append(f"{name}: Kannada out-of-coverage text does not mention Karnataka")
-    else:
-        for language, note in zip(("English", "Kannada", "Marathi", "Bengali"), settings_notes):
-            if "OpenAI" not in note:
-                fails.append(f"{name}: {language} settings note does not mention OpenAI")
-            if "GitHub Pages" not in note:
-                fails.append(f"{name}: {language} settings note does not disclose the pack host")
-            if "2°" not in note:
-                fails.append(f"{name}: {language} settings note omits highway-tile granularity")
+        for idx, language in enumerate(LANGUAGES):
+            # Every language must describe the same three facts: what leaves the phone,
+            # that a failed upload keeps retrying, and that email is the only channel.
+            if not any(term in settings_notes[idx] for term in CENTRAL_SERVICE_TERMS):
+                fails.append(f"{name}: {language} note omits the project service")
+            if not any(term in settings_notes[idx] for term in RETRY_TERMS):
+                fails.append(f"{name}: {language} note omits durable retry/deletion behavior")
+            if not any(term in settings_notes[idx] for term in EMAIL_ONLY_TERMS):
+                fails.append(f"{name}: {language} note does not say email is the only channel")
+        # Consent copy: every language states that only accepted metadata is retried.
+        for idx, language in enumerate(LANGUAGES):
+            if not any(term in privacy_local[idx] for term in RETRY_SCOPE_TERMS):
+                fails.append(f"{name}: {language} consent omits accepted-only retry scope")
 
     name_placeholders = re.findall(r'^\s{4}name_placeholder: "([^"]+)"', s, re.MULTILINE)
     if len(name_placeholders) != 4:
@@ -94,80 +88,23 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
     else:
         fails.append(f"{name}: expected 4 outside_coverage_help strings, found {len(coverage)}")
 
-    # Mumbai handoff copy must never turn opening another app into a submission claim.
-    queued_bmc = re.findall(r'chip_queued_bmc: "([^"]+)"', s)
-    if len(queued_bmc) != 4:
-        fails.append(f"{name}: expected 4 chip_queued_bmc strings, found {len(queued_bmc)}")
-    elif "handoff" not in queued_bmc[0].lower() or re.search(r"submitted|sent", queued_bmc[0], re.I):
-        fails.append(f"{name}: English BMC queued chip does not truthfully describe a handoff")
-
-    queued_official = re.findall(r'chip_queued_official: "([^"]+)"', s)
-    if len(queued_official) != 4:
-        fails.append(f"{name}: expected 4 generic official-handoff chips, found {len(queued_official)}")
-    elif "handoff" not in queued_official[0].lower() or re.search(r"submitted|sent", queued_official[0], re.I):
-        fails.append(f"{name}: generic queued chip does not truthfully describe a handoff")
-
-    reported = re.findall(r'stat_reported: "([^"]+)"', s)
-    if len(reported) != 4:
-        fails.append(f"{name}: expected 4 stat_reported strings, found {len(reported)}")
-    elif "confirmed submissions" not in reported[0].lower():
-        fails.append(f"{name}: dashboard metric does not distinguish confirmed submissions")
-
-    disclaimers = re.findall(r'bmc_disclaimer: "([^"]+)"', s)
-    if len(disclaimers) != 4:
-        fails.append(f"{name}: expected 4 BMC disclaimers, found {len(disclaimers)}")
-    else:
-        if "does not submit" not in disclaimers[0] or "official grievance ID" not in disclaimers[0]:
-            fails.append(f"{name}: English BMC disclaimer does not state the submission boundary")
-        kn_disclaimer = disclaimers[1]
-        if "BMC" not in kn_disclaimer or "ಸಲ್ಲಿಸುವುದಿಲ್ಲ" not in kn_disclaimer or "ಸಂಖ್ಯೆಯಿಲ್ಲದೆ" not in kn_disclaimer:
-            fails.append(f"{name}: Kannada BMC disclaimer does not state the submission boundary")
-        mr_disclaimer = disclaimers[2]
-        if "BMC" not in mr_disclaimer or "दाखल करत नाही" not in mr_disclaimer or "क्रमांकाशिवाय" not in mr_disclaimer:
-            fails.append(f"{name}: Marathi BMC disclaimer does not state the submission boundary")
-        bn_disclaimer = disclaimers[3]
-        if "BMC" not in bn_disclaimer or "জমা দেয় না" not in bn_disclaimer or "নম্বর ছাড়া" not in bn_disclaimer:
-            fails.append(f"{name}: Bengali BMC disclaimer does not state the submission boundary")
-
-    official_disclaimers = re.findall(r'official_disclaimer: "([^"]+)"', s)
-    if len(official_disclaimers) != 4:
-        fails.append(f"{name}: expected 4 generic official disclaimers, found {len(official_disclaimers)}")
-    else:
-        if "does not prove who owns this road" not in official_disclaimers[0] or "only prepares evidence" not in official_disclaimers[0]:
-            fails.append(f"{name}: English generic disclaimer omits ownership or submission truth")
-        if "ಮಾಲೀಕತ್ವ" not in official_disclaimers[1] or "ಸಾಕ್ಷ್ಯವನ್ನು ಮಾತ್ರ" not in official_disclaimers[1]:
-            fails.append(f"{name}: Kannada generic disclaimer omits ownership or evidence-only truth")
-        if "मालकी सिद्ध होत नाही" not in official_disclaimers[2] or "फक्त पुरावा" not in official_disclaimers[2]:
-            fails.append(f"{name}: Marathi generic disclaimer omits ownership or evidence-only truth")
-        if "মালিকানা প্রমাণিত হয় না" not in official_disclaimers[3] or "কেবল প্রমাণ" not in official_disclaimers[3]:
-            fails.append(f"{name}: Bengali generic disclaimer omits ownership or evidence-only truth")
-
-    authority_disclaimers = re.findall(r'authority_disclaimer: "([^"]+)"', s)
-    if len(authority_disclaimers) != 4:
-        fails.append(f"{name}: expected 4 suggested-email authority disclaimers, found {len(authority_disclaimers)}")
-    elif "Road ownership is not verified" not in authority_disclaimers[0]:
-        fails.append(f"{name}: email authority disclaimer does not qualify road ownership")
-
-    suggested_email_confirms = re.findall(r'confirm_suggested_email: "([^"]+)"', s)
-    if len(suggested_email_confirms) != 4:
-        fails.append(f"{name}: expected 4 suggested-email confirmation strings, found {len(suggested_email_confirms)}")
-    elif "does not prove road ownership" not in suggested_email_confirms[0]:
-        fails.append(f"{name}: suggested-email confirmation does not repeat the ownership warning")
-
-    whatsapp_confirms = re.findall(r'confirm_whatsapp_share: "([^"]+)"', s)
-    if len(whatsapp_confirms) != 4:
-        fails.append(f"{name}: expected 4 WhatsApp disclosure strings, found {len(whatsapp_confirms)}")
-    elif "text and exact location" not in whatsapp_confirms[0] or "Nothing is sent until" not in whatsapp_confirms[0]:
-        fails.append(f"{name}: WhatsApp confirmation omits shared data or the final-send boundary")
+    # Email is the sole complaint channel. The BMC, WhatsApp, helpline and portal
+    # handoffs were removed along with the grievance-ID fields that recorded them:
+    # opening another service proves nothing about whether a complaint was filed.
+    for removed in ("chip_queued_bmc", "chip_queued_official", "bmc_disclaimer",
+                    "official_disclaimer", "authority_disclaimer",
+                    "confirm_suggested_email", "confirm_whatsapp_share",
+                    "official_grievance_label", "official_grievance_generic_label"):
+        if re.search(rf'^\s+{removed}: "', s, re.MULTILINE):
+            fails.append(f"{name}: removed handoff string {removed} is back in the UI copy")
+    for element in ('id="grievanceId"', 'id="whatsappBtn"', 'id="portalFieldsBtn"'):
+        if element in s:
+            fails.append(f"{name}: removed handoff control {element} is back in the UI")
 
     if '<option value="mr">मराठी</option>' not in s:
         fails.append(f"{name}: Marathi is missing from the language selector")
     if '<option value="bn">বাংলা</option>' not in s:
         fails.append(f"{name}: Bengali is missing from the language selector")
-    if not re.search(r'official_grievance_label: "[^"]*BMC[^"]*"', s):
-        fails.append(f"{name}: official BMC grievance-ID label is missing")
-    if not re.search(r'official_grievance_generic_label: "[^"]+"', s):
-        fails.append(f"{name}: generic official grievance/reference label is missing")
 
     # New detections have one public decision only. Do not let confidence, subtype,
     # or clear/probable wording creep back into the visible result or labelling UI.
