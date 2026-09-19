@@ -37,9 +37,13 @@ echo "2/5 installing and clearing app data"
 echo "3/5 launching"
 "$ADB" shell am start -n "$PACKAGE/.MainActivity" >/dev/null
 # The WebView needs a moment on a cold start; poll rather than guess.
+# mCurrentFocus can belong to a systemui ANR dialog on a loaded emulator while our
+# activity is perfectly healthy underneath. mFocusedApp is the app the window manager
+# considers foreground, so accept either.
 for _ in $(seq 1 30); do
   sleep 2
-  focus="$("$ADB" shell dumpsys window 2>/dev/null | grep -c "mCurrentFocus.*$PACKAGE" || true)"
+  focus="$("$ADB" shell dumpsys window 2>/dev/null \
+    | grep -cE "(mCurrentFocus|mFocusedApp).*$PACKAGE" || true)"
   [ "$focus" != "0" ] && break
 done
 [ "$focus" != "0" ] || { echo "FAIL the app never took focus"; exit 1; }
@@ -61,7 +65,8 @@ if [ -n "$errors" ]; then
   exit 1
 fi
 
-screen="$("$ADB" shell dumpsys window 2>/dev/null | grep -c "mCurrentFocus.*$PACKAGE" || true)"
+screen="$("$ADB" shell dumpsys window 2>/dev/null \
+  | grep -cE "(mCurrentFocus|mFocusedApp).*$PACKAGE" || true)"
 [ "$screen" != "0" ] || { echo "FAIL the app left the foreground during first run"; exit 1; }
 
 [ "$KEEP" = "1" ] || "$ADB" shell am force-stop "$PACKAGE" >/dev/null

@@ -405,7 +405,7 @@ for (const model of LLM_UI_CONFIG.allowedModels) {
   const option = document.createElement("option");
   option.value = model;
   option.textContent = model === LLM_UI_CONFIG.defaultModel
-    ? `${model} — current baseline` : `${model} — accuracy experiment`;
+    ? `${model}: current baseline` : `${model}: accuracy experiment`;
   $("setModel").appendChild(option);
 }
 for (const detail of LLM_UI_CONFIG.allowedImageDetails) {
