@@ -12,47 +12,16 @@ detection = contract["prompts"]["detection"]
 models = contract["config"]["models"]
 runtime = contract["config"]["runtime"]
 imaging = contract["config"]["imaging"]
+# The shipped browser engine. Several checks below read its source directly to prove
+# the evaluator and the app prepare images the same way.
+client = (ROOT / "static" / "standalone.js").read_text()
 fails = []
 
 
-drive_preprocessing = re.search(
-    r"let imageInputs, dataUrl, fullViews = null, contextDataUrl = null;"
-    r"\s*if \(driveMode\) \{(?P<body>.*?)\n\s*\} else \{",
-    client,
-    re.DOTALL,
-)
-drive_preparation_gate_start = client.find("let driveImagePreparationTail = Promise.resolve();")
-drive_preparation_gate_end = client.find(
-    "\n\n  async function createReport", drive_preparation_gate_start)
-drive_preparation_gate = (client[drive_preparation_gate_start:drive_preparation_gate_end]
-                          if drive_preparation_gate_start >= 0
-                          and drive_preparation_gate_end > drive_preparation_gate_start else "")
 to_data_url_start = client.find("async function toDataUrl(")
 to_data_url_end = client.find("\n\n  // ---------- pipeline ----------", to_data_url_start)
 to_data_url_source = (client[to_data_url_start:to_data_url_end]
                       if to_data_url_start >= 0 and to_data_url_end > to_data_url_start else "")
-
-
-def drive_preprocessing_is_sequential():
-    if not drive_preprocessing:
-        return False
-    body = drive_preprocessing.group("body")
-    return ("for (const p of photos)" in body
-            and "MAX_PREPARED_FRAME_DIMENSION" in body
-            and "1920" not in body
-            and "Promise.all(photos.map" not in body)
-
-
-def drive_preparation_gate_is_safe():
-    if not drive_preprocessing or not drive_preparation_gate:
-        return False
-    body = drive_preprocessing.group("body")
-    return ("const wait = driveImagePreparationTail;" in drive_preparation_gate
-            and "driveImagePreparationTail = new Promise" in drive_preparation_gate
-            and "await wait;" in drive_preparation_gate
-            and re.search(r"finally\s*\{\s*release\(\);\s*\}", drive_preparation_gate)
-            and "withDriveImagePreparation(async () =>" in body
-            and "analyzeImage(" not in body)
 
 
 def image_preprocessing_always_releases_resources():
@@ -139,17 +108,23 @@ try:
     web_schema = parse_js_object_constant(client, "ASSESS_SCHEMA")
 except (ValueError, json.JSONDecodeError):
     web_schema = None
-native_prompt_match = re.search(
-    r'val DETECT_PROMPT =\s*"""(.*?)"""\.trimIndent\(\)', native_contract, re.S
-)
-native_prompt = (textwrap.dedent(native_prompt_match.group(1)).strip("\n")
-                 if native_prompt_match else None)
-native_schema_match = re.search(
-    r'val SCHEMA_JSON =\s*"""(.*?)"""\.trimIndent\(\)', native_contract, re.S
-)
+# The Android app runs the generated contract, in the file llm/generate.mjs writes.
+# Reading it here proves the generator ran and that all three sides say the same thing.
+native_contract = (
+    ROOT / "android-app/android/app/src/main/java/com/gauravsen/potholereporter"
+         / "drivemode/LlmContractGenerated.kt"
+).read_text()
+
+
+def kotlin_string_constant(source, name):
+    match = re.search(rf'const val {name} = "((?:[^"\\]|\\.)*)"', source)
+    return json.loads(f'"{match.group(1)}"') if match else None
+
+
+native_prompt = kotlin_string_constant(native_contract, "DETECT_PROMPT")
+native_schema_text = kotlin_string_constant(native_contract, "DETECT_SCHEMA")
 try:
-    native_schema = json.loads(textwrap.dedent(native_schema_match.group(1)).strip()) \
-        if native_schema_match else None
+    native_schema = json.loads(native_schema_text) if native_schema_text else None
 except json.JSONDecodeError:
     native_schema = None
 
@@ -230,8 +205,8 @@ check("invalid model and detail use canonical defaults",
 # `prepare_event` must use the generated transform parameters, not shadow copies.
 transform_calls = []
 real_encode = road_eval.encode_view
-def observe_encode(path, max_dim, quality=85, band=1.0, enhance=False):
-    transform_calls.append((path.name, max_dim, quality, band, enhance))
+def observe_encode(path, max_dim, quality=85, enhance=False):
+    transform_calls.append((path.name, max_dim, quality, enhance))
     return f"data:{path.name}", {"path": path.name}
 road_eval.encode_view = observe_encode
 manual_views, _, manual_note = road_eval.prepare_event(
@@ -242,12 +217,17 @@ drive_views, _, drive_note = road_eval.prepare_event(
 road_eval.encode_view = real_encode
 manual = imaging["manual"]
 drive = imaging["drive"]
+# No roadBand: the contract carries no crop, and AGENTS.md forbids one. The evaluator
+# downscales the complete frame and nothing else.
 check("manual transform comes from contract", transform_calls[0][1:] == (
     manual["maxDimension"], round(manual["jpegQuality"] * 100),
-    manual["roadBand"], manual["adaptiveBrightness"]))
+    manual["adaptiveBrightness"]))
 check("drive transform comes from contract", transform_calls[1][1:] == (
     drive["maxDimension"], round(drive["jpegQuality"] * 100),
-    drive["roadBand"], drive["adaptiveBrightness"]))
+    drive["adaptiveBrightness"]))
+check("no capture mode declares a crop band",
+      not any("roadBand" in mode for mode in (manual, drive))
+      and "roadBand" not in client)
 check("Drive selects only its labelled primary frame",
       [call[0] for call in transform_calls] == ["manual.jpg", "b.jpg"]
       and len(drive_views) == 1)
@@ -277,10 +257,14 @@ check("undamaged with size is contradictory",
       road_eval.decision({**good, "assessment": "undamaged",
                           "damage_type": None, "size": "small"}) == "review")
 check("legacy positive label", road_eval.binary_label("pothole") is True)
-check("non-cavity surface breakup label is negative",
-      road_eval.binary_label("surface_breakup") is False)
-check("legacy failed patch awaits explicit binary relabelling",
-      road_eval.binary_label("failed_patch") is None)
+# The shipped contract reports road damage, not cavities alone: every damage_type in
+# its enum is a positive, and an undamaged verdict is the only negative.
+check("every contract damage type is a positive label",
+      all(road_eval.binary_label(value) is True
+          for value in road_eval.SCHEMA["properties"]["damage_type"]["enum"] if value))
+check("undamaged is the negative label",
+      road_eval.binary_label("undamaged") is False
+      and road_eval.binary_label("not_pothole") is False)
 check("unverified category excluded", road_eval.binary_label("disputed") is None)
 selected = road_eval.select_events([
     {"event_id": "one", "path": "one.jpg"},
@@ -295,6 +279,8 @@ try:
 except ValueError:
     missing_event_fails = True
 check("event selector fails on unknown IDs", missing_event_fails)
+# The owner-labelled evaluation corpus.
+labels = json.loads((ROOT / "eval" / "labels.json").read_text())["images"]
 speed_breaker_events = [entry for entry in labels
                         if entry.get("event_id") == "tester-second-speed-breaker-2026-08-25"]
 check("tester speed breaker is retained as owner-labelled semantic ground truth",
@@ -435,7 +421,7 @@ road_eval.adaptive_lift = observe_lift
 with tempfile.TemporaryDirectory() as tmp:
     path = pathlib.Path(tmp) / "dark.jpg"
     Image.new("RGB", (2000, 1000), (30, 30, 30)).save(path, quality=100)
-    _, transform = road_eval.encode_view(path, 1000, 85, 1, True)
+    _, transform = road_eval.encode_view(path, 1000, 85, True)
 road_eval.adaptive_lift = real_lift
 check("evaluator resizes full frame before luminance", observed.get("size") == (1000, 500))
 check("dark resized view is enhanced", transform["enhanced"] is True)

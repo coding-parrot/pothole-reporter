@@ -14,6 +14,12 @@ import urllib.error
 
 from PIL import Image
 
+from native_tree import require_wired_tree
+
+require_wired_tree("the RAD release gate, which pins the gpt-5.6 "
+                   "pothole-binary-v19 Drive contract in "
+                   "NativeDetectionContract.kt")
+
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 EVAL = ROOT / "eval"

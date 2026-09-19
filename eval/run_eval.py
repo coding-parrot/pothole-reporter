@@ -106,6 +106,10 @@ def normalise_config(model, detail):
 
 
 DRIVE_DEFAULT_DETAIL = "original"
+# Android hands the evaluator frames it already prepared. Replay downscales them to the
+# same bound as a live Drive request and never upscales, so a small prepared frame is
+# replayed exactly as the phone sent it.
+MAX_PREPARED_FRAME_DIMENSION = IMAGING_CONFIG["drive"]["maxDimension"]
 # The native Drive request budget, mirrored from NativeDetectionContract.kt.
 NATIVE_DRIVE_MAX_OUTPUT_TOKENS = 1536
 
@@ -475,10 +479,8 @@ def binary_label(label):
         return True
     if label in {"not_pothole", "undamaged"}:
         return False
-    # The retired failed_patch class did not record whether the failed repair contained
-    # a distinct cavity, so it cannot be converted into binary truth without relabelling.
-    if label == "failed_patch":
-        return None
+    # Anything else is an unverified category: it cannot be converted into binary truth
+    # without relabelling, and guessing would quietly move the measured accuracy.
     return None
 
 
@@ -490,7 +492,10 @@ def grouped_metrics(source_rows, suppress_precision_without_negatives=False):
     """Count each labelled event once, regardless of stochastic trial count."""
     grouped = defaultdict(list)
     for row in source_rows:
-        if binary_label(row["label"]) is not None:
+        # An event the owner marked ineligible, such as a phone recording of another
+        # phone's screen, is kept in the corpus as evidence but must never move the
+        # published accuracy. Default true: an ordinary labelled event still counts.
+        if row.get("accuracy_eligible") is True and binary_label(row["label"]) is not None:
             grouped[row["event"]].append(row)
 
     counts = Counter(tp=0, fp=0, tn=0, fn=0)

@@ -67,9 +67,17 @@
     "v1.36.8",
     "v1.36.9",
     "v1.36.10",
-    "v1.37.0"
+    "v1.37.0",
+    "v1.38.0",
+    "v1.38.1"
   ],
   "resources": [
+    {
+      "bytes": 8213,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/an/highways-4a9dd9fa626ca3169efd6db82e930b7650bf59fbe7fd7667214760444b22ba84.json",
+      "sha256": "4a9dd9fa626ca3169efd6db82e930b7650bf59fbe7fd7667214760444b22ba84"
+    },
     {
       "bytes": 120023,
       "first_tag": "v1.36.0",
@@ -77,10 +85,22 @@
       "sha256": "bd23f677c5a25666a04e03575009d059a2f8b53c66756ec0b0f0189bd187772d"
     },
     {
+      "bytes": 56253,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/ar/highways-5d642ca99f4deadcf2bb43ae4322e41babdc1d7c247cf1b02bfea01dcb2c7e3a.json",
+      "sha256": "5d642ca99f4deadcf2bb43ae4322e41babdc1d7c247cf1b02bfea01dcb2c7e3a"
+    },
+    {
       "bytes": 51869,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/ar/highways-9748a69d85ca61527f1271e7999394a1b8e8b89ef92b6d8fe56ecd7cf08d8f24.json",
       "sha256": "9748a69d85ca61527f1271e7999394a1b8e8b89ef92b6d8fe56ecd7cf08d8f24"
+    },
+    {
+      "bytes": 89351,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/as/highways-37e9890a982e68696dd84d84d2a70c91f7659e9cb9216b3dc878b0285401963c.json",
+      "sha256": "37e9890a982e68696dd84d84d2a70c91f7659e9cb9216b3dc878b0285401963c"
     },
     {
       "bytes": 57957,
@@ -143,6 +163,12 @@
       "sha256": "afff3ac853ca58d3083f0cfb9ec13c07e658744477cbe0acd10285f2c6791c04"
     },
     {
+      "bytes": 42262,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/jk/highways-9d81ade9afbf2089b0f1679fab13265d953c09ca06a7a1b5800352c8548b1aa2.json",
+      "sha256": "9d81ade9afbf2089b0f1679fab13265d953c09ca06a7a1b5800352c8548b1aa2"
+    },
+    {
       "bytes": 30470,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/jk/highways-ab1169d8ce9d492f184c4774856ecebe8d2bd9e312f8b8d9a713f1786cda74a7.json",
@@ -159,6 +185,12 @@
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/kl/highways-7e5942ad166730cd97bf2bab283f62bc1b31cf07da3090c89911d45e74bf5f59.json",
       "sha256": "7e5942ad166730cd97bf2bab283f62bc1b31cf07da3090c89911d45e74bf5f59"
+    },
+    {
+      "bytes": 4261,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/la/highways-82b0c92ba2e82a911caaa4e2d6bab3c798a619c699ac7cb9431f6130d5200de7.json",
+      "sha256": "82b0c92ba2e82a911caaa4e2d6bab3c798a619c699ac7cb9431f6130d5200de7"
     },
     {
       "bytes": 3156,
@@ -179,6 +211,18 @@
       "sha256": "2a43e81e600af5d84ee787418f562077436be9b768286d42b2b529360a1c4071"
     },
     {
+      "bytes": 13187,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/ml/highways-3f249b9c113613669d9670ac914aeaebc20c3cfd89b77b532412edc3cdd7907f.json",
+      "sha256": "3f249b9c113613669d9670ac914aeaebc20c3cfd89b77b532412edc3cdd7907f"
+    },
+    {
+      "bytes": 19845,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/mn/highways-b1a3a0863ff58b71aeba1b97f199ac03a9a3a105e98861826ddb45bb6f37fc3f.json",
+      "sha256": "b1a3a0863ff58b71aeba1b97f199ac03a9a3a105e98861826ddb45bb6f37fc3f"
+    },
+    {
       "bytes": 6820,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/mn/highways-d56e1ae9fc61b8505fe5d1f7142d142be29cfe621308ee1ac43d1ff69022cb7c.json",
@@ -191,6 +235,12 @@
       "sha256": "80e366a8d0df3f41988de609d1e59404e7f32c2372c3ef1beeb80a019be22fa1"
     },
     {
+      "bytes": 10298,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/mz/highways-5849a0653a5f00564607792f734c395cf458e2dc6cd4d6512cb9c4a7d76cf2bf.json",
+      "sha256": "5849a0653a5f00564607792f734c395cf458e2dc6cd4d6512cb9c4a7d76cf2bf"
+    },
+    {
       "bytes": 8555,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/mz/highways-6c9a2c255d2aece04d1541600bcbd900904359153121b1e164bfbf38a7e11336.json",
@@ -201,6 +251,12 @@
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/nl/highways-8374c497479ef591135ab8668dea328d2de56ae1389b7bef95a7bf6a0d4a21f5.json",
       "sha256": "8374c497479ef591135ab8668dea328d2de56ae1389b7bef95a7bf6a0d4a21f5"
+    },
+    {
+      "bytes": 38755,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/nl/highways-eb34838dee078bd02e12e49ecc010f7bcffaa02dc5a9237b62e365ed88de8840.json",
+      "sha256": "eb34838dee078bd02e12e49ecc010f7bcffaa02dc5a9237b62e365ed88de8840"
     },
     {
       "bytes": 80942,
@@ -227,6 +283,12 @@
       "sha256": "7988af65a18cef1781b86c26c25bb88495e2ed3ec599b50fa5bb52e8ebc3f8bc"
     },
     {
+      "bytes": 20318,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/sk/highways-379f4e8dbf1afcaf406933e5660e5a50f1cb713dd1e0dc4c0d96be342d517cd9.json",
+      "sha256": "379f4e8dbf1afcaf406933e5660e5a50f1cb713dd1e0dc4c0d96be342d517cd9"
+    },
+    {
       "bytes": 7903,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/sk/highways-7dc02434f954f44a90490709fd93ead28f4d069fd84745261cee3e7b51b31f43.json",
@@ -245,10 +307,28 @@
       "sha256": "f42851a50a17e560d239eaa8394acdfa975df9a356e01b64901a58e9e314748c"
     },
     {
+      "bytes": 30226,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/tr/highways-2819badcfdaed86d7290dd8a0c38110128560dd4030dabd1f2131e43c14ca1ce.json",
+      "sha256": "2819badcfdaed86d7290dd8a0c38110128560dd4030dabd1f2131e43c14ca1ce"
+    },
+    {
       "bytes": 1138,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/tr/highways-d148ba64393320cff07f79cc4e8b6b28bc7a5aa395e08d490af42c03552cd896.json",
       "sha256": "d148ba64393320cff07f79cc4e8b6b28bc7a5aa395e08d490af42c03552cd896"
+    },
+    {
+      "bytes": 84931,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/ts/highways-93362e4d8ce9afb167f9befa9bf2a10c11da923a4621b335381d3c8953a5bbe3.json",
+      "sha256": "93362e4d8ce9afb167f9befa9bf2a10c11da923a4621b335381d3c8953a5bbe3"
+    },
+    {
+      "bytes": 102312,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/uk/highways-7806fc2987896808449b97b69b23382c86fc4f53e8b3bc6fbc5d9812209fb619.json",
+      "sha256": "7806fc2987896808449b97b69b23382c86fc4f53e8b3bc6fbc5d9812209fb619"
     },
     {
       "bytes": 97422,
@@ -267,6 +347,12 @@
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/wb/highways-47bb390a5b1a3982bceafe4314a11fd6577c58b69f558f52b5bf9f4dfcddd064.json",
       "sha256": "47bb390a5b1a3982bceafe4314a11fd6577c58b69f558f52b5bf9f4dfcddd064"
+    },
+    {
+      "bytes": 141070,
+      "first_tag": "v1.38.1",
+      "path": "packs/v1/contracts/wb/highways-5e7ff370645e3a14a1fe8f2bf119e973b9d6082dbe08398cb29fb8951cf75116.json",
+      "sha256": "5e7ff370645e3a14a1fe8f2bf119e973b9d6082dbe08398cb29fb8951cf75116"
     },
     {
       "bytes": 39775,

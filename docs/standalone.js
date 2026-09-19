@@ -5604,6 +5604,22 @@
       ? optionalCatalogResult(
           exactPinnedContractStateCode(geocodeStateCode, lat, lng, gpsAccuracy))
       : Promise.resolve(null);
+
+    // The exact contract-state polygon is resolved once above, but only the highway
+    // branch applied it. Every municipal and statewide route returned without it, so
+    // contract_state_code was undefined and tender_eligible was false for every city
+    // pothole: contractor matching was off wherever a road actually has a contract.
+    const withContractState = async (route) => {
+      if (!route || !route.routed || issueType !== "road_damage") return route;
+      if (route.contract_state_code !== undefined) return route;
+      const contractStateCode = await exactContractStateP;
+      // A statewide "choose your authority" fallback has identified no road owner and
+      // no local body. Knowing the state is still worth recording, but a candidate
+      // contract search needs a route that names who maintains the road.
+      const named = !/-statewide-unverified$/.test(String(route.authority_id || ""));
+      return { ...route, contract_state_code: contractStateCode,
+               tender_eligible: !!contractStateCode && named };
+    };
     // Road class outranks the containing city. Without this first check, a pothole on an
     // NH passing through Delhi, Kolkata, Chennai, Hyderabad, Ahmedabad, MMR or Pune can
     // be addressed to the municipal body even though the highway has another maintainer.
@@ -5611,14 +5627,14 @@
       ? await nationalHighwayRoute(lat, lng, gpsAccuracy, heading, speed) : null;
     if (highway) {
       const contractStateCode = await exactContractStateP;
-      return routeForIssue({
+      return withContractState(routeForIssue({
         ...highway,
         contract_state_code: contractStateCode,
         // A pack is loaded only when an official project source has records for this
         // jurisdiction. Eligibility means "candidate search allowed", never that this
         // point has already been assigned to a contract.
         tender_eligible: !!contractStateCode,
-      }, issueType);
+      }, issueType));
     }
 
     // Coarse download envelopes overlap neighbouring jurisdictions. Preserve a pack
@@ -5630,13 +5646,13 @@
       if (delhi.unrouted_reason === "jurisdiction_unavailable") {
         deferredJurisdictionFailure = delhi;
       } else {
-        return routeForIssue(delhi, issueType);
+        return withContractState(routeForIssue(delhi, issueType));
       }
     }
 
     const kolkata = await kolkataRouteFromGeocode(geo, lat, lng, gpsAccuracy);
     if (kolkata && kolkata.unrouted_reason !== "outside_area") {
-      return routeForIssue(kolkata, issueType);
+      return withContractState(routeForIssue(kolkata, issueType));
     }
 
     // A missing pack inside a coarse prefilter is not proof that the point belongs to
@@ -5650,7 +5666,7 @@
           if (!deferredJurisdictionFailure) deferredJurisdictionFailure = municipal;
           continue;
         }
-        return routeForIssue(municipal, issueType);
+        return withContractState(routeForIssue(municipal, issueType));
       }
     }
 
@@ -5662,7 +5678,7 @@
       if (telangana.unrouted_reason === "jurisdiction_unavailable") {
         if (!deferredJurisdictionFailure) deferredJurisdictionFailure = telangana;
       } else {
-        return routeForIssue(telangana, issueType);
+        return withContractState(routeForIssue(telangana, issueType));
       }
     }
 
@@ -5673,7 +5689,7 @@
       if (tamilNadu.unrouted_reason === "jurisdiction_unavailable") {
         if (!deferredJurisdictionFailure) deferredJurisdictionFailure = tamilNadu;
       } else {
-        return routeForIssue(tamilNadu, issueType);
+        return withContractState(routeForIssue(tamilNadu, issueType));
       }
     }
 
@@ -5683,7 +5699,7 @@
       if (andhraPradesh.unrouted_reason === "jurisdiction_unavailable") {
         if (!deferredJurisdictionFailure) deferredJurisdictionFailure = andhraPradesh;
       } else {
-        return routeForIssue(andhraPradesh, issueType);
+        return withContractState(routeForIssue(andhraPradesh, issueType));
       }
     }
 
@@ -5695,7 +5711,7 @@
       if (maharashtra.unrouted_reason === "jurisdiction_unavailable") {
         if (!deferredJurisdictionFailure) deferredJurisdictionFailure = maharashtra;
       } else {
-        return routeForIssue(maharashtra, issueType);
+        return withContractState(routeForIssue(maharashtra, issueType));
       }
     }
 
@@ -5707,7 +5723,7 @@
       if (punjab.unrouted_reason === "jurisdiction_unavailable") {
         if (!deferredJurisdictionFailure) deferredJurisdictionFailure = punjab;
       } else {
-        return routeForIssue(punjab, issueType);
+        return withContractState(routeForIssue(punjab, issueType));
       }
     }
 
@@ -5719,7 +5735,7 @@
       if (kerala.unrouted_reason === "jurisdiction_unavailable") {
         if (!deferredJurisdictionFailure) deferredJurisdictionFailure = kerala;
       } else {
-        return routeForIssue(kerala, issueType);
+        return withContractState(routeForIssue(kerala, issueType));
       }
     }
 
@@ -5732,7 +5748,7 @@
       if (uttarPradesh.unrouted_reason === "jurisdiction_unavailable") {
         if (!deferredJurisdictionFailure) deferredJurisdictionFailure = uttarPradesh;
       } else {
-        return routeForIssue(uttarPradesh, issueType);
+        return withContractState(routeForIssue(uttarPradesh, issueType));
       }
     }
 
@@ -5742,7 +5758,7 @@
       if (chhattisgarh.unrouted_reason === "jurisdiction_unavailable") {
         if (!deferredJurisdictionFailure) deferredJurisdictionFailure = chhattisgarh;
       } else {
-        return routeForIssue(chhattisgarh, issueType);
+        return withContractState(routeForIssue(chhattisgarh, issueType));
       }
     }
 
@@ -5751,7 +5767,7 @@
       if (rajasthan.unrouted_reason === "jurisdiction_unavailable") {
         if (!deferredJurisdictionFailure) deferredJurisdictionFailure = rajasthan;
       } else {
-        return routeForIssue(rajasthan, issueType);
+        return withContractState(routeForIssue(rajasthan, issueType));
       }
     }
 
@@ -5768,7 +5784,7 @@
       if (state.unrouted_reason === "jurisdiction_unavailable") {
         if (!deferredJurisdictionFailure) deferredJurisdictionFailure = state;
       } else {
-        return routeForIssue(state, issueType);
+        return withContractState(routeForIssue(state, issueType));
       }
     }
 
@@ -5787,9 +5803,9 @@
         || majorCity.authority_id === "in-mp-cm-helpline"
         || majorCity.authority_id === "in-br-lok-shikayat";
       if (deferredJurisdictionFailure && supersededCityRoute) {
-        return routeForIssue(deferredJurisdictionFailure, issueType);
+        return withContractState(routeForIssue(deferredJurisdictionFailure, issueType));
       }
-      return routeForIssue(majorCity, issueType);
+      return withContractState(routeForIssue(majorCity, issueType));
     }
 
     // Every State and Union Territory now has an exact checksum-pinned outer boundary.
@@ -5801,7 +5817,7 @@
       if (remainingState.unrouted_reason === "jurisdiction_unavailable") {
         if (!deferredJurisdictionFailure) deferredJurisdictionFailure = remainingState;
       } else {
-        return routeForIssue(remainingState, issueType);
+        return withContractState(routeForIssue(remainingState, issueType));
       }
     }
 
@@ -5811,11 +5827,11 @@
     const karnatakaState = await karnatakaStateRouteFromGeocode(
       geo, lat, lng, gpsAccuracy);
     if (!karnatakaState) {
-      return routeForIssue(
-        deferredJurisdictionFailure || unroutedRoute("outside_area"), issueType);
+      return withContractState(routeForIssue(
+        deferredJurisdictionFailure || unroutedRoute("outside_area"), issueType));
     }
     if (karnatakaState.unrouted_reason === "location_uncertain") {
-      return routeForIssue(karnatakaState, issueType);
+      return withContractState(routeForIssue(karnatakaState, issueType));
     }
     const karnatakaFallback = karnatakaState.routed ? karnatakaState : null;
 
@@ -5828,31 +5844,31 @@
         ? routeWhereFromCentral(authoritativeJurisdiction)
         : await jurisdictionOf(lat, lng);
     }
-    catch (e) { return routeForIssue(unroutedRoute("road_class_unknown"), issueType); }
+    catch (e) { return withContractState(routeForIssue(unroutedRoute("road_class_unknown"), issueType)); }
 
     if (where.kind === "outside_state") {
-      return routeForIssue(karnatakaFallback || unroutedRoute("outside_area"), issueType);
+      return withContractState(routeForIssue(karnatakaFallback || unroutedRoute("outside_area"), issueType));
     }
     if (where.kind === "national_highway") {
-      return routeForIssue(unroutedRoute("national_highway", where.name), issueType);
+      return withContractState(routeForIssue(unroutedRoute("national_highway", where.name), issueType));
     }
     if (where.kind === "state_highway") {
-      return routeForIssue(unroutedRoute("state_highway", where.name), issueType);
+      return withContractState(routeForIssue(unroutedRoute("state_highway", where.name), issueType));
     }
     if (where.kind === "district_highway") {
-      return routeForIssue(unroutedRoute("district_highway", where.name), issueType);
+      return withContractState(routeForIssue(unroutedRoute("district_highway", where.name), issueType));
     }
     if (where.kind === "road_class_unknown") {
-      return routeForIssue(karnatakaFallback || unroutedRoute("road_class_unknown"), issueType);
+      return withContractState(routeForIssue(karnatakaFallback || unroutedRoute("road_class_unknown"), issueType));
     }
     if (where.kind === "rural") {
-      return routeForIssue(karnatakaFallback || unroutedRoute("rural_road", where.name), issueType);
+      return withContractState(routeForIssue(karnatakaFallback || unroutedRoute("rural_road", where.name), issueType));
     }
 
     const registry = await bodies();
     const entry = where.lgd && registry[where.lgd];
-    if (!entry || !entry.email) return routeForIssue(karnatakaFallback
-      || unroutedRoute("no_address_for_body", where.name), issueType);
+    if (!entry || !entry.email) return withContractState(routeForIssue(karnatakaFallback
+      || unroutedRoute("no_address_for_body", where.name), issueType));
     const title = entry.officer || OFFICER_TITLES[entry.type || where.type] || "Chief Officer";
     const exactKarnataka = routeForIssue({
       routed: true,
@@ -5874,7 +5890,7 @@
       ...statePackProvenance("in-ka-routing"),
     }, issueType);
     if (issueType !== "road_damage" && !exactKarnataka.routed) {
-      return routeForIssue(karnatakaFallback || exactKarnataka, issueType);
+      return withContractState(routeForIssue(karnatakaFallback || exactKarnataka, issueType));
     }
     return exactKarnataka;
   }
@@ -8174,8 +8190,6 @@
   }
 
   // ---------- image ----------
-
-  const ROAD_BAND = IMAGING_CONFIG.drive.roadBand;
 
   // Android, Web and the offline evaluator must enhance identical pixels, so all three
   // call this one integer kernel. Scaled luminance keeps it exact across runtimes.
@@ -11575,7 +11589,7 @@
                    REPAIR_MAX_HEADING_DIFFERENCE_DEG, REPAIR_MISSING_HEADING_RADIUS_M,
                    REPAIR_RADIUS_M, REPAIR_SCHEMA_VERSION, REPAIR_VERIFICATION_VERSION,
                    REQUEST_TIMEOUT_MS, ROAD_AGREEMENT_MANIFEST_FILE,
-                   ROAD_AGREEMENT_PACK_MAX_BYTES, ROAD_BAND, ROAD_NOTICE_MANIFEST_FILE,
+                   ROAD_AGREEMENT_PACK_MAX_BYTES, ROAD_NOTICE_MANIFEST_FILE,
                    ROAD_NOTICE_PACK_MAX_BYTES, ROAD_NOTICE_STOP, ROAD_NOTICE_TIMESTAMP_RE,
                    ROAD_NOUNS, ROAD_PREFIX_MODIFIERS, ROAD_WORK_ACTIONS, ROUTE_RECORD_FIELDS,
                    RUNTIME_CONFIG, S, SCHEMA_VERSION, SERVICE_URL, SHARED_VISION_TIMEOUT_MS,
