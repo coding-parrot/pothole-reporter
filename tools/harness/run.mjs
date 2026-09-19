@@ -6,6 +6,7 @@
 //   node tools/harness/run.mjs --all           everything, including the slow suites
 //   node tools/harness/run.mjs --only flow     one group: static, flow, server, python,
 //                                             browsers (firefox/webkit), emulator,
+//                                             release (signed APK on the emulator),
 //                                             devices (AWS Device Farm, opt-in)
 //   node tools/harness/run.mjs --loop          re-run until no regressions remain
 //   node tools/harness/run.mjs --until-green   re-run until EVERY check passes
@@ -185,8 +186,20 @@ function tasks(group) {
   if (group === "emulator" || flag("all")) {
     all.push({
       group: "emulator",
-      name: "android emulator smoke (fresh install reaches Home)",
+      name: "android emulator smoke (fresh install, Home, Drive, camera notice)",
       command: ["bash", "tools/harness/emulator-smoke.sh"],
+    });
+  }
+  // The same smoke against the signed release APK. R8 only runs in a release build,
+  // and the first 1.39.0 release died on the camera permission check because R8 had
+  // stripped Capacitor's annotations; the debug smoke above could never see that.
+  // Opt-in: it needs tools/build-play-release.sh to have produced the APK.
+  if (group === "release") {
+    all.push({
+      group: "release",
+      name: "android emulator smoke on the signed release APK",
+      command: ["bash", "tools/harness/emulator-smoke.sh", "--apk",
+        "android-app/android/app/build/outputs/apk/release/app-release.apk"],
     });
   }
   // The flow suites also run on Firefox and WebKit: a tester's WebView is not Chromium,

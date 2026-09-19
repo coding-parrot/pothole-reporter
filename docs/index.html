@@ -96,24 +96,6 @@
       </div>
     </div>
     <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden">
-    <div class="card hidden" id="videoImportCard" aria-hidden="true">
-      <button class="ghost" id="videoImportBtn" style="width:100%">&#127909; &nbsp;Import Meta glasses / dashcam video</button>
-      <div class="meta" id="videoImportHint" style="margin-top:8px"></div>
-      <div id="nativeVideoImports" class="hidden" style="margin-top:10px"></div>
-      <div class="btn-row" style="margin-top:8px">
-        <button class="ghost" id="gpxImportBtn" style="padding:10px">Add GPS track (.gpx)</button>
-        <button class="ghost danger hidden" id="gpxClearBtn" style="padding:10px">Remove GPS track</button>
-      </div>
-      <div class="meta" id="gpxImportStatus" style="margin-top:6px"></div>
-      <label style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:13px;color:#f2f2f4">
-        <input type="checkbox" id="videoUseCurrentLocation" style="width:18px;height:18px;accent-color:var(--accent);flex:none;margin-top:1px">
-        <span id="videoCurrentLocationLabel">Use this phone's current position for every frame (only when the video was recorded here)</span>
-      </label>
-    </div>
-    <input type="file" id="videoInput"
-      accept="video/mp4,video/quicktime,video/x-m4v,video/webm,.mp4,.m4v,.mov,.webm,.mkv,.avi"
-      multiple class="hidden">
-    <input type="file" id="gpxInput" accept="application/gpx+xml,.gpx" class="hidden">
     <h2 id="reportsTitle">Your reports</h2>
     <div id="list"><div class="empty">No reports yet.</div></div>
   </div>
@@ -221,17 +203,6 @@
       <label id="detailLabel">Image detail</label>
       <select id="setDetail"></select>
       <div class="meta" id="accuracyNote"></div>
-      <label id="captureSourceLabel" class="hidden" for="setCaptureSource">Drive video source</label>
-      <select id="setCaptureSource" class="hidden" aria-hidden="true">
-        <option id="phoneCameraOption" value="phone_camera">Phone camera</option>
-        <option id="dashcamOption" value="dashcam">Dashcam</option>
-      </select>
-      <div class="meta hidden" id="captureSourceNote">The selected source is used the next time Drive starts.</div>
-      <div id="dashcamSettings" class="hidden">
-        <label id="dashcamRtspLabel" for="setDashcamRtspUrl">Dashcam RTSP URL</label>
-        <input type="password" id="setDashcamRtspUrl" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="dashcamRtspNote" placeholder="rtsp://192.168.1.1:554/live">
-        <div class="meta" id="dashcamRtspNote" aria-live="polite">Connect this phone to the dashcam's Wi-Fi. Drive uses this phone's GPS, but not its camera or audio. H.264 RTSP over TCP is supported. Local RTSP is normally unencrypted, so use only a trusted dashcam Wi-Fi. The address and any credentials are obscured here and saved only on this device.</div>
-      </div>
       <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:#f2f2f4">
         <input type="checkbox" id="setDebug" style="width:18px;height:18px;accent-color:var(--accent)">
         <span id="debugLabel">Debug mode: keep the drive video after analysing it</span>
@@ -423,13 +394,9 @@ const I18N = {
     sub: "Capture it. Verify the damage. Email the responsible authority.",
     report_btn: "&#128247; &nbsp;Photo",
     drive_btn: "&#128663; &nbsp;Drive",
-    video_import_btn: "&#127909; &nbsp;Import Meta glasses / dashcam video",
-    video_import_hint: "Choose one video or several dashcam clips in recording order. MP4/MOV (H.264) and WebM work on most devices; an unsupported codec gets a clear error. Files chosen with Import are read in place. A video shared directly into the Android app may use an app-private temporary copy for at most 24 hours. Only sampled JPEG frames are sent for checking.",
-    gpx_add: "Add GPS track (.gpx)", gpx_remove: "Remove GPS track",
-    gpx_none: "No GPS track selected. Imported frames have no route location by default.",
-    gpx_ready: "GPS: {name} · {n} timestamped points. It is used only where absolute GPX time overlaps embedded MP4/MOV recording time.",
+
+
     gpx_bad: "That GPX file needs at least two valid track points with UTC timestamps.",
-    video_current_location: "Use this phone's current position for every frame (only when the video was recorded here)",
     video_no_location_confirm: "No timestamp-matched GPX track or current-position opt-in is available. Continue without a location? Damage can still be detected, but the responsible authority, contractor and tender cannot be matched.",
     video_current_location_failed: "The current position was selected, but the phone could not get a GPS fix. No video was analysed.",
     video_import_preparing: "Reading video {i} of {n} without copying it into app storage...",
@@ -470,14 +437,10 @@ const I18N = {
     model_label: "Detection model",
     detail_label: "Image detail",
     accuracy_note: "gpt-5-mini/high remains the baseline. gpt-5.6/original is an experiment until your held-out drive benchmark proves it better.",
-    capture_source_label: "Drive video source",
-    phone_camera_option: "Phone camera",
-    dashcam_option: "Dashcam",
-    capture_source_note: "The selected source is used the next time Drive starts.",
-    dashcam_rtsp_label: "Dashcam RTSP URL",
-    dashcam_rtsp_note: "Connect this phone to the dashcam's Wi-Fi. Drive uses this phone's GPS, but not its camera or audio. H.264 RTSP over TCP is supported. Local RTSP is normally unencrypted, so use only a trusted dashcam Wi-Fi. The address and any credentials are obscured here and saved only on this device.",
-    dashcam_rtsp_invalid: "Enter a complete rtsp:// address, for example rtsp://192.168.1.1:554/live.",
-    dashcam_native_only: "Dashcam input is available in the Android app. Choose Phone camera in this browser.",
+
+
+
+
     debug_label: "Debug mode: keep the drive video after analysing it",
     settings_note: "Accepted pothole coordinates and small metadata, including an image hash, go to the project service for tender resolution, nearby deduplication, the shared map and aggregate impact. A failed accepted-metadata upload retries when the app starts or reconnects until you delete that report. Email is the only complaint-filing option: one tap opens a pre-addressed draft with the location, road-damage details, photo and any probable tender number. Nothing sends until you press Send in your email app.",
     independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
@@ -650,19 +613,14 @@ const I18N = {
     verdict_repair_review: "Possible repair found: compare both photos",
       privacy_permission: "The app asks for precise location, and for camera permission when you take a photo or start Drive mode.",
     privacy_source: "Drive mode uses no audio. It uses this phone's camera and this phone's location in the background, including while Maps or a call screen is in front.",
-
   },
   kn: {
     sub: "ಚಿತ್ರ ಸೆರೆಹಿಡಿಯಿರಿ. ಹಾನಿ ಪರಿಶೀಲಿಸಿ. ಜವಾಬ್ದಾರ ಅಧಿಕಾರಿಗೆ ಇಮೇಲ್ ಮಾಡಿ.",
     report_btn: "&#128247; &nbsp;ಫೋಟೋ",
     drive_btn: "&#128663; &nbsp;ಡ್ರೈವ್",
-    video_import_btn: "&#127909; &nbsp;Meta glasses / ಡ್ಯಾಶ್‌ಕ್ಯಾಮ್ ವಿಡಿಯೋ ಆಮದು",
-    video_import_hint: "ಒಂದು ವಿಡಿಯೋ ಅಥವಾ ಹಲವಾರು ಡ್ಯಾಶ್‌ಕ್ಯಾಮ್ ತುಣುಕುಗಳನ್ನು ಚಿತ್ರೀಕರಣ ಕ್ರಮದಲ್ಲಿ ಆಯ್ಕೆಮಾಡಿ. MP4/MOV (H.264) ಮತ್ತು WebM ಸಾಮಾನ್ಯವಾಗಿ ಕೆಲಸ ಮಾಡುತ್ತವೆ. Import ಮೂಲಕ ಆಯ್ದ ಫೈಲ್‌ಗಳನ್ನು ಅದೇ ಸ್ಥಳದಿಂದ ಓದಲಾಗುತ್ತದೆ. Android ಗೆ ನೇರವಾಗಿ Share ಮಾಡಿದ ವಿಡಿಯೋವನ್ನು ಆ್ಯಪ್‌ನ ಖಾಸಗಿ ತಾತ್ಕಾಲಿಕ ಪ್ರತಿಯಾಗಿ ಗರಿಷ್ಠ 24 ಗಂಟೆ ಇಡಬಹುದು. ಆಯ್ದ JPEG ಫ್ರೇಮ್‌ಗಳನ್ನು ಮಾತ್ರ ಪರಿಶೀಲನೆಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ.",
-    gpx_add: "GPS ಟ್ರ್ಯಾಕ್ ಸೇರಿಸಿ (.gpx)", gpx_remove: "GPS ಟ್ರ್ಯಾಕ್ ತೆಗೆದುಹಾಕಿ",
-    gpx_none: "GPS ಟ್ರ್ಯಾಕ್ ಆಯ್ಕೆ ಆಗಿಲ್ಲ. ಆಮದು ಫ್ರೇಮ್‌ಗಳಿಗೆ ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಮಾರ್ಗ ಸ್ಥಳ ಇರುವುದಿಲ್ಲ.",
-    gpx_ready: "GPS: {name} · ಸಮಯ ಹೊಂದಿದ {n} ಪಾಯಿಂಟ್‌ಗಳು. GPX ಸಮಯವು MP4/MOV ದಾಖಲೆಯ ಸಮಯಕ್ಕೆ ಹೊಂದಿದಲ್ಲಿ ಮಾತ್ರ ಬಳಸಲಾಗುತ್ತದೆ.",
+
+
     gpx_bad: "GPX ಫೈಲ್‌ನಲ್ಲಿ UTC ಸಮಯ ಹೊಂದಿರುವ ಕನಿಷ್ಠ ಎರಡು ಮಾನ್ಯ ಟ್ರ್ಯಾಕ್ ಪಾಯಿಂಟ್‌ಗಳು ಬೇಕು.",
-    video_current_location: "ವಿಡಿಯೋ ಇಲ್ಲಿಯೇ ಚಿತ್ರೀಕರಿಸಿದ್ದರೆ ಮಾತ್ರ ಪ್ರತಿಯೊಂದು ಫ್ರೇಮ್‌ಗೆ ಈ ಫೋನ್‌ನ ಈಗಿನ ಸ್ಥಳ ಬಳಸಿ",
     video_no_location_confirm: "ಸಮಯಕ್ಕೆ ಹೊಂದಿದ GPX ಅಥವಾ ಈಗಿನ ಸ್ಥಳ ಬಳಸುವ ಆಯ್ಕೆ ಇಲ್ಲ. ಸ್ಥಳವಿಲ್ಲದೆ ಮುಂದುವರಿಸಬೇಕೆ? ಹಾನಿ ಪತ್ತೆಯಾಗಬಹುದು, ಆದರೆ ಪ್ರಾಧಿಕಾರ, ಗುತ್ತಿಗೆದಾರ ಮತ್ತು ಟೆಂಡರ್ ಹೊಂದಿಸಲಾಗುವುದಿಲ್ಲ.",
     video_current_location_failed: "ಈಗಿನ ಸ್ಥಳ ಆಯ್ಕೆ ಆಗಿದೆ, ಆದರೆ GPS ಸ್ಥಳ ಸಿಗಲಿಲ್ಲ. ಯಾವುದೇ ವಿಡಿಯೋ ವಿಶ್ಲೇಷಿಸಲಾಗಿಲ್ಲ.",
     video_import_preparing: "ಆ್ಯಪ್ ಸಂಗ್ರಹಕ್ಕೆ ನಕಲಿಸದೆ ವಿಡಿಯೋ {i}/{n} ಓದಲಾಗುತ್ತಿದೆ...",
@@ -703,14 +661,10 @@ const I18N = {
     model_label: "ಪತ್ತೆ ಮಾದರಿ",
     detail_label: "ಚಿತ್ರದ ವಿವರ",
     accuracy_note: "gpt-5-mini/high ಪ್ರಸ್ತುತ ಮೂಲಮಟ್ಟ. ನಿಮ್ಮ ಪ್ರತ್ಯೇಕ ಡ್ರೈವ್ ಪರೀಕ್ಷೆ ಉತ್ತಮವೆಂದು ಸಾಬೀತುಪಡಿಸುವವರೆಗೆ gpt-5.6/original ಪ್ರಯೋಗವಾಗಿದೆ.",
-    capture_source_label: "ಡ್ರೈವ್ ವಿಡಿಯೋ ಮೂಲ",
-    phone_camera_option: "ಫೋನ್ ಕ್ಯಾಮೆರಾ",
-    dashcam_option: "ಡ್ಯಾಶ್‌ಕ್ಯಾಮ್",
-    capture_source_note: "ಮುಂದಿನ ಡ್ರೈವ್ ಆರಂಭಿಸಿದಾಗ ಆಯ್ದ ಮೂಲವನ್ನು ಬಳಸಲಾಗುತ್ತದೆ.",
-    dashcam_rtsp_label: "ಡ್ಯಾಶ್‌ಕ್ಯಾಮ್ RTSP URL",
-    dashcam_rtsp_note: "ಈ ಫೋನ್ ಅನ್ನು ಡ್ಯಾಶ್‌ಕ್ಯಾಮ್ Wi-Fi ಗೆ ಸಂಪರ್ಕಿಸಿ. Drive ಈ ಫೋನ್‌ನ GPS ಬಳಸುತ್ತದೆ, ಆದರೆ ಅದರ ಕ್ಯಾಮೆರಾ ಅಥವಾ ಆಡಿಯೊ ಬಳಸುವುದಿಲ್ಲ. TCP ಮೇಲಿನ H.264 RTSP ಬೆಂಬಲಿತವಾಗಿದೆ. ಸ್ಥಳೀಯ RTSP ಸಾಮಾನ್ಯವಾಗಿ ಎನ್‌ಕ್ರಿಪ್ಟ್ ಆಗಿರುವುದಿಲ್ಲ; ವಿಶ್ವಾಸಾರ್ಹ ಡ್ಯಾಶ್‌ಕ್ಯಾಮ್ Wi-Fi ಮಾತ್ರ ಬಳಸಿ. ವಿಳಾಸ ಮತ್ತು ಕ್ರೆಡೆನ್ಶಿಯಲ್‌ಗಳನ್ನು ಇಲ್ಲಿ ಮರೆಮಾಡಿ ಈ ಸಾಧನದಲ್ಲೇ ಉಳಿಸಲಾಗುತ್ತದೆ.",
-    dashcam_rtsp_invalid: "ಪೂರ್ಣ rtsp:// ವಿಳಾಸ ನಮೂದಿಸಿ, ಉದಾಹರಣೆಗೆ rtsp://192.168.1.1:554/live.",
-    dashcam_native_only: "ಡ್ಯಾಶ್‌ಕ್ಯಾಮ್ ಇನ್‌ಪುಟ್ Android ಆ್ಯಪ್‌ನಲ್ಲಿ ಲಭ್ಯವಿದೆ. ಈ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಫೋನ್ ಕ್ಯಾಮೆರಾ ಆಯ್ಕೆಮಾಡಿ.",
+
+
+
+
     debug_label: "ಡೀಬಗ್ ಮೋಡ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ಡ್ರೈವ್ ವಿಡಿಯೋ ಉಳಿಸಿ",
     settings_note: "ದೃಢಪಟ್ಟ ಗುಂಡಿಯ ನಿಖರ ಸ್ಥಳ ಮತ್ತು ಚಿತ್ರದ ಹ್ಯಾಶ್ ಸೇರಿದಂತೆ ಸಣ್ಣ ಮೆಟಾಡೇಟಾ ಟೆಂಡರ್ ಪರಿಹಾರ, ಹತ್ತಿರದ ನಕಲು ತಡೆ, ಸಾಮಾನ್ಯ ನಕ್ಷೆ ಮತ್ತು ಒಟ್ಟು ಪರಿಣಾಮಕ್ಕಾಗಿ ಯೋಜನೆಯ ಸೇವೆಗೆ ಹೋಗುತ್ತದೆ. ಅಪ್‌ಲೋಡ್ ವಿಫಲವಾದರೆ, ಆ ವರದಿಯನ್ನು ಅಳಿಸುವವರೆಗೆ ಆ್ಯಪ್ ಆರಂಭವಾದಾಗ ಅಥವಾ ಸಂಪರ್ಕ ಮರಳಿದಾಗ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸುತ್ತದೆ. ದೂರು ಸಲ್ಲಿಸಲು ಇರುವ ಏಕೈಕ ಆಯ್ಕೆ ಇಮೇಲ್: ಒಂದೇ ಟ್ಯಾಪ್‌ನಲ್ಲಿ ಸರಿಯಾದ ಅಧಿಕಾರಿಗೆ ವಿಳಾಸಿಸಿದ, ಸ್ಥಳ, ರಸ್ತೆ ಹಾನಿಯ ವಿವರ, ಫೋಟೋ ಮತ್ತು ಲಭ್ಯವಿದ್ದರೆ ಸಂಭಾವ್ಯ ಟೆಂಡರ್ ಸಂಖ್ಯೆಯ ಕರಡು ತೆರೆಯುತ್ತದೆ.",
     independent_note: "ಇದು ಸ್ವತಂತ್ರ, ಅನಧಿಕೃತ ಆ್ಯಪ್. ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯೊಂದಿಗೆ ಸಂಬಂಧ ಅಥವಾ ಅನುಮೋದನೆ ಇಲ್ಲ. ಕಚೇರಿ ಸೂಚನೆ ಅತ್ಯುತ್ತಮ ಪ್ರಯತ್ನ ಮಾತ್ರ; ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
@@ -883,7 +837,6 @@ const I18N = {
     verdict_repair_review: "ಸಂಭಾವ್ಯ ದುರಸ್ತಿ ಕಂಡುಬಂದಿದೆ: ಎರಡೂ ಫೋಟೋ ಹೋಲಿಸಿ",
       privacy_permission: "ಆ್ಯಪ್ ನಿಖರ ಸ್ಥಳಕ್ಕೆ ಮತ್ತು ನೀವು ಫೋಟೋ ತೆಗೆದಾಗ ಅಥವಾ ಡ್ರೈವ್ ಮೋಡ್ ಆರಂಭಿಸಿದಾಗ ಕ್ಯಾಮೆರಾಕ್ಕೆ ಅನುಮತಿ ಕೇಳುತ್ತದೆ.",
     privacy_source: "ಡ್ರೈವ್ ಮೋಡ್ ಆಡಿಯೋ ಬಳಸುವುದಿಲ್ಲ. ಅದು ಈ ಫೋನಿನ ಕ್ಯಾಮೆರಾ ಮತ್ತು ಈ ಫೋನಿನ ಸ್ಥಳವನ್ನು, Maps ಅಥವಾ ಕರೆ ಪರದೆ ಮುಂದೆ ಇದ್ದಾಗಲೂ, ಹಿನ್ನೆಲೆಯಲ್ಲಿ ಬಳಸುತ್ತದೆ.",
-
   },
   mr: {
     sub: "फोटो घ्या. समस्या पडताळा. सुचवलेल्या कार्यालयासाठी तक्रारीचा मसुदा तयार करा.",
@@ -900,14 +853,10 @@ const I18N = {
     model_label: "फोटो मॉडेल",
     detail_label: "फोटो तपशील",
     accuracy_note: "Drive gpt-5.6/high वापरते; हे पर्याय फक्त Photo साठी आहेत.",
-    capture_source_label: "ड्राइव्ह व्हिडिओ स्रोत",
-    phone_camera_option: "फोन कॅमेरा",
-    dashcam_option: "डॅशकॅम",
-    capture_source_note: "निवडलेला स्रोत पुढील ड्राइव्ह सुरू झाल्यावर वापरला जाईल.",
-    dashcam_rtsp_label: "डॅशकॅम RTSP URL",
-    dashcam_rtsp_note: "हा फोन डॅशकॅमच्या Wi-Fi ला जोडा. Drive या फोनचा GPS वापरते, पण कॅमेरा किंवा ऑडिओ वापरत नाही. फक्त TCP वर H.264 RTSP समर्थित आहे. स्थानिक RTSP सहसा एन्क्रिप्ट केलेले नसते; फक्त विश्वासार्ह डॅशकॅम Wi-Fi वापरा. क्रेडेन्शियल्ससह पत्ता येथे लपवला जातो आणि फक्त या डिव्हाइसवर जतन होतो.",
-    dashcam_rtsp_invalid: "पूर्ण rtsp:// पत्ता द्या, उदाहरणार्थ rtsp://192.168.1.1:554/live.",
-    dashcam_native_only: "डॅशकॅम इनपुट Android अॅपमध्ये उपलब्ध आहे. या ब्राउझरमध्ये फोन कॅमेरा निवडा.",
+
+
+
+
     debug_label: "डीबग मोड: विश्लेषणानंतरही ड्राइव्हचा व्हिडिओ जतन करा",
     settings_note: "स्वीकारलेल्या खड्ड्याचे अचूक स्थान आणि चित्राचा hash यासह थोडी मेटाडेटा, निविदा शोध, जवळपासची डुप्लिकेट तपासणी, सामायिक नकाशा आणि एकत्रित परिणामासाठी प्रकल्प सेवेकडे जाते. हे अपलोड अयशस्वी झाले, तर तो अहवाल तुम्ही हटवेपर्यंत अॅप सुरू झाल्यावर किंवा कनेक्शन परत आल्यावर पुन्हा प्रयत्न करते. तक्रार दाखल करण्याचा एकमेव पर्याय ईमेल: एका टॅपने स्थान, रस्ता-नुकसानाचा तपशील, फोटो आणि संभाव्य निविदा क्रमांकासह आधीच पत्ता दिलेला मसुदा उघडतो. तुमच्या ईमेल अॅपमध्ये Send दाबेपर्यंत काहीही पाठवले जात नाही.",
     independent_note: "हे स्वतंत्र, अनधिकृत अॅप आहे. कोणत्याही सरकारी संस्थेशी संलग्न नाही किंवा तिची मान्यता नाही. सुचवलेले कार्यालय पाठवण्यापूर्वी तपासा.",
@@ -1030,10 +979,6 @@ const I18N = {
 
 
 
-
-
-
-
     confirm_delete: "हा अहवाल हटवायचा का?",
     confirm_wipe: "API की, सेटिंग्ज, अहवाल, फोटो, व्हिडिओ आणि निर्यात केलेल्या डीबग फ्रेम्ससह या फोनवरील अॅपचा सर्व डेटा हटवायचा का?",
     camera_failed: "कॅमेरा वापरता आला नाही: ",
@@ -1058,11 +1003,8 @@ const I18N = {
     feedback_sent: "धन्यवाद. तुमचा अभिप्राय पाठवला आहे.",
     finishing_analysis: "कॅमेरा थांबला · {n} घेतलेल्या तपासण्या पूर्ण होत आहेत…",
     first_reported: "पहिली नोंद {date}",
-    gpx_add: "GPS ट्रॅक जोडा (.gpx)",
     gpx_bad: "त्या GPX फाइलमध्ये UTC वेळेसह किमान दोन वैध ट्रॅक पॉइंट हवेत.",
-    gpx_none: "कोणताही GPS ट्रॅक निवडलेला नाही. आयात केलेल्या फ्रेम्सना डीफॉल्टने मार्गाचे स्थान नसते.",
-    gpx_ready: "GPS: {name} · {n} वेळ-नोंद असलेले पॉइंट. MP4/MOV मध्ये नोंदलेल्या वेळेशी GPX ची वेळ जुळते तिथेच तो वापरला जातो.",
-    gpx_remove: "GPS ट्रॅक काढा",
+
     impact_period: "{from} ते {to} या काळाची एकत्रित आकडेवारी.",
     last_reported: "शेवटची नोंद {date}",
     manual_analysis_active: "मागचा फोटो अजून तपासला जात आहे. दुसरा काढण्यापूर्वी तो पूर्ण होऊ द्या.",
@@ -1097,16 +1039,13 @@ const I18N = {
     state_highway: "{road} हा राज्य महामार्ग आहे",
     state_highway_help: "राज्य महामार्गांची देखभाल शहर किंवा नगर संस्था नव्हे, तर राज्य सार्वजनिक बांधकाम विभाग करतो. या टप्प्यासाठी अद्याप पडताळलेला अधिकृत ईमेल उपलब्ध नाही, त्यामुळे फोटो आणि स्थान तक्रारीचा मसुदा न उघडता जतन केले आहे.",
     video_codec_error: "{name} या साधनावर डीकोड करता आला नाही. Meta glasses ची निर्यात मूळ MP4 असावी; dashcam साठी H.264/AVC व्हिडिओसह MP4 मध्ये निर्यात किंवा रूपांतर करा. HEVC/H.265, AVI आणि काही MKV फाइल्स अनेक Android ब्राउझरमध्ये चालत नाहीत.",
-    video_current_location: "प्रत्येक फ्रेमसाठी या फोनचे सध्याचे स्थान वापरा (व्हिडिओ इथेच रेकॉर्ड केला असेल तरच)",
     video_current_location_failed: "सध्याचे स्थान निवडले होते, पण फोनला GPS fix मिळाला नाही. कोणताही व्हिडिओ तपासला गेला नाही.",
     video_gpx_unaligned: "या MP4/MOV क्लिपमधील विश्वासार्ह रेकॉर्डिंग वेळेशी GPX ची वेळ जुळत नाही. अॅप त्यांच्या स्थानाचा अंदाज लावणार नाही. मार्गाशिवाय तपासायचे असेल तर GPX ट्रॅक काढा, किंवा हे चित्रण इथेच घेतले असेल तरच सध्याच्या स्थानाचा पर्याय वापरा.",
-    video_import_btn: "&#127909; &nbsp;Meta glasses / dashcam व्हिडिओ आयात करा",
     video_import_cancel: "व्हिडिओ तपासणी रद्द करा",
     video_import_cancelled: "{n} पैकी {checked} नमुना फ्रेम्सनंतर व्हिडिओ तपासणी थांबवली. पूर्ण झालेल्या तपासण्या ठेवल्या आहेत. टाकून किंवा हटवून देईपर्यंत बाकी स्रोत पुन्हा प्रयत्नासाठी उपलब्ध राहतो.",
     video_import_cancelling: "सध्याची फ्रेम पूर्ण झाल्यावर थांबवत आहे...",
     video_import_confirm: "{files} व्हिडिओ फाइल तपासायच्या? संपूर्ण कालरेषा {frames} नमुना तपासण्यांनी व्यापली जाईल (सुमारे दर {step} सेकंदाला एक). फक्त त्या JPEG फ्रेम्स अपलोड होतात. Import ने निवडलेल्या फाइल्स जागीच राहतात; थेट Android Share मुळे तपासणी, टाकणे, हटवणे किंवा 24 तासांच्या मर्यादेपर्यंत खाजगी तात्पुरती प्रत राहू शकते.",
     video_import_done: "व्हिडिओ तपासणी पूर्ण: {checked} नमुना फ्रेम्समधून {found} नवीन रस्ता-नुकसान नोंदी.",
-    video_import_hint: "रेकॉर्डिंगच्या क्रमाने एक व्हिडिओ किंवा अनेक dashcam क्लिप निवडा. MP4/MOV (H.264) आणि WebM बहुतेक साधनांवर चालतात; न चालणाऱ्या codec साठी स्पष्ट त्रुटी दिसते. Import ने निवडलेल्या फाइल्स जागीच वाचल्या जातात. थेट Android अॅपमध्ये शेअर केलेल्या व्हिडिओची खाजगी तात्पुरती प्रत जास्तीत जास्त 24 तास राहू शकते. तपासणीसाठी फक्त नमुना JPEG फ्रेम्स पाठवल्या जातात.",
     video_import_history: "{date} · आयात केलेला व्हिडिओ · {found}{known} · {checked} नमुना फ्रेम्स तपासल्या",
     video_import_partial: "{n} पैकी {failed} तपासण्या अयशस्वी होऊन व्हिडिओ तपासणी संपली. पूर्ण झालेल्या नोंदी ठेवल्या आहेत. शेवटची त्रुटी: {err}",
     video_import_preparing: "{n} पैकी {i} व्हिडिओ अॅप साठवणीत प्रत न करता वाचत आहे...",
@@ -1121,7 +1060,6 @@ const I18N = {
     video_no_location_confirm: "वेळेशी जुळणारा GPX ट्रॅक किंवा सध्याच्या स्थानाची संमती उपलब्ध नाही. स्थानाशिवाय पुढे जायचे? नुकसान तरीही ओळखता येईल, पण जबाबदार प्राधिकरण, कंत्राटदार आणि निविदा जुळवता येणार नाहीत.",
       privacy_permission: "अॅप अचूक स्थानाची, आणि तुम्ही फोटो घेता किंवा ड्राइव्ह मोड सुरू करता तेव्हा कॅमेऱ्याची परवानगी मागते.",
     privacy_source: "ड्राइव्ह मोड ऑडिओ वापरत नाही. तो या फोनचा कॅमेरा आणि या फोनचे स्थान, Maps किंवा कॉल स्क्रीन समोर असतानाही, पार्श्वभूमीत वापरतो.",
-
   },
   bn: {
     sub: "ছবি তুলুন। সমস্যাটি যাচাই করুন। প্রস্তাবিত দপ্তরের জন্য অভিযোগের খসড়া তৈরি করুন।",
@@ -1138,14 +1076,10 @@ const I18N = {
     model_label: "ছবির মডেল",
     detail_label: "ছবির বিশদতা",
     accuracy_note: "Drive gpt-5.6/high ব্যবহার করে; এই বিকল্পগুলি শুধু Photo-র জন্য।",
-    capture_source_label: "ড্রাইভ ভিডিও উৎস",
-    phone_camera_option: "ফোন ক্যামেরা",
-    dashcam_option: "ড্যাশক্যাম",
-    capture_source_note: "পরবর্তী Drive শুরু হলে নির্বাচিত উৎসটি ব্যবহার করা হবে।",
-    dashcam_rtsp_label: "ড্যাশক্যাম RTSP URL",
-    dashcam_rtsp_note: "ফোনটিকে ড্যাশক্যামের Wi-Fi-তে যুক্ত করুন। Drive এই ফোনের GPS ব্যবহার করে, কিন্তু ক্যামেরা বা অডিও ব্যবহার করে না। শুধু TCP-এর মাধ্যমে H.264 RTSP সমর্থিত। স্থানীয় RTSP সাধারণত এনক্রিপ্ট করা থাকে না; শুধু বিশ্বস্ত ড্যাশক্যাম Wi-Fi ব্যবহার করুন। পরিচয়পত্র-সহ ঠিকানাটি এখানে আড়াল করা থাকে এবং শুধু এই ডিভাইসেই সংরক্ষিত হয়।",
-    dashcam_rtsp_invalid: "একটি পূর্ণ rtsp:// ঠিকানা লিখুন, যেমন rtsp://192.168.1.1:554/live।",
-    dashcam_native_only: "ড্যাশক্যাম ইনপুট Android অ্যাপে পাওয়া যায়। এই ব্রাউজারে ফোন ক্যামেরা বেছে নিন।",
+
+
+
+
     debug_label: "ডিবাগ মোড: বিশ্লেষণের পরেও ড্রাইভের ভিডিও রাখুন",
     settings_note: "গৃহীত গর্তের সঠিক অবস্থান এবং ছবির hash-সহ সামান্য মেটাডেটা দরপত্র নির্ধারণ, কাছাকাছি ডুপ্লিকেট যাচাই, শেয়ার-করা মানচিত্র ও সামগ্রিক প্রভাবের জন্য প্রকল্প পরিষেবায় যায়। এই আপলোড ব্যর্থ হলে, আপনি রিপোর্টটি মুছে না দেওয়া পর্যন্ত অ্যাপ চালু হলে বা সংযোগ ফিরলে আবার চেষ্টা করা হয়। অভিযোগ জানানোর একমাত্র উপায় ইমেল: এক ট্যাপে অবস্থান, রাস্তার ক্ষতির বিবরণ, ছবি ও সম্ভাব্য দরপত্র নম্বর-সহ আগে থেকে ঠিকানা দেওয়া একটি খসড়া খোলে। আপনার ইমেল অ্যাপে Send না চাপা পর্যন্ত কিছুই পাঠানো হয় না।",
     independent_note: "এটি একটি স্বাধীন, বেসরকারি অ্যাপ। কোনও সরকারি সংস্থার সঙ্গে এর সম্পর্ক নেই এবং কোনও সরকারি সংস্থা এটি অনুমোদন করেনি। প্রাপক নির্বাচন সর্বোত্তম প্রচেষ্টার ভিত্তিতে; পাঠানোর আগে যাচাই করুন।",
@@ -1273,10 +1207,6 @@ const I18N = {
 
 
 
-
-
-
-
     confirm_delete: "এই রিপোর্টটি মুছবেন?",
     confirm_wipe: "API key, সেটিংস, রিপোর্ট, ছবি, ভিডিও এবং এক্সপোর্ট করা ডিবাগ ফ্রেম-সহ এই ফোন থেকে অ্যাপের সব তথ্য মুছবেন?",
     camera_failed: "ক্যামেরা ব্যবহার করা যায়নি: ",
@@ -1301,11 +1231,8 @@ const I18N = {
     feedback_sent: "ধন্যবাদ। আপনার মতামত পাঠানো হয়েছে।",
     finishing_analysis: "ক্যামেরা বন্ধ · {n}টি নেওয়া বিশ্লেষণ শেষ হচ্ছে…",
     first_reported: "প্রথম জানানো হয় {date}",
-    gpx_add: "GPS ট্র্যাক যোগ করুন (.gpx)",
     gpx_bad: "ওই GPX ফাইলে UTC সময়সহ অন্তত দুটি বৈধ ট্র্যাক পয়েন্ট থাকা দরকার।",
-    gpx_none: "কোনও GPS ট্র্যাক বাছা হয়নি। আমদানি করা ফ্রেমে ডিফল্টে রুটের অবস্থান থাকে না।",
-    gpx_ready: "GPS: {name} · {n}টি সময়-চিহ্নিত পয়েন্ট। MP4/MOV-এ রেকর্ড করা সময়ের সঙ্গে GPX-এর সময় মিললে তবেই এটি ব্যবহার হয়।",
-    gpx_remove: "GPS ট্র্যাক সরান",
+
     impact_period: "{from} থেকে {to} পর্যন্ত মোট হিসাব।",
     last_reported: "শেষ জানানো হয় {date}",
     manual_analysis_active: "আগের ছবিটি এখনও বিশ্লেষণ হচ্ছে। পরেরটি তোলার আগে সেটি শেষ হতে দিন।",
@@ -1340,16 +1267,13 @@ const I18N = {
     state_highway: "{road} একটি রাজ্য সড়ক",
     state_highway_help: "রাজ্য সড়কের রক্ষণাবেক্ষণ করে রাজ্য পূর্ত দপ্তর, পুর বা নগর সংস্থা নয়। এই অংশের জন্য এখনও যাচাই-করা সরকারি ইমেল নেই, তাই ছবি ও অবস্থান কোনও অভিযোগের খসড়া না খুলেই সংরক্ষণ করা হয়েছে।",
     video_codec_error: "{name} এই ডিভাইসে ডিকোড করা যায়নি। Meta glasses-এর এক্সপোর্ট মূল MP4 হওয়া উচিত; dashcam-এর জন্য H.264/AVC ভিডিওসহ MP4-তে এক্সপোর্ট বা রূপান্তর করুন। HEVC/H.265, AVI এবং কিছু MKV ফাইল বহু Android ব্রাউজারে চলে না।",
-    video_current_location: "প্রতিটি ফ্রেমের জন্য এই ফোনের বর্তমান অবস্থান ব্যবহার করুন (ভিডিওটি এখানেই রেকর্ড হয়ে থাকলে তবেই)",
     video_current_location_failed: "বর্তমান অবস্থান বাছা হয়েছিল, কিন্তু ফোনটি GPS fix পায়নি। কোনও ভিডিও বিশ্লেষণ করা হয়নি।",
     video_gpx_unaligned: "এই MP4/MOV ক্লিপে থাকা নির্ভরযোগ্য রেকর্ডিং সময়ের সঙ্গে GPX-এর সময় মেলে না। অ্যাপ এদের অবস্থান অনুমান করবে না। রুট ছাড়াই বিশ্লেষণ করতে GPX ট্র্যাক সরান, অথবা ফুটেজটি এখানেই তোলা হয়ে থাকলে তবেই বর্তমান-অবস্থানের বিকল্প ব্যবহার করুন।",
-    video_import_btn: "&#127909; &nbsp;Meta glasses / dashcam ভিডিও আমদানি করুন",
     video_import_cancel: "ভিডিও বিশ্লেষণ বাতিল করুন",
     video_import_cancelled: "{n}টির মধ্যে {checked}টি নমুনা ফ্রেমের পরে ভিডিও বিশ্লেষণ থেমেছে। সম্পূর্ণ হওয়া শনাক্তকরণ রাখা হয়েছে। বাতিল বা মুছে না দেওয়া পর্যন্ত বাকি উৎসটি আবার চেষ্টার জন্য থাকে।",
     video_import_cancelling: "চলতি ফ্রেমের পরে থামানো হচ্ছে...",
     video_import_confirm: "{files}টি ভিডিও ফাইল বিশ্লেষণ করবেন? পুরো সময়রেখা {frames}টি নমুনা যাচাইয়ে ঢাকা পড়বে (প্রায় প্রতি {step} সেকেন্ডে একটি)। কেবল ওই JPEG ফ্রেমগুলিই আপলোড হয়। Import দিয়ে বাছা ফাইল জায়গাতেই থাকে; সরাসরি Android Share-এ বিশ্লেষণ, বাতিল, মোছা বা 24 ঘণ্টার সীমা পর্যন্ত একটি ব্যক্তিগত অস্থায়ী কপি থাকতে পারে।",
     video_import_done: "ভিডিও বিশ্লেষণ সম্পূর্ণ: {checked}টি নমুনা ফ্রেম থেকে {found}টি নতুন রাস্তার ক্ষতির ঘটনা।",
-    video_import_hint: "রেকর্ডিংয়ের ক্রমে একটি ভিডিও বা একাধিক dashcam ক্লিপ বাছুন। MP4/MOV (H.264) ও WebM বেশির ভাগ ডিভাইসে চলে; অসমর্থিত codec-এ স্পষ্ট ত্রুটি দেখায়। Import দিয়ে বাছা ফাইল জায়গাতেই পড়া হয়। সরাসরি Android অ্যাপে শেয়ার করা ভিডিওর ব্যক্তিগত অস্থায়ী কপি সর্বোচ্চ 24 ঘণ্টা থাকতে পারে। যাচাইয়ের জন্য কেবল নমুনা JPEG ফ্রেম পাঠানো হয়।",
     video_import_history: "{date} · আমদানি করা ভিডিও · {found}{known} · {checked}টি নমুনা ফ্রেম যাচাই",
     video_import_partial: "{n}টির মধ্যে {failed}টি যাচাই ব্যর্থ হয়ে ভিডিও বিশ্লেষণ শেষ হয়েছে। সম্পূর্ণ হওয়া শনাক্তকরণ রাখা হয়েছে। শেষ ত্রুটি: {err}",
     video_import_preparing: "{n}টির মধ্যে {i} নম্বর ভিডিও অ্যাপ স্টোরেজে কপি না করেই পড়া হচ্ছে...",
@@ -1364,7 +1288,6 @@ const I18N = {
     video_no_location_confirm: "সময় মিলিয়ে নেওয়া GPX ট্র্যাক বা বর্তমান-অবস্থানের সম্মতি কোনওটিই নেই। অবস্থান ছাড়াই এগোবেন? ক্ষতি তবুও শনাক্ত হবে, তবে দায়ী কর্তৃপক্ষ, ঠিকাদার ও দরপত্র মেলানো যাবে না।",
       privacy_permission: "অ্যাপটি নির্ভুল অবস্থানের অনুমতি চায়, এবং আপনি ছবি তুললে বা ড্রাইভ মোড চালু করলে ক্যামেরার অনুমতি চায়।",
     privacy_source: "ড্রাইভ মোড অডিও ব্যবহার করে না। এটি এই ফোনের ক্যামেরা ও এই ফোনের অবস্থান, Maps বা কল স্ক্রিন সামনে থাকলেও, ব্যাকগ্রাউন্ডে ব্যবহার করে।",
-
   },
 };
 const LANG = LLM_UI_CONFIG.allowedLanguages.includes(localStorage.getItem("app_lang"))
@@ -1507,28 +1430,6 @@ function conditionChip(report) {
   return `<span class="chip ${css}">${escapeHtml(label)}</span>`;
 }
 
-function setDashcamRtspFeedback(message = "", invalid = false) {
-  const input = $("setDashcamRtspUrl");
-  const note = $("dashcamRtspNote");
-  input.setAttribute("aria-invalid", invalid ? "true" : "false");
-  note.textContent = message || t("dashcam_rtsp_note");
-  note.style.color = invalid ? "var(--bad)" : "";
-}
-
-function updateCaptureSourceSettings() {
-  const dashcam = $("setCaptureSource").value === DASHCAM_CAPTURE_SOURCE;
-  $("dashcamSettings").classList.toggle("hidden", !dashcam);
-  $("setDashcamRtspUrl").disabled = !dashcam;
-  $("setRecord").disabled = dashcam;
-  $("recordSetting").style.opacity = dashcam ? ".6" : "";
-  const nativeOnly = dashcam && !nativeDrivePlugin();
-  $("captureSourceNote").textContent = nativeOnly
-    ? t("dashcam_native_only")
-    : t(dashcam ? "dashcam_capture_source_note" : "capture_source_note");
-  $("captureSourceNote").style.color = nativeOnly ? "#ffd9a8" : "";
-  setDashcamRtspFeedback();
-}
-
 function withoutLeadingSentences(value, count) {
   let rest = String(value || "").trim();
   for (let index = 0; index < count; index++) {
@@ -1546,12 +1447,6 @@ function applyLang() {
   $("subTitle").textContent = t("sub");
   $("captureBtn").innerHTML = t("report_btn");
   $("driveBtn").innerHTML = t("drive_btn");
-  $("videoImportBtn").innerHTML = t("video_import_btn");
-  $("videoImportHint").textContent = t("video_import_hint");
-  $("gpxImportBtn").textContent = t("gpx_add");
-  $("gpxClearBtn").textContent = t("gpx_remove");
-  if (!$("gpxImportStatus").dataset.selected) $("gpxImportStatus").textContent = t("gpx_none");
-  $("videoCurrentLocationLabel").textContent = t("video_current_location");
   $("progressCancel").textContent = t("video_import_cancel");
   $("reportsTitle").textContent = t("your_reports");
   $("settingsTitle").textContent = t("settings_title");
@@ -1564,12 +1459,6 @@ function applyLang() {
   $("modelLabel").textContent = t("model_label");
   $("detailLabel").textContent = t("detail_label");
   $("accuracyNote").textContent = t("accuracy_note");
-  $("captureSourceLabel").textContent = t("capture_source_label");
-  $("phoneCameraOption").textContent = t("phone_camera_option");
-  $("dashcamOption").textContent = t("dashcam_option");
-  $("captureSourceNote").textContent = t("capture_source_note");
-  $("dashcamRtspLabel").textContent = t("dashcam_rtsp_label");
-  setDashcamRtspFeedback();
   $("debugLabel").textContent = t("debug_label");
   $("debugNote").innerHTML = t("debug_note");
   $("recordLabel").textContent = t("record_label");
@@ -1709,7 +1598,16 @@ async function getNativeDriveHistory(options = {}) {
     Date.now() - nativeDriveHistoryCachedAt < NATIVE_DRIVE_HISTORY_CACHE_MS;
   if (!options.force && fresh) return nativeDriveHistoryCache;
   if (nativeDriveHistoryPromise) return nativeDriveHistoryPromise;
-  const request = plugin.getDrives().then((result) => {
+  // The registered plugin lists sessions under a different name and shape. Read
+  // whichever exists; a plugin with neither simply has no drive history to show.
+  const history = typeof plugin.getDrives === "function"
+    ? plugin.getDrives()
+    : typeof plugin.listDriveSessions === "function"
+      ? plugin.listDriveSessions().then((result) => ({
+          drives: Array.isArray(result && result.sessions) ? result.sessions : [],
+        }))
+      : Promise.resolve({ drives: [] });
+  const request = history.then((result) => {
     nativeDriveHistoryCache = result || { drives: [] };
     nativeDriveHistoryCachedAt = Date.now();
     return nativeDriveHistoryCache;
@@ -2915,12 +2813,33 @@ async function hydrateNativeDriveEndWithinDeadline() {
   }
 }
 
+// The three calls the background Drive path makes on the native plugin. A plugin that
+// lacks any of them is not the service this bundle drives: the session would start with
+// no way to read or stop it. Treat such a plugin as absent and use the web camera path,
+// which every call site already handles.
+const NATIVE_DRIVE_METHODS = ["start", "stop", "getStatus"];
+
+function nativeBackgroundDriveSupported() {
+  return !!nativeDrivePlugin();
+}
+
+let nativeDriveMismatchReported = false;
 function nativeDrivePlugin() {
   if (!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())) return null;
+  let plugin = null;
   try {
-    return Capacitor.registerPlugin ? Capacitor.registerPlugin("DriveMode")
+    plugin = Capacitor.registerPlugin ? Capacitor.registerPlugin("DriveMode")
       : (Capacitor.Plugins && Capacitor.Plugins.DriveMode);
   } catch (e) { return null; }
+  if (!plugin) return null;
+  const missing = NATIVE_DRIVE_METHODS.filter((name) => typeof plugin[name] !== "function");
+  if (!missing.length) return plugin;
+  if (!nativeDriveMismatchReported) {
+    nativeDriveMismatchReported = true;
+    console.warn("[drive] native plugin does not implement " + missing.join(", ")
+      + "; using the web camera path");
+  }
+  return null;
 }
 
 function nativeStatusCaptureSource(status = null) {
@@ -3094,8 +3013,13 @@ function stopNativePreview(preserveGraph = false) {
   if (nativePreviewScrollFrame) cancelAnimationFrame(nativePreviewScrollFrame);
   nativePreviewScrollFrame = null;
   document.documentElement.classList.remove("native-preview-active");
+  // This runs every time the app goes to the background, including behind a permission
+  // dialog. The registered plugin has no preview surface, so calling detachPreview on
+  // it threw an uncaught TypeError on every such transition.
   const plugin = nativeDrivePlugin();
-  if (plugin) plugin.detachPreview({ preserveGraph: !!preserveGraph }).catch(() => {});
+  if (plugin && typeof plugin.detachPreview === "function") {
+    Promise.resolve(plugin.detachPreview({ preserveGraph: !!preserveGraph })).catch(() => {});
+  }
 }
 
 function startNativePreview() {
@@ -3109,7 +3033,7 @@ function startNativePreview() {
     const slot = $("nativePreviewSlot");
     const rect = slot.getBoundingClientRect();
     const plugin = nativeDrivePlugin();
-    if (plugin) {
+    if (plugin && typeof plugin.attachPreview === "function") {
       nativePreviewAttachPending = true;
       nativePreviewPendingGeneration = generation;
       let attachTimeout = null;
@@ -3337,7 +3261,11 @@ async function performNativeDataSync(options = {}) {
   let reportCount = 0;
   // Native evidence is Base64 across this bridge. Two-at-a-time keeps peak memory flat
   // while each page is acknowledged durably before the next one is requested.
-  for (let page = 0; page < 100; page++) {
+  // Paged import with durable acknowledgement is a contract only the background
+  // Drive service offers. A plugin without it has nothing queued for this loop.
+  const canSync = typeof plugin.syncReports === "function"
+    && typeof plugin.acknowledgeReports === "function";
+  for (let page = 0; canSync && page < 100; page++) {
     requireNativeDataSyncCurrent(syncEpoch);
     const pending = await plugin.syncReports({ limit: NATIVE_IMAGE_BATCH_SIZE })
       .catch(() => ({ reports: [] }));
@@ -3456,7 +3384,12 @@ async function refreshNativeRepairTargetCache(
   if (!plugin) return 0;
   const required = ["beginRepairTargetSync", "appendRepairTargetBatch",
     "commitRepairTargetSync", "abortRepairTargetSync"];
-  if (required.some((name) => typeof plugin[name] !== "function")) {
+  const present = required.filter((name) => typeof plugin[name] === "function");
+  // No staging API at all means this build keeps no native repair history: there is
+  // nothing to refresh, and reporting that as an error on every launch helped no one.
+  // A partial API is different: refusing is the only safe answer there.
+  if (!present.length) return 0;
+  if (present.length !== required.length) {
     throw new Error("This Android build cannot refresh its repair history safely.");
   }
   const manifest = await api("/api/repair-targets");
@@ -3882,8 +3815,12 @@ async function startDriveAdmitted() {
   // and optional recording. The native service deliberately has no Preview surface,
   // so use it only after the user explicitly selects background/no-preview mode.
   // Native and web Drive Mode must never run simultaneously.
-  const nativeDrive = window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()
-    && Capacitor.Plugins && Capacitor.Plugins.DriveMode
+  // The background service this path drives needs a plugin that can attach a preview,
+  // pause, resume and stop a session, and hand back saved keyframes. The registered
+  // plugin implements start/stop/getStatus only, so calling the rest left a camera
+  // foreground service running with nothing driving it and the app gone. Take this
+  // branch only when the device really implements it, whatever the stored setting says.
+  const nativeDrive = nativeBackgroundDriveSupported()
     && localStorage.getItem("native_background_drive") === "1"
     && localStorage.getItem("force_web_drive") !== "1";
   if (nativeDrive) {
@@ -4364,7 +4301,8 @@ $("nativeRecordBtn").onclick = async () => {
 };
 $("openMapsBtn").onclick = async () => {
   const plugin = nativeDrivePlugin();
-  if (plugin) await plugin.openMaps().catch((e) => alert(e.message || e));
+  if (!plugin || typeof plugin.openMaps !== "function") return;
+  await plugin.openMaps().catch((e) => alert(e.message || e));
 };
 
 // Camera and precise location are foreground-only for the *web* path. The native
@@ -5195,6 +5133,12 @@ function scheduleNativeKeyframeReplay(preferredSessionId) {
     return nativeKeyframeAutoPromise || Promise.resolve();
   }
   const plugin = nativeDrivePlugin();
+  // Saved-frame replay exists only on the background Drive service. This runs on every
+  // resume and reconnect, so on a plugin without it the answer is "nothing to replay",
+  // not a TypeError from inside the pager.
+  if (!plugin || typeof plugin.listPendingKeyframeSessions !== "function") {
+    return Promise.resolve();
+  }
   let continueAfterYield = false;
   const run = (async () => {
     let attempts = 0;
@@ -5731,7 +5675,7 @@ async function runImportedVideoAnalysis(files, options, token) {
   if (!(await ensureDataConsent()) || !(await ensureVisionAvailable())) return { started: false };
   const gpx = Object.prototype.hasOwnProperty.call(options, "gpx") ? options.gpx : importedGpx;
   const useCurrent = Object.prototype.hasOwnProperty.call(options, "useCurrentLocation")
-    ? !!options.useCurrentLocation : $("videoUseCurrentLocation").checked;
+    ? !!options.useCurrentLocation : false;
   if (!gpx && !useCurrent && !confirm(t("video_no_location_confirm"))) return { started: false };
 
   let currentPosition = null;
@@ -6006,7 +5950,9 @@ function nativeVideoDisplayName(video) {
 function renderNativeVideoImports(snapshot) {
   if (!isNativeApp()) return;
   nativePendingVideos = Array.isArray(snapshot && snapshot.imports) ? snapshot.imports : [];
-  const host = $("nativeVideoImports"), error = snapshot && snapshot.error;
+  const host = $("nativeVideoImports");
+  if (!host) return;
+  const error = snapshot && snapshot.error;
   if (!nativePendingVideos.length && !error) {
     host.classList.add("hidden");
     host.innerHTML = "";
@@ -6126,7 +6072,7 @@ async function runNativeVideoAnalysis(videos, options, token) {
 
   const gpx = Object.prototype.hasOwnProperty.call(options, "gpx") ? options.gpx : importedGpx;
   const useCurrent = Object.prototype.hasOwnProperty.call(options, "useCurrentLocation")
-    ? !!options.useCurrentLocation : $("videoUseCurrentLocation").checked;
+    ? !!options.useCurrentLocation : false;
   if (gpx) {
     const overlaps = clips.some((clip) => clip.recordingStartMs != null
       && clip.recordingStartMs <= gpx.endMs
@@ -7076,79 +7022,10 @@ $("fileInput").onchange = (e) => {
   e.target.value = "";
 };
 
-function renderImportedGpxStatus() {
-  const status = $("gpxImportStatus"), clear = $("gpxClearBtn");
-  if (importedGpx) {
-    status.dataset.selected = "1";
-    status.textContent = t("gpx_ready", { name: importedGpx.name, n: importedGpx.points.length });
-    clear.classList.remove("hidden");
-    $("videoUseCurrentLocation").checked = false;
-    $("videoUseCurrentLocation").disabled = true;
-  } else {
-    delete status.dataset.selected;
-    status.textContent = t("gpx_none");
-    clear.classList.add("hidden");
-    $("videoUseCurrentLocation").disabled = false;
-  }
-}
-
-$("gpxImportBtn").onclick = () => $("gpxInput").click();
-$("gpxClearBtn").onclick = () => {
-  importedGpx = null;
-  $("gpxInput").value = "";
-  renderImportedGpxStatus();
-};
-$("gpxInput").onchange = async (event) => {
-  const file = event.target.files && event.target.files[0];
-  event.target.value = "";
-  if (!file) return;
-  try {
-    if (file.size > IMPORT_GPX_MAX_BYTES) throw new Error(t("gpx_bad"));
-    const source = await file.text();
-    const parsed = parseGpxTrack(source);
-    importedGpx = { ...parsed, name: file.name || "track.gpx",
-      fingerprint: await fingerprintText(source) };
-    renderImportedGpxStatus();
-  } catch (error) {
-    importedGpx = null;
-    renderImportedGpxStatus();
-    alert(error && error.message || t("gpx_bad"));
-  }
-};
-
-$("videoImportBtn").onclick = async () => {
-  if (videoImportPickerActive || importedVideoJob || manualAnalysisActive || footageAnalysisJobs.size) {
-    alert(t("manual_analysis_active"));
-    return;
-  }
-  const nativeImport = getVideoImportPlugin();
-  if (nativeImport) {
-    videoImportPickerActive = true;
-    try {
-      const picked = await nativeImport.pickVideo();
-      if (!picked || picked.cancelled) return;
-      renderNativeVideoImports(picked);
-      const selected = Array.isArray(picked.videos) && picked.videos.length
-        ? picked.videos : picked.video ? [picked.video] : [];
-      if (selected.length) void analyseNativeImportedVideos(selected);
-    } catch (error) { alert(error && error.message || String(error)); }
-    finally { videoImportPickerActive = false; }
-    return;
-  }
-  // Keep this as a direct click: a browser can revoke file-picker activation after an
-  // awaited health request. Consent and service checks still happen before decoding or
-  // uploading the first frame.
-  $("videoInput").click();
-};
-$("videoInput").onchange = (event) => {
-  // File objects are lightweight handles. Clear the picker immediately so choosing the
-  // same dashcam clips later fires another change event; the handles live only until this
-  // sequential analysis completes.
-  const files = Array.from(event.target.files || []);
-  event.target.value = "";
-  StandaloneAPI.prewarm();
-  void analyseImportedVideos(files);
-};
+// Video import is gone with the Meta glasses and dashcam sources it existed for.
+// Drive and Photo both use this phone's camera; there is no clip to pick or GPX track
+// to align. The analysis engine behind it is still here for saved-frame replay.
+function renderImportedGpxStatus() {}
 $("progressCancel").onclick = () => cancelImportedVideoAnalysis(false);
 renderImportedGpxStatus();
 
@@ -7226,16 +7103,11 @@ window.openSettings = (firstRun = false, requireCompletion = false) => {
   $("setKeepFrames").checked = localStorage.getItem("keep_frames") === "1";
   $("setRecord").checked = localStorage.getItem("record_video") === "1"; // explicit opt-in
   $("setBackgroundDrive").checked = localStorage.getItem("native_background_drive") === "1";
-  const captureSource = savedDriveCaptureSource();
-  $("setCaptureSource").value = captureSource;
-  $("setDashcamRtspUrl").value = captureSource === DASHCAM_CAPTURE_SOURCE
-    ? String(localStorage.getItem(DASHCAM_RTSP_URL_KEY) || "") : "";
   $("setLang").value = LANG;
   $("settingsHint").textContent = firstRun ? t("welcome_hint") : "";
   $("setBack").classList.toggle("hidden", initialSettingsActive);
   $("setSave").textContent = initialSettingsActive ? t("privacy_accept") : t("save");
   updateProviderSettings();
-  updateCaptureSourceSettings();
   show("settings");
   return true;
 };
@@ -7350,12 +7222,6 @@ $("feedbackNudgeDismiss").onclick = () => {
   localStorage.setItem("feedback_nudged", "1");
   $("feedbackNudge").classList.add("hidden");
 };
-$("setCaptureSource").onchange = updateCaptureSourceSettings;
-$("setDashcamRtspUrl").oninput = () => {
-  if ($("setDashcamRtspUrl").getAttribute("aria-invalid") === "true") {
-    setDashcamRtspFeedback();
-  }
-};
 $("setProvider").onchange = updateProviderSettings;
 $("setSave").onclick = async () => {
   const saveButton = $("setSave");
@@ -7365,20 +7231,8 @@ $("setSave").onclick = async () => {
   if (provider === "personal" && !key) { alert(t("key_required")); return; }
   const selectedModel = selectedLlmModel($("setModel").value);
   const selectedDetail = selectedLlmDetail($("setDetail").value, selectedModel);
-  const selectedCaptureSource = normaliseDriveCaptureSource($("setCaptureSource").value);
-  const dashcamRtspUrl = String($("setDashcamRtspUrl").value || "").trim();
-  if (selectedCaptureSource === DASHCAM_CAPTURE_SOURCE) {
-    const validRtspUrl = validateDashcamRtspUrl(dashcamRtspUrl);
-    if (!validRtspUrl) {
-      setDashcamRtspFeedback(t("dashcam_rtsp_invalid"), true);
-      $("setDashcamRtspUrl").focus();
-      return;
-    }
-  }
-  // Dashcam mode has no local recording toggle; keep that option disabled and save it
-  // as off so a later phone-camera drive cannot inherit a misleading setting.
-  const recordVideo = selectedCaptureSource !== DASHCAM_CAPTURE_SOURCE
-    && $("setRecord").checked;
+  // Drive uses this phone's camera. There is no other capture source to choose.
+  const recordVideo = $("setRecord").checked;
   const driveLimit = driveLimitMinutes();
   const newLang = $("setLang").value;
   saveButton.disabled = true;
@@ -7402,12 +7256,10 @@ $("setSave").onclick = async () => {
     localStorage.setItem("drive_limit_minutes", String(driveLimit));
     localStorage.setItem("app_lang", newLang);
     localStorage.setItem("native_background_drive", $("setBackgroundDrive").checked ? "1" : "0");
-    localStorage.setItem(CAPTURE_SOURCE_KEY, selectedCaptureSource);
-    if (selectedCaptureSource === DASHCAM_CAPTURE_SOURCE) {
-      localStorage.setItem(DASHCAM_RTSP_URL_KEY, dashcamRtspUrl);
-    } else {
-      localStorage.removeItem(DASHCAM_RTSP_URL_KEY);
-    }
+    // Phone camera is the only source. Clear anything an older build stored, so a
+    // dashcam address cannot survive in this device's settings.
+    localStorage.setItem(CAPTURE_SOURCE_KEY, PHONE_CAPTURE_SOURCE);
+    localStorage.removeItem(DASHCAM_RTSP_URL_KEY);
     localStorage.setItem(INITIAL_SETUP_KEY, "1");
     initialSettingsRequired = false;
     initialSettingsActive = false;
@@ -7472,11 +7324,18 @@ async function deleteAllAppData() {
     if (activeSyncs.length) await Promise.allSettled(activeSyncs);
 
     const plugins = window.Capacitor && Capacitor.Plugins;
-    const nativePlugin = nativeDrivePlugin();
+    // The registered plugin, whatever else it supports: a wipe must reach any native
+    // store that exists, so this does not go through the Drive capability gate.
+    const isNative = !!(window.Capacitor && Capacitor.isNativePlatform
+      && Capacitor.isNativePlatform());
+    const nativePlugin = isNative
+      ? (Capacitor.registerPlugin ? Capacitor.registerPlugin("DriveMode")
+        : plugins && plugins.DriveMode) : null;
     const filesystem = plugins && plugins.Filesystem;
-    if (nativePlugin) {
-      const result = await nativePlugin.clearNativeData();
-      if (!result || result.cleared !== true) {
+    if (nativePlugin && typeof nativePlugin.clearAllData === "function") {
+      // Rejects on failure; a resolved call without ok:true is treated the same way.
+      const result = await nativePlugin.clearAllData();
+      if (!result || result.ok !== true) {
         throw new Error("Android could not verify that its private app data was deleted.");
       }
       if (!filesystem || typeof filesystem.rmdir !== "function" ||
@@ -7513,10 +7372,6 @@ $("wipeBtn").onclick = async () => {
     // grants/private share copies. It must complete before any browser/native database
     // is cleared, and a failure must be visible rather than claiming a full deletion.
     await clearImportedVideosBeforeWipe();
-    if (plugins && plugins.DriveMode && typeof plugins.DriveMode.clearAllData === "function") {
-      await plugins.DriveMode.clearAllData();
-    }
-    await api("/api/reports", { method: "DELETE" });
   } catch (e) { $("wipeBtn").disabled = false; alert(e.message); return; }
   try {
     await deleteAllAppData();

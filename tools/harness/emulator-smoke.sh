@@ -2,12 +2,20 @@
 # Install the app on a running Android emulator or device, drive first run, and fail on
 # any JavaScript error.
 #
-#   tools/harness/emulator-smoke.sh [--keep]
+#   tools/harness/emulator-smoke.sh [--keep] [--apk path/to.apk]
 #
 # The browser suites run the same bundle in a desktop engine. This runs it where testers
 # run it: Android's WebView, inside the packaged APK, from a cleared install. v1.38.1
 # shipped a build whose whole script died at load, and nothing in CI would have noticed
 # because nothing launched the app.
+#
+# --apk installs that file instead of building the debug APK. Pass the signed release
+# APK: R8 only runs there, and 1.39.0's first release build died on the camera
+# permission check because R8 had stripped Capacitor's annotations. The debug build,
+# which this script used to test, never minifies and never showed it.
+#
+# After Home it presses Drive and Continue on the camera/location notice, the exact
+# taps a tester makes in their first minute, and fails if the process dies.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
@@ -16,7 +24,15 @@ ADB="$SDK/platform-tools/adb"
 PACKAGE=com.gauravsen.potholereporter
 APK=android-app/android/app/build/outputs/apk/debug/app-debug.apk
 KEEP=0
-[ "${1:-}" = "--keep" ] && KEEP=1
+BUILD=1
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --keep) KEEP=1 ;;
+    --apk) APK=$2; BUILD=0; shift ;;
+    *) echo "unknown argument: $1"; exit 2 ;;
+  esac
+  shift
+done
 
 [ -x "$ADB" ] || { echo "FAIL adb not found at $ADB"; exit 2; }
 if [ -z "$("$ADB" devices | awk 'NR>1 && $2=="device"')" ]; then
@@ -24,17 +40,23 @@ if [ -z "$("$ADB" devices | awk 'NR>1 && $2=="device"')" ]; then
   exit 0
 fi
 
-echo "1/5 building the debug APK"
-(cd android-app && npx cap copy android >/dev/null)
-(cd android-app/android && ./gradlew assembleDebug -q)
-[ -s "$APK" ] || { echo "FAIL gradle produced no APK"; exit 1; }
+if [ "$BUILD" = "1" ]; then
+  echo "1/6 building the debug APK"
+  (cd android-app && npx cap copy android >/dev/null)
+  (cd android-app/android && ./gradlew assembleDebug -q)
+else
+  echo "1/6 using $APK"
+fi
+[ -s "$APK" ] || { echo "FAIL no APK at $APK"; exit 1; }
 
-echo "2/5 installing and clearing app data"
-"$ADB" install -r -d "$APK" >/dev/null
-"$ADB" shell pm clear "$PACKAGE" >/dev/null
+echo "2/6 installing from scratch"
+# A release APK is signed with a different key than a debug one, so reinstalling over
+# it is refused. Always start from no install at all.
+"$ADB" uninstall "$PACKAGE" >/dev/null 2>&1 || true
+"$ADB" install "$APK" >/dev/null
 "$ADB" logcat -c 2>/dev/null || true
 
-echo "3/5 launching"
+echo "3/6 launching"
 "$ADB" shell am start -n "$PACKAGE/.MainActivity" >/dev/null
 # The WebView needs a moment on a cold start; poll rather than guess.
 # mCurrentFocus can belong to a systemui ANR dialog on a loaded emulator while our
@@ -48,26 +70,106 @@ for _ in $(seq 1 30); do
 done
 [ "$focus" != "0" ] || { echo "FAIL the app never took focus"; exit 1; }
 
-echo "4/5 driving first run: Settings, Continue, Home"
-sleep 6
-for _ in 1 2 3 4 5 6; do "$ADB" shell input swipe 540 1800 540 400 200; sleep 0.3; done
-# The green Continue button sits at the bottom of the mandatory first-run Settings.
-"$ADB" shell input tap 540 2148
-sleep 6
+# The packaged WebView exposes almost nothing to accessibility and drops console output
+# in a release build, so a tap cannot be verified by asking the page. It can be verified
+# by looking: tools/harness/screen-of.py names the screen in a screenshot from one
+# colour each screen alone has. A tap that lands on nothing is a failure, not a pass.
+PYTHON=.venv/bin/python
+[ -x "$PYTHON" ] || PYTHON=python3
+SHOT=$(mktemp -t pothole-smoke).png
+current_screen() {
+  "$ADB" exec-out screencap -p > "$SHOT" 2>/dev/null
+  "$PYTHON" tools/harness/screen-of.py "$SHOT" 2>/dev/null || echo unknown
+}
+await_screen() {  # await_screen <name...> <seconds>: succeeds on any listed name
+  local limit=${@: -1} waited=0 seen
+  local names=("${@:1:$#-1}")
+  while [ $waited -lt "$limit" ]; do
+    seen=$(current_screen)
+    for name in "${names[@]}"; do [ "$seen" = "$name" ] && { LAST_SCREEN=$seen; return 0; }; done
+    sleep 1; waited=$((waited + 1))
+  done
+  LAST_SCREEN=$seen
+  return 1
+}
+tap_until() {  # tap_until <x> <y> <screen> <attempts>
+  local x=$1 y=$2 want=$3 attempts=$4 n=0
+  while [ $n -lt "$attempts" ]; do
+    "$ADB" shell input tap "$x" "$y"
+    await_screen "$want" 6 && return 0
+    n=$((n + 1))
+  done
+  return 1
+}
+alive() { "$ADB" shell pidof "$PACKAGE" 2>/dev/null | tr -d '\r'; }
 
-echo "5/5 checking for JavaScript errors"
+echo "4/6 first run: Settings, Continue, Home"
+pid_start="$(alive)"
+await_screen settings unknown 20 || true
+# Scroll in the page gutter, right of the card: a swipe that starts on a control can
+# read as a tap and open a dropdown. Back closes any that opened anyway (first-run
+# Settings itself ignores Back). Repeat until the green Continue is at the foot.
+scrolled=0
+for round in 1 2 3; do
+  for _ in 1 2 3 4 5 6 7 8 9 10; do "$ADB" shell input swipe 1060 2000 1060 300 300; sleep 0.3; done
+  "$ADB" shell input keyevent 4; sleep 1.5
+  if await_screen settings 4; then scrolled=1; break; fi
+done
+[ "$scrolled" = "1" ] || { echo "FAIL the app did not open on first-run Settings (saw: $LAST_SCREEN)"; exit 1; }
+# The green Continue button sits at the foot of the mandatory first-run Settings.
+tap_until 540 2148 home 4 || { echo "FAIL Continue on first-run Settings did not reach Home (saw: $LAST_SCREEN)"; exit 1; }
+
+echo "5/6 Drive, Continue on the camera and location notice, both permissions"
+sleep 2
+tap_until 540 455 dataConsent 4 || { echo "FAIL Drive did not open the camera and location notice (saw: $LAST_SCREEN)"; exit 1; }
+sleep 1
+# The notice's green Continue is the lower-right button. This is the tap that killed
+# the first 1.39.0 release build.
+"$ADB" shell input tap 780 2322
+sleep 4
+if [ -z "$(alive)" ] || [ "$(alive)" != "$pid_start" ]; then
+  echo "FAIL the app process died after Continue on the camera and location notice"
+  "$ADB" logcat -d 2>/dev/null | grep -A 12 "FATAL EXCEPTION" | head -16
+  exit 1
+fi
+# Camera, then location: Android asks for each in its own sheet. "While using the app"
+# is the top button of both, but the location sheet is taller (it shows the precise and
+# approximate maps), so its button sits lower. Try the shorter sheet's position first.
+for permission in camera location; do
+  if await_screen permission 8; then
+    "$ADB" shell input tap 540 1226
+    sleep 3
+    if [ "$(current_screen)" = "permission" ]; then
+      "$ADB" shell input tap 540 1464
+      sleep 3
+    fi
+  fi
+done
+await_screen drive 15 || { echo "FAIL Drive did not reach the live camera screen (saw: $LAST_SCREEN)"; exit 1; }
+if [ -z "$(alive)" ] || [ "$(alive)" != "$pid_start" ]; then
+  echo "FAIL the app process died while Drive was starting"; exit 1
+fi
+
+echo "6/6 checking for JavaScript errors and crashes"
 errors="$("$ADB" logcat -d 2>/dev/null \
-  | grep -iE "Uncaught|is not defined|ReferenceError|TypeError|SyntaxError" \
-  | grep -viE "AppsFilter|PreferenceController|BaseSearchIndex|Phenotype" || true)"
+  | grep -iE "FATAL EXCEPTION|Uncaught|is not defined|ReferenceError|TypeError|SyntaxError" \
+  | grep -viE "AppsFilter|PreferenceController|BaseSearchIndex|Phenotype|BinderNative|uiautomator" || true)"
 if [ -n "$errors" ]; then
-  echo "FAIL the app reported JavaScript errors on first run:"
+  echo "FAIL the app reported errors on first run:"
   echo "$errors" | head -10
   exit 1
 fi
+rm -f "$SHOT"
 
-screen="$("$ADB" shell dumpsys window 2>/dev/null \
-  | grep -cE "(mCurrentFocus|mFocusedApp).*$PACKAGE" || true)"
+# Focus is briefly null while a permission sheet dismisses; ask more than once.
+screen=0
+for _ in 1 2 3 4 5; do
+  screen="$("$ADB" shell dumpsys window 2>/dev/null \
+    | grep -cE "(mCurrentFocus|mFocusedApp).*$PACKAGE" || true)"
+  [ "$screen" != "0" ] && break
+  sleep 1
+done
 [ "$screen" != "0" ] || { echo "FAIL the app left the foreground during first run"; exit 1; }
 
 [ "$KEEP" = "1" ] || "$ADB" shell am force-stop "$PACKAGE" >/dev/null
-echo "emulator smoke passed: fresh install reached Home with no JavaScript errors"
+echo "emulator smoke passed: fresh install reached Home, the notice, both permissions and the live drive with no errors"

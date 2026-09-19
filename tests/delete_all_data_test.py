@@ -143,7 +143,7 @@ with sync_playwright() as playwright:
           localStorage.setItem("must-remain-on-failure", "yes");
           Object.defineProperty(window, "Capacitor", {configurable: true, value: {
             isNativePlatform: () => true,
-            registerPlugin: () => ({clearNativeData: async () => {
+            registerPlugin: () => ({clearAllData: async () => {
               throw new Error("simulated native cleanup failure");
             }}),
             Plugins: {},

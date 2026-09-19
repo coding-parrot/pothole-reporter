@@ -96,10 +96,23 @@ kept_plugins = [
     if f"-keep class {name if '.' in name else plugin_package + '.' + name} {{ *; }}"
     in PROGUARD_RULES
 ]
+# Capacitor reads @CapacitorPlugin(permissions=...) and the callback annotations by
+# reflection at runtime. capacitor-android is a project module, so its consumer rules
+# never reach this app; without these keeps R8 stripped the annotations and the first
+# camera permission check died with a NullPointerException in a release build only.
 check("Capacitor plugin metadata and callbacks survive release obfuscation",
       len(registered_plugins) >= 2
       and len(kept_plugins) == len(registered_plugins)
-      and "@CapacitorPlugin(name = \"DriveMode\")" in DRIVE_PLUGIN)
+      and "@CapacitorPlugin(name = \"DriveMode\")" in DRIVE_PLUGIN
+      and re.search(r"^-keepattributes [^\n]*\*Annotation\*", PROGUARD_RULES, re.M)
+      and "-keep @interface com.getcapacitor.annotation.CapacitorPlugin { *; }" in PROGUARD_RULES
+      and "-keep @interface com.getcapacitor.annotation.Permission { *; }" in PROGUARD_RULES
+      and "-keep @com.getcapacitor.annotation.CapacitorPlugin class * extends com.getcapacitor.Plugin { *; }"
+      in PROGUARD_RULES
+      and "@com.getcapacitor.annotation.PermissionCallback <methods>;" in PROGUARD_RULES
+      and "@com.getcapacitor.annotation.ActivityCallback <methods>;" in PROGUARD_RULES
+      and "-keep class com.getcapacitor.** { *; }" in PROGUARD_RULES
+      and "-keep class com.capacitorjs.plugins.** { *; }" in PROGUARD_RULES)
 check("Android bridge logging cannot expose API keys in logcat",
       SOURCE_CAPACITOR_CONFIG.get("android", {}).get("loggingBehavior") == "none"
       and PACKAGED_CAPACITOR_CONFIG.get("android", {}).get("loggingBehavior") == "none"

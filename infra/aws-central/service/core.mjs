@@ -666,17 +666,21 @@ export function createService({ repository, detector, geolocator, logger = conso
     if (target.method === "OPTIONS") return response(204, {}, context.requestId);
     if (target.method === "GET" && target.path === "/v1/health") {
       context.outcome = "healthy";
+      // Readiness reads the secret. "Configured" has to mean a detection would be
+      // attempted, not merely that a secret ARN is wired to this function.
+      const ready = typeof detector.readiness === "function"
+        ? await detector.readiness()
+        : detector.status();
       return response(200, {
         ok: true,
         platform: "aws",
-        shared_vision_configured: detector.status().openai_configured
-          || detector.status().yolo_configured,
+        shared_vision_configured: ready.openai_configured || ready.yolo_configured,
         shared_vision_provider: detector.status().mode,
         shared_vision_provider_mode: detector.status().mode,
         shared_vision_primary_provider: "openai",
-        shared_vision_primary_configured: detector.status().openai_configured,
+        shared_vision_primary_configured: ready.openai_configured,
         shared_vision_fallback_provider: "yolo",
-        shared_vision_fallback_configured: detector.status().yolo_configured,
+        shared_vision_fallback_configured: ready.yolo_configured,
         shared_vision_fallback_model: detector.status().yolo_model,
         detection_prompt_version: DETECT_PROMPT_VERSION,
         detection_schema_version: DETECT_SCHEMA_VERSION,

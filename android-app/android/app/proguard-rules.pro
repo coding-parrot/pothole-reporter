@@ -33,6 +33,29 @@
 -keep class com.gauravsen.potholereporter.bridge.DriveModePlugin { *; }
 -keep class com.gauravsen.potholereporter.bridge.VideoImportPlugin { *; }
 
+# Capacitor reads @CapacitorPlugin(permissions = {@Permission(...)}) and the
+# @PermissionCallback / @ActivityCallback methods by reflection at runtime. capacitor-android
+# is a project module here, so its consumer rules never reach this app, and R8 stripped
+# the annotations. The first camera permission check then hit a NullPointerException in
+# Plugin.getPermissionStates() on the CapacitorPlugins thread and the process died: the
+# "Continue on the camera and location notice closes the app" report, release builds only.
+-keepattributes *Annotation*,RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations,Signature,InnerClasses,EnclosingMethod
+-keep @interface com.getcapacitor.annotation.CapacitorPlugin { *; }
+-keep @interface com.getcapacitor.annotation.Permission { *; }
+-keep @interface com.getcapacitor.annotation.PermissionCallback { *; }
+-keep @interface com.getcapacitor.annotation.ActivityCallback { *; }
+-keep @interface com.getcapacitor.PluginMethod { *; }
+-keep @com.getcapacitor.annotation.CapacitorPlugin class * extends com.getcapacitor.Plugin { *; }
+-keepclassmembers class * extends com.getcapacitor.Plugin {
+    @com.getcapacitor.PluginMethod <methods>;
+    @com.getcapacitor.annotation.PermissionCallback <methods>;
+    @com.getcapacitor.annotation.ActivityCallback <methods>;
+}
+-keep class com.getcapacitor.** { *; }
+-keep class com.capacitorjs.plugins.** { *; }
+-keep class name.ratson.cordova.** { *; }
+-dontwarn com.getcapacitor.**
+
 # OkHttp
 -dontwarn okhttp3.**
 -dontwarn okio.**

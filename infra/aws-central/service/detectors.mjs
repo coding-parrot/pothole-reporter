@@ -301,11 +301,33 @@ export function createDetector({
     status() {
       return {
         mode: providerMode,
+        // Shape only. Whether a key is actually present is readiness(), below.
         openai_configured: Boolean(process.env.SHARED_SECRET_ARN),
         yolo_configured: Boolean(process.env.SHARED_SECRET_ARN)
           && (yoloMode === "lambda" ? Boolean(yoloFunctionName) : /^https:\/\//.test(yoloUrl)),
         yolo_mode: yoloMode,
         yolo_model: yoloModel,
+      };
+    },
+    // The presence of a secret ARN says nothing about the secret's contents. Health
+    // reported "configured" against an empty secret, so the app believed the shared
+    // detector was ready and every capture failed at the point of detection instead.
+    // Read the secret and report what is actually usable. Never report the value.
+    async readiness() {
+      const shape = this.status();
+      if (!shape.openai_configured && !shape.yolo_configured) {
+        return { openai_configured: false, yolo_configured: false };
+      }
+      let secret;
+      try {
+        secret = await secrets();
+      } catch {
+        // Fail closed: an unreadable secret is not a configured detector.
+        return { openai_configured: false, yolo_configured: false };
+      }
+      return {
+        openai_configured: shape.openai_configured && Boolean(secret.openaiApiKey),
+        yolo_configured: shape.yolo_configured && Boolean(secret.yoloApiKey),
       };
     },
     async detect(input, context) {
