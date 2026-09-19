@@ -99,8 +99,10 @@ with sync_playwright() as playwright:
             .some((id) => document.getElementById(id)),
         })"""
     )
+    # Camera permission alone gates the picker. Location is requested once a photo
+    # exists, so cancelling the camera never costs a precise-location prompt.
     check(native["events"] == [
-        "camera_permission", "location_permission", "prewarm", "get_photo"
+        "camera_permission", "prewarm", "get_photo"
     ], f"one Photo tap did not go straight to the native camera: {native}", failures)
     check(native["fileClicks"] == 0,
           f"native camera error incorrectly fell back to a file picker: {native}", failures)

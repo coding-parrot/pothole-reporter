@@ -12,12 +12,19 @@ collected by default and asserted empty at the end of every flow.
 
 import json
 import os
+import pathlib
+import re
 from urllib.parse import urlparse
 
 APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 SERVICE = "https://flow-harness.test"
 RECIPIENT = "commissioner@example.gov.in"
-DATA_NOTICE_VERSION = "2026-09-05-v3"
+# Read from the app, never pinned: a copy of this string that falls behind the bundle
+# makes every flow suite start from consent the app no longer considers accepted.
+DATA_NOTICE_VERSION = re.search(
+    r'const DATA_NOTICE_VERSION = "([^"]+)"',
+    (pathlib.Path(__file__).resolve().parent.parent / "static/index.html")
+    .read_text(encoding="utf-8")).group(1)
 
 ACCEPTED = {
     "image_quality": "acceptable",

@@ -795,10 +795,25 @@
   // model contract.
   function binaryAssessment(a) {
     const legacy = a && (a.is_pothole === true || a.image_quality === "usable");
-    const accepted = legacy ? a.is_pothole === true : decisionFor(a) === "accept";
+    // The pre-v5 shape carried its own contradiction flags. A row that says "pothole"
+    // and "speed breaker" in the same breath, or one whose surface was never
+    // identified as road, is not a complaint: fail closed instead of trusting
+    // is_pothole alone. importNativeReport re-accepts genuine legacy rows explicitly.
+    const stated = (key) => !!a && Object.prototype.hasOwnProperty.call(a, key);
+    const contradicted = !!legacy && (
+      (stated("looks_like_speed_breaker") && a.looks_like_speed_breaker === true)
+      || (stated("on_drivable_surface") && a.on_drivable_surface === false)
+      || (stated("surface_type")
+        && (a.surface_type === "unknown" || a.surface_type === "unpaved_or_nonroad")));
+    const accepted = !contradicted
+      && (legacy ? a.is_pothole === true : decisionFor(a) === "accept");
     const damageType = accepted && DAMAGE_TYPES.has(a && a.damage_type)
       ? a.damage_type : accepted ? "pothole_cavity" : null;
     const size = accepted && SIZES.has(a && a.size) ? a.size : null;
+    // These are derived here, not asked of the model: the v5 contract returns five
+    // fields, and importNativeReport stores the projection below. Leaving them off
+    // wrote `undefined` into every imported row and made defect_type unreadable.
+    const measurement = (value) => Number.isFinite(value) ? value : null;
     return {
       ...(a || {}),
       image_quality: accepted ? "acceptable"
@@ -809,6 +824,17 @@
       description: typeof (a && a.description) === "string" ? a.description : "",
       is_pothole: accepted,
       reportable: accepted,
+      defect_type: accepted ? "pothole" : "not_pothole",
+      surface_type: typeof (a && a.surface_type) === "string" ? a.surface_type : "unknown",
+      // A photo carries no scale reference. The size is an eyeballed class, and the
+      // physical dimensions stay unknown rather than being invented from pixels.
+      measurement_provenance: typeof (a && a.measurement_provenance) === "string"
+        ? a.measurement_provenance : "visual_estimate_no_scale",
+      measurement_confidence: typeof (a && a.measurement_confidence) === "string"
+        ? a.measurement_confidence : "low",
+      measurement_length_cm: measurement(a && a.measurement_length_cm),
+      measurement_width_cm: measurement(a && a.measurement_width_cm),
+      measurement_depth_cm: measurement(a && a.measurement_depth_cm),
     };
   }
 

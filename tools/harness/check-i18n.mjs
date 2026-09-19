@@ -54,8 +54,12 @@ const isUsed = (key) => used.has(key) || [...prefixes].some((prefix) => key.star
 const placeholders = (value) =>
   [...String(value).matchAll(/\{([a-z0-9_]+)\}/g)].map((match) => match[1]).sort().join(",");
 
+// A key can also be read indirectly, as optionalPrivacyText("privacy_source") does.
+// Deleting one of those once emptied the first line of the consent notice, so a key
+// counts as used whenever its exact name appears as a quoted string in the code.
+const quoted = new Set([...rest.matchAll(/["'`]([a-z0-9_]+)["'`]/g)].map((m) => m[1]));
 const failures = [];
-const unused = every.filter((key) => !isUsed(key));
+const unused = every.filter((key) => !isUsed(key) && !quoted.has(key));
 for (const key of unused) {
   failures.push(`unused: ${key} is defined in ${languages.filter((l) => key in I18N[l]).join("/")}`
     + " but nothing reads it");

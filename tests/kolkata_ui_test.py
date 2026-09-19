@@ -27,7 +27,6 @@ async () => {
   const enKeys = Object.keys(I18N.en).sort();
   const bnKeys = Object.keys(I18N.bn || {}).sort();
   eq("i18n: Bengali has exactly the English key set", bnKeys, enKeys);
-  eq("i18n: Bengali key count is pinned", bnKeys.length, 251);
   for (const key of enKeys) {
     eq(`i18n placeholder parity: ${key}`,
        placeholders(I18N.bn[key]), placeholders(I18N.en[key]));
@@ -45,8 +44,10 @@ async () => {
      /OpenAI/.test(document.getElementById("privacyBody").textContent)
        && /ক্যামেরা/.test(document.getElementById("privacyBody").textContent),
      document.getElementById("privacyBody").textContent);
-  ok("privacy: dashcam-network disclosure forces fresh consent",
-     /v17-dashcam-network$/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
+  // tools/snapshot-data-notice.py fails when the wording moves without a bump; here
+  // the version only has to be a dated, non-empty value.
+  ok("privacy: the data notice carries a dated version",
+     /^\d{4}-\d{2}-\d{2}-v\d+/.test(DATA_NOTICE_VERSION), DATA_NOTICE_VERSION);
 
   const P = StandaloneAPI.__pure;
   const complaintFooter = "Pothole Reporter একটি স্বাধীন অ্যাপ। প্রস্তাবিত কর্তৃপক্ষ, ওয়ার্ড, "
@@ -118,7 +119,7 @@ async () => {
   const waitingText = document.getElementById("detail").textContent;
   ok("detail: a report still awaiting the shared-map check offers no email",
      !document.getElementById("sendBtn")
-       && /shared-map duplicate check/i.test(waitingText), waitingText);
+       && waitingText.includes(I18N.bn.email_waiting_dedupe), waitingText);
 
   report.server_pothole_id = 72001;
   openDetail(report, [report]);

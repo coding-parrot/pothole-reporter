@@ -143,27 +143,30 @@ JS = r"""
     delivery_channel: "email",
     ...outputs,
   };
+  // Email is the only complaint channel. The WhatsApp and portal-field copy actions
+  // were removed with the handoffs they fed, so the detail screen must offer one
+  // action and no revived second channel.
+  uiReport.server_pothole_id = 74001;
   openDetail(uiReport, [uiReport]);
-  const copyWhatsAppButton = document.getElementById("copyWhatsAppBtn");
-  const portalFieldsButton = document.getElementById("portalFieldsBtn");
+  const sendButton = document.getElementById("sendBtn");
   const detailActions = {
-    copyWhatsApp: !!copyWhatsAppButton,
-    portalFields: !!portalFieldsButton,
+    email: !!sendButton && sendButton.dataset.complaintAction === "email",
+    copyWhatsApp: !!document.getElementById("copyWhatsAppBtn"),
+    portalFields: !!document.getElementById("portalFieldsBtn"),
   };
-  portalFieldsButton.click();
-  const portalUi = {
-    visible: !document.getElementById("portalCopy").classList.contains("hidden"),
-    readOnly: document.getElementById("portalCopyText").readOnly,
-    text: document.getElementById("portalCopyText").value,
-  };
-  const originalComplaintOutputsForRecord = P.complaintOutputsForRecord;
-  P.complaintOutputsForRecord = () => { throw new Error("invalid stale draft"); };
-  const unsafeStoredFallback = roadComplaintOutputs({
+  // Stored contract text from an older build must never reach the screen. The WhatsApp
+  // and portal renderers that used to read it are gone, so this checks the one surface
+  // that is left: the detail card.
+  openDetail({
+    ...uiReport, id: 74002, server_pothole_id: 74002,
     whatsapp_text: "Contract: BAD-42; contractor Wrong Person",
     portal_copy_text: "listed contractor: Wrong Person",
     portal_fields: {listed_contractor: "Wrong Person"},
-  });
-  P.complaintOutputsForRecord = originalComplaintOutputsForRecord;
+    contractor: "Wrong Person", tender_number: "BAD-42",
+  }, []);
+  const staleDetailText = document.getElementById("detail").textContent;
+  const unsafeStoredFallback = /Wrong Person|BAD-42/.test(staleDetailText)
+    ? staleDetailText : null;
 
   const realWatchPosition = navigator.geolocation.watchPosition.bind(navigator.geolocation);
   const realClearWatch = navigator.geolocation.clearWatch.bind(navigator.geolocation);
@@ -239,7 +242,6 @@ JS = r"""
     noCandidate,
     verifiedOutputs,
     detailActions,
-    portalUi,
     unsafeStoredFallback,
     captureFix,
     clearedWatch,
@@ -385,15 +387,10 @@ def main():
               and "BBMP/2025-26/RD/WORK-42" in text
               and "ACME Roads Pvt Ltd" in text, text)
 
-    check(failures, "report detail exposes WhatsApp and portal-field actions",
-          result["detailActions"] == {"copyWhatsApp": True, "portalFields": True},
+    check(failures, "report detail offers email and no revived second channel",
+          result["detailActions"] == {
+              "email": True, "copyWhatsApp": False, "portalFields": False},
           result["detailActions"])
-    portal_ui = result["portalUi"]
-    check(failures, "portal-field action opens a read-only copy screen",
-          portal_ui["visible"] is True and portal_ui["readOnly"] is True,
-          portal_ui)
-    check(failures, "portal copy screen preserves the generated invariant block",
-          portal_ui["text"] == outputs["portal_copy_text"], portal_ui["text"])
     check(failures, "UI never revives stale contract text when validation fails",
           result["unsafeStoredFallback"] is None, result["unsafeStoredFallback"])
     check(failures, "manual shutter chooses the precise timestamp-nearest GPS fix",

@@ -17,24 +17,9 @@ SCENARIO = r"""
     name, !!condition, detail === undefined ? condition : detail, true,
   ]);
   const devanagari = /[\u0900-\u097f]/;
-  const officialKeys = [
-    "open_official_btn", "share_evidence_btn", "official_whatsapp_btn",
-    "official_call_btn", "official_disclaimer", "authority_disclaimer",
-    "routing_match", "alternate_handoff_btn", "confirm_official_handoff",
-    "confirm_suggested_email", "confirm_whatsapp_share", "official_grievance_generic_label",
-    "official_grievance_generic_placeholder", "chip_queued_official",
-    "complaint_title_label", "complaint_body_label", "mark_submitted_btn",
-    "submitted_reference", "confirm_mark_submitted",
-  ];
-  // These v1.14 keys stay translated because old BMC records remain readable.
-  const legacyBmcKeys = [
-    "chip_queued_bmc", "bmc_prepare_btn", "bmc_share_btn", "bmc_quickfix_btn",
-    "bmc_whatsapp_btn", "bmc_call_btn", "bmc_disclaimer", "bmc_ward",
-    "complaint_title_label", "complaint_body_label", "official_grievance_label",
-    "official_grievance_placeholder", "mark_submitted_btn", "submitted_reference",
-    "confirm_bmc_handoff", "confirm_mark_submitted", "evidence_shared",
-  ];
-
+  // The BMC/PMC portal, WhatsApp and helpline handoffs were removed: email is the only
+  // complaint channel, so these keys are gone from every language. What has to stay
+  // true is that Marathi is complete and never silently falls back to English.
   eq("language: saved Marathi is selected", LANG, "mr");
   openSettings(false);
   eq("language: settings selector reflects Marathi",
@@ -42,11 +27,14 @@ SCENARIO = r"""
   ok("language: primary UI renders Marathi",
      devanagari.test(document.getElementById("subTitle").textContent),
      document.getElementById("subTitle").textContent);
-  const expectedKeys = [...new Set([...officialKeys, ...legacyBmcKeys])];
-  const missing = expectedKeys.filter((key) => !Object.prototype.hasOwnProperty.call(I18N.mr, key));
-  eq("language: every current and legacy Maharashtra UI key has a Marathi value", missing, []);
-  const EnglishFallbacks = expectedKeys.filter((key) => I18N.mr[key] === I18N.en[key]);
-  eq("language: Maharashtra strings do not silently fall back to English", EnglishFallbacks, []);
+  const missing = Object.keys(I18N.en).filter(
+    (key) => !Object.prototype.hasOwnProperty.call(I18N.mr, key));
+  eq("language: every UI key has a Marathi value", missing, []);
+  // Placeholders, numbers and Latin product names are identical by design; anything
+  // else sharing the English string means a Marathi screen shows English.
+  const untranslated = Object.keys(I18N.en).filter((key) => I18N.mr[key] === I18N.en[key]
+    && /[A-Za-z]{4}/.test(String(I18N.en[key]).replace(/\{[a-z_]+\}/g, "")));
+  eq("language: Marathi strings do not silently fall back to English", untranslated, []);
 
   const route = {
     delivery_channel: "bmc_quickfix", ward_code: "K/W",
@@ -92,34 +80,33 @@ SCENARIO = r"""
     email_subject: subject, email_body: body, photo_url: "", photo: "",
     official_grievance_id: null, submitted_at: null, sent_at: null,
   };
+  report.server_pothole_id = 72001;
   openDetail(report, [report]);
   const detailText = document.getElementById("detail").textContent;
   const verdict = document.querySelector("#detail .verdict").textContent.trim();
   ok("UI: queued Mumbai verdict is Marathi", devanagari.test(verdict), verdict);
-  ok("UI: Marathi detail says the app only prepares evidence",
-     detailText.includes("फक्त पुरावा तयार करते") && detailText.includes("स्वतः तक्रार पूर्ण करा"),
+  ok("UI: Marathi detail does not fall back to English",
+     !/[A-Za-z]{4}/.test(detailText.replace(/Brihanmumbai Municipal Corporation|BMC[^,]*|K\/W/g, "")),
      detailText);
-  ok("UI: Marathi detail asks for a generic official reference",
-     detailText.includes("अधिकृत तक्रार/संदर्भ क्रमांक") &&
-       !!document.getElementById("grievanceId") && !!document.getElementById("markSubmittedBtn"),
-     detailText);
-  ok("UI: Marathi detail does not fall back to the English disclaimer",
-     !detailText.includes("independent app only prepares evidence"), detailText);
+  ok("UI: a confirmed Mumbai report offers email and no second channel",
+     !!document.getElementById("sendBtn")
+       && document.getElementById("sendBtn").dataset.complaintAction === "email"
+       && !document.getElementById("grievanceId")
+       && !document.getElementById("markSubmittedBtn"), detailText);
 
   const pmcReport = {
-    ...report, id: 72002, address: "शिवाजीनगर, पुणे", ward_code: null,
-    delivery_channel: "official_handoff", authority_id: "mh-pmc",
+    ...report, id: 72002, server_pothole_id: 72002, address: "शिवाजीनगर, पुणे",
+    ward_code: null, delivery_channel: "official_handoff", authority_id: "mh-pmc",
     authority_name: "Pune Municipal Corporation",
     officer_name: "PMC Road Mitra, Pune Municipal Corporation",
-    handoff_name: "PMC Road Mitra", alternate_handoff_name: "PMC CARE",
-    alternate_handoff_url: "https://pmccare.in/", helpline: "1800-103-0222",
   };
   openDetail(pmcReport, [pmcReport]);
   const pmcText = document.getElementById("detail").textContent;
-  ok("UI: Marathi PMC detail names primary and alternate official services",
-     pmcText.includes("PMC Road Mitra") && pmcText.includes("PMC CARE"), pmcText);
-  ok("UI: Marathi PMC detail retains the ownership warning",
-     pmcText.includes("रस्त्याची मालकी सिद्ध होत नाही"), pmcText);
+  ok("UI: Marathi PMC detail shows the Pune address the complaint is about",
+     pmcText.includes("शिवाजीनगर, पुणे"), pmcText);
+  ok("UI: PMC detail offers email without a second channel",
+     !!document.getElementById("sendBtn")
+       && !/PMC CARE|1800-103-0222|WhatsApp/.test(pmcText), pmcText);
 
   return checks;
 })()
