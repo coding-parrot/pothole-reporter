@@ -176,11 +176,17 @@ check(
         "initial_quality": kotlin_constant(service_source, "KEYFRAME_JPEG_QUALITY"),
     },
 )
+# The evaluator runs the shared generated contract, which is not the native Drive
+# contract. eval/native-detection-contract.json pins that one separately; here the only
+# requirement is that this runner tracks the generated one and never crops a frame.
+generated_detection = json.loads(
+    (pathlib.Path(__file__).resolve().parent.parent / "llm/generated/contract.json")
+    .read_text())["prompts"]["detection"]
 check(
     "prepared-eval uses the current complete-frame detection contract",
-    prepared_eval.run_eval.PROMPT_VERSION == "pothole-binary-v19"
-    and "leaving the final full frame" in prepared_eval.run_eval.prompts()["baseline"]
-    and "leaving the final crop" not in prepared_eval.run_eval.prompts()["baseline"],
+    prepared_eval.run_eval.PROMPT_VERSION == generated_detection["version"]
+    and prepared_eval.run_eval.prompts()["baseline"] == generated_detection["base"]
+    and "crop" not in prepared_eval.run_eval.prompts()["baseline"].lower(),
 )
 
 
@@ -226,24 +232,27 @@ with tempfile.TemporaryDirectory(prefix="prepared-eval-contract-") as temporary:
         raws=durable_bytes,
     )
 
+    # The shipped contract sends one image per detection, so the prepared corpus is
+    # replayed the same way: the sharpest complete frame, and nothing beside it. The
+    # other prepared frames stay on disk as evidence of what the burst contained.
     _, _, live_views, live_note = prepared_eval.load_event(live_dir, "live")
     decoded_live = [base64.b64decode(view.split(",", 1)[1]) for view in live_views]
-    check("live manifest order controls prepared byte order", decoded_live == live_bytes)
-    check("live primary is reflected in the Drive layout note",
-          "chronological frame 2 is the sharpest" in live_note
+    check("live manifest primary selects the prepared bytes sent",
+          decoded_live == [live_bytes[1]])
+    check("live layout note says one complete frame of the prepared burst",
+          "one complete camera frame, the sharpest of the 4 prepared" in live_note
           and "No image is cropped, tiled, masked" in live_note)
 
     _, _, durable_views, durable_note = prepared_eval.load_event(
         durable_dir, "durable-burst"
     )
     decoded_durable = [base64.b64decode(view.split(",", 1)[1]) for view in durable_views]
-    check("durable runner sends all three reloaded frames unchanged",
-          decoded_durable == durable_bytes)
+    check("durable runner sends the reloaded primary frame unchanged",
+          decoded_durable == [durable_bytes[2]])
     check("durable manifest preserves all chronological source frames and primary",
           durable_manifest["source_frame_indices"] == [0, 1, 2]
           and durable_manifest["primary_index"] == 2
-          and "Images 2-4" in durable_note
-          and "chronological frame 3 is the sharpest" in durable_note
+          and "one complete camera frame, the sharpest of the 4 prepared" in durable_note
           and "No image is cropped, tiled, masked" in durable_note)
 
     expect_manifest_rejection(
@@ -478,19 +487,17 @@ with tempfile.TemporaryDirectory(prefix="prepared-eval-contract-") as temporary:
               and request.get("reasoning") == {"effort": "low"}
               and request.get("store") is False
               and request.get("max_output_tokens") == 1536)
-        check(f"{mode} sends every exported JPEG unchanged at original detail",
-              len(request_images) == len(raw_images)
+        check(f"{mode} sends the exported primary JPEG unchanged at original detail",
+              len(request_images) == 1
               and all(item.get("detail") == "original" for item in request_images)
               and [base64.b64decode(item["image_url"].split(",", 1)[1])
-                   for item in request_images] == raw_images)
+                   for item in request_images] == [raw_images[expected_primary]])
         expected_prompt = prepared_eval.run_eval.effective_prompt(
             prepared_eval.run_eval.prompts()["baseline"], "drive", note
         )
-        expected_request_text = (
-            expected_prompt
-            + f"\n\nThe {len(raw_images)} supplied image(s) are ordered exactly as labelled "
-              "by the capture pipeline."
-        )
+        # One image, so there is no ordering sentence to add: the request text is the
+        # shipped prompt plus this event's capture-layout note, and nothing else.
+        expected_request_text = expected_prompt
         check(f"{mode} request contains the exact shipped Drive prompt once and last",
               len(request_texts) == 1
               and content[-1] is request_texts[0]
@@ -498,7 +505,7 @@ with tempfile.TemporaryDirectory(prefix="prepared-eval-contract-") as temporary:
         request_format = request.get("text", {}).get("format", {})
         check(f"{mode} request uses the strict shipped assessment schema",
               request_format.get("type") == "json_schema"
-              and request_format.get("name") == "pothole_binary_assessment"
+              and request_format.get("name") == prepared_eval.run_eval.SCHEMA_NAME
               and request_format.get("strict") is True
               and request_format.get("schema") == prepared_eval.run_eval.SCHEMA)
         check(f"{mode} CLI cache slot is isolated by source mode",

@@ -88,7 +88,7 @@ INIT = r"""
     if (target.includes("api.openai.com/v1/responses")) {
       const body = JSON.parse(init.body || "{}");
       const name = body.text && body.text.format && body.text.format.name;
-      if (name !== "pothole_binary_assessment") {
+      if (name !== "road_damage_assessment") {
         throw new Error(`Unexpected model call: ${name || "unnamed"}`);
       }
       window.__detectorCalls++;
