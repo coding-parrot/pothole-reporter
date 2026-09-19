@@ -6370,8 +6370,27 @@ async function analyseFootage(driveId, driveRec) {
   // An unreadable clip contributes a sentinel failure. Its exact frame count is
   // unknowable, but it must keep the entire recording and prevent a partial run from
   // being presented as complete or deleting the source clips.
-  const total = clips.reduce((n, c) => n + c.times.length, 0) + unreadableClips;
-  if (!total) { show("home"); alert(t("analyse_none")); return; }
+  // Planned counts the frames that could actually be planned. A clip the phone could
+  // not open contributes no frames; it is reported as an unreadable clip instead, and
+  // adding it here made the summary claim more unchecked frames than it ever planned.
+  const total = clips.reduce((n, c) => n + c.times.length, 0);
+  if (!total) {
+    // No frame could be planned. If that is because clips would not open, the drive
+    // must still record the attempt and keep the recording; silently returning left a
+    // drive that looked as if analysis had never been tried.
+    if (unreadableClips) {
+      const emptyAnalysis = StandaloneAPI.__pure.summarizeFootageAnalysis({
+        planned: 0, extracted: 0, checked: 0, failed: 0, unreadableClips, aborted: false,
+      });
+      await persistFootageAnalysis(emptyAnalysis);
+      await loadReports();
+      show("home");
+      alert(t("analyse_incomplete", { n: 0, failed: 0,
+        err: "One or more clips could not be decoded." }));
+      return;
+    }
+    show("home"); alert(t("analyse_none")); return;
+  }
   const paint = () => {
     $("progressText").innerHTML = t("analysing", { i: done, n: total, found })
       + (duplicateIds.size ? " " + t("analysing_dup", { n: duplicateIds.size }) : "")
@@ -6501,6 +6520,9 @@ async function analyseFootage(driveId, driveRec) {
           paint();
           continue;
         }
+        // Count what actually came out of the decoder and what actually reached the
+        // detector: the summary reports these numbers to the person afterwards.
+        extracted++;
         // New recordings carry their real segment start, so recorder restart/write gaps
         // stay aligned with GPS and live detections. Summed duration is legacy fallback.
         const atAbs = Number.isFinite(clip.sourceOffsetS) ? clip.sourceOffsetS + at : elapsed + at;
@@ -6525,6 +6547,14 @@ async function analyseFootage(driveId, driveRec) {
         await submitInOrder(idx, () => {
           request = checkVodFrame(fd)
             .then(async (r) => {
+              // Every planned frame lands in exactly one bucket: the detector judged
+              // it, or it failed. A frame the model never assessed is not "checked".
+              if (r && r.analyzed === false) {
+                failed++;
+                lastErr = (r && r.reason) || t("decoder_failed");
+                return;
+              }
+              checked++;
               if (r && r.found) found++;
               else if (r && r.duplicate && r.duplicate_of != null) {
                 duplicateIds.add(String(r.duplicate_of));

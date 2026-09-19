@@ -223,8 +223,10 @@ else:
         frame, at_ms = by_seq[seq]
         if frame.get("drive_id") != "metadata-gap-drive" or frame.get("capture_source") != "drive_vod":
             fails.append(f"clip {seq} lost its Drive/VOD identity: {frame}")
-        if frame.get("photo_count") != 3 or int(frame.get("primary_index") or -1) not in range(3):
-            fails.append(f"clip {seq} did not submit a real three-frame VOD burst: {frame}")
+        # The shipped contract sends one complete frame per detection, so a replayed
+        # clip submits exactly one photo and no burst primary index.
+        if frame.get("photo_count") != 1:
+            fails.append(f"clip {seq} did not submit exactly one complete frame: {frame}")
         if int(frame.get("source_offset_ms") or -1) != want["offset"] + at_ms:
             fails.append(f"clip {seq} used compacted duration instead of real source offset: {frame}")
         if int(frame.get("captured_at_ms") or -1) != want["start"] + at_ms:

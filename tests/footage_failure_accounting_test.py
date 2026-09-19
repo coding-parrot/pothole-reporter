@@ -21,11 +21,14 @@ def check(label, condition, detail=None):
 
 
 check("every saved-video metadata wait is bounded",
-      "function waitForVodMetadata(video, timeoutMs)" in INDEX
-      and INDEX.count("await waitForVodMetadata(") == 3)
-check("primary and retry extraction both fail closed",
-      "if (slot.ready) burst = await grabVodBurst" in INDEX
-      and "try { burst = await retryVodBurst(clip, at); } catch (e) {}" in INDEX)
+      "function waitForVideoMetadata(v, timeoutMs = 10000)" in INDEX
+      and INDEX.count("await waitForVideoMetadata(") == 3)
+# Replay extracts one complete frame per window; a decoder that returns nothing must
+# resolve rather than hang, and the caller counts it as failed, not checked.
+check("frame extraction resolves and fails closed",
+      "async function grabFrom(v, canvas, at) {" in INDEX
+      and "const blob = await grabFrom(slot.v, slot.canvas, at);" in INDEX
+      and "if (!blob) {" in INDEX)
 
 
 with sync_playwright() as playwright:
