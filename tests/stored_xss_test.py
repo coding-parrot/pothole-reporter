@@ -31,9 +31,12 @@ MODEL = (
     f"{HOOK}</script><img src=\"xss-model-missing\" "
     f'data-stored-xss="model-event" onerror="{HOOK}"><div>'
 )
-HANDOFF = (
-    'HANDOFF_XSS_MARKER</button><img src="xss-handoff-missing" '
-    f'data-stored-xss="handoff-event" onerror="{HOOK}"><button>'
+# Tender text comes from a downloaded procurement pack, so it is attacker-influenced
+# data rendered inside the detail card. The handoff-name surface it replaces went away
+# with the portal buttons.
+TENDER = (
+    'TENDER_XSS_MARKER</div><img src="xss-tender-missing" '
+    f'data-stored-xss="tender-event" onerror="{HOOK}"><div>'
 )
 
 SEED = r"""
@@ -168,18 +171,16 @@ with sync_playwright() as playwright:
         ),
         run_surface(
             browser,
-            "detail/handoff-name",
+            "detail/tender-note",
             {
-                "delivery_channel": "official_handoff",
-                "officer_email": None,
+                "road_ownership": "municipal",
+                "road_ownership_source": "central_v1",
+                "tender_resolution_checked_at": 1787260200,
                 "authority_name": "Test Municipal Corporation",
-                "handoff_name": HANDOFF,
-                "handoff_url": "https://example.invalid/official",
-                "ownership_unverified": True,
-                "requires_official_reference": True,
+                "tender_note": TENDER,
             },
             "detail",
-            ["HANDOFF_XSS_MARKER"],
+            ["TENDER_XSS_MARKER"],
         ),
         run_surface(
             browser,

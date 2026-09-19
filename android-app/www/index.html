@@ -6956,7 +6956,9 @@ function drawMap(pins, shared = false, unavailable = false) {
       if (mapFallbackTimer) { clearTimeout(mapFallbackTimer); mapFallbackTimer = null; }
       currentMap.remove();
       mapObj = null;
-      scatter(host, pins);
+      // Keep saying whose pins these are. Dropping `shared` here made the offline
+      // fallback describe the public map as "saved on this device".
+      scatter(host, pins, shared);
     };
     const tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" });
@@ -6989,7 +6991,11 @@ function drawMap(pins, shared = false, unavailable = false) {
       return m;
     })).addTo(mapObj);
     mapObj.fitBounds(group.getBounds().pad(0.25));
-    setTimeout(() => mapObj && mapObj.invalidateSize(), 60);
+    // Bound the wait. Offline, tile requests can fail without Leaflet ever firing its
+    // load event, and the map then sat empty forever instead of plotting the points.
+    mapFallbackTimer = setTimeout(useOfflinePlot, 6000);
+    setTimeout(() => generation === mapDrawGeneration && mapObj === currentMap
+      && currentMap.invalidateSize(), 60);
   } catch (e) { scatter(host, pins, shared); }
 }
 

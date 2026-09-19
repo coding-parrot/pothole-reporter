@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Contribution map stays useful with no reports, invalid GPS, or no tile network."""
+"""The dashboard map shows the public map only, and stays useful without tiles.
+
+Private reports are deliberately not plotted here: the map is the shared, deduplicated
+public view, and when it cannot be reached the app says so rather than quietly drawing
+this phone's own history in its place.
+"""
 
 import base64
 import json
@@ -35,30 +40,19 @@ INIT = r"""
 
 SEED = r"""
 async ({pixel}) => {
+  // Private history, to prove it never reaches the map.
   const now = Date.now() / 1000;
   const base = {
-    created_at: now,
-    captured_at: now,
-    status: "draft",
-    condition_status: "open",
-    issue_type: "road_damage",
-    decision: "accept",
-    damage_type: "pothole_cavity",
-    assessment: "clear",
-    image_quality: "usable",
-    size: "medium",
-    photo: pixel,
-    photo_full: null,
-    email_subject: "Pothole report",
+    created_at: now, captured_at: now, status: "draft", condition_status: "open",
+    issue_type: "road_damage", decision: "accept", damage_type: "pothole_cavity",
+    assessment: "damaged", image_quality: "acceptable", size: "medium",
+    photo: pixel, photo_full: null, email_subject: "Pothole report",
     email_body: "Please inspect this pothole.",
   };
   const reports = [
-    {...base, id: 88001, address: "Valid Map Road", lat: 19.0760, lng: 72.8777},
-    {...base, id: 88002, address: "Invalid Latitude", lat: 91, lng: 72.8777},
-    {...base, id: 88003, address: "Invalid Longitude", lat: 19.0760, lng: 181},
-    {...base, id: 88004, address: "Non-numeric GPS", lat: "not-a-lat", lng: "not-a-lng"},
+    {...base, id: 88001, address: "Private Map Road", lat: 19.0760, lng: 72.8777},
+    {...base, id: 88002, address: "Private Second Road", lat: 19.0770, lng: 72.8787},
   ];
-
   const db = await new Promise((resolve, reject) => {
     const request = indexedDB.open("potholes");
     request.onsuccess = () => resolve(request.result);
@@ -74,6 +68,49 @@ async ({pixel}) => {
   db.close();
 }
 """
+
+# One plottable pothole and three the map must refuse: out-of-range latitude,
+# out-of-range longitude, and a non-numeric coordinate pair.
+PUBLIC_MAP = {
+    "request_id": "test-map",
+    "type": "FeatureCollection",
+    "total": 4,
+    "features": [
+        {"type": "Feature",
+         "geometry": {"type": "Point", "coordinates": [72.8777, 19.0760]},
+         "properties": {"id": 501, "damage_type": "pothole_cavity", "size": "medium",
+                        "first_seen_at": 1788500000000, "last_seen_at": 1788500010000,
+                        "seen_count": 3, "town": "Mumbai", "lgd": "802791"}},
+        {"type": "Feature",
+         "geometry": {"type": "Point", "coordinates": [72.8777, 91]},
+         "properties": {"id": 502, "damage_type": "pothole_cavity", "size": "medium",
+                        "seen_count": 1}},
+        {"type": "Feature",
+         "geometry": {"type": "Point", "coordinates": [181, 19.0760]},
+         "properties": {"id": 503, "damage_type": "pothole_cavity", "size": "medium",
+                        "seen_count": 1}},
+        {"type": "Feature",
+         "geometry": {"type": "Point", "coordinates": ["not-a-lng", "not-a-lat"]},
+         "properties": {"id": 504, "damage_type": "pothole_cavity", "size": "medium",
+                        "seen_count": 1}},
+    ],
+}
+
+
+def route_central(route):
+    """Answer the central service so no request leaves the machine."""
+    path = route.request.url.split("amazonaws.com", 1)[-1].split("?")[0]
+    body = {"request_id": "test", "error": "not_mocked", "message": path}
+    status = 404
+    if path.startswith("/v1/map"):
+        body, status = PUBLIC_MAP, 200
+    elif path.startswith("/v1/installations"):
+        body, status = {"request_id": "test", "install_id": "test-installation"}, 201
+    elif path.startswith("/v1/activity"):
+        body, status = {"request_id": "test", "accepted": True}, 202
+    elif path.startswith("/v1/health"):
+        body, status = {"request_id": "test", "ai_configured": False}, 200
+    route.fulfill(status=status, content_type="application/json", body=json.dumps(body))
 
 
 def main():
@@ -96,62 +133,74 @@ def main():
         browser = playwright.chromium.launch(**launch_options)
         context = browser.new_context(viewport={"width": 390, "height": 844})
         context.add_init_script(INIT)
+        context.route("**/*.amazonaws.com/**", route_central)
+        # Deterministically offline for tiles: whether this machine can reach
+        # openstreetmap.org must not decide which branch the suite exercises.
+        context.route("https://tile.openstreetmap.org/**", lambda route: route.abort())
         page = context.new_page()
         page.goto(APP)
         page.wait_for_load_state("networkidle")
         page.wait_for_function(
             "typeof StandaloneAPI !== 'undefined' && typeof openDash === 'function'"
         )
+        page.evaluate("StandaloneAPI.handle('/api/reports', {method: 'DELETE'})")
 
-        page.evaluate(
-            "StandaloneAPI.handle('/api/reports', {method: 'DELETE'})"
-        )
-        page.evaluate("openDash()")
-        page.locator("#dash").wait_for(state="visible")
-        empty = page.evaluate(
-            """() => ({
-              message: document.querySelector('#map .empty')?.textContent.trim() || '',
-              note: document.querySelector('#mapNote').textContent.trim(),
-              svgCount: document.querySelectorAll('#map svg').length,
-            })"""
-        )
-        if empty != {
-            "message": "No mapped potholes yet.",
-            "note": "0 pinned",
-            "svgCount": 0,
-        }:
-            failures.append(f"empty dashboard did not show a visible map state: {empty}")
-
+        # Offline: Leaflet cannot fetch tiles, so the points are plotted on plain SVG
+        # and the note says why. The private reports seeded below must never appear.
         page.evaluate(SEED, {"pixel": PIXEL})
         page.evaluate("openDash()")
-        page.locator("#map svg").wait_for(state="visible")
+        page.locator("#map > svg").wait_for(state="visible", timeout=20_000)
         offline = page.evaluate(
             """() => ({
               online: navigator.onLine,
-              points: document.querySelectorAll('#map [data-map-report]').length,
+              points: document.querySelectorAll('#map > svg circle').length,
               note: document.querySelector('#mapNote').textContent.trim(),
+              mapText: document.getElementById('map').textContent,
             })"""
         )
         if offline["online"] is not False:
             failures.append(f"offline branch was not exercised: {offline}")
         if offline["points"] != 1:
             failures.append(
-                "invalid or out-of-range coordinates leaked into the map: "
-                f"{offline}"
-            )
-        if not offline["note"].startswith("1 pinned · Map tiles need a connection"):
+                f"invalid or out-of-range coordinates leaked into the map: {offline}")
+        if "Map tiles need a connection" not in offline["note"]:
             failures.append(f"offline fallback was not disclosed: {offline}")
+        if "deduplicated potholes" not in offline["note"]:
+            failures.append(
+                f"offline fallback described shared pins as this device's own: {offline}")
+        for private in ("Private Map Road", "Private Second Road"):
+            if private in offline["mapText"] or private in offline["note"]:
+                failures.append(f"private history was drawn on the public map: {private}")
+        context.close()
 
-        page.locator('#map [data-map-report="0"]').click()
-        page.locator("#detail").wait_for(state="visible")
-        detail = page.locator("#detail").inner_text()
-        if "Valid Map Road" not in detail:
-            failures.append(f"fallback point did not open its report detail: {detail}")
-        if any(label in detail for label in (
-            "Invalid Latitude", "Invalid Longitude", "Non-numeric GPS"
-        )):
-            failures.append(f"invalid GPS reports leaked into map navigation: {detail}")
-
+        # With the public map unreachable, the app says so instead of falling back to
+        # the reports on this phone.
+        context = browser.new_context(viewport={"width": 390, "height": 844})
+        context.add_init_script(INIT)
+        context.route(
+            "**/*.amazonaws.com/**",
+            lambda route: route.fulfill(status=503, content_type="application/json",
+                                        body=json.dumps({"error": "unavailable"})),
+        )
+        page = context.new_page()
+        page.goto(APP)
+        page.wait_for_load_state("networkidle")
+        page.wait_for_function("typeof openDash === 'function'")
+        page.evaluate(SEED, {"pixel": PIXEL})
+        page.evaluate("openDash()")
+        page.locator("#dash").wait_for(state="visible")
+        page.wait_for_timeout(500)
+        unavailable = page.evaluate(
+            """() => ({
+              note: document.querySelector('#mapNote').textContent.trim(),
+              mapText: document.getElementById('map').textContent,
+              points: document.querySelectorAll('#map > svg circle').length,
+            })"""
+        )
+        if "temporarily unavailable" not in unavailable["note"] or unavailable["points"]:
+            failures.append(f"unreachable public map was not disclosed: {unavailable}")
+        if "Private Map Road" in unavailable["mapText"]:
+            failures.append("private history replaced the unreachable public map")
         context.close()
 
         # Exercise the normal Leaflet path deterministically. A tiny intercepted image
@@ -163,6 +212,7 @@ def main():
             "localStorage.setItem('initial_setup_complete', '1');"
             "localStorage.setItem('app_lang', 'en');"
         )
+        context.route("**/*.amazonaws.com/**", route_central)
         page = context.new_page()
         page.route(
             "https://tile.openstreetmap.org/**",
@@ -170,7 +220,6 @@ def main():
         )
         page.goto(APP)
         page.wait_for_load_state("networkidle")
-        page.evaluate(SEED, {"pixel": PIXEL})
         page.evaluate("openDash()")
         page.locator("#map .leaflet-tile-loaded").first.wait_for(state="visible")
         online = page.evaluate(
@@ -183,7 +232,7 @@ def main():
         )
         if online["tiles"] < 1 or online["markers"] != 1:
             failures.append(f"Leaflet tiles/marker did not render: {online}")
-        if online["note"] != "1 pinned" or online["offlinePlot"]:
+        if "Map tiles need a connection" in online["note"] or online["offlinePlot"]:
             failures.append(f"successful tiles incorrectly fell back offline: {online}")
         context.close()
         browser.close()
