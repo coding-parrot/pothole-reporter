@@ -225,11 +225,19 @@ actual_upload_cert_sha256=$(keytool -printcert -jarfile "$AAB_PATH" 2>/dev/null 
 
 echo "6/8 validating the APK signature"
 APKSIGNER=$(command -v apksigner || true)
-if [ -z "$APKSIGNER" ] && [ -n "${ANDROID_SDK_ROOT:-}" ]; then
-  APKSIGNER=$(find "$ANDROID_SDK_ROOT/build-tools" -name apksigner -type f 2>/dev/null \
-    | sort | tail -n 1)
+if [ -z "$APKSIGNER" ]; then
+  # Gradle finds the SDK through local.properties, so look there too rather than
+  # demanding an environment variable this build does not otherwise need.
+  sdk_dir=${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}
+  if [ -z "$sdk_dir" ] && [ -f "$ANDROID_ROOT/local.properties" ]; then
+    sdk_dir=$(sed -n 's/^sdk\.dir=//p' "$ANDROID_ROOT/local.properties" | tail -n 1)
+  fi
+  if [ -n "$sdk_dir" ] && [ -d "$sdk_dir/build-tools" ]; then
+    APKSIGNER=$(find "$sdk_dir/build-tools" -name apksigner -type f 2>/dev/null \
+      | sort | tail -n 1)
+  fi
 fi
-[ -n "$APKSIGNER" ] || fail "apksigner is not on PATH and was not found in ANDROID_SDK_ROOT"
+[ -n "$APKSIGNER" ] || fail "apksigner was not found on PATH, in ANDROID_SDK_ROOT/ANDROID_HOME, or under the sdk.dir in local.properties"
 apk_signature_report=$("$APKSIGNER" verify --verbose --print-certs "$APK_PATH" 2>&1 || true)
 grep -Fq "Verified using v2 scheme (APK Signature Scheme v2): true" <<<"$apk_signature_report" \
   || fail "release APK is not signed with APK Signature Scheme v2"
