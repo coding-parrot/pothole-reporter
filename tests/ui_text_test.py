@@ -91,9 +91,11 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
     # Email is the sole complaint channel. The BMC, WhatsApp, helpline and portal
     # handoffs were removed along with the grievance-ID fields that recorded them:
     # opening another service proves nothing about whether a complaint was filed.
+    # confirm_suggested_email survives: it is the ownership warning shown before the
+    # one channel that is left.
     for removed in ("chip_queued_bmc", "chip_queued_official", "bmc_disclaimer",
                     "official_disclaimer", "authority_disclaimer",
-                    "confirm_suggested_email", "confirm_whatsapp_share",
+                    "confirm_official_handoff", "confirm_whatsapp_share",
                     "official_grievance_label", "official_grievance_generic_label"):
         if re.search(rf'^\s+{removed}: "', s, re.MULTILINE):
             fails.append(f"{name}: removed handoff string {removed} is back in the UI copy")
