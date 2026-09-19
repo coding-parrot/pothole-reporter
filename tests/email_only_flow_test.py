@@ -15,6 +15,10 @@ from urllib.parse import urlparse
 
 from playwright.sync_api import sync_playwright
 
+# The data notice version is read from the bundle: a pinned copy that falls behind
+# leaves every run of this suite stuck on the consent screen it thought it accepted.
+from flow_harness import DATA_NOTICE_VERSION
+
 
 APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 SERVICE = "https://email-flow.test"
@@ -163,7 +167,7 @@ with sync_playwright() as p:
     context = browser.new_context(viewport={"width": 390, "height": 844})
     context.add_init_script(script=f"""(() => {{
       localStorage.setItem("service_url", {json.dumps(SERVICE)});
-      localStorage.setItem("data_notice_version", "2026-09-05-v3");
+      localStorage.setItem("data_notice_version", "{DATA_NOTICE_VERSION}");
       localStorage.setItem("sender_name", "Test Citizen");
       localStorage.setItem("vision_provider", "shared");
       localStorage.setItem("provider_default_migration", "standalone-personal-v1");

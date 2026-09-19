@@ -564,7 +564,9 @@ def verify_shared_capture_uses_central_enrichment_only(browser):
                 and created["decision"] == "accept"
                 and created["vision_provider"] == "shared_server"
                 and created["server_pothole_id"] == "101"
-                and created["officer_email"] == "test@example.gov.in"
+                # The recipient comes from the signed state pack for the LGD code the
+                # central service returned, never from a client-side lookup.
+                and created["officer_email"] == "ka.kalaburagi.cc@gmail.com"
                 and created["tender_number"] == "TEST-2026-1"
                 and created["contractor"] == "Example Roads Ltd"
                 and not created["central_sync_pending"]

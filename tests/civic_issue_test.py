@@ -293,12 +293,18 @@ async ({authorities, pixel}) => {
   const uiSource = document.documentElement.innerHTML;
   ok("capture UI: native Photo flow requests the live camera explicitly",
      uiSource.includes('source: "CAMERA"') && uiSource.includes('resultType: "uri"'));
-  const photoPermissionBody = uiSource.match(
-    /async function requestNativeCapturePermissions\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
+  // Photo asks for the camera and, once a photo exists, for location. It must never
+  // reach for the Drive foreground-service notification permission.
+  const permissionHelpers =
+    (uiSource.match(/async function requestNativeCameraPermission\(\) \{[\s\S]*?\n\}/)?.[0] || "")
+    + (uiSource.match(/async function requestNativeLocationPermission\(\) \{[\s\S]*?\n\}/)?.[0] || "");
+  const captureBody = uiSource.match(
+    /async function beginPotholeCapture\(\) \{([\s\S]*?)\n\}/)?.[1] || "";
   ok("capture UI: one-off Photo never asks for Drive notification permission",
-     !photoPermissionBody.includes("requestDrivePermissions")
-       && photoPermissionBody.includes("Camera.requestPermissions")
-       && photoPermissionBody.includes("Geolocation.requestPermissions"));
+     !captureBody.includes("requestDrivePermissions")
+       && captureBody.includes("requestNativeCameraPermission")
+       && /camera\.requestPermissions\(\{ permissions: \["camera"\] \}\)/.test(permissionHelpers)
+       && /geo\.requestPermissions\(\)/.test(permissionHelpers));
   ok("capture UI: web fallback records file time and asks before binding current GPS",
      uiSource.includes("file.lastModified")
        && uiSource.includes('confirm(t("confirm_import_location"))')

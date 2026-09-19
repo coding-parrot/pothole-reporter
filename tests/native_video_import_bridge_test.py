@@ -11,6 +11,10 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
+# The data notice version is read from the bundle: a pinned copy that falls behind
+# leaves every run of this suite stuck on the consent screen it thought it accepted.
+from flow_harness import DATA_NOTICE_VERSION
+
 
 APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 fails = []
@@ -22,8 +26,8 @@ with sync_playwright() as playwright:
     context = browser.new_context(viewport={"width": 390, "height": 844})
     context.add_init_script("""
       localStorage.setItem('vision_provider', 'shared');
-      localStorage.setItem('data_notice_version', '2026-09-05-v3');
-    """)
+      localStorage.setItem('data_notice_version', '__DATA_NOTICE_VERSION__');
+    """.replace("__DATA_NOTICE_VERSION__", DATA_NOTICE_VERSION))
 
     def block_remote(route):
         url = route.request.url

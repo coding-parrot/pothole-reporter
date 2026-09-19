@@ -193,17 +193,14 @@ async ({pixel}) => {
   ok("detail: names the authority the draft is addressed to", 
      /Ambarnath Municipal Council/.test(councilUiText), councilUiText);
 
+  // One tap, one action: no second in-app confirmation and no choice of channel. The
+  // ownership caveat travels with the complaint instead, in its closing paragraph.
   const priorCouncilConfirm = window.confirm;
   const councilConfirms = [];
   window.confirm = (message) => { councilConfirms.push(String(message)); return false; };
   await sendReport(councilDraft);
   window.confirm = priorCouncilConfirm;
-  ok("confirmation: states the recipient and that ownership is not proven",
-     councilConfirms.some((message) => /Ambarnath Municipal Council/.test(message)
-       && /does not prove road ownership/i.test(message)
-       && /coud\.ambernath@maharashtra\.gov\.in/.test(message)), councilConfirms);
-  eq("confirmation: cancelling leaves the report a draft",
-     (await byId(71006)).status, "draft");
+  eq("send: Email is one tap, with no in-app confirmation step", councilConfirms, []);
 
   const opened = await StandaloneAPI.handle("/api/reports/71006/send", {method: "POST"});
   eq("send: the composer is addressed to the routed recipient",

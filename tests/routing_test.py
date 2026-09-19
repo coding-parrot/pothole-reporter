@@ -10,6 +10,10 @@ from urllib.parse import urlparse
 
 from playwright.sync_api import sync_playwright
 
+# The data notice version is read from the bundle: a pinned copy that falls behind
+# leaves every run of this suite stuck on the consent screen it thought it accepted.
+from flow_harness import DATA_NOTICE_VERSION
+
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
@@ -168,7 +172,7 @@ with sync_playwright() as playwright:
       localStorage.setItem("service_url", {json.dumps(SERVICE)});
       localStorage.setItem("vision_provider", "personal");
       localStorage.setItem("openai_key", "sk-routing-test");
-      localStorage.setItem("data_notice_version", "2026-09-05-v3");
+      localStorage.setItem("data_notice_version", "{DATA_NOTICE_VERSION}");
     }})();""")
     context.route(f"{SERVICE}/**", central_service)
     context.route("https://api.openai.com/v1/responses", openai_success)

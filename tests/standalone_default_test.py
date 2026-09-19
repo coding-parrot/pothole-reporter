@@ -5,6 +5,10 @@ import os
 
 from playwright.sync_api import sync_playwright
 
+# The data notice version is read from the bundle: a pinned copy that falls behind
+# leaves every run of this suite stuck on the consent screen it thought it accepted.
+from flow_harness import DATA_NOTICE_VERSION
+
 from server_client_contract_test import (
     ACCEPTED,
     CREATE_REPORT,
@@ -49,7 +53,7 @@ with sync_playwright() as p:
     shared_context.add_init_script(script=f"""(() => {{
       localStorage.clear();
       localStorage.setItem('service_url', {json.dumps(SERVICE)});
-      localStorage.setItem('data_notice_version', '2026-09-05-v3');
+      localStorage.setItem('data_notice_version', '{DATA_NOTICE_VERSION}');
     }})();""")
     wire_support(shared_context, shared_harness)
     shared_openai = []
@@ -135,7 +139,7 @@ with sync_playwright() as p:
     personal_context.add_init_script(script=f"""(() => {{
       localStorage.clear();
       localStorage.setItem('service_url', {json.dumps(SERVICE)});
-      localStorage.setItem('data_notice_version', '2026-09-05-v3');
+      localStorage.setItem('data_notice_version', '{DATA_NOTICE_VERSION}');
       localStorage.setItem('vision_provider', 'personal');
       localStorage.setItem('openai_key', 'sk-personal-test-secret');
     }})();""")
@@ -159,7 +163,7 @@ with sync_playwright() as p:
     outage_context.add_init_script(script=f"""(() => {{
       localStorage.clear();
       localStorage.setItem('service_url', {json.dumps(SERVICE)});
-      localStorage.setItem('data_notice_version', '2026-09-05-v3');
+      localStorage.setItem('data_notice_version', '{DATA_NOTICE_VERSION}');
       localStorage.setItem('vision_provider', 'personal');
       window.__alerts = [];
       window.alert = (message) => window.__alerts.push(String(message));
