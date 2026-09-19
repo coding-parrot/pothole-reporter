@@ -421,8 +421,8 @@ for (const detail of LLM_UI_CONFIG.allowedImageDetails) {
 const I18N = {
   en: {
     sub: "Capture it. Verify the damage. Email the responsible authority.",
-    report_btn: "&#128247; &nbsp;Report road damage",
-    drive_btn: "&#128663; &nbsp;Drive mode",
+    report_btn: "&#128247; &nbsp;Photo",
+    drive_btn: "&#128663; &nbsp;Drive",
     video_import_btn: "&#127909; &nbsp;Import Meta glasses / dashcam video",
     video_import_hint: "Choose one video or several dashcam clips in recording order. MP4/MOV (H.264) and WebM work on most devices; an unsupported codec gets a clear error. Files chosen with Import are read in place. A video shared directly into the Android app may use an app-private temporary copy for at most 24 hours. Only sampled JPEG frames are sent for checking.",
     gpx_add: "Add GPS track (.gpx)", gpx_remove: "Remove GPS track",
@@ -484,8 +484,8 @@ const I18N = {
     settings_note: "Accepted pothole coordinates and small metadata, including an image hash, go to the project service for tender resolution, nearby deduplication, the shared map and aggregate impact. A failed accepted-metadata upload retries when the app starts or reconnects until you delete that report. Email is the only complaint-filing option: one tap opens a pre-addressed draft with the location, road-damage details, photo and any probable tender number. Nothing sends until you press Send in your email app.",
     independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
     privacy_title: "Before camera and location access",
-    privacy_body: "If you continue, the app will use camera images and precise location. Shared vision routes selected images through the project service to its configured detector without project retention. Personal vision sends your key and images directly to OpenAI; the key never goes to the project service.",
-    privacy_local: "In both modes, accepted pothole coordinates and small metadata, including an image hash and pseudonymous installation ID, go to the project service for tender resolution, nearby deduplication, aggregate impact and the general map. If that accepted-metadata upload fails, it stays queued on this device and retries when the app starts or reconnects, until you delete the report. Reports, evidence photos and optional drive video stay on this device until deleted. Videos chosen through Import are read in place; a video shared directly into Android may be held as an app-private temporary copy for at most 24 hours and is removed sooner after successful analysis, discard, or Delete all app data.",
+    privacy_body: "If you continue, the app will use camera images and precise location. In Drive mode, Android keeps using the camera and precise location in the background while this app is not visible or in use, with Maps or a call screen in front of it; a permanent foreground-service notification shows that use, and you can pause or stop from the app or from the notification. Shared vision routes selected images through the project service to its configured detector without project retention. Personal vision sends your key and images directly to OpenAI; the key never goes to the project service.",
+    privacy_local: "In both modes, accepted pothole coordinates and small metadata, including an image hash and pseudonymous installation ID, go to the project service for tender resolution, nearby deduplication, aggregate impact and the general map. If that accepted-metadata upload fails, it stays queued on this device and retries when the app starts or reconnects, until you delete the report. Reports, evidence photos and optional drive video stay on this device until deleted. Videos chosen through Import are read in place; a video shared directly into Android may be held as an app-private temporary copy for at most 24 hours and is removed sooner after successful analysis, discard, or Delete all app data. Drive mode keeps sparse evidence frames in the app's private storage so an interrupted or offline drive can still be analysed; optional silent video recording is off by default and no audio is ever recorded. The verified state routing pack and 2° national-highway tiles download from GitHub Pages and are stored on this device; that request reveals the state or the approximate tile and your IP address, not your exact location.",
     privacy_government: "Exact detected pothole coordinates appear on the general map and service logs contain request IDs. This independent app is not a government service. Email is its only complaint-filing option; it opens a draft addressed to the routed authority and never presses Send. Network processing can occur outside India.",
     privacy_link: "Privacy policy", sources_link: "Data sources and limits",
     privacy_accept: "Continue", privacy_decline: "Not now",
@@ -537,7 +537,7 @@ const I18N = {
     capture_provenance_camera: "Taken now with the app camera",
     capture_provenance_import: "Selected/imported photo · original capture time not verified",
     review_btn: "Review and label frames", export_btn: "Export labelled dataset",
-    dash_btn: "&#128506;&#65039; &nbsp;Public pothole map", dash_title: "Your contribution",
+    dash_btn: "&#128506;&#65039; &nbsp;Contribution", dash_title: "Your contribution",
     dash_range: "{days} of reporting · first on {first}",
     dash_empty: "No reports yet. Your map fills up as you report issues or drive.",
     day_one: "1 day", day_many: "{n} days",
@@ -646,8 +646,8 @@ const I18N = {
   },
   kn: {
     sub: "ಚಿತ್ರ ಸೆರೆಹಿಡಿಯಿರಿ. ಹಾನಿ ಪರಿಶೀಲಿಸಿ. ಜವಾಬ್ದಾರ ಅಧಿಕಾರಿಗೆ ಇಮೇಲ್ ಮಾಡಿ.",
-    report_btn: "&#128247; &nbsp;ರಸ್ತೆ ಹಾನಿ ವರದಿ ಮಾಡಿ",
-    drive_btn: "&#128663; &nbsp;ಡ್ರೈವ್ ಮೋಡ್",
+    report_btn: "&#128247; &nbsp;ಫೋಟೋ",
+    drive_btn: "&#128663; &nbsp;ಡ್ರೈವ್",
     video_import_btn: "&#127909; &nbsp;Meta glasses / ಡ್ಯಾಶ್‌ಕ್ಯಾಮ್ ವಿಡಿಯೋ ಆಮದು",
     video_import_hint: "ಒಂದು ವಿಡಿಯೋ ಅಥವಾ ಹಲವಾರು ಡ್ಯಾಶ್‌ಕ್ಯಾಮ್ ತುಣುಕುಗಳನ್ನು ಚಿತ್ರೀಕರಣ ಕ್ರಮದಲ್ಲಿ ಆಯ್ಕೆಮಾಡಿ. MP4/MOV (H.264) ಮತ್ತು WebM ಸಾಮಾನ್ಯವಾಗಿ ಕೆಲಸ ಮಾಡುತ್ತವೆ. Import ಮೂಲಕ ಆಯ್ದ ಫೈಲ್‌ಗಳನ್ನು ಅದೇ ಸ್ಥಳದಿಂದ ಓದಲಾಗುತ್ತದೆ. Android ಗೆ ನೇರವಾಗಿ Share ಮಾಡಿದ ವಿಡಿಯೋವನ್ನು ಆ್ಯಪ್‌ನ ಖಾಸಗಿ ತಾತ್ಕಾಲಿಕ ಪ್ರತಿಯಾಗಿ ಗರಿಷ್ಠ 24 ಗಂಟೆ ಇಡಬಹುದು. ಆಯ್ದ JPEG ಫ್ರೇಮ್‌ಗಳನ್ನು ಮಾತ್ರ ಪರಿಶೀಲನೆಗೆ ಕಳುಹಿಸಲಾಗುತ್ತದೆ.",
     gpx_add: "GPS ಟ್ರ್ಯಾಕ್ ಸೇರಿಸಿ (.gpx)", gpx_remove: "GPS ಟ್ರ್ಯಾಕ್ ತೆಗೆದುಹಾಕಿ",
@@ -709,8 +709,8 @@ const I18N = {
     settings_note: "ದೃಢಪಟ್ಟ ಗುಂಡಿಯ ನಿಖರ ಸ್ಥಳ ಮತ್ತು ಚಿತ್ರದ ಹ್ಯಾಶ್ ಸೇರಿದಂತೆ ಸಣ್ಣ ಮೆಟಾಡೇಟಾ ಟೆಂಡರ್ ಪರಿಹಾರ, ಹತ್ತಿರದ ನಕಲು ತಡೆ, ಸಾಮಾನ್ಯ ನಕ್ಷೆ ಮತ್ತು ಒಟ್ಟು ಪರಿಣಾಮಕ್ಕಾಗಿ ಯೋಜನೆಯ ಸೇವೆಗೆ ಹೋಗುತ್ತದೆ. ಅಪ್‌ಲೋಡ್ ವಿಫಲವಾದರೆ, ಆ ವರದಿಯನ್ನು ಅಳಿಸುವವರೆಗೆ ಆ್ಯಪ್ ಆರಂಭವಾದಾಗ ಅಥವಾ ಸಂಪರ್ಕ ಮರಳಿದಾಗ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸುತ್ತದೆ. ದೂರು ಸಲ್ಲಿಸಲು ಇರುವ ಏಕೈಕ ಆಯ್ಕೆ ಇಮೇಲ್: ಒಂದೇ ಟ್ಯಾಪ್‌ನಲ್ಲಿ ಸರಿಯಾದ ಅಧಿಕಾರಿಗೆ ವಿಳಾಸಿಸಿದ, ಸ್ಥಳ, ರಸ್ತೆ ಹಾನಿಯ ವಿವರ, ಫೋಟೋ ಮತ್ತು ಲಭ್ಯವಿದ್ದರೆ ಸಂಭಾವ್ಯ ಟೆಂಡರ್ ಸಂಖ್ಯೆಯ ಕರಡು ತೆರೆಯುತ್ತದೆ.",
     independent_note: "ಇದು ಸ್ವತಂತ್ರ, ಅನಧಿಕೃತ ಆ್ಯಪ್. ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯೊಂದಿಗೆ ಸಂಬಂಧ ಅಥವಾ ಅನುಮೋದನೆ ಇಲ್ಲ. ಕಚೇರಿ ಸೂಚನೆ ಅತ್ಯುತ್ತಮ ಪ್ರಯತ್ನ ಮಾತ್ರ; ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
     privacy_title: "ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳ ಅನುಮತಿಯ ಮೊದಲು",
-    privacy_body: "ಮುಂದುವರಿಸಿದರೆ ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಚಿತ್ರಗಳು ಮತ್ತು ನಿಖರ ಸ್ಥಳ ಬಳಸುತ್ತದೆ. ಹಂಚಿದ ವಿಷನ್‌ನಲ್ಲಿ ಆಯ್ದ ಚಿತ್ರಗಳು ಯೋಜನೆಯ ಸೇವೆಯಲ್ಲಿ ಉಳಿಯದೆ, ಅದು ಸಂರಚಿಸಿರುವ ಪತ್ತೆ ವ್ಯವಸ್ಥೆಗೆ ಹೋಗುತ್ತವೆ. ವೈಯಕ್ತಿಕ ವಿಷನ್‌ನಲ್ಲಿ ಕೀ ಮತ್ತು ಚಿತ್ರಗಳು ನೇರವಾಗಿ OpenAI ಗೆ ಹೋಗುತ್ತವೆ; ಕೀ ಯೋಜನೆಯ ಸೇವೆಗೆ ಎಂದಿಗೂ ಹೋಗುವುದಿಲ್ಲ.",
-    privacy_local: "ಎರಡೂ ಮೋಡ್‌ಗಳಲ್ಲಿ ದೃಢಪಟ್ಟ ಗುಂಡಿಯ ನಿಖರ ಸ್ಥಳ ಮತ್ತು ಚಿತ್ರ ಹ್ಯಾಶ್ ಹಾಗೂ ಅನಾಮಧೇಯ ಸ್ಥಾಪನೆ ID ಸೇರಿದಂತೆ ಸಣ್ಣ ಮೆಟಾಡೇಟಾ ಟೆಂಡರ್ ಪರಿಹಾರ, ಹತ್ತಿರದ ನಕಲು ತಡೆ, ಒಟ್ಟು ಪರಿಣಾಮ ಮತ್ತು ಸಾಮಾನ್ಯ ನಕ್ಷೆಗಾಗಿ ಯೋಜನೆಯ ಸೇವೆಗೆ ಹೋಗುತ್ತದೆ. ಈ ಮೆಟಾಡೇಟಾ ಅಪ್‌ಲೋಡ್ ವಿಫಲವಾದರೆ, ಆ ವರದಿಯನ್ನು ಅಳಿಸುವವರೆಗೆ ಅದು ಸಾಧನದಲ್ಲಿ ಬಾಕಿ ಉಳಿದು ಆಪ್ ಆರಂಭವಾದಾಗ ಅಥವಾ ಸಂಪರ್ಕ ಮರಳಿದಾಗ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸುತ್ತದೆ. ವರದಿಗಳು, ಸಾಕ್ಷ್ಯ ಫೋಟೋ ಮತ್ತು ಐಚ್ಛಿಕ ವಿಡಿಯೋ ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲೇ ಇರುತ್ತವೆ. Import ಮೂಲಕ ಆಯ್ದ ವಿಡಿಯೋ ಅದೇ ಸ್ಥಳದಿಂದ ಓದಲಾಗುತ್ತದೆ; Android ಗೆ ನೇರವಾಗಿ Share ಮಾಡಿದ ವಿಡಿಯೋವನ್ನು ಆ್ಯಪ್‌ನ ಖಾಸಗಿ ತಾತ್ಕಾಲಿಕ ಪ್ರತಿಯಾಗಿ ಗರಿಷ್ಠ 24 ಗಂಟೆ ಇಡಬಹುದು ಮತ್ತು ಯಶಸ್ವಿ ವಿಶ್ಲೇಷಣೆ, ತ್ಯಜಿಸುವಿಕೆ ಅಥವಾ ಎಲ್ಲ ಡೇಟಾ ಅಳಿಸುವಿಕೆಯ ನಂತರ ಬೇಗ ತೆಗೆದುಹಾಕಲಾಗುತ್ತದೆ.",
+    privacy_body: "ಮುಂದುವರಿಸಿದರೆ ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾ ಚಿತ್ರಗಳು ಮತ್ತು ನಿಖರ ಸ್ಥಳ ಬಳಸುತ್ತದೆ. ಡ್ರೈವ್ ಮೋಡ್‌ನಲ್ಲಿ, ಆ್ಯಪ್ ಕಾಣದಿದ್ದರೂ ಅಥವಾ ನೀವು ಅದನ್ನು ಬಳಸದಿದ್ದರೂ, Maps ಅಥವಾ ಕರೆ ಪರದೆ ಮುಂದೆ ಇದ್ದರೂ, Android ಹಿನ್ನೆಲೆಯಲ್ಲಿ ಕ್ಯಾಮೆರಾ ಮತ್ತು ನಿಖರ ಸ್ಥಳ ಬಳಸುತ್ತಲೇ ಇರುತ್ತದೆ; ಈ ಬಳಕೆಯನ್ನು ಶಾಶ್ವತ foreground-service ಸೂಚನೆ ಯಾವಾಗಲೂ ತೋರಿಸುತ್ತದೆ, ಮತ್ತು ಆ್ಯಪ್ ಅಥವಾ ಆ ಸೂಚನೆಯಿಂದಲೇ ವಿರಾಮ ಅಥವಾ ನಿಲ್ಲಿಸಬಹುದು. ಹಂಚಿದ ವಿಷನ್‌ನಲ್ಲಿ ಆಯ್ದ ಚಿತ್ರಗಳು ಯೋಜನೆಯ ಸೇವೆಯಲ್ಲಿ ಉಳಿಯದೆ, ಅದು ಸಂರಚಿಸಿರುವ ಪತ್ತೆ ವ್ಯವಸ್ಥೆಗೆ ಹೋಗುತ್ತವೆ. ವೈಯಕ್ತಿಕ ವಿಷನ್‌ನಲ್ಲಿ ಕೀ ಮತ್ತು ಚಿತ್ರಗಳು ನೇರವಾಗಿ OpenAI ಗೆ ಹೋಗುತ್ತವೆ; ಕೀ ಯೋಜನೆಯ ಸೇವೆಗೆ ಎಂದಿಗೂ ಹೋಗುವುದಿಲ್ಲ.",
+    privacy_local: "ಎರಡೂ ಮೋಡ್‌ಗಳಲ್ಲಿ ದೃಢಪಟ್ಟ ಗುಂಡಿಯ ನಿಖರ ಸ್ಥಳ ಮತ್ತು ಚಿತ್ರ ಹ್ಯಾಶ್ ಹಾಗೂ ಅನಾಮಧೇಯ ಸ್ಥಾಪನೆ ID ಸೇರಿದಂತೆ ಸಣ್ಣ ಮೆಟಾಡೇಟಾ ಟೆಂಡರ್ ಪರಿಹಾರ, ಹತ್ತಿರದ ನಕಲು ತಡೆ, ಒಟ್ಟು ಪರಿಣಾಮ ಮತ್ತು ಸಾಮಾನ್ಯ ನಕ್ಷೆಗಾಗಿ ಯೋಜನೆಯ ಸೇವೆಗೆ ಹೋಗುತ್ತದೆ. ಈ ಮೆಟಾಡೇಟಾ ಅಪ್‌ಲೋಡ್ ವಿಫಲವಾದರೆ, ಆ ವರದಿಯನ್ನು ಅಳಿಸುವವರೆಗೆ ಅದು ಸಾಧನದಲ್ಲಿ ಬಾಕಿ ಉಳಿದು ಆಪ್ ಆರಂಭವಾದಾಗ ಅಥವಾ ಸಂಪರ್ಕ ಮರಳಿದಾಗ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸುತ್ತದೆ. ವರದಿಗಳು, ಸಾಕ್ಷ್ಯ ಫೋಟೋ ಮತ್ತು ಐಚ್ಛಿಕ ವಿಡಿಯೋ ಅಳಿಸುವವರೆಗೆ ಸಾಧನದಲ್ಲೇ ಇರುತ್ತವೆ. Import ಮೂಲಕ ಆಯ್ದ ವಿಡಿಯೋ ಅದೇ ಸ್ಥಳದಿಂದ ಓದಲಾಗುತ್ತದೆ; Android ಗೆ ನೇರವಾಗಿ Share ಮಾಡಿದ ವಿಡಿಯೋವನ್ನು ಆ್ಯಪ್‌ನ ಖಾಸಗಿ ತಾತ್ಕಾಲಿಕ ಪ್ರತಿಯಾಗಿ ಗರಿಷ್ಠ 24 ಗಂಟೆ ಇಡಬಹುದು ಮತ್ತು ಯಶಸ್ವಿ ವಿಶ್ಲೇಷಣೆ, ತ್ಯಜಿಸುವಿಕೆ ಅಥವಾ ಎಲ್ಲ ಡೇಟಾ ಅಳಿಸುವಿಕೆಯ ನಂತರ ಬೇಗ ತೆಗೆದುಹಾಕಲಾಗುತ್ತದೆ. ಅಡಚಣೆಯಾದ ಅಥವಾ ಆಫ್‌ಲೈನ್ ಡ್ರೈವ್ ಅನ್ನೂ ನಂತರ ವಿಶ್ಲೇಷಿಸಲು ಸಾಧ್ಯವಾಗುವಂತೆ ಡ್ರೈವ್ ಮೋಡ್ ವಿರಳ ಸಾಕ್ಷ್ಯ ಫ್ರೇಮ್‌ಗಳನ್ನು ಆ್ಯಪ್‌ನ ಖಾಸಗಿ ಸಂಗ್ರಹದಲ್ಲಿ ಇಡುತ್ತದೆ; ಐಚ್ಛಿಕ ಮೂಕ ವಿಡಿಯೋ ರೆಕಾರ್ಡಿಂಗ್ ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್ ಆಗಿದ್ದು, ಆಡಿಯೋ ಎಂದಿಗೂ ರೆಕಾರ್ಡ್ ಆಗುವುದಿಲ್ಲ. ಪರಿಶೀಲಿತ ರಾಜ್ಯ routing pack ಮತ್ತು 2° ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿ tile ಗಳು GitHub Pages ನಿಂದ ಡೌನ್‌ಲೋಡ್ ಆಗಿ ಈ ಸಾಧನದಲ್ಲಿ ಉಳಿಯುತ್ತವೆ; ಆ ವಿನಂತಿ ರಾಜ್ಯ ಅಥವಾ ಅಂದಾಜು tile ಮತ್ತು ನಿಮ್ಮ IP ವಿಳಾಸವನ್ನು ತೋರಿಸುತ್ತದೆ, ನಿಖರ ಸ್ಥಳವನ್ನಲ್ಲ.",
     privacy_government: "ಪತ್ತೆಯಾದ ಗುಂಡಿಯ ನಿಖರ ಸ್ಥಳ ಸಾಮಾನ್ಯ ನಕ್ಷೆಯಲ್ಲಿ ಕಾಣುತ್ತದೆ ಮತ್ತು ಸೇವೆಯ ಲಾಗ್‌ಗಳಲ್ಲಿ ವಿನಂತಿ ID ಇರುತ್ತದೆ. ಇದು ಸರ್ಕಾರಿ ಸೇವೆಯಲ್ಲ. ದೂರು ಸಲ್ಲಿಸಲು ಆ್ಯಪ್‌ನಲ್ಲಿ ಇರುವ ಏಕೈಕ ಆಯ್ಕೆ ಇಮೇಲ್; ಅದು ಸರಿಯಾದ ಅಧಿಕಾರಿಗೆ ಕರಡು ತೆರೆಯುತ್ತದೆ ಮತ್ತು ಸ್ವತಃ ಕಳುಹಿಸುವುದಿಲ್ಲ. ಸಂಸ್ಕರಣೆ ಭಾರತದ ಹೊರಗೆ ನಡೆಯಬಹುದು.",
     privacy_link: "ಗೌಪ್ಯತಾ ನೀತಿ", sources_link: "ಡೇಟಾ ಮೂಲಗಳು ಮತ್ತು ಮಿತಿಗಳು",
     privacy_accept: "ಮುಂದುವರಿಸಿ", privacy_decline: "ಈಗ ಬೇಡ",
@@ -757,7 +757,7 @@ const I18N = {
     capture_provenance_camera: "ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾದಿಂದ ಈಗ ತೆಗೆದದ್ದು",
     capture_provenance_import: "ಆಯ್ಕೆ/ಆಮದು ಮಾಡಿದ ಚಿತ್ರ · ಮೂಲ ಸೆರೆ ಸಮಯ ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ",
     review_btn: "ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಗುರುತಿಸಿ", export_btn: "ಗುರುತಿಸಿದ ಡೇಟಾಸೆಟ್ ರಫ್ತು ಮಾಡಿ",
-    dash_btn: "&#128506;&#65039; &nbsp;ಸಾರ್ವಜನಿಕ ರಸ್ತೆ ಗುಂಡಿ ನಕ್ಷೆ", dash_title: "ನಿಮ್ಮ ಕೊಡುಗೆ",
+    dash_btn: "&#128506;&#65039; &nbsp;ಕೊಡುಗೆ", dash_title: "ನಿಮ್ಮ ಕೊಡುಗೆ",
     dash_range: "{days} ವರದಿ · ಮೊದಲನೆಯದು {first}",
     dash_empty: "ಇನ್ನೂ ವರದಿಗಳಿಲ್ಲ. ಸಮಸ್ಯೆಗಳನ್ನು ವರದಿ ಮಾಡಿದಂತೆ ಅಥವಾ ಡ್ರೈವ್ ಮಾಡಿದಂತೆ ನಕ್ಷೆ ತುಂಬುತ್ತದೆ.",
     day_one: "1 ದಿನ", day_many: "{n} ದಿನಗಳು",
@@ -2052,7 +2052,10 @@ function startCapturePositionSampler() {
 }
 
 async function beginPotholeCapture() {
-  await requestNativeCapturePermissions();
+  // Only camera permission gates the picker. Asking for location here puts a second
+  // Android dialog in front of the camera, and asks for precise location even when the
+  // person cancels without taking a photo. Location is requested once a photo exists.
+  await requestNativeCameraPermission();
   StandaloneAPI.prewarm();
   const native = window.Capacitor && Capacitor.isNativePlatform
     && Capacitor.isNativePlatform();
@@ -2084,7 +2087,12 @@ async function beginPotholeCapture() {
         lastModified: capturedAtMs,
       });
       const position = await positionSampler.positionAt(capturedAtMs);
-      await handleFile(file, { captureSource: "manual_camera", capturedAtMs, position });
+      // Only a real fix counts as supplied. Passing null would tell handleFile the
+      // location question is already settled and skip the permission request that a
+      // first capture still needs.
+      const captureMeta = { captureSource: "manual_camera", capturedAtMs };
+      if (position) captureMeta.position = position;
+      await handleFile(file, captureMeta);
       return;
     } catch (e) {
       const cancelled = e && (e.code === "OS-PLUG-CAMR-0006"
@@ -7066,6 +7074,10 @@ window.handleAppBack = () => {
     return true;
   }
   if (!$("feedback").classList.contains("hidden")) { openSettings(); return true; }
+  // Mandatory first-run Settings cannot be escaped with Back. Leaving it would drop a
+  // fresh install onto a Home screen it was never set up for, and the next Back press
+  // would close the app instead.
+  if (initialSettingsActive && !$("settings").classList.contains("hidden")) return true;
   for (const s of ["detail", "settings", "progress", "drive", "review", "dash"]) {
     if (!$(s).classList.contains("hidden")) { show("home"); loadReports(); return true; }
   }

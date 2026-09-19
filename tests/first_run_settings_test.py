@@ -63,6 +63,12 @@ with sync_playwright() as playwright:
     if not handled or not after_back["settingsVisible"] or after_back["homeVisible"]:
         failures.append(f"Android Back escaped mandatory Settings: {after_back}")
 
+    # The shared detector is the default and needs no key of the tester's own, so the
+    # key field is not even editable until someone picks the personal provider.
+    if page.locator("#setKey").is_enabled():
+        failures.append("shared detector left the API key field editable")
+
+    page.select_option("#setProvider", "personal")
     page.locator("#setKey").fill("   ")
     page.locator("#setSave").click()
     page.wait_for_function("window.__firstRunAlerts.length === 1")
@@ -72,15 +78,17 @@ with sync_playwright() as playwright:
     if not blank["alerts"] or "key" not in blank["alerts"][0].lower():
         failures.append(f"blank key did not explain the requirement: {blank}")
 
-    # Saving a key completes onboarding and persists that decision across a reload.
-    page.locator("#setKey").fill("test-key-never-sent")
+    # Saving completes onboarding and persists that decision across a reload. On the
+    # shared detector that means Save alone, with no key: a tester who has no OpenAI
+    # account must still reach Home.
+    page.select_option("#setProvider", "shared")
     page.locator("#setSave").click()
     page.locator("#home").wait_for(state="visible", timeout=30_000)
     saved = ui_state(page)
     if saved["settingsVisible"] or not saved["homeVisible"]:
         failures.append(f"valid Save did not open Home: {saved}")
-    if saved["key"] != "test-key-never-sent" or saved["setup"] != "1":
-        failures.append(f"valid Save did not persist onboarding: {saved}")
+    if saved["key"] or saved["setup"] != "1":
+        failures.append(f"shared Save did not persist onboarding without a key: {saved}")
     if saved["required"] or saved["active"]:
         failures.append(f"valid Save left first-run guards active: {saved}")
 

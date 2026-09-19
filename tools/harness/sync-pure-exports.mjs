@@ -46,8 +46,13 @@ const entries = block[1].split(/,(?![^{]*\})/).map((part) => part.trim())
   .filter(Boolean).filter((part) => !part.startsWith("//"));
 // Aliases such as `matchTenderFor: matchTender` are real exports; keep them verbatim.
 const aliases = entries.filter((part) => part.includes(":"));
+// An alias is written out verbatim at the end. Its key must never also be emitted as a
+// shorthand, which would export an identifier the bundle never declares and kill the
+// whole script at load with "matchTenderFor is not defined".
+const aliasKeys = new Set(aliases.map((part) => part.split(":")[0].trim()));
 const exported = new Set(entries.map((part) => part.split(":")[0].trim())
   .filter((part) => /^[A-Za-z_$][\w$]*$/.test(part)));
+const shorthand = new Set([...exported].filter((name) => !aliasKeys.has(name)));
 // __pure cannot list itself. The repair updater is deliberately not a pure API: repair
 // verification belongs to the native service, and unit_test asserts these stay private.
 const SKIP = new Set(["__pure", "findRepairCandidateFromReports", "repairTargetMatch",
@@ -67,7 +72,7 @@ if (check) {
 
 const lines = [];
 let line = "                  ";
-for (const name of [...new Set([...exported, ...missing])].sort().concat(aliases)) {
+for (const name of [...new Set([...shorthand, ...missing])].sort().concat(aliases)) {
   if (line.length + name.length + 2 > 96) { lines.push(line); line = "                  "; }
   line += ` ${name},`;
 }

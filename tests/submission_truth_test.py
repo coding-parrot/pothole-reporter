@@ -415,6 +415,13 @@ async ({pixel}) => {
     },
   ];
 
+  // Every seeded report has already cleared the shared-map duplicate check. The send
+  // path refuses to open an email before the shared map answers, and these fixtures
+  // start life after that answer, so they carry the id the server handed back.
+  records.forEach((record, index) => {
+    if (record.server_pothole_id === undefined) record.server_pothole_id = 800001 + index;
+  });
+
   const db = await new Promise((resolve, reject) => {
     const request = indexedDB.open("potholes");
     request.onsuccess = () => resolve(request.result);

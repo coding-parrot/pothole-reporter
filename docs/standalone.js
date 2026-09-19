@@ -8206,7 +8206,8 @@
   // Detection sees the complete frame, edge to edge. There is deliberately no source
   // rectangle here: a band, crop or region of interest must never reach the detector
   // (AGENTS.md), and leaving the machinery in place is how one comes back.
-  async function toDataUrl(blob, maxDim, quality = 0.85, boost = false) {
+  async function toDataUrl(source, maxDim, quality = 0.85, boost = false) {
+    const blob = photoBlob(source);
     const bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
     let c = null;
     try {
@@ -9750,7 +9751,8 @@
     rec = migrateLegacyComplaintRecord(rec);
     const fullSource = fullFramePhoto(rec);
     if (!fullSource) throw new Error("A complete full-frame evidence image is unavailable for this legacy report.");
-    const source = await dataUrlToBlob(fullSource);
+    const source = photoBlob(typeof fullSource === "string"
+      ? await dataUrlToBlob(fullSource) : fullSource);
     const wideUrl = await toDataUrl(source, 1280, 0.86, false);
     const base64 = wideUrl && wideUrl.split(",")[1];
     if (!base64) throw new Error("The report photo could not be read.");
@@ -11505,15 +11507,15 @@
                    OFFICIAL_AUTHORITY_INDEX, OFFICIAL_HANDOFF_CHANNELS,
                    OPTIONAL_CATALOG_TIMEOUT_MS, ORIGINAL_DETAIL_MODELS,
                    OUTBOUND_CONTRACT_IDENTITY_FIELDS, PACK_AUTHORITIES_BY_STATE,
-                   PACK_ID_BY_AUTHORITY, PACK_SITE_ROOT, PMC_AUTHORITY, POTHOLE_SIZES, PROGRESS,
-                   PROJECT_SERVICE_POSITIVE_TTL_MS, PROMPT_VERSION, PUNJAB_ROUTING_ENVELOPE,
-                   PUNJAB_STATE_AUTHORITY, PUNJAB_STATE_GEOMETRY_SHA256, QUALITY_RE,
-                   RAJASTHAN_ROUTING_ENVELOPE, RAJASTHAN_STATE_AUTHORITY,
-                   RAJASTHAN_STATE_GEOMETRY_SHA256, REMAINING_STATE_AUTHORITIES,
-                   REMAINING_STATE_ROUTE_CONFIGS, REPAIR_EVIDENCE_MAX_BYTES,
-                   REPAIR_EVIDENCE_MAX_DIMENSION, REPAIR_EVIDENCE_MAX_PIXELS,
-                   REPAIR_EVIDENCE_MIN_BYTES, REPAIR_EVIDENCE_MIN_DIMENSION,
-                   REPAIR_EVIDENCE_TYPES, REPAIR_MAX_ACCURACY_M,
+                   PACK_ID_BY_AUTHORITY, PACK_IN_USE_MS, PACK_SITE_ROOT, PMC_AUTHORITY,
+                   POTHOLE_SIZES, PROGRESS, PROJECT_SERVICE_POSITIVE_TTL_MS, PROMPT_VERSION,
+                   PUNJAB_ROUTING_ENVELOPE, PUNJAB_STATE_AUTHORITY,
+                   PUNJAB_STATE_GEOMETRY_SHA256, QUALITY_RE, RAJASTHAN_ROUTING_ENVELOPE,
+                   RAJASTHAN_STATE_AUTHORITY, RAJASTHAN_STATE_GEOMETRY_SHA256,
+                   REMAINING_STATE_AUTHORITIES, REMAINING_STATE_ROUTE_CONFIGS,
+                   REPAIR_EVIDENCE_MAX_BYTES, REPAIR_EVIDENCE_MAX_DIMENSION,
+                   REPAIR_EVIDENCE_MAX_PIXELS, REPAIR_EVIDENCE_MIN_BYTES,
+                   REPAIR_EVIDENCE_MIN_DIMENSION, REPAIR_EVIDENCE_TYPES, REPAIR_MAX_ACCURACY_M,
                    REPAIR_MAX_HEADING_DIFFERENCE_DEG, REPAIR_MISSING_HEADING_RADIUS_M,
                    REPAIR_RADIUS_M, REPAIR_SCHEMA_VERSION, REPAIR_VERIFICATION_VERSION,
                    REQUEST_TIMEOUT_MS, ROAD_AGREEMENT_MANIFEST_FILE,
@@ -11535,9 +11537,9 @@
                    WEST_BENGAL_STATE_AUTHORITY, WEST_BENGAL_STATE_GEOMETRY_SHA256,
                    _contractPackMemory, _contractPackPromises, _highwayTileMemory,
                    _highwayTilePromises, _newStateCoverage, _newStateCoveragePromises,
-                   _roadAgreementPackMemory, _roadAgreementPackPromises, _roadNoticePackMemory,
-                   _roadNoticePackPromises, _statePackMemory, _statePackPromises,
-                   acceptedReport, accuracyCircleWithinEnvelope, addReport,
+                   _packsInUse, _roadAgreementPackMemory, _roadAgreementPackPromises,
+                   _roadNoticePackMemory, _roadNoticePackPromises, _statePackMemory,
+                   _statePackPromises, acceptedReport, accuracyCircleWithinEnvelope, addReport,
                    addReportUnlessDuplicate, allCentralOutbox, allDrives, allReports,
                    allStatePacks, allStoredRecordsAreEmpty, analyzeImage, analyzeViaService,
                    andhraPradeshCoverage, andhraPradeshRouteFromGeocode, applyCentralPothole,
@@ -11589,37 +11591,37 @@
                    loadRoadAgreementPack, loadRoadNoticePack, loadStatePack, localDamageFamily,
                    madhyaPradeshCoverage, madhyaPradeshRouteFromGeocode, maharashtraCoverage,
                    maharashtraRouteFromGeocode, majorCityCoverage, majorCityRouteFromGeocode,
-                   mapStatus, markProjectServiceAvailable, markProjectServiceUnavailable,
-                   matchHighwayContract, matchHighwayTile, matchRoadAgreement, matchRoadNotice,
-                   matchTender, matchTenderAt, matchTenderFor: matchTender, matchedMmrAuthorities,
-                   matchesEverySameDriveSighting, materialPavementRe,
-                   migrateLegacyAndhraPradeshHandoff, migrateLegacyComplaintDrafts,
-                   migrateLegacyComplaintRecord, migrateLegacyTamilNaduHandoff, mixedRoadScope,
-                   mumbaiFromGeocode, mumbaiWardFromName, municipalCityCoverage,
-                   municipalCityCoverageCache, municipalCityCoveragePromises,
-                   municipalCityRouteFromGeocode, municipalGeometryBounds,
-                   mutateReportAtomically, nationalHighwayRoute, nativeDetectorContract,
-                   nonCarriagewayTreatmentTargetRe, nonWorksServiceRe, normaliseAuthorityValue,
-                   normaliseDetail, normaliseIssueType, normaliseManualCaptureSource,
-                   normaliseModel, normaliseTenderMatch, nullableRoadAgreementText, oai,
-                   oaiStream, odishaCoverage, odishaRouteFromGeocode, officialArcGisCount,
-                   officialIndianPublicRecordUrl, officialPointRegionMatch, op,
-                   openBengaluruHandoff, openEmailDraft, openNationalHighwayHandoff,
-                   openOfficialHandoff, optionalCatalogResult, outerStateBoundaryGeometry,
-                   partialAssessment, peekReject, peekVerdict, photoBlob, photoToBase64,
-                   pinnedStateCoverage, pinnedStateRoute, pmsg, pointInEnvelope,
-                   pointInGeometry, pointInPolygon, pointInRing, pointOnSegment,
-                   pointToHighwaySegment, pointToSegmentMeters, preferredLowerCatalogMatch,
-                   prepareComplaint, prewarm, probeProjectService, progress,
-                   projectServiceAvailable, pruneStatePacks, publicEmailStatus, punjabCoverage,
-                   punjabRouteFromGeocode, putCachedStatePack, putDrive, putFootage, putReport,
-                   rajasthanCoverage, rajasthanRouteFromGeocode, randomId, readFeedbackQueue,
-                   readJson, rebuildOfficialAuthorityIndex, recordCentralRetryFailure,
-                   refreshAndPersistOfficialHandoff, refreshGeneratedComplaintFields,
-                   registerCentralPothole, rejectedVerdict, remainingStateCoverage,
-                   remainingStateRouteFromGeocode, repairProvenanceIsExact,
-                   repairTargetPhotoBytes, replaceStableObject, reserveDriveCommit,
-                   resetContractPackMemory, resetHighwayPackMemory,
+                   mapStatus, markPackInUse, markProjectServiceAvailable,
+                   markProjectServiceUnavailable, matchHighwayContract, matchHighwayTile,
+                   matchRoadAgreement, matchRoadNotice, matchTender, matchTenderAt,
+                   matchedMmrAuthorities, matchesEverySameDriveSighting,
+                   materialPavementRe, migrateLegacyAndhraPradeshHandoff,
+                   migrateLegacyComplaintDrafts, migrateLegacyComplaintRecord,
+                   migrateLegacyTamilNaduHandoff, mixedRoadScope, mumbaiFromGeocode,
+                   mumbaiWardFromName, municipalCityCoverage, municipalCityCoverageCache,
+                   municipalCityCoveragePromises, municipalCityRouteFromGeocode,
+                   municipalGeometryBounds, mutateReportAtomically, nationalHighwayRoute,
+                   nativeDetectorContract, nonCarriagewayTreatmentTargetRe, nonWorksServiceRe,
+                   normaliseAuthorityValue, normaliseDetail, normaliseIssueType,
+                   normaliseManualCaptureSource, normaliseModel, normaliseTenderMatch,
+                   nullableRoadAgreementText, oai, oaiStream, odishaCoverage,
+                   odishaRouteFromGeocode, officialArcGisCount, officialIndianPublicRecordUrl,
+                   officialPointRegionMatch, op, openBengaluruHandoff, openEmailDraft,
+                   openNationalHighwayHandoff, openOfficialHandoff, optionalCatalogResult,
+                   outerStateBoundaryGeometry, partialAssessment, peekReject, peekVerdict,
+                   photoBlob, photoToBase64, pinnedStateCoverage, pinnedStateRoute, pmsg,
+                   pointInEnvelope, pointInGeometry, pointInPolygon, pointInRing,
+                   pointOnSegment, pointToHighwaySegment, pointToSegmentMeters,
+                   preferredLowerCatalogMatch, prepareComplaint, prewarm, probeProjectService,
+                   progress, projectServiceAvailable, pruneStatePacks, publicEmailStatus,
+                   punjabCoverage, punjabRouteFromGeocode, putCachedStatePack, putDrive,
+                   putFootage, putReport, rajasthanCoverage, rajasthanRouteFromGeocode,
+                   randomId, readFeedbackQueue, readJson, rebuildOfficialAuthorityIndex,
+                   recordCentralRetryFailure, refreshAndPersistOfficialHandoff,
+                   refreshGeneratedComplaintFields, registerCentralPothole, rejectedVerdict,
+                   remainingStateCoverage, remainingStateRouteFromGeocode,
+                   repairProvenanceIsExact, repairTargetPhotoBytes, replaceStableObject,
+                   reserveDriveCommit, resetContractPackMemory, resetHighwayPackMemory,
                    resetRoadAgreementPackMemory, resetRoadNoticePackMemory,
                    resetStatePackMemory, resolvePackUrl, retryCentralOutbox, retryCivicRouting,
                    retryQuery, reverseGeocode, reverseGeocodeCache, reverseGeocodeUncached,
@@ -11664,7 +11666,8 @@
                    validateUttarPradeshPayload, verifiedBdaResponsibility,
                    verifiedContractForComplaint, vodBurstTimes, vodSampleTimes,
                    waitForNominatimSlot, warrantyFor, westBengalCoverage,
-                   withDriveImagePreparation, withSpeedDefaults, writeFeedbackQueue, zip
+                   withDriveImagePreparation, withSpeedDefaults, writeFeedbackQueue, zip,
+                   matchTenderFor: matchTender,
                  };
 
   window.StandaloneAPI = { __pure, handle, prewarm, prepareComplaint };
