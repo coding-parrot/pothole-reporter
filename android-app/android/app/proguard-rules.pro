@@ -27,8 +27,11 @@
 -keep class com.gauravsen.potholereporter.db.dao.** { *; }
 -keep class com.gauravsen.potholereporter.db.AppDatabase { *; }
 
-# Capacitor plugin: keep @PluginMethod methods accessible via reflection
+# Capacitor plugins: keep @PluginMethod methods accessible via reflection. Every class
+# passed to registerPlugin() needs one of these, or R8 renames the bridge methods and
+# the WebView's calls resolve to nothing in a release build.
 -keep class com.gauravsen.potholereporter.bridge.DriveModePlugin { *; }
+-keep class com.gauravsen.potholereporter.bridge.VideoImportPlugin { *; }
 
 # OkHttp
 -dontwarn okhttp3.**

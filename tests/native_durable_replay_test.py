@@ -4,6 +4,10 @@
 from pathlib import Path
 import sys
 
+from native_tree import require_wired_tree
+
+require_wired_tree("durable keyframe replay")
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SERVICE = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/DriveForegroundService.kt").read_text()

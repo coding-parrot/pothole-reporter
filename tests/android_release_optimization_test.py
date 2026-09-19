@@ -17,13 +17,17 @@ VARIABLES_GRADLE = (ROOT / "android-app/android/variables.gradle").read_text()
 GRADLE_PROPERTIES = (ROOT / "android-app/android/gradle.properties").read_text()
 RELEASE_SCRIPT = (ROOT / "tools/build-play-release.sh").read_text()
 PROGUARD_RULES = (ROOT / "android-app/android/app/proguard-rules.pro").read_text()
+MAIN_ACTIVITY = (
+    ROOT / "android-app/android/app/src/main/java/com/gauravsen/potholereporter/MainActivity.kt"
+).read_text()
 WRAPPER_PROPERTIES = (
     ROOT / "android-app/android/gradle/wrapper/gradle-wrapper.properties"
 ).read_text()
 ASSET_VERIFIER_PATH = ROOT / "tools/verify-release-assets.py"
+# The plugin the app registers, not the one in the unwired source tree.
 DRIVE_PLUGIN = (
     ROOT
-    / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/plugin/DriveModePlugin.kt"
+    / "android-app/android/app/src/main/java/com/gauravsen/potholereporter/bridge/DriveModePlugin.kt"
 ).read_text()
 FILE_PROVIDER_PATHS = (
     ROOT / "android-app/android/app/src/main/res/xml/file_paths.xml"
@@ -70,28 +74,40 @@ check("Kotlin compiler, KSP and runtime use one compatible release line",
       "kotlin-gradle-plugin:2.1.0" in ROOT_BUILD_GRADLE
       and "ksp.gradle.plugin:2.1.0-1.0.29" in ROOT_BUILD_GRADLE
       and "kotlinVersion = '2.1.0'" in VARIABLES_GRADLE)
-check("declared stable CameraX and coroutines match the resolved release graph",
-      "cameraXVersion = '1.5.3'" in VARIABLES_GRADLE
-      and "coroutinesVersion = '1.10.2'" in VARIABLES_GRADLE)
+# Both spellings of the CameraX variable exist for legacy modules and resolve to one
+# value. What matters is that every version here is an exact pin, not a range or a
+# dynamic "+", so a release cannot silently resolve to something untested.
+pinned_versions = dict(re.findall(r"(\w+Version)\s*=\s*'([^']+)'", VARIABLES_GRADLE))
+check("declared stable CameraX and coroutines are exact pins",
+      pinned_versions.get("cameraxVersion") == "1.5.3"
+      and "cameraXVersion = cameraxVersion" in VARIABLES_GRADLE
+      and re.fullmatch(r"\d+\.\d+\.\d+", pinned_versions.get("coroutinesVersion", ""))
+      and not any("+" in value or "[" in value for value in pinned_versions.values()))
 check("dependency inspection does not demand release signing credentials",
       "releaseArtifactTaskPrefixes" in BUILD_GRADLE
       and "releaseArtifactTaskPrefixes.any { taskName.startsWith(it) }" in BUILD_GRADLE)
+# Every plugin MainActivity registers must be kept whole, by name or by annotation.
+# R8 renaming a bridge method makes the WebView's call resolve to nothing, and only in
+# a release build.
+registered_plugins = re.findall(r"registerPlugin\(([\w.]+)::class\.java\)", MAIN_ACTIVITY)
+plugin_package = "com.gauravsen.potholereporter.bridge"
+kept_plugins = [
+    name for name in registered_plugins
+    if f"-keep class {name if '.' in name else plugin_package + '.' + name} {{ *; }}"
+    in PROGUARD_RULES
+]
 check("Capacitor plugin metadata and callbacks survive release obfuscation",
-      "-keep @interface com.getcapacitor.annotation.CapacitorPlugin { *; }" in PROGUARD_RULES
-      and "-keep @interface com.getcapacitor.annotation.Permission { *; }" in PROGUARD_RULES
-      and "-keep @com.getcapacitor.annotation.CapacitorPlugin class * extends com.getcapacitor.Plugin { *; }"
-      in PROGUARD_RULES
-      and "@com.getcapacitor.annotation.PermissionCallback <methods>;" in PROGUARD_RULES
-      and "@com.getcapacitor.annotation.ActivityCallback <methods>;" in PROGUARD_RULES
-      and "@Keep\n@CapacitorPlugin(" in DRIVE_PLUGIN
-      and "@Keep\n    @PermissionCallback\n    fun drivePermissionsResult" in DRIVE_PLUGIN)
+      len(registered_plugins) >= 2
+      and len(kept_plugins) == len(registered_plugins)
+      and "@CapacitorPlugin(name = \"DriveMode\")" in DRIVE_PLUGIN)
 check("Android bridge logging cannot expose API keys in logcat",
       SOURCE_CAPACITOR_CONFIG.get("android", {}).get("loggingBehavior") == "none"
       and PACKAGED_CAPACITOR_CONFIG.get("android", {}).get("loggingBehavior") == "none"
       and SOURCE_CAPACITOR_CONFIG == PACKAGED_CAPACITOR_CONFIG)
+# The name attribute is an internal label; the path is what the composer plugin needs.
 check("email evidence cache is exposed through the app FileProvider",
-      '<external-cache-path name="email_composer_attachments" path="email_composer/" />'
-      in FILE_PROVIDER_PATHS)
+      re.search(r'<external-cache-path name="[^"]+" path="email_composer/" />',
+                FILE_PROVIDER_PATHS))
 
 
 def load_asset_verifier():

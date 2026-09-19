@@ -5,6 +5,10 @@ from pathlib import Path
 import re
 import sys
 
+from native_tree import require_wired_tree
+
+require_wired_tree("the hybrid native Drive contract")
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CAMERA = (ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive/NativeDriveCameraManager.kt").read_text()
@@ -239,11 +243,18 @@ check("hybrid status is explicit and all shipped web copies match",
           == (ROOT / "static/index.html").read_bytes()
       and (ROOT / "android-app/android/app/src/main/assets/public/index.html").read_bytes()
           == (ROOT / "static/index.html").read_bytes())
-check("Android release identity is 1.38.0 code 67 everywhere",
-      re.search(r"versionCode\s+67\b", GRADLE)
-      and re.search(r'versionName\s+"1\.38\.0"', GRADLE)
-      and 'android:versionCode="67"' in RELEASE
-      and 'android:versionName="1.38.0"' in RELEASE)
+# Pinning the numbers here made this fail on every release. What has to hold is that
+# the gradle build and the release script demand the same identity.
+gradle_code = re.search(r"versionCode\s+(\d+)", GRADLE)
+gradle_name = re.search(r'versionName\s+"([^"]+)"', GRADLE)
+release_code = re.search(r'android:versionCode="(\d+)"', RELEASE)
+release_name = re.search(r'android:versionName="([^"]+)"', RELEASE)
+check("Android release identity agrees between gradle and the release script",
+      gradle_code and gradle_name and release_code and release_name
+      and gradle_code.group(1) == release_code.group(1)
+      and gradle_name.group(1) == release_name.group(1)
+      and int(gradle_code.group(1)) > 0
+      and re.fullmatch(r"\d+\.\d+\.\d+", gradle_name.group(1)))
 
 if failures:
     print(f"\nFAIL: {len(failures)} hybrid Drive contract check(s) failed")

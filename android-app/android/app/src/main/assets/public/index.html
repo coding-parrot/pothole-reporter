@@ -241,11 +241,16 @@
         <input type="checkbox" id="setRecord" style="width:18px;height:18px;accent-color:var(--accent)">
         <span id="recordLabel">Record video during a drive</span>
       </label>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#f2f2f4">
+      <!-- Hidden until the native Drive service this depends on is the one the app
+           wires. The shipped plugin implements start/stop/getStatus; the preview,
+           pause, keyframe and repair-sync calls this mode makes live in an Android
+           source tree AndroidManifest.xml does not name, so turning it on gave a
+           camera with no preview and no way back. -->
+      <label class="hidden" aria-hidden="true" style="display:none">
         <input type="checkbox" id="setBackgroundDrive" style="width:18px;height:18px;accent-color:var(--accent)">
         <span id="backgroundDriveLabel">Background Drive Mode (no live preview)</span>
       </label>
-      <div class="meta" id="backgroundDriveNote"></div>
+      <div class="meta hidden" id="backgroundDriveNote" aria-hidden="true" style="display:none"></div>
       <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#f2f2f4">
         <input type="checkbox" id="setKeepFrames" style="width:18px;height:18px;accent-color:var(--accent)">
         <span id="keepFramesLabel">Save every analysed frame to the device</span>

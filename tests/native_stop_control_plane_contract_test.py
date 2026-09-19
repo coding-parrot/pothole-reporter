@@ -5,6 +5,10 @@ from pathlib import Path
 import hashlib
 import sys
 
+from native_tree import require_wired_tree
+
+require_wired_tree("the native Stop control plane")
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DRIVE = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter/drive"

@@ -5,6 +5,10 @@ from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
 
+from native_tree import require_wired_tree
+
+require_wired_tree("the RTSP dashcam Drive source")
+
 
 ROOT = Path(__file__).resolve().parents[1]
 JAVA = ROOT / "android-app/android/app/src/main/java/dev/aiengg/potholereporter"

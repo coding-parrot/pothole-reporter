@@ -91,10 +91,10 @@ require_tool tail
 require_tool tr
 require_tool unzip
 
-echo "1/7 checking the generated LLM contract (read only)"
+echo "1/8 checking the generated LLM contract (read only)"
 node llm/generate.mjs --check
 
-echo "2/7 checking web-source mirrors (read only)"
+echo "2/8 checking web-source mirrors (read only)"
 [ -d static ] || fail "static source directory is missing"
 [ -d docs ] || fail "hosted docs directory is missing"
 [ -d "$WWW_ROOT" ] || fail "Android www source directory is missing"
@@ -142,9 +142,11 @@ while IFS= read -r packaged_file; do
   [ -f "$WWW_ROOT/$relative_path" ] || fail "stale Android public asset is not present in www: $relative_path"
 done < <(find "$PACKAGED_ASSETS_ROOT" -type f -print | sort)
 
-echo "3/7 building signed release bundle"
-rm -f "$AAB_PATH"
-(cd "$ANDROID_ROOT" && ./gradlew --no-daemon --offline :app:bundleRelease -q)
+echo "3/8 building signed release artifacts"
+rm -f "$AAB_PATH" "$APK_PATH"
+# Both, in one invocation. bundleRelease alone never writes an APK, so the checks and
+# the SHA-256 this script prints for it described whatever stale file was left behind.
+(cd "$ANDROID_ROOT" && ./gradlew --no-daemon --offline :app:bundleRelease :app:assembleRelease -q)
 [ -s "$AAB_PATH" ] || fail "Gradle produced no non-empty AAB"
 [ -s "$APK_PATH" ] || fail "Gradle produced no non-empty release APK"
 [ -s "$R8_MAPPING_PATH" ] || fail "R8 mapping is missing; release code shrinking is not active"
@@ -153,7 +155,7 @@ if ! unzip -Z1 "$AAB_PATH" | grep -Fx 'BUNDLE-METADATA/com.android.tools.build.o
   fail "AAB does not contain the R8 deobfuscation mapping"
 fi
 
-echo "4/7 validating release identity and manifest policy"
+echo "4/8 validating release identity and manifest policy"
 grep -Fq 'package="com.gauravsen.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
 grep -Fq 'android:versionCode="69"' "$BUNDLE_MANIFEST" || fail "expected versionCode 69"
 grep -Fq 'android:versionName="1.39.0"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.39.0"
@@ -201,7 +203,7 @@ if [ "$actual_permissions" != "$expected_permissions" ]; then
   fail "release permission set changed; review it before publishing"
 fi
 
-echo "5/7 validating the AAB signature"
+echo "5/8 validating the AAB signature"
 signature_report=$(jarsigner -verify "$AAB_PATH" 2>&1 || true)
 if ! grep -Fq 'jar verified.' <<<"$signature_report" || grep -Fqi 'jar is unsigned' <<<"$signature_report"; then
   fail "AAB is not signed with a verifiable JAR signature"
@@ -221,7 +223,22 @@ actual_upload_cert_sha256=$(keytool -printcert -jarfile "$AAB_PATH" 2>/dev/null 
 [ "$actual_upload_cert_sha256" = "$expected_upload_cert_sha256" ] \
   || fail "release signer differs from the established Pothole Reporter upload certificate"
 
-echo "6/7 verifying bundled web assets"
+echo "6/8 validating the APK signature"
+APKSIGNER=$(command -v apksigner || true)
+if [ -z "$APKSIGNER" ] && [ -n "${ANDROID_SDK_ROOT:-}" ]; then
+  APKSIGNER=$(find "$ANDROID_SDK_ROOT/build-tools" -name apksigner -type f 2>/dev/null \
+    | sort | tail -n 1)
+fi
+[ -n "$APKSIGNER" ] || fail "apksigner is not on PATH and was not found in ANDROID_SDK_ROOT"
+apk_signature_report=$("$APKSIGNER" verify --verbose --print-certs "$APK_PATH" 2>&1 || true)
+grep -Fq "Verified using v2 scheme (APK Signature Scheme v2): true" <<<"$apk_signature_report" \
+  || fail "release APK is not signed with APK Signature Scheme v2"
+actual_apk_cert_sha256=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' \
+  <<<"$apk_signature_report" | tr '[:upper:]' '[:lower:]' | head -n 1)
+[ "$actual_apk_cert_sha256" = "$expected_upload_cert_sha256" ] \
+  || fail "APK signer does not match the registered Pothole Reporter upload certificate"
+
+echo "7/8 verifying bundled web assets"
 while IFS= read -r source_file; do
   relative_path=${source_file#"$PACKAGED_ASSETS_ROOT"/}
   if ! diff -q <(unzip -p "$AAB_PATH" "base/assets/public/$relative_path") "$source_file" >/dev/null; then
@@ -236,7 +253,11 @@ while IFS= read -r packaged_js; do
 done < <(find "$PACKAGED_ASSETS_ROOT" -type f -name '*.js' -print \
   | sed "s#^$PACKAGED_ASSETS_ROOT/##" | sort)
 
-echo "7/7 release bundle accepted"
+python3 "$RELEASE_ASSET_VERIFIER" \
+  --static static --www "$WWW_ROOT" --docs docs --packaged "$PACKAGED_ASSETS_ROOT" \
+  --aab "$AAB_PATH" --apk "$APK_PATH"
+
+echo "8/8 release artifacts accepted"
 bundle_bytes=$(stat -f%z "$AAB_PATH" 2>/dev/null || stat -c%s "$AAB_PATH")
 bundle_sha256=$(shasum -a 256 "$AAB_PATH" | sed 's/[[:space:]].*//')
 apk_bytes=$(stat -f%z "$APK_PATH" 2>/dev/null || stat -c%s "$APK_PATH")

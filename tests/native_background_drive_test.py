@@ -4,11 +4,20 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
+from native_tree import require_wired_tree
+
+require_wired_tree("the native background Drive bridge "
+                   "(startDrive, attachPreview, keyframe replay, repair sync)")
+
 APP = "http://localhost:8765/"
 
 INIT = r"""
 (() => {
   localStorage.setItem("openai_key", "test-key-never-sent");
+  // Native background Drive is opt-in and off by default. This suite is about that
+  // mode, so it turns the setting on the way the Settings screen does.
+  localStorage.setItem("native_background_drive", "1");
+  localStorage.setItem("initial_setup_complete", "1");
   const probe = window.__nativeDriveProbe = {
     listeners: {}, appListeners: {}, start: 0, stop: 0, stopCompleted: 0,
     pause: 0, resume: 0, maps: 0, attach: 0, detach: 0, setVideo: 0,
