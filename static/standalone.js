@@ -2639,7 +2639,17 @@
     try { await putCachedStatePack(record); } catch (e) { /* usage metadata is optional */ }
   }
 
+  // A pack in use must survive eviction even when a different pack's load triggers the
+  // prune. Without this, two loads racing after a memory reset could evict the very pack
+  // the current report is routing with, and refetch it moments later.
+  const _packsInUse = new Map();
+  const PACK_IN_USE_MS = 10 * 60 * 1000;
+  function markPackInUse(packId) {
+    if (packId) _packsInUse.set(packId, Date.now());
+  }
+
   async function pruneStatePacks(activePackId = null) {
+    markPackInUse(activePackId);
     const [manifest, highwayManifest, contractManifest, roadNoticeManifest,
       roadAgreementManifest] = await Promise.all([
       getStatePackManifest(), getHighwayPackManifest(), getContractPackManifest(),
@@ -2660,8 +2670,11 @@
     ];
     const currentByKey = new Map(resources
       .map((resource) => [statePackCacheKey(resource), resource]));
+    const recentlyUsed = [..._packsInUse.entries()]
+      .filter(([, at]) => Date.now() - at < PACK_IN_USE_MS)
+      .map(([id]) => id);
     const protectedIds = new Set([
-      activePackId, ..._statePackPromises.keys(),
+      activePackId, ...recentlyUsed, ..._statePackPromises.keys(),
       ...[..._highwayTilePromises.keys()].map((id) => `in-nh-${id}`),
       ..._contractPackPromises.keys(),
       ..._roadNoticePackPromises.keys(),
@@ -2760,7 +2773,8 @@
       if (cached) {
         try {
           const pack = await validateDecodedStatePack(resource, await cachedPackBytes(cached));
-          _statePackMemory.set(packId, { cache_key: cacheKey, pack, resource });
+          markPackInUse(packId);
+      _statePackMemory.set(packId, { cache_key: cacheKey, pack, resource });
           touchStatePack(cached);
           pruneStatePacks(packId);
           return pack;
@@ -2786,6 +2800,7 @@
           try { await putCachedStatePack(record); } catch (_) { /* valid for this session */ }
         }
       }
+      markPackInUse(packId);
       _statePackMemory.set(packId, { cache_key: cacheKey, pack, resource });
       pruneStatePacks(packId);
       return pack;
@@ -3637,6 +3652,7 @@
   }
 
   function resetStatePackMemory() {
+    _packsInUse.clear();
     _statePackManifest = null;
     _statePackManifestPromise = null;
     _statePackMemory.clear();
@@ -7575,7 +7591,10 @@
     }));
   }
 
-  const STORED_DATA_STORES = ["reports", "drives", "footage", "state_packs"];
+  // Everything a delete-all must remove, cleared in one transaction so a later store
+  // cannot abort and leave a half-wiped device that still reports success.
+  const STORED_DATA_STORES = ["reports", "drives", "footage", "state_packs",
+                              "central_outbox", "identity"];
 
   // Delete-all is one IndexedDB transaction. Sequential clears can leave a misleading
   // half-wiped history when a later store aborts (especially under storage pressure).
@@ -9102,11 +9121,10 @@
       return applyRepairObservation(raw.target_report_id, observation);
     }
     if (path === "/api/reports" && method === "DELETE") {
-      await op("readwrite", (s) => s.clear());
-      await op("readwrite", (s) => s.clear(), "central_outbox");
-      await op("readwrite", (s) => s.clear(), "drives");
-      await op("readwrite", (s) => s.clear(), "footage");
-      await op("readwrite", (s) => s.clear(), "identity");
+      await clearAllStoredRecords();
+      // Cached packs live in memory as well as in the store; leaving the memory copy
+      // would put a "deleted" routing pack back on disk at the next lookup.
+      resetStatePackMemory();
       installationCache = null;
       return { ok: true };
     }

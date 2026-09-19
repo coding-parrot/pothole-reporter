@@ -1273,8 +1273,12 @@ def check_age_eviction_and_wipe(browser, failures: list[str]) -> None:
           store.put(row);
         }}
         const source = rows.find((row) => row.pack_id === {json.dumps(active_id)});
+        // A fresh Blob, not the active pack's: two rows sharing one Blob means evicting
+        // the unlisted row can release bytes the active row still points at.
         store.put({{
-          ...source, cache_key: "unlisted-pack@1", pack_id: "unlisted-pack",
+          ...source, blob: new Blob([JSON.stringify({{unlisted: true}})],
+                                    {{type: "application/json"}}),
+          cache_key: "unlisted-pack@1", pack_id: "unlisted-pack",
           state_code: "xx", last_used_at: 1, installed_at: 1,
         }});
       }});

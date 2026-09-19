@@ -1303,6 +1303,10 @@ let health = { ai_configured: null, provider: "shared_server", email_configured:
 let healthPromise = null;
 
 function show(screen) {
+  // A delete-all in flight owns the screen. Navigating mid-wipe would show history that
+  // is being erased and let a new capture start against half-deleted storage; the page
+  // reloads itself when the wipe finishes.
+  if (nativeWipeInProgress || nativeWipeLocked) return false;
   // A route change must never leave the fixed photo modal intercepting the new screen.
   const viewer = $("viewer");
   if (viewer) viewer.classList.add("hidden");
@@ -7036,6 +7040,9 @@ window.addEventListener("pipeline-verdict", (e) => {
 // Native Android back button: leaving the Drive screen does not stop its foreground
 // service. The explicit Stop control is the only in-app action that ends a native drive.
 window.handleAppBack = () => {
+  // A wipe consumes Back for the same reason it blocks navigation: there is nothing
+  // safe to go back to until the reload.
+  if (nativeWipeInProgress || nativeWipeLocked) return true;
   if (drive || window._nativeDriveActive) { stopDrive(); return true; }
   // Stop has already torn down the live camera, but its final MediaRecorder data and
   // queued detections may still be committing. Do not expose Home/Settings/Wipe until
