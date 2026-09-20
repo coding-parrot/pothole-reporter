@@ -55,7 +55,10 @@ android {
     namespace = "com.gauravsen.potholereporter"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.gauravsen.potholereporter"
+        // The Play Console app record is registered under this ID and it cannot be
+        // changed there. The Kotlin namespace above stays as it is, so no source
+        // file moves and the manifest keeps resolving relative class names to it.
+        applicationId "dev.aiengg.potholereporter"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 69

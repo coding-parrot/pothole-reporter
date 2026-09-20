@@ -21,7 +21,7 @@ cd "$(dirname "$0")/../.."
 
 SDK="${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}"
 ADB="$SDK/platform-tools/adb"
-PACKAGE=com.gauravsen.potholereporter
+PACKAGE=dev.aiengg.potholereporter
 APK=android-app/android/app/build/outputs/apk/debug/app-debug.apk
 KEEP=0
 BUILD=1
@@ -57,7 +57,15 @@ echo "2/6 installing from scratch"
 "$ADB" logcat -c 2>/dev/null || true
 
 echo "3/6 launching"
-"$ADB" shell am start -n "$PACKAGE/.MainActivity" >/dev/null
+# The application ID and the Kotlin namespace differ, so "$PACKAGE/.MainActivity"
+# does not resolve. Ask the package manager which activity the launcher starts.
+LAUNCH_ACTIVITY=$("$ADB" shell cmd package resolve-activity --brief \
+  -c android.intent.category.LAUNCHER "$PACKAGE" | tr -d '\r' | tail -1)
+case "$LAUNCH_ACTIVITY" in
+  "$PACKAGE"/*) ;;
+  *) echo "FAIL no launchable activity for $PACKAGE (got: $LAUNCH_ACTIVITY)"; exit 1 ;;
+esac
+"$ADB" shell am start -n "$LAUNCH_ACTIVITY" >/dev/null
 # The WebView needs a moment on a cold start; poll rather than guess.
 # mCurrentFocus can belong to a systemui ANR dialog on a loaded emulator while our
 # activity is perfectly healthy underneath. mFocusedApp is the app the window manager
@@ -132,19 +140,34 @@ if [ -z "$(alive)" ] || [ "$(alive)" != "$pid_start" ]; then
   "$ADB" logcat -d 2>/dev/null | grep -A 12 "FATAL EXCEPTION" | head -16
   exit 1
 fi
-# Camera, then location: Android asks for each in its own sheet. "While using the app"
-# is the top button of both, but the location sheet is taller (it shows the precise and
-# approximate maps), so its button sits lower. Try the shorter sheet's position first.
-for permission in camera location; do
-  if await_screen permission 8; then
-    "$ADB" shell input tap 540 1226
-    sleep 3
-    if [ "$(current_screen)" = "permission" ]; then
-      "$ADB" shell input tap 540 1464
-      sleep 3
-    fi
+# Camera, then location: Android asks for each in its own sheet, and the sheets differ
+# in height, so the grant button is not at a fixed place. The sheets belong to the system
+# permission controller, which unlike the app's WebView is exposed to accessibility, so
+# ask it where the button is instead of guessing at pixels.
+grant_visible_permission() {
+  "$ADB" shell dumpsys window 2>/dev/null | grep -q GrantPermissionsActivity || return 1
+  "$ADB" shell rm -f /sdcard/ui.xml >/dev/null 2>&1
+  "$ADB" shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+  local target
+  target=$("$ADB" shell cat /sdcard/ui.xml 2>/dev/null |
+    python3 "$(dirname "$0")/permission-button.py") || return 1
+  [ -n "$target" ] || return 1
+  "$ADB" shell input tap $target
+  sleep 3
+  return 0
+}
+
+granted=0
+for _ in 1 2 3 4 5 6 7 8; do
+  if grant_visible_permission; then
+    granted=$((granted + 1))
+  else
+    # No dialog on screen. One may still be on its way, so look again before moving on.
+    sleep 2
+    "$ADB" shell dumpsys window 2>/dev/null | grep -q GrantPermissionsActivity || break
   fi
 done
+echo "   granted $granted permission dialog(s)"
 await_screen drive 15 || { echo "FAIL Drive did not reach the live camera screen (saw: $LAST_SCREEN)"; exit 1; }
 if [ -z "$(alive)" ] || [ "$(alive)" != "$pid_start" ]; then
   echo "FAIL the app process died while Drive was starting"; exit 1
