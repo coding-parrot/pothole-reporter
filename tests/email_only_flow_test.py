@@ -249,8 +249,8 @@ with sync_playwright() as p:
       return { buttons, error };
     }""", report["id"])
     if pending_guard["buttons"] != 0:
-        fails.append("pending browser report exposed Email before central deduplication")
-    if "duplicate check" not in (pending_guard["error"] or ""):
+        fails.append("pending browser report exposed Email before the shared map confirmed it")
+    if "has not confirmed" not in (pending_guard["error"] or ""):
         fails.append(f"pending browser send did not fail closed: {pending_guard}")
 
     page.locator("#sendBtn").click()

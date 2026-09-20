@@ -182,7 +182,7 @@ NATIVE_STUB = r"""
       return { remove() {} };
     },
     exitApp() { window.__exitAppCalls += 1; },
-    async getInfo() { return { version: "1.39.0", build: "69" }; },
+    async getInfo() { return { version: "1.39.1", build: "70" }; },
   };
   const EmailComposer = {
     async open(options) {

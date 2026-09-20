@@ -346,10 +346,17 @@ if not result["unprovenFixedBlocked"]:
 if result["review"].get("condition_status") != "repair_review" \
         or result["reviewStored"].get("condition_status") != "repair_review":
     failures.append(f"probable repair did not remain review-only: {result['review']}")
-if not result["damageAfterReview"].get("duplicate") \
-        or result["reopenedReview"].get("condition_status") != "open" \
+# Repeat sightings are no longer merged into the earlier report, so this revisit is its
+# own report. What still has to happen is that the earlier canonical records the sighting
+# and comes back out of repair review, which is what repair verification depends on.
+if result["damageAfterReview"].get("duplicate") \
+        or not result["damageAfterReview"].get("stored"):
+    failures.append(f"a revisit was merged instead of stored as its own report: "
+                    f"{result['damageAfterReview']}")
+if result["reopenedReview"].get("condition_status") != "open" \
         or result["reopenedReview"].get("condition_source") != "damage_seen_on_revisit":
-    failures.append("fresh pothole evidence did not reopen a repair-review canonical")
+    failures.append(f"fresh pothole evidence did not reopen a repair-review canonical: "
+                    f"{result['reopenedReview']}")
 if result["breaker"].get("found") or result["breaker"].get("stored") \
         or result["afterBreaker"] != result["beforeBreaker"]:
     failures.append(f"speed breaker was persisted as damage: {result['breaker']}")

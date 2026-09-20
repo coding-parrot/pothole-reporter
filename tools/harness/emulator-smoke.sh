@@ -111,21 +111,12 @@ tap_until() {  # tap_until <x> <y> <screen> <attempts>
 }
 alive() { "$ADB" shell pidof "$PACKAGE" 2>/dev/null | tr -d '\r'; }
 
-echo "4/6 first run: Settings, Continue, Home"
+echo "4/6 first run opens on Home"
 pid_start="$(alive)"
-await_screen settings unknown 20 || true
-# Scroll in the page gutter, right of the card: a swipe that starts on a control can
-# read as a tap and open a dropdown. Back closes any that opened anyway (first-run
-# Settings itself ignores Back). Repeat until the green Continue is at the foot.
-scrolled=0
-for round in 1 2 3; do
-  for _ in 1 2 3 4 5 6 7 8 9 10; do "$ADB" shell input swipe 1060 2000 1060 300 300; sleep 0.3; done
-  "$ADB" shell input keyevent 4; sleep 1.5
-  if await_screen settings 4; then scrolled=1; break; fi
-done
-[ "$scrolled" = "1" ] || { echo "FAIL the app did not open on first-run Settings (saw: $LAST_SCREEN)"; exit 1; }
-# The green Continue button sits at the foot of the mandatory first-run Settings.
-tap_until 540 2148 home 4 || { echo "FAIL Continue on first-run Settings did not reach Home (saw: $LAST_SCREEN)"; exit 1; }
+# A fresh install lands on Home. There is no onboarding form to clear: shared detection
+# is the default and needs no key. If Settings ever comes back as the first screen, this
+# is where the smoke test says so.
+await_screen home 20 || { echo "FAIL a fresh install did not open on Home (saw: $LAST_SCREEN)"; exit 1; }
 
 echo "5/6 Drive, Continue on the camera and location notice, both permissions"
 sleep 2

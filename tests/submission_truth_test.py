@@ -3,9 +3,9 @@
 
 The app files nothing. It opens a draft addressed to the routed authority, and the
 person presses Send in their own mail app. Every claim on screen, in storage and in the
-outbound text has to stay inside that boundary: a queued report is queued, a report
-waiting on the shared-map duplicate check cannot be emailed at all, and no grievance
-number, submission time or contractor name is ever invented.
+outbound text has to stay inside that boundary: a queued report is queued, a report the
+shared map has not confirmed cannot be emailed at all, and no grievance number,
+submission time or contractor name is ever invented.
 
 This suite replaced a v1.14 one that drove BMC/PMC portal handoffs, WhatsApp launches,
 helpline numbers and a /submitted endpoint. Those channels were removed: opening another
@@ -122,9 +122,11 @@ async ({pixel}) => {
       server_pothole_id: null, central_sync_pending: true,
     },
     {
-      // The shared map answered: this one is a duplicate of a pothole already reported.
-      ...base, id: 71008, created_at: base.created_at + 7, status: "duplicate",
+      // The shared map grouped this with a pothole already on the map. That is a fact
+      // about the map's counting, not a reason to withhold this reporter's complaint.
+      ...base, id: 71008, created_at: base.created_at + 7, status: "draft",
       address: "Ambarnath, Thane", lat: 19.1860, lng: 73.1910,
+      server_pothole_id: 5150, central_sync_pending: false,
       server_duplicate: true, seen_count: 3,
     },
     {
@@ -171,14 +173,16 @@ async ({pixel}) => {
   const unconfirmedError = await errorFrom(
     StandaloneAPI.handle("/api/reports/71007/send", {method: "POST"}));
   ok("refusal: an unconfirmed report cannot open an email",
-     /shared-map duplicate check/i.test(unconfirmedError || ""), unconfirmedError);
+     /shared map has not confirmed/i.test(unconfirmedError || ""), unconfirmedError);
   eq("refusal: the refused report is not mutated",
      (await byId(71007)).status, "draft");
 
-  const duplicateError = await errorFrom(
+  // Repeat-detection dedupe was removed. A sighting the shared map counted against an
+  // existing pothole still gets its own complaint, so this must not be refused.
+  const repeatError = await errorFrom(
     StandaloneAPI.handle("/api/reports/71008/send", {method: "POST"}));
-  ok("refusal: a duplicate says a second complaint was not created",
-     /already reported nearby/i.test(duplicateError || ""), duplicateError);
+  ok("a sighting the map already knows is still emailable",
+     !/already reported|duplicate/i.test(repeatError || ""), repeatError);
 
   const unroutedError = await errorFrom(
     StandaloneAPI.handle("/api/reports/71022/send", {method: "POST"}));

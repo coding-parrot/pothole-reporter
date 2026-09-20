@@ -96,7 +96,9 @@ cleared = (
     "tender_resolution_reason", "tender_resolution_checked_at", "unrouted_reason",
     "unrouted_body",
 )
-for row_id, expected_status in ((1, "draft"), (2, "duplicate"), (3, "draft")):
+# Row 2 was parked in the old duplicate state, which no longer exists: repeat-detection
+# dedupe was removed, so an upgrade releases it as an ordinary draft the owner can send.
+for row_id, expected_status in ((1, "draft"), (2, "draft"), (3, "draft")):
     row = rows[row_id]
     dirty = [field for field in cleared if row.get(field) is not None]
     if dirty or row.get("status") != expected_status:

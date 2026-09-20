@@ -87,7 +87,7 @@
   <div id="home">
     <button class="primary" id="driveBtn">&#128663; &nbsp;Drive mode</button>
     <button class="ghost" id="captureBtn" style="width:100%;margin-top:-4px;padding:16px">&#128247; &nbsp;Report one pothole</button>
-    <button class="ghost" id="dashBtn" style="width:100%;margin-bottom:14px">&#128506;&#65039; &nbsp;Public pothole map</button>
+    <button class="ghost" id="dashBtn" style="width:100%;margin-top:12px;margin-bottom:14px">&#128506;&#65039; &nbsp;Pothole map</button>
     <div class="card hidden" id="feedbackNudge">
       <div class="meta" id="feedbackNudgeText">You have made a few reports. How is it going? Two minutes of feedback shapes the next version.</div>
       <div class="btn-row" style="margin-top:8px">
@@ -163,20 +163,6 @@
     <div class="btn-row"><button class="ghost" id="dashBack">Back</button></div>
   </div>
 
-  <div id="review" class="hidden">
-    <img id="reviewPhoto" class="big-photo" style="max-height:52vh" alt="">
-    <div class="meta" id="reviewMeta"></div>
-    <div class="meta" id="reviewSaid" style="margin-top:6px"></div>
-    <div class="btn-row">
-      <button class="send" id="lblPothole">Pothole</button>
-      <button class="ghost danger" id="lblNo">Not pothole</button>
-    </div>
-    <div class="btn-row">
-      <button class="ghost" id="lblSkip">Skip</button>
-      <button class="ghost" id="reviewBack">Done</button>
-    </div>
-  </div>
-
   <div id="settings" class="hidden">
     <div class="card">
       <div class="verdict" id="settingsTitle">Settings</div>
@@ -194,8 +180,8 @@
         <option id="providerPersonal" value="personal">My OpenAI API key</option>
       </select>
       <div class="meta" id="providerNote" style="margin-top:6px"></div>
-      <label id="keyLabel">OpenAI API key (stored only on this device)</label>
-      <input type="password" id="setKey" placeholder="sk-...">
+      <label id="keyLabel" class="hidden">OpenAI API key (stored only on this device)</label>
+      <input type="password" id="setKey" class="hidden" placeholder="sk-...">
       <label id="nameLabel">Your name (signs the complaints)</label>
       <input type="text" id="setName" placeholder="Name used in the email">
       <label id="modelLabel">Detection model</label>
@@ -205,13 +191,9 @@
       <div class="meta" id="accuracyNote"></div>
       <label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:#f2f2f4">
         <input type="checkbox" id="setDebug" style="width:18px;height:18px;accent-color:var(--accent)">
-        <span id="debugLabel">Debug mode: keep the drive video after analysing it</span>
+        <span id="debugLabel">Debug mode: save the drive video and every analysed frame to this device</span>
       </label>
       <div class="meta" id="debugNote"></div>
-      <label id="recordSetting" style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#f2f2f4">
-        <input type="checkbox" id="setRecord" style="width:18px;height:18px;accent-color:var(--accent)">
-        <span id="recordLabel">Record video during a drive</span>
-      </label>
       <!-- Hidden until the native Drive service this depends on is the one the app
            wires. The shipped plugin implements start/stop/getStatus; the preview,
            pause, keyframe and repair-sync calls this mode makes live in an Android
@@ -222,11 +204,6 @@
         <span id="backgroundDriveLabel">Background Drive Mode (no live preview)</span>
       </label>
       <div class="meta hidden" id="backgroundDriveNote" aria-hidden="true" style="display:none"></div>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#f2f2f4">
-        <input type="checkbox" id="setKeepFrames" style="width:18px;height:18px;accent-color:var(--accent)">
-        <span id="keepFramesLabel">Save every analysed frame to the device</span>
-      </label>
-      <div class="meta" id="keepFramesNote"></div>
       <div class="meta" id="settingsNote" style="margin-top:10px">Email is the only complaint option. One tap opens a draft addressed to the responsible authority; nothing sends until you press Send in your email app.</div>
       <div class="meta" id="independentNote" style="margin-top:10px"></div>
       <div class="policy-links">
@@ -234,8 +211,6 @@
         <a id="sourcesLink" href="https://coding-parrot.github.io/pothole-reporter/sources.html" target="_blank" rel="noopener noreferrer">Data sources and limits</a>
       </div>
       <button class="ghost" id="feedbackBtn" style="width:100%;margin-top:12px">Send feedback</button>
-      <button class="ghost" id="reviewBtn" style="width:100%;margin-top:8px">Review and label frames</button>
-      <button class="ghost" id="exportBtn" style="width:100%;margin-top:8px">Export labelled dataset</button>
       <button class="ghost danger" id="wipeBtn" style="width:100%;margin-top:12px">Delete all reports and photos</button>
       <div class="btn-row">
         <button class="ghost" id="setBack">Back</button>
@@ -350,14 +325,11 @@ function savedDriveCaptureConfig() {
   };
 }
 function needsInitialSettings() {
-  if (localStorage.getItem(INITIAL_SETUP_KEY) === "1") return false;
-  // Existing installs already saved at least one setting. Migrate them silently so an
-  // update never turns the new-install screen into an upgrade roadblock.
-  if (LEGACY_SETTINGS_KEYS.some((key) => localStorage.getItem(key) !== null)) {
-    localStorage.setItem(INITIAL_SETUP_KEY, "1");
-    return false;
-  }
-  return true;
+  // Never. A new install opens on Home and can report a pothole immediately: shared
+  // detection is the default with no key, and the sender name is optional. The camera
+  // and location notice still gates every capture path, so nothing here skips a
+  // disclosure. Settings is reached through the gear when someone wants it.
+  return false;
 }
 let initialSettingsRequired = needsInitialSettings();
 let initialSettingsActive = false;
@@ -441,7 +413,7 @@ const I18N = {
 
 
 
-    debug_label: "Debug mode: keep the drive video after analysing it",
+    debug_label: "Debug mode: save the drive video and every analysed frame to this device",
     settings_note: "Accepted pothole coordinates and small metadata, including an image hash, go to the project service for tender resolution, nearby deduplication, the shared map and aggregate impact. A failed accepted-metadata upload retries when the app starts or reconnects until you delete that report. Email is the only complaint-filing option: one tap opens a pre-addressed draft with the location, road-damage details, photo and any probable tender number. Nothing sends until you press Send in your email app.",
     independent_note: "Independent, unofficial app. It is not affiliated with or endorsed by any government body. Routing is best-effort and must be reviewed before sending.",
     privacy_title: "Before camera and location access",
@@ -463,7 +435,7 @@ const I18N = {
     chip_unrouted: "Outside coverage", chip_duplicate: "Already reported",
     duplicate_title: "Already reported nearby",
     duplicate_help: "Your detection and photo were kept as evidence and counted as another sighting. A second complaint was not created.",
-    email_waiting_dedupe: "Waiting for the shared-map duplicate check before email is enabled.",
+    email_waiting_dedupe: "Waiting for the shared map to confirm this report before email is enabled.",
     seen_count: "{n} sightings across devices",
     no_location: "The location could not be determined.",
     location_uncertain: "GPS is not accurate enough to choose an authority.",
@@ -495,8 +467,7 @@ const I18N = {
     confirm_import_location: "This browser may have returned an existing photo. Attach your current GPS location only if the photo shows the place where you are now.",
     capture_provenance_camera: "Taken now with the app camera",
     capture_provenance_import: "Selected/imported photo · original capture time not verified",
-    review_btn: "Review and label frames", export_btn: "Export labelled dataset",
-    dash_btn: "&#128506;&#65039; &nbsp;Contribution", dash_title: "Your contribution",
+    dash_btn: "&#128506;&#65039; &nbsp;Pothole map", dash_title: "Your contribution",
     dash_range: "{days} of reporting · first on {first}",
     dash_empty: "No reports yet. Your map fills up as you report issues or drive.",
     day_one: "1 day", day_many: "{n} days",
@@ -539,12 +510,9 @@ const I18N = {
     analysing_failed: "· {n} failed",
     analyse_incomplete: "Could not finish: {failed} of {n} frames were not checked ({err}) So no result is being claimed, and the video has been kept.",
     decoder_failed: "The phone could not open the next recorded-video segment.",
-    debug_note: "On: the video survives analysis, so a drive can be re-examined or re-run against a better model. Off: the video is deleted after its road-damage events are extracted.",
-    record_label: "Record local video during a drive (no audio; off by default)",
+    debug_note: "On: the drive video is kept after analysis and each frame the detector checked is written, with its verdict, into Documents/pothole-frames on this phone. Roughly 300 KB a frame, so it adds up. Off: nothing is retained beyond the reports themselves.",
     background_drive_label: "Background Drive Mode (no live preview)",
     background_drive_note: "Off by default. Turn on only when you want detection to continue after switching apps; this mode captures frames without showing or recording a camera preview.",
-    keep_frames_label: "Save every analysed frame to the device",
-    keep_frames_note: "Writes each frame the AI checked, with its verdict, into Documents/pothole-frames on this phone. Visible in the Files app, and the raw material for building an evaluation set. Adds up fast: roughly 300 KB a frame.",
     frames_saved: "{n} frames written to Documents/{dir}.",
     frames_failed: "Could not write frames to the device.",
     footage_freed: "Video deleted, {mb} MB freed.",
@@ -554,12 +522,6 @@ const I18N = {
     drive_group: "{date} · {found}{known} · {checked} live frames checked{video}",
     drive_video_suffix: " · {n} video frames checked",
     drive_group_partial: "{date} · {found} · {kept} kept",
-    lbl_pothole: "Pothole cavity",
-    lbl_no: "Undamaged", lbl_skip: "Skip", lbl_done: "Done",
-    review_empty: "Nothing left to label. Drive with debug mode on to collect frames.",
-    review_progress: "{n} left to label · {done} labelled so far",
-    model_said: "The app said: {verdict}",
-    export_ready: "{n} labelled frames, {mb} MB. Choose where to send it.",
     outside_coverage: "This location is outside the area this app covers.",
     outside_coverage_help: "This point is outside India's verified State/UT and mapped National Highway coverage, or exact routing data is unavailable. The photo and location are saved without a recipient.",
     size_small: "small", size_medium: "medium", size_large: "large",
@@ -665,7 +627,7 @@ const I18N = {
 
 
 
-    debug_label: "ಡೀಬಗ್ ಮೋಡ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ಡ್ರೈವ್ ವಿಡಿಯೋ ಉಳಿಸಿ",
+    debug_label: "ಡೀಬಗ್ ಮೋಡ್: ಡ್ರೈವ್ ವಿಡಿಯೋ ಮತ್ತು ವಿಶ್ಲೇಷಿಸಿದ ಎಲ್ಲ ಫ್ರೇಮ್‌ಗಳನ್ನು ಈ ಸಾಧನದಲ್ಲಿ ಉಳಿಸಿ",
     settings_note: "ದೃಢಪಟ್ಟ ಗುಂಡಿಯ ನಿಖರ ಸ್ಥಳ ಮತ್ತು ಚಿತ್ರದ ಹ್ಯಾಶ್ ಸೇರಿದಂತೆ ಸಣ್ಣ ಮೆಟಾಡೇಟಾ ಟೆಂಡರ್ ಪರಿಹಾರ, ಹತ್ತಿರದ ನಕಲು ತಡೆ, ಸಾಮಾನ್ಯ ನಕ್ಷೆ ಮತ್ತು ಒಟ್ಟು ಪರಿಣಾಮಕ್ಕಾಗಿ ಯೋಜನೆಯ ಸೇವೆಗೆ ಹೋಗುತ್ತದೆ. ಅಪ್‌ಲೋಡ್ ವಿಫಲವಾದರೆ, ಆ ವರದಿಯನ್ನು ಅಳಿಸುವವರೆಗೆ ಆ್ಯಪ್ ಆರಂಭವಾದಾಗ ಅಥವಾ ಸಂಪರ್ಕ ಮರಳಿದಾಗ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸುತ್ತದೆ. ದೂರು ಸಲ್ಲಿಸಲು ಇರುವ ಏಕೈಕ ಆಯ್ಕೆ ಇಮೇಲ್: ಒಂದೇ ಟ್ಯಾಪ್‌ನಲ್ಲಿ ಸರಿಯಾದ ಅಧಿಕಾರಿಗೆ ವಿಳಾಸಿಸಿದ, ಸ್ಥಳ, ರಸ್ತೆ ಹಾನಿಯ ವಿವರ, ಫೋಟೋ ಮತ್ತು ಲಭ್ಯವಿದ್ದರೆ ಸಂಭಾವ್ಯ ಟೆಂಡರ್ ಸಂಖ್ಯೆಯ ಕರಡು ತೆರೆಯುತ್ತದೆ.",
     independent_note: "ಇದು ಸ್ವತಂತ್ರ, ಅನಧಿಕೃತ ಆ್ಯಪ್. ಯಾವುದೇ ಸರ್ಕಾರಿ ಸಂಸ್ಥೆಯೊಂದಿಗೆ ಸಂಬಂಧ ಅಥವಾ ಅನುಮೋದನೆ ಇಲ್ಲ. ಕಚೇರಿ ಸೂಚನೆ ಅತ್ಯುತ್ತಮ ಪ್ರಯತ್ನ ಮಾತ್ರ; ಕಳುಹಿಸುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.",
     privacy_title: "ಕ್ಯಾಮೆರಾ ಮತ್ತು ಸ್ಥಳ ಅನುಮತಿಯ ಮೊದಲು",
@@ -682,7 +644,7 @@ const I18N = {
     chip_unrouted: "ವ್ಯಾಪ್ತಿಯ ಹೊರಗೆ", chip_duplicate: "ಈಗಾಗಲೇ ವರದಿ",
     duplicate_title: "ಹತ್ತಿರದಲ್ಲಿ ಈಗಾಗಲೇ ವರದಿಯಾಗಿದೆ",
     duplicate_help: "ನಿಮ್ಮ ಪತ್ತೆ ಮತ್ತು ಫೋಟೋ ಸಾಕ್ಷ್ಯವಾಗಿ ಉಳಿದು ಮತ್ತೊಂದು ವೀಕ್ಷಣೆಯಾಗಿ ಎಣಿಕೆಯಾಗಿದೆ. ಎರಡನೇ ದೂರು ಸಿದ್ಧಪಡಿಸಲಿಲ್ಲ.",
-    email_waiting_dedupe: "ಇಮೇಲ್ ಸಕ್ರಿಯವಾಗುವ ಮೊದಲು ಹಂಚಿದ ನಕ್ಷೆಯ ನಕಲಿ ವರದಿ ಪರಿಶೀಲನೆಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ.",
+    email_waiting_dedupe: "ಇಮೇಲ್ ಸಕ್ರಿಯವಾಗುವ ಮೊದಲು ಹಂಚಿದ ನಕ್ಷೆ ಈ ವರದಿಯನ್ನು ದೃಢೀಕರಿಸುವುದನ್ನು ಕಾಯಲಾಗುತ್ತಿದೆ.",
     seen_count: "ಸಾಧನಗಳಾದ್ಯಂತ {n} ವೀಕ್ಷಣೆಗಳು",
     no_location: "ಸ್ಥಳ ಪತ್ತೆಯಾಗಲಿಲ್ಲ.",
     location_uncertain: "ಅಧಿಕಾರಿಯನ್ನು ಆಯ್ಕೆ ಮಾಡಲು GPS ಸಾಕಷ್ಟು ನಿಖರವಾಗಿಲ್ಲ.",
@@ -714,8 +676,7 @@ const I18N = {
     confirm_import_location: "ಈ ಬ್ರೌಸರ್ ಹಳೆಯ ಚಿತ್ರವನ್ನು ಆಯ್ಕೆ ಮಾಡಿರಬಹುದು. ಚಿತ್ರವು ನೀವು ಈಗಿರುವ ಸ್ಥಳವನ್ನೇ ತೋರಿಸಿದರೆ ಮಾತ್ರ ಪ್ರಸ್ತುತ GPS ಸ್ಥಳವನ್ನು ಜೋಡಿಸಿ.",
     capture_provenance_camera: "ಆ್ಯಪ್ ಕ್ಯಾಮೆರಾದಿಂದ ಈಗ ತೆಗೆದದ್ದು",
     capture_provenance_import: "ಆಯ್ಕೆ/ಆಮದು ಮಾಡಿದ ಚಿತ್ರ · ಮೂಲ ಸೆರೆ ಸಮಯ ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ",
-    review_btn: "ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಗುರುತಿಸಿ", export_btn: "ಗುರುತಿಸಿದ ಡೇಟಾಸೆಟ್ ರಫ್ತು ಮಾಡಿ",
-    dash_btn: "&#128506;&#65039; &nbsp;ಕೊಡುಗೆ", dash_title: "ನಿಮ್ಮ ಕೊಡುಗೆ",
+    dash_btn: "&#128506;&#65039; &nbsp;ಗುಂಡಿ ನಕ್ಷೆ", dash_title: "ನಿಮ್ಮ ಕೊಡುಗೆ",
     dash_range: "{days} ವರದಿ · ಮೊದಲನೆಯದು {first}",
     dash_empty: "ಇನ್ನೂ ವರದಿಗಳಿಲ್ಲ. ಸಮಸ್ಯೆಗಳನ್ನು ವರದಿ ಮಾಡಿದಂತೆ ಅಥವಾ ಡ್ರೈವ್ ಮಾಡಿದಂತೆ ನಕ್ಷೆ ತುಂಬುತ್ತದೆ.",
     day_one: "1 ದಿನ", day_many: "{n} ದಿನಗಳು",
@@ -758,12 +719,9 @@ const I18N = {
     analysing_failed: "· {n} ವಿಫಲ",
     analyse_incomplete: "ಪೂರ್ಣಗೊಳಿಸಲಾಗಲಿಲ್ಲ: {n} ರಲ್ಲಿ {failed} ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ ({err}) ಆದ್ದರಿಂದ ಯಾವುದೇ ಫಲಿತಾಂಶ ಹೇಳುತ್ತಿಲ್ಲ, ವಿಡಿಯೋ ಉಳಿಸಲಾಗಿದೆ.",
     decoder_failed: "ಫೋನ್‌ಗೆ ಮುಂದಿನ ರೆಕಾರ್ಡ್ ಮಾಡಿದ ವಿಡಿಯೋ ತುಣುಕನ್ನು ತೆರೆಯಲಾಗಲಿಲ್ಲ.",
-    debug_note: "ಆನ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ವಿಡಿಯೋ ಉಳಿಯುತ್ತದೆ. ಆಫ್: ಗುಂಡಿಗಳನ್ನು ತೆಗೆದ ನಂತರ ವಿಡಿಯೋ ಅಳಿಸಲಾಗುತ್ತದೆ.",
-    record_label: "ಡ್ರೈವ್ ಸಮಯದಲ್ಲಿ ಸ್ಥಳೀಯ ವಿಡಿಯೋ ರೆಕಾರ್ಡ್ ಮಾಡಿ (ಆಡಿಯೋ ಇಲ್ಲ; ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್)",
+    debug_note: "ಆನ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ಡ್ರೈವ್ ವಿಡಿಯೋ ಉಳಿಯುತ್ತದೆ ಮತ್ತು AI ಪರಿಶೀಲಿಸಿದ ಪ್ರತಿ ಫ್ರೇಮ್ ಅದರ ತೀರ್ಮಾನದೊಂದಿಗೆ Documents/pothole-frames ನಲ್ಲಿ ಬರೆಯುತ್ತದೆ. ಪ್ರತಿ ಫ್ರೇಮ್ ಸುಮಾರು 300 KB. ಆಫ್: ವರದಿಗಳನ್ನು ಹೊರತುಪಡಿಸಿ ಏನೂ ಉಳಿಯುವುದಿಲ್ಲ.",
     background_drive_label: "ಹಿನ್ನೆಲೆ ಡ್ರೈವ್ ಮೋಡ್ (ಲೈವ್ ಪ್ರಿವ್ಯೂ ಇಲ್ಲ)",
     background_drive_note: "ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್. ಬೇರೆ ಆ್ಯಪ್‌ಗೆ ಹೋದ ನಂತರವೂ ಪತ್ತೆ ಮುಂದುವರಿಸಲು ಮಾತ್ರ ಆನ್ ಮಾಡಿ; ಈ ಮೋಡ್ ಕ್ಯಾಮೆರಾ ಪ್ರಿವ್ಯೂ ಅಥವಾ ವಿಡಿಯೋ ರೆಕಾರ್ಡಿಂಗ್ ತೋರಿಸುವುದಿಲ್ಲ.",
-    keep_frames_label: "ವಿಶ್ಲೇಷಿಸಿದ ಎಲ್ಲ ಫ್ರೇಮ್‌ಗಳನ್ನು ಸಾಧನದಲ್ಲಿ ಉಳಿಸಿ",
-    keep_frames_note: "AI ಪರಿಶೀಲಿಸಿದ ಪ್ರತಿ ಫ್ರೇಮ್ ಮತ್ತು ಅದರ ತೀರ್ಮಾನವನ್ನು Documents/pothole-frames ನಲ್ಲಿ ಬರೆಯುತ್ತದೆ. ಫೈಲ್ಸ್ ಆ್ಯಪ್‌ನಲ್ಲಿ ಕಾಣುತ್ತದೆ. ಪ್ರತಿ ಫ್ರೇಮ್ ಸುಮಾರು 300 KB.",
     frames_saved: "{n} ಫ್ರೇಮ್‌ಗಳನ್ನು Documents/{dir} ನಲ್ಲಿ ಬರೆಯಲಾಗಿದೆ.",
     frames_failed: "ಫ್ರೇಮ್‌ಗಳನ್ನು ಸಾಧನದಲ್ಲಿ ಬರೆಯಲಾಗಲಿಲ್ಲ.",
     footage_freed: "ವಿಡಿಯೋ ಅಳಿಸಲಾಗಿದೆ, {mb} MB ಮುಕ್ತ.",
@@ -773,12 +731,6 @@ const I18N = {
     drive_group: "{date} · {found}{known} · {checked} ಲೈವ್ ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ{video}",
     drive_video_suffix: " · {n} ವಿಡಿಯೋ ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ",
     drive_group_partial: "{date} · {found} · {kept} ಉಳಿಸಲಾಗಿದೆ",
-    lbl_pothole: "ರಸ್ತೆ ಗುಂಡಿ",
-    lbl_no: "ಹಾನಿ ಇಲ್ಲ", lbl_skip: "ಬಿಟ್ಟುಬಿಡಿ", lbl_done: "ಮುಗಿಯಿತು",
-    review_empty: "ಗುರುತಿಸಲು ಏನೂ ಉಳಿದಿಲ್ಲ. ಡೀಬಗ್ ಮೋಡ್ ಆನ್ ಮಾಡಿ ಡ್ರೈವ್ ಮಾಡಿ.",
-    review_progress: "{n} ಬಾಕಿ · {done} ಗುರುತಿಸಲಾಗಿದೆ",
-    model_said: "ಆ್ಯಪ್ ಹೇಳಿದ್ದು: {verdict}",
-    export_ready: "{n} ಗುರುತಿಸಿದ ಫ್ರೇಮ್‌ಗಳು, {mb} MB. ಎಲ್ಲಿಗೆ ಕಳುಹಿಸಬೇಕೆಂದು ಆಯ್ಕೆಮಾಡಿ.",
     outside_coverage: "ಈ ಸ್ಥಳ ಈ ಆ್ಯಪ್ ಒಳಗೊಂಡ ವ್ಯಾಪ್ತಿಯ ಹೊರಗಿದೆ.",
     outside_coverage_help: "ಈ ಸ್ಥಳವು ಭಾರತದ ಪರಿಶೀಲಿತ ರಾಜ್ಯ/ಕೇಂದ್ರಾಡಳಿತ ಪ್ರದೇಶ ಮತ್ತು ನಕ್ಷೆಗೊಂಡ ರಾಷ್ಟ್ರೀಯ ಹೆದ್ದಾರಿ ವ್ಯಾಪ್ತಿಯ ಹೊರಗಿದೆ ಅಥವಾ ನಿಖರ ಮಾರ್ಗದರ್ಶನ ದತ್ತಾಂಶ ಲಭ್ಯವಿಲ್ಲ. ಫೋಟೋ ಮತ್ತು ಸ್ಥಳವನ್ನು ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
     size_small: "ಸಣ್ಣ", size_medium: "ಮಧ್ಯಮ", size_large: "ದೊಡ್ಡ",
@@ -857,7 +809,7 @@ const I18N = {
 
 
 
-    debug_label: "डीबग मोड: विश्लेषणानंतरही ड्राइव्हचा व्हिडिओ जतन करा",
+    debug_label: "डीबग मोड: ड्राइव्हचा व्हिडिओ आणि विश्लेषित केलेली प्रत्येक फ्रेम या साधनावर जतन करा",
     settings_note: "स्वीकारलेल्या खड्ड्याचे अचूक स्थान आणि चित्राचा hash यासह थोडी मेटाडेटा, निविदा शोध, जवळपासची डुप्लिकेट तपासणी, सामायिक नकाशा आणि एकत्रित परिणामासाठी प्रकल्प सेवेकडे जाते. हे अपलोड अयशस्वी झाले, तर तो अहवाल तुम्ही हटवेपर्यंत अॅप सुरू झाल्यावर किंवा कनेक्शन परत आल्यावर पुन्हा प्रयत्न करते. तक्रार दाखल करण्याचा एकमेव पर्याय ईमेल: एका टॅपने स्थान, रस्ता-नुकसानाचा तपशील, फोटो आणि संभाव्य निविदा क्रमांकासह आधीच पत्ता दिलेला मसुदा उघडतो. तुमच्या ईमेल अॅपमध्ये Send दाबेपर्यंत काहीही पाठवले जात नाही.",
     independent_note: "हे स्वतंत्र, अनधिकृत अॅप आहे. कोणत्याही सरकारी संस्थेशी संलग्न नाही किंवा तिची मान्यता नाही. सुचवलेले कार्यालय पाठवण्यापूर्वी तपासा.",
     privacy_title: "कॅप्चर आणि स्थान वापरण्यापूर्वी",
@@ -907,8 +859,7 @@ const I18N = {
     confirm_import_location: "या ब्राउझरने जुने छायाचित्र निवडले असू शकते. छायाचित्र तुम्ही सध्या जिथे आहात तेच ठिकाण दाखवत असेल तरच सध्याचे GPS स्थान जोडा.",
     capture_provenance_camera: "अॅप कॅमेराने आत्ताच घेतलेले",
     capture_provenance_import: "निवडलेले/आयात केलेले छायाचित्र · मूळ वेळ पडताळलेली नाही",
-    review_btn: "फ्रेम्स तपासा आणि लेबल करा", export_btn: "लेबल केलेला डेटासेट निर्यात करा",
-    dash_btn: "&#128506;&#65039; &nbsp;योगदान", dash_title: "तुमचे योगदान",
+    dash_btn: "&#128506;&#65039; &nbsp;खड्डे नकाशा", dash_title: "तुमचे योगदान",
     dash_range: "{days} चा अहवाल · पहिली नोंद {first}",
     dash_empty: "अजून तक्रारी नाहीत. समस्या नोंदवल्यावर किंवा ड्राइव्ह केल्यावर नकाशा भरत जाईल.",
     day_one: "1 दिवस", day_many: "{n} दिवस",
@@ -933,21 +884,13 @@ const I18N = {
     frames_no_permission: "फ्रेम्स जतन करण्याची परवानगी मिळाली नाही. त्या जतन न करता विश्लेषण करायचे का?",
     analysing_failed: "· {n} अयशस्वी",
     analyse_incomplete: "पूर्ण करता आले नाही: {n} पैकी {failed} फ्रेम्स तपासल्या गेल्या नाहीत ({err}). निष्कर्ष घोषित केलेला नाही आणि व्हिडिओ जतन केला आहे.",
-    debug_note: "चालू: विश्लेषणानंतरही व्हिडिओ राहतो. बंद: हानीच्या घटना काढल्यानंतर व्हिडिओ हटवला जातो.",
-    record_label: "ड्राइव्हदरम्यान स्थानिक व्हिडिओ रेकॉर्ड करा (ऑडिओ नाही; सुरुवातीला बंद)",
-    keep_frames_label: "विश्लेषित केलेली प्रत्येक फ्रेम साधनावर जतन करा",
-    keep_frames_note: "AI ने तपासलेली प्रत्येक फ्रेम आणि निष्कर्ष Documents/pothole-frames मध्ये लिहिला जातो. प्रत्येक फ्रेम साधारण 300 KB असू शकते.",
+    debug_note: "चालू: विश्लेषणानंतरही ड्राइव्हचा व्हिडिओ राहतो आणि AI ने तपासलेली प्रत्येक फ्रेम निष्कर्षासह Documents/pothole-frames मध्ये लिहिली जाते. प्रत्येक फ्रेम साधारण 300 KB. बंद: अहवालांशिवाय काहीही राहत नाही.",
     frames_saved: "{n} फ्रेम्स Documents/{dir} मध्ये लिहिल्या.", frames_failed: "फ्रेम्स साधनावर लिहिता आल्या नाहीत.",
     footage_freed: "व्हिडिओ हटवला; {mb} MB जागा मोकळी झाली.", footage_kept: "व्हिडिओ जतन केला आहे (डीबग मोड).",
     offer_analyse: "या ड्राइव्हच्या व्हिडिओचे आता विश्लेषण करायचे का? {clips} क्लिप्स, {mb} MB. आढळलेले खड्डे फोटो म्हणून ठेवले जातील.",
     confirm_delete_footage: "या ड्राइव्हचा रेकॉर्ड केलेला व्हिडिओ हटवायचा का? अहवाल जतन राहतील.",
     drive_group: "{date} · {found}{known} · {checked} थेट फ्रेम्स तपासल्या{video}",
     drive_video_suffix: " · {n} व्हिडिओ फ्रेम्स तपासल्या", drive_group_partial: "{date} · {found} · {kept} जतन केले",
-    lbl_pothole: "रस्त्यातील खड्डा", lbl_no: "खड्डा नाही", lbl_skip: "वगळा", lbl_done: "पूर्ण",
-    review_empty: "लेबल करण्यासाठी काहीही उरलेले नाही. फ्रेम्स गोळा करण्यासाठी डीबग मोड सुरू ठेवून ड्राइव्ह करा.",
-    review_progress: "{n} लेबल करणे बाकी · आतापर्यंत {done} लेबल केले",
-    model_said: "अॅपचा निष्कर्ष: {verdict}",
-    export_ready: "{n} लेबल केलेल्या फ्रेम्स, {mb} MB. कुठे पाठवायचे ते निवडा.",
     outside_coverage: "हे स्थान अॅपच्या कार्यक्षेत्राबाहेर आहे.",
     outside_coverage_help: "हे ठिकाण भारताच्या पडताळलेल्या राज्य/केंद्रशासित प्रदेश व नकाशित राष्ट्रीय महामार्ग क्षेत्राबाहेर आहे किंवा अचूक मार्गदर्शन डेटा उपलब्ध नाही. फोटो आणि स्थान प्राप्तकर्त्याशिवाय जतन केले आहे.",
     size_small: "लहान", size_medium: "मध्यम", size_large: "मोठे",
@@ -996,7 +939,7 @@ const I18N = {
     district_highway_help: "जिल्हा महामार्गांची देखभाल शहर किंवा नगर संस्था नव्हे, तर जिल्हा किंवा राज्य रस्ते प्राधिकरण करते. या टप्प्यासाठी अद्याप पडताळलेला अधिकृत ईमेल उपलब्ध नाही, त्यामुळे फोटो आणि स्थान तक्रारीचा मसुदा न उघडता जतन केले आहे.",
     duplicate_help: "तुमची तपासणी आणि फोटो पुरावा म्हणून ठेवले असून आणखी एक निरीक्षण म्हणून मोजले आहेत. दुसरी तक्रार तयार केलेली नाही.",
     duplicate_title: "जवळपास आधीच नोंदवले आहे",
-    email_waiting_dedupe: "ईमेल सुरू होण्यापूर्वी सामायिक नकाशावरील डुप्लिकेट तपासणी पूर्ण होण्याची वाट पाहत आहे.",
+    email_waiting_dedupe: "ईमेल सुरू होण्यापूर्वी सामायिक नकाशा ही नोंद निश्नित करण्याची वाट पाहत आहे.",
     feedback_bad_email: "तो ईमेल पत्ता पूर्ण दिसत नाही. दुरुस्त करा किंवा रिकामा ठेवा.",
     feedback_empty: "आधी स्टार रेटिंग निवडा किंवा काहीतरी लिहा.",
     feedback_queued: "या फोनवर जतन केले. कनेक्शन परत आल्यावर पाठवले जाईल.",
@@ -1080,7 +1023,7 @@ const I18N = {
 
 
 
-    debug_label: "ডিবাগ মোড: বিশ্লেষণের পরেও ড্রাইভের ভিডিও রাখুন",
+    debug_label: "ডিবাগ মোড: ড্রাইভের ভিডিও ও বিশ্লেষণ করা প্রতিটি ফ্রেম এই ডিভাইসে সংরক্ষণ করুন",
     settings_note: "গৃহীত গর্তের সঠিক অবস্থান এবং ছবির hash-সহ সামান্য মেটাডেটা দরপত্র নির্ধারণ, কাছাকাছি ডুপ্লিকেট যাচাই, শেয়ার-করা মানচিত্র ও সামগ্রিক প্রভাবের জন্য প্রকল্প পরিষেবায় যায়। এই আপলোড ব্যর্থ হলে, আপনি রিপোর্টটি মুছে না দেওয়া পর্যন্ত অ্যাপ চালু হলে বা সংযোগ ফিরলে আবার চেষ্টা করা হয়। অভিযোগ জানানোর একমাত্র উপায় ইমেল: এক ট্যাপে অবস্থান, রাস্তার ক্ষতির বিবরণ, ছবি ও সম্ভাব্য দরপত্র নম্বর-সহ আগে থেকে ঠিকানা দেওয়া একটি খসড়া খোলে। আপনার ইমেল অ্যাপে Send না চাপা পর্যন্ত কিছুই পাঠানো হয় না।",
     independent_note: "এটি একটি স্বাধীন, বেসরকারি অ্যাপ। কোনও সরকারি সংস্থার সঙ্গে এর সম্পর্ক নেই এবং কোনও সরকারি সংস্থা এটি অনুমোদন করেনি। প্রাপক নির্বাচন সর্বোত্তম প্রচেষ্টার ভিত্তিতে; পাঠানোর আগে যাচাই করুন।",
     privacy_title: "ক্যাপচার ও অবস্থান ব্যবহারের আগে",
@@ -1128,8 +1071,7 @@ const I18N = {
     confirm_import_location: "এই ব্রাউজারটি পুরনো ছবি ফিরিয়ে দিতে পারে। ছবিটি আপনি এখন যেখানে আছেন সেই স্থানটি দেখালেই কেবল বর্তমান GPS অবস্থান যুক্ত করুন।",
     capture_provenance_camera: "অ্যাপ ক্যামেরায় এখন তোলা",
     capture_provenance_import: "বেছে নেওয়া/আমদানি করা ছবি · আসল তোলার সময় যাচাই হয়নি",
-    review_btn: "ফ্রেম যাচাই করে লেবেল দিন", export_btn: "লেবেল দেওয়া ডেটাসেট এক্সপোর্ট করুন",
-    dash_btn: "&#128506;&#65039; &nbsp;অবদান", dash_title: "আপনার অবদান",
+    dash_btn: "&#128506;&#65039; &nbsp;গর্তের মানচিত্র", dash_title: "আপনার অবদান",
     dash_range: "{days} ধরে রিপোর্ট · প্রথম রিপোর্ট {first}",
     dash_empty: "এখনও কোনও রিপোর্ট নেই। সমস্যা রিপোর্ট করা বা ড্রাইভ করার সঙ্গে সঙ্গে মানচিত্র পূর্ণ হবে।",
     day_one: "1 দিন", day_many: "{n} দিন",
@@ -1156,10 +1098,7 @@ const I18N = {
     frames_no_permission: "স্টোরেজে ফ্রেম সংরক্ষণের অনুমতি পাওয়া যায়নি। সংরক্ষণ না করেই বিশ্লেষণ করবেন?",
     analysing_failed: "· {n}টি ব্যর্থ",
     analyse_incomplete: "শেষ করা যায়নি: {n}টি ফ্রেমের মধ্যে {failed}টি পরীক্ষা করা হয়নি ({err})। তাই কোনও ফল দাবি করা হচ্ছে না এবং ভিডিওটি রেখে দেওয়া হয়েছে।",
-    debug_note: "চালু থাকলে: বিশ্লেষণের পরেও ভিডিও থাকে, ফলে ড্রাইভটি আবার পরীক্ষা করা বা উন্নত মডেল দিয়ে চালানো যায়। বন্ধ থাকলে: রাস্তার ক্ষতির ঘটনাগুলি ছবি হিসেবে নেওয়ার পর ভিডিও মুছে যায়।",
-    record_label: "ড্রাইভের সময় এই ডিভাইসে ভিডিও রেকর্ড করুন (অডিও নয়; ডিফল্টভাবে বন্ধ)",
-    keep_frames_label: "বিশ্লেষণ করা প্রতিটি ফ্রেম ডিভাইসে সংরক্ষণ করুন",
-    keep_frames_note: "AI পরীক্ষা করা প্রতিটি ফ্রেম ও তার সিদ্ধান্ত এই ফোনের Documents/pothole-frames ফোল্ডারে লিখবে। Files অ্যাপে দেখা যাবে এবং মূল্যায়ন ডেটাসেট তৈরিতে ব্যবহার করা যাবে। জায়গা দ্রুত বাড়ে: প্রতি ফ্রেম প্রায় 300 KB।",
+    debug_note: "চালু থাকলে: বিশ্লেষণের পরেও ড্রাইভের ভিডিও থাকে এবং AI পরীক্ষা করা প্রতিটি ফ্রেম তার সিদ্ধান্তসহ এই ফোনের Documents/pothole-frames ফোল্ডারে লেখা হয়। প্রতি ফ্রেম প্রায় 300 KB। বন্ধ থাকলে: রিপোর্ট ছাড়া কিছুই রাখা হয় না।",
     frames_saved: "{n}টি ফ্রেম Documents/{dir}-এ লেখা হয়েছে।",
     frames_failed: "ডিভাইসে ফ্রেম লেখা যায়নি।",
     footage_freed: "ভিডিও মুছে {mb} MB জায়গা খালি হয়েছে।",
@@ -1169,11 +1108,6 @@ const I18N = {
     drive_group: "{date} · {found}{known} · {checked}টি লাইভ ফ্রেম পরীক্ষা{video}",
     drive_video_suffix: " · {n}টি ভিডিও ফ্রেম পরীক্ষা",
     drive_group_partial: "{date} · {found} · {kept}টি রাখা হয়েছে",
-    lbl_pothole: "রাস্তার গর্ত", lbl_no: "রাস্তার গর্ত নয়", lbl_skip: "এড়িয়ে যান", lbl_done: "শেষ",
-    review_empty: "লেবেল দেওয়ার মতো কিছু বাকি নেই। ফ্রেম সংগ্রহ করতে ডিবাগ মোড চালু রেখে ড্রাইভ করুন।",
-    review_progress: "{n}টি লেবেল দেওয়া বাকি · এখনও পর্যন্ত {done}টি সম্পন্ন",
-    model_said: "অ্যাপের সিদ্ধান্ত: {verdict}",
-    export_ready: "{n}টি লেবেল দেওয়া ফ্রেম, {mb} MB। কোথায় পাঠাবেন বেছে নিন।",
     outside_coverage: "এই অবস্থানটি অ্যাপের আওতাভুক্ত এলাকার বাইরে।",
     outside_coverage_help: "এই স্থানটি ভারতের যাচাই-করা রাজ্য/কেন্দ্রশাসিত অঞ্চল ও মানচিত্রভুক্ত জাতীয় সড়ক কভারেজের বাইরে, অথবা নির্ভুল রাউটিং তথ্য পাওয়া যায়নি। ছবি ও অবস্থান কোনও প্রাপক ছাড়াই সংরক্ষিত হয়েছে।",
     size_small: "ছোট", size_medium: "মাঝারি", size_large: "বড়",
@@ -1224,7 +1158,7 @@ const I18N = {
     district_highway_help: "জেলা সড়কের রক্ষণাবেক্ষণ করে জেলা বা রাজ্য সড়ক কর্তৃপক্ষ, পুর বা নগর সংস্থা নয়। এই অংশের জন্য এখনও যাচাই-করা সরকারি ইমেল নেই, তাই ছবি ও অবস্থান কোনও অভিযোগের খসড়া না খুলেই সংরক্ষণ করা হয়েছে।",
     duplicate_help: "আপনার শনাক্তকরণ ও ছবি প্রমাণ হিসেবে রাখা হয়েছে এবং আরেকটি পর্যবেক্ষণ হিসেবে গোনা হয়েছে। দ্বিতীয় কোনও অভিযোগ তৈরি হয়নি।",
     duplicate_title: "কাছেই আগে জানানো হয়েছে",
-    email_waiting_dedupe: "ইমেল চালু হওয়ার আগে শেয়ার-করা মানচিত্রে ডুপ্লিকেট যাচাই শেষ হওয়ার অপেক্ষা চলছে।",
+    email_waiting_dedupe: "ইমেল চালু হওয়ার আগে শেয়ার-করা মানচিত্রে এই রিপোর্ট নিশ্চিত হওয়ার অপেক্ষা চলছে।",
     feedback_bad_email: "ইমেল ঠিকানাটি সম্পূর্ণ মনে হচ্ছে না। ঠিক করুন বা ফাঁকা রাখুন।",
     feedback_empty: "আগে একটি স্টার রেটিং বাছুন বা কিছু লিখুন।",
     feedback_queued: "এই ফোনে সংরক্ষিত হয়েছে। সংযোগ ফিরলে পাঠানো হবে।",
@@ -1342,7 +1276,7 @@ function show(screen) {
   const viewer = $("viewer");
   if (viewer) viewer.classList.add("hidden");
   document.body.classList.toggle("public-map-view", screen === "dash");
-  for (const s of ["home", "progress", "detail", "drive", "settings", "review", "dash", "dataConsent", "feedback"]) {
+  for (const s of ["home", "progress", "detail", "drive", "settings", "dash", "dataConsent", "feedback"]) {
     $(s).classList.toggle("hidden", s !== screen);
   }
   window.scrollTo(0, 0);
@@ -1461,11 +1395,8 @@ function applyLang() {
   $("accuracyNote").textContent = t("accuracy_note");
   $("debugLabel").textContent = t("debug_label");
   $("debugNote").innerHTML = t("debug_note");
-  $("recordLabel").textContent = t("record_label");
   $("backgroundDriveLabel").textContent = t("background_drive_label");
   $("backgroundDriveNote").textContent = t("background_drive_note");
-  $("keepFramesLabel").textContent = t("keep_frames_label");
-  $("keepFramesNote").innerHTML = t("keep_frames_note");
   $("settingsNote").textContent = t("settings_note");
   $("independentNote").textContent = t("independent_note");
   $("privacyTitle").textContent = t("privacy_title");
@@ -1495,24 +1426,7 @@ function applyLang() {
   $("communityTitle").textContent = t("community_title");
   $("communityNote").textContent = t("community_note");
   $("dashRefresh").textContent = t("public_map_refresh");
-  $("reviewBtn").textContent = t("review_btn");
-  $("exportBtn").textContent = t("export_btn");
-  $("lblPothole").textContent = t("lbl_pothole");
-  $("lblNo").textContent = t("lbl_no");
-  $("lblSkip").textContent = t("lbl_skip");
-  $("reviewBack").textContent = t("lbl_done");
   $("driveStop").innerHTML = t("stop");
-  if (nativeDrivePlugin()) {
-    // Older native layouts exposed a wrapper for this setting; the current layout keeps
-    // only the note. Applying language must never abort the entire UI when that legacy
-    // wrapper is absent, otherwise no button handlers are installed on Android.
-    const keepFramesSetting = $("keepFramesSetting");
-    const keepFramesNote = $("keepFramesNote");
-    if (keepFramesSetting) keepFramesSetting.classList.add("hidden");
-    if (keepFramesNote) keepFramesNote.classList.add("hidden");
-    $("debugLabel").textContent = "Debug mode: keep repeat detections as separate reports";
-    $("debugNote").textContent = "Normally, nearby sightings of the same pothole are grouped into one report.";
-  }
 }
 
 async function api(path, opts) {
@@ -4491,7 +4405,6 @@ $("captureBtn").onclick = async () => {
 // A human label is the only thing that can measure the detector. The model's own
 // verdict is shown but deliberately after the photo, so it nudges the eye as little
 // as possible: an unlabelled frame is worth more than one labelled by suggestion.
-let reviewQueue = [], reviewDone = 0;
 
 // Rolling clips, not one long recording. MP4 is not streamable: given a timeslice it
 // emits nothing until stop, so a 30-minute drive would sit entirely in memory.
@@ -4677,36 +4590,6 @@ function stopRecording() {
   return ctx.stopped;
 }
 const expandedDrives = new Set();
-
-async function startReview() {
-  const all = await api("/api/reports");
-  const roadReports = all.filter(isRoadReport);
-  reviewQueue = roadReports.filter((r) => !r.human_label && r.photo_url);
-  reviewDone = roadReports.length - reviewQueue.length;
-  if (!reviewQueue.length) { alert(t("review_empty")); return; }
-  show("review");
-  nextReviewFrame();
-}
-
-function nextReviewFrame() {
-  if (!reviewQueue.length) { alert(t("review_empty")); show("home"); loadReports(); return; }
-  const r = reviewQueue[0];
-  $("reviewPhoto").src = photoSrc(r);
-  $("reviewMeta").innerHTML = t("review_progress", { n: reviewQueue.length, done: reviewDone });
-  $("reviewSaid").textContent = t("model_said", { verdict: detectionVerdict(r) });
-}
-
-async function labelCurrent(label) {
-  const r = reviewQueue.shift();
-  if (!r) return;
-  if (label) {
-    try {
-      await api(`/api/reports/${r.id}/label`, { method: "POST", body: JSON.stringify({ label }) });
-      reviewDone++;
-    } catch (e) { alert(e.message); }
-  }
-  nextReviewFrame();
-}
 
 // ---------- full-screen photo viewer ----------
 // The detail card can only ever show a thumbnail of a 4000px capture, which is no
@@ -6981,42 +6864,6 @@ $("dashBack").onclick = () => {
   show("home"); loadReports();
 };
 
-$("reviewBtn").onclick = startReview;
-$("reviewPhoto").onclick = () => { if (reviewQueue[0]) openViewer(reviewQueue[0]); };
-$("lblPothole").onclick = () => labelCurrent("pothole_cavity");
-$("lblNo").onclick = () => labelCurrent("undamaged");
-$("lblSkip").onclick = () => labelCurrent(null);
-$("reviewBack").onclick = () => { show("home"); loadReports(); };
-
-$("exportBtn").onclick = async () => {
-  const btn = $("exportBtn");
-  btn.disabled = true; btn.textContent = t("working");
-  try {
-    const zip = await api("/api/export", { method: "POST" });
-    alert(t("export_ready", { n: zip.count, mb: (zip.bytes / 1048576).toFixed(1) }));
-    await shareZip(zip);
-  } catch (e) { alert(e.message); }
-  btn.disabled = false; btn.textContent = t("export_btn");
-};
-
-// Written to cache and handed to the share sheet, so the zip goes wherever you want
-// (Drive, mail, a chat) without the app needing an account or a server.
-async function shareZip(zip) {
-  const P = window.Capacitor && Capacitor.Plugins;
-  if (!P || !P.Filesystem || !P.Share) {
-    // Browser fallback, used by the test harness.
-    const bin = atob(zip.base64), arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    const url = URL.createObjectURL(new Blob([arr], { type: "application/zip" }));
-    const a = document.createElement("a");
-    a.href = url; a.download = zip.name; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    return;
-  }
-  try { await P.Filesystem.mkdir({ path: SHARE_CACHE_DIR, directory: "CACHE", recursive: true }); } catch (_) {}
-  const w = await P.Filesystem.writeFile({ path: `${SHARE_CACHE_DIR}/${zip.name}`, data: zip.base64, directory: "CACHE" });
-  await P.Share.share({ title: zip.name, files: [w.uri] });
-}
 $("fileInput").onchange = (e) => {
   handleFile(e.target.files[0], { captureSource: "manual_import" });
   e.target.value = "";
@@ -7086,8 +6933,11 @@ window.handleAppBack = () => {
 // Shared vision is the no-key default; Personal is an explicit bring-your-own-key path.
 function updateProviderSettings() {
   const personal = $("setProvider").value === "personal";
+  // Nobody on the shared service needs to see a key field, so it is not shown at all
+  // rather than shown greyed out.
+  $("setKey").classList.toggle("hidden", !personal);
+  $("keyLabel").classList.toggle("hidden", !personal);
   $("setKey").disabled = !personal;
-  $("setKey").style.opacity = personal ? "1" : ".55";
   $("providerNote").textContent = personal ? t("provider_personal_note") : t("provider_shared_note");
 }
 
@@ -7100,8 +6950,6 @@ window.openSettings = (firstRun = false, requireCompletion = false) => {
   $("setDetail").value = selectedLlmDetail(
     localStorage.getItem("image_detail"), $("setModel").value);
   $("setDebug").checked = localStorage.getItem("debug_mode") === "1";
-  $("setKeepFrames").checked = localStorage.getItem("keep_frames") === "1";
-  $("setRecord").checked = localStorage.getItem("record_video") === "1"; // explicit opt-in
   $("setBackgroundDrive").checked = localStorage.getItem("native_background_drive") === "1";
   $("setLang").value = LANG;
   $("settingsHint").textContent = firstRun ? t("welcome_hint") : "";
@@ -7232,7 +7080,7 @@ $("setSave").onclick = async () => {
   const selectedModel = selectedLlmModel($("setModel").value);
   const selectedDetail = selectedLlmDetail($("setDetail").value, selectedModel);
   // Drive uses this phone's camera. There is no other capture source to choose.
-  const recordVideo = $("setRecord").checked;
+  const recordVideo = $("setDebug").checked;
   const driveLimit = driveLimitMinutes();
   const newLang = $("setLang").value;
   saveButton.disabled = true;
@@ -7250,9 +7098,11 @@ $("setSave").onclick = async () => {
     localStorage.setItem("sender_name", $("setName").value.trim());
     localStorage.setItem("detection_model", selectedModel);
     localStorage.setItem("image_detail", selectedDetail);
-    localStorage.setItem("debug_mode", $("setDebug").checked ? "1" : "0");
-    localStorage.setItem("keep_frames", $("setKeepFrames").checked ? "1" : "0");
+    // One switch. Debug mode keeps the drive video and writes every analysed frame to
+    // the device; with it off, neither is retained.
+    localStorage.setItem("debug_mode", recordVideo ? "1" : "0");
     localStorage.setItem("record_video", recordVideo ? "1" : "0");
+    localStorage.setItem("keep_frames", recordVideo ? "1" : "0");
     localStorage.setItem("drive_limit_minutes", String(driveLimit));
     localStorage.setItem("app_lang", newLang);
     localStorage.setItem("native_background_drive", $("setBackgroundDrive").checked ? "1" : "0");
@@ -7383,10 +7233,8 @@ $("wipeBtn").onclick = async () => {
 };
 
 applyLang();
-// A fresh install must begin in the mandatory Settings screen.  Keep this local and
-// synchronous so Home cannot flash before the user chooses the shared or personal
-// vision path; existing installs continue straight to their normal screen.
-if (initialSettingsRequired) openSettings(true, true);
+// Every install begins on Home. The vision provider defaults to the shared service, so
+// there is nothing a new user has to fill in before reporting a pothole.
 void initNativeVideoImports();
 
 // #report-<id> deep link opens that report's detail screen directly.

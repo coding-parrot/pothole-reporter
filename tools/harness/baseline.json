@@ -92,7 +92,6 @@
   "pmgsy_road_agreement_pack_builder_test.py": true,
   "pmgsy_road_agreement_puller_test.py": true,
   "prepared_eval_contract_test.py": true,
-  "persistent_dedupe_test.py": true,
   "private_drive_corpus_test.py": true,
   "private_eval_dataset_test.py": true,
   "private_release_gate_test.py": true,
@@ -132,5 +131,6 @@
   "unit_test.py": true,
   "top50_routing_test.py": true,
   "uttar_pradesh_routing_test.py": true,
-  "routing_test.py": true
+  "routing_test.py": true,
+  "repeat_detection_test.py": true
 }

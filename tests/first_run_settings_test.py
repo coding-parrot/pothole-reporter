@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
-"""A fresh install must complete Settings before Home can be used."""
+"""A fresh install opens on Home and can report a pothole without touching Settings.
+
+The app used to open on a mandatory Settings screen that could not be dismissed. It was
+asking every tester to make a choice the app already had a good default for: shared
+detection needs no key, and the sender's name is optional. This pins the replacement
+contract, including the parts that must not regress with it. Settings still has to be
+reachable and dismissible, the key field must appear only for the path that needs one,
+and a personal key that is blank must still be refused.
+"""
 
 import os
 import sys
@@ -16,6 +24,8 @@ def ui_state(page):
           homeVisible: !document.getElementById("home").classList.contains("hidden"),
           settingsVisible: !document.getElementById("settings").classList.contains("hidden"),
           backHidden: document.getElementById("setBack").classList.contains("hidden"),
+          keyVisible: !document.getElementById("setKey").classList.contains("hidden"),
+          keyLabelVisible: !document.getElementById("keyLabel").classList.contains("hidden"),
           key: localStorage.getItem("openai_key"),
           setup: localStorage.getItem("initial_setup_complete"),
           required: initialSettingsRequired,
@@ -38,8 +48,6 @@ failures = []
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(args=["--disable-web-security"])
 
-    # A truly fresh origin must render Settings, never Home. The mandatory screen cannot
-    # be dismissed with Android Back and cannot be completed with a blank API key.
     context = browser.new_context(viewport={"width": 390, "height": 844})
     context.add_init_script(
         """window.__firstRunAlerts = [];
@@ -48,66 +56,77 @@ with sync_playwright() as playwright:
     page = context.new_page()
     page.goto(APP)
     wait_until_ready(page)
-    page.locator("#settings").wait_for(state="visible")
+    page.locator("#home").wait_for(state="visible", timeout=30_000)
 
     fresh = ui_state(page)
-    if not fresh["settingsVisible"] or fresh["homeVisible"]:
-        failures.append(f"fresh install did not lead with Settings: {fresh}")
-    if not fresh["required"] or not fresh["active"] or not fresh["backHidden"]:
-        failures.append(f"fresh Settings was not mandatory: {fresh}")
-    if fresh["setup"] is not None:
-        failures.append(f"fresh install was marked complete before Save: {fresh}")
+    if not fresh["homeVisible"] or fresh["settingsVisible"]:
+        failures.append(f"a fresh install did not open on Home: {fresh}")
+    if fresh["required"] or fresh["active"]:
+        failures.append(f"a fresh install still armed the mandatory Settings guards: {fresh}")
+
+    # The shared detector is the default, so a tester who never opens Settings is already
+    # on a working configuration.
+    provider = page.evaluate("StandaloneAPI.__pure.effectiveVisionProvider("
+                             "localStorage.getItem('vision_provider'), "
+                             "localStorage.getItem('openai_key'))")
+    if provider != "shared":
+        failures.append(f"an untouched install did not default to shared detection: {provider}")
+
+    # Settings is somewhere you choose to go, and you can leave it again.
+    page.locator("#gearBtn").click()
+    page.locator("#settings").wait_for(state="visible", timeout=30_000)
+    opened = ui_state(page)
+    if not opened["settingsVisible"] or opened["backHidden"]:
+        failures.append(f"Settings opened without a way back: {opened}")
+    if opened["keyVisible"] or opened["keyLabelVisible"]:
+        failures.append(f"the key field was shown on the shared detector: {opened}")
 
     handled = page.evaluate("handleAppBack()")
     after_back = ui_state(page)
-    if not handled or not after_back["settingsVisible"] or after_back["homeVisible"]:
-        failures.append(f"Android Back escaped mandatory Settings: {after_back}")
+    if not handled or after_back["settingsVisible"] or not after_back["homeVisible"]:
+        failures.append(f"Android Back did not leave Settings: {handled} {after_back}")
 
-    # The shared detector is the default and needs no key of the tester's own, so the
-    # key field is not even editable until someone picks the personal provider.
-    if page.locator("#setKey").is_enabled():
-        failures.append("shared detector left the API key field editable")
-
+    # Choosing the personal path is the only thing that reveals the key field.
+    page.locator("#gearBtn").click()
+    page.locator("#settings").wait_for(state="visible", timeout=30_000)
     page.select_option("#setProvider", "personal")
+    personal = ui_state(page)
+    if not personal["keyVisible"] or not personal["keyLabelVisible"]:
+        failures.append(f"the key field stayed hidden on the personal path: {personal}")
+
+    # A personal key that is only whitespace is still not a key.
     page.locator("#setKey").fill("   ")
     page.locator("#setSave").click()
     page.wait_for_function("window.__firstRunAlerts.length === 1")
     blank = ui_state(page)
-    if not blank["settingsVisible"] or blank["homeVisible"] or blank["setup"] is not None:
-        failures.append(f"blank key completed first-run Settings: {blank}")
+    if not blank["settingsVisible"]:
+        failures.append(f"a blank personal key was accepted: {blank}")
     if not blank["alerts"] or "key" not in blank["alerts"][0].lower():
-        failures.append(f"blank key did not explain the requirement: {blank}")
+        failures.append(f"a blank key did not explain the requirement: {blank}")
 
-    # Saving completes onboarding and persists that decision across a reload. On the
-    # shared detector that means Save alone, with no key: a tester who has no OpenAI
-    # account must still reach Home.
+    # Saving on the shared path needs no key and returns to Home.
     page.select_option("#setProvider", "shared")
     page.locator("#setSave").click()
     page.locator("#home").wait_for(state="visible", timeout=30_000)
     saved = ui_state(page)
     if saved["settingsVisible"] or not saved["homeVisible"]:
-        failures.append(f"valid Save did not open Home: {saved}")
-    if saved["key"] or saved["setup"] != "1":
-        failures.append(f"shared Save did not persist onboarding without a key: {saved}")
-    if saved["required"] or saved["active"]:
-        failures.append(f"valid Save left first-run guards active: {saved}")
+        failures.append(f"Save did not return to Home: {saved}")
+    if saved["key"]:
+        failures.append(f"the shared path stored a key: {saved}")
 
     page.reload()
     wait_until_ready(page)
     page.locator("#home").wait_for(state="visible", timeout=30_000)
     reloaded = ui_state(page)
     if reloaded["settingsVisible"] or not reloaded["homeVisible"]:
-        failures.append(f"completed onboarding was shown again after reload: {reloaded}")
+        failures.append(f"a reload did not return to Home: {reloaded}")
     context.close()
 
-    # Existing users predate the completion marker. A saved legacy setting must migrate
-    # silently so an app update does not block them behind first-run onboarding.
+    # An existing install carrying old settings still opens on Home rather than being
+    # pushed back through onboarding by an update.
     context = browser.new_context(viewport={"width": 390, "height": 844})
     context.add_init_script(
-        """localStorage.setItem("openai_key", "legacy-key-never-sent");
-        if (localStorage.getItem("initial_setup_complete") !== null) {
-          throw new Error("legacy fixture unexpectedly has the new marker");
-        }"""
+        """localStorage.setItem("openai_key", "legacy-key-never-sent");"""
     )
     page = context.new_page()
     page.goto(APP)
@@ -115,19 +134,13 @@ with sync_playwright() as playwright:
     page.locator("#home").wait_for(state="visible", timeout=30_000)
     migrated = ui_state(page)
     if migrated["settingsVisible"] or not migrated["homeVisible"]:
-        failures.append(f"legacy install was blocked by first-run Settings: {migrated}")
-    if migrated["setup"] != "1" or migrated["required"] or migrated["active"]:
-        failures.append(f"legacy install was not migrated to the completion marker: {migrated}")
-    if migrated["key"] != "legacy-key-never-sent":
-        failures.append(f"legacy migration altered the saved key: {migrated}")
+        failures.append(f"an existing install was blocked by onboarding: {migrated}")
     context.close()
-
     browser.close()
 
 if failures:
-    print("FAIL")
+    print("FIRST RUN TEST FAIL")
     for failure in failures:
-        print("  -", failure)
+        print(" -", failure)
     sys.exit(1)
-
-print("FIRST-RUN SETTINGS TEST PASS")
+print("FIRST RUN TEST PASS")

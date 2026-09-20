@@ -766,11 +766,15 @@ def main():
                 and online_attempts[0]["headers"].get("idempotency-key") ==
                     online_attempts[1]["headers"].get("idempotency-key") ==
                     online_pending["client_observation_id"]
-                and online_synced["status"] == "duplicate"
+                # The retry is byte-identical and idempotent. The shared map may answer
+                # that it already knows this pothole, which is recorded, but repeat
+                # detection no longer cancels this reporter's own complaint.
+                and online_synced["status"] == "draft"
                 and online_synced["server_duplicate"] is True
-                and online_synced["email_subject"] is None):
-            failures.append(f"online retry was not exact or did not apply dedupe: "
-                            f"attempts={len(online_attempts)}, report={online_synced}")
+                and online_synced["email_subject"] is not None):
+            failures.append(f"online retry was not exact, or a repeat sighting lost its "
+                            f"complaint: attempts={len(online_attempts)}, "
+                            f"report={online_synced}")
 
         # Deleting a locally saved report atomically cancels its pending upload. A later
         # reconnect must not recreate the record or send its coordinates.
@@ -943,12 +947,15 @@ def main():
                 and shared["contractor"] == "Example Roads Ltd"
                 and shared["vision_provider"] == "shared_server"):
             failures.append(f"first central report was not a new draft: {shared}")
-        if not (personal["status"] == "duplicate" and personal["server_duplicate"]
+        # A second device photographing the same pothole keeps its evidence and keeps its
+        # complaint. The shared map still counts both sightings against one pothole.
+        if not (personal["status"] == "draft" and personal["server_duplicate"]
                 and personal["server_pothole_id"] == "101" and personal["seen_count"] == 3
                 and personal["has_photo"]
-                and personal_initial["has_photo_full"] and personal["email_subject"] is None
-                and personal["email_body"] is None):
-            failures.append(f"cross-device duplicate did not preserve local evidence: {personal}")
+                and personal_initial["has_photo_full"] and personal["email_subject"] is not None
+                and personal["email_body"] is not None):
+            failures.append(f"a second device's sighting lost its evidence or its "
+                            f"complaint: {personal}")
 
         ui = personal_page.evaluate("""() => {
           openDetail(window.__contractReport);
@@ -957,8 +964,9 @@ def main():
             send:!!document.getElementById('sendBtn'),
             condition:!!document.getElementById('conditionBtn')};
         }""")
-        if ui["photos"] != 1 or ui["send"] or ui["condition"] or "Already reported" not in ui["text"]:
-            failures.append(f"duplicate detail UI is unsafe or incomplete: {ui}")
+        if ui["photos"] != 1 or not ui["send"] or "Already reported" in ui["text"]:
+            failures.append(f"a repeat sighting's detail screen withheld its complaint "
+                            f"or still called it already reported: {ui}")
 
         # Repair/status updating is intentionally absent: the app records road damage
         # and opens an email complaint, but never tries to infer or mutate "fixed" state.

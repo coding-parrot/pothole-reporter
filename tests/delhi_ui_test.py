@@ -89,7 +89,7 @@ async () => {
   const waitingText = document.getElementById("detail").textContent;
   ok("detail: a report still awaiting the shared-map check offers no email",
      !document.getElementById("sendBtn")
-       && /shared-map duplicate check/i.test(waitingText), waitingText);
+       && /shared map to confirm/i.test(waitingText), waitingText);
 
   report.server_pothole_id = 73001;
   openDetail(report, [report]);

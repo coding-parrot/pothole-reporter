@@ -7597,8 +7597,7 @@
                 "tender_published", "tender_resolution_reason",
                 "tender_resolution_checked_at", "unrouted_reason", "unrouted_body",
               ]) rec[field] = null;
-              rec.status = rec.status === "duplicate" || rec.server_duplicate
-                ? "duplicate" : "draft";
+              rec.status = "draft";
               cursor.update(rec);
             }
             cursor.continue();
@@ -7772,7 +7771,11 @@
   // lets two nearby jobs both observe "none" and both write. Keep the final check and
   // insert in one read-write transaction; IndexedDB serialises these transactions on the
   // reports store, so exactly one concurrent detection becomes the saved event.
-  function addReportUnlessDuplicate(rec, dedupe, centralOutboxRow = null) {
+  // Repeat sightings are no longer merged into one report. A prior match still has the
+  // new sighting recorded against it, because that evidence is what decides whether a
+  // pothole was repaired or has come back, but the detection also becomes its own report
+  // with its own complaint. Only the identical observation arriving twice stays idempotent.
+  function addReportUnlessDuplicate(rec, trackSightings, centralOutboxRow = null) {
     return idb().then((d) => new Promise((resolve, reject) => {
       const tx = d.transaction(centralOutboxRow
         ? ["reports", "central_outbox"] : ["reports"], "readwrite");
@@ -7853,8 +7856,14 @@
             }
             const write = cursor.update(updated);
             write.onsuccess = () => {
-              result = { id: null, duplicate: updated, match: match.kind };
-              queueCentral(prior.id, true);
+              if (exactReplay) {
+                // The same observation replayed: a retry, or retained footage analysed
+                // again. Not a repeat sighting, so it must not become a second report.
+                result = { id: null, duplicate: updated, match: match.kind };
+                queueCentral(prior.id, true);
+                return;
+              }
+              addNew();
             };
             write.onerror = () => { failure = write.error; };
             return;
@@ -7870,7 +7879,7 @@
           IDBKeyRange.bound(rec.lat - latitudeBand, rec.lat + latitudeBand)), addNew);
       };
       try {
-        if (!dedupe) addNew();
+        if (!trackSightings) addNew();
         else if (rec.drive_id != null) {
           const driveKey = String(rec.drive_id);
           const scanOriginalDrive = () => scan(
@@ -7997,8 +8006,7 @@
 
   function centralReportIsConfirmed(rec) {
     return !!rec && Number(rec.server_pothole_id) > 0
-      && !rec.central_sync_pending
-      && !rec.server_duplicate && rec.status !== "duplicate";
+      && !rec.central_sync_pending;
   }
 
   async function centralPotholeRequest(
@@ -8119,11 +8127,6 @@
               // A user might have opened the draft before connectivity returned.
               // Preserve that history, but do not claim the email was delivered.
               if (rec.status === "sent") rec.status = "queued";
-              if (rec.status !== "queued") {
-                rec.status = "duplicate";
-                rec.email_subject = null;
-                rec.email_body = null;
-              }
             }
           }
           outbox.delete(key);
@@ -8357,7 +8360,9 @@
       ? String(fd.get("source_event_key")).slice(0, 180) : null;
     // Bind the request to the mode in which it began. A Settings change while a slow
     // request is finishing must not unpredictably change whether that observation saves.
-    const dedupe = !S.debug;
+    // Repeat-detection dedupe is gone: a pothole seen twice is two reports and two
+    // complaints. Prior sightings are still tracked so repair verification keeps working.
+    const trackSightings = !S.debug;
     const normalizedHeading = Number.isFinite(headingRaw)
       ? ((headingRaw % 360) + 360) % 360 : null;
     const clientObservationId = sourceEventKey
@@ -8594,8 +8599,11 @@
       gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
       speed_mps: Number.isFinite(speedRaw) ? speedRaw : null,
       heading: normalizedHeading,
-      debug_capture: !dedupe,
-      dedupe_eligible: accepted && dedupe,
+      debug_capture: S.debug,
+      // Not about complaint dedupe, which is gone. This marks a clean automatic capture
+      // with a full frame, which is what a later drive compares against to decide whether
+      // a pothole has been repaired.
+      dedupe_eligible: accepted && !S.debug,
       event_sightings: accepted ? [eventSighting({
         drive_id: driveId, lat, lng,
         source_offset_s: Number.isFinite(sourceOffsetRaw) ? sourceOffsetRaw / 1000 : null,
@@ -8637,13 +8645,10 @@
           rec.server_dedupe_distance_m = central.dedupe
             && Number.isFinite(central.dedupe.distance_m) ? central.dedupe.distance_m : null;
           if (central.duplicate) {
-            rec.status = "duplicate";
-            rec.duplicate = true;
+            // The shared map counted this against an existing pothole, which is recorded
+            // for the map's numbers. It no longer cancels the complaint: the draft stays
+            // addressed and sendable.
             rec.duplicate_of = rec.server_pothole_id;
-            // A central duplicate is impact evidence, but it must not create another
-            // complaint for the same physical defect.
-            rec.email_subject = null;
-            rec.email_body = null;
           }
         }
       } catch (error) {
@@ -8666,7 +8671,7 @@
         last_error: rec.server_sync_error,
         last_request_id: rec.server_request_id || null,
       } : null;
-      const committed = await addReportUnlessDuplicate(rec, dedupe, centralOutboxRow);
+      const committed = await addReportUnlessDuplicate(rec, trackSightings, centralOutboxRow);
       if (committed.duplicate) {
         if (centralReport && committed.duplicate.server_pothole_id
             && String(committed.duplicate.server_pothole_id)
@@ -8839,7 +8844,7 @@
     // No fallback recipient: an unrouted report must not borrow Bengaluru's address.
     if (!centralReportIsConfirmed(rec)) {
       const error = new Error(
-        "The shared-map duplicate check must finish before this email can be opened.",
+        "The shared map has not confirmed this report yet, so the email cannot be opened.",
       );
       error.code = "central_sync_pending";
       error.report = toDict(rec);
@@ -9354,9 +9359,6 @@
     if ((m = path.match(/^\/api\/reports\/(\d+)\/send$/)) && method === "POST") {
       const rec = await getReport(m[1]);
       if (!rec) throw new Error("Report not found.");
-      if (rec.status === "duplicate" || rec.server_duplicate) {
-        throw new Error("This pothole was already reported nearby, so a duplicate complaint was not created.");
-      }
       // Evidence, handoff refresh and editing already refuse for a repaired pothole.
       // Email did not, so the one action that actually reaches an officer could still
       // send a complaint about damage the app had verified as fixed.
@@ -9371,7 +9373,7 @@
         });
       }
       if (!centralReportIsConfirmed(rec)) {
-        throw new Error("The shared-map duplicate check must finish before this email can be opened.");
+        throw new Error("The shared map has not confirmed this report yet, so the email cannot be opened.");
       }
       // "queued" stays reopenable: canceling the email composer must not strand the report.
       if (rec.status === "sent") rec.status = "queued";

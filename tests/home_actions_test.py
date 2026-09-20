@@ -33,23 +33,33 @@ SCENARIO = r"""
   ok("hierarchy: Drive renders in the orange highlight",
      getComputedStyle(buttons[0]).backgroundColor === "rgb(255, 122, 26)",
      getComputedStyle(buttons[0]).backgroundColor);
-  ok("layout: Drive is visually above Photo and Contribution",
+  ok("layout: Drive is visually above Photo and the map",
      buttons[0].getBoundingClientRect().top < buttons[1].getBoundingClientRect().top
        && buttons[1].getBoundingClientRect().top < buttons[2].getBoundingClientRect().top,
      buttons.map((button) => button.getBoundingClientRect().top));
+  // The map is a different kind of action from reporting one, so it is set apart rather
+  // than stacked flush against Photo.
+  ok("layout: the map button is separated from Photo",
+     buttons[2].getBoundingClientRect().top
+       - buttons[1].getBoundingClientRect().bottom >= 8,
+     buttons[2].getBoundingClientRect().top - buttons[1].getBoundingClientRect().bottom);
 
+  // The map button says what it opens. The other two stay single words; this one is a
+  // name for a place in the app, so it is allowed the two words that name it.
   const expected = {
-    en: ["Drive", "Photo", "Contribution"],
-    kn: ["ಡ್ರೈವ್", "ಫೋಟೋ", "ಕೊಡುಗೆ"],
-    mr: ["ड्राइव्ह", "फोटो", "योगदान"],
-    bn: ["ড্রাইভ", "ছবি", "অবদান"],
+    en: ["Drive", "Photo", "Pothole map"],
+    kn: ["ಡ್ರೈವ್", "ಫೋಟೋ", "ಗುಂಡಿ ನಕ್ಷೆ"],
+    mr: ["ड्राइव्ह", "फोटो", "खड्डे नकाशा"],
+    bn: ["ড্রাইভ", "ছবি", "গর্তের মানচিত্র"],
   };
   for (const [language, labels] of Object.entries(expected)) {
     const actual = [I18N[language].drive_btn, I18N[language].report_btn,
                     I18N[language].dash_btn].map(word);
     eq(`copy: ${language} home actions are the approved words`, actual, labels);
-    ok(`copy: ${language} actions are each one word`,
-       actual.every((label) => !/\s/u.test(label)), actual);
+    ok(`copy: ${language} the two capture actions are single words`,
+       actual.slice(0, 2).every((label) => !/\s/u.test(label)), actual.slice(0, 2));
+    ok(`copy: ${language} the map label stays short`,
+       actual[2].split(/\s+/u).length <= 2, actual[2]);
   }
 
   eq("render: English home actions match their localized values",
