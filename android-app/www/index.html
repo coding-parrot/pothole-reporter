@@ -3750,9 +3750,24 @@ async function startDriveAdmitted() {
   // plugin implements start/stop/getStatus only, so calling the rest left a camera
   // foreground service running with nothing driving it and the app gone. Take this
   // branch only when the device really implements it, whatever the stored setting says.
-  const nativeDrive = nativeBackgroundDriveSupported()
+  let nativeDrive = nativeBackgroundDriveSupported()
     && localStorage.getItem("native_background_drive") === "1"
     && localStorage.getItem("force_web_drive") !== "1";
+  // An install that enabled background Drive under an older build still carries the
+  // setting. The plugin knows whether this build can actually run its foreground
+  // service; if it cannot, the stored setting is ignored rather than crashing the app.
+  if (nativeDrive) {
+    const plugin = nativeDrivePlugin();
+    if (plugin && typeof plugin.isAvailable === "function") {
+      try {
+        const availability = await plugin.isAvailable();
+        if (availability && availability.available === false) {
+          console.warn("[drive] native background drive unavailable: " + (availability.reason || "no reason"));
+          nativeDrive = false;
+        }
+      } catch (e) { nativeDrive = false; }
+    }
+  }
   if (nativeDrive) {
     try {
       await installNativeDriveListener(Capacitor.Plugins.DriveMode);

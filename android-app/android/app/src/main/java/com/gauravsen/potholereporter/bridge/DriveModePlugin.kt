@@ -160,9 +160,20 @@ class DriveModePlugin : Plugin() {
      */
     @PluginMethod
     fun isAvailable(call: PluginCall) {
+        // The background session is a camera foreground service. Without the
+        // FOREGROUND_SERVICE_CAMERA permission in the manifest, Android 14 refuses to
+        // promote it and the process dies, so a build that does not declare it must
+        // answer "not available" and let the web camera path run instead.
+        val requested = try {
+            val info = context.packageManager.getPackageInfo(
+                context.packageName, android.content.pm.PackageManager.GET_PERMISSIONS)
+            info.requestedPermissions?.toList() ?: emptyList()
+        } catch (e: Exception) { emptyList<String>() }
+        val cameraService = "android.permission.FOREGROUND_SERVICE_CAMERA" in requested
         val ret = JSObject()
-        ret.put("available", true)
-        ret.put("reason", JSObject.NULL)
+        ret.put("available", cameraService)
+        if (cameraService) ret.put("reason", JSObject.NULL)
+        else ret.put("reason", "this build does not declare a camera foreground service")
         call.resolve(ret)
     }
 

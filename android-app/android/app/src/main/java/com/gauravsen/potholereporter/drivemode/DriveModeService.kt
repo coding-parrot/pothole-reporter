@@ -3,6 +3,7 @@ package com.gauravsen.potholereporter.drivemode
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
@@ -170,18 +171,21 @@ class DriveModeService : LifecycleService() {
         session = newSession
         currentSession = newSession
 
+        // This build declares no foreground service types, so Android 14 and later would
+        // throw when the service tried to promote itself with camera and location. The
+        // path that starts this service is unreachable here (the plugin reports itself
+        // unavailable), but a stale intent must stop the service rather than crash the
+        // app. Refuse before touching the camera.
+        if (!declaresCameraForegroundType()) {
+            stopSelf()
+            return
+        }
+
         // Notification must be shown before startForeground returns
         notificationController = NotificationController(this)
         val notification = notificationController!!.buildForegroundNotification()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(
-                DriveConstants.NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
-            )
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 DriveConstants.NOTIFICATION_ID,
                 notification,
@@ -492,6 +496,15 @@ class DriveModeService : LifecycleService() {
     }
 
     // --- Wake Lock ---
+
+    /** Whether this build declares the camera foreground service permission. */
+    private fun declaresCameraForegroundType(): Boolean = try {
+        packageManager.getPackageInfo(packageName, PackageManager.GET_PERMISSIONS)
+            .requestedPermissions
+            ?.contains("android.permission.FOREGROUND_SERVICE_CAMERA") == true
+    } catch (e: Exception) {
+        false
+    }
 
     private fun acquireWakeLock() {
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
