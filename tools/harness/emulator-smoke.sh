@@ -111,8 +111,26 @@ tap_until() {  # tap_until <x> <y> <screen> <attempts>
 }
 alive() { "$ADB" shell pidof "$PACKAGE" 2>/dev/null | tr -d '\r'; }
 
+# The emulator's own System UI can stall under load and put an "isn't responding" dialog
+# over everything, dimming the screen so no pixel probe matches. It belongs to systemui,
+# not the app, and its buttons are exposed to accessibility: press Wait.
+dismiss_system_anr() {
+  local n=0 target
+  while [ $n -lt 5 ]; do
+    "$ADB" shell dumpsys window 2>/dev/null | grep -q "Application Not Responding" || return 0
+    "$ADB" shell rm -f /sdcard/ui.xml >/dev/null 2>&1
+    "$ADB" shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+    target=$("$ADB" shell cat /sdcard/ui.xml 2>/dev/null |
+      python3 "$(dirname "$0")/permission-button.py" "Wait") || target=""
+    [ -n "$target" ] && "$ADB" shell input tap $target
+    sleep 2
+    n=$((n + 1))
+  done
+}
+
 echo "4/6 first run opens on Home"
 pid_start="$(alive)"
+dismiss_system_anr
 # A fresh install lands on Home. There is no onboarding form to clear: shared detection
 # is the default and needs no key. If Settings ever comes back as the first screen, this
 # is where the smoke test says so.
@@ -120,6 +138,7 @@ await_screen home 20 || { echo "FAIL a fresh install did not open on Home (saw: 
 
 echo "5/6 Drive, Continue on the camera and location notice, both permissions"
 sleep 2
+dismiss_system_anr
 tap_until 540 455 dataConsent 4 || { echo "FAIL Drive did not open the camera and location notice (saw: $LAST_SCREEN)"; exit 1; }
 sleep 1
 # The notice's green Continue is the lower-right button. This is the tap that killed

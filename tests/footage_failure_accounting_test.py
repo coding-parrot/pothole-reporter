@@ -27,7 +27,8 @@ check("every saved-video metadata wait is bounded",
 # resolve rather than hang, and the caller counts it as failed, not checked.
 check("frame extraction resolves and fails closed",
       "async function grabFrom(v, canvas, at) {" in INDEX
-      and "const blob = await grabFrom(slot.v, slot.canvas, at);" in INDEX
+      # A failed seek is retried once on a fresh decoder before it counts as failed.
+      and "const blob = await grabWithRecovery(slot, idx, at);" in INDEX
       and "if (!blob) {" in INDEX)
 
 

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """An unavailable central ownership resolver fails closed without phone-side fallback."""
 
-import base64
 import json
 import os
 import pathlib
@@ -12,7 +11,7 @@ from playwright.sync_api import sync_playwright
 
 # The data notice version is read from the bundle: a pinned copy that falls behind
 # leaves every run of this suite stuck on the consent screen it thought it accepted.
-from flow_harness import DATA_NOTICE_VERSION
+from flow_harness import DATA_NOTICE_VERSION, FIXTURE_PHOTO_JS, serve_fixture_photo
 
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -45,7 +44,7 @@ def openai_success(route, _request):
                   body=f"data: {event}\n\ndata: [DONE]\n\n")
 
 
-POST = r"""async ([b64, lat, lng]) => {
+POST = r"""async ([lat, lng]) => {
   await StandaloneAPI.handle('/api/reports', {method:'DELETE'});
   // A retryable resolver 503 deliberately marks the service unavailable. Simulate the
   // next lifecycle reconnect so the following independent case can sync its map row.
@@ -53,10 +52,9 @@ POST = r"""async ([b64, lat, lng]) => {
   await new Promise((resolve) => setTimeout(resolve, 50));
   const alerts = [];
   window.alert = (message) => alerts.push(String(message));
-  const bin = atob(b64); const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const photo = await FIXTURE_PHOTO;
   const form = new FormData();
-  form.append('photo', new Blob([bytes], {type:'image/jpeg'}), 'road.jpg');
+  form.append('photo', photo, 'road.jpg');
   form.append('lat', String(lat)); form.append('lng', String(lng));
   const initial = await StandaloneAPI.handle('/api/report', {method:'POST', body:form});
   let confirmed = null;
@@ -78,12 +76,11 @@ POST = r"""async ([b64, lat, lng]) => {
     alert: alerts.at(-1) || '', detail_text: document.getElementById('detail').innerText,
     send_buttons: document.querySelectorAll('#detail #sendBtn').length,
   };
-}"""
+}""".replace("FIXTURE_PHOTO", FIXTURE_PHOTO_JS)
 
 
 fails = []
 client_gis_leaks = []
-source = base64.standard_b64encode(IMG.read_bytes()).decode()
 
 for failure_mode in ("service_503", "unknown_success"):
     print(f"\n  central resolver mode: {failure_mode}")
@@ -149,13 +146,14 @@ for failure_mode in ("service_503", "unknown_success"):
 
         context.route("https://nominatim.openstreetmap.org/**", block_client_gis)
         context.route("https://kgis.ksrsac.in/**", block_client_gis)
+        serve_fixture_photo(context, IMG)
         page = context.new_page()
         page.goto(APP)
         page.wait_for_load_state("networkidle")
         page.wait_for_function("window.StandaloneAPI && typeof sendReport === 'function'")
 
         for name, lat, lng in CASES:
-            result = page.evaluate(POST, [source, lat, lng])
+            result = page.evaluate(POST, [lat, lng])
             print(f"    {name:22} status={result['status']:9} "
                   f"reason={str(result['reason'] or '-'):20} email={result['email'] or '-'}")
             if result["initial_status"] != "draft" or not result["confirmed_id"]:

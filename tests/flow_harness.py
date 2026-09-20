@@ -182,7 +182,7 @@ NATIVE_STUB = r"""
       return { remove() {} };
     },
     exitApp() { window.__exitAppCalls += 1; },
-    async getInfo() { return { version: "1.39.1", build: "70" }; },
+    async getInfo() { return { version: "1.39.2", build: "71" }; },
   };
   const EmailComposer = {
     async open(options) {
@@ -298,3 +298,16 @@ def report_form_script(lat=12.9716, lng=77.5946):
       return report;
     }
     """.replace("__LAT__", str(lat)).replace("__LNG__", str(lng))
+
+# A 17.7 MB fixture photo, base64-encoded and passed as an evaluate() argument, crosses the
+# Python-to-driver pipe once per call: 30 to 40 seconds each time, which is where the
+# routing suites spent four minutes. Serving it from a routed URL moves the transfer to
+# the driver, once per page, and the page keeps the Blob.
+FIXTURE_PHOTO_URL = "https://fixture.test/photo.jpg"
+FIXTURE_PHOTO_JS = ("(window.__fixturePhoto || (window.__fixturePhoto = "
+                    f"fetch({FIXTURE_PHOTO_URL!r}).then((r) => r.blob())))")
+
+
+def serve_fixture_photo(context, path):
+    context.route(FIXTURE_PHOTO_URL, lambda route: route.fulfill(
+        status=200, content_type="image/jpeg", path=str(path)))

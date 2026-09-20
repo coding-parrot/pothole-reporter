@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Central road ownership routes municipal complaints and refuses other owners."""
 
-import base64
 import json
 import os
 import pathlib
@@ -12,7 +11,7 @@ from playwright.sync_api import sync_playwright
 
 # The data notice version is read from the bundle: a pinned copy that falls behind
 # leaves every run of this suite stuck on the consent screen it thought it accepted.
-from flow_harness import DATA_NOTICE_VERSION
+from flow_harness import DATA_NOTICE_VERSION, FIXTURE_PHOTO_JS, serve_fixture_photo
 
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -129,12 +128,11 @@ def openai_success(route, _request):
     )
 
 
-POST = r"""async ([b64, lat, lng]) => {
+POST = r"""async ([lat, lng]) => {
   await StandaloneAPI.handle('/api/reports', {method:'DELETE'});
-  const bin = atob(b64); const arr = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  const photo = await FIXTURE_PHOTO;
   const fd = new FormData();
-  fd.append('photo', new Blob([arr], {type:'image/jpeg'}), 'p.jpg');
+  fd.append('photo', photo, 'p.jpg');
   if (lat !== null) { fd.append('lat', String(lat)); fd.append('lng', String(lng)); }
   const initial = await StandaloneAPI.handle('/api/report', {method:'POST', body:fd});
   if (lat !== null) {
@@ -160,7 +158,7 @@ POST = r"""async ([b64, lat, lng]) => {
     subject: result.email_subject, tender: result.tender_number,
     server_pothole_id: result.server_pothole_id, blocked,
   };
-}"""
+}""".replace("FIXTURE_PHOTO", FIXTURE_PHOTO_JS)
 
 
 fails = []
@@ -183,14 +181,14 @@ with sync_playwright() as playwright:
 
     context.route("https://nominatim.openstreetmap.org/**", block_client_gis)
     context.route("https://kgis.ksrsac.in/**", block_client_gis)
+    serve_fixture_photo(context, IMG)
     page = context.new_page()
     page.goto(APP)
     page.wait_for_load_state("networkidle")
     page.wait_for_function("window.StandaloneAPI && typeof StandaloneAPI.handle === 'function'")
-    source = base64.standard_b64encode(IMG.read_bytes()).decode()
 
     for name, lat, lng, _ownership, want, reason, _lgd, town_type in CASES:
-        result = page.evaluate(POST, [source, lat, lng])
+        result = page.evaluate(POST, [lat, lng])
         print(f"  {name:24} {result['status']:9} {str(result['reason'] or ''):20} "
               f"{str(result['officer'] or '')[:34]}")
         if result["status"] != want:

@@ -27,6 +27,9 @@ NODE = re.compile(r'text="([^"]*)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"')
 
 
 def main():
+    # With arguments, find one of those labels instead (case-insensitive, exact). Used to
+    # dismiss the emulator's "System UI isn't responding" dialog by its "Wait" button.
+    wanted_labels = [a.lower() for a in sys.argv[1:]] or None
     dump = sys.stdin.read()
     buttons = []
     for match in NODE.finditer(dump):
@@ -36,11 +39,13 @@ def main():
         x1, y1, x2, y2 = (int(match.group(i)) for i in range(2, 6))
         buttons.append((label.lower(), (x1 + x2) // 2, (y1 + y2) // 2))
 
-    for wanted in PREFERRED:
+    for wanted in (wanted_labels or PREFERRED):
         for label, x, y in buttons:
             if label == wanted:
                 print(f"{x} {y}")
                 return 0
+    if wanted_labels:
+        return 1
     # Fall back to a prefix match so a reworded button ("Allow", "Allow access") still
     # works, while still refusing the deny and one-shot options.
     for label, x, y in buttons:

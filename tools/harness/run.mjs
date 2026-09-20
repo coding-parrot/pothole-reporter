@@ -7,6 +7,8 @@
 //   node tools/harness/run.mjs --only flow     one group: static, flow, server, python,
 //                                             browsers (firefox/webkit), emulator,
 //                                             release (signed APK on the emulator),
+//                                             webview (drive, stop, analyse on the
+//                                             app's WebView; needs the debug build),
 //                                             devices (AWS Device Farm, opt-in)
 //   node tools/harness/run.mjs --loop          re-run until no regressions remain
 //   node tools/harness/run.mjs --until-green   re-run until EVERY check passes
@@ -202,6 +204,17 @@ function tasks(group) {
         "android-app/android/app/build/outputs/apk/release/app-release.apk"],
     });
   }
+  // The post-drive footage analysis on the app's own Android WebView: MediaRecorder,
+  // the decoder and seeking all differ from desktop Chromium, and this is the path a
+  // tester hits after every drive. Opt-in: it needs the debug build installed on a
+  // booted emulator or device. The script launches the app itself if it is not up.
+  if (group === "webview") {
+    all.push({
+      group: "webview",
+      name: "android webview drive, stop and footage analysis",
+      command: [python, "tools/harness/webview-drive-analyse.py", "--seconds", "35"],
+    });
+  }
   // The flow suites also run on Firefox and WebKit: a tester's WebView is not Chromium,
   // and an engine-specific break in signup, drive or reporting must fail here.
   if (group === "browsers" || flag("all")) {
@@ -235,9 +248,25 @@ function tasks(group) {
   return all;
 }
 
+// Durations from the previous run. The longest suites go first so that a four-minute
+// suite picked up last does not become a four-minute tail behind an idle pool.
+const timingsPath = `${repoRoot}/tools/harness/timings.json`;
+function loadTimings() {
+  try { return JSON.parse(readFileSync(timingsPath, "utf8")); } catch (error) { return {}; }
+}
+function saveTimings(results) {
+  const timings = loadTimings();
+  for (const result of results) {
+    if (result.ok && !result.timedOut) timings[result.name] = result.ms;
+  }
+  writeFileSync(timingsPath, `${JSON.stringify(timings, null, 2)}\n`);
+}
+
 async function once() {
   const group = value("only", null);
-  const list = tasks(group);
+  const timings = loadTimings();
+  // Unknown suites are assumed slow so a new one is never left for the tail.
+  const list = tasks(group).sort((a, b) => (timings[b.name] ?? 1e9) - (timings[a.name] ?? 1e9));
   // docs/ is the shipped web app: the same index.html and standalone.js as static/,
   // plus the data packs the routing suites need. Serving static/ made every pack fetch
   // 404 and looked like a routing bug.
@@ -252,6 +281,7 @@ async function once() {
     server.close();
   }
   const failed = results.filter((result) => !result.ok);
+  saveTimings(results);
   const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
   console.log(`\n${results.length - failed.length}/${results.length} passed in ${seconds}s`);
   if (failed.length) {

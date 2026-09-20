@@ -510,6 +510,10 @@ const I18N = {
     analysing_failed: "· {n} failed",
     analyse_incomplete: "Could not finish: {failed} of {n} frames were not checked ({err}) So no result is being claimed, and the video has been kept.",
     decoder_failed: "The phone could not open the next recorded-video segment.",
+    clip_unreadable: "Clip {i} of {n} could not be read back from storage.",
+    clip_undecodable: "Clip {i} of {n} could not be opened by the video decoder.",
+    frame_seek_failed: "The decoder could not deliver the frame at {s}s of clip {i}, even after a retry.",
+    analyse_breakdown: "Decoder: {decoder}. Detector: {detector}. Unreadable clips: {clips}.",
     debug_note: "On: the drive video is kept after analysis and each frame the detector checked is written, with its verdict, into Documents/pothole-frames on this phone. Roughly 300 KB a frame, so it adds up. Off: nothing is retained beyond the reports themselves.",
     background_drive_label: "Background Drive Mode (no live preview)",
     background_drive_note: "Off by default. Turn on only when you want detection to continue after switching apps; this mode captures frames without showing or recording a camera preview.",
@@ -719,6 +723,10 @@ const I18N = {
     analysing_failed: "· {n} ವಿಫಲ",
     analyse_incomplete: "ಪೂರ್ಣಗೊಳಿಸಲಾಗಲಿಲ್ಲ: {n} ರಲ್ಲಿ {failed} ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ ({err}) ಆದ್ದರಿಂದ ಯಾವುದೇ ಫಲಿತಾಂಶ ಹೇಳುತ್ತಿಲ್ಲ, ವಿಡಿಯೋ ಉಳಿಸಲಾಗಿದೆ.",
     decoder_failed: "ಫೋನ್‌ಗೆ ಮುಂದಿನ ರೆಕಾರ್ಡ್ ಮಾಡಿದ ವಿಡಿಯೋ ತುಣುಕನ್ನು ತೆರೆಯಲಾಗಲಿಲ್ಲ.",
+    clip_unreadable: "ಕ್ಲಿಪ್ {i}/{n} ಸಂಗ್ರಹಣೆಯಿಂದ ಓದಲಾಗಲಿಲ್ಲ.",
+    clip_undecodable: "ಕ್ಲಿಪ್ {i}/{n} ಅನ್ನು ವಿಡಿಯೋ ಡಿಕೋಡರ್ ತೆರೆಯಲಾಗಲಿಲ್ಲ.",
+    frame_seek_failed: "ಕ್ಲಿಪ್ {i} ನ {s}s ಫ್ರೇಮ್ ಅನ್ನು ಮರುಪ್ರಯತ್ನದ ನಂತರವೂ ಡಿಕೋಡರ್ ನೀಡಲಿಲ್ಲ.",
+    analyse_breakdown: "ಡಿಕೋಡರ್: {decoder}. ಡಿಟೆಕ್ಟರ್: {detector}. ಓದಲಾಗದ ಕ್ಲಿಪ್‌ಗಳು: {clips}.",
     debug_note: "ಆನ್: ವಿಶ್ಲೇಷಣೆಯ ನಂತರವೂ ಡ್ರೈವ್ ವಿಡಿಯೋ ಉಳಿಯುತ್ತದೆ ಮತ್ತು AI ಪರಿಶೀಲಿಸಿದ ಪ್ರತಿ ಫ್ರೇಮ್ ಅದರ ತೀರ್ಮಾನದೊಂದಿಗೆ Documents/pothole-frames ನಲ್ಲಿ ಬರೆಯುತ್ತದೆ. ಪ್ರತಿ ಫ್ರೇಮ್ ಸುಮಾರು 300 KB. ಆಫ್: ವರದಿಗಳನ್ನು ಹೊರತುಪಡಿಸಿ ಏನೂ ಉಳಿಯುವುದಿಲ್ಲ.",
     background_drive_label: "ಹಿನ್ನೆಲೆ ಡ್ರೈವ್ ಮೋಡ್ (ಲೈವ್ ಪ್ರಿವ್ಯೂ ಇಲ್ಲ)",
     background_drive_note: "ಪೂರ್ವನಿಯೋಜಿತವಾಗಿ ಆಫ್. ಬೇರೆ ಆ್ಯಪ್‌ಗೆ ಹೋದ ನಂತರವೂ ಪತ್ತೆ ಮುಂದುವರಿಸಲು ಮಾತ್ರ ಆನ್ ಮಾಡಿ; ಈ ಮೋಡ್ ಕ್ಯಾಮೆರಾ ಪ್ರಿವ್ಯೂ ಅಥವಾ ವಿಡಿಯೋ ರೆಕಾರ್ಡಿಂಗ್ ತೋರಿಸುವುದಿಲ್ಲ.",
@@ -935,6 +943,10 @@ const I18N = {
     complaint_many: "{n} तक्रार नोंदी",
     complaint_one: "1 तक्रार नोंद",
     decoder_failed: "फोनला रेकॉर्ड केलेल्या व्हिडिओचा पुढचा भाग उघडता आला नाही.",
+    clip_unreadable: "क्लिप {i}/{n} संग्रहातून वाचता आली नाही.",
+    clip_undecodable: "क्लिप {i}/{n} व्हिडिओ डिकोडरला उघडता आली नाही.",
+    frame_seek_failed: "क्लिप {i} मधील {s}s ची फ्रेम पुन्हा प्रयत्न करूनही डिकोडर देऊ शकला नाही.",
+    analyse_breakdown: "डिकोडर: {decoder}. डिटेक्टर: {detector}. न वाचलेल्या क्लिप: {clips}.",
     district_highway: "{road} हा जिल्हा महामार्ग आहे",
     district_highway_help: "जिल्हा महामार्गांची देखभाल शहर किंवा नगर संस्था नव्हे, तर जिल्हा किंवा राज्य रस्ते प्राधिकरण करते. या टप्प्यासाठी अद्याप पडताळलेला अधिकृत ईमेल उपलब्ध नाही, त्यामुळे फोटो आणि स्थान तक्रारीचा मसुदा न उघडता जतन केले आहे.",
     duplicate_help: "तुमची तपासणी आणि फोटो पुरावा म्हणून ठेवले असून आणखी एक निरीक्षण म्हणून मोजले आहेत. दुसरी तक्रार तयार केलेली नाही.",
@@ -1154,6 +1166,10 @@ const I18N = {
     complaint_many: "{n}টি অভিযোগ রিপোর্ট",
     complaint_one: "1টি অভিযোগ রিপোর্ট",
     decoder_failed: "ফোনটি রেকর্ড করা ভিডিওর পরের অংশ খুলতে পারেনি।",
+    clip_unreadable: "ক্লিপ {i}/{n} স্টোরেজ থেকে পড়া যায়নি।",
+    clip_undecodable: "ক্লিপ {i}/{n} ভিডিও ডিকোডার খুলতে পারেনি।",
+    frame_seek_failed: "ক্লিপ {i}-এর {s}s-এর ফ্রেমটি আবার চেষ্টার পরেও ডিকোডার দিতে পারেনি।",
+    analyse_breakdown: "ডিকোডার: {decoder}। ডিটেক্টর: {detector}। অপঠনীয় ক্লিপ: {clips}।",
     district_highway: "{road} একটি জেলা সড়ক",
     district_highway_help: "জেলা সড়কের রক্ষণাবেক্ষণ করে জেলা বা রাজ্য সড়ক কর্তৃপক্ষ, পুর বা নগর সংস্থা নয়। এই অংশের জন্য এখনও যাচাই-করা সরকারি ইমেল নেই, তাই ছবি ও অবস্থান কোনও অভিযোগের খসড়া না খুলেই সংরক্ষণ করা হয়েছে।",
     duplicate_help: "আপনার শনাক্তকরণ ও ছবি প্রমাণ হিসেবে রাখা হয়েছে এবং আরেকটি পর্যবেক্ষণ হিসেবে গোনা হয়েছে। দ্বিতীয় কোনও অভিযোগ তৈরি হয়নি।",
@@ -4466,6 +4482,14 @@ async function writeManifest(driveId, entries) {
     data: btoa(unescape(encodeURIComponent(body))), directory: "DOCUMENTS", recursive: true });
 }
 
+async function writeAnalysisLog(driveId, log) {
+  const P = window.Capacitor && Capacitor.Plugins;
+  if (!P || !P.Filesystem) return;
+  const body = JSON.stringify({ drive_id: driveId, written_at: new Date().toISOString(), ...log }, null, 1);
+  await P.Filesystem.writeFile({ path: `${FRAME_DIR}/${driveId}/analysis-log.json`,
+    data: btoa(unescape(encodeURIComponent(body))), directory: "DOCUMENTS", recursive: true });
+}
+
 let recCtx = null;
 
 function startRecording(stream, driveId, driveStartedAtMs) {
@@ -6242,6 +6266,19 @@ async function analyseFootage(driveId, driveRec) {
   let found = 0, extracted = 0, checked = 0, done = 0, elapsed = 0;
   let failed = 0, lastErr = "", aborted = false;
   let unreadableClips = 0;
+  // Every failure is attributed to a stage. One generic message for nine different
+  // failure points meant a phone reporting "could not open the next segment" could be
+  // failing in the decoder, the seek, or the detector, and nobody could tell which.
+  let decoderFailures = 0, detectorFailures = 0;
+  const analysisLog = [];
+  const logEvent = (stage, detail) => {
+    if (analysisLog.length < 400) analysisLog.push({ t: Date.now(), stage, ...detail });
+  };
+  const noteDecoderFailure = (reason, detail) => {
+    decoderFailures++;
+    lastErr = reason;
+    logEvent("decoder", { reason, ...detail });
+  };
   const manifest = [];
   let written = 0, writeFailed = false;
 
@@ -6270,6 +6307,7 @@ async function analyseFootage(driveId, driveRec) {
     $("progressText").textContent = t("preparing_video", {
       i: fallbackSeq + 1, n: storedClips.length,
     });
+    const clipLabel = { i: fallbackSeq + 1, n: storedClips.length };
     let stored;
     try {
       stored = await api(`/api/footage/${encodeURIComponent(driveId)}/clip/${encodeURIComponent(storedClip.key)}`);
@@ -6277,7 +6315,7 @@ async function analyseFootage(driveId, driveRec) {
       unreadableClips++;
       failed++;
       done++;
-      lastErr = t("decoder_failed");
+      noteDecoderFailure(t("clip_unreadable", clipLabel), { clip: clipLabel.i, error: String(e && e.message || e) });
       continue;
     }
     const clip = stored && stored.blob;
@@ -6285,7 +6323,7 @@ async function analyseFootage(driveId, driveRec) {
       unreadableClips++;
       failed++;
       done++;
-      lastErr = t("decoder_failed");
+      noteDecoderFailure(t("clip_unreadable", clipLabel), { clip: clipLabel.i, bytes: clip ? clip.size : 0 });
       continue;
     }
     const clipSeq = Number.isFinite(storedClip.seq) ? storedClip.seq : fallbackSeq;
@@ -6301,7 +6339,7 @@ async function analyseFootage(driveId, driveRec) {
       unreadableClips++;
       failed++;
       done++;
-      lastErr = t("decoder_failed");
+      noteDecoderFailure(t("clip_undecodable", clipLabel), { clip: clipLabel.i, step: "metadata", bytes: clip.size, type: clip.type });
       continue;
     }
     // MediaRecorder writes WebM with no duration in the header, so the element reports
@@ -6316,9 +6354,10 @@ async function analyseFootage(driveId, driveRec) {
       unreadableClips++;
       failed++;
       done++;
-      lastErr = t("decoder_failed");
+      noteDecoderFailure(t("clip_undecodable", clipLabel), { clip: clipLabel.i, step: "duration", bytes: clip.size, type: clip.type });
       continue;
     }
+    logEvent("clip", { clip: clipLabel.i, seconds: +dur.toFixed(2), bytes: clip.size, type: clip.type });
     const times = [];
     for (let at = Math.min(0.2, dur / 2); at < dur; at += VOD_STEP_S) times.push(at);
     revokeVodUrl(url);
@@ -6361,7 +6400,10 @@ async function analyseFootage(driveId, driveRec) {
   // Seeking is the bottleneck, not the model. One video element seeking frame by frame
   // serialises the whole analysis behind the slowest part of it, so several elements
   // seek at once and the extraction overlaps the detection instead of blocking it.
-  const SEEKERS = 3;
+  // A phone's hardware decoder has a handful of instances for the whole system, and
+  // WebView does not always give one back promptly. Two seekers on Android, three on a
+  // desktop engine; a seeker that stops delivering is replaced, then retired.
+  const SEEKERS = isNativeApp() ? 2 : 3;
   const canvasFor = () => document.createElement("canvas");
 
   async function grabFrom(v, canvas, at) {
@@ -6396,24 +6438,29 @@ async function analyseFootage(driveId, driveRec) {
     || error.status === 408 || error.status === 425 || error.status === 429
     || error.status >= 500));
   async function checkVodFrame(fd) {
+    const waits = [400, 1500, 4000];
     for (let attempt = 0; ; attempt++) {
       try { return await api("/api/frame", { method: "POST", body: fd }); }
       catch (error) {
-        if (attempt >= 1 || !retryableFrameError(error)) throw error;
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        if (attempt >= waits.length || !retryableFrameError(error)) throw error;
+        logEvent("detector-retry", { attempt: attempt + 1, status: error && error.status, error: String(error && error.message || error) });
+        await new Promise((resolve) => setTimeout(resolve, waits[attempt]));
       }
     }
   }
 
   let frameNo = -1;
+  let clipIndex = 0;
   for (const clip of clips) {
+    clipIndex++;
+    const clipLabel = { i: clipIndex, n: clips.length };
     let stored;
     try {
       stored = await api(`/api/footage/${encodeURIComponent(driveId)}/clip/${encodeURIComponent(clip.key)}`);
     } catch (e) {
       failed += clip.times.length;
       done += clip.times.length;
-      lastErr = t("decoder_failed");
+      noteDecoderFailure(t("clip_unreadable", clipLabel), { clip: clipIndex, frames: clip.times.length, error: String(e && e.message || e) });
       frameNo += clip.times.length;
       elapsed += clip.dur;
       paint();
@@ -6423,7 +6470,7 @@ async function analyseFootage(driveId, driveRec) {
     if (!sourceBlob || !sourceBlob.size) {
       failed += clip.times.length;
       done += clip.times.length;
-      lastErr = t("decoder_failed");
+      noteDecoderFailure(t("clip_unreadable", clipLabel), { clip: clipIndex, frames: clip.times.length, bytes: sourceBlob ? sourceBlob.size : 0 });
       frameNo += clip.times.length;
       elapsed += clip.dur;
       paint();
@@ -6431,20 +6478,27 @@ async function analyseFootage(driveId, driveRec) {
     }
     const url = URL.createObjectURL(sourceBlob);
     vodUrls.add(url);
-    // One element per seeker, all on the same clip, each taking every SEEKERS-th frame.
-    const pool = [];
-    for (let k = 0; k < SEEKERS; k++) {
+    // A seeker is a video element on this clip. Opening one can fail outright when the
+    // decoder is exhausted, so it is a function: the pool is built from it, and a seeker
+    // that stops delivering is replaced by it.
+    const openSeeker = async (timeoutMs) => {
       const v = document.createElement("video");
       vodVideos.add(v);
       v.muted = true; v.preload = "auto"; v.src = url;
-      const meta = await waitForVideoMetadata(v, k === 0 ? 10000 : 4000);
-      if (meta.error) releaseVodVideo(v);
-      else pool.push({ v, canvas: canvasFor() });
+      const meta = await waitForVideoMetadata(v, timeoutMs);
+      if (meta.error) { releaseVodVideo(v); return null; }
+      return { v, canvas: canvasFor() };
+    };
+    const pool = [];
+    for (let k = 0; k < SEEKERS; k++) {
+      const slot = await openSeeker(k === 0 ? 10000 : 4000);
+      if (slot) pool.push(slot);
     }
+    logEvent("pool", { clip: clipIndex, seekers: pool.length, wanted: SEEKERS, frames: clip.times.length });
     if (!pool.length) {
       failed += clip.times.length;
       done += clip.times.length;
-      lastErr = t("decoder_failed");
+      noteDecoderFailure(t("clip_undecodable", clipLabel), { clip: clipIndex, step: "pool", frames: clip.times.length });
       frameNo += clip.times.length;
       elapsed += clip.dur;
       paint();
@@ -6467,17 +6521,44 @@ async function analyseFootage(driveId, driveRec) {
         staged.resolve();
       }
     });
-    const poolSize = pool.length;
-    await Promise.all(pool.map(async (slot, k) => {
-      for (let idx = k; idx < clip.times.length; idx += poolSize) {
+    // Frames are handed out from one queue rather than partitioned up front, so a
+    // seeker that dies leaves nothing stranded: the survivors take its frames.
+    let nextIdx = 0;
+    const liveSlots = new Set(pool);
+    const grabWithRecovery = async (slot, idx, at) => {
+      let blob = await grabFrom(slot.v, slot.canvas, at);
+      if (blob) return blob;
+      // The element stopped delivering. Give its decoder back, open a fresh one on the
+      // same clip and try this frame once more. If nothing can be opened, wait a moment
+      // for the decoder to come back before the last attempt.
+      logEvent("seek-retry", { clip: clipIndex, at: +at.toFixed(2) });
+      releaseVodVideo(slot.v);
+      let fresh = await openSeeker(6000);
+      if (!fresh) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        fresh = await openSeeker(6000);
+      }
+      if (!fresh) return null;
+      slot.v = fresh.v;
+      slot.canvas = fresh.canvas;
+      blob = await grabFrom(slot.v, slot.canvas, at);
+      return blob;
+    };
+    await Promise.all(pool.map(async (slot) => {
+      while (liveSlots.has(slot) && nextIdx < clip.times.length) {
+        const idx = nextIdx++;
         const at = clip.times[idx];
-        const blob = await grabFrom(slot.v, slot.canvas, at);
+        const blob = await grabWithRecovery(slot, idx, at);
         if (!blob) {
           await submitInOrder(idx, null);
           failed++;
           done++;
-          lastErr = t("decoder_failed");
+          noteDecoderFailure(t("frame_seek_failed", { i: clipIndex, s: at.toFixed(1) }), { clip: clipIndex, at: +at.toFixed(2), seekers: liveSlots.size - 1 });
           paint();
+          // Two misses on fresh decoders means this seeker is not coming back. Retire it;
+          // the others carry on with the rest of the clip.
+          liveSlots.delete(slot);
+          releaseVodVideo(slot.v);
           continue;
         }
         // Count what actually came out of the decoder and what actually reached the
@@ -6542,15 +6623,27 @@ async function analyseFootage(driveId, driveRec) {
             })
             .catch((e) => {
               failed++;
+              detectorFailures++;
               lastErr = (e && e.message) || String(e);
+              logEvent("detector", { clip: clipIndex, at: +atAbs.toFixed(2), error: lastErr, status: e && e.status });
             })
             .finally(() => { done++; paint(); });
         });
-        // Each seeker owns at most one request. Three decoder workers therefore stay
-        // below MAX_IN_FLIGHT without the old splice/race bug that reached 8–10 calls.
+        // Each seeker owns at most one request, so decoder workers bound the detector
+        // concurrency as well.
         await request;
       }
     }));
+    // Every seeker retired before the clip was finished: the remaining frames are
+    // accounted for here, in order, so the in-order submitter is never left waiting.
+    while (nextIdx < clip.times.length) {
+      const idx = nextIdx++;
+      await submitInOrder(idx, null);
+      failed++;
+      done++;
+      noteDecoderFailure(t("clip_undecodable", clipLabel), { clip: clipIndex, step: "seekers-retired", at: +clip.times[idx].toFixed(2) });
+    }
+    paint();
 
     for (const slot of pool) releaseVodVideo(slot.v);
     revokeVodUrl(url);
@@ -6565,6 +6658,19 @@ async function analyseFootage(driveId, driveRec) {
   const analysis = StandaloneAPI.__pure.summarizeFootageAnalysis({
     planned: total, extracted, checked, failed, unreadableClips, aborted,
   });
+  if (saveToDisk) {
+    // Written whether or not any frame was, because a run that produced nothing is the
+    // one whose log is needed. Documents/pothole-frames/<drive>/analysis-log.json.
+    try {
+      await writeAnalysisLog(driveId, {
+        summary: { ...analysis, found, decoder_failures: decoderFailures,
+                   detector_failures: detectorFailures, last_error: lastErr },
+        clips: clips.map((c) => ({ seq: c.seq, seconds: +c.dur.toFixed(2), frames: c.times.length })),
+        seekers: SEEKERS, step_seconds: VOD_STEP_S, user_agent: navigator.userAgent,
+        events: analysisLog,
+      });
+    } catch (e) {}
+  }
   const complete = analysis.complete;
   if (!isDebug() && complete) {
     try {
@@ -6586,6 +6692,8 @@ async function analyseFootage(driveId, driveRec) {
         failed: analysis.incompleteItems,
         n: total,
         err: lastErr || (unreadableClips ? "One or more clips could not be decoded." : "Analysis stopped early."),
+      }) + " " + t("analyse_breakdown", {
+        decoder: decoderFailures, detector: detectorFailures, clips: unreadableClips,
       })
     : t("analyse_done", { found, n: total })
       + (duplicateIds.size ? " " + t("analyse_dup", { n: duplicateIds.size }) : "");
