@@ -14,6 +14,8 @@ if [[ -z "$ARTIFACT_BUCKET" ]]; then
 fi
 
 cd "$ROOT_DIR"
+# The unit tests include the IAM check; a red suite must never reach the stack.
+(cd infra/aws-central && npm test)
 npm install --prefix infra/aws-central --omit=dev --no-audit --no-fund
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -51,3 +53,18 @@ aws cloudformation deploy \
 
 aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" \
   --query 'Stacks[0].Outputs' --output table
+
+# Every unit test passed while GET /v1/map returned 500 for ten days, because the fault
+# was an IAM grant only the real stack can exercise. Probe the public read routes.
+API_URL="$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" \
+  --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)"
+smoke_failed=0
+for route in /v1/health /v1/map /v1/impact; do
+  status="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$API_URL$route" || true)"
+  echo "smoke $route $status"
+  [[ "$status" == "200" ]] || smoke_failed=1
+done
+if [[ "$smoke_failed" != "0" ]]; then
+  echo "Post-deploy smoke failed; the stack is live with the new code, so roll back or fix now." >&2
+  exit 1
+fi

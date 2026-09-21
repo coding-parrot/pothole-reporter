@@ -179,6 +179,7 @@ Resources:
                   - !GetAtt UsageTable.Arn
                   - !GetAtt LocationLocksTable.Arn
                   - !GetAtt PotholesTable.Arn
+                  - !Sub '${PotholesTable.Arn}/index/*'
                   - !GetAtt SpatialTable.Arn
                   - !GetAtt RecordsTable.Arn
                   - !GetAtt TendersTable.Arn
