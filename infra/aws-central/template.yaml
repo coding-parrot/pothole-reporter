@@ -17,7 +17,7 @@ Parameters:
     Default: 30
   DailyVisionCap:
     Type: Number
-    Default: 50
+    Default: 500
   GlobalVisionMinuteCap:
     Type: Number
     Default: 60
