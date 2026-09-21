@@ -114,8 +114,13 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
     rejected = re.findall(r'^\s{4}verdict_rejected: "([^"]+)"', s, re.MULTILINE)
     if len(detected) != 4 or len(rejected) != 4:
         fails.append(f"{name}: expected four localized binary pothole verdict pairs")
-    elif detected[0] != "Pothole: YES" or rejected[0] != "Pothole: NO":
+    elif detected[0] != "Road damage: YES" or rejected[0] != "Road damage: NO":
         fails.append(f"{name}: English detection verdict is not binary YES/NO")
+    # The verdict sits above a chip naming a failed patch, a rut or broken surface, so
+    # it must name road damage, not one of its types.
+    for idx, language in enumerate(LANGUAGES[:len(detected)]):
+        if any(term in detected[idx] for term in ("Pothole", "ಗುಂಡಿ", "खड्डा", "গর্ত")):
+            fails.append(f"{name}: {language} verdict_detected still says pothole: {detected[idx]}")
     if re.search(r'^\s{4}confidence:', s, re.MULTILINE):
         fails.append(f"{name}: visible confidence wording returned")
     if any(button in s for button in ('id="lblPatch"', 'id="lblSurface"', 'id="lblRut"')):
@@ -149,6 +154,80 @@ for name in ("static/index.html", "android-app/www/index.html", "docs/index.html
         val = re.search(rf'\n    {m.group(2)}: "([^"]*)"', s)
         if val and re.search(r"&[a-z]+;|&#\d+;", val.group(1)):
             fails.append(f"{name}: {m.group(2)} holds an HTML entity but is set via textContent")
+
+# Translations checked against what the app actually does. Each of these once said
+# something the English string had stopped saying.
+static_html = (ROOT / "static/index.html").read_text(encoding="utf-8")
+
+
+def translations(key):
+    """The key's value in each dictionary, in LANGUAGES order."""
+    found = re.findall(rf'(?<![\w]){key}: "((?:[^"\\]|\\.)*)"', static_html)
+    if len(found) != len(LANGUAGES):
+        fails.append(f"expected {key} in {len(LANGUAGES)} languages, found {len(found)}")
+        return dict.fromkeys(LANGUAGES, "")
+    return dict(zip(LANGUAGES, found))
+
+
+# Both statuses mean the composer opened; the app cannot know that anything was sent.
+chip_sent, chip_queued = translations("chip_sent"), translations("chip_queued")
+stat_reported = translations("stat_reported")
+for language in LANGUAGES:
+    if chip_sent[language] != chip_queued[language]:
+        fails.append(f"{language} chip_sent and chip_queued differ for the same opened draft")
+    for value in (chip_sent[language], stat_reported[language]):
+        for claim in ("सादर", "पुष्टी", "জমা", "নিশ্চিত"):
+            if claim in value:
+                fails.append(f"{language} says a complaint was submitted: {value}")
+
+# One full frame per check, and the back button stops a drive, in every language.
+BACK_BUTTON = ("back button", "ಹಿಂದೆ ಬಟನ್", "मागे बटण", "ফিরে যাওয়ার বোতাম")
+for idx, (language, tip) in enumerate(translations("drive_tip").items()):
+    if "तीन" in tip or "তিনটি" in tip:
+        fails.append(f"{language} drive_tip promises three frames per check")
+    if BACK_BUTTON[idx] not in tip:
+        fails.append(f"{language} drive_tip does not say the back button stops the drive")
+
+# The map's pothole number is the service's own id, not a government number.
+for language, note in translations("public_map_privacy").items():
+    if "अधिकृत" in note or "সরকারি" in note:
+        fails.append(f"{language} public_map_privacy calls the app's number official")
+
+# The public map is read by anyone, so it speaks of potholes, reports and phones, not of
+# the service's deduplication, canonical rows or installation records.
+for key in ("pin_many", "pin_reports_many", "stat_mapped", "stat_installations",
+            "stat_observations", "public_map_privacy", "community_note"):
+    value = translations(key)["English"]
+    for term in ("deduplicated", "canonical", "installation"):
+        if term in value.lower():
+            fails.append(f"English {key} uses developer wording {term!r}: {value}")
+
+# Kannada once dropped the last sentence, the one that says the app never sends mail.
+for language, note in translations("settings_note").items():
+    if "Send" not in note:
+        fails.append(f"{language} settings_note does not say nothing sends until Send is pressed")
+
+# analyse_incomplete ran two sentences together: "({err}) So no result is being claimed".
+if ") So" in static_html:
+    fails.append("a UI string runs a parenthesis into the next sentence: ') So'")
+if "निश्नित" in static_html:
+    fails.append("Marathi misspells निश्चित as निश्नित")
+
+# Marathi joins the case ending to the noun; a detached "चा" after {days} is broken.
+if "} चा" in translations("dash_range")["Marathi"]:
+    fails.append("Marathi dash_range puts a detached 'चा' after {days}")
+
+# Pothole-only wording from before the detector learned other damage types.
+POTHOLE_ONLY = ("खड्डा", "खड्डे", "खड्ड्या", "গর্ত", "तक्रार", "রিপোর্ট")
+for key in ("early_no", "potholes_one", "potholes_many", "stat_found", "stat_frames",
+            "by_type", "by_size"):
+    for language in ("Marathi", "Bengali"):
+        value = translations(key)[language]
+        if any(term in value for term in POTHOLE_ONLY):
+            fails.append(f"{language} {key} still uses pothole-only wording: {value}")
+for language, phrase in (("Marathi", "सेटिंग्ज"), ("Bengali", "সেটিংস")):
+    if phrase not in translations("key_required")[language]:
+        fails.append(f"{language} key_required does not say where to enter the key")
 
 runtime = (ROOT / "static/standalone.js").read_text(encoding="utf-8")
 road_outside_error = re.search(

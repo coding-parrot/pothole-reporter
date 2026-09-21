@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Prove Android-authoritative enhancement pixels match Web and evaluator runtimes."""
 
+import os
 import importlib.util
 import json
 from pathlib import Path
@@ -58,7 +59,7 @@ browser_cases = [{**case, "input_rgb": csv_values(case["input_rgb"]),
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(args=["--disable-web-security"])
     page = browser.new_context(viewport={"width": 390, "height": 844}).new_page()
-    page.goto("http://localhost:8765/")
+    page.goto(os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/"))
     page.wait_for_load_state("networkidle")
     page.wait_for_function("typeof StandaloneAPI !== 'undefined' && StandaloneAPI.__pure",
                            timeout=30000)

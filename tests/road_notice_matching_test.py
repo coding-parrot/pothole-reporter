@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import os
 import sys
+from urllib.parse import urljoin
 
 from playwright.sync_api import sync_playwright
 
@@ -159,7 +161,7 @@ def main() -> None:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         page = browser.new_page()
-        page.goto("http://localhost:8765/web-app/")
+        page.goto(urljoin(os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/"), "web-app/"))
         page.wait_for_function(
             "() => window.StandaloneAPI && StandaloneAPI.__pure "
             "&& typeof StandaloneAPI.__pure.matchRoadNotice === 'function'"

@@ -5,13 +5,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 
 from playwright.sync_api import sync_playwright
 
 from state_pack_utils import read_pack, read_payload, resource_for, route_pattern
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 PACK_ID = "in-ka-state-routing"
 EXPECTED_GEOMETRY_SHA256 = (
     "9d7fe3f01a80cb41712c09139efcd43e0e11a644849d5f3bffe125cc0bc1c5ad"
@@ -242,8 +243,14 @@ def open_page(
                 body=json.dumps({"features": features}),
             )
 
+        # A mocked case must never reach the real KGIS server: an unmocked layer made
+        # the Mysuru precedence check depend on whatever the live server answered.
+        # Playwright tries the newest route first, so the specific mocks below win.
+        context.route("**://kgis.ksrsac.in/**", lambda route: route.abort())
         context.route("**/Boundaries/Admin_Dynamic_New/MapServer/1/query*", town)
-        context.route("**/State_Basemap/State_Basemap_Dynamic/MapServer/289/query*", highway)
+        for layer in (289, 290, 291):
+            context.route(
+                f"**/State_Basemap/State_Basemap_Dynamic/MapServer/{layer}/query*", highway)
         context.route("**/Boundaries/GP_Boundary/MapServer/0/query*", gram_panchayat)
 
     page = context.new_page()

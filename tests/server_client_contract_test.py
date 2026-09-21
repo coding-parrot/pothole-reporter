@@ -287,8 +287,8 @@ def open_context(browser, harness, personal=False, geolocation_handler=route_sup
       } else {
         localStorage.setItem('vision_provider', 'shared');
         localStorage.removeItem('openai_key');
-        // Exercise the user-selectable original-detail arm through shared mode. This
-        // regresses the bug where the browser sent the choice but the server forced high.
+        // A choice stored by an older build. The shared detector is owner-paid and runs
+        // the evaluated baseline, so shared requests must not carry this arm.
         localStorage.setItem('detection_model', 'gpt-5.6');
         localStorage.setItem('image_detail', 'original');
       }
@@ -624,9 +624,11 @@ def verify_shared_tender_failure_never_uses_local_enrichment(browser):
                 "/v1/potholes/report",
             )
         ]
+        # The stub's outage is retryable, so the resolver is asked exactly once more.
         allowed_paths = [
-            ["/v1/vision/detect", "/v1/tenders/resolve"],
-            ["/v1/vision/detect", "/v1/tenders/resolve", "/v1/potholes/report"],
+            ["/v1/vision/detect", "/v1/tenders/resolve", "/v1/tenders/resolve"],
+            ["/v1/vision/detect", "/v1/tenders/resolve", "/v1/tenders/resolve",
+             "/v1/potholes/report"],
         ]
         safe_fields = (
             "officer_name",
@@ -874,8 +876,8 @@ def main():
             failures.append(f"shared detection count was {paths.count('/v1/vision/detect')}")
         shared_detections = [request["body"] for request in harness.requests
                              if request["path"] == "/v1/vision/detect"]
-        if any(body.get("image_detail") != "original"
-               or body.get("model") != "gpt-5.6"
+        if any(body.get("image_detail") != "high"
+               or body.get("model") != "gpt-5-mini"
                or len(body.get("images") or []) != 1
                or set(body["images"][0]) != {"data_url"}
                or body.get("capture_source") != "manual"

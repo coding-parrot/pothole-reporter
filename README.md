@@ -59,7 +59,8 @@ published address.
    and sideload it.
 2. Choose shared vision or enter your own OpenAI API key, then allow camera and
    location access.
-3. For Drive Mode, mount the phone securely and keep the road inside the orange guide.
+3. For Drive Mode, mount the phone securely and aim it so the road fills the frame, with
+   little sky or dashboard in view.
    Start the drive before moving and do not interact with the phone while driving.
 4. Alternatively, use **Report road damage** while safely stopped, or choose
    **Import Meta glasses / dashcam video**. Select segmented dashcam clips in recording

@@ -80,6 +80,20 @@ with sync_playwright() as playwright:
         if report.get("status") != "unrouted" or not report.get("unrouted_reason"):
             fails.append(f"an unroutable report was not marked unrouted: {report.get('status')}")
 
+    # A failed patch is road damage, not a pothole: the verdict above its chip must
+    # not call it one.
+    page.evaluate("""() => {
+      const patch = { ...window.__flowReport, id: 987653, damage_type: "failed_patch" };
+      openDetail(patch, [patch]);
+    }""")
+    page.wait_for_timeout(300)
+    verdict = page.evaluate(
+        "[...document.querySelectorAll('#detail .verdict')].map((n) => n.innerText).join(' | ')")
+    if "Road damage: YES" not in verdict:
+        fails.append(f"a failed patch detail shows no road-damage verdict: {verdict[:120]}")
+    if "Pothole" in verdict:
+        fails.append(f"a failed patch is announced as a pothole: {verdict[:120]}")
+
     # An unrouted report still has to render: this path uses the help text helpers.
     errors.clear()
     page.evaluate("""() => {

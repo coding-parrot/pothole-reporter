@@ -17,10 +17,10 @@ const repository = createDynamoRepository({
   },
   dedupeRadiusMetres: Number(process.env.DEDUPE_RADIUS_METRES || 30),
   quota: {
-    perInstallDay: Number(process.env.DAILY_VISION_CAP || 200),
-    globalMinute: Number(process.env.GLOBAL_VISION_MINUTE_CAP || 120),
-    globalDay: Number(process.env.GLOBAL_VISION_DAILY_CAP || 5_000),
-    globalMonth: Number(process.env.MONTHLY_VISION_CAP || 50_000),
+    perInstallDay: Number(process.env.DAILY_VISION_CAP || 50),
+    globalMinute: Number(process.env.GLOBAL_VISION_MINUTE_CAP || 60),
+    globalDay: Number(process.env.GLOBAL_VISION_DAILY_CAP || 2_000),
+    globalMonth: Number(process.env.MONTHLY_VISION_CAP || 20_000),
   },
 });
 
@@ -35,7 +35,6 @@ const detector = createDetector({
 });
 const geolocator = createGeolocator({
   geocoderUrl: process.env.GEOCODER_REVERSE_URL || "",
-  highwayProximityMetres: Number(process.env.KGIS_HIGHWAY_PROXIMITY_METRES || 20),
 });
 
 export const handler = createService({ repository, detector, geolocator });

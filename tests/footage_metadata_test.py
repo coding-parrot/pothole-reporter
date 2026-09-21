@@ -50,7 +50,6 @@ with sync_playwright() as p:
     result = page.evaluate("""async () => {
       await StandaloneAPI.handle("/api/reports", { method: "DELETE" });
       localStorage.setItem("debug_mode", "1"); // retain the two clips after analysis
-      localStorage.removeItem("keep_frames");
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 320, height: 240 }, audio: false,
@@ -127,7 +126,9 @@ with sync_playwright() as p:
         return originalApi(path, opts);
       };
       window.alert = (message) => { window.__metadataAlert = String(message); };
-      window.confirm = () => false;
+      // Debug also exports frames, and a browser has no device folder for them: go on
+      // without, as a tester answering the frames prompt would. Refuse anything else.
+      window.confirm = (message) => message === t("frames_no_permission");
       VOD_STEP_S = 10; // exactly one sample from each short clip
       await analyseFootage(driveId, { started_at: base / 1000, gps_track: [
         [0, 12.900001, 77.600001, 5, 8, 90],

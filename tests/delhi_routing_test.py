@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Delhi routing must cover the full NCT, exclude NCR neighbours, and fail closed."""
+import os
 import hashlib
 import json
 import sys
@@ -8,7 +9,7 @@ from playwright.sync_api import sync_playwright
 from state_pack_utils import read_pack, read_payload, route_pattern
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 EXPECTED_DIGEST = "3462ba68bdbbc1fdebc99403aa9e1f9db5e0b78e30ca138b2d25df7463506ab3"
 
 SCENARIO = r"""

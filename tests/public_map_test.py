@@ -139,7 +139,7 @@ def main():
         page.wait_for_function(
             "document.querySelector('#dash') && "
             "!document.querySelector('#dash').classList.contains('hidden') && "
-            "document.querySelector('#mapNote').textContent.includes('5 complaint reports')"
+            "document.querySelector('#mapNote').textContent.includes('5 reports')"
         )
 
         state = page.evaluate(
@@ -174,14 +174,14 @@ def main():
     if not state["consentHidden"] or not state["homeHidden"]:
         failures.append("#public-map did not open directly without the consent screen")
     for expected in (
-        "7activeinstallations",
+        "7phonesusingtheapp",
         "42serverrequests",
-        "11complaintreports",
-        "4deduplicatedpotholes",
+        "11reports",
+        "4potholes",
     ):
         if expected not in "".join(state["stats"].split()):
             failures.append(f"public aggregate tile missing {expected!r}: {state['stats']!r}")
-    if state["mapNote"] != "2 deduplicated potholes · 5 complaint reports":
+    if state["mapNote"] != "2 potholes · 5 reports":
         failures.append(f"wrong canonical-location/count summary: {state['mapNote']!r}")
     if "cannot verify that an email was sent" not in state["note"]:
         failures.append("public count does not disclose that email delivery is unverified")

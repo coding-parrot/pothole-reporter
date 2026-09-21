@@ -5,12 +5,13 @@ These checks exercise the exact pure helpers used after Nominatim reverse geocod
 They deliberately include localized Marathi jurisdiction fields because Nominatim may
 honour the phone/browser language even when the ward token remains English.
 """
+import os
 import sys
 
 from playwright.sync_api import sync_playwright
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 
 CASES = r"""
 (() => {

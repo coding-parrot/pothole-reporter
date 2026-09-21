@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import copy
 import hashlib
 import json
@@ -14,7 +15,7 @@ from playwright.sync_api import sync_playwright
 from state_pack_utils import load_manifest, read_pack, route_pattern
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 PACKS = {
     "in-tn-routing": {
         "state_code": "TN",

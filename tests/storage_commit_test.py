@@ -5,11 +5,12 @@ from dotenv import load_dotenv
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 from playwright.sync_api import sync_playwright
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 
 with sync_playwright() as p:
     b = p.chromium.launch(args=["--disable-web-security"])
     pg = b.new_context(viewport={"width":390,"height":844}).new_page()
-    pg.goto("http://localhost:8765/"); pg.wait_for_load_state("networkidle")
+    pg.goto(APP); pg.wait_for_load_state("networkidle")
     pg.wait_for_function("typeof StandaloneAPI !== 'undefined'", timeout=30000)
     r = pg.evaluate("""(async () => {
       // Abort the transaction from the request's success handler: this is the shape

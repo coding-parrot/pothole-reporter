@@ -11,6 +11,9 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 
 const SHARDS = 16;
+// The map is public and unauthenticated, so a bbox read may page past non-matching rows
+// but not without end: at most this many pages per shard.
+const MAP_PAGES_PER_SHARD = 5;
 const day = (value = Date.now()) => new Date(value).toISOString().slice(0, 10);
 const minute = (value = Date.now()) => new Date(value).toISOString().slice(0, 16);
 const month = (value = Date.now()) => new Date(value).toISOString().slice(0, 7);
@@ -19,6 +22,16 @@ const conditionalFailure = (error) => [
   "ConditionalCheckFailedException",
   "TransactionCanceledException",
 ].includes(error?.name);
+
+// Concurrent detections all write the same minute, day and month counters, so DynamoDB
+// cancels some transactions with TransactionConflict while every counter is under its
+// cap. That is contention, not a limit.
+const QUOTA_CONFLICT_ATTEMPTS = 3;
+const onlyConflicts = (error) => {
+  const codes = (error?.CancellationReasons || []).map((reason) => reason?.Code);
+  return codes.includes("TransactionConflict") && !codes.includes("ConditionalCheckFailed");
+};
+const jitter = () => new Promise((resolve) => setTimeout(resolve, 20 + Math.random() * 60));
 
 function dates(from, to) {
   const result = [];
@@ -38,15 +51,33 @@ export function createDynamoRepository({
   quota = {},
 }) {
   const config = {
-    perInstallDay: Number(quota.perInstallDay ?? 200),
-    globalMinute: Number(quota.globalMinute ?? 120),
-    globalDay: Number(quota.globalDay ?? 5_000),
-    globalMonth: Number(quota.globalMonth ?? 50_000),
+    perInstallDay: Number(quota.perInstallDay ?? 50),
+    globalMinute: Number(quota.globalMinute ?? 60),
+    globalDay: Number(quota.globalDay ?? 2_000),
+    globalMonth: Number(quota.globalMonth ?? 20_000),
     feedbackPerInstallDay: Number(quota.feedbackPerInstallDay ?? 10),
   };
 
   async function send(command) {
     return client.send(command);
+  }
+
+  // DynamoDB applies Limit before FilterExpression and ends a page at 1 MB, so one
+  // Query can come back short while matching rows remain. Follows LastEvaluatedKey
+  // until `want` rows match, the key runs out, or the page budget is spent.
+  async function queryPages(input, { want = Infinity, maxPages = Infinity } = {}) {
+    const items = [];
+    let startKey;
+    for (let page = 0; page < maxPages && items.length < want; page += 1) {
+      const result = await send(new QueryCommand({
+        ...input,
+        ...(startKey ? { ExclusiveStartKey: startKey } : {}),
+      }));
+      items.push(...(result.Items || []));
+      startKey = result.LastEvaluatedKey;
+      if (!startKey) break;
+    }
+    return items;
   }
 
   return {
@@ -173,35 +204,66 @@ export function createDynamoRepository({
       ];
       const blocked = limits.find(([, limit]) => !Number.isInteger(limit) || limit <= 0);
       if (blocked) return { ok: false, code: blocked[2], limit: blocked[1] };
-      try {
-        await send(new TransactWriteCommand({
-          TransactItems: limits.map(([key, limit]) => ({
-            Update: {
-              TableName: tables.usage,
-              Key: { id: key },
-              UpdateExpression: "ADD used :one SET expires_at=:expires",
-              ConditionExpression: "attribute_not_exists(used) OR used < :limit",
-              ExpressionAttributeValues: {
-                ":one": 1,
-                ":limit": limit,
-                ":expires": ttl(now + 400 * 86_400_000),
+      for (let attempt = 1; ; attempt += 1) {
+        try {
+          await send(new TransactWriteCommand({
+            TransactItems: limits.map(([key, limit]) => ({
+              Update: {
+                TableName: tables.usage,
+                Key: { id: key },
+                UpdateExpression: "ADD used :one SET expires_at=:expires",
+                ConditionExpression: "attribute_not_exists(used) OR used < :limit",
+                ExpressionAttributeValues: {
+                  ":one": 1,
+                  ":limit": limit,
+                  ":expires": ttl(now + 400 * 86_400_000),
+                },
               },
-            },
-          })),
-        }));
-        return { ok: true, limit: config.perInstallDay };
-      } catch (error) {
-        if (!conditionalFailure(error)) throw error;
-        for (const [key, limit, code] of limits) {
-          const current = await send(new GetCommand({
-            TableName: tables.usage,
-            Key: { id: key },
-            ConsistentRead: true,
+            })),
           }));
-          if (Number(current.Item?.used || 0) >= limit) return { ok: false, code, limit };
+          return { ok: true, limit: config.perInstallDay };
+        } catch (error) {
+          if (!conditionalFailure(error)) throw error;
+          if (!onlyConflicts(error)) break;
+          // The app stops a drive on any code naming credit, budget or quota, so the
+          // busy code must name none of them.
+          if (attempt >= QUOTA_CONFLICT_ATTEMPTS) {
+            return { ok: false, code: "vision_counters_busy", retryable: true };
+          }
+          await jitter();
         }
-        return { ok: false, code: "shared_rate_limit", limit: config.globalMinute };
       }
+      for (const [key, limit, code] of limits) {
+        const current = await send(new GetCommand({
+          TableName: tables.usage,
+          Key: { id: key },
+          ConsistentRead: true,
+        }));
+        if (Number(current.Item?.used || 0) >= limit) return { ok: false, code, limit };
+      }
+      return { ok: false, code: "shared_rate_limit", limit: config.globalMinute };
+    },
+
+    // Gives back a unit takeVisionQuota took at the same `now` when the detector failed
+    // on the server side. Best effort: each counter is decremented on its own and never
+    // below zero, so a counter that has expired or been reset is left alone.
+    async refundVisionQuota(installId, now = Date.now()) {
+      const keys = [
+        `minute#${minute(now)}`,
+        `day#${day(now)}`,
+        `month#${month(now)}`,
+        `install#${installId}#${day(now)}`,
+      ];
+      const results = await Promise.allSettled(keys.map((key) => send(new UpdateCommand({
+        TableName: tables.usage,
+        Key: { id: key },
+        UpdateExpression: "ADD used :minusOne",
+        ConditionExpression: "used > :zero",
+        ExpressionAttributeValues: { ":minusOne": -1, ":zero": 0 },
+      }))));
+      const failed = results.find((item) => item.status === "rejected"
+        && !conditionalFailure(item.reason));
+      if (failed) throw failed.reason;
     },
 
     async takeFeedbackQuota(installId, now = Date.now()) {
@@ -379,11 +441,26 @@ export function createDynamoRepository({
         Update: {
           TableName: tables.potholes,
           Key: { id: potholeId },
-          UpdateExpression: `SET last_seen_at=:seen ADD observation_count :one${newObserver ? ", complaint_count :one" : ""}`,
+          UpdateExpression: `ADD observation_count :one${newObserver ? ", complaint_count :one" : ""}`,
           ConditionExpression: "attribute_exists(id)",
-          ExpressionAttributeValues: { ":seen": observation.observed_at, ":one": 1 },
+          ExpressionAttributeValues: { ":one": 1 },
         },
       });
+      // Offline queues deliver observations out of order, and a condition inside the
+      // transaction would cancel the counters with it. So the seen times move on their
+      // own, only ever outwards, and a re-send moves them again harmlessly.
+      const widenSeen = () => Promise.all([
+        ["last_seen_at", "<"],
+        ["first_seen_at", ">"],
+      ].map(([field, direction]) => send(new UpdateCommand({
+        TableName: tables.potholes,
+        Key: { id: potholeId },
+        UpdateExpression: `SET ${field}=:seen`,
+        ConditionExpression: `${field} ${direction} :seen`,
+        ExpressionAttributeValues: { ":seen": observation.observed_at },
+      })).catch((error) => {
+        if (!conditionalFailure(error)) throw error;
+      })));
       try {
         await send(new TransactWriteCommand({
           TransactItems: [
@@ -401,6 +478,7 @@ export function createDynamoRepository({
             ...receiptUpdate,
           ],
         }));
+        await widenSeen();
         return { newObserver: true };
       } catch (error) {
         if (!conditionalFailure(error)) throw error;
@@ -410,7 +488,10 @@ export function createDynamoRepository({
         Key: { pk: observationItem.pk, sk: observationItem.sk },
         ConsistentRead: true,
       }));
-      if (existingObservation.Item) return { alreadyStored: true, newObserver: false };
+      if (existingObservation.Item) {
+        await widenSeen();
+        return { alreadyStored: true, newObserver: false };
+      }
       await send(new TransactWriteCommand({
         TransactItems: [
           { Put: {
@@ -422,6 +503,7 @@ export function createDynamoRepository({
           ...receiptUpdate,
         ],
       }));
+      await widenSeen();
       return { newObserver: false };
     },
 
@@ -444,7 +526,7 @@ export function createDynamoRepository({
           });
           filter = "lat BETWEEN :south AND :north AND lng BETWEEN :west AND :east";
         }
-        return send(new QueryCommand({
+        return queryPages({
           TableName: tables.potholes,
           IndexName: "MapIndex",
           KeyConditionExpression: "map_shard=:shard AND last_seen_at>=:since",
@@ -452,9 +534,9 @@ export function createDynamoRepository({
           FilterExpression: filter,
           ScanIndexForward: false,
           Limit: limit,
-        }));
+        }, { want: limit, maxPages: MAP_PAGES_PER_SHARD });
       }));
-      return rows.flatMap((row) => row.Items || [])
+      return rows.flat()
         .sort((left, right) => right.last_seen_at - left.last_seen_at)
         .slice(0, limit);
     },
@@ -462,13 +544,13 @@ export function createDynamoRepository({
     async queryTenders(bodyLgd) {
       const codes = [bodyLgd, ...(bodyLgd === "305850" || /^30585[0-4]$/.test(bodyLgd)
         ? ["BLR"] : [])];
-      const rows = await Promise.all(codes.map((code) => send(new QueryCommand({
+      const rows = await Promise.all(codes.map((code) => queryPages({
         TableName: tables.tenders,
         KeyConditionExpression: "body_lgd=:body",
         ExpressionAttributeValues: { ":body": code },
         Limit: 2_000,
-      }))));
-      return rows.flatMap((row) => row.Items || []);
+      }, { want: 2_000 })));
+      return rows.map((items) => items.slice(0, 2_000)).flat();
     },
 
     async recordRequest({ route, outcome, visionMode, installId, failed = false }) {
@@ -518,13 +600,15 @@ export function createDynamoRepository({
     },
 
     async impact({ from, to }) {
-      const rows = await Promise.all(dates(from, to).map((date) => send(new QueryCommand({
+      // A day holds a row per install, route and outcome, which passes 1 MB well before
+      // it passes anything else, so every day is read to its last page.
+      const rows = await Promise.all(dates(from, to).map((date) => queryPages({
         TableName: tables.metrics,
         KeyConditionExpression: "#day=:day",
         ExpressionAttributeNames: { "#day": "day" },
         ExpressionAttributeValues: { ":day": date },
-      }))));
-      const items = rows.flatMap((row) => row.Items || []);
+      })));
+      const items = rows.flat();
       const requests = new Map();
       const captures = new Map();
       const active = new Set();

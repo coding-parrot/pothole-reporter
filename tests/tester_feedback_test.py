@@ -10,6 +10,12 @@ from browser_test_utils import _central_service, open_app
 
 
 SERVICE = "https://ffjvg34k07.execute-api.ap-south-1.amazonaws.com"
+# The server refuses feedback for good on bad input and after ten a day per install.
+REJECTIONS = {
+    "429": (429, {"error": "feedback_limit_reached", "details": {"limit": 10},
+                  "message": "This installation has sent the maximum feedback for today."}),
+    "400": (400, {"error": "bad_feedback", "message": "Feedback needs a whole 1 to 5 rating."}),
+}
 
 failures = []
 with sync_playwright() as playwright:
@@ -26,7 +32,11 @@ with sync_playwright() as playwright:
                 "body": json.loads(request.post_data or "{}"),
                 "headers": {k.lower(): v for k, v in request.headers.items()},
             })
-            if not service_up["value"]:
+            if service_up["value"] in REJECTIONS:
+                status, payload = REJECTIONS[service_up["value"]]
+                route.fulfill(status=status, headers={"content-type": "application/json"},
+                              body=json.dumps(payload))
+            elif not service_up["value"]:
                 route.fulfill(status=503, headers={"content-type": "application/json"},
                               body=json.dumps({"error": "service_unavailable", "message": "down"}))
             else:
@@ -35,7 +45,8 @@ with sync_playwright() as playwright:
             return
         _central_service(route, request)
 
-    open_app(page, "test-key-never-sent")
+    # Saving Settings checks a personal key is shaped like one, so this one has to be.
+    open_app(page, "sk-test-key-never-sent-0000000")
     page.unroute(f"{SERVICE}/**")
     page.route(f"{SERVICE}/**", central)
     page.evaluate("openSettings()")
@@ -88,6 +99,83 @@ with sync_playwright() as playwright:
                 failures.append(f"feedback request was not signed: missing {header}")
         if first["headers"].get("idempotency-key") != retry["headers"].get("idempotency-key"):
             failures.append("retry used a new idempotency key, so it could be counted twice")
+
+    # A refusal is not a success: the tester is told, the text stays, nothing is queued.
+    page.wait_for_timeout(1700)   # the queued send above closes its screen after 1.5 s
+    for mode, wanted in (("429", "feedback_limit"), ("400", "feedback_rejected")):
+        service_up["value"] = mode
+        before = len(feedback_requests)
+        page.evaluate("openFeedback('home')")
+        page.locator("#feedbackText").fill(f"Refused feedback {mode}")
+        page.locator("#feedbackSend").click()
+        page.wait_for_function(
+            "() => document.getElementById('feedbackStatus').textContent !== t('working')",
+            timeout=15_000)
+        state = page.evaluate("""(key) => ({
+          status: document.getElementById("feedbackStatus").textContent,
+          expected: t(key), text: document.getElementById("feedbackText").value,
+          sendDisabled: document.getElementById("feedbackSend").disabled,
+          queue: localStorage.getItem("pending_feedback"),
+          visible: !document.getElementById("feedback").classList.contains("hidden"),
+        })""", wanted)
+        if state["status"] != state["expected"]:
+            failures.append(f"{mode} refusal showed {state['status']!r}, expected {state['expected']!r}")
+        if state["text"] != f"Refused feedback {mode}":
+            failures.append(f"{mode} refusal cleared the tester's text: {state['text']!r}")
+        if state["sendDisabled"] or not state["visible"]:
+            failures.append(f"{mode} refusal left no way to try again: {state}")
+        if state["queue"]:
+            failures.append(f"{mode} refusal was queued for a retry that cannot succeed: {state['queue']}")
+        if len(feedback_requests) != before + 1:
+            failures.append(f"{mode} refusal sent {len(feedback_requests) - before} requests")
+        page.wait_for_timeout(1700)
+        if page.locator("#feedback").is_hidden():
+            failures.append(f"{mode} refusal closed the feedback screen as if it had been sent")
+
+    # A message sent while an earlier send is still in flight goes out in that same
+    # flush. It used to be reported as queued and wait for the next app start.
+    service_up["value"] = True
+    before = len(feedback_requests)
+    overlap = page.evaluate("""async () => {
+      const realFetch = window.fetch;
+      let held = false;
+      window.fetch = async (url, init) => {
+        if (!held && String(url).includes("/v1/feedback")) {
+          held = true;
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+        return realFetch(url, init);
+      };
+      const post = (text) => api("/api/feedback",
+        { method: "POST", body: JSON.stringify({ rating: 3, text }) });
+      try {
+        const first = post("In flight first");
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        const second = await post("In flight second");
+        return { first: await first, second, queue: localStorage.getItem("pending_feedback") };
+      } finally { window.fetch = realFetch; }
+    }""")
+    texts = [request["body"].get("text") for request in feedback_requests[before:]]
+    if overlap["second"].get("queued") or overlap["queue"] or texts != ["In flight first", "In flight second"]:
+        failures.append(f"feedback sent during an in-flight send was parked: {overlap}, sent {texts}")
+
+    # Queued after a 5xx, feedback goes out when the app returns to the foreground and
+    # when Settings are saved, not only on a cold start or an online event.
+    for trigger, script in (("resume", "window.handleNativeAppStateChange(true)"),
+                            ("settings save", "openSettings(); document.getElementById('setSave').click()")):
+        service_up["value"] = False
+        page.evaluate("""(text) => api("/api/feedback",
+          { method: "POST", body: JSON.stringify({ rating: 2, text }) })""", f"Queued before {trigger}")
+        if not page.evaluate("localStorage.getItem('pending_feedback')"):
+            failures.append(f"{trigger}: the 503 did not queue the feedback")
+            continue
+        service_up["value"] = True
+        page.evaluate(f"() => {{ {script}; }}")
+        try:
+            page.wait_for_function("!localStorage.getItem('pending_feedback')", timeout=5000)
+        except Exception:
+            failures.append(f"{trigger}: queued feedback was not retried")
+    page.locator("#home").wait_for(state="visible")
 
     # The one-time nudge appears from the third report and never again once answered.
     page.evaluate("localStorage.removeItem('feedback_nudged'); show('home')")

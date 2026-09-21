@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import hashlib
 import json
 import sys
@@ -12,7 +13,7 @@ from playwright.sync_api import sync_playwright
 from state_pack_utils import read_pack, read_payload, resource_for, route_pattern
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 STATES = [
     {
         "name": "Goa", "code": "GA", "pack": "in-ga-routing",

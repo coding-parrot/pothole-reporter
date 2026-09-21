@@ -49,7 +49,18 @@ class TimeoutContractTests(unittest.TestCase):
         detect = WEB.split("async function analyzeViaService", 1)[1].split(
             "let streamBroken", 1
         )[0]
-        self.assertIn("timeout: SHARED_VISION_TIMEOUT_MS", detect)
+        # Photos and footage keep the full fallback-chain deadline. Drive frames alone get a
+        # shorter one, because API Gateway drops the connection at 29 s and a frame held
+        # past that only blocks a slot while later frames are dropped.
+        self.assertIn(
+            'timeout: captureMode === "drive" ? DRIVE_SHARED_VISION_TIMEOUT_MS : SHARED_VISION_TIMEOUT_MS',
+            detect,
+        )
+        drive_deadline = int(
+            WEB.split("const DRIVE_SHARED_VISION_TIMEOUT_MS = ", 1)[1].split(";", 1)[0]
+        )
+        self.assertGreater(drive_deadline, 29_000)
+        self.assertLess(drive_deadline, TIMEOUTS["sharedVisionClient"])
         self.assertIn("image_detail: selectedDetail", detect)
         self.assertNotIn("/v1/vision/repair", WEB)
         self.assertNotIn("REPAIR_PROMPT", WEB)

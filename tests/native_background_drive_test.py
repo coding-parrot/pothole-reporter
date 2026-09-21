@@ -1,4 +1,5 @@
 """The Android Drive bridge must survive Maps/backgrounding and reconcile on stop."""
+import os
 import pathlib
 import sys
 
@@ -9,7 +10,7 @@ from native_tree import require_wired_tree
 require_wired_tree("the native background Drive bridge "
                    "(startDrive, attachPreview, keyframe replay, repair sync)")
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 
 INIT = r"""
 (() => {
@@ -263,7 +264,7 @@ with sync_playwright() as playwright:
 
     # A foreground video-call/camera app may temporarily pre-empt this camera. Drive must
     # stay alive, disclose the interruption, and resume the user's video preference when
-    # CameraX reports OPEN again—without creating a second service session.
+    # CameraX reports OPEN again, without creating a second service session.
     page.evaluate("__nativeDriveProbe.appListeners.appStateChange({isActive: false})")
     interruption = "Camera is in use by another app. Detection and video are paused; capture resumes automatically when access returns."
     page.evaluate("""(issue) => {
@@ -580,7 +581,7 @@ with sync_playwright() as playwright:
     if resolved_start_readoption != {
         "sessionId": "resolved-re-adopt", "freshReads": 1,
         "driveVisible": True, "homeVisible": False, "nativePanelVisible": True,
-        "activeLabel": "Drive active — view",
+        "activeLabel": "Drive active, open it",
     }:
         failures.append(
             f"resolved native Start stayed hidden behind Home: {resolved_start_readoption}"

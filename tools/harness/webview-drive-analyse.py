@@ -254,7 +254,6 @@ def main():
         localStorage.setItem("data_notice_version", {json.dumps(DATA_NOTICE_VERSION)});
         localStorage.setItem("debug_mode", "1");
         localStorage.setItem("record_video", "1");
-        localStorage.setItem("keep_frames", "1");
         localStorage.setItem("app_lang", "en");
       }} catch (e) {{}}
     }})();"""})

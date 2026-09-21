@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Bengali/KMC UI must be complete, truthful, and render without English fallback."""
+import os
 import sys
 
 from playwright.sync_api import sync_playwright
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 
 INIT = """
 localStorage.setItem('openai_key', 'test-key-never-sent');
@@ -71,7 +72,7 @@ async () => {
      !body.includes("অভিযোগ জমা দেয় না")
        && !/official (?:grievance )?submission/i.test(body), body);
   ok("draft: KMC route keeps a truthful mandatory no-candidate contract block",
-     /CONTRACT VERIFICATION/.test(complaintWithoutFooter)
+     /ঠিকাদারি তথ্য/.test(complaintWithoutFooter)
        && /No verified exact-road public contract found/.test(complaintWithoutFooter)
        && !/Tender number:|Listed contractor:|Exact work name:/.test(complaintWithoutFooter)
        && !/warranty is active|under warranty/i.test(complaintWithoutFooter), body);

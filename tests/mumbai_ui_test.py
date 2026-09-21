@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Marathi Mumbai UI and complaint drafting must not silently fall back to English."""
+import os
 import sys
 
 from playwright.sync_api import sync_playwright
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 
 SCENARIO = r"""
 (() => {

@@ -11,13 +11,13 @@ Staleness was measured from delivery time, so a stuck fix looked perpetually fre
 displacement then said the car had not moved.
 """
 import os, sys, pathlib
-from dotenv import load_dotenv
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-load_dotenv(ROOT / ".env")
 from playwright.sync_api import sync_playwright
-from browser_test_utils import open_app
+from browser_test_utils import OFFLINE_KEY, block_openai, open_app
 
-KEY = os.environ["OPENAI_API_KEY"]
+# Every detector call is stubbed; the placeholder only switches the personal path on.
+KEY = OFFLINE_KEY
+leaks = []
 SECONDS = 20
 
 SCENARIOS = [
@@ -80,6 +80,7 @@ with sync_playwright() as p:
         # A fresh page per scenario. Sharing one page let drive state and patched globals
         # leak across runs, which made a correct build look broken.
         pg = ctx.new_page()
+        block_openai(pg, leaks)
         open_app(pg, KEY)
         pg.wait_for_function("typeof startDrive === 'function'", timeout=30000)
         # Decline the post-drive footage offer: this test counts live one-frame samples,
@@ -109,6 +110,8 @@ with sync_playwright() as p:
     b.close()
 
 print()
+if leaks:
+    fails.append(f"a request reached OpenAI: {leaks[:2]}")
 if fails:
     print("FAIL"); [print("  -", f) for f in fails]; sys.exit(1)
 print("CAPTURE CADENCE TEST PASS")

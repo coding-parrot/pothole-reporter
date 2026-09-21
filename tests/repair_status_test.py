@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """A revisit only closes a physical pothole after strict before/after proof."""
+import os
 import json
 import pathlib
 
 from playwright.sync_api import sync_playwright
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 
 # The shipped detection contract returns five fields. The physical-evidence shape this
 # suite used (is_pothole, has_localized_cavity, surface_type, ...) belongs to a contract

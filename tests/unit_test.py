@@ -5,6 +5,7 @@ These reach the real functions through StandaloneAPI.__pure, so a test exercises
 the code that runs in production. No network, no photo, no model: everything here is
 deterministic and should stay that way.
 """
+import os
 import json, sys, pathlib
 from playwright.sync_api import sync_playwright
 
@@ -327,7 +328,7 @@ def main():
     with sync_playwright() as p:
         b = p.chromium.launch(args=["--disable-web-security"])
         pg = b.new_context(viewport={"width": 390, "height": 844}).new_page()
-        pg.goto("http://localhost:8765/"); pg.wait_for_load_state("networkidle")
+        pg.goto(os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")); pg.wait_for_load_state("networkidle")
         pg.wait_for_function("typeof StandaloneAPI !== 'undefined' && StandaloneAPI.__pure", timeout=30000)
         results = pg.evaluate(CASES)
         b.close()

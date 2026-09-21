@@ -12,7 +12,10 @@ import {
 } from "../../../llm/generated/contract.mjs";
 import { HttpError } from "./errors.mjs";
 
+// insufficient_quota is what OpenAI actually sends when an account is out of credit.
 const EXHAUSTION_CODES = new Set([
+  "insufficient_quota",
+  "billing_hard_limit_reached",
   "credit_balance_exhausted",
   "organization_spend_limit_exceeded",
   "project_spend_limit_exceeded",
@@ -23,6 +26,11 @@ const YOLO_CAP_CODES = new Set([
   "monthly_estimated_budget_cap_exceeded",
 ]);
 const promptConfig = LLM_CONTRACT.prompts.detection;
+// Lambda and API Gateway both stop at 29 s. An OpenAI call that outlives the function is
+// killed with no response, no log line and a lease left IN_PROGRESS, so the call must
+// give up first and leave this much time to answer, release and log.
+const LAMBDA_RESPONSE_RESERVE_MS = 3_000;
+const MIN_UPSTREAM_MS = 1_000;
 
 function timeoutSignal(milliseconds) {
   const controller = new AbortController();
@@ -91,6 +99,12 @@ export function createSecretProvider({ secretArn, client = new SecretsManagerCli
   };
 }
 
+function upstreamBudget(maximum, context) {
+  const remaining = context.remainingTimeMs?.();
+  if (!Number.isFinite(remaining)) return maximum;
+  return Math.max(MIN_UPSTREAM_MS, Math.min(maximum, remaining - LAMBDA_RESPONSE_RESERVE_MS));
+}
+
 export function createDetector({
   providerMode = "openai_then_yolo",
   secretProvider,
@@ -105,8 +119,19 @@ export function createDetector({
 } = {}) {
   const secrets = secretProvider || (async () => ({}));
 
+  // A secret with no current version (as on 2026-09-19) is a missing credential, not a
+  // server fault, and must read as one to the app instead of internal_error.
+  async function readSecret(code, message, details) {
+    try {
+      return await secrets();
+    } catch (error) {
+      throw new HttpError(503, code, message, details, { cause: error });
+    }
+  }
+
   async function openai(input, context) {
-    const secret = await secrets();
+    const secret = await readSecret("shared_openai_not_configured",
+      "The shared OpenAI detector secret could not be read.", { fallback_allowed: true });
     if (!secret.openaiApiKey) {
       throw new HttpError(503, "shared_openai_not_configured",
         "The shared OpenAI detector is not configured.", { fallback_allowed: true });
@@ -140,7 +165,7 @@ export function createDetector({
       },
       store: false,
     };
-    const timeout = timeoutSignal(openaiTimeoutMs);
+    const timeout = timeoutSignal(upstreamBudget(openaiTimeoutMs, context));
     let response;
     try {
       response = await fetchImpl(RUNTIME_CONFIG.responsesUrl, {
@@ -154,17 +179,18 @@ export function createDetector({
         body: JSON.stringify(request),
         signal: timeout.signal,
       });
-    } catch {
-      throw new HttpError(503, "shared_vision_unavailable",
-        "The shared OpenAI detector could not be reached.");
-    } finally {
+    } catch (error) {
       timeout.cancel();
+      throw new HttpError(503, "shared_vision_unavailable",
+        "The shared OpenAI detector could not be reached.", { retryable: true },
+        { cause: error });
     }
     context.openaiRequestId = response.headers.get("x-request-id") || null;
     if (!response.ok) {
-      const upstream = await errorCode(response);
+      const upstream = await errorCode(response).finally(timeout.cancel);
       context.openaiErrorCode = upstream.code || upstream.type;
-      if (response.status === 429 && EXHAUSTION_CODES.has(upstream.code)) {
+      if (response.status === 429 && (EXHAUSTION_CODES.has(upstream.code)
+          || EXHAUSTION_CODES.has(upstream.type))) {
         throw new HttpError(503, "shared_credits_exhausted",
           "The shared OpenAI credit or spending limit has been reached.", {
             fallback_allowed: true,
@@ -175,11 +201,25 @@ export function createDetector({
         throw new HttpError(429, "shared_rate_limit",
           "The shared OpenAI detector is temporarily rate limited.");
       }
+      // A revoked or wrong key is the operator's to fix. Calling it an image problem
+      // kept a drive sending frames that could never succeed.
+      if (response.status === 401 || response.status === 403) {
+        throw new HttpError(503, "shared_vision_not_configured",
+          "The shared OpenAI detector credential was rejected.", {
+            fallback_allowed: true,
+            upstream_code: upstream.code || upstream.type,
+          });
+      }
       throw new HttpError(response.status >= 500 ? 503 : 422,
         response.status >= 500 ? "shared_vision_unavailable" : "vision_request_rejected",
         "OpenAI could not analyse this image.");
     }
-    const data = await response.json().catch(() => null);
+    // The timer stays armed until the body is read: headers alone do not finish a call.
+    const data = await response.json().catch(() => null).finally(timeout.cancel);
+    if (timeout.signal.aborted) {
+      throw new HttpError(503, "shared_vision_unavailable",
+        "The shared OpenAI detector did not answer in time.", { retryable: true });
+    }
     const text = readOutputText(data);
     if (!text) {
       throw new HttpError(502, "bad_upstream_response",
@@ -208,7 +248,8 @@ export function createDetector({
   }
 
   async function yolo(input, context) {
-    const secret = await secrets();
+    const secret = await readSecret("shared_yolo_not_configured",
+      "The shared YOLO detector secret could not be read.");
     if (!secret.yoloApiKey) {
       throw new HttpError(503, "shared_yolo_not_configured",
         "The shared YOLO detector credential is not configured.");
@@ -343,8 +384,14 @@ export function createDetector({
         if (!(error instanceof HttpError)
             || !error.details?.fallback_allowed) throw error;
         context.detectorFallbackReason = error.code;
-        const result = await yolo(input, context);
-        return { ...result, fallbackFrom: "openai", fallbackReason: error.code };
+        try {
+          const result = await yolo(input, context);
+          return { ...result, fallbackFrom: "openai", fallbackReason: error.code };
+        } catch (fallbackError) {
+          // No fallback deployed is not news. The OpenAI reason is the one to report.
+          if (fallbackError?.code === "shared_yolo_not_configured") throw error;
+          throw fallbackError;
+        }
       }
     },
   };

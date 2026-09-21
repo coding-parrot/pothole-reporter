@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """The home screen must lead with one-word, highlighted Drive action."""
+import os
 import sys
 
 from playwright.sync_api import sync_playwright
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 
 SCENARIO = r"""
 () => {
@@ -22,7 +23,7 @@ SCENARIO = r"""
     return node.textContent.replace(/^[^\p{L}\p{N}]+/u, "").trim();
   };
 
-  const buttons = [...document.querySelectorAll("#home > button")];
+  const buttons = [...document.querySelectorAll("#home .home-actions > button")];
   eq("order: Drive is the first home action",
      buttons.map((button) => button.id), ["driveBtn", "captureBtn", "dashBtn"]);
   ok("hierarchy: Drive alone uses the primary style",
@@ -65,7 +66,42 @@ SCENARIO = r"""
   eq("render: English home actions match their localized values",
      buttons.map((button) => button.textContent.replace(/^[^\p{L}\p{N}]+/u, "").trim()),
      expected.en);
+
+  // Android asks for 48 dp touch targets; the gear once measured 48x46.
+  const gear = document.getElementById("gearBtn").getBoundingClientRect();
+  ok("touch: the Settings gear is at least 48x48",
+     gear.width >= 48 && gear.height >= 48, [gear.width, gear.height]);
+
+  // An active drive is announced in the tester's language, not a fixed English string.
+  setDriveActiveButton(true);
+  eq("a11y: the active Drive button is labelled from I18N",
+     buttons[0].getAttribute("aria-label"), I18N[LANG].drive_active_label);
+  setDriveActiveButton(false);
+  eq("a11y: the idle Drive button is labelled by its visible text",
+     buttons[0].getAttribute("aria-label"), null);
   return checks;
+}
+"""
+
+# What the phone paints before 1 MB of script has run: the markup itself. It must say
+# what the English table says, and a translated install must not flash it at all.
+MARKUP = r"""
+async () => {
+  const raw = await (await fetch(location.href, {cache: "no-store"})).text();
+  const doc = new DOMParser().parseFromString(raw, "text/html");
+  const text = (html) => {
+    const node = document.createElement("div");
+    node.innerHTML = html;
+    return node.textContent.trim();
+  };
+  return {
+    markup: ["driveBtn", "captureBtn", "dashBtn", "subTitle"]
+      .map((id) => doc.getElementById(id).textContent.trim()),
+    english: [I18N.en.drive_btn, I18N.en.report_btn, I18N.en.dash_btn, I18N.en.sub].map(text),
+    pendingInMarkup: doc.documentElement.classList.contains("i18n-pending")
+      || doc.getElementById("home").classList.contains("i18n-pending"),
+    pendingLive: !!document.querySelector(".i18n-pending"),
+  };
 }
 """
 
@@ -87,6 +123,12 @@ def main():
             timeout=30000,
         )
         results = page.evaluate(SCENARIO)
+        markup = page.evaluate(MARKUP)
+        results.append(["markup: first-paint home copy equals I18N.en",
+                        markup["markup"] == markup["english"], markup["markup"], markup["english"]])
+        results.append(["markup: home is held until applyLang runs",
+                        markup["pendingInMarkup"] and not markup["pendingLive"],
+                        markup, "held in markup, released live"])
         context.close()
         browser.close()
 

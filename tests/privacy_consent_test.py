@@ -40,9 +40,11 @@ INIT_NATIVE_PROBE = r"""
 """
 
 
-def open_native_page(browser):
-    context = browser.new_context(viewport={"width": 390, "height": 844})
+def open_native_page(browser, viewport=None, lang=None):
+    context = browser.new_context(viewport=viewport or {"width": 390, "height": 844})
     context.add_init_script(INIT_NATIVE_PROBE)
+    if lang:
+        context.add_init_script(f"localStorage.setItem('app_lang', {lang!r});")
     page = context.new_page()
     page.goto(APP)
     page.wait_for_load_state("networkidle")
@@ -212,6 +214,68 @@ with sync_playwright() as playwright:
             or drive_accepted["drivePresent"]):
         failures.append(f"drive: accepted action did not preserve permission/camera order: {drive_accepted}")
     context.close()
+
+    # Leaving the notice through the Settings gear is a decline. It once left
+    # driveStarting set and the consent waiter pending, so every later Drive tap was
+    # rejected by the startup guard until the app restarted.
+    context, page = open_native_page(browser)
+    page.locator("#driveBtn").click()
+    page.locator("#dataConsent").wait_for(state="visible")
+    page.locator("#gearBtn").click()
+    page.locator("#settings").wait_for(state="visible")
+    page.locator("#setBack").click()
+    page.locator("#home").wait_for(state="visible")
+    escaped = page.evaluate("({driveStarting, waiting: !!consentWaiter})")
+    if escaped["driveStarting"] or escaped["waiting"]:
+        failures.append(f"drive: leaving the notice through Settings left Drive guarded: {escaped}")
+    page.locator("#driveBtn").click()
+    try:
+        page.locator("#dataConsent").wait_for(state="visible", timeout=3000)
+    except Exception:
+        failures.append("drive: a Drive tap after the Settings escape did not show the notice again")
+    if snapshot(page)["version"] is not None:
+        failures.append("drive: the Settings escape persisted consent")
+    context.close()
+
+    # The only two actions on the notice stay on screen on a small phone, in every
+    # language, without scrolling past three long paragraphs first.
+    stale_flows = ("Nominatim", "handoff", "Telangana GIS")
+    DISCLOSURE = {
+        "en": (("installation ID", "image hash", "queued"), stale_flows),
+        "kn": (("ಸ್ಥಾಪನೆ ID", "ಹ್ಯಾಶ್", "ಬಾಕಿ"), stale_flows),
+        "mr": (("इन्स्टॉलेशन ID", "hash", "प्रलंबित"), stale_flows),
+        "bn": (("ইনস্টলেশন ID", "hash", "অপেক্ষমাণ"), stale_flows),
+    }
+    for lang in ("en", "kn", "mr", "bn"):
+        context, page = open_native_page(browser, {"width": 360, "height": 780}, lang)
+        page.locator("#driveBtn").click()
+        page.locator("#dataConsent").wait_for(state="visible")
+        fit = page.evaluate("""() => {
+          const rects = ["privacyAccept", "privacyDecline"]
+            .map((id) => document.getElementById(id).getBoundingClientRect());
+          return {bottoms: rects.map((rect) => Math.round(rect.bottom)),
+                  tops: rects.map((rect) => Math.round(rect.top)),
+                  height: window.innerHeight};
+        }""")
+        if max(fit["bottoms"]) > fit["height"] or min(fit["tops"]) < 0:
+            failures.append(f"layout {lang}: notice buttons are off screen at 360x780: {fit}")
+        # The rendered notice, not just the dictionary, names what reaches the project
+        # service and that a failed upload waits on the phone. Sentence-stripping once
+        # dropped exactly that from English and Kannada, while Marathi and Bengali
+        # still described Nominatim lookups and complaint handoffs the app no longer has.
+        disclosure = snapshot(page)["disclosure"]
+        wanted, stale = DISCLOSURE[lang]
+        missing = [term for term in wanted if term.lower() not in disclosure.lower()]
+        if missing:
+            failures.append(f"disclosure {lang}: rendered notice omits {missing}")
+        present = [term for term in stale if term in disclosure]
+        if present:
+            failures.append(f"disclosure {lang}: rendered notice describes removed flows {present}")
+        if "\u2014" in disclosure or "\u2013" in disclosure:
+            failures.append(f"disclosure {lang}: rendered notice contains a dash character")
+        page.locator("#privacyDecline").click()
+        page.wait_for_function("driveStarting === false")
+        context.close()
 
     browser.close()
 

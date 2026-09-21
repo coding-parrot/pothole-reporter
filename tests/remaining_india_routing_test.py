@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
+import os
 from playwright.sync_api import sync_playwright
 
 from state_pack_utils import read_pack, resource_for
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 PACK_IDS = [
     "in-ar-routing",
     "in-as-routing",

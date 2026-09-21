@@ -73,9 +73,11 @@ def central_service(route, request):
         envelope(route, {
             "jurisdiction": {
                 "lat": body.get("lat"), "lng": body.get("lng"),
-                "address": "Test Road, Central Ward, Test City, 560001",
+                # The deployed service has no reverse geocoder, so it names no street.
+                # A stub that did hid every shared letter reading "the reported location".
+                "address": None,
                 "lgd": "999001", "town": "Test City Corporation",
-                "source": "kgis", "address_source": "nominatim",
+                "source": "kgis", "address_source": "unresolved",
                 "road_ownership": "municipal",
             },
             "tender": None,
@@ -182,7 +184,7 @@ NATIVE_STUB = r"""
       return { remove() {} };
     },
     exitApp() { window.__exitAppCalls += 1; },
-    async getInfo() { return { version: "1.39.3", build: "72" }; },
+    async getInfo() { return { version: "1.39.4", build: "73" }; },
   };
   const EmailComposer = {
     async open(options) {

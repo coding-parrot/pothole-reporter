@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import json
 import sys
 from pathlib import Path
@@ -11,7 +12,7 @@ from playwright.sync_api import sync_playwright
 
 
 ROOT = Path(__file__).resolve().parents[1]
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 MANIFEST = json.loads((ROOT / "static" / "highway-manifest.json").read_text())
 
 

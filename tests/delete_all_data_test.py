@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Delete-all must clear every managed web store, or fail without claiming success."""
 
+import os
 import pathlib
 import sys
 
@@ -165,8 +166,64 @@ with sync_playwright() as playwright:
           };
         }"""
     )
+    # A short-lived v8 build created the database without state_packs, and v8 never runs
+    # onupgradeneeded again, so the wipe has to work over the stores that exist.
+    legacy_page = browser.new_page()
+    legacy_page.goto(os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/") + "privacy.html")
+    legacy_page.evaluate(
+        """() => new Promise((resolve, reject) => {
+          const request = indexedDB.open("potholes", 8);
+          request.onupgradeneeded = () => {
+            const db = request.result;
+            const reports = db.createObjectStore("reports", {keyPath: "id", autoIncrement: true});
+            reports.createIndex("by_lat", "lat");
+            reports.createIndex("by_drive", "drive_id");
+            reports.createIndex("by_sighting_drive", "sighting_drive_ids", {multiEntry: true});
+            db.createObjectStore("drives", {keyPath: "id"});
+            db.createObjectStore("footage", {keyPath: "key"}).createIndex("by_drive", "drive_id");
+            db.createObjectStore("identity", {keyPath: "key"});
+            db.createObjectStore("central_outbox", {keyPath: "client_observation_id"})
+              .createIndex("by_report", "report_id");
+            reports.put({id: 7001, created_at: 1, status: "rejected", decision: "reject"});
+            reports.put({id: 7002, created_at: 2, status: "rejected", decision: "reject"});
+          };
+          request.onsuccess = () => { request.result.close(); resolve(); };
+          request.onerror = () => reject(request.error);
+        })"""
+    )
+    open_app(legacy_page, "test-key-never-sent")
+    legacy_result = legacy_page.evaluate(
+        """async () => {
+          let completed = null, rejected = null;
+          try { completed = await deleteAllAppData(); }
+          catch (error) { rejected = String(error && error.message || error); }
+          const db = await new Promise((resolve, reject) => {
+            const request = indexedDB.open("potholes");
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+          const names = [...db.objectStoreNames];
+          const counts = await new Promise((resolve, reject) => {
+            const tx = db.transaction(names, "readonly");
+            const values = {};
+            for (const name of names) {
+              const req = tx.objectStore(name).count();
+              req.onsuccess = () => { values[name] = req.result; };
+            }
+            tx.oncomplete = () => resolve(values);
+            tx.onabort = () => reject(tx.error);
+          });
+          return {completed, rejected, names, counts};
+        }"""
+    )
     browser.close()
 
+if "state_packs" in legacy_result["names"]:
+    failures.append(f"legacy fixture unexpectedly has state_packs: {legacy_result['names']}")
+if legacy_result["completed"] != {"cleared": True} or legacy_result["rejected"]:
+    failures.append(f"delete-all failed on a v8 database without state_packs: {legacy_result}")
+if any(legacy_result["counts"].values()):
+    failures.append(f"delete-all left rows on a v8 database without state_packs: {legacy_result['counts']}")
 if result["completed"] != {"cleared": True}:
     failures.append(f"delete-all did not return verified success: {result['completed']}")
 if any(result["counts"].values()):

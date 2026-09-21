@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import os
 import sys
+from urllib.parse import urljoin
 
 from playwright.sync_api import sync_playwright
 
@@ -175,7 +177,7 @@ def main() -> None:
         page = browser.new_page()
         # The server root intentionally exercises the frozen Play-test Android bundle.
         # Contract packs belong to the current web runtime until a later APK release.
-        page.goto("http://localhost:8765/web-app/")
+        page.goto(urljoin(os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/"), "web-app/"))
         page.wait_for_function(
             "() => window.StandaloneAPI && StandaloneAPI.__pure "
             "&& typeof StandaloneAPI.__pure.highwayContractCandidates === 'function'"

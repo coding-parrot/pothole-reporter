@@ -42,8 +42,16 @@
     get provider() { return effectiveVisionProvider(localStorage.getItem("vision_provider"), this.key); },
     get name() { return (localStorage.getItem("sender_name") || "").trim() || "A concerned citizen"; },
     get debug() { return localStorage.getItem("debug_mode") === "1"; },
-    get model() { return normaliseModel(localStorage.getItem("detection_model")); },
-    get detail() { return normaliseDetail(localStorage.getItem("image_detail"), this.model); },
+    // The shared detector is owner-paid and runs the evaluated baseline; only a personal
+    // key may choose another model or detail. A stored choice from an older build is
+    // ignored while the shared service is in use, not erased.
+    get model() {
+      return normaliseModel(this.provider === "personal" ? localStorage.getItem("detection_model") : null);
+    },
+    get detail() {
+      return normaliseDetail(this.provider === "personal" ? localStorage.getItem("image_detail") : null,
+        this.model);
+    },
   };
 
   const LANG = () => MODEL_CONFIG.allowedLanguages.includes(localStorage.getItem("app_lang"))
@@ -482,6 +490,10 @@
   // Fallback mode can spend up to 55s on OpenAI and then 30s on the project YOLO
   // gateway. Shared calls allow 15s more for Worker and network overhead.
   const SHARED_VISION_TIMEOUT_MS = RUNTIME_CONFIG.timeoutsMs.sharedVisionClient;
+  // API Gateway and the Lambda give up at 29 s, so a Drive frame waiting longer is waiting
+  // on a dead connection. Six such slots held for 100 s after a short tunnel dropped every
+  // frame captured in the meantime; Drive gives up just past the server's own ceiling.
+  const DRIVE_SHARED_VISION_TIMEOUT_MS = 32000;
 
   // The timeout used to be cleared the moment the headers arrived, so it only ever covered
   // the handshake. A response that sent headers and then stalled was never aborted, and a
@@ -499,11 +511,22 @@
       clearTimeout(timer);
       timer = setTimeout(() => ctl && ctl.abort(), delay === undefined ? ms : delay);
     };
+    // A caller's signal (the tester pressing Cancel) ends the same request early.
+    const callerSignal = init && init.signal;
+    if (callerSignal && ctl) {
+      if (callerSignal.aborted) ctl.abort();
+      else callerSignal.addEventListener("abort", () => ctl.abort(), { once: true });
+    }
     let res;
     try {
       res = await fetch(url, ctl ? { ...init, signal: ctl.signal } : init);
     } catch (e) {
       disarm();
+      if (callerSignal && callerSignal.aborted) {
+        const cancelled = new Error("Cancelled.");
+        cancelled.cancelled = true;
+        throw cancelled;
+      }
       if (e && (e.name === "AbortError" || /abort/i.test(e.message || ""))) {
         const to = new Error("The network did not respond. Check the connection and try again.");
         to.timeout = true;
@@ -592,6 +615,15 @@
     return installationCache;
   }
 
+  async function forgetInstallationIdentity(stale) {
+    // Concurrent refusals all name the same stale key; only the first may discard it,
+    // or a later one would delete the replacement another request just registered.
+    if (installationCache && installationCache.installId !== stale.installId) return;
+    installationCache = null;
+    if (installationPromise) return;
+    await op("readwrite", (store) => store.delete(INSTALLATION_KEY), "identity").catch(() => {});
+  }
+
   function installationIdentity() {
     if (installationCache) return Promise.resolve(installationCache);
     if (!installationPromise) {
@@ -609,12 +641,29 @@
     err.details = payload && payload.details && typeof payload.details === "object"
       ? payload.details : null;
     err.sharedService = true;
-    if (/credit|budget|quota/i.test(err.code) || response.status === 402
-        || response.status === 429 || response.status === 503) {
+    // shared_vision_unavailable is one OpenAI 5xx or failed upstream fetch, gone by the
+    // next frame. Marking it fatal ended a whole drive on a single hiccup; the drive's
+    // circuit breaker already pauses a detector that keeps failing. Any other 503 the
+    // server itself calls retryable is the same kind of hiccup.
+    const retryable503 = response.status === 503 && (err.code === "shared_vision_unavailable"
+      || !!(err.details && err.details.retryable === true));
+    // The service always names its refusals. A 429 or 503 with no error code is API
+    // Gateway shedding load (a throttled Lambda or the stage limit), which clears in
+    // seconds; one drive's burst of frames once ended the whole drive this way.
+    const gatewayShed = !(payload && payload.error)
+      && (response.status === 429 || response.status === 503);
+    if (!gatewayShed && (/credit|budget|quota/i.test(err.code) || response.status === 402
+        || response.status === 429
+        || (response.status === 503 && !retryable503))) {
       err.fatal = true;
     }
     return err;
   }
+
+  // The server refuses a stamp more than 5 minutes from its own clock. A phone with a
+  // wrong clock would fail every signed call (feedback included, so the tester cannot
+  // even report it); the refusal carries the server's time, and later stamps follow it.
+  let serviceClockOffsetMs = 0;
 
   async function signedServicePost(path, value, options = {}) {
     let identity;
@@ -625,7 +674,7 @@
     // explicit and keeps the server's idempotency record tied to one immutable request.
     const body = typeof options.exactBody === "string"
       ? options.exactBody : JSON.stringify(value == null ? {} : value);
-    const timestamp = String(Date.now());
+    const timestamp = String(Date.now() + serviceClockOffsetMs);
     const idempotencyKey = String(options.idempotencyKey || randomId());
     const pathname = new URL(`${SERVICE_URL}${path}`).pathname;
     const canonical = await canonicalServiceRequest("POST", pathname, timestamp, idempotencyKey, body);
@@ -664,14 +713,31 @@
           "Idempotency-Key": signedIdempotencyKey,
         },
         body,
+        ...(options.signal ? { signal: options.signal } : {}),
       }, options.timeout || REQUEST_TIMEOUT_MS);
     } catch (error) {
-      markProjectServiceUnavailable();
+      if (!error || !error.cancelled) markProjectServiceUnavailable();
       throw error;
     }
     const payload = await readJson(response).catch(() => ({}));
     if (!response.ok) {
       const error = serviceError(response, payload, options.fallback);
+      // The server forgets an installation when its row is restored or revoked, and the
+      // stored key can never sign for it again. Register a fresh key and resend once;
+      // the native signer owns its own key, so that path reports the error instead.
+      if (response.status === 401 && !identity.nativeSigner && !options.reregistered
+          && (error.code === "unknown_installation" || error.code === "bad_signature")) {
+        await forgetInstallationIdentity(identity);
+        return signedServicePost(path, value, { ...options, reregistered: true });
+      }
+      const serverTime = Number(error.details && error.details.server_time);
+      if (response.status === 401 && error.code === "stale_request" && !options.reclocked
+          && Number.isFinite(serverTime) && serverTime > 0) {
+        serviceClockOffsetMs = serverTime - Date.now();
+        return signedServicePost(path, value, {
+          ...options, reclocked: true, exactBody: body, idempotencyKey: signedIdempotencyKey,
+        });
+      }
       if (response.status === 408 || response.status === 425 || response.status === 429
           || response.status >= 500) markProjectServiceUnavailable();
       throw error;
@@ -703,7 +769,7 @@
     projectServiceState = "unavailable";
     projectServiceCheckedAt = Date.now();
   }
-  function probeProjectService(timeout = 1500) {
+  function probeProjectService(timeout = 6000) {
     if (projectServiceAvailable()
         && Date.now() - projectServiceCheckedAt < PROJECT_SERVICE_POSITIVE_TTL_MS) {
       return Promise.resolve(true);
@@ -719,8 +785,11 @@
         else markProjectServiceUnavailable();
         return projectServiceAvailable();
       })
-      .catch(() => {
-        markProjectServiceUnavailable();
+      .catch((error) => {
+        // A timeout is a slow link, not a verdict: do not hold it against the service
+        // for the next minute of captures and outbox flushes.
+        if (error && error.timeout) projectServiceState = "unknown";
+        else markProjectServiceUnavailable();
         return false;
       })
       .finally(() => { projectServiceProbe = null; });
@@ -992,6 +1061,27 @@
     };
   }
 
+  // The service caps shared checks per phone per UTC day (05:30 IST) and names the cap on
+  // every answer, but not how many are used. Counting this phone's own checks lets Drive
+  // show what is left before the cap ends a drive instead of after.
+  const SHARED_CHECKS_KEY = "shared_checks_today";
+  function sharedChecksToday() {
+    const day = new Date().toISOString().slice(0, 10);
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(SHARED_CHECKS_KEY) || "null"); } catch (e) {}
+    const limit = saved && Number(saved.limit) > 0 ? Math.floor(Number(saved.limit)) : null;
+    return { day, limit, used: saved && saved.day === day ? Math.max(0, saved.used | 0) : 0 };
+  }
+
+  function noteSharedCheck(limit, exhausted = false) {
+    const today = sharedChecksToday();
+    const cap = Number(limit) > 0 ? Math.floor(Number(limit)) : today.limit;
+    const used = exhausted && cap ? cap : today.used + 1;
+    try {
+      localStorage.setItem(SHARED_CHECKS_KEY, JSON.stringify({ day: today.day, used, limit: cap }));
+    } catch (e) {}
+  }
+
   async function analyzeViaService(imageInputs, model, detail, captureMode, idempotencyKey,
                                    observation) {
     const selectedModel = normaliseModel(model);
@@ -1026,11 +1116,21 @@
       body.lat = observation.lat;
       body.lng = observation.lng;
     }
-    const payload = await signedServicePost("/v1/vision/detect", body, {
-      idempotencyKey: idempotencyKey || randomId(),
-      fallback: "The shared vision service could not check that image.",
-      timeout: SHARED_VISION_TIMEOUT_MS,
-    });
+    let payload;
+    try {
+      payload = await signedServicePost("/v1/vision/detect", body, {
+        idempotencyKey: idempotencyKey || randomId(),
+        fallback: "The shared vision service could not check that image.",
+        timeout: captureMode === "drive" ? DRIVE_SHARED_VISION_TIMEOUT_MS : SHARED_VISION_TIMEOUT_MS,
+        signal: observation && observation.signal || null,
+      });
+    } catch (error) {
+      if (error && error.code === "daily_vision_limit") {
+        noteSharedCheck(error.details && error.details.limit, true);
+      }
+      throw error;
+    }
+    noteSharedCheck(payload && payload.quota && payload.quota.limit);
     // Never manufacture a negative verdict from an error or malformed success. A full
     // Complete schema output is required before the normal local decision gate can run.
     for (const field of ASSESS_SCHEMA.required) {
@@ -4085,7 +4185,7 @@
 
   // Wide enough to include the complete state plus a small rejection margin, but narrow
   // enough that unrelated reports do not download Maharashtra's routing pack. The pinned
-  // state polygon—not this rectangle or a geocoder label—decides statewide containment.
+  // state polygon (not this rectangle or a geocoder label) decides statewide containment.
   const MAHARASHTRA_ROUTING_ENVELOPE = {
     minLat: 15.40, maxLat: 22.20, minLng: 72.40, maxLng: 81.10,
   };
@@ -4122,7 +4222,7 @@
     && lng >= DELHI_ENVELOPE.minLng && lng <= DELHI_ENVELOPE.maxLng;
 
   // This coarse rectangle only decides whether to download the West Bengal pack. The
-  // checksum-pinned state polygon—not the rectangle or a geocoder label—accepts a point.
+  // checksum-pinned state polygon (not the rectangle or a geocoder label) accepts a point.
   const WEST_BENGAL_ROUTING_ENVELOPE = {
     minLat: 21.40, maxLat: 27.40, minLng: 85.60, maxLng: 90.10,
   };
@@ -5399,7 +5499,7 @@
 
   // Garbage and manhole complaints belong to the containing civic body regardless of
   // the road class beside them. Querying the highway layer for those categories would
-  // wrongly send a waste pile on an NH service road to Rajmargyatra—or refuse it.
+  // wrongly send a waste pile on an NH service road to Rajmargyatra, or refuse it.
   async function kgisCivicJurisdiction(lat, lng) {
     const town = await retryQuery(
       KGIS_TOWN_URL, lat, lng, "KGISTownName,Town_Type,KGISTownCode,LGD_TownCode");
@@ -5671,8 +5771,8 @@
     }
 
     // My Cure remains the exact route inside verified Hyderabad CURE coverage.
-    // Everywhere else in the exact Telangana state polygon—including a CURE service
-    // failure or Cantonment exclusion—may use the neutral statewide Prajavani route.
+    // Everywhere else in the exact Telangana state polygon (including a CURE service
+    // failure or Cantonment exclusion) may use the neutral statewide Prajavani route.
     const telangana = await telanganaRouteFromGeocode(geo, lat, lng, gpsAccuracy);
     if (telangana) {
       if (telangana.unrouted_reason === "jurisdiction_unavailable") {
@@ -5930,7 +6030,11 @@
   }
 
   function complaintRouteError(reason, body, details = {}) {
-    const error = new Error(unroutedComplaintMessage(reason));
+    // The central resolver only covers Karnataka; its outside_state is not a claim
+    // about India's boundaries, and saying so sent Chennai testers a false reason.
+    const error = new Error(details.centralOutsideState
+      ? "Complaints are routed only inside Karnataka for now, and this point is outside Karnataka, so there is no authority to address."
+      : unroutedComplaintMessage(reason));
     error.code = "complaint_unrouted";
     error.unroutedReason = reason;
     error.unroutedBody = body || null;
@@ -6425,6 +6529,8 @@
       .map((x) => ({ score: x.score, tn: x.t.tn, t: x.t }));
   }
 
+  const TENDER_RETRY_DELAY_MS = 1500;
+
   async function tenderFromService(lat, lng, address, lgd, clientObservationId) {
     if (!finiteCoord(lat) || !finiteCoord(lng)) return { reached: false, tender: null };
     try {
@@ -6436,9 +6542,19 @@
       // coordinates must still be able to receive newer tender data.
       const logicalOperation = String(clientObservationId || randomId());
       const tenderIdempotencyKey = `tender-${await sha256HexText(logicalOperation)}`;
-      const result = await signedServicePost("/v1/tenders/resolve", request,
+      const resolve = () => signedServicePost("/v1/tenders/resolve", request,
         { idempotencyKey: tenderIdempotencyKey,
           fallback: "The central tender service is unavailable." });
+      // One slow KGIS layer out of four fails the whole lookup, and the next attempt a
+      // few seconds later usually succeeds. Ask once more before filing the accepted
+      // photo unrouted; a second outage is reported as unreachable as before.
+      const result = await resolve().catch(async (error) => {
+        if (!error || error.status !== 503 || !error.details || !error.details.retryable) {
+          throw error;
+        }
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, TENDER_RETRY_DELAY_MS));
+        return resolve();
+      });
       const resolution = {
         reached: true,
         jurisdiction: result.jurisdiction || null,
@@ -6524,7 +6640,7 @@
       source_url: "https://kppp.karnataka.gov.in/",
       match_confidence: m.confidence,
       ...contractVerificationFor({ tender_number: t.tn, title }),
-      note: `Unverified research lead (not included in the complaint): ${t.tn} — ${title}`,
+      note: `Unverified research lead (not included in the complaint): ${t.tn}: ${title}`,
       ...statePackProvenance("in-ka-tenders", "tender"),
     };
   }
@@ -6569,6 +6685,20 @@
     return value && (value.decision === "accept" || value.is_pothole) ? "damaged" : "undamaged";
   }
 
+  // The letter is read by the recipient, not the tester. A Bengali or Marathi phone
+  // wrote Bengali or Marathi letters to BSCC. Use the app language only when it is the
+  // recipient State's own language; every other letter goes in English, which every
+  // Indian grievance cell reads. The central resolver's `lgd-` bodies are Karnataka's.
+  const RECIPIENT_STATE_LANGUAGE = Object.freeze({ KA: "kn", MH: "mr", WB: "bn" });
+  function complaintLanguage(route) {
+    const id = String((route && (route.intake_authority_id || route.authority_id)) || "");
+    const prefix = id.startsWith("lgd-") ? "ka" : (id.match(/^([a-z]{2})-/) || [])[1];
+    const state = prefix ? prefix.toUpperCase()
+      : String((route && route.contract_state_code) || "");
+    const lang = LANG();
+    return RECIPIENT_STATE_LANGUAGE[state] === lang ? lang : "en";
+  }
+
   function complaintFooter(lang, roadDamage = true) {
     const road = {
       kn: "Pothole Reporter ಒಂದು ಸ್ವತಂತ್ರ ಆ್ಯಪ್. ಸೂಚಿಸಲಾದ ಸಂಸ್ಥೆ, ವಾರ್ಡ್, ರಸ್ತೆ ಮಾಲೀಕತ್ವ ಮತ್ತು ಯಾವುದೇ ಟೆಂಡರ್ ವಿವರಗಳನ್ನು ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ.",
@@ -6603,6 +6733,12 @@
   ]);
   const NO_VERIFIED_CONTRACT =
     "No verified exact-road public contract found; tender and contractor omitted.";
+  // The line above reads as a search that came back empty. When the service had no
+  // contract catalogue for this body there was no search, and the letter must say so.
+  const CONTRACT_LOOKUP_UNAVAILABLE =
+    "Contract lookup unavailable: no public contract catalogue covers this location yet; tender and contractor omitted.";
+  const contractLookupEvidence = (reason) =>
+    reason === "no_tenders_for_jurisdiction" ? { contract_lookup: "unavailable" } : {};
 
   function storedComplaintLanguage(body) {
     const text = String(body || "");
@@ -6652,7 +6788,7 @@
       paragraphs[index] = after || "";
     };
 
-    // v3 printed title/locality candidates—and sometimes a third-party contractor name—
+    // v3 printed title/locality candidates (and sometimes a third-party contractor name)
     // into outward copy even while segment, award and DLP were unverified. IndexedDB
     // survives app upgrades, so remove that entire generated allegation from every unsent
     // draft. Candidate metadata may remain on the local report for research/audit.
@@ -7030,7 +7166,7 @@
       || separated.authority_name) || "Unknown";
     const ownerVerified = separated.road_owner_status === "verified";
     const ownerName = ownerVerified && separated.road_owner_name
-      ? separated.road_owner_name : "Unknown — authority to inspect and transfer if required";
+      ? separated.road_owner_name : "Unknown (authority to inspect and transfer if required)";
     const clue = [separated.routing_source,
       separated.routing_match_field && separated.routing_match_value
         ? `${separated.routing_match_field}=${separated.routing_match_value}` : null]
@@ -7053,9 +7189,24 @@
     }
   }
 
+  // The officer reads the capture time on Indian civil time. A UTC ISO stamp made a
+  // 19:18 capture read as 13:48. Fixed +05:30 arithmetic keeps the letter identical on
+  // every WebView, whatever ICU data it ships.
+  const IST_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function formatCapturedIst(epochSeconds) {
+    const d = new Date(epochSeconds * 1000 + 330 * 60000);
+    const hour = d.getUTCHours();
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getUTCDate()} ${IST_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}, `
+      + `${hour % 12 || 12}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} `
+      + `${hour < 12 ? "am" : "pm"} IST`;
+  }
+
   function buildComplaintOutputs(a, lat, lng, address, officerName, tender, route = null,
                                   evidence = {}) {
     void officerName; // Authority profiles, not honorifics, define the technical output.
+    const noContract = evidence.contract_lookup === "unavailable"
+      ? CONTRACT_LOOKUP_UNAVAILABLE : NO_VERIFIED_CONTRACT;
     assertComplaintInvariants(lat, lng, route);
     const routing = complaintRoutingBlock(route);
     const tenderMatch = verifiedContractForComplaint(
@@ -7076,7 +7227,7 @@
     const profileChannel = routing.profile.portal_name || routing.route.handoff_name
       || (routing.route.delivery_channel === "email" ? "Email" : "Official grievance service");
     const captured = Number.isFinite(evidence.captured_at)
-      ? new Date(evidence.captured_at * 1000).toISOString() : "Not recorded";
+      ? formatCapturedIst(evidence.captured_at) : "Not recorded";
     const gpsAccuracy = Number.isFinite(evidence.gps_accuracy)
       ? `±${Math.round(evidence.gps_accuracy)} m` : "Not recorded";
     const photoProvenance = evidence.photo_provenance || "Photo attached from Pothole Reporter";
@@ -7111,22 +7262,24 @@
       dlp_status: "Verified active on capture date",
     } : null;
 
+    // Lines that would read the same on every report are left out: the shared detector
+    // reports no surface, and nothing in the app measures a pothole. Profile ids and the
+    // routing clue are internal and stay in the record, not in what the officer reads.
+    const surfaceKnown = surface !== SURFACE_LABELS.unknown;
+    const fieldMeasured = measurementProvenance === "Field measured";
     const classificationLines = [
-      "Defect decision: Pothole — YES",
-      `Surface: ${surface}`,
+      "Defect decision: Pothole (YES)",
+      surfaceKnown ? `Surface: ${surface}` : null,
       `App visual size class: ${size}`,
-      "Physical dimensions (length / width / depth): Unknown / Unknown / Unknown",
       `Measurement provenance: ${measurementProvenance}`,
-      `Measurement confidence: ${measurementConfidence}`,
-    ];
+      fieldMeasured ? `Measurement confidence: ${measurementConfidence}` : null,
+    ].filter(Boolean);
     const routingLines = [
       `Geographic corporation/body: ${routing.geographicName}`,
       `Complaint intake authority: ${routing.intakeName}`,
-      `Intake profile: ${routing.profile.profile_id}`,
       `Suggested portal category: ${profileCategory}`,
       `Suggested ward: ${ward}`,
       `Road owner/maintainer: ${routing.ownerName}`,
-      `Routing basis: ${routing.clue}`,
     ];
     const tenderLines = tenderFields ? [
       `Status: ${tenderFields.status}`,
@@ -7161,7 +7314,7 @@
         ? `Road to: ${tenderFields.road_to}` : null,
       !["Not listed", "Not applicable"].includes(tenderFields.match_basis)
         ? `Candidate match basis: ${tenderFields.match_basis}` : null,
-      `Source: ${tenderFields.source_name}${tenderFields.source_url !== "Not applicable" ? ` — ${tenderFields.source_url}` : ""}`,
+      `Source: ${tenderFields.source_name}${tenderFields.source_url !== "Not applicable" ? ` (${tenderFields.source_url})` : ""}`,
       !["Not listed", "Not applicable"].includes(tenderFields.detail_url)
         && tenderFields.detail_url !== tenderFields.source_url
         ? `Official tender detail link (may expire): ${tenderFields.detail_url}` : null,
@@ -7170,11 +7323,36 @@
       `Award/work-order status: ${tenderFields.award_status}`,
       `DLP status: ${tenderFields.dlp_status}`,
     ].filter(Boolean) : [
-      `Status: ${NO_VERIFIED_CONTRACT}`,
+      `Status: ${noContract}`,
     ];
-    const request = routing.profile.request
-      || "Please register this grievance, inspect and repair the pothole, return the grievance number, and transfer it if another agency maintains the road.";
-    const outputLang = LANG();
+    const outputLang = complaintLanguage(routing.route);
+    // The officer reads the whole letter, so the framing follows the chosen language.
+    // Field values (authority names, surface, contract status) stay as the source data
+    // spells them, because that is what the officer's own records use.
+    const letter = {
+      kn: { opening: "ದಯವಿಟ್ಟು ಈ ರಸ್ತೆ ಗುಂಡಿ ದೂರನ್ನು ದಾಖಲಿಸಿ.", location: "ಸ್ಥಳ",
+            classification: "ಹಾನಿಯ ವಿವರ", routing: "ಜವಾಬ್ದಾರ ಕಚೇರಿ", contract: "ಗುತ್ತಿಗೆ ಮಾಹಿತಿ",
+            address: "ವಿಳಾಸ / ಗುರುತು", coordinates: "ನಿರ್ದೇಶಾಂಕಗಳು", map: "ನಕ್ಷೆ",
+            accuracy: "GPS ನಿಖರತೆ", captured: "ಸೆರೆಹಿಡಿದ ಸಮಯ", photo: "ಫೋಟೋ",
+            request: "ದಯವಿಟ್ಟು ಈ ದೂರನ್ನು ದಾಖಲಿಸಿ, ರಸ್ತೆ ಗುಂಡಿಯನ್ನು ಪರಿಶೀಲಿಸಿ ದುರಸ್ತಿ ಮಾಡಿ, ದೂರು ಸಂಖ್ಯೆಯನ್ನು ತಿಳಿಸಿ, ಮತ್ತು ರಸ್ತೆಯನ್ನು ಬೇರೆ ಸಂಸ್ಥೆ ನಿರ್ವಹಿಸುತ್ತಿದ್ದರೆ ದೂರನ್ನು ಅವರಿಗೆ ವರ್ಗಾಯಿಸಿ." },
+      mr: { opening: "कृपया खालील खड्ड्याची तक्रार नोंदवा.", location: "ठिकाण",
+            classification: "नुकसानाचा तपशील", routing: "जबाबदार कार्यालय", contract: "कंत्राट माहिती",
+            address: "पत्ता / खूण", coordinates: "निर्देशांक", map: "नकाशा",
+            accuracy: "GPS अचूकता", captured: "छायाचित्राची वेळ", photo: "फोटो",
+            request: "कृपया ही तक्रार नोंदवा, खड्ड्याची पाहणी करून दुरुस्ती करा, तक्रार क्रमांक कळवा आणि रस्ता दुसरी संस्था सांभाळत असल्यास तक्रार त्यांच्याकडे वर्ग करा." },
+      bn: { opening: "অনুগ্রহ করে নিচের গর্তের অভিযোগটি নথিভুক্ত করুন।", location: "স্থান",
+            classification: "ক্ষতির বিবরণ", routing: "দায়িত্বপ্রাপ্ত দপ্তর", contract: "ঠিকাদারি তথ্য",
+            address: "ঠিকানা / চিহ্ন", coordinates: "স্থানাঙ্ক", map: "মানচিত্র",
+            accuracy: "GPS নির্ভুলতা", captured: "ছবি তোলার সময়", photo: "ছবি",
+            request: "অনুগ্রহ করে অভিযোগটি নথিভুক্ত করুন, গর্তটি পরিদর্শন করে মেরামত করুন, অভিযোগ নম্বরটি জানান, এবং রাস্তাটি অন্য কোনো সংস্থা রক্ষণাবেক্ষণ করলে অভিযোগটি তাদের কাছে পাঠান।" },
+    }[outputLang] || {
+      opening: "Please register the following pothole grievance.", location: "LOCATION",
+      classification: "CLASSIFICATION", routing: "ROUTING", contract: "CONTRACT VERIFICATION",
+      address: "Address / landmark", coordinates: "Coordinates", map: "Map",
+      accuracy: "GPS accuracy", captured: "Captured", photo: "Photo",
+      request: routing.profile.request
+        || "Please register this grievance, inspect and repair the pothole, return the grievance number, and transfer it if another agency maintains the road.",
+    };
     const addressedAuthority = outputLang === "bn"
       && routing.route.authority_id === "wb-kmc"
       ? "কলকাতা পৌরসংস্থা (KMC)" : routing.officerName;
@@ -7183,22 +7361,22 @@
         : outputLang === "bn" ? `মাননীয় ${addressedAuthority},`
           : `Dear ${routing.officerName},`;
     const signoff = outputLang === "kn" ? `ವಂದನೆಗಳು,\n${S.name}`
-      : outputLang === "mr" ? `आपला/आपली,\n${S.name}`
+      : outputLang === "mr" ? `आपले विश्वासू,\n${S.name}`
         : outputLang === "bn" ? `বিনীত,\n${S.name}`
           : `Regards,\n${S.name}`;
     const independentNote = complaintFooter(outputLang);
-    const subject = outputLang === "kn" ? `ರಸ್ತೆ ಗುಂಡಿ ದೂರು — ${road}`
-      : outputLang === "mr" ? `खड्ड्याची तक्रार — ${road}`
-        : outputLang === "bn" ? `রাস্তার গর্তের অভিযোগ — ${road}`
-          : `Pothole complaint — ${road}`;
+    const subject = outputLang === "kn" ? `ರಸ್ತೆ ಗುಂಡಿ ದೂರು: ${road}`
+      : outputLang === "mr" ? `खड्ड्याची तक्रार: ${road}`
+        : outputLang === "bn" ? `রাস্তার গর্তের অভিযোগ: ${road}`
+          : `Pothole complaint: ${road}`;
     const emailBody = [
       greeting,
-      "Please register the following pothole grievance.",
-      `LOCATION\nAddress / landmark: ${location}\nCoordinates: ${coordinates}\nMap: ${mapUrl}\nGPS accuracy: ${gpsAccuracy}\nCaptured: ${captured}\nPhoto: ${photoProvenance}`,
-      `CLASSIFICATION\n${classificationLines.join("\n")}`,
-      `ROUTING\n${routingLines.join("\n")}`,
-      `CONTRACT VERIFICATION\n${tenderLines.join("\n")}`,
-      request,
+      letter.opening,
+      `${letter.location}\n${letter.address}: ${location}\n${letter.coordinates}: ${coordinates}\n${letter.map}: ${mapUrl}\n${letter.accuracy}: ${gpsAccuracy}\n${letter.captured}: ${captured}\n${letter.photo}: ${photoProvenance}`,
+      `${letter.classification}\n${classificationLines.join("\n")}`,
+      `${letter.routing}\n${routingLines.join("\n")}`,
+      `${letter.contract}\n${tenderLines.join("\n")}`,
+      letter.request,
       signoff,
       independentNote,
     ].join("\n\n");
@@ -7206,11 +7384,11 @@
       `Pothole report: ${location}`,
       `Coordinates: ${coordinates}`,
       `Map: ${mapUrl}`,
-      `Classification: Pothole YES; ${surface}; app visual size ${size}; physical measurements unknown (${measurementProvenance.toLowerCase()}, ${measurementConfidence.toLowerCase()} confidence).`,
-      `Routing: geographic body ${routing.geographicName}; intake ${routing.intakeName}; road owner ${routing.ownerVerified ? routing.ownerName : "unverified"}; basis ${routing.clue}.`,
+      `Classification: Pothole YES; ${surfaceKnown ? `${surface}; ` : ""}app visual size ${size} (${measurementProvenance.toLowerCase()}).`,
+      `Routing: geographic body ${routing.geographicName}; intake ${routing.intakeName}; road owner ${routing.ownerVerified ? routing.ownerName : "unverified"}.`,
       tenderFields
         ? `Contract verification: ${tenderFields.status}; ${tenderFields.reference_label.toLowerCase()} ${tenderFields.tender_number}; work ${tenderFields.exact_work_name}; organisation ${tenderFields.organisation}; contractor ${tenderFields.listed_contractor}; source ${tenderFields.source_name} ${tenderFields.source_url}; DLP ${tenderFields.dlp_status}.`
-        : `Contract verification: ${NO_VERIFIED_CONTRACT}`,
+        : `Contract verification: ${noContract}`,
       "Please inspect, repair, register the grievance and share its reference number.",
       independentNote,
     ].join("\n");
@@ -7223,7 +7401,7 @@
       gps_accuracy: gpsAccuracy,
       captured_at: captured,
       photo_provenance: photoProvenance,
-      defect_decision: "Pothole — YES",
+      defect_decision: "Pothole (YES)",
       surface,
       app_visual_size_class: size,
       physical_dimensions: "Unknown (no reference scale)",
@@ -7231,12 +7409,10 @@
       measurement_confidence: measurementConfidence,
       geographic_body: routing.geographicName,
       intake_authority: routing.intakeName,
-      intake_profile: routing.profile.profile_id,
       intake_channel: profileChannel,
       suggested_ward: ward,
       road_owner_maintainer: routing.ownerName,
-      routing_basis: routing.clue,
-      contract_verification_status: tenderFields ? tenderFields.status : NO_VERIFIED_CONTRACT,
+      contract_verification_status: tenderFields ? tenderFields.status : noContract,
       ...(tenderFields ? {
         tender_number: tenderFields.tender_number,
         exact_work_name: tenderFields.exact_work_name,
@@ -7264,7 +7440,7 @@
         award_work_order_status: tenderFields.award_status,
         dlp_status: tenderFields.dlp_status,
       } : {}),
-      request,
+      request: letter.request,
       independent_app_note: independentNote,
     };
     const portalCopyText = Object.entries(portalFields)
@@ -7381,6 +7557,7 @@
     }
     const output = buildComplaintOutputs(assessment, Number(rec.lat), Number(rec.lng),
       rec.address, rec.officer_name, tender, route, {
+        ...contractLookupEvidence(rec.tender_resolution_reason),
         captured_at: rec.captured_at || rec.created_at,
         gps_accuracy: Number(rec.gps_accuracy),
         photo_provenance: rec.capture_source === "manual_import"
@@ -7444,7 +7621,7 @@
                                captureSource = "manual", locationSource = null) {
     const issue = normaliseIssueType(issueType);
     if (issue === "road_damage") throw new Error("Road damage must use the verified detector draft.");
-    const lang = LANG();
+    const lang = complaintLanguage(route);
     const authority = conciseRouteLabel(route && route.authority_name);
     const officer = conciseRouteLabel(route && OFFICIAL_HANDOFF_CHANNELS.has(route.delivery_channel)
       ? authority : officerName);
@@ -7457,11 +7634,11 @@
       ? `${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}` : null;
     const map = coords ? `https://maps.google.com/?q=${coords.replace(" ", "")}` : null;
     const subject = lang === "kn"
-      ? `${issueName} ದೂರು${road ? ` — ${road}` : ""}`
+      ? `${issueName} ದೂರು${road ? `: ${road}` : ""}`
       : lang === "mr"
-        ? `${issueName} तक्रार${road ? ` — ${road}` : ""}`
+        ? `${issueName} तक्रार${road ? `: ${road}` : ""}`
         : lang === "bn"
-          ? `${issueName} সংক্রান্ত অভিযোগ${road ? ` — ${road}` : ""}`
+          ? `${issueName} সংক্রান্ত অভিযোগ${road ? `: ${road}` : ""}`
           : `${issue === "open_manhole" ? "Urgent: " : ""}${issueName} complaint${road ? ` near ${road}` : ""}`;
     const location = lang === "kn"
       ? `ಸ್ಥಳ: ${address || "ಲಗತ್ತಿಸಿದ ಚಿತ್ರ ನೋಡಿ"}${coords ? `\nನಿರ್ದೇಶಾಂಕಗಳು: ${coords}\nನಕ್ಷೆ: ${map}` : ""}`
@@ -7488,7 +7665,7 @@
       bn: `মাননীয় ${officer || "সংশ্লিষ্ট আধিকারিক"},` }[lang]
       || `Dear ${officer || "Sir or Madam"},`);
     const close = ({ kn: `ಧನ್ಯವಾದಗಳು.\n\nವಂದನೆಗಳು,\n${sender}`,
-      mr: `धन्यवाद.\n\nआपला/आपली,\n${sender}`,
+      mr: `धन्यवाद.\n\nआपले विश्वासू,\n${sender}`,
       bn: `ধন্যবাদ।\n\nবিনীত,\n${sender}` }[lang]
       || `Thank you.\n\nRegards,\n${sender}`);
     const statewideWestBengal = route && route.authority_id === "wb-statewide-unverified";
@@ -7521,9 +7698,19 @@
 
   // ---------- storage (IndexedDB) ----------
   let _db = null;
+  // Boot reads reports, drives and footage at once. Caching only the resolved database let
+  // each of them open its own connection, and only the last got onversionchange, so the
+  // others were leaked and blocked every later schema upgrade. Share the open in flight.
+  let _dbOpening = null;
   function idb() {
+    if (_db) return Promise.resolve(_db);
+    if (!_dbOpening) {
+      _dbOpening = openIdb().finally(() => { _dbOpening = null; });
+    }
+    return _dbOpening;
+  }
+  function openIdb() {
     return new Promise((resolve, reject) => {
-      if (_db) return resolve(_db);
       const req = indexedDB.open("potholes", 8);
       req.onupgradeneeded = (event) => {
         const d = req.result;
@@ -7644,11 +7831,17 @@
 
   // Delete-all is one IndexedDB transaction. Sequential clears can leave a misleading
   // half-wiped history when a later store aborts (especially under storage pressure).
+  // A short-lived v8 build created the database without state_packs, and v8 never runs
+  // onupgradeneeded again, so naming a missing store would throw and leave the wipe
+  // half done. Clear and count only the stores this database has.
+  const presentDataStores = (d) => STORED_DATA_STORES.filter((n) => d.objectStoreNames.contains(n));
+
   function clearAllStoredRecords() {
     return idb().then((d) => new Promise((resolve, reject) => {
-      const tx = d.transaction(STORED_DATA_STORES, "readwrite");
+      const stores = presentDataStores(d);
+      const tx = d.transaction(stores, "readwrite");
       let failure = null;
-      for (const name of STORED_DATA_STORES) {
+      for (const name of stores) {
         const req = tx.objectStore(name).clear();
         req.onerror = () => { failure = req.error; };
       }
@@ -7661,9 +7854,10 @@
 
   function allStoredRecordsAreEmpty() {
     return idb().then((d) => new Promise((resolve, reject) => {
-      const tx = d.transaction(STORED_DATA_STORES, "readonly");
+      const stores = presentDataStores(d);
+      const tx = d.transaction(stores, "readonly");
       let remaining = 0, failure = null;
-      for (const name of STORED_DATA_STORES) {
+      for (const name of stores) {
         const req = tx.objectStore(name).count();
         req.onsuccess = () => { remaining += Number(req.result) || 0; };
         req.onerror = () => { failure = req.error; };
@@ -7675,12 +7869,31 @@
     }));
   }
 
+  // Best-effort storage can be evicted under pressure, taking a tester's reports with it.
+  // Ask once, after the first report is saved, when there is something worth keeping;
+  // where persist() is missing or refused nothing changes.
+  let persistRequested = false;
+  function requestPersistentStorage() {
+    if (persistRequested) return;
+    persistRequested = true;
+    try {
+      if (navigator.storage && typeof navigator.storage.persist === "function") {
+        navigator.storage.persist().catch(() => {});
+      }
+    } catch (_) {}
+  }
+
   // A full device is the common cause and the only one the user can act on, so it says so
   // rather than surfacing a DOMException name.
   function storageError(err) {
     const name = err && err.name;
     if (name === "QuotaExceededError") {
-      return new Error("This phone is out of storage, so nothing more can be saved. Free some space, or delete old drives and their video from the app.");
+      // Fatal: the next frame would spend another shared detection it cannot save, so a
+      // drive or a video run stops here instead of retrying or treating it as a blip.
+      const full = new Error("This phone is out of storage, so nothing more can be saved. Free some space, or delete old drives and their video from the app.");
+      full.fatal = true;
+      full.code = "storage_full";
+      return full;
     }
     return new Error((err && err.message) || "Could not save to this device's storage.");
   }
@@ -7697,9 +7910,6 @@
   const getFootage = (key) => op("readonly", (s) => s.get(String(key)), "footage");
   const putDrive = (d) => op("readwrite", (s) => s.put(d), "drives");
 
-  // A short-lived v8 build shipped without the optional state_packs store. Do not let
-  // that cache omission wedge History or delete-all; the signed pack loader can simply
-  // fetch again on those installs.
   async function migrateLegacyComplaintDrafts(records) {
     const output = [];
     for (const record of Array.isArray(records) ? records : []) {
@@ -7751,16 +7961,18 @@
       const tx = d.transaction("footage", "readwrite");
       const req = tx.objectStore("footage").index("by_drive")
         .openCursor(IDBKeyRange.only(String(driveId)));
-      let failure = null;
+      let failure = null, freed = 0;
       req.onsuccess = () => {
         const cursor = req.result;
         if (!cursor) return;
+        const blob = cursor.value && cursor.value.blob;
+        freed += (blob && blob.size) || 0;
         const del = cursor.delete();
         del.onerror = () => { failure = del.error; };
         cursor.continue();
       };
       req.onerror = () => { failure = req.error; };
-      tx.oncomplete = () => resolve();
+      tx.oncomplete = () => resolve(freed);
       const died = () => reject(storageError(failure || tx.error));
       tx.onabort = died;
       tx.onerror = died;
@@ -7792,7 +8004,8 @@
         queued.onerror = () => { failure = queued.error; };
       };
       const addNew = () => {
-        const add = store.add(rec);
+        // A shared Photo already holds its routing_pending row; this replaces it.
+        const add = rec.id != null ? store.put(rec) : store.add(rec);
         add.onsuccess = () => {
           result = { id: add.result, duplicate: null };
           queueCentral(add.result, false);
@@ -7940,10 +8153,33 @@
     if (storedPhoto(value)) return new Blob([value.bytes], { type: value.type || "image/jpeg" });
     return value;
   };
+  // Bytes are the WebKit fallback only. The list reads every row with getAll(), which
+  // copies an ArrayBuffer in full but hands back a Blob as a handle, so bytes rows made
+  // Home read every 4000px evidence copy on each return: 4 s for 150 camera reports,
+  // against 26 ms for the same rows as Blobs. One probe write, rolled back, decides.
+  let _idbTakesBlobs = null;
+  function idbTakesBlobs() {
+    if (!_idbTakesBlobs) {
+      _idbTakesBlobs = idb().then((d) => new Promise((resolve) => {
+        try {
+          const tx = d.transaction("state_packs", "readwrite");
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = tx.onabort = () => resolve(false);
+          const store = tx.objectStore("state_packs");
+          store.put({ cache_key: "__blob_probe__", blob: new Blob(["probe"]) });
+          store.delete("__blob_probe__");
+        } catch (e) { resolve(false); }
+      })).catch(() => false);
+    }
+    return _idbTakesBlobs;
+  }
   const dataUrlToBlob = async (u) => {
     if (!u || typeof u !== "string") return u || null;
     try {
       const blob = await (await fetch(u)).blob();
+      if (await idbTakesBlobs()) {
+        return blob.type ? blob : new Blob([blob], { type: "image/jpeg" });
+      }
       return { bytes: await blob.arrayBuffer(), type: blob.type || "image/jpeg" };
     } catch (e) { return u; }
   };
@@ -8028,7 +8264,8 @@
       gps_accuracy_m: Number.isFinite(rec.gps_accuracy) ? rec.gps_accuracy : null,
       heading_deg: Number.isFinite(rec.heading) ? rec.heading : null,
       speed_mps: Number.isFinite(rec.speed_mps) ? rec.speed_mps : null,
-      capture_source: rec.capture_source || "manual",
+      capture_source: isManualCaptureSource(rec.capture_source) ? "manual"
+        : rec.capture_source || "manual",
       location_source: rec.location_source || (finiteCoord(rec.lat) && finiteCoord(rec.lng)
         ? "device_gps" : "none"),
       damage_type: rec.damage_type,
@@ -8053,8 +8290,34 @@
     });
   }
 
+  // The server refuses these for good (bad or expired receipt, replay, too large, not
+  // allowed). Resending the identical signed bytes can only be refused again.
+  const TERMINAL_CENTRAL_STATUSES = new Set([400, 403, 409, 413, 422]);
+  const terminalCentralFailure = (error) => !!error && TERMINAL_CENTRAL_STATUSES.has(error.status);
+
+  // A bounded in-session retry for rows a failed shared-mode write left behind: the
+  // retry itself is the probe, and at most one request goes out per attempt because
+  // retryCentralOutbox stops at the first retryable failure.
+  let centralRetryTimer = null, centralRetryDelay = 0;
+  function scheduleCentralRetry() {
+    if (centralRetryTimer) return;
+    const base = Number(window.__centralRetryDelayMs) || 60000;
+    centralRetryDelay = centralRetryDelay ? Math.min(centralRetryDelay * 2, 15 * 60000) : base;
+    centralRetryTimer = setTimeout(() => {
+      centralRetryTimer = null;
+      void flushCentralOutbox()
+        .then(() => allCentralOutbox())
+        .then((rows) => {
+          if (rows.length) scheduleCentralRetry();
+          else centralRetryDelay = 0;
+        })
+        .catch(() => scheduleCentralRetry());
+    }, centralRetryDelay);
+  }
+
   function recordCentralRetryFailure(queued, error) {
     const key = String(queued.client_observation_id);
+    const refused = terminalCentralFailure(error);
     return idb().then((d) => new Promise((resolve, reject) => {
       const tx = d.transaction(["reports", "central_outbox"], "readwrite");
       const reports = tx.objectStore("reports");
@@ -8069,15 +8332,26 @@
         current.last_attempt_at = Date.now();
         current.last_error = error && error.message || "Shared-map sync failed.";
         current.last_request_id = error && error.requestId || null;
-        outbox.put(current);
-        const getReportRequest = reports.get(Number(current.report_id));
+        if (refused) outbox.delete(key);
+        else outbox.put(current);
+        const reportId = Number(current.report_id);
+        const getReportRequest = reports.get(reportId);
         getReportRequest.onsuccess = () => {
           const rec = getReportRequest.result;
           if (!rec) return;
-          rec.central_sync_pending = true;
           rec.server_sync_error = current.last_error;
           rec.server_request_id = current.last_request_id || rec.server_request_id || null;
-          reports.put(rec);
+          if (!refused) {
+            rec.central_sync_pending = true;
+            reports.put(rec);
+            return;
+          }
+          rec.server_sync_terminal = true;
+          const remaining = outbox.index("by_report").count(IDBKeyRange.only(reportId));
+          remaining.onsuccess = () => {
+            rec.central_sync_pending = remaining.result > 0;
+            reports.put(rec);
+          };
         };
       };
       tx.oncomplete = () => resolve();
@@ -8150,6 +8424,7 @@
   let centralRetryPromise = null;
   function retryCentralOutbox() {
     if (centralRetryPromise) return centralRetryPromise;
+    let settled = 0;
     centralRetryPromise = (async () => {
       const queuedRows = (await allCentralOutbox())
         .sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
@@ -8172,15 +8447,27 @@
             throw new Error("The reporting service returned an incomplete pothole record.");
           }
           await completeCentralRetry(queued, response);
+          settled++;
         } catch (error) {
           await recordCentralRetryFailure(queued, error);
+          if (terminalCentralFailure(error)) settled++;
           // One unreachable or overloaded service would fail every queued row. Leave the
           // remainder durable for the next startup/reconnect instead of hammering it.
           if (!error || !Number.isFinite(error.status) || error.status === 408
-              || error.status === 429 || error.status >= 500) break;
+              || error.status === 429 || error.status >= 500) {
+            scheduleCentralRetry();
+            break;
+          }
         }
       }
-    })().finally(() => { centralRetryPromise = null; });
+    })().finally(() => {
+      centralRetryPromise = null;
+      // Only this engine knows a report changed state; the list and an open card
+      // were drawn from the old row and stay stale until told.
+      if (settled) {
+        try { window.dispatchEvent(new CustomEvent("central-outbox-flushed")); } catch (e) {}
+      }
+    });
     return centralRetryPromise;
   }
 
@@ -8288,6 +8575,28 @@
     }
   }
 
+  // The accepted-evidence copy, as a stored Blob. toDataURL is a synchronous encode on
+  // the main thread (0.9 s for a 4000 px photo on a mid-range phone) followed by a
+  // data: URL fetch back into a Blob; toBlob encodes off the main thread in one step.
+  async function toEvidenceImage(source, maxDim, quality) {
+    const bmp = await createImageBitmap(photoBlob(source), { imageOrientation: "from-image" });
+    let c = null;
+    try {
+      const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+      c = document.createElement("canvas");
+      c.width = Math.round(bmp.width * scale);
+      c.height = Math.round(bmp.height * scale);
+      c.getContext("2d").drawImage(bmp, 0, 0, bmp.width, bmp.height, 0, 0, c.width, c.height);
+      const blob = await new Promise((resolve) => c.toBlob(resolve, "image/jpeg", quality));
+      if (!blob) throw new Error("The evidence photo could not be encoded.");
+      return (await idbTakesBlobs()) ? blob
+        : { bytes: await blob.arrayBuffer(), type: blob.type || "image/jpeg" };
+    } finally {
+      if (typeof bmp.close === "function") bmp.close();
+      if (c) { c.width = 0; c.height = 0; }
+    }
+  }
+
   // ---------- pipeline ----------
   // Detection requests stay concurrent, but their final storage decisions must follow
   // capture order within one drive. Otherwise a later frame can finish inference first,
@@ -8332,9 +8641,53 @@
     }
   }
 
-  async function createReport(fd, driveMode) {
+  // An accepted Photo stores about 4.1 MB (measured), so twice that keeps the check
+  // honest without refusing a phone that can still save one.
+  const MANUAL_STORAGE_HEADROOM_BYTES = 8 * 1024 * 1024;
+
+  // A Photo on a full phone ran the detection and registered the shared-map observation
+  // before its first local write failed: each retry spent one of the install's daily
+  // detections and left a central row the phone had no record of. Refuse up front
+  // instead. Where estimate() is missing or fails, carry on and let the write decide.
+  async function ensureStorageHeadroom(bytes) {
+    let estimate = null;
+    try {
+      estimate = navigator.storage && typeof navigator.storage.estimate === "function"
+        ? await navigator.storage.estimate() : null;
+    } catch (_) { return; }
+    if (estimate && Number.isFinite(estimate.quota) && Number.isFinite(estimate.usage)
+        && estimate.quota - estimate.usage < bytes) {
+      throw storageError({ name: "QuotaExceededError" });
+    }
+  }
+
+  // The WebView hands deleted footage back to the quota several seconds after the rows
+  // go (5.3 s measured on a 300 MB volume), so the Photo retry the storage error invites
+  // was refused again. Only on a phone too full for a Photo, hold the delete until the
+  // space shows up, bounded so a WebView that never reports it cannot hang the screen.
+  async function waitForFreedSpace(freedBytes, timeoutMs = 8000) {
+    const estimate = async () => {
+      try {
+        const e = navigator.storage && typeof navigator.storage.estimate === "function"
+          ? await navigator.storage.estimate() : null;
+        return e && Number.isFinite(e.quota) && Number.isFinite(e.usage) ? e : null;
+      } catch (_) { return null; }
+    };
+    const roomy = (e) => e.quota - e.usage >= MANUAL_STORAGE_HEADROOM_BYTES;
+    const first = await estimate();
+    if (!first || !freedBytes || roomy(first)) return;
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      const now = await estimate();
+      if (!now || roomy(now) || now.usage <= first.usage - freedBytes / 2) return;
+    }
+  }
+
+  async function createReport(fd, driveMode, signal = null) {
     const photo = fd.get("photo");
     if (!photo || !photo.size) throw new Error("Empty photo.");
+    if (!driveMode) await ensureStorageHeadroom(MANUAL_STORAGE_HEADROOM_BYTES);
     const latRaw = fd.get("lat"), lngRaw = fd.get("lng");
     const lat = latRaw != null && latRaw !== "" ? parseFloat(latRaw) : null;
     const lng = lngRaw != null && lngRaw !== "" ? parseFloat(lngRaw) : null;
@@ -8350,6 +8703,10 @@
     const captureSource = driveMode
       ? (requestedSource === "drive_vod" || requestedSource === "imported_video"
           ? requestedSource : "drive_live") : "manual";
+    // The service only knows "manual", but the stored row keeps camera versus import:
+    // the detail screen and the complaint's provenance line both depend on it.
+    const storedCaptureSource = driveMode ? captureSource
+      : normaliseManualCaptureSource(requestedSource);
     const requestedLocationSource = String(fd.get("location_source") || "");
     const allowedLocationSources = new Set([
       "device_gps", "gpx_timestamp", "current_position_confirmed", "none",
@@ -8389,6 +8746,12 @@
         manualInput.adaptiveBrightness);
       imageInputs = [{ url: dataUrl }];
     }
+    // The evidence copy does not depend on the verdict, so it encodes while the detector
+    // works instead of holding an accepted photo's detail screen for a second.
+    const evidenceInput = IMAGING_CONFIG.acceptedEvidence;
+    const evidenceEncode = driveMode ? null
+      : toEvidenceImage(photo, evidenceInput.maxDimension, evidenceInput.jpegQuality)
+        .catch(() => null);
     const shortOf = (g) => (g && g.short) || null;
     progress(pmsg("detect"));
     // Tender resolution can send exact coordinates to the project service and may use
@@ -8403,6 +8766,12 @@
       + (DETECTION_PROMPT_CONFIG.languageSuffixes[LANG()]
         || DETECTION_PROMPT_CONFIG.languageSuffixes.en);
     const detectionModel = S.model, detectionDetail = S.detail;
+    // The service keeps a detect key for 30 days and refuses the same key with another
+    // body (409 idempotency_conflict). Language, model and detail are in that body, so
+    // re-checking a frame after changing them needs its own key; identical settings keep
+    // the old one so a retried request is still answered once.
+    const detectSettings = (await sha256HexText(
+      [LANG(), detectionModel, detectionDetail, PROMPT_VERSION].join("|"))).slice(0, 16);
     // Single shot has one verdict on screen, so show it the moment it streams in.
     // Drive Mode analyses run concurrently and report through the HUD instead.
     // Drive Mode has no verdict on screen to update, so it passed no callback and took
@@ -8410,9 +8779,10 @@
     // It streams now purely to stop as soon as the frame is known to be rejected.
     const a = await analyzeImage(imageInputs, detectPrompt, "assessment", ASSESS_SCHEMA, detectionModel,
       driveMode ? null : emitVerdict, driveMode && !S.debug,
-      detectionDetail, driveMode ? "drive" : "manual", `vision:${clientObservationId}`,
+      detectionDetail, driveMode ? "drive" : "manual",
+      `vision:${clientObservationId}:${detectSettings}`,
       { client_observation_id: clientObservationId, lat, lng,
-        capture_source: captureSource, location_source: locationSource });
+        capture_source: captureSource, location_source: locationSource, signal });
     const decision = decisionFor(a);
     const accepted = decision === "accept";
     const detector = {
@@ -8432,7 +8802,7 @@
     }
     if (driveMode && !accepted) {
       return { analyzed: true, accepted: false, stored: false, found: false,
-               duplicate: false, duplicate_of: null, decision, review: false,
+               duplicate: false, duplicate_of: null, decision, review: decision === "review",
                ...a, observation: { ...a }, detector };
     }
 
@@ -8450,6 +8820,35 @@
     const synchronousCentral = usingSharedVision();
     const deferEnrichment = accepted && !synchronousCentral
       && finiteCoord(lat) && finiteCoord(lng);
+    // Nothing used to be written until routing answered, and the resolver has taken over
+    // six seconds, so a kill in that gap lost the photo and a detection already counted
+    // against the daily cap. The accepted row is saved first as unrouted and marked
+    // routing_pending; the final write replaces it, or the next launch finishes it.
+    let pendingId = null;
+    if (accepted && synchronousCentral && !driveMode && finiteCoord(lat) && finiteCoord(lng)) {
+      const pendingFrame = await dataUrlToBlob(dataUrl);
+      pendingId = await addReport({
+        created_at: Date.now() / 1000, lat, lng, address: null,
+        client_observation_id: clientObservationId,
+        photo: pendingFrame, photo_full: pendingFrame,
+        damage_type: a.damage_type, assessment: a.assessment, image_quality: a.image_quality,
+        size: a.size, decision, description: a.description,
+        status: "unrouted", unrouted_reason: "jurisdiction_unavailable", unrouted_body: null,
+        condition_status: "open", drive_id: null,
+        detection_model: detectionModel, image_detail: detectionDetail,
+        prompt_version: PROMPT_VERSION, schema_version: SCHEMA_VERSION,
+        evidence_count: imageInputs.length,
+        capture_source: storedCaptureSource, location_source: locationSource,
+        captured_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : null,
+        gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
+        speed_mps: Number.isFinite(speedRaw) ? speedRaw : null,
+        heading: normalizedHeading, debug_capture: S.debug,
+        // Never a dedupe target: the final write of this same capture replaces it.
+        dedupe_eligible: false, seen_count: 1,
+        vision_provider: "shared_server", vision_request_id: a && a.request_id || null,
+        routing_pending: { detector, detection_receipt: detectionReceipt },
+      });
+    }
     const geo = accepted && !deferEnrichment && !usingSharedVision()
       ? await (lat != null ? reverseGeocode(lat, lng).catch(() => null) : Promise.resolve(null))
       : null;
@@ -8477,6 +8876,9 @@
     }
     const centralJurisdiction = centralResolution && centralResolution.reached
       ? centralResolution.jurisdiction : null;
+    // Shared mode never sends the report's coordinates to a geocoder from the phone: the
+    // data notice says they go to the project service and nowhere else, so a shared
+    // letter's street name can only come from the service's resolver.
     const address = localAddress || centralJurisdiction && centralJurisdiction.address || null;
     // A failed central lookup is still authoritative as "unknown" in shared mode.
     // Falling through to the phone's KGIS path here would duplicate public traffic,
@@ -8499,21 +8901,31 @@
     // so nothing is lost if coverage later extends to this place.
     const complaint = accepted && covered
       ? buildComplaintOutputs(a, lat, lng, address, officerName, tender,
-          compatibleDraftRoute(route, officerName))
+          compatibleDraftRoute(route, officerName), {
+            ...contractLookupEvidence(centralResolution && centralResolution.reached
+              ? centralResolution.reason : null),
+            captured_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : null,
+            gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
+            photo_provenance: storedCaptureSource === "manual_import"
+              ? "User-selected/imported photo" : "Pothole Reporter camera evidence",
+          })
       : null;
     const subject = complaint ? complaint.email_subject : null;
     const body = complaint ? complaint.email_body : null;
     // Keep the full accepted evidence even when another device reported the same place.
     // Cross-device dedupe suppresses a second complaint, never the observer's evidence.
-    const evidenceInput = IMAGING_CONFIG.acceptedEvidence;
     const photoFull = accepted
-      ? (driveMode ? dataUrl : await toDataUrl(photo, evidenceInput.maxDimension,
-          evidenceInput.jpegQuality, false)) : null;
+      ? (driveMode ? dataUrl : (await evidenceEncode) || await toDataUrl(photo,
+          evidenceInput.maxDimension, evidenceInput.jpegQuality, false)) : null;
+    // A Drive frame is its own evidence copy. One object in both fields is serialised
+    // once by structured clone; two conversions stored every Drive frame twice.
+    const storedFrame = await dataUrlToBlob(dataUrl);
 
     const rec = {
       created_at: Date.now() / 1000, lat, lng, address,
       client_observation_id: clientObservationId,
-      photo: await dataUrlToBlob(dataUrl), photo_full: await dataUrlToBlob(photoFull),
+      photo: storedFrame,
+      photo_full: photoFull === dataUrl ? storedFrame : await dataUrlToBlob(photoFull),
       damage_type: a.damage_type, assessment: a.assessment, image_quality: a.image_quality,
       size: a.size,
       decision,
@@ -8523,7 +8935,10 @@
       portal_copy_text: complaint ? complaint.portal_copy_text : null,
       complaint_profile_id: complaint ? complaint.complaint_profile_id : null,
       complaint_template_version: body ? COMPLAINT_TEMPLATE_VERSION : null,
-      status: accepted ? (covered ? "draft" : "unrouted") : "rejected",
+      // A photo the model could not judge (dark, blurred, contradictory fields) is a
+      // retake, not evidence of an undamaged road.
+      status: accepted ? (covered ? "draft" : "unrouted")
+        : decision === "review" ? "review" : "rejected",
       condition_status: "open", condition_updated_at: null, condition_source: null,
       detection_model: detectionModel, image_detail: detectionDetail, prompt_version: PROMPT_VERSION,
       schema_version: SCHEMA_VERSION, evidence_count: imageInputs.length,
@@ -8590,7 +9005,7 @@
       email_opened_at: null,
       sent_at: null,
       drive_id: driveId,
-      capture_source: captureSource,
+      capture_source: storedCaptureSource,
       location_source: locationSource,
       source_event_key: sourceEventKey,
       source_event_keys: sourceEventKey ? [sourceEventKey] : [],
@@ -8655,8 +9070,11 @@
         // Detection and the local evidence stay useful during a service outage. Preserve
         // the request ID so support can locate the failed central attempt in logs. When
         // the exact observation body exists, commit it beside the report for retry.
-        centralFailure = error;
-        rec.central_sync_pending = !!centralRequestBody;
+        // A refusal is final: queueing it would resend the same refused bytes forever.
+        const refused = terminalCentralFailure(error);
+        centralFailure = refused ? null : error;
+        rec.central_sync_pending = !refused && !!centralRequestBody;
+        if (refused) rec.server_sync_terminal = true;
         rec.server_sync_error = error && error.message || "Shared-map sync failed.";
         rec.server_request_id = error && error.requestId || rec.server_request_id || null;
       }
@@ -8671,8 +9089,11 @@
         last_error: rec.server_sync_error,
         last_request_id: rec.server_request_id || null,
       } : null;
+      if (pendingId != null) rec.id = pendingId;
       const committed = await addReportUnlessDuplicate(rec, trackSightings, centralOutboxRow);
+      requestPersistentStorage();
       if (committed.duplicate) {
+        if (pendingId != null) await deleteReportAndCentralOutbox(pendingId).catch(() => {});
         if (centralReport && committed.duplicate.server_pothole_id
             && String(committed.duplicate.server_pothole_id)
               === String(centralReport.pothole && centralReport.pothole.id)) {
@@ -8688,6 +9109,10 @@
         void probeProjectService().then((available) => {
           if (available) return flushCentralOutbox();
         }).catch(() => {});
+      } else if (centralOutboxRow) {
+        // Shared mode tried once, synchronously. Without this the row waited for the
+        // next launch or network toggle however long the app stayed open.
+        scheduleCentralRetry();
       }
     } else {
       rec.id = await addReport(rec);
@@ -8813,6 +9238,8 @@
         bodyName: authoritativeJurisdiction
           ? authoritativeMunicipal && authoritativeJurisdiction.town || null
           : rec && rec.body_name || jurisdiction && jurisdiction.name || null,
+        centralOutsideState: !!authoritativeJurisdiction
+          && authoritativeJurisdiction.road_ownership === "outside_state",
       });
     }
 
@@ -8936,7 +9363,14 @@
                         path: attachment }],
       });
     } else {
-      console.log("[harness] would open native compose to:", prepared.to);
+      // The public web build has no composer plugin. A mailto: link opens the visitor's
+      // own mail app with the same recipient and text; it cannot carry the photo.
+      const body = `${prepared.body}\n\nPhoto: this email was opened from the Pothole Reporter website, which cannot attach files. The photo is kept in the app and can be sent on request.`;
+      const link = document.createElement("a");
+      link.href = `mailto:${encodeURIComponent(prepared.to)}`
+        + `?subject=${encodeURIComponent(prepared.subject)}&body=${encodeURIComponent(body)}`;
+      document.body.appendChild(link);
+      try { link.click(); } finally { link.remove(); }
     }
     rec.status = "queued";
     rec.email_opened_at = rec.email_opened_at || rec.sent_at || Date.now() / 1000;
@@ -9044,6 +9478,10 @@
   }
 
   // ---------- API dispatch ----------
+  // The last public map this phone read, at the service's maximum page. 2000 pins is
+  // about 500 KB of JSON, well inside the WebView's localStorage quota.
+  const PUBLIC_MAP_LIMIT = 2000;
+  const PUBLIC_MAP_CACHE_KEY = "public_map_cache";
   // Tester feedback is small and holds no image. Each entry keeps its exact signed body
   // and idempotency key, so a retry after a dropped connection is never counted twice.
   const FEEDBACK_QUEUE_KEY = "pending_feedback";
@@ -9060,24 +9498,42 @@
   let feedbackFlush = null;
   function flushFeedbackQueue() {
     if (feedbackFlush) return feedbackFlush;
+    if (!readFeedbackQueue().length) return Promise.resolve({ sent: 0, rejected: [], pending: 0 });
     feedbackFlush = (async () => {
       let sent = 0;
-      for (const entry of readFeedbackQueue()) {
-        try {
-          await signedServicePost("/v1/feedback", null, {
-            exactBody: entry.body, idempotencyKey: entry.key, timeout: 15000,
-            fallback: "Feedback could not be sent.",
-          });
-        } catch (error) {
-          // A rejected entry (bad input or today's limit) will never succeed; drop it.
-          if (!(error && error.status >= 400 && error.status < 500 && error.status !== 408
-              && error.status !== 425)) break;
+      const rejected = [];
+      const attempted = new Set();
+      let entry;
+      try {
+        // Re-read the queue after every send: a message queued while this flush was in
+        // flight joins it here instead of being reported pending until the next start.
+        while ((entry = readFeedbackQueue().find((item) => !attempted.has(item.key)))) {
+          attempted.add(entry.key);
+          try {
+            await signedServicePost("/v1/feedback", null, {
+              // The entry is already durable, so a stalled connection only delays the
+              // "saved on this phone" answer; it need not hold the tester for 15 s.
+              exactBody: entry.body, idempotencyKey: entry.key, timeout: 6000,
+              fallback: "Feedback could not be sent.",
+            });
+            sent += 1;
+          } catch (error) {
+            // A rejected entry (bad input or today's limit) will never succeed; drop it,
+            // but report it, so the screen never thanks the tester for a refused message.
+            // A stale stamp is the phone's clock, not the message: it sends once that is right.
+            if (!(error && error.status >= 400 && error.status < 500 && error.status !== 408
+                && error.status !== 425 && error.code !== "stale_request")) break;
+            rejected.push({ key: entry.key, code: error.code || null, status: error.status });
+          }
+          writeFeedbackQueue(readFeedbackQueue().filter((item) => item.key !== entry.key));
         }
-        writeFeedbackQueue(readFeedbackQueue().filter((item) => item.key !== entry.key));
-        sent += 1;
+        return { sent, rejected, pending: readFeedbackQueue().length };
+      } finally {
+        // Cleared in the same turn as the last queue read, so no later send can join a
+        // flush that has already stopped looking at the queue.
+        feedbackFlush = null;
       }
-      return { sent, pending: readFeedbackQueue().length };
-    })().finally(() => { feedbackFlush = null; });
+    })();
     return feedbackFlush;
   }
 
@@ -9086,9 +9542,14 @@
     let m;
     if (path === "/api/feedback" && method === "POST") {
       const value = JSON.parse((opts && opts.body) || "{}");
+      const key = randomId();
       writeFeedbackQueue([...readFeedbackQueue(),
-        { key: randomId(), body: JSON.stringify(value), queued_at: Date.now() }]);
+        { key, body: JSON.stringify(value), queued_at: Date.now() }]);
+      // Offline, a request can only time out; the online event sends it later.
+      if (navigator.onLine === false) return { ok: true, queued: true };
       const result = await flushFeedbackQueue();
+      const refused = (result.rejected || []).find((item) => item.key === key);
+      if (refused) return { ok: false, rejected: true, code: refused.code, status: refused.status };
       return { ok: true, queued: result.pending > 0 };
     }
     if (path === "/api/health") {
@@ -9098,8 +9559,18 @@
         detection_model: S.model, image_detail: S.detail, prompt_version: PROMPT_VERSION,
       };
       if (!usingSharedVision()) return { ...base, ai_configured: !!S.key };
+      // Publish this request as the in-flight probe. Home's banner check and the
+      // load-time warm-up both run at boot, and each used to send its own /v1/health.
+      // The detection this guards is allowed 100 s; a health answer slower than a few
+      // seconds is a slow link or a cold start, not an outage.
+      const request = serviceGet("/v1/health", 12000);
+      if (!projectServiceProbe) {
+        const joined = projectServiceProbe = request
+          .then((remote) => !!(remote && remote.ok), () => false)
+          .finally(() => { if (projectServiceProbe === joined) projectServiceProbe = null; });
+      }
       try {
-        const remote = await serviceGet("/v1/health", 4000);
+        const remote = await request;
         projectServiceState = remote && remote.ok ? "available" : "unavailable";
         projectServiceCheckedAt = Date.now();
         return {
@@ -9113,6 +9584,12 @@
           service_request_id: remote && remote.request_id || null,
         };
       } catch (error) {
+        // No answer at all is unknown, not down: the capture may proceed and the detect
+        // call reports its own clear error. Only a definite failure is cached as down.
+        if (error && error.timeout) {
+          return { ...base, ai_configured: false, service_timeout: true,
+                   service_error: error.message, service_request_id: null };
+        }
         projectServiceState = "unavailable";
         projectServiceCheckedAt = Date.now();
         return {
@@ -9123,10 +9600,31 @@
         };
       }
     }
-    if (path === "/api/map" && method === "GET") return serviceGet("/v1/map");
+    // The map screen waits on both with Refresh disabled. 20 s of an empty box on a
+    // dead link read as a hang; 8 s is still generous for a 2G answer.
+    if (path === "/api/map" && method === "GET") {
+      // The service maximum: its default of 1000 was then shown as the total.
+      const limit = PUBLIC_MAP_LIMIT;
+      try {
+        const map = await serviceGet(`/v1/map?limit=${limit}`, 8000);
+        // Public data only, kept so a map seen a minute ago still shows offline.
+        try {
+          localStorage.setItem(PUBLIC_MAP_CACHE_KEY, JSON.stringify({
+            service_url: SERVICE_URL, fetched_at: Date.now(), features: map.features,
+          }));
+        } catch (e) {}
+        return { ...map, requested_limit: limit };
+      } catch (error) {
+        let saved = null;
+        try { saved = JSON.parse(localStorage.getItem(PUBLIC_MAP_CACHE_KEY) || "null"); } catch (e) {}
+        if (!saved || saved.service_url !== SERVICE_URL || !Array.isArray(saved.features)) throw error;
+        return { type: "FeatureCollection", features: saved.features, requested_limit: limit,
+                 stale: true, fetched_at: saved.fetched_at };
+      }
+    }
     if (path.startsWith("/api/impact") && method === "GET") {
       const suffix = path.slice("/api/impact".length);
-      return serviceGet(`/v1/impact${suffix}`);
+      return serviceGet(`/v1/impact${suffix}`, 8000);
     }
     if (path === "/api/reports" && method === "GET") {
       // Without photo_full. The evidence copy is a 4000px JPEG and the list only shows a
@@ -9260,7 +9758,7 @@
     }
     if ((m = path.match(/^\/api\/footage\/([^/]+)$/)) && method === "DELETE") {
       const id = decodeURIComponent(m[1]);
-      await deleteFootageFor(id);
+      await waitForFreedSpace(await deleteFootageFor(id));
       return { ok: true };
     }
     if (path === "/api/drives" && method === "POST") {
@@ -9273,6 +9771,7 @@
       await putDrive({ id: String(d.id), started_at: d.started_at || null,
                        ended_at: Date.now() / 1000, checked: d.checked | 0, found: d.found | 0,
                        already: Math.max(d.already | 0, alreadyIds.length), already_ids: alreadyIds,
+                       captured: d.captured | 0, dropped: d.dropped | 0, failed: d.failed | 0,
                        gps_track: Array.isArray(d.gps_track) ? d.gps_track : [],
                        capture_source: captureSource });
       return { ok: true };
@@ -9350,7 +9849,9 @@
         }
       });
     }
-    if (path === "/api/report" && method === "POST") return createReport(opts.body, false);
+    if (path === "/api/report" && method === "POST") {
+      return createReport(opts.body, false, opts.signal || null);
+    }
     if (path === "/api/civic-report" && method === "POST") return createCivicReport(opts.body);
     if (path === "/api/frame" && method === "POST") return createReport(opts.body, true);
     if (path === "/api/native-report" && method === "POST") {
@@ -9999,22 +10500,43 @@
     if (!finiteCoord(rec.lat) || !finiteCoord(rec.lng)) {
       throw new Error("This report has no stored coordinates. Retake it with location enabled.");
     }
+    // A missing body address comes from a static pack, so a retry repeats the miss.
     const retryableReasons = roadDamage
-      ? ["jurisdiction_unavailable", "road_class_unknown", "no_address_for_body"]
-      : ["jurisdiction_unavailable", "no_address_for_body"];
+      ? ["jurisdiction_unavailable", "road_class_unknown"]
+      : ["jurisdiction_unavailable"];
     if (!retryableReasons.includes(rec.unrouted_reason)) {
       throw new Error(
         "Retry cannot change this saved location or issue category. Retake the report at the correct location instead."
       );
     }
 
-    const geo = await reverseGeocode(rec.lat, rec.lng).catch(() => null);
-    const address = (geo && geo.short) || rec.address || null;
+    // Shared road-damage reports are routed on the central resolver's answer, exactly as
+    // capture routes them. A phone-only route carries no ownership proof, so its Draft
+    // could never be emailed; while the resolver is down the report stays unrouted.
+    const central = roadDamage && usingSharedVision()
+      ? await tenderFromService(rec.lat, rec.lng, null, null, rec.client_observation_id)
+        .catch((error) => ({ reached: false, tender: null, error }))
+      : null;
+    const centralJurisdiction = central && central.reached ? central.jurisdiction : null;
+    const geo = central ? null : await reverseGeocode(rec.lat, rec.lng).catch(() => null);
+    const address = (geo && geo.short) || rec.address
+      || centralJurisdiction && centralJurisdiction.address || null;
     const route = await routeOfficer(geo || address, rec.lat, rec.lng, rec.gps_accuracy,
-      rec.heading, rec.speed_mps, rec.issue_type);
+      rec.heading, rec.speed_mps, rec.issue_type,
+      central ? (centralJurisdiction || { road_ownership: "unknown" }) : null);
     rec.routing_retry_at = Date.now() / 1000;
     rec.routing_retry_count = Math.max(0, Number(rec.routing_retry_count) || 0) + 1;
     if (address) rec.address = address;
+    if (centralJurisdiction) {
+      const municipal = centralJurisdiction.road_ownership === "municipal";
+      rec.road_ownership = centralJurisdiction.road_ownership || null;
+      rec.road_ownership_source = "central_v1";
+      rec.body_lgd = municipal ? centralJurisdiction.lgd || null : null;
+      rec.body_name = municipal ? centralJurisdiction.town || null : route.authority_name || null;
+      rec.tender_request_id = central.request_id;
+      rec.tender_resolution_reason = central.reason;
+      rec.tender_resolution_checked_at = Date.now() / 1000;
+    }
 
     if (!route.routed) {
       rec.unrouted_reason = route.unrouted_reason || rec.unrouted_reason || "outside_area";
@@ -10025,9 +10547,9 @@
 
     applyRouteRecord(rec, route);
     if (roadDamage) {
-      const tenderCandidate = canSearchTenderCatalog(route)
-        ? await matchTenderAt(rec.address, route, rec.lat, rec.lng).catch(() => null) : null;
-      const tender = normaliseTenderMatch(tenderCandidate, route);
+      const tenderCandidate = central || !canSearchTenderCatalog(route) ? null
+        : await matchTenderAt(rec.address, route, rec.lat, rec.lng).catch(() => null);
+      const tender = central ? central.tender : normaliseTenderMatch(tenderCandidate, route);
       applyTenderRecord(rec, tender);
       const complaint = buildComplaintOutputs({
         size: rec.size, surface_type: rec.surface_type,
@@ -10035,6 +10557,7 @@
         measurement_confidence: rec.measurement_confidence,
         description: rec.description,
       }, rec.lat, rec.lng, rec.address, route.officer_name, tender, route, {
+        ...contractLookupEvidence(central && central.reason),
         captured_at: rec.captured_at || rec.created_at,
         gps_accuracy: rec.gps_accuracy,
         photo_provenance: rec.capture_source === "manual_import"
@@ -10053,6 +10576,49 @@
     rec.unrouted_body = null;
     await putReport(rec);
     return toDict(rec);
+  }
+
+  // A shared Photo killed between detection and routing left its accepted row marked
+  // routing_pending. Finish it as capture would have: route it, then queue its shared-map
+  // observation from the same bytes and key, so a request the killed process did send is
+  // answered from the service's record instead of counted twice.
+  let pendingRoutingResume = null;
+  function resumePendingRouting() {
+    if (pendingRoutingResume) return pendingRoutingResume;
+    pendingRoutingResume = (async () => {
+      if (!usingSharedVision()) return;
+      const pending = (await allReports()).filter((r) => r && r.routing_pending);
+      for (const rec of pending) {
+        if (rec.status === "unrouted" && rec.unrouted_reason === "jurisdiction_unavailable") {
+          await retryCivicRouting(rec).catch(() => null);
+        }
+        // Still no resolver answer: leave it pending for the next launch.
+        if (rec.tender_resolution_checked_at == null) continue;
+        const { detector, detection_receipt: receipt } = rec.routing_pending;
+        const request = await centralPotholeRequest(rec, await blobToDataUrl(rec.photo),
+          detector, receipt, { reached: true, jurisdiction: rec.road_ownership === "municipal"
+            ? { lgd: rec.body_lgd || null, town: rec.body_name || null } : {} });
+        delete rec.routing_pending;
+        rec.central_sync_pending = !!request;
+        await idb().then((d) => new Promise((resolve, reject) => {
+          const tx = d.transaction(["reports", "central_outbox"], "readwrite");
+          tx.objectStore("reports").put(rec);
+          if (request) {
+            tx.objectStore("central_outbox").put({
+              client_observation_id: rec.client_observation_id,
+              path: "/v1/potholes/report", body: JSON.stringify(request),
+              created_at: Date.now(), last_attempt_at: null, attempt_count: 0,
+              last_error: null, last_request_id: null,
+              report_id: Number(rec.id), merged_into_existing: false,
+            });
+          }
+          tx.oncomplete = () => resolve();
+          tx.onabort = () => reject(storageError(tx.error));
+          tx.onerror = () => {};
+        }));
+      }
+    })().finally(() => { pendingRoutingResume = null; });
+    return pendingRoutingResume;
   }
 
   async function refreshAndPersistOfficialHandoff(rec) {
@@ -11542,18 +12108,19 @@
                    BIHAR_STATE_AUTHORITY, BIHAR_STATE_GEOMETRY_SHA256, BLR, BLR_BODIES,
                    CENTRAL_OWNERSHIP_SOURCE, CHHATTISGARH_ROUTING_ENVELOPE,
                    CHHATTISGARH_STATE_AUTHORITY, CHHATTISGARH_STATE_GEOMETRY_SHA256,
-                   CIVIC_HANDOFF_OVERRIDES, COMPLAINT_TEMPLATE_VERSION, CONTRACT_MANIFEST_FILE,
-                   CONTRACT_PACK_MAX_BYTES, CONTRACT_STATE_BOUNDARY_PACKS, CRC, DAMAGE_RE,
-                   DAMAGE_TYPES, DEDUPE_ADJACENT_RADIUS_M, DEDUPE_HISTORY_RADIUS_M,
-                   DEDUPE_HISTORY_S, DEDUPE_MISSING_HEADING_RADIUS_M, DEDUPE_POOR_GPS_S,
-                   DEDUPE_SAME_DRIVE_S, DEFAULT_MODEL, DELHI_ENVELOPE, DELHI_GEOMETRY_SHA256,
-                   DELHI_PWD_AUTHORITY, DETECTION_PROMPT_CONFIG, DETECT_PROMPT,
+                   CIVIC_HANDOFF_OVERRIDES, COMPLAINT_TEMPLATE_VERSION,
+                   CONTRACT_LOOKUP_UNAVAILABLE, CONTRACT_MANIFEST_FILE, CONTRACT_PACK_MAX_BYTES,
+                   CONTRACT_STATE_BOUNDARY_PACKS, CRC, DAMAGE_RE, DAMAGE_TYPES,
+                   DEDUPE_ADJACENT_RADIUS_M, DEDUPE_HISTORY_RADIUS_M, DEDUPE_HISTORY_S,
+                   DEDUPE_MISSING_HEADING_RADIUS_M, DEDUPE_POOR_GPS_S, DEDUPE_SAME_DRIVE_S,
+                   DEFAULT_MODEL, DELHI_ENVELOPE, DELHI_GEOMETRY_SHA256, DELHI_PWD_AUTHORITY,
+                   DETECTION_PROMPT_CONFIG, DETECT_PROMPT, DRIVE_SHARED_VISION_TIMEOUT_MS,
                    FEEDBACK_QUEUE_KEY, GENERAL_CIVIC_AUTHORITY_IDS, GOA_ROUTING_ENVELOPE,
                    GOA_STATE_AUTHORITY, GOA_STATE_GEOMETRY_SHA256,
                    HIGHWAY_CONTRACT_LOCATION_STOP, HIGHWAY_FETCH_TIMEOUT_MS,
                    HIGHWAY_MANIFEST_MAX_BYTES, HIGHWAY_REF_RE, HIGHWAY_TILE_MAX_BYTES,
                    IMAGING_CONFIG, INDIA_STATE_CODE_BY_NAME, INSTALLATION_KEY, ISSUE_TYPES,
-                   ISSUE_TYPE_SET, KARNATAKA_ROUTING_ENVELOPE, KARNATAKA_STATES,
+                   ISSUE_TYPE_SET, IST_MONTHS, KARNATAKA_ROUTING_ENVELOPE, KARNATAKA_STATES,
                    KARNATAKA_STATE_AUTHORITY, KARNATAKA_STATE_GEOMETRY_SHA256,
                    KARNATAKA_STATE_ROUTING_ENVELOPE, KERALA_ROUTING_ENVELOPE,
                    KERALA_STATE_AUTHORITY, KERALA_STATE_GEOMETRY_SHA256, KGIS_DH_URL,
@@ -11566,24 +12133,26 @@
                    MADHYA_PRADESH_ROUTING_ENVELOPE, MADHYA_PRADESH_STATE_AUTHORITY,
                    MADHYA_PRADESH_STATE_GEOMETRY_SHA256, MAHARASHTRA_ROUTING_ENVELOPE,
                    MAHARASHTRA_STATE_AUTHORITY, MAHARASHTRA_STATE_GEOMETRY_SHA256,
-                   MAJOR_CITY_CANDIDATE_CENTRES, MAX_DETECTION_IMAGES, MAX_REPAIR_TARGETS,
-                   MAX_REPAIR_TARGET_BATCH_SIZE, MAX_REPAIR_TARGET_IMAGE_BYTES,
-                   MAX_REPAIR_TARGET_TOTAL_BYTES, MMR_ALIAS_INDEX, MMR_AUTHORITIES,
-                   MMR_DIRECT_AUTHORITY_IDS, MMR_FALLBACK_AUTHORITY, MMR_FALLBACK_AUTHORITY_IDS,
-                   MODEL_CONFIG, MUMBAI_DISTRICTS, MUMBAI_STATES, MUMBAI_WARDS,
-                   MUNICIPAL_CITY_CONFIGS, NATIONAL_HIGHWAY_AUTHORITY, NATIVE,
-                   NATIVE_REPAIR_CONTRACT_VERSION, NOMINATIM_REVERSE_ENDPOINT,
-                   NON_CARRIAGEWAY_ASSETS, NON_SURFACE_ROAD_MODIFIERS, NO_VERIFIED_CONTRACT,
-                   OAI_URL, ODISHA_ROUTING_ENVELOPE, ODISHA_STATE_AUTHORITY,
+                   MAJOR_CITY_CANDIDATE_CENTRES, MANUAL_STORAGE_HEADROOM_BYTES,
+                   MAX_DETECTION_IMAGES, MAX_REPAIR_TARGETS, MAX_REPAIR_TARGET_BATCH_SIZE,
+                   MAX_REPAIR_TARGET_IMAGE_BYTES, MAX_REPAIR_TARGET_TOTAL_BYTES,
+                   MMR_ALIAS_INDEX, MMR_AUTHORITIES, MMR_DIRECT_AUTHORITY_IDS,
+                   MMR_FALLBACK_AUTHORITY, MMR_FALLBACK_AUTHORITY_IDS, MODEL_CONFIG,
+                   MUMBAI_DISTRICTS, MUMBAI_STATES, MUMBAI_WARDS, MUNICIPAL_CITY_CONFIGS,
+                   NATIONAL_HIGHWAY_AUTHORITY, NATIVE, NATIVE_REPAIR_CONTRACT_VERSION,
+                   NOMINATIM_REVERSE_ENDPOINT, NON_CARRIAGEWAY_ASSETS,
+                   NON_SURFACE_ROAD_MODIFIERS, NO_VERIFIED_CONTRACT, OAI_URL,
+                   ODISHA_ROUTING_ENVELOPE, ODISHA_STATE_AUTHORITY,
                    ODISHA_STATE_GEOMETRY_SHA256, OFFICERS, OFFICER_TITLES, OFFICIAL_AUTHORITIES,
                    OFFICIAL_AUTHORITY_INDEX, OFFICIAL_HANDOFF_CHANNELS,
                    OPTIONAL_CATALOG_TIMEOUT_MS, ORIGINAL_DETAIL_MODELS,
                    OUTBOUND_CONTRACT_IDENTITY_FIELDS, PACK_AUTHORITIES_BY_STATE,
                    PACK_ID_BY_AUTHORITY, PACK_IN_USE_MS, PACK_SITE_ROOT, PMC_AUTHORITY,
                    POTHOLE_SIZES, PROGRESS, PROJECT_SERVICE_POSITIVE_TTL_MS, PROMPT_VERSION,
-                   PUNJAB_ROUTING_ENVELOPE, PUNJAB_STATE_AUTHORITY,
-                   PUNJAB_STATE_GEOMETRY_SHA256, QUALITY_RE, RAJASTHAN_ROUTING_ENVELOPE,
-                   RAJASTHAN_STATE_AUTHORITY, RAJASTHAN_STATE_GEOMETRY_SHA256,
+                   PUBLIC_MAP_CACHE_KEY, PUBLIC_MAP_LIMIT, PUNJAB_ROUTING_ENVELOPE,
+                   PUNJAB_STATE_AUTHORITY, PUNJAB_STATE_GEOMETRY_SHA256, QUALITY_RE,
+                   RAJASTHAN_ROUTING_ENVELOPE, RAJASTHAN_STATE_AUTHORITY,
+                   RAJASTHAN_STATE_GEOMETRY_SHA256, RECIPIENT_STATE_LANGUAGE,
                    REMAINING_STATE_AUTHORITIES, REMAINING_STATE_ROUTE_CONFIGS,
                    REPAIR_EVIDENCE_MAX_BYTES, REPAIR_EVIDENCE_MAX_DIMENSION,
                    REPAIR_EVIDENCE_MAX_PIXELS, REPAIR_EVIDENCE_MIN_BYTES,
@@ -11594,14 +12163,15 @@
                    ROAD_AGREEMENT_PACK_MAX_BYTES, ROAD_NOTICE_MANIFEST_FILE,
                    ROAD_NOTICE_PACK_MAX_BYTES, ROAD_NOTICE_STOP, ROAD_NOTICE_TIMESTAMP_RE,
                    ROAD_NOUNS, ROAD_PREFIX_MODIFIERS, ROAD_WORK_ACTIONS, ROUTE_RECORD_FIELDS,
-                   RUNTIME_CONFIG, S, SCHEMA_VERSION, SERVICE_URL, SHARED_VISION_TIMEOUT_MS,
-                   SIZES, SIZE_RE, STATE_PACK_FETCH_TIMEOUT_MS, STATE_PACK_MAX_BYTES,
-                   STORED_DATA_STORES, SUPPORTED_STATE_PACKS, SURFACE_LABELS,
-                   TAMIL_NADU_ROUTING_ENVELOPE, TAMIL_NADU_STATE_AUTHORITY,
-                   TAMIL_NADU_STATE_GEOMETRY_SHA256, TELANGANA_ROUTING_ENVELOPE,
-                   TELANGANA_STATE_AUTHORITY, TELANGANA_STATE_GEOMETRY_SHA256,
-                   TEMPORARY_DRIVABLE_SURFACE, TENDER_CONFIG, TENDER_MATCH_INSTRUCTIONS,
-                   TENDER_PROMPT_CONFIG, TENDER_RECORD_FIELDS, TENDER_SCHEMA, TENDER_STOP,
+                   RUNTIME_CONFIG, S, SCHEMA_VERSION, SERVICE_URL,
+                   SHARED_CHECKS_KEY, SHARED_VISION_TIMEOUT_MS, SIZES, SIZE_RE,
+                   STATE_PACK_FETCH_TIMEOUT_MS, STATE_PACK_MAX_BYTES, STORED_DATA_STORES,
+                   SUPPORTED_STATE_PACKS, SURFACE_LABELS, TAMIL_NADU_ROUTING_ENVELOPE,
+                   TAMIL_NADU_STATE_AUTHORITY, TAMIL_NADU_STATE_GEOMETRY_SHA256,
+                   TELANGANA_ROUTING_ENVELOPE, TELANGANA_STATE_AUTHORITY,
+                   TELANGANA_STATE_GEOMETRY_SHA256, TEMPORARY_DRIVABLE_SURFACE, TENDER_CONFIG,
+                   TENDER_MATCH_INSTRUCTIONS, TENDER_PROMPT_CONFIG, TENDER_RECORD_FIELDS,
+                   TENDER_RETRY_DELAY_MS, TENDER_SCHEMA, TENDER_STOP, TERMINAL_CENTRAL_STATUSES,
                    TOP50_AUTHORITY_BY_STATE, TOP50_MAJOR_CITY_RANKS,
                    UTTAR_PRADESH_ROUTING_ENVELOPE, UTTAR_PRADESH_STATE_AUTHORITY,
                    UTTAR_PRADESH_STATE_GEOMETRY_SHA256, VERIFIED_HANDOFF_FIELDS,
@@ -11619,29 +12189,32 @@
                    applyVerifiedHandoff, assertComplaintInvariants, assessmentOf, authHeaders,
                    authorityComplaintProfile, authorityRoute, averageLuminance, b64ToBytes,
                    biharCoverage, biharRouteFromGeocode, binaryAssessment, blobToDataUrl,
-                   bmcWardFromBoundary, bodies, buildComplaintOutputs, buildDetectionRequest,
-                   buildTenderMatchRequest, bytesToB64, bytesToBase64, cachedPackBytes,
-                   canSearchTenderCatalog, candidateLeadIsUnambiguous, canonicalJson,
-                   canonicalServiceRequest, catalogResourceWithinReview, centralPotholeRequest,
-                   centralReportIsConfirmed, chhattisgarhCoverage, chhattisgarhRouteFromGeocode,
-                   civicIssueName, clearAllStoredRecords, clearPackCache, compatibleDamage,
-                   compatibleDraftRoute, complaintBodyWithFooter, complaintFooter,
+                   bmcWardFromBoundary, bodies, buildComplaintOutputs,
+                   buildDetectionRequest, buildTenderMatchRequest, bytesToB64, bytesToBase64,
+                   cachedPackBytes, canSearchTenderCatalog, candidateLeadIsUnambiguous,
+                   canonicalJson, canonicalServiceRequest, catalogResourceWithinReview,
+                   centralPotholeRequest, centralReportIsConfirmed, chhattisgarhCoverage,
+                   chhattisgarhRouteFromGeocode, civicIssueName, clearAllStoredRecords,
+                   clearPackCache, compatibleDamage, compatibleDraftRoute,
+                   complaintBodyWithFooter, complaintFooter, complaintLanguage,
                    complaintOutputsForRecord, complaintRouteError, complaintRoutingBlock,
                    completeCentralRetry, conciseRouteLabel, conditionStatus,
                    confirmedTemporaryAssessment, containingMmrAuthorities,
-                   contractPackProvenance, contractVerificationFor, coordinatedRoadNoun,
-                   createCivicReport, createReport, currentOfficialRouteBinding, damageTypeOf,
-                   dataUrlToBlob, decisionFor, decodeRepairEvidence, delCentralOutbox,
-                   deleteCachedStatePack, deleteFootageFor, deleteReportAndCentralOutbox,
-                   delhiCoverage, delhiRouteFromGeocode, detectionEnhancementPlan, distMeters,
+                   contractLookupEvidence, contractPackProvenance, contractVerificationFor,
+                   coordinatedRoadNoun, createCivicReport, createReport,
+                   currentOfficialRouteBinding, damageTypeOf, dataUrlToBlob, decisionFor,
+                   decodeRepairEvidence, delCentralOutbox, deleteCachedStatePack,
+                   deleteFootageFor, deleteReportAndCentralOutbox, delhiCoverage,
+                   delhiRouteFromGeocode, detectionEnhancementPlan, distMeters,
                    draftCivicComplaint, draftEmail, drainSSE, driveCommitTails,
                    effectiveVisionProvider, eligibleRepairTarget, emailAttachmentBase64,
-                   emitVerdict, envelopeGeometry, eventSighting, eventTime, evidenceForReport,
-                   exactObjectKeys, exactPinnedContractStateCode, explicitRoadDamageRe,
-                   exportDataset, fatal, featuresOf, fetchContractPack, fetchHighwayTile,
-                   fetchOptionalCatalogManifest, fetchRoadAgreementPack, fetchRoadNoticePack,
-                   fetchStatePack, fetchWithTimeout, findDuplicateReport, finiteCoord,
-                   flushCentralOutbox, flushFeedbackQueue, fmt, footageFor, footageMetadata,
+                   emitVerdict, ensureStorageHeadroom, envelopeGeometry, eventSighting,
+                   eventTime, evidenceForReport, exactObjectKeys, exactPinnedContractStateCode,
+                   explicitRoadDamageRe, exportDataset, fatal, featuresOf, fetchContractPack,
+                   fetchHighwayTile, fetchOptionalCatalogManifest, fetchRoadAgreementPack,
+                   fetchRoadNoticePack, fetchStatePack, fetchWithTimeout, findDuplicateReport,
+                   finiteCoord, flushCentralOutbox, flushFeedbackQueue, fmt, footageFor,
+                   footageMetadata, forgetInstallationIdentity, formatCapturedIst,
                    fullFramePhoto, geometryBoundaryDistanceMeters, getCachedStatePack,
                    getContractPackManifest, getDrive, getFootage, getHighwayPackManifest,
                    getRepairTargetBatch, getRepairTargetIds, getReport,
@@ -11650,8 +12223,8 @@
                    hasAuthoritativeMunicipalOwnership, hasCentralOwnershipProof,
                    hasCoverageGeometry, headingDifference, highwayContractCandidates,
                    highwayPackProvenance, highwayRefsInNotice, highwayRefsOf, highwayTileIdFor,
-                   idb, imageHash, importNativeReport, inCoverage, inDelhiEnvelope,
-                   inKarnatakaRoutingEnvelope, inMaharashtraRoutingEnvelope,
+                   idb, idbTakesBlobs, imageHash, importNativeReport, inCoverage,
+                   inDelhiEnvelope, inKarnatakaRoutingEnvelope, inMaharashtraRoutingEnvelope,
                    inMajorCityCandidateEnvelope, inWestBengalRoutingEnvelope,
                    indianStateMatches, installRoutingAuthorities, installationIdentity,
                    isKarnatakaGeocode, isKnownNonKarnatakaGeocode, isMaharashtraGeocode,
@@ -11666,56 +12239,59 @@
                    mapStatus, markPackInUse, markProjectServiceAvailable,
                    markProjectServiceUnavailable, matchHighwayContract, matchHighwayTile,
                    matchRoadAgreement, matchRoadNotice, matchTender, matchTenderAt,
-                   matchedMmrAuthorities, matchesEverySameDriveSighting,
-                   materialPavementRe, migrateLegacyAndhraPradeshHandoff,
-                   migrateLegacyComplaintDrafts, migrateLegacyComplaintRecord,
-                   migrateLegacyTamilNaduHandoff, mixedRoadScope, mumbaiFromGeocode,
-                   mumbaiWardFromName, municipalCityCoverage, municipalCityCoverageCache,
-                   municipalCityCoveragePromises, municipalCityRouteFromGeocode,
-                   municipalGeometryBounds, mutateReportAtomically, nationalHighwayRoute,
-                   nativeDetectorContract, nonCarriagewayTreatmentTargetRe, nonWorksServiceRe,
-                   normaliseAuthorityValue, normaliseDetail, normaliseIssueType,
-                   normaliseManualCaptureSource, normaliseModel, normaliseTenderMatch,
+                   matchedMmrAuthorities, matchesEverySameDriveSighting, materialPavementRe,
+                   migrateLegacyAndhraPradeshHandoff, migrateLegacyComplaintDrafts,
+                   migrateLegacyComplaintRecord, migrateLegacyTamilNaduHandoff, mixedRoadScope,
+                   mumbaiFromGeocode, mumbaiWardFromName, municipalCityCoverage,
+                   municipalCityCoverageCache, municipalCityCoveragePromises,
+                   municipalCityRouteFromGeocode, municipalGeometryBounds,
+                   mutateReportAtomically, nationalHighwayRoute, nativeDetectorContract,
+                   nonCarriagewayTreatmentTargetRe, nonWorksServiceRe, normaliseAuthorityValue,
+                   normaliseDetail, normaliseIssueType, normaliseManualCaptureSource,
+                   normaliseModel, normaliseTenderMatch, noteSharedCheck,
                    nullableRoadAgreementText, oai, oaiStream, odishaCoverage,
                    odishaRouteFromGeocode, officialArcGisCount, officialIndianPublicRecordUrl,
-                   officialPointRegionMatch, op, openBengaluruHandoff, openEmailDraft,
+                   officialPointRegionMatch, op, openBengaluruHandoff, openEmailDraft, openIdb,
                    openNationalHighwayHandoff, openOfficialHandoff, optionalCatalogResult,
                    outerStateBoundaryGeometry, partialAssessment, peekReject, peekVerdict,
                    photoBlob, photoToBase64, pinnedStateCoverage, pinnedStateRoute, pmsg,
                    pointInEnvelope, pointInGeometry, pointInPolygon, pointInRing,
                    pointOnSegment, pointToHighwaySegment, pointToSegmentMeters,
-                   preferredLowerCatalogMatch, prepareComplaint, prewarm, probeProjectService,
-                   progress, projectServiceAvailable, pruneStatePacks, publicEmailStatus,
-                   punjabCoverage, punjabRouteFromGeocode, putCachedStatePack, putDrive,
-                   putFootage, putReport, rajasthanCoverage, rajasthanRouteFromGeocode,
-                   randomId, readFeedbackQueue, readJson, rebuildOfficialAuthorityIndex,
-                   recordCentralRetryFailure, refreshAndPersistOfficialHandoff,
-                   refreshGeneratedComplaintFields, registerCentralPothole, rejectedVerdict,
-                   remainingStateCoverage, remainingStateRouteFromGeocode,
-                   repairProvenanceIsExact, repairTargetPhotoBytes, replaceStableObject,
+                   preferredLowerCatalogMatch, prepareComplaint, presentDataStores, prewarm,
+                   probeProjectService, progress, projectServiceAvailable, pruneStatePacks,
+                   publicEmailStatus, punjabCoverage, punjabRouteFromGeocode,
+                   putCachedStatePack, putDrive, putFootage, putReport, rajasthanCoverage,
+                   rajasthanRouteFromGeocode, randomId, readFeedbackQueue, readJson,
+                   rebuildOfficialAuthorityIndex, recordCentralRetryFailure,
+                   refreshAndPersistOfficialHandoff, refreshGeneratedComplaintFields,
+                   registerCentralPothole, rejectedVerdict, remainingStateCoverage,
+                   remainingStateRouteFromGeocode, repairProvenanceIsExact,
+                   repairTargetPhotoBytes, replaceStableObject, requestPersistentStorage,
                    reserveDriveCommit, resetContractPackMemory, resetHighwayPackMemory,
                    resetRoadAgreementPackMemory, resetRoadNoticePackMemory,
-                   resetStatePackMemory, resolvePackUrl, retryCentralOutbox, retryCivicRouting,
-                   retryQuery, reverseGeocode, reverseGeocodeCache, reverseGeocodeUncached,
-                   roadAgreementAddressParts, roadAgreementCandidates,
-                   roadAgreementPackProvenance, roadEventMatch, roadIsNonSurfaceModifier,
-                   roadNoticeAddressParts, roadNoticeCandidates, roadNoticePackProvenance,
-                   roadsideVegetationRe, routeForIssue, routeOfficer, routeWhereFromCentral,
-                   routingPackForAuthority, sameMunicipalAliases, sameMunicipalEnvelope,
-                   sameRoadEvent, sameSet, savedBoundaryLocationMatches,
+                   resetStatePackMemory, resolvePackUrl, resumePendingRouting,
+                   retryCentralOutbox, retryCivicRouting, retryQuery, reverseGeocode,
+                   reverseGeocodeCache, reverseGeocodeUncached, roadAgreementAddressParts,
+                   roadAgreementCandidates, roadAgreementPackProvenance, roadEventMatch,
+                   roadIsNonSurfaceModifier, roadNoticeAddressParts, roadNoticeCandidates,
+                   roadNoticePackProvenance, roadsideVegetationRe, routeForIssue, routeOfficer,
+                   routeWhereFromCentral, routingPackForAuthority, sameMunicipalAliases,
+                   sameMunicipalEnvelope, sameRoadEvent, sameSet, savedBoundaryLocationMatches,
                    savedMajorCityLocationMatches, savedMunicipalLocationMatches,
-                   savedNonMunicipalLocationMatches, savedOfficialRouteBinding, schemaStrings,
-                   separateRoadResponsibility, serviceError, serviceGet, sha256Bytes, sha256Hex,
-                   sha256HexBytes, sha256HexText, shortlistFor, signedServicePost, sizeConflict,
-                   startLowerCatalogMatches, stateCodeForGeocode, statePackCacheKey,
-                   statePackProvenance, statusError, storageError, storedComplaintLanguage,
-                   storedDamageType, storedPhoto, storedSightings, structuredPlaceMatch,
-                   summarizeFootageAnalysis, surfaceTreatmentRe, tamilNaduCoverage,
-                   tamilNaduRouteFromGeocode, telanganaCoverage, telanganaRouteFromGeocode,
-                   temporarySurfaceNeedsConfirmation, temporarySurfaceVoteEligible,
-                   temporarySurfaceVoteNeedsAnother, tenderCoversCarriageway, tenderFromService,
-                   tenderTokens, tenders, tendersFor, toDataUrl, toDict, touchStatePack,
-                   trustedContractStateCode, undirectedHeadingDifference,
+                   savedNonMunicipalLocationMatches, savedOfficialRouteBinding,
+                   scheduleCentralRetry, schemaStrings, separateRoadResponsibility,
+                   serviceError, serviceGet, sha256Bytes, sha256Hex, sha256HexBytes,
+                   sha256HexText, sharedChecksToday, shortlistFor, signedServicePost,
+                   sizeConflict, startLowerCatalogMatches, stateCodeForGeocode,
+                   statePackCacheKey, statePackProvenance, statusError, storageError,
+                   storedComplaintLanguage, storedDamageType, storedPhoto, storedSightings,
+                   structuredPlaceMatch, summarizeFootageAnalysis, surfaceTreatmentRe,
+                   tamilNaduCoverage, tamilNaduRouteFromGeocode, telanganaCoverage,
+                   telanganaRouteFromGeocode, temporarySurfaceNeedsConfirmation,
+                   temporarySurfaceVoteEligible, temporarySurfaceVoteNeedsAnother,
+                   tenderCoversCarriageway, tenderFromService, tenderTokens, tenders,
+                   tendersFor, terminalCentralFailure, toDataUrl, toDict, toEvidenceImage,
+                   touchStatePack, trustedContractStateCode, undirectedHeadingDifference,
                    unroutedComplaintMessage, unroutedRoute, usingSharedVision,
                    uttarPradeshCoverage, uttarPradeshRouteFromGeocode, validContractDate,
                    validMmrAuthorityBoundaries, validMunicipalAliasList, validMunicipalEnvelope,
@@ -11737,12 +12313,12 @@
                    validateTamilNaduPayload, validateTelanganaPayload, validateTenderPack,
                    validateUttarPradeshPayload, verifiedBdaResponsibility,
                    verifiedContractForComplaint, vodBurstTimes, vodSampleTimes,
-                   waitForNominatimSlot, warrantyFor, westBengalCoverage,
+                   waitForFreedSpace, waitForNominatimSlot, warrantyFor, westBengalCoverage,
                    withDriveImagePreparation, withSpeedDefaults, writeFeedbackQueue, zip,
                    matchTenderFor: matchTender,
                  };
 
-  window.StandaloneAPI = { __pure, handle, prewarm, prepareComplaint };
+  window.StandaloneAPI = { __pure, handle, prewarm, prepareComplaint, sharedChecksToday };
 
   // Pending accepted observations contain no image or complaint text. Retry them only
   // at bounded lifecycle signals; the stable body/idempotency key prevents double count.
@@ -11764,8 +12340,10 @@
   // shared detector automatically.
   window.addEventListener("load", () => {
     if (readFeedbackQueue().length) void flushFeedbackQueue().catch(() => {});
-    void probeProjectService().then((available) => {
-      if (available) return flushCentralOutbox();
+    void probeProjectService().then(async (available) => {
+      if (!available) return;
+      await resumePendingRouting().catch(() => {});
+      return flushCentralOutbox();
     }).catch(() => {});
   });
 })();

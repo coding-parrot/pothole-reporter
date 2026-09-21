@@ -21,6 +21,15 @@ function pointUrl(endpoint, lat, lng, fields, distance = 0) {
     + `&outFields=${encodeURIComponent(fields)}&returnGeometry=false&f=json`;
 }
 
+// The highway layers are land-cover polygons that stop a few metres short of the
+// carriageway edge, so exact containment misses Bellary Road (NH 7) at 13.00271,77.58406.
+// Measured on 21 Sep 2026: 5 m finds it, while 10 m picks up an unnamed State Highway in
+// central Hubballi and 20 m picks up OBJECTID 3059, Bengaluru's MG Road, which the layer
+// misclassifies as a National Highway. Past 5 m, city reports were told to write to NHAI.
+const HIGHWAY_BUFFER_METRES = 5;
+
+const UNAVAILABLE = Object.freeze({ available: false, data: null });
+
 async function readJson(fetchImpl, url, { headers = {}, timeoutMs = 6_000 } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -37,7 +46,7 @@ async function readJson(fetchImpl, url, { headers = {}, timeoutMs = 6_000 } = {}
     }
     return { available: true, data };
   } catch {
-    return { available: false, data: null };
+    return { available: false, data: null, timedOut: controller.signal.aborted };
   } finally {
     clearTimeout(timer);
   }
@@ -59,17 +68,35 @@ export function createGeolocator({
   fetchImpl = fetch,
   geocoderUrl = "",
   geocoderBearerToken = "",
-  highwayProximityMetres = 20,
+  kgisTimeoutMs = 3_000,
+  kgisBreakerMs = 60_000,
 } = {}) {
   const cache = new Map();
+  // KGIS stalls on its query endpoints for minutes at a time while its root still
+  // answers. One timeout opens the breaker so later reports skip KGIS at once instead
+  // of each holding a Lambda slot while it waits.
+  let kgisClosedAt = 0;
+  const kgis = async (url) => {
+    if (Date.now() < kgisClosedAt) return UNAVAILABLE;
+    const result = await readJson(fetchImpl, url, { timeoutMs: kgisTimeoutMs });
+    if (result.timedOut) kgisClosedAt = Date.now() + kgisBreakerMs;
+    return result;
+  };
   return {
+    kgisTimeoutMs,
     async resolve({ lat, lng, addressHint = "" }) {
-      const cacheKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+      // Four decimals is about 11 m, well inside a phone's GPS error. At five, that
+      // jitter made nearly every report a miss.
+      const cacheKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
       const cached = cache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
-        return { ...cached.value, address: cached.value.address || bounded(addressHint, 500) || null };
+        return {
+          ...cached.value,
+          lat,
+          lng,
+          address: cached.value.address || bounded(addressHint, 500) || null,
+        };
       }
-      const proximity = Math.min(50, Math.max(5, Number(highwayProximityMetres) || 20));
       let geocoder = null;
       if (geocoderUrl) {
         try {
@@ -91,11 +118,11 @@ export function createGeolocator({
         }
       }
       const [town, nh, sh, dh, geocoded] = await Promise.all([
-        readJson(fetchImpl, pointUrl(KGIS_TOWN, lat, lng,
+        kgis(pointUrl(KGIS_TOWN, lat, lng,
           "KGISTownName,Town_Type,KGISTownCode,LGD_TownCode")),
-        readJson(fetchImpl, pointUrl(KGIS_NH, lat, lng, "Name", proximity)),
-        readJson(fetchImpl, pointUrl(KGIS_SH, lat, lng, "Name", proximity)),
-        readJson(fetchImpl, pointUrl(KGIS_DH, lat, lng, "Name", proximity)),
+        kgis(pointUrl(KGIS_NH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
+        kgis(pointUrl(KGIS_SH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
+        kgis(pointUrl(KGIS_DH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
         geocoder
           ? readJson(fetchImpl, geocoder.url, { headers: geocoder.headers })
           : Promise.resolve({ available: false, data: null }),
@@ -121,7 +148,7 @@ export function createGeolocator({
         } else if (townFeature && lgd) {
           roadOwnership = "municipal";
         } else if (!townFeature) {
-          const gp = await readJson(fetchImpl, pointUrl(KGIS_GP, lat, lng, "KGISGPName"));
+          const gp = await kgis(pointUrl(KGIS_GP, lat, lng, "KGISGPName"));
           gpAvailable = gp.available;
           ruralBody = bounded(gp.data?.features?.[0]?.attributes?.KGISGPName, 160) || null;
           roadOwnership = gp.available ? (ruralBody ? "rural" : "outside_state") : "unknown";

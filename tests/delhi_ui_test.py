@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Delhi handoff UI must expose verified channels without claiming ownership/submission."""
+import os
 import sys
 
 from playwright.sync_api import sync_playwright
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 INIT = """
 localStorage.setItem('openai_key', 'test-key-never-sent');
 localStorage.setItem('app_lang', 'en');

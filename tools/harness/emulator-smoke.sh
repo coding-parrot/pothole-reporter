@@ -142,8 +142,11 @@ dismiss_system_anr
 tap_until 540 455 dataConsent 4 || { echo "FAIL Drive did not open the camera and location notice (saw: $LAST_SCREEN)"; exit 1; }
 sleep 1
 # The notice's green Continue is the lower-right button. This is the tap that killed
-# the first 1.39.0 release build.
-"$ADB" shell input tap 780 2322
+# the first 1.39.0 release build. Its height moves with the safe-area inset, so find it.
+"$ADB" exec-out screencap -p > "$SHOT" 2>/dev/null
+continue_at=$("$PYTHON" tools/harness/screen-of.py --continue "$SHOT" 2>/dev/null) ||
+  { echo "FAIL the notice has no green Continue button on screen"; exit 1; }
+"$ADB" shell input tap $continue_at
 sleep 4
 if [ -z "$(alive)" ] || [ "$(alive)" != "$pid_start" ]; then
   echo "FAIL the app process died after Continue on the camera and location notice"

@@ -7,6 +7,12 @@ import java.util.TimeZone
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
+// Off while the page has no element that shows a shared clip. The manifest no longer
+// offers the app as a share target, but the activity is exported for the launcher, so
+// another app can still address an explicit SEND to it; that must not copy up to 512 MB
+// into the cache where the tester can neither see nor discard it.
+internal const val SHARE_INGRESS_ENABLED = false
+
 /**
  * Policy for videos delivered to Android through another app's Share/Open action.
  *

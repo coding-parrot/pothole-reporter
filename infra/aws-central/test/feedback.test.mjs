@@ -71,9 +71,9 @@ function harness(options) {
     body: JSON.stringify({ public_key: publicDer }),
   });
 
-  const post = (path, value, { signed = true } = {}) => {
+  const post = (path, value, { signed = true, sentAt = Date.now() } = {}) => {
     const body = JSON.stringify(value);
-    const timestamp = String(Date.now());
+    const timestamp = String(sentAt);
     const idempotencyKey = randomUUID();
     const signature = sign("sha256", Buffer.from(canonicalRequest({
       method: "POST", path, timestamp, idempotencyKey, body,
@@ -171,4 +171,15 @@ test("an installation may send at most 10 feedback entries a day", async () => {
   assert.equal(blocked.statusCode, 429);
   assert.equal(JSON.parse(blocked.body).error, "feedback_limit_reached");
   assert.equal(h.repository.feedback.length, 10);
+});
+
+test("a stale signature tells the app the server's time so it can re-sign", async () => {
+  const h = harness();
+  await h.register();
+  const result = await h.post("/v1/feedback", valid, { sentAt: Date.now() - 6 * 60_000 });
+  assert.equal(result.statusCode, 401);
+  const body = JSON.parse(result.body);
+  assert.equal(body.error, "stale_request");
+  assert.equal(body.details?.retryable, true);
+  assert.ok(Math.abs(body.details?.server_time - Date.now()) < 1_000, JSON.stringify(body));
 });

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Regression contract for strict detection and authority-specific complaint outputs."""
+import os
 import sys
 
 from playwright.sync_api import sync_playwright
@@ -262,7 +263,7 @@ def main():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(args=["--disable-web-security"])
         page = browser.new_context(viewport={"width": 390, "height": 844}).new_page()
-        page.goto("http://localhost:8765/")
+        page.goto(os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/"))
         page.wait_for_load_state("networkidle")
         page.wait_for_function(
             "typeof StandaloneAPI !== 'undefined' && StandaloneAPI.__pure",
@@ -350,12 +351,14 @@ def main():
         "12.912345, 77.612345",
         "https://maps.google.com/?q=12.912345,77.612345",
         "Bengaluru South City Corporation",
-        "Karnataka GIS municipal boundary; town_lgd_code=305852",
     )
     for label, text in renderings.items():
         missing = [value for value in invariant_values if value not in text]
         check(failures, f"{label} preserves location and routing invariants",
               not missing, missing)
+        # The routing clue is an internal id; the record keeps it, the officer does not need it.
+        check(failures, f"{label} keeps the internal routing clue out of outbound text",
+              "town_lgd_code=305852" not in text, text)
         leaked = [value for value in (
             "BBMP/2025-26/RD/WORK-42", "Resurfacing of 17th Main Road in HSR Layout",
             "ACME Roads Pvt Ltd", "Karnataka Public Procurement Portal (KPPP) snapshot",

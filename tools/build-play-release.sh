@@ -91,8 +91,10 @@ require_tool tail
 require_tool tr
 require_tool unzip
 
-echo "1/8 checking the generated LLM contract (read only)"
+echo "1/8 checking the generated LLM contract and native contracts (read only)"
 node llm/generate.mjs --check
+# The user agent suffix follows versionName, and every manifest permission has a user.
+node tools/harness/check-native-contracts.mjs
 
 echo "2/8 checking web-source mirrors (read only)"
 [ -d static ] || fail "static source directory is missing"
@@ -157,8 +159,8 @@ fi
 
 echo "4/8 validating release identity and manifest policy"
 grep -Fq 'package="dev.aiengg.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="72"' "$BUNDLE_MANIFEST" || fail "expected versionCode 72"
-grep -Fq 'android:versionName="1.39.3"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.39.3"
+grep -Fq 'android:versionCode="73"' "$BUNDLE_MANIFEST" || fail "expected versionCode 73"
+grep -Fq 'android:versionName="1.39.4"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.39.4"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'android:dataExtractionRules="@xml/data_extraction_rules"' "$BUNDLE_MANIFEST" || fail "data extraction exclusions are missing"
 grep -Fq 'android:fullBackupContent="@xml/backup_rules"' "$BUNDLE_MANIFEST" || fail "legacy backup exclusions are missing"
@@ -198,7 +200,7 @@ if grep -Fq 'android:requestLegacyExternalStorage=' "$BUNDLE_MANIFEST"; then
 fi
 
 actual_permissions=$(sed -n 's/.*<uses-permission android:name="\([^"]*\)".*/\1/p' "$BUNDLE_MANIFEST" | sort -u)
-expected_permissions=$'android.permission.ACCESS_COARSE_LOCATION\nandroid.permission.ACCESS_FINE_LOCATION\nandroid.permission.ACCESS_NETWORK_STATE\nandroid.permission.CAMERA\nandroid.permission.CHANGE_NETWORK_STATE\nandroid.permission.FOREGROUND_SERVICE\nandroid.permission.INTERNET\nandroid.permission.POST_NOTIFICATIONS\nandroid.permission.RECEIVE_BOOT_COMPLETED\nandroid.permission.WAKE_LOCK\ndev.aiengg.potholereporter.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+expected_permissions=$'android.permission.ACCESS_COARSE_LOCATION\nandroid.permission.ACCESS_FINE_LOCATION\nandroid.permission.ACCESS_NETWORK_STATE\nandroid.permission.CAMERA\nandroid.permission.FOREGROUND_SERVICE\nandroid.permission.INTERNET\nandroid.permission.RECEIVE_BOOT_COMPLETED\nandroid.permission.WAKE_LOCK\ndev.aiengg.potholereporter.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
 if [ "$actual_permissions" != "$expected_permissions" ]; then
   echo "Expected permissions:" >&2
   printf '%s\n' "$expected_permissions" >&2

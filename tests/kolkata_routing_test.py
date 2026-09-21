@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """West Bengal routing preserves exact KMC handling and fails closed at edges."""
+import os
 import json
 import hashlib
 import sys
@@ -8,7 +9,7 @@ from playwright.sync_api import sync_playwright
 from state_pack_utils import read_pack, read_payload, route_pattern
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 
 SCENARIO = r"""
 async () => {

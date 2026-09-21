@@ -17,19 +17,19 @@ Parameters:
     Default: 30
   DailyVisionCap:
     Type: Number
-    Default: 200
+    Default: 50
   GlobalVisionMinuteCap:
     Type: Number
-    Default: 120
+    Default: 60
   GlobalVisionDailyCap:
     Type: Number
-    Default: 5000
+    Default: 2000
   MonthlyVisionCap:
     Type: Number
-    Default: 50000
+    Default: 20000
   ReservedConcurrency:
     Type: Number
-    Default: 4
+    Default: 20
   LogRetentionDays:
     Type: Number
     Default: 30
@@ -256,8 +256,8 @@ Resources:
       StageName: '$default'
       AutoDeploy: true
       DefaultRouteSettings:
-        ThrottlingBurstLimit: 10
-        ThrottlingRateLimit: 5
+        ThrottlingBurstLimit: 40
+        ThrottlingRateLimit: 20
   ApiInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:

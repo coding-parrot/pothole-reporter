@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import hashlib
 import json
 
@@ -11,7 +12,7 @@ from playwright.sync_api import sync_playwright
 from state_pack_utils import read_pack, read_payload, route_pattern
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 PACK_ID = "in-ap-routing"
 EXPECTED_GEOMETRY_SHA256 = (
     "4e36d9c16fda044dceab7a5b08955cb19046bb1bddd052b7671a8311e90cd71c"

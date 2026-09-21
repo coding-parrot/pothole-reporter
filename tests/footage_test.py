@@ -6,22 +6,24 @@ Four bugs this locks down, all reported from real use:
   2. "1 of 2" becoming "2 of 3" as the total grew while the user watched
   3. "0 potholes" on a drive whose live pass had already reported them
   4. frame extraction serialised behind one seeking video element
-"""
-import os, sys, time, pathlib
-from dotenv import load_dotenv
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-load_dotenv(ROOT / ".env")
-from playwright.sync_api import sync_playwright
-from browser_test_utils import open_app
 
-KEY = os.environ["OPENAI_API_KEY"]
+The detector is stubbed: the counter and the total are the app's own, and a real key
+here once spent six OpenAI detections per run for a verdict nobody read.
+"""
+import sys, time, pathlib
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+from playwright.sync_api import sync_playwright
+from browser_test_utils import OFFLINE_KEY, block_openai, open_app
+
 fails = []
+leaks = []
 
 with sync_playwright() as p:
     b = p.chromium.launch(args=["--disable-web-security", "--allow-running-insecure-content",
                                 "--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"])
     pg = b.new_context(viewport={"width": 390, "height": 844}).new_page()
-    open_app(pg, KEY)
+    block_openai(pg, leaks)
+    open_app(pg, OFFLINE_KEY)
 
     # Record a short clip through the app's own recorder so the blob is what it really stores.
     made = pg.evaluate("""async () => {
@@ -54,6 +56,17 @@ with sync_playwright() as p:
       }).observe(el, {childList:true, subtree:true, characterData:true});
     }""")
     pg.evaluate("window.confirm = () => true; window.alert = (m) => { window.__alert = m; };")
+    pg.evaluate("""() => {
+      const real = window.api;
+      window.__frameCalls = 0;
+      window.api = async (path, opts) => {
+        if (path !== "/api/frame") return real(path, opts);
+        window.__frameCalls++;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return { analyzed: true, accepted: false, stored: false, found: false,
+                 duplicate: false, decision: "reject" };
+      };
+    }""")
 
     t0 = time.time()
     pg.evaluate("analyseFootage('9001', {gps_track:[]})")
@@ -61,11 +74,17 @@ with sync_playwright() as p:
     secs = time.time() - t0
     seen = pg.evaluate("window.__seen")
     msg = pg.evaluate("window.__alert")
+    frame_calls = pg.evaluate("window.__frameCalls")
     b.close()
 
 print(f"  finished in {secs:.1f}s")
 print(f"  progress samples: {seen[:6]}{' ...' if len(seen) > 6 else ''}")
 print(f"  final message: {msg}")
+
+if leaks:
+    fails.append(f"a request reached OpenAI: {leaks[:2]}")
+if not frame_calls:
+    fails.append("the stubbed detector was never asked about a frame")
 
 totals = [n for _, n in seen]
 if not totals:

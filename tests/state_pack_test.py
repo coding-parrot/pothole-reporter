@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import copy
 import hashlib
 import json
@@ -31,7 +32,7 @@ from state_pack_utils import (
 )
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 PRODUCTION_SITE_ROOT = "https://coding-parrot.github.io/pothole-reporter/"
 EXPECTED_RESOURCES = {
     "in-ap-routing": (
@@ -1106,7 +1107,7 @@ def check_download_cache_offline(browser, manifest: dict, failures: list[str]) -
         failures.append("state-pack download leaked app cookies or a referrer")
     if result["format"] != "pothole-pack-manifest":
         failures.append("runtime did not return the validated bundled manifest")
-    if result["resolved_origin"] != "http://localhost:8765":
+    if result["resolved_origin"] != APP.rstrip("/"):
         failures.append(f"localhost pack URL did not stay local: {result['resolved_origin']}")
     expected_path = "/" + resource["path"]
     if result["resolved_path"] != expected_path:

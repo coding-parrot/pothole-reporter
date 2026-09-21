@@ -8,6 +8,7 @@ this phone's own history in its place.
 
 import base64
 import json
+import os
 import pathlib
 import sys
 
@@ -16,7 +17,7 @@ from playwright.sync_api import sync_playwright
 
 # Exercise the canonical web source. pages_assets_test separately guarantees that this
 # exact file is what Android and GitHub Pages ship.
-APP = "http://localhost:8765/web-app/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/web-app/")
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PIXEL = (
     "data:image/gif;base64,"
@@ -115,6 +116,13 @@ def route_central(route):
 
 def main():
     failures = []
+    # Only shared pins reach the map, so a branch that opened a local report from a
+    # pin, and a string for "showing this device's own", are text nobody can reach.
+    source = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
+    if "map_local_pins" in source:
+        failures.append("the unreachable map_local_pins string is still in the app")
+    if "openDetail(r, pins)" in source:
+        failures.append("drawMap still carries an unreachable open-local-report branch")
     capacitor = json.loads(
         (ROOT / "android-app" / "capacitor.config.json").read_text(encoding="utf-8")
     )
@@ -165,7 +173,7 @@ def main():
                 f"invalid or out-of-range coordinates leaked into the map: {offline}")
         if "Map tiles need a connection" not in offline["note"]:
             failures.append(f"offline fallback was not disclosed: {offline}")
-        if "deduplicated potholes" not in offline["note"]:
+        if "1 pothole · 3 reports" not in offline["note"]:
             failures.append(
                 f"offline fallback described shared pins as this device's own: {offline}")
         for private in ("Private Map Road", "Private Second Road"):
@@ -190,9 +198,10 @@ def main():
         page.evaluate("openDash()")
         page.locator("#dash").wait_for(state="visible")
         page.wait_for_timeout(500)
+        # The map box says it once; the note under it is for counts only.
         unavailable = page.evaluate(
             """() => ({
-              note: document.querySelector('#mapNote').textContent.trim(),
+              note: document.getElementById('map').textContent.trim(),
               mapText: document.getElementById('map').textContent,
               points: document.querySelectorAll('#map > svg circle').length,
             })"""

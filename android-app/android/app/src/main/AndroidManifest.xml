@@ -43,6 +43,7 @@
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
+            android:screenOrientation="portrait"
             android:exported="true">
 
             <intent-filter>
@@ -50,17 +51,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Receive exported Meta-glasses/gallery and dashcam videos through Android Share. -->
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="video/*" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND_MULTIPLE" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="video/*" />
-            </intent-filter>
+            <!-- No video SEND/SEND_MULTIPLE filters while the page has no element that
+                 shows a shared clip: Android would list the app in every video share
+                 sheet, copy the clip into the cache and open a plain Home. Restore them
+                 with the import card (see SHARE_INGRESS_ENABLED). Portrait because the
+                 Drive HUD and the mount guidance are portrait; sideways, the count and
+                 status fall below the fold. -->
         </activity>
 
         <provider
@@ -81,15 +77,15 @@
             android:exported="false" />
     </application>
 
-    <!-- Permissions -->
+    <!-- Permissions. Each one needs a user in the wired tree (check-native-contracts.mjs).
+         CHANGE_NETWORK_STATE (the RTSP dashcam source) and POST_NOTIFICATIONS (the
+         foreground Drive notification) come back with the code that uses them. -->
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 

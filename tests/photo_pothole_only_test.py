@@ -2,6 +2,7 @@
 """Photo stays a one-tap, pothole-only capture path on Web and Android."""
 import os
 import pathlib
+import re
 import sys
 
 from playwright.sync_api import sync_playwright
@@ -50,7 +51,8 @@ for removed_id in ("issuePicker", "issueRoad", "issueGarbage", "issueManhole", "
           f"removed Photo category control is still shipped: {removed_id}", failures)
 check('fd.append("issue_type", "road_damage")' in INDEX,
       "Photo FormData is not pinned to road_damage", failures)
-check('api("/api/report", { method: "POST", body: fd })' in INDEX,
+# The call also carries the Cancel button's abort signal, so match the endpoint and body.
+check(re.search(r'api\("/api/report", \{\s*method: "POST", body: fd\b', INDEX) is not None,
       "Photo no longer submits through the verified pothole endpoint", failures)
 check('api("/api/civic-report"' not in INDEX,
       "the current UI still exposes the unverified civic-report endpoint", failures)

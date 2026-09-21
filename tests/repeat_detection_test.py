@@ -12,6 +12,7 @@ evidence is what decides whether a pothole was repaired or has come back.
 
 No external service is contacted.
 """
+import os
 import json
 import pathlib
 import sys
@@ -20,7 +21,7 @@ from playwright.sync_api import sync_playwright
 
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 
 ACCEPTED = {
     "image_quality": "acceptable",

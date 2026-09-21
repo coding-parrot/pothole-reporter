@@ -1,6 +1,10 @@
 const EARTH_RADIUS_M = 6_371_000;
 const WEB_MERCATOR_RADIUS_M = 6_378_137;
 const CELL_METRES = 30;
+// Cells are square in Web Mercator, so a ground radius spans 1 / cos(lat) as many of
+// them. Past 75 degrees a 30 m radius needs more than the 100 cells one DynamoDB
+// transaction can lock. Nobody reports potholes there.
+export const REPORT_MAX_ABS_LAT = 75;
 
 export function validLatLng(lat, lng) {
   return Number.isFinite(lat) && Number.isFinite(lng)
@@ -36,8 +40,12 @@ export function spatialCell(lat, lng) {
 
 export function nearbyCells(lat, lng, radiusMetres) {
   const centre = projectedCell(lat, lng);
-  const projectedRadius = radiusMetres / Math.max(0.5, Math.cos(lat * Math.PI / 180));
-  const span = Math.min(4, Math.ceil(projectedRadius / CELL_METRES) + 1);
+  // A point anywhere in the centre cell reaches at most ceil(R / cell) cells either
+  // side. The extra ring once added for safety took a report in Karnataka from 25 cells
+  // to 49, and the old clamp and cap missed duplicates past about 75 degrees.
+  const projectedRadius = radiusMetres * (WEB_MERCATOR_RADIUS_M / EARTH_RADIUS_M)
+    / Math.cos(lat * Math.PI / 180);
+  const span = Math.ceil(projectedRadius / CELL_METRES);
   const cells = [];
   for (let y = centre.y - span; y <= centre.y + span; y += 1) {
     for (let x = centre.x - span; x <= centre.x + span; x += 1) {

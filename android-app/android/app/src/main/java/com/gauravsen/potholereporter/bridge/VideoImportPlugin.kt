@@ -447,6 +447,7 @@ class VideoImportPlugin : Plugin() {
 
     /** Public so MainActivity can explicitly guarantee cold-start delivery after bridge setup. */
     fun acceptIngressIntent(intent: Intent) {
+        if (!SHARE_INGRESS_ENABLED) return
         if (!isVideoIngressAction(intent.action)) return
         if (clearingImports.get()) return
         val appContext = context ?: return

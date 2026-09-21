@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """Stopping during asynchronous Drive startup must not resurrect resources."""
 import os, pathlib, sys
-from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
-from browser_test_utils import open_app
+from browser_test_utils import OFFLINE_KEY, block_openai, open_app
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-load_dotenv(ROOT / ".env")
-KEY = os.environ["OPENAI_API_KEY"]
+# No frame reaches a detector; the placeholder only switches the personal path on.
+KEY = OFFLINE_KEY
+leaks = []
 
 JS = r"""
 async (phase) => {
@@ -75,6 +75,7 @@ with sync_playwright() as p:
         geolocation={"latitude": 12.9115, "longitude": 77.6427})
     for phase in ("play", "wake"):
         page = context.new_page()
+        block_openai(page, leaks)
         open_app(page, KEY)
         page.evaluate("window.alert = () => {}; window.confirm = () => false;")
         result = page.evaluate(JS, phase)
@@ -89,6 +90,8 @@ with sync_playwright() as p:
             fails.append(f"wake: late wake lock was not released: {result}")
     browser.close()
 
+if leaks:
+    fails.append(f"a request reached OpenAI: {leaks[:2]}")
 if fails:
     print("FAIL")
     for failure in fails:

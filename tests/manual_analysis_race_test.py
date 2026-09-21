@@ -94,11 +94,25 @@ with sync_playwright() as playwright:
         await waitFor(() => reportCalls === 2);
         pending.shift().resolve(report(2));
         await third;
+        const detailAfterNextCapture = !document.getElementById("detail").classList.contains("hidden");
+
+        // Settings opened while a check runs is where the tester is when it lands.
+        show("home");
+        const fourth = handleFile(new Blob(["fourth"], { type: "image/jpeg" }));
+        await waitFor(() => reportCalls === 3);
+        document.getElementById("gearBtn").click();
+        const refreshesBeforeSettingsResult = listRefreshes;
+        pending.shift().resolve(report(3));
+        await fourth;
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        const settingsAfterResult = !document.getElementById("settings").classList.contains("hidden")
+          && document.getElementById("detail").classList.contains("hidden");
         return {
           backHandled, homeAfterBack, homeAfterStaleResult,
           callsWhileFirstPending, finalReportCalls: reportCalls,
-          refreshesAfterBack, refreshesAfterStaleResult,
-          detailAfterNextCapture: !document.getElementById("detail").classList.contains("hidden"),
+          refreshesAfterBack, refreshesAfterStaleResult, detailAfterNextCapture,
+          settingsAfterResult,
+          settingsResultRefreshed: listRefreshes > refreshesBeforeSettingsResult,
           alerts,
         };
       } finally {
@@ -122,7 +136,9 @@ if not result["homeAfterStaleResult"]:
     fails.append("the stale first result stole the UI after Back")
 if result["refreshesAfterStaleResult"] <= result["refreshesAfterBack"]:
     fails.append("the committed stale result did not refresh History")
-if result["finalReportCalls"] != 2 or not result["detailAfterNextCapture"]:
+if not result["settingsAfterResult"] or not result["settingsResultRefreshed"]:
+    fails.append(f"a result landing under Settings replaced it or skipped History: {result}")
+if result["finalReportCalls"] != 3 or not result["detailAfterNextCapture"]:
     fails.append(f"capture did not recover after the first request settled: {result}")
 if not any("still being analysed" in message for message in result["alerts"]):
     fails.append(f"blocked capture gave no useful explanation: {result['alerts']}")

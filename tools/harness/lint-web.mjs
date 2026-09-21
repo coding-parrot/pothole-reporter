@@ -83,6 +83,33 @@ for (const target of targets) {
     },
   });
   const errors = messages.filter((message) => message.severity === 2);
+  // House rule: no em or en dashes anywhere the app ships, from UI strings and
+  // aria-labels to complaint emails sent under the tester's name and code comments.
+  // HTML entities render the same dash, so they count too.
+  source.split("\n").forEach((line, index) => {
+    const column = line.search(/[\u2013\u2014]|&[mn]dash;|&#821[12];|&#x201[34];/iu);
+    if (column >= 0) {
+      errors.push({ line: index + 1, column: column + 1, ruleId: "no-dash-characters",
+                    message: "Em or en dash; use a comma, period, colon or parentheses" });
+    }
+  });
+  // Settings labels once pointed at nothing, so TalkBack read every control as an
+  // unnamed combo box and tapping a label did nothing. A named label must name its
+  // control with for=.
+  const settingsStart = source.indexOf('<div id="settings"');
+  if (target.endsWith(".html") && settingsStart >= 0) {
+    const settingsEnd = source.indexOf('\n  <div id="', settingsStart + 1);
+    const block = source.slice(settingsStart, settingsEnd < 0 ? undefined : settingsEnd);
+    const offset = source.slice(0, settingsStart).split("\n").length - 1;
+    block.split("\n").forEach((line, index) => {
+      for (const match of line.matchAll(/<label\b[^>]*\bid="([^"]+)"[^>]*>/g)) {
+        if (!/\bfor="[^"]+"/.test(match[0])) {
+          errors.push({ line: offset + index + 1, column: match.index + 1, ruleId: "settings-label-for",
+                        message: `Settings label #${match[1]} has no for= naming its control` });
+        }
+      }
+    });
+  }
   if (errors.length) {
     failures += errors.length;
     console.log(`FAIL ${basename(target)}: ${errors.length} error(s)`);

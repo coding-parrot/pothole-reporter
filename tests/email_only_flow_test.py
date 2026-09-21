@@ -142,7 +142,10 @@ async () => {
   const form = new FormData();
   form.append("photo", photo, "test-road.jpg");
   form.append("lat", "12.9716"); form.append("lng", "77.5946");
-  form.append("gps_accuracy", "4"); form.append("captured_at_ms", String(Date.now()));
+  form.append("gps_accuracy", "4");
+  // A fixed capture time, so the body can be checked for the exact IST stamp.
+  form.append("captured_at_ms", "1789983047367");
+  form.append("capture_source", "manual_camera");
   const report = await StandaloneAPI.handle("/api/report", { method: "POST", body: form });
   window.__emailFlowReport = report;
   openDetail(report, [report]);
@@ -394,9 +397,19 @@ else:
         "Defect decision: Pothole",
         "App visual size class: medium",
         "No verified exact-road public contract found",
+        # The request carried both; "Not recorded" under the user's name was false.
+        "GPS accuracy: \u00b14 m",
+        "Photo: Pothole Reporter camera evidence",
+        "Captured: 21 Sep 2026, 3:00:47 pm IST",
     ):
         if token not in body:
             fails.append(f"composer body omits {token!r}")
+    if "Not recorded" in body:
+        fails.append("composer body says a stored capture fact was not recorded")
+    # House rule: nothing sent under the user's name carries an em or en dash.
+    for label, text in (("subject", subject), ("body", body)):
+        if "\u2014" in text or "\u2013" in text:
+            fails.append(f"composer {label} contains an em or en dash")
     if TENDER_NUMBER in body:
         fails.append("an unverified tender number reached the complaint body")
     attachments = draft.get("attachments") or []

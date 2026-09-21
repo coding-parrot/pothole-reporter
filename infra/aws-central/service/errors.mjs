@@ -1,6 +1,6 @@
 export class HttpError extends Error {
-  constructor(status, code, message, details = null) {
-    super(message);
+  constructor(status, code, message, details = null, { cause } = {}) {
+    super(message, cause === undefined ? undefined : { cause });
     this.name = "HttpError";
     this.status = status;
     this.code = code;

@@ -3,13 +3,14 @@
 
 This is offline: Chromium creates one local WebM and the model boundary is mocked.
 """
+import os
 import pathlib
 import sys
 
 from playwright.sync_api import sync_playwright
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 failures = []
 INDEX = (pathlib.Path(__file__).resolve().parents[1] / "static" / "index.html").read_text()
 
@@ -77,7 +78,7 @@ with sync_playwright() as playwright:
           .find((item) => String(item.id) === String(driveId));
         return {footage: footage || null, drive: drive || null};
       }
-      async function analyse(driveId, frameResult, nullCanvas) {
+      async function analyse(driveId, frameResult, nullCanvas, step = 10) {
         const originalApi = window.api;
         const originalToBlob = HTMLCanvasElement.prototype.toBlob;
         let frameCalls = 0;
@@ -94,7 +95,7 @@ with sync_playwright() as playwright:
         window.__accountingAlert = "";
         window.alert = (message) => { window.__accountingAlert = String(message); };
         window.confirm = () => false;
-        VOD_STEP_S = 10;
+        VOD_STEP_S = step;
         try {
           await analyseFootage(driveId, {gps_track:[]});
           return {frameCalls, alert: window.__accountingAlert, ...(await inspect(driveId))};
@@ -123,7 +124,20 @@ with sync_playwright() as playwright:
 
       await store("complete-run", 0, validClip);
       const completeRun = await analyse("complete-run", acceptedNo, false);
-      return {analyzedFalse, decodeFailure, allUnreadable, mixedClips, completeRun};
+
+      // The shared cap refuses every further frame. Retrying a 503 four times and then
+      // moving on to the next frame turned a 30 minute recording into hours of refusals.
+      await store("cap-reached", 0, validClip);
+      const capStarted = Date.now();
+      const capReached = await analyse("cap-reached", () => {
+        const error = new Error("This phone has used all 50 shared pothole checks for today.");
+        error.status = 503; error.code = "daily_vision_limit"; error.fatal = true;
+        error.sharedService = true;
+        throw error;
+      }, false, 0.2);
+      capReached.seconds = (Date.now() - capStarted) / 1000;
+      capReached.seekers = isNativeApp() ? 2 : 3;
+      return {analyzedFalse, decodeFailure, allUnreadable, mixedClips, completeRun, capReached};
     }""")
     browser.close()
 
@@ -172,6 +186,15 @@ check("a fully checked run is marked complete",
       and complete["drive"].get("analysis_complete") is True, complete)
 check("only the complete non-debug run deletes footage",
       complete.get("footage") is None, complete)
+
+cap = result["capReached"]
+check("a fatal detector error stops the analysis instead of retrying every frame",
+      cap.get("frameCalls", 99) <= cap["seekers"]
+      and (cap["drive"] or {}).get("analysis_planned", 0) > cap["seekers"], cap)
+check("the capped run is incomplete, says why, and keeps the footage",
+      (cap["drive"] or {}).get("analysis_complete") is False
+      and "50 shared pothole checks" in cap.get("alert", "")
+      and cap.get("footage") is not None, cap)
 
 if failures:
     print("\nFAILED")

@@ -16,6 +16,7 @@ import { HttpError, asHttpError } from "./errors.mjs";
 import { matchTender } from "./tenders.mjs";
 import {
   metresBetween,
+  REPORT_MAX_ABS_LAT,
   nearbyCells,
   roundedPublicCoordinate,
   spatialCell,
@@ -32,6 +33,17 @@ const SIZES = new Set(DETECT_SCHEMA.properties.size.enum.filter(Boolean));
 const CAPTURE_SOURCES = new Set(["manual", "drive_live", "drive_vod", "imported_video"]);
 const FEEDBACK_TEST_MODES = new Set(["bike", "car", "walk", "other"]);
 const FEEDBACK_TEXT_MAX = 2_000;
+const OBSERVED_AHEAD_MS = 10 * 60_000;
+const SIGNED_ROUTES = [
+  "/v1/activity",
+  "/v1/vision/detect",
+  "/v1/tenders/resolve",
+  "/v1/potholes/report",
+  "/v1/feedback",
+];
+const KNOWN_ROUTES = new Set([
+  "/v1/health", "/v1/map", "/v1/impact", "/v1/installations", ...SIGNED_ROUTES,
+]);
 const LOCATION_SOURCES = new Set([
   "device_gps", "gpx_timestamp", "current_position_confirmed", "none",
 ]);
@@ -198,7 +210,12 @@ export function createService({ repository, detector, geolocator, logger = conso
     }
     const sentAt = Number(timestamp);
     if (!Number.isFinite(sentAt) || Math.abs(Date.now() - sentAt) > SIGNATURE_AGE_MS) {
-      throw new HttpError(401, "stale_request", "The signed request is too old.");
+      // A phone with a skewed clock fails every signed route. The server's time lets
+      // the app correct its offset and re-sign instead of dropping the request.
+      throw new HttpError(401, "stale_request", "The signed request is too old.", {
+        server_time: Date.now(),
+        retryable: true,
+      });
     }
     const installation = await repository.getInstallation(installId);
     if (!installation || installation.revoked_at) {
@@ -327,23 +344,50 @@ export function createService({ repository, detector, geolocator, logger = conso
       throw new HttpError(400, "bad_detection_location", "lat and lng must both be valid.");
     }
     const source = provenance(body, captureMode, hasLocation);
-    const quota = await repository.takeVisionQuota(context.installId);
+    const quotaAt = Date.now();
+    const quota = await repository.takeVisionQuota(context.installId, quotaAt);
     if (!quota.ok) {
+      if (quota.code === "vision_counters_busy") {
+        throw new HttpError(425, quota.code,
+          "The shared-vision counters are busy; retry shortly.", { retryable: true });
+      }
       throw new HttpError(quota.code === "shared_rate_limit" ? 429 : 503,
         quota.code, "The configured shared-vision limit has been reached.", {
           retryable: quota.code === "shared_rate_limit",
           limit: quota.limit,
         });
     }
-    const detection = await detector.detect({
-      images: [{ dataUrl: selectedImage.dataUrl }],
-      captureMode,
-      language,
-      model,
-      imageDetail,
-    }, context);
-    context.detectorProvider = detection.provider;
-    const verdict = validateVerdict(detection.verdict);
+    let detection;
+    let verdict;
+    try {
+      detection = await detector.detect({
+        images: [{ dataUrl: selectedImage.dataUrl }],
+        captureMode,
+        language,
+        model,
+        imageDetail,
+      }, context);
+      context.detectorProvider = detection.provider;
+      verdict = validateVerdict(detection.verdict);
+    } catch (error) {
+      // The unit was taken before the detector ran. When the failure is on the server
+      // side the tester got nothing for it, and a drive against a broken upstream would
+      // otherwise use up the whole day's allowance in errors. Image rejections (4xx)
+      // are an answer about the frame and keep their cost.
+      const known = asHttpError(error);
+      if (known.status >= 500 || known.status === 429) {
+        context.quotaRefunded = true;
+        await repository.refundVisionQuota(context.installId, quotaAt).catch((refundError) => {
+          context.quotaRefunded = false;
+          logger.error(JSON.stringify({
+            event: "quota_refund_failed",
+            request_id: context.requestId,
+            error_type: refundError?.name || "Error",
+          }));
+        });
+      }
+      throw error;
+    }
     const payload = {
       ...verdict,
       detector: {
@@ -441,35 +485,43 @@ export function createService({ repository, detector, geolocator, logger = conso
       throw new HttpError(503, "road_ownership_unavailable",
         "Road ownership could not be verified. Retry later.", { retryable: true });
     }
-    if (jurisdiction.road_ownership !== "municipal") {
-      context.outcome = jurisdiction.road_ownership;
-      return complete(context, 200, {
-        jurisdiction,
-        tender: null,
-        reason: jurisdiction.road_ownership,
-      });
-    }
-    if (!jurisdiction.lgd) {
+    if (jurisdiction.road_ownership === "municipal" && !jurisdiction.lgd) {
       throw new HttpError(503, "geolocation_unavailable",
         "The municipal body could not be resolved.", { retryable: true });
+    }
+    const routed = await routing(jurisdiction);
+    context.outcome = routed.tender ? "tender_matched" : routed.reason;
+    return complete(context, 200, routed);
+  }
+
+  // The answer /v1/tenders/resolve gives, for a jurisdiction already resolved. The report
+  // route returns it too, so the app need not make a second serial round trip for it.
+  async function routing(jurisdiction) {
+    if (jurisdiction.road_ownership !== "municipal") {
+      return { jurisdiction, tender: null, reason: jurisdiction.road_ownership };
     }
     const tenders = await repository.queryTenders(jurisdiction.lgd);
     const matched = tenders.length
       ? matchTender(jurisdiction.address, tenders)
       : { tender: null, reason: "no_tenders_for_jurisdiction" };
-    context.outcome = matched.tender ? "tender_matched" : matched.reason;
-    return complete(context, 200, { jurisdiction, ...matched });
+    return { jurisdiction, ...matched };
   }
 
   async function report(body, context) {
     const lat = number(body.lat);
     const lng = number(body.lng);
     const observationId = bounded(body.client_observation_id, 180);
-    const observedAt = Math.trunc(number(body.observed_at));
+    // A phone whose clock runs ahead would otherwise hold its pothole at the top of the
+    // map until the clock caught up. Past times stay: imported footage can be old.
+    const receivedAt = Date.now();
+    const sentObservedAt = Math.trunc(number(body.observed_at));
+    const observedAt = sentObservedAt > receivedAt + OBSERVED_AHEAD_MS
+      ? receivedAt : sentObservedAt;
     const damageType = bounded(body.damage_type, 64);
     const size = body.size == null ? null : bounded(body.size, 16);
     const imageHash = bounded(body.image_hash, 80).toLowerCase();
-    if (!validLatLng(lat, lng) || !observationId || !Number.isFinite(observedAt)
+    if (!validLatLng(lat, lng) || Math.abs(lat) > REPORT_MAX_ABS_LAT
+        || !observationId || !Number.isFinite(observedAt)
         || !DAMAGE_TYPES.has(damageType) || !(size === null || SIZES.has(size))
         || !/^[a-f0-9]{64}$/.test(imageHash)) {
       throw new HttpError(400, "bad_report", "The pothole observation is incomplete or invalid.");
@@ -505,6 +557,10 @@ export function createService({ repository, detector, geolocator, logger = conso
     }).catch(() => ({ road_ownership: "unknown", source: "unresolved" }));
     const municipal = jurisdiction.source === "kgis"
       && jurisdiction.road_ownership === "municipal";
+    // Unknown ownership, or a town KGIS could not name, is the resolve route's 503 to
+    // report and retry. Here the report still lands and routing is simply left out.
+    const routingKnown = jurisdiction.road_ownership !== "unknown"
+      && (jurisdiction.road_ownership !== "municipal" || municipal);
     const cells = nearbyCells(lat, lng, repository.dedupeRadiusMetres);
     if (!await repository.acquireLocationLocks(cells, context.requestId)) {
       throw new HttpError(425, "location_dedupe_in_progress",
@@ -513,6 +569,7 @@ export function createService({ repository, detector, geolocator, logger = conso
     let created = false;
     let duplicateDistance = 0;
     let pothole;
+    let attached;
     try {
       const candidates = await repository.findNearby(cells);
       const nearest = candidates.map((candidate) => ({
@@ -549,7 +606,7 @@ export function createService({ repository, detector, geolocator, logger = conso
         }
         if (!pothole) throw new HttpError(500, "report_write_failed", "Could not allocate a report ID.");
       }
-      await repository.attachObservation({
+      attached = await repository.attachObservation({
         potholeId: pothole.id,
         receiptId,
         observation: {
@@ -582,9 +639,16 @@ export function createService({ repository, detector, geolocator, logger = conso
     context.potholeId = pothole.id;
     context.visionMode = provider === "shared_server" ? "shared_server" : "own_key";
     context.outcome = created ? "created" : "deduplicated";
-    await repository.recordReport({ newPothole: created, verification });
+    // A re-send under a new idempotency key finds its observation already stored. It
+    // is the same observation, so the public totals must not count it twice.
+    if (!attached?.alreadyStored) {
+      await repository.recordReport({ newPothole: created, verification });
+    }
+    const routed = routingKnown
+      ? await routing(jurisdiction).catch(() => null) : null;
     return complete(context, created ? 201 : 200, {
       pothole: publicPothole(pothole),
+      routing: routed,
       duplicate: !created,
       dedupe: {
         radius_m: repository.dedupeRadiusMetres,
@@ -663,7 +727,11 @@ export function createService({ repository, detector, geolocator, logger = conso
     const target = route(event);
     context.route = target.path;
     context.method = target.method;
-    if (target.method === "OPTIONS") return response(204, {}, context.requestId);
+    if (target.method === "OPTIONS") {
+      context.outcome = "preflight";
+      if (!KNOWN_ROUTES.has(target.path)) context.route = "unmatched";
+      return response(204, {}, context.requestId);
+    }
     if (target.method === "GET" && target.path === "/v1/health") {
       context.outcome = "healthy";
       // Readiness reads the secret. "Configured" has to mean a detection would be
@@ -692,20 +760,19 @@ export function createService({ repository, detector, geolocator, logger = conso
     if (target.method === "POST" && target.path === "/v1/installations") {
       return installation(event, context);
     }
-    if (target.method !== "POST" || ![
-      "/v1/activity",
-      "/v1/vision/detect",
-      "/v1/tenders/resolve",
-      "/v1/potholes/report",
-      "/v1/feedback",
-    ].includes(target.path)) {
+    if (target.method !== "POST" || !SIGNED_ROUTES.includes(target.path)) {
+      // The route is a public /v1/impact metric key. Scanner paths are not routes.
+      if (!KNOWN_ROUTES.has(target.path)) context.route = "unmatched";
       throw new HttpError(404, "not_found", "No such endpoint exists.");
     }
     const parsed = jsonBody(event);
     const authenticated = await authenticate(
       event, context, target.path, target.method, parsed.raw,
     );
-    if (authenticated.replay) return authenticated.replay;
+    if (authenticated.replay) {
+      context.outcome = "idempotent_replay";
+      return authenticated.replay;
+    }
     if (target.path === "/v1/activity") return activity(parsed.value, context);
     if (target.path === "/v1/vision/detect") return detect(parsed.value, context);
     if (target.path === "/v1/tenders/resolve") return resolveTender(parsed.value, context);
@@ -726,6 +793,8 @@ export function createService({ repository, detector, geolocator, logger = conso
       potholeId: null,
       detectorProvider: null,
       idempotencyClaimed: false,
+      remainingTimeMs: typeof awsContext.getRemainingTimeInMillis === "function"
+        ? () => awsContext.getRemainingTimeInMillis() : null,
     };
     let result;
     try {
@@ -742,11 +811,18 @@ export function createService({ repository, detector, geolocator, logger = conso
         message: known.message,
         ...(known.details ? { details: known.details } : {}),
       }, context.requestId);
+      // The response says internal_error; the log has to say why. AWS SDK messages
+      // carry ARNs and action names, and the OpenAI key only ever travels in a header.
+      const cause = known === error ? error.cause : error;
       logger.error(JSON.stringify({
         event: "request_error",
         request_id: context.requestId,
         route: context.route,
         error: known.code,
+        ...(cause ? {
+          error_type: String(cause.name || "Error").slice(0, 80),
+          error_message: String(cause.message ?? cause).slice(0, 300),
+        } : {}),
       }));
     }
     await repository.recordRequest({
@@ -775,6 +851,7 @@ export function createService({ repository, detector, geolocator, logger = conso
       openai_request_id: context.openaiRequestId || null,
       yolo_request_id: context.yoloRequestId || null,
       detector_fallback_reason: context.detectorFallbackReason || null,
+      quota_refunded: context.quotaRefunded || false,
     }));
     return result;
   };

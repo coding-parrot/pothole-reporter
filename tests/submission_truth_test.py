@@ -11,12 +11,13 @@ This suite replaced a v1.14 one that drove BMC/PMC portal handoffs, WhatsApp lau
 helpline numbers and a /submitted endpoint. Those channels were removed: opening another
 service proves nothing about whether a complaint was filed.
 """
+import os
 import sys
 
 from playwright.sync_api import sync_playwright
 
 
-APP = "http://localhost:8765/"
+APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 PIXEL = (
     "data:image/png;base64,"
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="

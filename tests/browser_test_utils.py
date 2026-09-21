@@ -54,3 +54,22 @@ def open_app(page, key):
     }""", key)
     page.reload()
     page.wait_for_load_state("networkidle")
+
+
+# A placeholder for suites that need the personal-key path switched on but stub every
+# detector call. Suites that used the real key from .env spent paid detections per run.
+OFFLINE_KEY = "sk-offline-test-not-a-real-key"
+
+
+def block_openai(page, leaks):
+    """Keep OpenAI off the network. The app's free key probe (/v1/models) is answered
+    here; anything else is recorded and refused, so an unstubbed detection fails the
+    suite instead of spending one."""
+    def refuse(route):
+        if urlsplit(route.request.url).path == "/v1/models":
+            route.fulfill(status=200, headers={"content-type": "application/json"},
+                          body=json.dumps({"object": "list", "data": []}))
+            return
+        leaks.append(route.request.url)
+        route.abort()
+    page.route("https://api.openai.com/**", refuse)

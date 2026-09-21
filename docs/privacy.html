@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Privacy policy for the Pothole Reporter Android app.">
-  <title>Privacy Policy — Pothole Reporter</title>
+  <title>Privacy Policy, Pothole Reporter</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -138,6 +138,11 @@
             <td>Count distinct road-damage locations and observers, merge nearby reports, and display the general map.</td>
           </tr>
           <tr>
+            <td>Tester feedback</td>
+            <td>Only when you press Send on the feedback screen, the app sends your star rating, your text (at most 2,000 characters), how you are testing (bike, car, on foot, or other), the app version, the phone model and Android version, and an optional email, signed with the installation ID. The project service stores these with the installation ID, a request ID, and the time. A message that cannot be sent is kept on the device and retried when the app connects. Nothing is sent automatically, and no photo, location, report, or API key is included.</td>
+            <td>Understand what testers hit on real phones and fix it. The optional email is used only to reply to that message.</td>
+          </tr>
+          <tr>
             <td>Name, settings, reports, labels, photos, footage, and drive summaries</td>
             <td>These are stored on the device. A failed accepted-pothole metadata request, without a photo, name, complaint text, or API key, is also kept in a local retry queue. Your name is placed in the complaint signature. Settings include language, model, image detail, recording, frame-saving, and debug choices.</td>
             <td>Run the app, preserve history, allow review, and prepare complaint drafts.</td>
@@ -165,7 +170,7 @@
   <section>
     <h2>External recipients</h2>
     <ul>
-      <li><strong>Pothole Reporter project service:</strong> the pseudonymous installation public key and ID, signed-request metadata and request IDs, accepted pothole metadata and exact coordinates, tender-resolution inputs, and deduplication outcomes. Shared-mode selected images pass through this service to its configured detector without being retained by the project service.</li>
+      <li><strong>Pothole Reporter project service:</strong> the pseudonymous installation public key and ID, signed-request metadata and request IDs, accepted pothole metadata and exact coordinates, tender-resolution inputs, deduplication outcomes, and any tester feedback you send. Shared-mode selected images pass through this service to its configured detector without being retained by the project service.</li>
       <li><strong>OpenAI:</strong> selected images and prompts when you use personal mode, and shared detection images when the project service is configured to use OpenAI. OpenAI also receives tender-adjudication inputs from the project service and, in personal mode, your API credential directly from the app. Vision requests use non-retaining API settings, but that does not override OpenAI's security, abuse-monitoring, or legal obligations. See <a href="https://openai.com/policies/privacy-policy/">OpenAI's privacy policy</a>.</li>
       <li><strong>OpenStreetMap services:</strong> coordinates sent to Nominatim for reverse geocoding and map-area requests sent to the tile service. See the <a href="https://osmfoundation.org/wiki/Privacy_Policy">OpenStreetMap Foundation privacy policy</a> and <a href="https://operations.osmfoundation.org/policies/nominatim/">Nominatim policy</a>.</li>
       <li><strong>Karnataka GIS/KSRSAC:</strong> coordinates sent to government map endpoints to check municipal, gram-panchayat, and national-highway layers.</li>
@@ -191,6 +196,7 @@
       <li>Picked imported videos are read from their existing location. Temporary copies created for Android Share imports are removed when analysis consumes or discards them and are automatically pruned after 24 hours. One shared clip is capped at 512 MiB, all pending shared clips at 768 MiB, and at least 256 MiB of device free space is reserved.</li>
       <li>Reports, report photos, drive summaries, and recorded footage remain in app-private storage until the app deletes them automatically or you delete them.</li>
       <li>A failed project-service upload for an accepted pothole stays in the device's retry queue and is attempted again when the app starts or connectivity returns. Deleting that local report, or using <strong>Delete all app data</strong>, also deletes its pending retry. Deletion cannot recall an observation that the project service already accepted.</li>
+      <li>Tester feedback you sent is kept by the project service until the project deletes it; it has no automatic expiry. To have it removed, email contact@aiengg.dev with the approximate time you sent it. Feedback still waiting on the device is removed by <strong>Delete all app data</strong>, and the app tries to send it first.</li>
       <li>A successful tender-resolution response, including its resolved road address, is retained by the project service for idempotent retry for no more than 24 hours. Scheduled pruning removes older tender replay records.</li>
       <li>With Debug mode off, successfully analysed drive footage is deleted after analysis completes without failed frame requests. Debug mode keeps it. You can also delete footage from History.</li>
       <li><strong>Delete all app data</strong> clears local reports, photos, drive summaries, app-held footage, the API key, sender name, settings, and the app's <code>Documents/pothole-frames</code> folder.</li>

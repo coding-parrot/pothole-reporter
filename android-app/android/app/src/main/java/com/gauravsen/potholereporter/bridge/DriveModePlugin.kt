@@ -4,11 +4,14 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.room.withTransaction
 import androidx.work.WorkManager
+import com.gauravsen.potholereporter.db.dao.toListing
 import com.gauravsen.potholereporter.drivemode.DriveModeService
 import com.gauravsen.potholereporter.drivemode.DriveSession
 import com.gauravsen.potholereporter.drivemode.CentralServiceIdentity
@@ -354,9 +357,8 @@ class DriveModePlugin : Plugin() {
             try {
                 val db = com.gauravsen.potholereporter.db.AppDatabase.getInstance(context)
                 val arr = org.json.JSONArray()
-                for (id in db.reportDao().getAllIds()) {
-                    db.reportDao().getById(id)?.let { arr.put(reportToJson(it)) }
-                }
+                // Home calls this on every render; the listing never loads a photo.
+                for (row in db.reportDao().listForHome()) arr.put(reportToJson(row))
                 val ret = JSObject()
                 ret.put("reports", arr)
                 call.resolve(ret)
@@ -376,7 +378,7 @@ class DriveModePlugin : Plugin() {
                 val db = com.gauravsen.potholereporter.db.AppDatabase.getInstance(context)
                 val report = db.reportDao().getById(id)
                 if (report == null) { call.reject("Report not found"); return@launch }
-                val ret = JSObject(reportToJson(report).toString())
+                val ret = JSObject(reportToJson(report.toListing()).toString())
                 call.resolve(ret)
             } catch (e: Exception) {
                 call.reject("Failed: ${e.message}")
@@ -490,7 +492,7 @@ class DriveModePlugin : Plugin() {
                     db.reportDao().update(updated)
                     updated
                 }
-                call.resolve(JSObject(reportToJson(saved).toString()))
+                call.resolve(JSObject(reportToJson(saved.toListing()).toString()))
             } catch (e: Exception) {
                 call.reject("Failed to save email preparation: ${e.message}")
             }
@@ -533,10 +535,43 @@ class DriveModePlugin : Plugin() {
                     db.driveSessionDao().deleteAll()
                 }
                 CentralServiceIdentity.reset(appContext)
+                // Photo has the camera app write each full-size original (often with EXIF
+                // location) here through the my_images FileProvider path, and the email
+                // composer keeps the last evidence attachment in the external cache. The
+                // page's wipe reaches neither folder.
+                val leftovers = listOfNotNull(
+                    appContext.getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES),
+                    appContext.externalCacheDir?.let { java.io.File(it, "email_composer") },
+                ).filter { it.exists() && !it.deleteRecursively() }
+                if (leftovers.isNotEmpty()) {
+                    call.reject("Could not delete ${leftovers.joinToString { it.name }}")
+                    return@launch
+                }
                 call.resolve(JSObject().put("ok", true))
             } catch (e: Exception) {
                 call.reject("Failed to delete native app data: ${e.message}")
             }
+        }
+    }
+
+    /**
+     * Open this app's page in Android settings. Once the tester has denied a runtime
+     * permission twice, Android marks it user-fixed and never shows the system sheet
+     * again, so this page is the only way back to Drive.
+     */
+    @PluginMethod
+    fun openAppSettings(call: PluginCall) {
+        val host = activity ?: run { call.reject("Activity not available"); return }
+        try {
+            host.startActivity(
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", host.packageName, null),
+                ),
+            )
+            call.resolve(JSObject().put("opened", true))
+        } catch (e: Exception) {
+            call.reject("Could not open Android settings: ${e.message}")
         }
     }
 
@@ -642,7 +677,7 @@ class DriveModePlugin : Plugin() {
 
     // --- Helpers ---
 
-    private fun reportToJson(r: com.gauravsen.potholereporter.db.entities.ReportEntity): org.json.JSONObject {
+    private fun reportToJson(r: com.gauravsen.potholereporter.db.dao.ReportListing): org.json.JSONObject {
         val obj = org.json.JSONObject()
         obj.put("id", r.id)
         obj.put("assessment", r.assessment ?: org.json.JSONObject.NULL)
@@ -686,8 +721,8 @@ class DriveModePlugin : Plugin() {
         obj.put("tender_resolution_checked_at", r.tender_resolution_checked_at ?: org.json.JSONObject.NULL)
         obj.put("detection_model", r.detection_model ?: org.json.JSONObject.NULL)
         obj.put("evidence_count", r.evidence_count)
-        // Photo is NOT included in listing — use getReportPhoto for that
-        obj.put("has_photo", r.photo != null && r.photo.isNotEmpty())
+        // Photo is NOT included in listing; use getReportPhoto for that
+        obj.put("has_photo", r.has_photo)
         obj.put("is_pothole", r.damage_type == "pothole_cavity")
         return obj
     }
