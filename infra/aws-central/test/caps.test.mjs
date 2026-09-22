@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 // The live stack runs 500 detections per install per day (50 until 21 Sept 2026, when a
-// minute of Drive used it up), 60 a minute, 2000 a day and
+// minute of Drive used it up), 60 a minute, 10000 a day (2000 until 22 Sept 2026) and
 // 20000 a month. The template defaults and the handler's fallbacks once said 200, 120,
 // 5000 and 50000, so a fresh stack or a missing variable quietly quadrupled the spend.
 // Raising a cap is a decision made in the stack parameters, never by a default.
@@ -11,7 +11,7 @@ import test from "node:test";
 const deployed = {
   DailyVisionCap: ["DAILY_VISION_CAP", "perInstallDay", 500],
   GlobalVisionMinuteCap: ["GLOBAL_VISION_MINUTE_CAP", "globalMinute", 60],
-  GlobalVisionDailyCap: ["GLOBAL_VISION_DAILY_CAP", "globalDay", 2_000],
+  GlobalVisionDailyCap: ["GLOBAL_VISION_DAILY_CAP", "globalDay", 10_000],
   MonthlyVisionCap: ["MONTHLY_VISION_CAP", "globalMonth", 20_000],
 };
 

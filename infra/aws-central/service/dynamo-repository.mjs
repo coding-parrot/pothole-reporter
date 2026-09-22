@@ -53,7 +53,7 @@ export function createDynamoRepository({
   const config = {
     perInstallDay: Number(quota.perInstallDay ?? 500),
     globalMinute: Number(quota.globalMinute ?? 60),
-    globalDay: Number(quota.globalDay ?? 2_000),
+    globalDay: Number(quota.globalDay ?? 10_000),
     globalMonth: Number(quota.globalMonth ?? 20_000),
     feedbackPerInstallDay: Number(quota.feedbackPerInstallDay ?? 10),
   };

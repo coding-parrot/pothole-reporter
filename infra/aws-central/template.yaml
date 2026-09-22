@@ -23,7 +23,7 @@ Parameters:
     Default: 60
   GlobalVisionDailyCap:
     Type: Number
-    Default: 2000
+    Default: 10000
   MonthlyVisionCap:
     Type: Number
     Default: 20000
