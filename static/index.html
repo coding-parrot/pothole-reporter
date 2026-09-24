@@ -1790,6 +1790,7 @@ const sendLabel = () => t("email_btn");
 // "Outside coverage" sat above a line saying "No GPS" or "no address": the chip names
 // the reason when there is a short name for it.
 const UNROUTED_CHIPS = {
+  regional_email_unavailable: "chip_no_address",
   no_location: "chip_no_gps", location_uncertain: "chip_gps_coarse",
   jurisdiction_unavailable: "chip_routing_unavailable", road_class_unknown: "chip_routing_unavailable",
   no_address_for_body: "chip_no_address", national_highway: "chip_highway",
@@ -1817,7 +1818,7 @@ const physicalCondition = (report) => report && report.condition_status === "fix
   // no_address_for_body is not here: the address registry is a static pack, so a
   // retry can only repeat the same miss.
   const reasons = isRoadReport(r)
-    ? ["jurisdiction_unavailable", "road_class_unknown"]
+    ? ["jurisdiction_unavailable", "road_class_unknown", "outside_area", "regional_email_unavailable"]
     : ["jurisdiction_unavailable"];
   return reasons.includes(r.unrouted_reason);
 }
@@ -2911,6 +2912,7 @@ function step(delta) {
 // do not hold, or genuinely outside the state. Collapsing them told a Mysuru user their
 // city was "outside coverage", which was wrong and unhelpful.
 function unroutedTitle(r) {
+  if (r.unrouted_reason === "regional_email_unavailable") return "Regional email routing is not yet verified";
   // Some highway features (ORR, Hubballi state highways) and bodies carry no name, and
   // "{road} is a state highway" then reads " is a state highway".
   const named = String(r.unrouted_body || "").trim();
@@ -2944,6 +2946,7 @@ function unroutedHelp(r) {
     if (r.unrouted_reason === "unsupported_issue_type") return t("civic_unsupported_help");
     return t("civic_outside_coverage_help");
   }
+  if (r.unrouted_reason === "regional_email_unavailable") return "The shared resolver covers Karnataka, not all of India. Your photo and coordinates are saved. This location needs a verified regional email recipient; no road owner or contractor has been inferred. Retry routing after coverage is updated.";
   if (r.unrouted_reason === "no_location") return t("no_location_help");
   if (r.unrouted_reason === "location_uncertain") return t("location_uncertain_help");
   if (r.unrouted_reason === "jurisdiction_unavailable") return t("jurisdiction_unavailable_help");

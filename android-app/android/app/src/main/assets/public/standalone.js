@@ -5655,7 +5655,13 @@
       const central = routeWhereFromCentral(authoritativeJurisdiction);
       if (!central) return routeForIssue(unroutedRoute("jurisdiction_unavailable"), issueType);
       if (central.kind === "outside_state") {
-        return routeForIssue(unroutedRoute("outside_area"), issueType);
+        // This answer is scoped to Karnataka, not India. Consult checksum-pinned
+        // regional geometry without sending shared-mode coordinates to another GIS.
+        // A statewide portal is not a verified email recipient or road owner.
+        const regional = await remainingStateRouteFromGeocode(null, lat, lng, gpsAccuracy);
+        if (regional && !regional.routed) return routeForIssue(regional, issueType);
+        return routeForIssue(unroutedRoute("regional_email_unavailable",
+          regional && regional.authority_name), issueType);
       }
       if (["national_highway", "state_highway", "district_highway"].includes(central.kind)) {
         return routeForIssue(unroutedRoute(central.kind, central.name), issueType);
@@ -6026,15 +6032,14 @@
       rural_road: "This road is outside every town boundary, so it belongs to the state PWD or a panchayat rather than a city body. The app will not guess an office.",
       no_address_for_body: "This town's body is known, but no official email address for it has been published, so there is no verified recipient to address.",
       outside_area: "This road damage is outside India's verified State/UT boundaries and mapped National Highways, or exact routing data is unavailable, so there is no authority to address.",
+      regional_email_unavailable: "The shared resolver covers Karnataka. This location needs regional email routing, which is not yet verified. The photo and coordinates are saved; no road owner or contractor has been inferred.",
     }[reason] || "This report could not be routed to a responsible office, so there is no verified email recipient.";
   }
 
   function complaintRouteError(reason, body, details = {}) {
     // The central resolver only covers Karnataka; its outside_state is not a claim
     // about India's boundaries, and saying so sent Chennai testers a false reason.
-    const error = new Error(details.centralOutsideState
-      ? "Complaints are routed only inside Karnataka for now, and this point is outside Karnataka, so there is no authority to address."
-      : unroutedComplaintMessage(reason));
+    const error = new Error(unroutedComplaintMessage(reason));
     error.code = "complaint_unrouted";
     error.unroutedReason = reason;
     error.unroutedBody = body || null;
@@ -10502,7 +10507,7 @@
     }
     // A missing body address comes from a static pack, so a retry repeats the miss.
     const retryableReasons = roadDamage
-      ? ["jurisdiction_unavailable", "road_class_unknown"]
+      ? ["jurisdiction_unavailable", "road_class_unknown", "outside_area", "regional_email_unavailable"]
       : ["jurisdiction_unavailable"];
     if (!retryableReasons.includes(rec.unrouted_reason)) {
       throw new Error(
