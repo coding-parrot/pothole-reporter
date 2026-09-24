@@ -2446,19 +2446,22 @@ async function renderReports() {
   wireCards(list, visible);
 }
 
-function getPosition(timeoutMs = 8000) {
-  return new Promise((resolve) => {
-    if (!navigator.geolocation) return resolve(null);
-    navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude,
-        accuracy: typeof p.coords.accuracy === "number" ? p.coords.accuracy : null,
-        speed: typeof p.coords.speed === "number" && !Number.isNaN(p.coords.speed) ? p.coords.speed : null,
-        heading: typeof p.coords.heading === "number" && !Number.isNaN(p.coords.heading) ? p.coords.heading : null,
-        fixedAt: p.timestamp || null }),
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 5000 }
-    );
-  });
+async function getPosition(timeoutMs = 10000) {
+  const native = isNativeApp() && (Capacitor.Plugins || {}).Geolocation;
+  const options = { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 5000 };
+  try {
+    const request = native ? native.getCurrentPosition(options)
+      : new Promise((resolve, reject) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(resolve, reject, options);
+      });
+    // Native providers can ignore their timeout; also bound the JS promise.
+    const p = await withTimeout(request, timeoutMs);
+    const fix = positionFix(p);
+    if (!fix || !Number.isFinite(p.timestamp) || Date.now() - p.timestamp > 10000
+        || p.timestamp > Date.now() + 1000) return null;
+    return { ...fix, fixedAt: p.timestamp };
+  } catch (_) { return null; }
 }
 
 let primedManualPosition = null;
@@ -2498,7 +2501,7 @@ async function prefetchManualPosition() {
 function positionFix(position) {
   if (!position || !position.coords || !Number.isFinite(position.coords.latitude)
       || !Number.isFinite(position.coords.longitude)) return null;
-  const accuracy = Number(position.coords.accuracy);
+  const accuracy = position.coords.accuracy == null ? NaN : Number(position.coords.accuracy);
   return {
     lat: position.coords.latitude, lng: position.coords.longitude,
     accuracy: Number.isFinite(accuracy) && accuracy >= 0 ? accuracy : null,
@@ -2521,32 +2524,50 @@ function closestCaptureFix(samples, capturedAtMs) {
 
 function startCapturePositionSampler() {
   const samples = [];
+  const native = isNativeApp() && (Capacitor.Plugins || {}).Geolocation;
   let watchId = null, stopped = false, waiting = null;
+  const clearWatch = (id) => {
+    if (native) Promise.resolve(native.clearWatch({ id })).catch(() => {});
+    else navigator.geolocation.clearWatch(id);
+  };
   const stop = () => {
     if (stopped) return;
     stopped = true;
     if (watchId != null) {
-      try { navigator.geolocation.clearWatch(watchId); } catch (_) {}
+      try { clearWatch(watchId); } catch (_) {}
     }
   };
-  if (!navigator.geolocation) return { positionAt: async () => null, stop };
-  try {
-    const assignedWatchId = navigator.geolocation.watchPosition((position) => {
+  if (!native && !navigator.geolocation) return { positionAt: async () => null, stop };
+  const accept = (position) => {
       const fix = positionFix(position);
       if (!fix || stopped) return;
       samples.push(fix);
       if (samples.length > 40) samples.shift();
       if (waiting) waiting();
-    }, (error) => {
-      if (error && error.code === 1) stop();
-    }, { enableHighAccuracy: true, maximumAge: 0 });
+  };
+  const error = (e) => {
+    if (e && [1, "OS-PLUG-GLOC-0003"].includes(e.code)) stop();
+  };
+  const options = { enableHighAccuracy: true, maximumAge: 0, timeout: 10000,
+    minimumUpdateInterval: 1000, interval: 1000 };
+  const register = async () => {
+    // Do not put a location permission dialog in front of the system camera.
+    if (native) {
+      const permissions = await native.checkPermissions();
+      if (stopped || !permissions || (permissions.location !== "granted"
+          && permissions.coarseLocation !== "granted")) return;
+    }
+    const assignedWatchId = native
+      ? await native.watchPosition(options, (p, e) => e ? error(e) : accept(p))
+      : navigator.geolocation.watchPosition(accept, error, options);
     watchId = assignedWatchId;
     // A test double (or an unusual browser implementation) may invoke the error
     // callback synchronously, before watchPosition returns its id.
     if (stopped) {
-      try { navigator.geolocation.clearWatch(watchId); } catch (_) {}
+      try { clearWatch(watchId); } catch (_) {}
     }
-  } catch (_) { stop(); }
+  };
+  void register().catch(() => stop());
   return {
     stop,
     positionAt: async (capturedAtMs) => {
@@ -2739,9 +2760,9 @@ async function handleFile(file, captureMeta = {}) {
     if (!pos && bindCurrentLocation && !suppliedPosition) {
       await requestNativeLocationPermission();
       if (token !== manualAnalysisSequence) return;
-      // A first-run location fix must not hold the detector behind a long wait.
-      // A later email can explain that a missing fix prevents authority routing.
-      pos = await getPosition(2000);
+      // Two seconds routinely expires before Android acquires its first fix,
+      // permanently stripping road/tender lookup from an otherwise valid report.
+      pos = await getPosition(10000);
     }
     if (token !== manualAnalysisSequence) return;
     // The health probe is started while the camera is open. Waiting here means a
@@ -3311,7 +3332,7 @@ const TARGET_SPACING_M = 6;
 const FALLBACK_CAPTURE_MS = 750;
 const MIN_CAPTURE_MS = 500;
 const MAX_CAPTURE_MS = 1500;
-const PARKED_CAPTURE_MS = 8000;
+const PARKED_CAPTURE_MS = 1000; // GPS zero-speed is not proof that the scene is stationary
 const GPS_COARSE_M = 30;
 const MOVING_MS = 1.0;
 const GPS_MAX_AGE_MS = 10000; // a fix older than this is stale: pause rather than mistag
@@ -4684,9 +4705,10 @@ async function startDriveAdmitted() {
     alertWithAppSettings(t("location_off"), false);
     return;
   }
-  ctx.watchId = navigator.geolocation.watchPosition(
-    (p) => {
-      if (drive !== ctx) return;
+  const onPosition = (p) => {
+      if (drive !== ctx || ctx.stopping || !p || !p.coords) return;
+      if (!Number.isFinite(p.coords.latitude) || !Number.isFinite(p.coords.longitude)) return;
+      if (p.timestamp && p.timestamp < (ctx.posAt || 0)) return;
       ctx.pos = { lat: p.coords.latitude, lng: p.coords.longitude };
       // Staleness is the age of the FIX, not of its delivery. A phone will hand back the
       // same cached fix over and over, and stamping arrival time made it look perpetually
@@ -4702,20 +4724,19 @@ async function startDriveAdmitted() {
          +p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6),
          ctx.posAccuracy, ctx.posSpeed, ctx.posHeading]);
       ctx.locationDenied = false;
-    },
+    };
     // A refused permission never produces a fix, and "Waiting for GPS..." forever looked
     // like a slow one. Unavailable and timeout errors are left to the 30 s GPS line.
-    (error) => {
-      if (drive !== ctx || !error || error.code !== 1) return;
+  const onLocationError = (error) => {
+      if (drive !== ctx || !error || ![1, "OS-PLUG-GLOC-0003"].includes(error.code)) return;
       ctx.locationDenied = true;
       updateHud(t("location_off"), ctx);
       if (!ctx.locationSettingsOffered) {
         ctx.locationSettingsOffered = true;
         alertWithAppSettings(t("location_off"), false);
       }
-    },
-    { enableHighAccuracy: true, maximumAge: 2000 }
-  );
+    };
+  startDriveLocation(ctx, onPosition, onLocationError);
   // The preview is already visible. Give auto-exposure a short, non-blocking head start;
   // driveTick observes readyAt instead of delaying camera startup or controls.
   ctx.timer = setInterval(driveTick, FRAME_INTERVAL_MS);
@@ -4759,8 +4780,12 @@ function updateHud(status, ctx = drive) {
           : (recCtx && recCtx.failed ? " " + t("rec_failed") : ""));
 }
 
-const withTimeout = (p, ms) =>
-  Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("capture timeout")), ms))]);
+const withTimeout = (p, ms) => {
+  let timer;
+  return Promise.race([p, new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error("capture timeout")), ms);
+  })]).finally(() => clearTimeout(timer));
+};
 
 // Capture hands the engine the current preview frame, unmodified. The engine makes
 // its own small working copy for detection and applies the night boost there, so the
@@ -4904,12 +4929,115 @@ function enqueueDriveEvent(ctx, job) {
   drainDriveQueue(ctx);
 }
 
+// Use Android's fused provider inside the app. Some WebViews stop delivering their
+// own geolocation watch even while Maps still has a fix. A bounded one-shot request
+// also recovers a silent watch; captured frames never inherit an old fix's location.
+function startDriveLocation(ctx, onPosition, onError) {
+  const native = isNativeApp() && (Capacitor.Plugins || {}).Geolocation;
+  const options = { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000,
+    minimumUpdateInterval: 1000, interval: 1000 };
+  let stopped = false, watch = null, probing = false;
+  const clear = () => {
+    if (watch == null) return;
+    if (native) Promise.resolve(native.clearWatch({ id: watch })).catch(() => {});
+    else navigator.geolocation.clearWatch(watch);
+    watch = null;
+    ctx.watchId = null;
+  };
+  const accept = (p) => { if (!stopped) onPosition(p); };
+  const error = (e) => { if (!stopped) onError(e); };
+  const probe = async () => {
+    if (stopped || probing || ctx.locationDenied ||
+        (ctx.posAt && Date.now() - ctx.posAt < 4000)) return;
+    probing = true;
+    try {
+      const request = native ? native.getCurrentPosition(options)
+        : new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, options));
+      accept(await withTimeout(request, 11000));
+    } catch (e) { error(e); }
+    finally { probing = false; }
+  };
+  ctx.stopLocation = () => { stopped = true; clearInterval(ctx.locationTimer); clear(); };
+  try {
+    if (native) {
+      Promise.resolve(native.watchPosition(options, (p, e) => e ? error(e) : accept(p)))
+        .then((id) => { watch = id; if (stopped) clear(); }).catch(error);
+    } else {
+      watch = navigator.geolocation.watchPosition(accept, error, options);
+      ctx.watchId = watch;
+    }
+  } catch (e) { error(e); }
+  ctx.locationTimer = setInterval(probe, 5000);
+  void probe();
+}
+
+async function recoverDriveCamera(ctx) {
+  if (ctx.cameraRecovering || ctx.stopping || drive !== ctx || document.hidden ||
+      Date.now() < (ctx.cameraRetryAt || 0)) return;
+  ctx.cameraRecovering = true;
+  ctx.cameraRetryAt = Date.now() + 3000;
+  const video = $("driveVideo");
+  try {
+    // Retain the recorder's segment counter and pending writes across camera reopen.
+    const recorder = ctx.recoveryRecorder || (recCtx && recCtx.active ? recCtx : null);
+    if (recorder && !ctx.recoveryRecorder) {
+      ctx.recoveryRecorder = recorder;
+      void stopRecording();
+    }
+    ctx.stream?.getTracks().forEach((track) => track.stop());
+    const pending = navigator.mediaDevices.getUserMedia({ video: {
+      facingMode: { ideal: "environment" }, width: { ideal: 1280 },
+      height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: false });
+    let expired = false;
+    pending.then((stream) => {
+      if (expired || ctx.stopping || drive !== ctx) stream.getTracks().forEach((t) => t.stop());
+    }, () => {});
+    let stream;
+    try { stream = await withTimeout(pending, 8000); }
+    catch (e) { expired = true; throw e; }
+    if (ctx.stopping || drive !== ctx) { stream.getTracks().forEach((t) => t.stop()); return; }
+    ctx.stream = stream;
+    video.srcObject = stream;
+    await withTimeout(video.play(), 3000);
+    ctx.camBad = 0; ctx.capBad = 0; ctx.cameraBadAt = 0;
+    ctx.videoProgressAt = Date.now(); ctx.videoTime = video.currentTime;
+    if (recorder) {
+      // Preserve the original recorder context; wait for its last segment to settle.
+      await recorder.stopped;
+      if (drive === ctx && !ctx.stopping) {
+        recorder.stream = stream; recorder.active = true; recorder.finished = false;
+        recorder.stopped = new Promise((resolve) => { recorder.resolveStopped = resolve; });
+        recCtx = recorder; ctx.recoveryRecorder = null; cycleClip(recorder);
+      }
+    }
+  } catch (_) { updateHud(t("camera_lost"), ctx); }
+  finally { ctx.cameraRecovering = false; }
+}
+
 async function driveTick() {
   const ctx = drive;
   if (!ctx || ctx.stopping) return;
   if (Date.now() < (ctx.readyAt || 0)) return;
   const video = $("driveVideo");
-  if (!video.videoWidth) return;
+  // Camera liveness must be checked even while GPS is missing or capture is gated.
+  if (video.paused || video.ended) Promise.resolve(video.play()).catch(() => {});
+  const track = ctx.stream?.getVideoTracks?.()[0];
+  if (ctx.videoTime !== video.currentTime) {
+    ctx.videoTime = video.currentTime; ctx.videoProgressAt = Date.now();
+  }
+  const badCamera = !track || track.readyState === "ended" || track.muted ||
+    video.readyState < 2 || !video.videoWidth ||
+    Date.now() - (ctx.videoProgressAt || ctx.startedAt) > 3000;
+  if (badCamera) {
+    ctx.cameraBadAt ||= Date.now();
+    if (!track || track.readyState === "ended" || Date.now() - ctx.cameraBadAt > 2000) {
+      updateHud(t("camera_lost"), ctx);
+      void recoverDriveCamera(ctx);
+    }
+    return;
+  }
+  ctx.cameraBadAt = 0;
+  if (ctx.cameraRecovering) return;
   const gpsFresh = ctx.pos && Date.now() - (ctx.posAt || 0) <= GPS_MAX_AGE_MS;
   if (!gpsFresh) {
     updateHud(ctx.locationDenied ? t("location_off") : !ctx.pos
@@ -4937,8 +5065,6 @@ async function driveTick() {
   // Keep the preview alive. Android pauses a video element on all sorts of events and
   // nothing here ever restarted it, so a single pause froze the feed for the rest of
   // the drive.
-  if (video.paused || video.ended) { try { video.play(); } catch (e) {} }
-  const track = ctx.stream && ctx.stream.getVideoTracks && ctx.stream.getVideoTracks()[0];
   // Only a genuinely ended track is a lost camera. `muted` flickers true on Android
   // whenever the source briefly cannot supply frames, and treating one tick of that as
   // "camera gone" stopped scanning constantly.
@@ -4967,7 +5093,7 @@ async function driveTick() {
     // The spacing is only consumed by a frame that was actually taken. Marking position
     // before the capture meant a failing camera silently ate 8 m of road per attempt.
     ctx.capBad = (ctx.capBad || 0) + 1;
-    if (ctx.capBad >= 8) updateHud(t("capture_failing"));
+    if (ctx.capBad >= 3) { updateHud(t("camera_lost")); void recoverDriveCamera(ctx); }
     return;
   }
   ctx.capBad = 0;
@@ -5046,10 +5172,11 @@ function stopDrive() {
   const gpsTrack = ctx.gpsTrack || [];
   // MediaRecorder delivers its last data only after stop(). Keep its completion in the
   // shutdown barrier so history cannot render before that final clip is committed.
-  const recordingDone = stopRecording();
+  const recordingDone = ctx.recoveryRecorder ? ctx.recoveryRecorder.stopped : stopRecording();
   const hadActivity = tally.captured > 0 || tally.checked > 0 || tally.found > 0
     || (tally.failed || 0) > 0 || ctx.inFlight > 0 || ctx.queue.length > 0;
   clearInterval(ctx.timer);
+  if (ctx.stopLocation) ctx.stopLocation();
   if (ctx.watchId != null) navigator.geolocation.clearWatch(ctx.watchId);
   if (ctx.wakeLock) ctx.wakeLock.release().catch(() => {});
   ctx.stream.getTracks().forEach((t) => t.stop());

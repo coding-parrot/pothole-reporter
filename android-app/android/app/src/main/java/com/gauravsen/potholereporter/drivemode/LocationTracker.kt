@@ -20,8 +20,8 @@ class LocationTracker(
             val location = locationResult.lastLocation
             if (location != null) {
                 driveSession.currentLocation = location
-                // We store the timestamp when we received the fix to check for staleness
-                driveSession.locationFreshAtMs = System.currentTimeMillis()
+                // A cached fix does not become fresh when Android delivers it again.
+                driveSession.locationFreshAtMs = location.time
             }
         }
     }
@@ -32,6 +32,8 @@ class LocationTracker(
 
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L)
             .setMinUpdateIntervalMillis(500L)
+            .setWaitForAccurateLocation(false)
+            .setMaxUpdateDelayMillis(0L)
             .build()
 
         fusedLocationClient.requestLocationUpdates(

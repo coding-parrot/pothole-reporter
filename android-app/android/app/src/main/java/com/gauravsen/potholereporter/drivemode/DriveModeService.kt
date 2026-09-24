@@ -350,7 +350,7 @@ class DriveModeService : LifecycleService() {
 
     // --- Camera ---
 
-    private fun startCamera(session: DriveSession) {
+    private fun startCamera(session: DriveSession, startLoop: Boolean = true) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
         cameraProviderFuture.addListener({
@@ -413,7 +413,7 @@ class DriveModeService : LifecycleService() {
                 // Start the tick loop after camera settles
                 serviceScope.launch {
                     delay(DriveConstants.CAMERA_SETTLE_MS)
-                    if (session.state == DriveSession.State.RUNNING) {
+                    if (startLoop && session.state == DriveSession.State.RUNNING) {
                         startTickLoop(session)
                     }
                 }
@@ -627,9 +627,15 @@ class DriveModeService : LifecycleService() {
 
         // Wait for that frame with a timeout
         val frame = try {
-            withTimeout(10_000L) {
+            withTimeout(3_000L) {
                 frameChannel.receive()
             }
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            analyzer.cancelPendingCapture()
+            null
+        } catch (e: CancellationException) {
+            session.stillBusy = false
+            throw e
         } catch (e: Exception) {
             null
         }
@@ -638,8 +644,10 @@ class DriveModeService : LifecycleService() {
 
         if (frame == null) {
             session.capBadTicks++
-            if (session.capBadTicks >= DriveConstants.CAMERA_STALL_THRESHOLD) {
-                updateStatus("Camera capture failing", session)
+            if (session.capBadTicks >= 2) {
+                updateStatus("Reconnecting camera", session)
+                session.capBadTicks = 0
+                startCamera(session, startLoop = false)
             }
             return
         }

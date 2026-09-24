@@ -34,10 +34,10 @@ class DetectionDispatcherPolicyTest {
     }
 
     @Test
-    fun visionLanguageAllowsKannadaAndDefaultsEverythingElseToEnglish() {
-        val translatedLanguage = LlmContractGenerated.ALLOWED_LANGUAGES
-            .single { it != LlmContractGenerated.DEFAULT_LANGUAGE }
-        assertEquals(translatedLanguage, normalizeVisionLanguage(translatedLanguage))
+    fun visionLanguageAllowsAllConfiguredLanguagesAndDefaultsUnknownToEnglish() {
+        LlmContractGenerated.ALLOWED_LANGUAGES.forEach { language ->
+            assertEquals(language, normalizeVisionLanguage(language))
+        }
         assertEquals(
             LlmContractGenerated.DEFAULT_LANGUAGE,
             normalizeVisionLanguage(LlmContractGenerated.DEFAULT_LANGUAGE),
@@ -55,7 +55,7 @@ class DetectionDispatcherPolicyTest {
             .single { it != LlmContractGenerated.DEFAULT_IMAGE_DETAIL }
         val detection = sharedVisionRequestConfig(
             language = LlmContractGenerated.ALLOWED_LANGUAGES
-                .single { it != LlmContractGenerated.DEFAULT_LANGUAGE },
+                .single { it == "kn" },
             model = LlmContractGenerated.ORIGINAL_DETAIL_MODELS.single(),
             detail = originalDetail,
             promptVersion = LlmContractGenerated.DETECT_PROMPT_VERSION,
@@ -96,7 +96,7 @@ class DetectionDispatcherPolicyTest {
     @Test
     fun nativePromptsAreBuiltFromTheGeneratedContract() {
         val translatedLanguage = LlmContractGenerated.ALLOWED_LANGUAGES
-            .single { it != LlmContractGenerated.DEFAULT_LANGUAGE }
+            .single { it == "kn" }
         val detection = detectionPromptForDrive(translatedLanguage)
         assertTrue(detection.startsWith(LlmContractGenerated.DETECT_PROMPT))
         assertTrue(detection.contains(LlmContractGenerated.DETECT_CAPTURE_DRIVE))

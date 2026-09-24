@@ -93,17 +93,17 @@ with sync_playwright() as p:
         approx_spacing = 8.3 / rate if rate and mode != "parked" else None
         # At 30 km/h, one frame every 8 s is 66 m of unlooked-at road. The real drive
         # managed one per 9 s. Anything slower than one per 4 s is not scanning a street.
-        # Parked with a precise fix is the one case that SHOULD be slow: there is no new
-        # road to look at, and photographing the same spot costs money for nothing.
+        # Zero speed is also reported while turning the phone or before GPS catches up.
+        # Continue looking once per second instead of creating an eight-second blind spot.
         # Moving: representative city speed should stay within 9 m/event. The previous
         # loose one-per-2s gate passed while its own output showed 10-17 m gaps.
-        ok = (rate <= 0.2) if mode == "parked" else (approx_spacing <= 9)
+        ok = (0.75 <= rate <= 1.5) if mode == "parked" else (approx_spacing is not None and approx_spacing <= 9)
         suffix = f"{1/rate:.1f}s apart, ~{approx_spacing:.1f}m" if approx_spacing else f"{1/rate:.1f}s apart"
         print(f"  {name:40} {n:3} frames in {SECONDS}s  ({suffix})" if n else
               f"  {name:40} {n:3} frames in {SECONDS}s")
         if not ok:
             fails.append(f"{name}: {n} frames in {SECONDS}s, "
-                         + ("faster than one every 5 s while parked" if mode == "parked"
+                         + ("outside bounded one-second zero-speed cadence" if mode == "parked"
                             else "wider than 9 m/event at representative city speed"))
         if result["invalidCaptures"]:
             fails.append(f"{name}: {result['invalidCaptures']} requests did not contain exactly one frame without burst-selection metadata")

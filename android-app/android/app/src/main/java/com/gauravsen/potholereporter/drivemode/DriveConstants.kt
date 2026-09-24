@@ -13,7 +13,7 @@ object DriveConstants {
     const val MIN_CAPTURE_MS = 500L
     const val MAX_CAPTURE_MS = 1500L
     const val FALLBACK_CAPTURE_MS = 750L
-    const val PARKED_CAPTURE_MS = 8000L
+    const val PARKED_CAPTURE_MS = 1000L
 
     // GPS quality thresholds
     const val GPS_COARSE_M = 30f

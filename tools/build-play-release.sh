@@ -159,8 +159,8 @@ fi
 
 echo "4/8 validating release identity and manifest policy"
 grep -Fq 'package="dev.aiengg.potholereporter"' "$BUNDLE_MANIFEST" || fail "unexpected application ID"
-grep -Fq 'android:versionCode="73"' "$BUNDLE_MANIFEST" || fail "expected versionCode 73"
-grep -Fq 'android:versionName="1.39.4"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.39.4"
+grep -Fq 'android:versionCode="74"' "$BUNDLE_MANIFEST" || fail "expected versionCode 74"
+grep -Fq 'android:versionName="1.39.5"' "$BUNDLE_MANIFEST" || fail "expected versionName 1.39.5"
 grep -Fq 'android:allowBackup="false"' "$BUNDLE_MANIFEST" || fail "allowBackup must remain false"
 grep -Fq 'android:dataExtractionRules="@xml/data_extraction_rules"' "$BUNDLE_MANIFEST" || fail "data extraction exclusions are missing"
 grep -Fq 'android:fullBackupContent="@xml/backup_rules"' "$BUNDLE_MANIFEST" || fail "legacy backup exclusions are missing"

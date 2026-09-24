@@ -1,0 +1,17 @@
+{
+	"appId": "dev.aiengg.potholereporter",
+	"appName": "Pothole Reporter",
+	"webDir": "www",
+	"appendUserAgent": "PotholeReporter/1.39.5 (+https://coding-parrot.github.io/pothole-reporter/; contact: contact@aiengg.dev)",
+	"android": {
+		"loggingBehavior": "none"
+	},
+	"server": {
+		"androidScheme": "https"
+	},
+	"plugins": {
+		"CapacitorHttp": {
+			"enabled": true
+		}
+	}
+}
