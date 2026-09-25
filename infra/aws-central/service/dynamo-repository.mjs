@@ -301,8 +301,8 @@ export function createDynamoRepository({
       await send(new PutCommand({
         TableName: tables.control,
         Item: {
-          id: `RECEIPT#${receipt.id}`,
           ...receipt,
+          id: `RECEIPT#${receipt.id}`,
           expires_at: ttl(receipt.expiresAt),
         },
         ConditionExpression: "attribute_not_exists(id)",
@@ -310,12 +310,32 @@ export function createDynamoRepository({
     },
 
     async getReceipt(id) {
+      if (!/^[a-f0-9]{64}$/.test(id)) return null;
       const result = await send(new GetCommand({
         TableName: tables.control,
         Key: { id: `RECEIPT#${id}` },
         ConsistentRead: true,
       }));
-      return result.Item || null;
+      if (result.Item) return result.Item;
+      // Older builds accidentally overwrote the namespaced key with receipt.id.
+      // Recover only a live receipt; core still verifies installation, evidence,
+      // coordinates and verdict. Preserve the old row for rollback until TTL expiry.
+      const legacy = (await send(new GetCommand({
+        TableName: tables.control, Key: { id }, ConsistentRead: true,
+      }))).Item;
+      if (!legacy || !legacy.install_id || !legacy.client_observation_id
+          || !/^[a-f0-9]{64}$/.test(legacy.image_hash || '')
+          || !(Number(legacy.expires_at) * 1000 > Date.now())) return null;
+      const migrated = { ...legacy, id: `RECEIPT#${id}` };
+      try {
+        await send(new PutCommand({TableName: tables.control, Item: migrated,
+          ConditionExpression: 'attribute_not_exists(id)'}));
+      } catch (error) {
+        if (error.name !== 'ConditionalCheckFailedException') throw error;
+        return (await send(new GetCommand({TableName: tables.control,
+          Key: {id: migrated.id}, ConsistentRead: true}))).Item || null;
+      }
+      return migrated;
     },
 
     async acquireLocationLocks(cells, owner, now = Date.now()) {

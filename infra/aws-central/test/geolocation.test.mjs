@@ -32,6 +32,26 @@ test("the default KGIS timeout is 3 s", () => {
   assert.equal(createGeolocator().kgisTimeoutMs, 3_000);
 });
 
+test('malformed GIS JSON never proves outside-state or municipal ownership', async()=>{
+  for (const payload of [{}, {status:'temporarily unavailable'}, {features:{}}, {features:[{}]}]) {
+    const locator=createGeolocator({fetchImpl:async()=>new Response(JSON.stringify(payload))});
+    const result=await locator.resolve({lat:23.181854,lng:72.652801});
+    assert.equal(result.road_ownership,'unknown');
+    assert.equal(result.lookup.kgis,'unavailable');
+  }
+});
+
+test('malformed GIS failure is not cached across a successful retry', async()=>{
+  let broken=true;
+  const locator=createGeolocator({fetchImpl:async(url)=>new Response(JSON.stringify(broken
+    ? {} : {features:url.includes('Admin_Dynamic_New')
+      ? [{attributes:{KGISTownName:'Test town',LGD_TownCode:1}}] : []}))});
+  const args={lat:12.97,lng:77.59,addressHint:'Test Road'};
+  assert.equal((await locator.resolve(args)).road_ownership,'unknown');
+  broken=false;
+  assert.equal((await locator.resolve(args)).road_ownership,'municipal');
+});
+
 test("nearby points share a cache entry but keep their own coordinates", async () => {
   let calls = 0;
   const geolocator = createGeolocator({

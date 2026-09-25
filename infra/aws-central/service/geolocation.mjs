@@ -80,6 +80,10 @@ export function createGeolocator({
     if (Date.now() < kgisClosedAt) return UNAVAILABLE;
     const result = await readJson(fetchImpl, url, { timeoutMs: kgisTimeoutMs });
     if (result.timedOut) kgisClosedAt = Date.now() + kgisBreakerMs;
+    // A JSON error/proxy envelope is not proof of zero matching features.
+    if (result.available && (!Array.isArray(result.data.features)
+        || result.data.features.some((feature) => !feature || typeof feature !== 'object'
+          || !feature.attributes || typeof feature.attributes !== 'object'))) return UNAVAILABLE;
     return result;
   };
   return {
