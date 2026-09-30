@@ -32,12 +32,24 @@ test("the default KGIS timeout is 3 s", () => {
   assert.equal(createGeolocator().kgisTimeoutMs, 3_000);
 });
 
+// Inside Karnataka a broken KGIS answer is the only evidence there is, so it must not be
+// read as proof of anything. (This case used a Gandhinagar coordinate until 30 Sep 2026;
+// outside Karnataka the answer no longer comes from KGIS at all, so it proved nothing.)
 test('malformed GIS JSON never proves outside-state or municipal ownership', async()=>{
   for (const payload of [{}, {status:'temporarily unavailable'}, {features:{}}, {features:[{}]}]) {
     const locator=createGeolocator({fetchImpl:async()=>new Response(JSON.stringify(payload))});
-    const result=await locator.resolve({lat:23.181854,lng:72.652801});
+    const result=await locator.resolve({lat:12.9716,lng:77.5946});
     assert.equal(result.road_ownership,'unknown');
     assert.equal(result.lookup.kgis,'unavailable');
+  }
+});
+
+test('a malformed GIS answer cannot change the verdict outside Karnataka', async()=>{
+  for (const payload of [{}, {status:'temporarily unavailable'}, {features:{}}, {features:[{}]}]) {
+    const locator=createGeolocator({fetchImpl:async()=>new Response(JSON.stringify(payload))});
+    const result=await locator.resolve({lat:23.181854,lng:72.652801});
+    assert.equal(result.road_ownership,'outside_state');
+    assert.equal(result.lookup.kgis,'out_of_scope');
   }
 });
 
@@ -111,4 +123,43 @@ test("city arterials are not highways, and a national highway still is", async (
   const bellary = await at(13.00271, 77.58406);
   assert.equal(bellary.road_ownership, "national_highway");
   assert.equal(bellary.highway_name, "BELLARY ROAD NH 7");
+});
+
+// Gandhinagar, Gujarat, reported from the field on 30 Sep 2026. KGIS is a Karnataka
+// register: it has nothing to say about a Gujarat street whether it is up or down. Asking
+// it anyway turned a transient KGIS blip into road_ownership "unknown", which the app
+// showed as "could not check whether this road is a national, state, or district highway,
+// try again when you have a signal" on a phone with full 5G. A point this far outside
+// Karnataka must answer outside_state without a single KGIS request.
+test("a point far outside Karnataka answers outside_state without calling KGIS", async () => {
+  let kgisCalls = 0;
+  const geolocator = createGeolocator({
+    fetchImpl: async (url) => {
+      if (url.includes("kgis.ksrsac.in")) kgisCalls += 1;
+      throw new Error("KGIS is down");
+    },
+  });
+  const result = await geolocator.resolve({ lat: 23.181854, lng: 72.652801 });
+  assert.equal(result.road_ownership, "outside_state");
+  assert.equal(kgisCalls, 0, "KGIS cannot answer for Gujarat, so it must not be asked");
+});
+
+test("a KGIS outage still refuses to guess ownership inside Karnataka", async () => {
+  const geolocator = createGeolocator({ fetchImpl: async () => { throw new Error("down"); } });
+  const bengaluru = await geolocator.resolve({ lat: 12.9716, lng: 77.5946 });
+  assert.equal(bengaluru.road_ownership, "unknown");
+});
+
+test("a coordinate just outside the Karnataka border is still put to KGIS", async () => {
+  let kgisCalls = 0;
+  const geolocator = createGeolocator({
+    fetchImpl: async (url) => {
+      if (url.includes("kgis.ksrsac.in")) kgisCalls += 1;
+      return new Response(JSON.stringify({ features: [] }));
+    },
+  });
+  // Hosur, Tamil Nadu, 6 km from the Karnataka line: close enough that only KGIS
+  // can settle it, so the envelope must not short-circuit it.
+  await geolocator.resolve({ lat: 12.7409, lng: 77.8253 });
+  assert.ok(kgisCalls > 0, "a border point must still be resolved against KGIS");
 });

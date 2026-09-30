@@ -6025,7 +6025,7 @@
   function unroutedComplaintMessage(reason) {
     return {
       no_location: "This report has no location, so there is no way to tell which office is responsible. Retake it with location switched on.",
-      road_class_unknown: "The app could not check whether this road is a national, state, or district highway, and it will not name a city officer for a road that may not be theirs. Try again when you have a signal.",
+      road_class_unknown: "The state road register did not answer, so the app could not check whether this road is a national, state, or district highway, and it will not name a city officer for a road that may not be theirs. The register, not your phone, is what has to come back. Retry routing in a few minutes.",
       national_highway: "This stretch is a national highway. It is maintained by NHAI or the state PWD National Highways division, not by the city or town body, so there is no municipal officer to address.",
       state_highway: "This stretch is a state highway. It is maintained by the state PWD, not by the city or town body, so there is no municipal officer to address.",
       district_highway: "This stretch is a district highway. It is maintained by the district or state road authority, not by the city or town body, so there is no municipal officer to address.",

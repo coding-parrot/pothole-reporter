@@ -28,6 +28,24 @@ function pointUrl(endpoint, lat, lng, fields, distance = 0) {
 // misclassifies as a National Highway. Past 5 m, city reports were told to write to NHAI.
 const HIGHWAY_BUFFER_METRES = 5;
 
+// KGIS is Karnataka's register. Outside Karnataka it answers "no features" for every
+// layer, which is indistinguishable from an outage, so a Gujarat street reported on
+// 30 Sep 2026 came back as ownership "unknown" during a KGIS blip and the app told the
+// user to check a signal that was already full 5G. Karnataka spans lat 11.59 to 18.46
+// and lng 74.04 to 78.59; this envelope pads that by half a degree (about 55 km) so
+// every border point, and anything a coarse GPS fix could place near one, is still put
+// to KGIS exactly as before. Only points far outside can skip it, and for those
+// "outside Karnataka" is a fact about geography, not about whether KGIS is reachable.
+const KARNATAKA_ENVELOPE = Object.freeze({
+  minLat: 11.09, maxLat: 18.96, minLng: 73.54, maxLng: 79.09,
+});
+
+function withinKarnatakaEnvelope(lat, lng) {
+  return Number.isFinite(lat) && Number.isFinite(lng)
+    && lat >= KARNATAKA_ENVELOPE.minLat && lat <= KARNATAKA_ENVELOPE.maxLat
+    && lng >= KARNATAKA_ENVELOPE.minLng && lng <= KARNATAKA_ENVELOPE.maxLng;
+}
+
 const UNAVAILABLE = Object.freeze({ available: false, data: null });
 
 async function readJson(fetchImpl, url, { headers = {}, timeoutMs = 6_000 } = {}) {
@@ -121,12 +139,18 @@ export function createGeolocator({
             "The operator geocoder URL is invalid.");
         }
       }
+      // A point far outside Karnataka is not a KGIS question, so do not spend a lookup
+      // (or a Lambda slot) on one. Its answer would be an empty feature set, which is
+      // indistinguishable from an outage, and an outage then reads as "we could not
+      // determine the road class" for a street KGIS was never going to know.
+      const inKarnataka = withinKarnatakaEnvelope(lat, lng);
+      const askKgis = (url) => (inKarnataka ? kgis(url) : Promise.resolve(UNAVAILABLE));
       const [town, nh, sh, dh, geocoded] = await Promise.all([
-        kgis(pointUrl(KGIS_TOWN, lat, lng,
+        askKgis(pointUrl(KGIS_TOWN, lat, lng,
           "KGISTownName,Town_Type,KGISTownCode,LGD_TownCode")),
-        kgis(pointUrl(KGIS_NH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
-        kgis(pointUrl(KGIS_SH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
-        kgis(pointUrl(KGIS_DH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
+        askKgis(pointUrl(KGIS_NH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
+        askKgis(pointUrl(KGIS_SH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
+        askKgis(pointUrl(KGIS_DH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
         geocoder
           ? readJson(fetchImpl, geocoder.url, { headers: geocoder.headers })
           : Promise.resolve({ available: false, data: null }),
@@ -145,14 +169,19 @@ export function createGeolocator({
       let highwayName = null;
       let ruralBody = null;
       let gpAvailable = false;
-      if (kgisAvailable) {
+      if (!inKarnataka) {
+        // Geography, not availability: this coordinate is hundreds of kilometres from
+        // the Karnataka line. The client turns this into a regional-routing answer that
+        // never asks the user to retry on a better signal.
+        roadOwnership = "outside_state";
+      } else if (kgisAvailable) {
         if (highway) {
           roadOwnership = highway[1];
           highwayName = bounded(highway[0].data.features[0]?.attributes?.Name, 160) || null;
         } else if (townFeature && lgd) {
           roadOwnership = "municipal";
         } else if (!townFeature) {
-          const gp = await kgis(pointUrl(KGIS_GP, lat, lng, "KGISGPName"));
+          const gp = await askKgis(pointUrl(KGIS_GP, lat, lng, "KGISGPName"));
           gpAvailable = gp.available;
           ruralBody = bounded(gp.data?.features?.[0]?.attributes?.KGISGPName, 160) || null;
           roadOwnership = gp.available ? (ruralBody ? "rural" : "outside_state") : "unknown";
@@ -172,10 +201,13 @@ export function createGeolocator({
         highway_name: highwayName,
         rural_body: ruralBody,
         lookup: {
-          kgis: kgisAvailable ? "available" : "unavailable",
-          kgis_town: town.available ? "available" : "unavailable",
-          kgis_highway: highwayLayers.every(([item]) => item.available)
-            ? "available" : "unavailable",
+          kgis: !inKarnataka ? "out_of_scope"
+            : kgisAvailable ? "available" : "unavailable",
+          kgis_town: !inKarnataka ? "out_of_scope"
+            : town.available ? "available" : "unavailable",
+          kgis_highway: !inKarnataka ? "out_of_scope"
+            : highwayLayers.every(([item]) => item.available)
+              ? "available" : "unavailable",
           kgis_gp: gpAvailable ? "available" : "not_needed_or_unavailable",
           geocoder: geocoded.available ? "available"
             : addressHint ? "skipped_client_hint" : "unavailable",
