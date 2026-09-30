@@ -1906,6 +1906,24 @@
   });
   const STATE_PACK_MAX_BYTES = 16 * 1024 * 1024;
   const STATE_PACK_FETCH_TIMEOUT_MS = 30000;
+  // Every routing pack is a single GET to the same CDN, and every one of them was a
+  // single attempt: one dropped request lost that source for the whole run. Losing the
+  // National Highway tile that way refused reports in every city in India, because road
+  // class is checked before the city. Two cheap retries turn the common blip into a
+  // non-event; a source that is genuinely down still fails, just not on the first packet.
+  const PACK_FETCH_ATTEMPTS = 3;
+  const PACK_RETRY_BASE_MS = 400;
+  async function withPackRetries(attempt) {
+    for (let index = 0; index < PACK_FETCH_ATTEMPTS; index += 1) {
+      const result = await attempt();
+      if (result) return result;
+      if (index + 1 < PACK_FETCH_ATTEMPTS) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, PACK_RETRY_BASE_MS * Math.pow(2, index)));
+      }
+    }
+    return null;
+  }
   // Contract context is optional and must never make an accepted report feel stuck.
   // The required routing packs retain their longer timeout; these catalogs get a short
   // network deadline and the matcher also bounds the complete lookup below.
@@ -2860,7 +2878,11 @@
     return { removed, bytes: removedBytes };
   }
 
-  async function fetchStatePack(resource) {
+  function fetchStatePack(resource) {
+    return withPackRetries(() => fetchStatePackOnce(resource));
+  }
+
+  async function fetchStatePackOnce(resource) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), STATE_PACK_FETCH_TIMEOUT_MS);
     try {
@@ -3964,7 +3986,11 @@
     });
   }
 
-  async function fetchHighwayTile(resource) {
+  function fetchHighwayTile(resource) {
+    return withPackRetries(() => fetchHighwayTileOnce(resource));
+  }
+
+  async function fetchHighwayTileOnce(resource) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), HIGHWAY_FETCH_TIMEOUT_MS);
     try {
@@ -4126,12 +4152,15 @@
     const inIndiaEnvelope = lat >= 5 && lat <= 36 && lng >= 67 && lng <= 98;
     if (!inIndiaEnvelope) return null;
     const manifest = await getHighwayPackManifest();
-    if (!manifest) return unroutedRoute("road_class_unknown");
+    // "The map could not be downloaded" and "the map was read and could not classify this
+    // road" are different facts with different remedies. Collapsing them told a user on
+    // full 5G to go and find a signal, and gave them a retry that repeated the same miss.
+    if (!manifest) return unroutedRoute("road_class_unavailable");
     const identifier = highwayTileIdFor(lat, lng, manifest.match.tile_size_degrees);
     const resource = identifier && manifest.tiles[identifier];
     if (!resource) return null;
     const pack = await loadHighwayTile(identifier);
-    if (!pack) return unroutedRoute("road_class_unknown");
+    if (!pack) return unroutedRoute("road_class_unavailable");
     const result = matchHighwayTile(pack, manifest, lat, lng, gpsAccuracy, heading, speed);
     if (!result) return null;
     if (result.uncertain) return unroutedRoute("location_uncertain", result.match.ref);
@@ -5224,6 +5253,11 @@
     return matches[0].code;
   }
 
+  // A statewide portal answer is explicitly not a claim about who maintains the segment;
+  // the authority id carries that fact, and the contract logic already reads it this way.
+  const isStatewideHandoff = (route) =>
+    /-statewide-unverified$/.test(String((route && route.authority_id) || ""));
+
   function unroutedRoute(reason, bodyName = null) {
     return { routed: false, unrouted_reason: reason, authority_name: bodyName };
   }
@@ -5715,7 +5749,17 @@
     // branch applied it. Every municipal and statewide route returned without it, so
     // contract_state_code was undefined and tender_eligible was false for every city
     // pothole: contractor matching was off wherever a road actually has a contract.
+    // Set when the National Highway map could not be downloaded; see the call below.
+    let deferredHighwayFailure = null;
+    // Every routed answer in this chain goes through here. Naming a city officer for what
+    // may be a national highway is the harm the road class check exists to prevent, so a
+    // map that would not download still vetoes a municipal recipient. A statewide
+    // grievance handoff claims no ownership and already tells the user it is unverified,
+    // so it is not worth losing the report over.
+    const vetoedByMissingRoadClass = (route) => deferredHighwayFailure && route
+      && route.routed && issueType === "road_damage" && !isStatewideHandoff(route);
     const withContractState = async (route) => {
+      if (vetoedByMissingRoadClass(route)) return deferredHighwayFailure;
       if (!route || !route.routed || issueType !== "road_damage") return route;
       if (route.contract_state_code !== undefined) return route;
       const contractStateCode = await exactContractStateP;
@@ -5731,7 +5775,15 @@
     // be addressed to the municipal body even though the highway has another maintainer.
     const highway = issueType === "road_damage"
       ? await nationalHighwayRoute(lat, lng, gpsAccuracy, heading, speed) : null;
-    if (highway) {
+    // A tile that would not download is not an answer, and returning it here abandoned
+    // every independent source behind it. Measured on 30 Sep 2026: aborting only the
+    // highway tiles refused Bengaluru, Ahmedabad, Chennai and Patna, and every state and
+    // union territory besides, while their own packs were healthy and named a real
+    // recipient. Hold the failure, keep evaluating, and let it veto only the answers whose
+    // correctness actually depends on the road not being a highway.
+    if (highway && highway.unrouted_reason === "road_class_unavailable") {
+      deferredHighwayFailure = highway;
+    } else if (highway) {
       const contractStateCode = await exactContractStateP;
       return withContractState(routeForIssue({
         ...highway,
@@ -5998,6 +6050,9 @@
     if (issueType !== "road_damage" && !exactKarnataka.routed) {
       return withContractState(routeForIssue(karnatakaFallback || exactKarnataka, issueType));
     }
+    // This route sets its own contract fields, so it does not want the rest of
+    // withContractState, but it is still a municipal recipient and still needs the veto.
+    if (vetoedByMissingRoadClass(exactKarnataka)) return deferredHighwayFailure;
     return exactKarnataka;
   }
 
@@ -6026,6 +6081,7 @@
     return {
       no_location: "This report has no location, so there is no way to tell which office is responsible. Retake it with location switched on.",
       road_class_unknown: "The state road register did not answer, so the app could not check whether this road is a national, state, or district highway, and it will not name a city officer for a road that may not be theirs. The register, not your phone, is what has to come back. Retry routing in a few minutes.",
+      road_class_unavailable: "The National Highway map could not be downloaded, so the app cannot tell whether this is a national highway, and it will not name a city officer for a road that may not be theirs. Your connection is not the problem to fix; the map is retried automatically, and retrying this report downloads it again. The photo and location are saved.",
       national_highway: "This stretch is a national highway. It is maintained by NHAI or the state PWD National Highways division, not by the city or town body, so there is no municipal officer to address.",
       state_highway: "This stretch is a state highway. It is maintained by the state PWD, not by the city or town body, so there is no municipal officer to address.",
       district_highway: "This stretch is a district highway. It is maintained by the district or state road authority, not by the city or town body, so there is no municipal officer to address.",
@@ -10507,7 +10563,8 @@
     }
     // A missing body address comes from a static pack, so a retry repeats the miss.
     const retryableReasons = roadDamage
-      ? ["jurisdiction_unavailable", "road_class_unknown", "outside_area", "regional_email_unavailable"]
+      ? ["jurisdiction_unavailable", "road_class_unknown", "road_class_unavailable",
+         "outside_area", "regional_email_unavailable"]
       : ["jurisdiction_unavailable"];
     if (!retryableReasons.includes(rec.unrouted_reason)) {
       throw new Error(

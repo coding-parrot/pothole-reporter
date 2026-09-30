@@ -150,6 +150,84 @@ test("a KGIS outage still refuses to guess ownership inside Karnataka", async ()
   assert.equal(bengaluru.road_ownership, "unknown");
 });
 
+// The Gandhinagar report was one coordinate; the fault was the whole country. KGIS can
+// only answer inside Karnataka, so for every point outside it the verdict is a fact about
+// geography and must not move when KGIS does. This grid walks India state by state and
+// asserts exactly that: outside Karnataka, KGIS is never asked, and the answer is the same
+// whether KGIS is healthy, empty, slow or throwing.
+const OUTSIDE_KARNATAKA = {
+  "Gandhinagar, Gujarat": [23.181854, 72.652801],
+  "Mumbai, Maharashtra": [19.0760, 72.8777],
+  "Delhi": [28.6139, 77.2090],
+  "Kolkata, West Bengal": [22.5726, 88.3639],
+  "Chennai, Tamil Nadu": [13.0827, 80.2707],
+  "Jaipur, Rajasthan": [26.9124, 75.7873],
+  "Guwahati, Assam": [26.1445, 91.7362],
+  "Bhopal, Madhya Pradesh": [23.2599, 77.4126],
+  "Patna, Bihar": [25.5941, 85.1376],
+  "Lucknow, Uttar Pradesh": [26.8467, 80.9462],
+  "Srinagar, Jammu and Kashmir": [34.0837, 74.7973],
+  "Thiruvananthapuram, Kerala": [8.5241, 76.9366],
+  "Port Blair, Andaman and Nicobar": [11.6234, 92.7265],
+  "Itanagar, Arunachal Pradesh": [27.0844, 93.6053],
+};
+
+const BEHAVIOURS = {
+  throwing: async () => { throw new Error("KGIS is down"); },
+  empty: async () => new Response(JSON.stringify({ features: [] })),
+  malformed: async () => new Response(JSON.stringify({ status: "temporarily unavailable" })),
+  erroring: async () => new Response("no", { status: 500 }),
+};
+
+test("outside Karnataka the verdict never depends on KGIS, anywhere in India", async () => {
+  for (const [place, [lat, lng]] of Object.entries(OUTSIDE_KARNATAKA)) {
+    const answers = new Set();
+    for (const [name, behaviour] of Object.entries(BEHAVIOURS)) {
+      let kgisCalls = 0;
+      const geolocator = createGeolocator({
+        fetchImpl: (url, ...rest) => {
+          if (String(url).includes("kgis.ksrsac.in")) kgisCalls += 1;
+          return behaviour(url, ...rest);
+        },
+      });
+      const result = await geolocator.resolve({ lat, lng });
+      assert.equal(kgisCalls, 0,
+        `${place} put ${kgisCalls} request(s) to a Karnataka register (KGIS ${name})`);
+      assert.equal(result.lookup.kgis, "out_of_scope", `${place} with KGIS ${name}`);
+      answers.add(result.road_ownership);
+    }
+    assert.deepEqual([...answers], ["outside_state"],
+      `${place} gave different answers depending on KGIS health: ${[...answers]}`);
+  }
+});
+
+test("inside Karnataka the verdict still depends on KGIS, and fails closed", async () => {
+  // The other half of the property. If this ever passes by short-circuiting, the envelope
+  // has grown over the state it was meant to exclude nothing from.
+  for (const [place, [lat, lng]] of Object.entries({
+    "Bengaluru": [12.9716, 77.5946],
+    "Hubballi": [15.3647, 75.1240],
+    "Mangaluru": [12.9141, 74.8560],
+    "Kalaburagi": [17.3297, 76.8343],
+  })) {
+    for (const [name, behaviour] of Object.entries(BEHAVIOURS)) {
+      let kgisCalls = 0;
+      const geolocator = createGeolocator({
+        fetchImpl: (url, ...rest) => {
+          if (String(url).includes("kgis.ksrsac.in")) kgisCalls += 1;
+          return behaviour(url, ...rest);
+        },
+      });
+      const result = await geolocator.resolve({ lat, lng });
+      assert.ok(kgisCalls > 0, `${place} did not consult KGIS (KGIS ${name})`);
+      if (name !== "empty") {
+        assert.equal(result.road_ownership, "unknown",
+          `${place} claimed an answer from a KGIS that was ${name}`);
+      }
+    }
+  }
+});
+
 test("a coordinate just outside the Karnataka border is still put to KGIS", async () => {
   let kgisCalls = 0;
   const geolocator = createGeolocator({
