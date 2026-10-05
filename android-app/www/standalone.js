@@ -2981,11 +2981,11 @@
     return Number.isFinite(deadline) && Number.isFinite(now) && now <= deadline;
   }
 
-  async function fetchOptionalCatalogManifest(filename, validate) {
+  async function fetchCatalogManifestFrom(url, validate) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), OPTIONAL_CATALOG_TIMEOUT_MS);
     try {
-      const response = await fetch(filename, {
+      const response = await fetch(url, {
         cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer",
         signal: controller.signal,
       });
@@ -2995,6 +2995,19 @@
       return validate(JSON.parse(text));
     } catch (e) { return null; }
     finally { clearTimeout(timer); }
+  }
+
+  // The packaged app's own copy is frozen on the day it was built, and every resource
+  // in it carries a review date (seven days for notices, thirty for contracts), so a
+  // build lost contractor matching on a timer. The hosted site is refreshed twice a
+  // week and already serves the packs these manifests pin, so native asks it first and
+  // keeps the bundled copy for when it cannot be reached or does not validate.
+  async function fetchOptionalCatalogManifest(filename, validate) {
+    if (NATIVE) {
+      const hosted = await fetchCatalogManifestFrom(PACK_SITE_ROOT + filename, validate);
+      if (hosted) return hosted;
+    }
+    return fetchCatalogManifestFrom(filename, validate);
   }
 
   // Contract data has a separate, append-only catalog. Keeping it out of the v1.35
@@ -11728,8 +11741,6 @@
     const ranked = roadNoticeCandidates(pack && pack.notices, address, route);
     if (!ranked.length) return null;
     const best = ranked[0];
-    // A near-tie means the address did not identify one notice; naming either would be
-    // an arbitrary claim about who is responsible.
     if (!candidateLeadIsUnambiguous(ranked, 12)) return null;
     const record = best.record;
     const source = (pack.sources || []).find((item) => item.source_id === record.source_id);
@@ -11744,10 +11755,21 @@
       contractor: null,
       title: record.title,
       published: record.published_at,
+      organisation: record.organisation_chain,
+      detail_url: record.source_url,
+      bid_closing: record.closing_at,
+      bid_opening: record.opening_at,
+      project_start: null,
+      project_completion: null,
+      agreement_number: null,
+      agreement_date: null,
+      package_reference: null,
+      highway_reference: best.highway_hits.length ? best.highway_hits.join(" / ") : null,
+      published_chainage: null,
       source_name: source ? source.source_name : "Official State/UT e-Procurement portal",
-      // GePNIC detail links contain session-shaped tokens and can expire. Cite the
-      // stable official portal root plus the tender reference/ID above; keep the exact
-      // captured detail URL inside the immutable pack for audit and fresh-link lookup.
+      // Some official portal detail links contain session-shaped tokens and can expire.
+      // Cite the stable official portal root plus the tender reference/ID above; keep
+      // the exact captured detail URL inside the immutable pack for audit/fresh lookup.
       source_url: source ? source.source_url : record.source_url,
       lifecycle: "procurement_notice",
       lifecycle_status: `Open procurement notice; bid closing ${record.closing_at}`,
@@ -11763,7 +11785,8 @@
       award_verified: false,
       dlp_status: "unverified",
       dlp_verified: false,
-      note: `Open procurement notice ${record.tender_id}; no award or contractor is asserted.`,
+      note: `Unverified research lead (not included in the complaint): open procurement `
+        + `notice ${record.tender_id}; no award or contractor is asserted.`,
       ...roadNoticePackProvenance(stateCode),
     };
   }
@@ -12005,18 +12028,17 @@
       const tokenHits = [...addressTokens].filter((token) => tokens.has(token));
       const phraseHits = addressParts.filter((part) => {
         const phrase = part.join(" ");
-        return phrase.length >= 6
+        return part.length >= 2 && phrase.length >= 6
           && tenderTokens(record.title).join(" ").includes(phrase);
       });
       const rareHits = tokenHits.filter((token) => token.length >= 6
         && frequencies.get(token) > 0 && frequencies.get(token) <= 2);
       const noticeRefs = highwayRefsInNotice(`${record.title} ${record.tender_reference}`);
       const highwayHits = [...routeRefs].filter((ref) => noticeRefs.has(ref));
-      // One common locality word is too weak for a nationwide title index. Admit an
-      // ordinary-road candidate only for a phrase, two distinct address words, or one
-      // long word that occurs in at most two notices in this State/UT snapshot.
-      const locationEvidence = phraseHits.length > 0 || tokenHits.length >= 2
-        || rareHits.length > 0;
+      // One locality word is too weak for a statewide title index, even if it happens to
+      // be rare in today's snapshot. Require an exact multi-word phrase or two distinct
+      // address words; the rare-word signal may rank, but never admit, a record.
+      const locationEvidence = phraseHits.length > 0 || tokenHits.length >= 2;
       if (!locationEvidence) continue;
       const organisationTokens = new Set(tenderTokens(record.organisation_chain));
       const authorityHits = [...routeAuthorityTokens].filter(
@@ -12209,31 +12231,32 @@
                    OFFICIAL_AUTHORITY_INDEX, OFFICIAL_HANDOFF_CHANNELS,
                    OPTIONAL_CATALOG_TIMEOUT_MS, ORIGINAL_DETAIL_MODELS,
                    OUTBOUND_CONTRACT_IDENTITY_FIELDS, PACK_AUTHORITIES_BY_STATE,
-                   PACK_ID_BY_AUTHORITY, PACK_IN_USE_MS, PACK_SITE_ROOT, PMC_AUTHORITY,
-                   POTHOLE_SIZES, PROGRESS, PROJECT_SERVICE_POSITIVE_TTL_MS, PROMPT_VERSION,
-                   PUBLIC_MAP_CACHE_KEY, PUBLIC_MAP_LIMIT, PUNJAB_ROUTING_ENVELOPE,
-                   PUNJAB_STATE_AUTHORITY, PUNJAB_STATE_GEOMETRY_SHA256, QUALITY_RE,
-                   RAJASTHAN_ROUTING_ENVELOPE, RAJASTHAN_STATE_AUTHORITY,
-                   RAJASTHAN_STATE_GEOMETRY_SHA256, RECIPIENT_STATE_LANGUAGE,
-                   REMAINING_STATE_AUTHORITIES, REMAINING_STATE_ROUTE_CONFIGS,
-                   REPAIR_EVIDENCE_MAX_BYTES, REPAIR_EVIDENCE_MAX_DIMENSION,
-                   REPAIR_EVIDENCE_MAX_PIXELS, REPAIR_EVIDENCE_MIN_BYTES,
-                   REPAIR_EVIDENCE_MIN_DIMENSION, REPAIR_EVIDENCE_TYPES, REPAIR_MAX_ACCURACY_M,
+                   PACK_FETCH_ATTEMPTS, PACK_ID_BY_AUTHORITY, PACK_IN_USE_MS,
+                   PACK_RETRY_BASE_MS, PACK_SITE_ROOT, PMC_AUTHORITY, POTHOLE_SIZES, PROGRESS,
+                   PROJECT_SERVICE_POSITIVE_TTL_MS, PROMPT_VERSION, PUBLIC_MAP_CACHE_KEY,
+                   PUBLIC_MAP_LIMIT, PUNJAB_ROUTING_ENVELOPE, PUNJAB_STATE_AUTHORITY,
+                   PUNJAB_STATE_GEOMETRY_SHA256, QUALITY_RE, RAJASTHAN_ROUTING_ENVELOPE,
+                   RAJASTHAN_STATE_AUTHORITY, RAJASTHAN_STATE_GEOMETRY_SHA256,
+                   RECIPIENT_STATE_LANGUAGE, REMAINING_STATE_AUTHORITIES,
+                   REMAINING_STATE_ROUTE_CONFIGS, REPAIR_EVIDENCE_MAX_BYTES,
+                   REPAIR_EVIDENCE_MAX_DIMENSION, REPAIR_EVIDENCE_MAX_PIXELS,
+                   REPAIR_EVIDENCE_MIN_BYTES, REPAIR_EVIDENCE_MIN_DIMENSION,
+                   REPAIR_EVIDENCE_TYPES, REPAIR_MAX_ACCURACY_M,
                    REPAIR_MAX_HEADING_DIFFERENCE_DEG, REPAIR_MISSING_HEADING_RADIUS_M,
                    REPAIR_RADIUS_M, REPAIR_SCHEMA_VERSION, REPAIR_VERIFICATION_VERSION,
                    REQUEST_TIMEOUT_MS, ROAD_AGREEMENT_MANIFEST_FILE,
                    ROAD_AGREEMENT_PACK_MAX_BYTES, ROAD_NOTICE_MANIFEST_FILE,
                    ROAD_NOTICE_PACK_MAX_BYTES, ROAD_NOTICE_STOP, ROAD_NOTICE_TIMESTAMP_RE,
                    ROAD_NOUNS, ROAD_PREFIX_MODIFIERS, ROAD_WORK_ACTIONS, ROUTE_RECORD_FIELDS,
-                   RUNTIME_CONFIG, S, SCHEMA_VERSION, SERVICE_URL,
-                   SHARED_CHECKS_KEY, SHARED_VISION_TIMEOUT_MS, SIZES, SIZE_RE,
-                   STATE_PACK_FETCH_TIMEOUT_MS, STATE_PACK_MAX_BYTES, STORED_DATA_STORES,
-                   SUPPORTED_STATE_PACKS, SURFACE_LABELS, TAMIL_NADU_ROUTING_ENVELOPE,
-                   TAMIL_NADU_STATE_AUTHORITY, TAMIL_NADU_STATE_GEOMETRY_SHA256,
-                   TELANGANA_ROUTING_ENVELOPE, TELANGANA_STATE_AUTHORITY,
-                   TELANGANA_STATE_GEOMETRY_SHA256, TEMPORARY_DRIVABLE_SURFACE, TENDER_CONFIG,
-                   TENDER_MATCH_INSTRUCTIONS, TENDER_PROMPT_CONFIG, TENDER_RECORD_FIELDS,
-                   TENDER_RETRY_DELAY_MS, TENDER_SCHEMA, TENDER_STOP, TERMINAL_CENTRAL_STATUSES,
+                   RUNTIME_CONFIG, S, SCHEMA_VERSION, SERVICE_URL, SHARED_CHECKS_KEY,
+                   SHARED_VISION_TIMEOUT_MS, SIZES, SIZE_RE, STATE_PACK_FETCH_TIMEOUT_MS,
+                   STATE_PACK_MAX_BYTES, STORED_DATA_STORES, SUPPORTED_STATE_PACKS,
+                   SURFACE_LABELS, TAMIL_NADU_ROUTING_ENVELOPE, TAMIL_NADU_STATE_AUTHORITY,
+                   TAMIL_NADU_STATE_GEOMETRY_SHA256, TELANGANA_ROUTING_ENVELOPE,
+                   TELANGANA_STATE_AUTHORITY, TELANGANA_STATE_GEOMETRY_SHA256,
+                   TEMPORARY_DRIVABLE_SURFACE, TENDER_CONFIG, TENDER_MATCH_INSTRUCTIONS,
+                   TENDER_PROMPT_CONFIG, TENDER_RECORD_FIELDS, TENDER_RETRY_DELAY_MS,
+                   TENDER_SCHEMA, TENDER_STOP, TERMINAL_CENTRAL_STATUSES,
                    TOP50_AUTHORITY_BY_STATE, TOP50_MAJOR_CITY_RANKS,
                    UTTAR_PRADESH_ROUTING_ENVELOPE, UTTAR_PRADESH_STATE_AUTHORITY,
                    UTTAR_PRADESH_STATE_GEOMETRY_SHA256, VERIFIED_HANDOFF_FIELDS,
@@ -12251,17 +12274,16 @@
                    applyVerifiedHandoff, assertComplaintInvariants, assessmentOf, authHeaders,
                    authorityComplaintProfile, authorityRoute, averageLuminance, b64ToBytes,
                    biharCoverage, biharRouteFromGeocode, binaryAssessment, blobToDataUrl,
-                   bmcWardFromBoundary, bodies, buildComplaintOutputs,
-                   buildDetectionRequest, buildTenderMatchRequest, bytesToB64, bytesToBase64,
-                   cachedPackBytes, canSearchTenderCatalog, candidateLeadIsUnambiguous,
-                   canonicalJson, canonicalServiceRequest, catalogResourceWithinReview,
-                   centralPotholeRequest, centralReportIsConfirmed, chhattisgarhCoverage,
-                   chhattisgarhRouteFromGeocode, civicIssueName, clearAllStoredRecords,
-                   clearPackCache, compatibleDamage, compatibleDraftRoute,
-                   complaintBodyWithFooter, complaintFooter, complaintLanguage,
-                   complaintOutputsForRecord, complaintRouteError, complaintRoutingBlock,
-                   completeCentralRetry, conciseRouteLabel, conditionStatus,
-                   confirmedTemporaryAssessment, containingMmrAuthorities,
+                   bmcWardFromBoundary, bodies, buildComplaintOutputs, buildDetectionRequest,
+                   buildTenderMatchRequest, bytesToB64, bytesToBase64, cachedPackBytes,
+                   canSearchTenderCatalog, candidateLeadIsUnambiguous, canonicalJson,
+                   canonicalServiceRequest, catalogResourceWithinReview, centralPotholeRequest,
+                   centralReportIsConfirmed, chhattisgarhCoverage, chhattisgarhRouteFromGeocode,
+                   civicIssueName, clearAllStoredRecords, clearPackCache, compatibleDamage,
+                   compatibleDraftRoute, complaintBodyWithFooter, complaintFooter,
+                   complaintLanguage, complaintOutputsForRecord, complaintRouteError,
+                   complaintRoutingBlock, completeCentralRetry, conciseRouteLabel,
+                   conditionStatus, confirmedTemporaryAssessment, containingMmrAuthorities,
                    contractLookupEvidence, contractPackProvenance, contractVerificationFor,
                    coordinatedRoadNoun, createCivicReport, createReport,
                    currentOfficialRouteBinding, damageTypeOf, dataUrlToBlob, decisionFor,
@@ -12272,14 +12294,15 @@
                    effectiveVisionProvider, eligibleRepairTarget, emailAttachmentBase64,
                    emitVerdict, ensureStorageHeadroom, envelopeGeometry, eventSighting,
                    eventTime, evidenceForReport, exactObjectKeys, exactPinnedContractStateCode,
-                   explicitRoadDamageRe, exportDataset, fatal, featuresOf, fetchContractPack,
-                   fetchHighwayTile, fetchOptionalCatalogManifest, fetchRoadAgreementPack,
-                   fetchRoadNoticePack, fetchStatePack, fetchWithTimeout, findDuplicateReport,
-                   finiteCoord, flushCentralOutbox, flushFeedbackQueue, fmt, footageFor,
-                   footageMetadata, forgetInstallationIdentity, formatCapturedIst,
-                   fullFramePhoto, geometryBoundaryDistanceMeters, getCachedStatePack,
-                   getContractPackManifest, getDrive, getFootage, getHighwayPackManifest,
-                   getRepairTargetBatch, getRepairTargetIds, getReport,
+                   explicitRoadDamageRe, exportDataset, fatal, featuresOf,
+                   fetchCatalogManifestFrom, fetchContractPack, fetchHighwayTile,
+                   fetchHighwayTileOnce, fetchOptionalCatalogManifest, fetchRoadAgreementPack,
+                   fetchRoadNoticePack, fetchStatePack, fetchStatePackOnce, fetchWithTimeout,
+                   findDuplicateReport, finiteCoord, flushCentralOutbox, flushFeedbackQueue,
+                   fmt, footageFor, footageMetadata, forgetInstallationIdentity,
+                   formatCapturedIst, fullFramePhoto, geometryBoundaryDistanceMeters,
+                   getCachedStatePack, getContractPackManifest, getDrive, getFootage,
+                   getHighwayPackManifest, getRepairTargetBatch, getRepairTargetIds, getReport,
                    getRoadAgreementManifest, getRoadNoticeManifest, getStatePackManifest,
                    goaCoverage, goaRouteFromGeocode, gpsAccuracyEnvelope, handle, hasAny,
                    hasAuthoritativeMunicipalOwnership, hasCentralOwnershipProof,
@@ -12290,13 +12313,14 @@
                    inMajorCityCandidateEnvelope, inWestBengalRoutingEnvelope,
                    indianStateMatches, installRoutingAuthorities, installationIdentity,
                    isKarnatakaGeocode, isKnownNonKarnatakaGeocode, isMaharashtraGeocode,
-                   isManualCaptureSource, isOfficialHandoff, isWestBengalGeocode, issueFileStem,
-                   jurisdictionOf, karnatakaStateCoverage, karnatakaStateRouteFromGeocode,
-                   keralaCoverage, keralaRouteFromGeocode, kgisCivicJurisdiction,
-                   kgisJurisdiction, kgisPoint, kolkataCoverage, kolkataRouteFromGeocode,
-                   listDict, loadHighwayContractPack, loadHighwayTile, loadInstallationIdentity,
-                   loadRoadAgreementPack, loadRoadNoticePack, loadStatePack, localDamageFamily,
-                   madhyaPradeshCoverage, madhyaPradeshRouteFromGeocode, maharashtraCoverage,
+                   isManualCaptureSource, isOfficialHandoff, isStatewideHandoff,
+                   isWestBengalGeocode, issueFileStem, jurisdictionOf, karnatakaStateCoverage,
+                   karnatakaStateRouteFromGeocode, keralaCoverage, keralaRouteFromGeocode,
+                   kgisCivicJurisdiction, kgisJurisdiction, kgisPoint, kolkataCoverage,
+                   kolkataRouteFromGeocode, listDict, loadHighwayContractPack, loadHighwayTile,
+                   loadInstallationIdentity, loadRoadAgreementPack, loadRoadNoticePack,
+                   loadStatePack, localDamageFamily, madhyaPradeshCoverage,
+                   madhyaPradeshRouteFromGeocode, maharashtraCoverage,
                    maharashtraRouteFromGeocode, majorCityCoverage, majorCityRouteFromGeocode,
                    mapStatus, markPackInUse, markProjectServiceAvailable,
                    markProjectServiceUnavailable, matchHighwayContract, matchHighwayTile,
@@ -12376,8 +12400,8 @@
                    validateUttarPradeshPayload, verifiedBdaResponsibility,
                    verifiedContractForComplaint, vodBurstTimes, vodSampleTimes,
                    waitForFreedSpace, waitForNominatimSlot, warrantyFor, westBengalCoverage,
-                   withDriveImagePreparation, withSpeedDefaults, writeFeedbackQueue, zip,
-                   matchTenderFor: matchTender,
+                   withDriveImagePreparation, withPackRetries, withSpeedDefaults,
+                   writeFeedbackQueue, zip, matchTenderFor: matchTender,
                  };
 
   window.StandaloneAPI = { __pure, handle, prewarm, prepareComplaint, sharedChecksToday };

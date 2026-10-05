@@ -154,7 +154,7 @@ def run() -> None:
               {city:"Delhi",state:"Delhi",country_code:"in"},
               28.68203,77.07151,5,90,12)"""
         )
-        if result.get("routed") is not False or result.get("unrouted_reason") != "road_class_unknown":
+        if result.get("routed") is not False or result.get("unrouted_reason") != "road_class_unavailable":
             failures.append(f"corrupt highway tile did not fail closed: {result!r}")
         corrupt.close()
 
@@ -173,7 +173,7 @@ def run() -> None:
               {city:"Delhi",state:"Delhi",country_code:"in"},
               28.68203,77.07151,5,90,12)"""
         )
-        if result.get("routed") is not False or result.get("unrouted_reason") != "road_class_unknown":
+        if result.get("routed") is not False or result.get("unrouted_reason") != "road_class_unavailable":
             failures.append(f"missing highway manifest did not fail closed: {result!r}")
         missing.close()
         browser.close()
