@@ -36,8 +36,12 @@ done
 
 [ -x "$ADB" ] || { echo "FAIL adb not found at $ADB"; exit 2; }
 if [ -z "$("$ADB" devices | awk 'NR>1 && $2=="device"')" ]; then
-  echo "SKIP no Android device or emulator is attached"
-  exit 0
+  echo "FAIL no Android emulator is attached; a skipped device check is not a pass"
+  exit 1
+fi
+if [ "$("$ADB" shell getprop ro.kernel.qemu | tr -d '\r')" != "1" ]; then
+  echo "FAIL fresh-install smoke is emulator-only; refusing to erase a physical phone's app data"
+  exit 2
 fi
 
 if [ "$BUILD" = "1" ]; then
@@ -187,7 +191,7 @@ if [ -z "$(alive)" ] || [ "$(alive)" != "$pid_start" ]; then
 fi
 
 echo "6/6 checking for JavaScript errors and crashes"
-errors="$("$ADB" logcat -d 2>/dev/null \
+errors="$("$ADB" logcat -d --pid="$pid_start" 2>/dev/null \
   | grep -iE "FATAL EXCEPTION|Uncaught|is not defined|ReferenceError|TypeError|SyntaxError" \
   | grep -viE "AppsFilter|PreferenceController|BaseSearchIndex|Phenotype|BinderNative|uiautomator" || true)"
 if [ -n "$errors" ]; then

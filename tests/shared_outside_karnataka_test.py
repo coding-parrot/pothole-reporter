@@ -35,7 +35,7 @@ COPY = r"""
   for (const lang of ["en", "kn", "mr", "bn"]) {
     LANG = lang;
     out[lang] = { title: unroutedTitle(report), help: unroutedHelp(report),
-                  generic: unroutedHelp({ ...report, road_ownership: null }) };
+                  generic: unroutedHelp({ ...report, unrouted_reason: "outside_area", road_ownership: null }) };
   }
   LANG = saved;
   return out;
@@ -48,7 +48,7 @@ with sync_playwright() as playwright:
     try:
         page.context.route(f"{fh.SERVICE}/**", outside_state)
         report = page.evaluate(fh.report_form_script(13.0827, 80.2707))
-        if report.get("status") != "unrouted" or report.get("unrouted_reason") != "outside_area":
+        if report.get("status") != "unrouted" or report.get("unrouted_reason") != "regional_email_unavailable":
             fails.append(f"Chennai did not file unrouted: {report.get('status')} "
                          f"{report.get('unrouted_reason')}")
         copy = page.evaluate(COPY, report)

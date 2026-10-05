@@ -45,7 +45,7 @@ CASES = [
     ("rural Magadi taluk", 13.0000, 77.2000,
      "rural", "unrouted", "rural_road", None, None),
     ("Chennai, out of state", 13.0827, 80.2707,
-     "outside_state", "unrouted", "outside_area", None, None),
+     "outside_state", "unrouted", "regional_email_unavailable", None, None),
     ("no GPS", None, None, None, "unrouted", "no_location", None, None),
 ]
 

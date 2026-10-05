@@ -26,6 +26,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+from verdicts import drive_failures
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent.parent / "tests"))
 from flow_harness import DATA_NOTICE_VERSION, SERVICE, central_service  # noqa: E402
@@ -319,7 +320,8 @@ def main():
     summary = next((a for a in reversed(state["alerts"])
                     if a.startswith("Footage analysed") or a.startswith("Could not finish")), "")
     offered = any("Analyse" in c or "analyse" in c for c in state["confirms"])
-    ok = offered and summary.startswith("Footage analysed")
+    failures = drive_failures(offered, state["alerts"], noise, dt.errors)
+    ok = not failures
     # The log the app wrote beside its frames is the detailed account; show its summary.
     listing = subprocess.run([ADB, "shell", "ls -t /storage/emulated/0/Documents/pothole-frames/ 2>/dev/null | head -1"],
                              capture_output=True, text=True).stdout.strip()
@@ -339,7 +341,10 @@ def main():
         print("\nthe analysis was never offered: the drive did not produce footage, or a preflight failed")
     if args.json:
         pathlib.Path(args.json).write_text(json.dumps({"ok": ok, "mime": mime, "alerts": state["alerts"],
-                                                        "console": noise, "errors": dt.errors}, indent=1))
+                                                        "console": noise, "errors": dt.errors,
+                                                        "failures": failures}, indent=1))
+    for failure in failures:
+        print("FAILED:", failure)
     print("\nRESULT:", "complete" if ok else "INCOMPLETE")
     return 0 if ok else 1
 

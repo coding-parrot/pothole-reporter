@@ -1,0 +1,19 @@
+diff --git a/node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/plugin/SystemBars.java b/node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/plugin/SystemBars.java
+index b3c9591..ba1b508 100644
+--- a/node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/plugin/SystemBars.java
++++ b/node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/plugin/SystemBars.java
+@@ -262,10 +262,14 @@ public class SystemBars extends Plugin {
+                     Locale.US,
+                     """
+                     try {
++                      const applyInsets = () => {
+                       document.documentElement.style.setProperty("--safe-area-inset-top", "%dpx");
+                       document.documentElement.style.setProperty("--safe-area-inset-right", "%dpx");
+                       document.documentElement.style.setProperty("--safe-area-inset-bottom", "%dpx");
+                       document.documentElement.style.setProperty("--safe-area-inset-left", "%dpx");
++                      };
++                      if (document.documentElement) applyInsets();
++                      else document.addEventListener('DOMContentLoaded', applyInsets, { once: true });
+                     } catch(e) { console.error('Error injecting safe area CSS:', e); }
+                     """,
+                     (int) topPx,

@@ -4,6 +4,7 @@
 //
 //   node tools/harness/run.mjs                 static gates + flow tests (the fast set)
 //   node tools/harness/run.mjs --all           everything, including the slow suites
+//   node tools/harness/run.mjs --only server --production  include read-only AWS coverage gate
 //   node tools/harness/run.mjs --only flow     one group: static, flow, server, python,
 //                                             browsers (firefox/webkit), emulator,
 //                                             release (signed APK on the emulator),
@@ -23,6 +24,7 @@ import { availableParallelism } from "node:os";
 import { resolve } from "node:path";
 import { createServer } from "node:http";
 import { promisify } from "node:util";
+import { releasePassed } from './release-verdict.mjs';
 
 const run = promisify(execFile);
 const repoRoot = resolve(import.meta.dirname, "../..");
@@ -167,6 +169,11 @@ function tasks(group) {
     });
   }
   if (!group || group === "server") {
+    if (flag("production") || flag("all")) all.push({
+      group: "server",
+      name: "production tender inventory and observed match coverage",
+      command: ["node", "eval/audit_tender_coverage.mjs"],
+    });
     all.push({
       group: "server",
       name: "central service unit tests",
@@ -185,7 +192,7 @@ function tasks(group) {
   }
   // The packaged app on a real Android WebView: the only check that would have caught
   // a bundle whose script died at load. Skips itself when no device is attached.
-  if (group === "emulator" || flag("all")) {
+  if (group === "emulator" || (!group && flag("all"))) {
     all.push({
       group: "emulator",
       name: "android emulator smoke (fresh install, Home, Drive, camera notice)",
@@ -217,7 +224,7 @@ function tasks(group) {
   }
   // The flow suites also run on Firefox and WebKit: a tester's WebView is not Chromium,
   // and an engine-specific break in signup, drive or reporting must fail here.
-  if (group === "browsers" || flag("all")) {
+  if (group === "browsers" || (!group && flag("all"))) {
     for (const engine of ["firefox", "webkit"]) {
       for (const name of readdirSync(`${repoRoot}/tests`).sort()) {
         if (!name.startsWith("flow_") || !name.endsWith("_test.py")) continue;
@@ -267,6 +274,7 @@ async function once() {
   const timings = loadTimings();
   // Unknown suites are assumed slow so a new one is never left for the tail.
   const list = tasks(group).sort((a, b) => (timings[b.name] ?? 1e9) - (timings[a.name] ?? 1e9));
+  if (!list.length) throw new Error(`No checks selected for group: ${group}`);
   // docs/ is the shipped web app: the same index.html and standalone.js as static/,
   // plus the data packs the routing suites need. Serving static/ made every pack fetch
   // 404 and looked like a routing bug.
@@ -299,7 +307,7 @@ if (flag("baseline")) {
   const baseline = Object.fromEntries(results.map((result) => [result.name, result.ok]));
   writeFileSync(`${repoRoot}/tools/harness/baseline.json`, `${JSON.stringify(baseline, null, 2)}\n`);
   console.log(`\nBaseline written: ${results.filter((r) => r.ok).length} passing, ${results.filter((r) => !r.ok).length} failing.`);
-  process.exit(0);
+  process.exit(releasePassed(results) ? 0 : 1);
 }
 
 const baselinePath = `${repoRoot}/tools/harness/baseline.json`;
@@ -307,8 +315,7 @@ const baseline = existsSync(baselinePath) ? JSON.parse(readFileSync(baselinePath
 
 async function judge() {
   const { results, failed } = await once();
-  // A suite that was already broken before this work does not get to hide a new break,
-  // and does not get to fail the run either. Regressions are what matter.
+  // Baselines describe history; they never waive a failing release check.
   const regressions = failed.filter((result) => baseline[result.name] !== false);
   const known = failed.filter((result) => baseline[result.name] === false);
   if (known.length) {
@@ -318,7 +325,8 @@ async function judge() {
     console.log(`\nREGRESSIONS: ${regressions.map((r) => r.name).join(", ")}`);
     return false;
   }
-  console.log("\nNo regressions.");
+  if (!releasePassed(results)) return false;
+  console.log("\nEvery selected check passed.");
   return true;
 }
 

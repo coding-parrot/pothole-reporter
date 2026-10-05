@@ -69,6 +69,67 @@ process.stdout.write(JSON.stringify(rows.map((row) =>
     return json.loads(completed.stdout)
 
 
+def aws_predictions(cases):
+    """Invoke the actual AWS matcher, not the retired Worker's LLM shortlist."""
+    script = """
+import fs from 'node:fs';
+import { matchTender } from './infra/aws-central/service/tenders.mjs';
+const cases = JSON.parse(fs.readFileSync(0, 'utf8'));
+process.stdout.write(JSON.stringify(cases.map(c => matchTender(c.address, c.candidates))));
+"""
+    result = subprocess.run(["node", "--input-type=module", "--eval", script],
+                            cwd=ROOT, input=json.dumps(cases), text=True,
+                            capture_output=True, check=True)
+    return json.loads(result.stdout)
+
+
+def run_aws(cases, args, fixture, fixture_bytes):
+    jobs = []
+    for case in cases:
+        for trial in range(args.trials):
+            candidates = list(case["candidates"])
+            random.Random(f'{case["id"]}:{trial}').shuffle(candidates)
+            jobs.append(({**case, "candidates": candidates}, trial))
+    predictions = aws_predictions([case for case, _ in jobs])
+    rows = []
+    for (case, trial), result in zip(jobs, predictions):
+        predicted = (result.get("tender") or {}).get("tender_number")
+        rows.append({"case_id": case["id"], "trial": trial,
+                     "expected_tender_number": case.get("expected_tender_number"),
+                     "predicted_tender_number": predicted, "reason": result.get("reason"),
+                     "backend": "aws_deterministic", "result": result})
+    grouped = defaultdict(list)
+    for row in rows:
+        grouped[row["case_id"]].append(row)
+    predicted = {key: majority_prediction(value) for key, value in grouped.items()}
+    scores = metrics([(c.get("expected_tender_number"), predicted[c["id"]]) for c in cases])
+    unstable = [key for key, group in grouped.items()
+                if len({r["predicted_tender_number"] for r in group}) > 1]
+    summary = {"backend": "aws_deterministic", "case_count": len(cases),
+               "event_grouped_case_level": scores, "case_predictions": predicted,
+               "candidate_order_instability": unstable,
+               "warning": "Controlled candidate-pool regression, NOT live geographic coverage.",
+               "all_null_baseline": metrics([(c.get("expected_tender_number"), None) for c in cases]),
+               "failures": [r for r in rows if r["trial"] == 0 and r["expected_tender_number"] != r["predicted_tender_number"]]}
+    manifest = {"created_at": datetime.now(timezone.utc).isoformat(), "git_commit": git_commit(),
+                "cases_sha256": sha(fixture_bytes), "backend": "aws_deterministic",
+                "matcher_sha256": sha((ROOT / "infra/aws-central/service/tenders.mjs").read_bytes()),
+                "scope_sha256": sha((ROOT / "infra/aws-central/service/tender-scope.mjs").read_bytes()),
+                "trials_per_case": args.trials, "case_count": len(cases),
+                "label_policy": fixture.get("label_policy"), "limitations": fixture.get("limitations", [])}
+    out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
+    (out / "raw.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    print(json.dumps({"cases": len(cases), "backend": "aws_deterministic", **scores}, indent=2))
+    failed = (scores["precision"] is None or scores["precision"] < args.min_precision
+              or scores["recall"] is None or scores["recall"] < args.min_recall or bool(unstable)
+              or scores["wrong_contract"] > args.max_wrong_contracts
+              or scores["negative_false_match"] > args.max_negative_false_matches)
+    print("TENDER EVAL FAIL" if failed else "TENDER EVAL PASS")
+    return 1 if failed and not args.no_gate else 0
+
+
 def clipped(value, limit):
     return str(value or "")[:limit]
 
@@ -173,6 +234,32 @@ def selected_tender(result, candidates, threshold):
     return candidates[index]["tender_number"]
 
 
+def apply_production_postgates(rows, cases, threshold):
+    """Use the server's actual selection validator, not an eval-only approximation."""
+    by_id = {case["id"]: case for case in cases}
+    payload = []
+    for row in rows:
+        case = by_id[row["case_id"]]
+        candidates = {c["tender_number"]: c for c in case["candidates"]}
+        payload.append({"address": case["address"], "result": row, "threshold": threshold,
+                        "candidates": [candidates[n] for n in row["shortlist"]]})
+    script = """
+import fs from 'node:fs';
+import {__test} from './server/src/index.js';
+const rows = JSON.parse(fs.readFileSync(0, 'utf8'));
+process.stdout.write(JSON.stringify(rows.map(r => {
+  const selection = __test.validateTenderSelection(r.address, r.candidates, r.result, r.threshold);
+  return {number: selection.candidate?.tender_number || null, reason: selection.reason};
+})));
+"""
+    result = subprocess.run(["node", "--input-type=module", "--eval", script], cwd=ROOT,
+                            input=json.dumps(payload), text=True, capture_output=True, check=True)
+    for row, selected in zip(rows, json.loads(result.stdout)):
+        row["raw_model_tender_number"] = row["predicted_tender_number"]
+        row["predicted_tender_number"] = selected["number"]
+        row["postgate_reason"] = selected["reason"]
+
+
 def metrics(pairs):
     tp = fp = fn = tn = wrong_contract = negative_false_match = 0
     for expected, predicted in pairs:
@@ -228,7 +315,9 @@ def git_commit():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cases", default=str(ROOT / "eval" / "tender_cases.json"))
+    parser.add_argument("--cases", default=str(ROOT / "eval" / "tender_cases_v2.json"))
+    parser.add_argument("--backend", choices=["aws", "llm"], default="aws",
+                        help="AWS deployed matcher (default), or legacy/personal LLM matcher")
     parser.add_argument("--trials", type=int, default=3,
                         help="candidate-order trials per case")
     parser.add_argument("--concurrency", type=int, default=5)
@@ -238,6 +327,9 @@ def main():
                         help="reasoning effort arm; defaults to the production contract")
     parser.add_argument("--min-precision", type=float, default=.80)
     parser.add_argument("--min-recall", type=float, default=.80)
+    parser.add_argument("--max-wrong-contracts", type=int, default=0)
+    parser.add_argument("--max-negative-false-matches", type=int, default=0,
+                        help="Non-road/no-match fixtures must not name a tender")
     parser.add_argument("--out", default=str(ROOT / "eval" / "results" / "tender"))
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--no-gate", action="store_true")
@@ -258,6 +350,12 @@ def main():
         expected = case.get("expected_tender_number")
         if expected is not None and expected not in numbers:
             sys.exit(f'{case["id"]}: expected tender is absent from candidate pool')
+
+    if args.backend == "aws":
+        if args.dry_run:
+            print(f"{len(cases)} cases; AWS deterministic matcher; no model calls")
+            return 0
+        return run_aws(cases, args, fixture, fixture_bytes)
 
     shortlists = production_shortlists(cases)
     if shortlists != production_shortlists(cases):
@@ -336,6 +434,8 @@ def main():
                     "confidence": 1, "reason": "production shortlist was empty",
                 })
     rows.sort(key=lambda row: (row["case_id"], row["trial"]))
+    raw_model_metrics = metrics([(row["expected_tender_number"], row["predicted_tender_number"]) for row in rows])
+    apply_production_postgates(rows, cases, args.threshold)
 
     trial_pairs = [(row["expected_tender_number"], row["predicted_tender_number"])
                    for row in rows]
@@ -372,13 +472,17 @@ def main():
         },
         "threshold": args.threshold,
         "trial_level": trial_metrics,
+        "raw_model_trial_level": raw_model_metrics,
         "event_grouped_case_level": case_metrics,
         "case_predictions": case_predictions,
-        "threshold_sweep_trial_level": sweep,
+        "threshold_sweep_raw_model_trial_level": sweep,
         "api_error_count": error_count,
         "all_null_would_fail_recall_gate": bool(positive_cases and args.min_recall > 0),
+        "candidate_order_instability": [case_id for case_id, group in grouped.items()
+            if len({row["predicted_tender_number"] for row in group}) > 1],
     }
     manifest = {
+        "backend": "legacy_personal_llm",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "git_commit": git_commit(),
         "contract_source_sha256": CONTRACT["sourceHash"],
@@ -415,6 +519,16 @@ def main():
         failures.append(f'model recall {case_metrics["recall"]} < {args.min_recall:.3f}')
     if error_count:
         failures.append(f"{error_count} API result(s) failed")
+    # A user sees one response, not the majority of three retries. Never hide an
+    # unsafe single-trial selection behind an apparently correct majority vote.
+    if trial_metrics["wrong_contract"] > args.max_wrong_contracts:
+        failures.append(f'{trial_metrics["wrong_contract"]} wrong-contract trial selections')
+    if trial_metrics["negative_false_match"] > args.max_negative_false_matches:
+        failures.append(f'{trial_metrics["negative_false_match"]} negative-case false-match trials')
+    if summary["candidate_order_instability"]:
+        failures.append(f'{len(summary["candidate_order_instability"])} cases unstable across trials')
+    summary["gate_failures"] = failures
+    (out_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     if failures and not args.no_gate:
         print("TENDER EVAL FAIL")
         for failure in failures:

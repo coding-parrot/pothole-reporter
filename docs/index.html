@@ -628,7 +628,6 @@ const I18N = {
     photo_open: "Open full-size photo", photo_close: "Close photo", report_prev: "Previous report", report_next: "Next report",
     rec_suffix: "· recording {mb} MB", rec_failed: "· not recording",
     net_trouble: "Connection trouble, still scanning ({n} frames waiting)",
-    capture_failing: "The camera is not returning frames. Stop and restart the drive.",
     camera_lost: "Camera paused (another app may be using it). Scanning resumes automatically.",
     camera_low_quality: "camera only {width}px / {fps}fps",
     coverage_dropped: "queued events dropped",
@@ -928,7 +927,6 @@ const I18N = {
     photo_open: "ಪೂರ್ಣ ಗಾತ್ರದ ಫೋಟೋ ತೆರೆಯಿರಿ", photo_close: "ಫೋಟೋ ಮುಚ್ಚಿ", report_prev: "ಹಿಂದಿನ ವರದಿ", report_next: "ಮುಂದಿನ ವರದಿ",
     rec_suffix: "· {mb} MB ರೆಕಾರ್ಡ್", rec_failed: "· ರೆಕಾರ್ಡ್ ಆಗುತ್ತಿಲ್ಲ",
     net_trouble: "ಸಂಪರ್ಕ ಸಮಸ್ಯೆ, ಇನ್ನೂ ಸ್ಕ್ಯಾನ್ ಆಗುತ್ತಿದೆ ({n} ಬಾಕಿ)",
-    capture_failing: "ಕ್ಯಾಮರಾವು ಫ್ರೇಮ್ ನೀಡುತ್ತಿಲ್ಲ. ಡ್ರೈವ್ ನಿಲ್ಲಿಸಿ ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ.",
     camera_lost: "ಕ್ಯಾಮೆರಾ ವಿರಾಮದಲ್ಲಿದೆ (ಬೇರೆ ಆ್ಯಪ್ ಬಳಸುತ್ತಿರಬಹುದು). ತಾನಾಗಿಯೇ ಮುಂದುವರಿಯುತ್ತದೆ.",
     camera_low_quality: "ಕ್ಯಾಮೆರಾ ಕೇವಲ {width}px / {fps}fps",
     coverage_dropped: "ಬಾಕಿ ಘಟನೆಗಳು ಕೈಬಿಡಲಾಗಿದೆ",
@@ -1188,7 +1186,6 @@ const I18N = {
     photo_open: "पूर्ण आकाराचा फोटो उघडा", photo_close: "फोटो बंद करा", report_prev: "मागील अहवाल", report_next: "पुढील अहवाल",
     rec_suffix: "· रेकॉर्डिंग {mb} MB", rec_failed: "· रेकॉर्डिंग होत नाही",
     net_trouble: "नेटवर्कची अडचण आहे; स्कॅन सुरू आहे ({n} फ्रेम्स प्रतीक्षेत)",
-    capture_failing: "कॅमेरा फ्रेम्स देत नाही. ड्राइव्ह थांबवून पुन्हा सुरू करा.",
     camera_lost: "कॅमेरा थांबला आहे; कदाचित दुसरे अॅप तो वापरत आहे. स्कॅन आपोआप पुन्हा सुरू होईल.",
     camera_low_quality: "कॅमेरा फक्त {width}px / {fps}fps", coverage_dropped: "रांगेतील घटना वगळल्या",
     drive_end_failed_one: "नेटवर्कमुळे {n} फ्रेम तपासता आली नाही.",
@@ -1493,7 +1490,6 @@ const I18N = {
     photo_open: "পূর্ণ আকারের ছবি খুলুন", photo_close: "ছবি বন্ধ করুন", report_prev: "আগের রিপোর্ট", report_next: "পরের রিপোর্ট",
     rec_suffix: "· রেকর্ড হচ্ছে {mb} MB", rec_failed: "· রেকর্ড হচ্ছে না",
     net_trouble: "সংযোগে সমস্যা; স্ক্যান চলছে ({n}টি ফ্রেম অপেক্ষায়)",
-    capture_failing: "ক্যামেরা থেকে ফ্রেম আসছে না। ড্রাইভ থামিয়ে আবার শুরু করুন।",
     camera_lost: "ক্যামেরা সাময়িকভাবে থেমেছে; অন্য কোনও অ্যাপ এটি ব্যবহার করতে পারে। স্ক্যান নিজে থেকেই আবার শুরু হবে।",
     camera_low_quality: "ক্যামেরা মাত্র {width}px / {fps}fps",
     coverage_dropped: "সারিতে থাকা ঘটনা বাদ গেছে",
@@ -1819,7 +1815,7 @@ const physicalCondition = (report) => report && report.condition_status === "fix
   ? "fixed" : report && report.condition_status === "repair_review" ? "repair_review" : "open";
   // Restored from the last coherent production file: the v1.38 merge dropped these
   // definitions while their call sites stayed, so these paths threw on first use.
-  const isRoadReport = () => true;
+  const isRoadReport = (report) => !report || !report.issue_type || report.issue_type === "road_damage";
   const tIssue = () => t("issue_road_damage");
 
   function canRetryRouting(r) {
@@ -2922,7 +2918,7 @@ function step(delta) {
 // do not hold, or genuinely outside the state. Collapsing them told a Mysuru user their
 // city was "outside coverage", which was wrong and unhelpful.
 function unroutedTitle(r) {
-  if (r.unrouted_reason === "regional_email_unavailable") return "Regional email routing is not yet verified";
+  if (r.unrouted_reason === "regional_email_unavailable") return t("outside_karnataka");
   // Some highway features (ORR, Hubballi state highways) and bodies carry no name, and
   // "{road} is a state highway" then reads " is a state highway".
   const named = String(r.unrouted_body || "").trim();
@@ -2957,7 +2953,7 @@ function unroutedHelp(r) {
     if (r.unrouted_reason === "unsupported_issue_type") return t("civic_unsupported_help");
     return t("civic_outside_coverage_help");
   }
-  if (r.unrouted_reason === "regional_email_unavailable") return "The shared resolver covers Karnataka, not all of India. Your photo and coordinates are saved. This location needs a verified regional email recipient; no road owner or contractor has been inferred. Retry routing after coverage is updated.";
+  if (r.unrouted_reason === "regional_email_unavailable") return t("outside_karnataka_help");
   if (r.unrouted_reason === "no_location") return t("no_location_help");
   if (r.unrouted_reason === "location_uncertain") return t("location_uncertain_help");
   if (r.unrouted_reason === "jurisdiction_unavailable") return t("jurisdiction_unavailable_help");
@@ -7780,7 +7776,11 @@ async function analyseFootage(driveId, driveRec) {
                   storage: { stored: !!(r && r.stored), duplicate: !!(r && r.duplicate),
                              duplicate_of: (r && r.duplicate_of) || null },
                   detector: (r && r.detector) || null });
-              } catch (e) { writeFailed = true; }
+              } catch (e) {
+                writeFailed = true;
+                logEvent("export", { frame: myFrame, error: (e && e.message) || String(e),
+                  code: e && e.code });
+              }
             })
             .catch((e) => {
               failed++;

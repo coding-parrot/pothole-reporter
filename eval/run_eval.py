@@ -310,6 +310,8 @@ def build_request(views, prompt, model, detail, mode="drive", *,
 
 
 def native_decision(result, mode="drive", source_view_count=3):
+    if result and "assessment" in result:
+        return decision(result)
     if not result or result.get("is_pothole") is not True:
         return "reject"
     if result.get("looks_like_speed_breaker") is not False:
@@ -427,6 +429,32 @@ def decision(result):
     return "review"
 
 
+def parse_api_response(raw, streaming=False):
+    """Read a completed Responses result; never score a partial stream."""
+    if streaming:
+        payload = None
+        for line in raw.decode("utf-8").splitlines():
+            if not line.startswith("data:"):
+                continue
+            data = line[5:].strip()
+            if data == "[DONE]":
+                continue
+            event = json.loads(data)
+            if event.get("type") in {"error", "response.failed", "response.incomplete"}:
+                raise ValueError("Responses stream failed or was incomplete")
+            if event.get("type") == "response.completed":
+                payload = event["response"]
+        if payload is None:
+            raise ValueError("Responses stream has no completed response")
+    else:
+        payload = json.loads(raw)
+    if payload.get("status") not in {None, "completed"}:
+        raise ValueError("Responses result was not completed")
+    message = next(o for o in payload.get("output", []) if o.get("type") == "message")
+    text = next(c for c in message["content"] if c.get("type") == "output_text")["text"]
+    return json.loads(text), payload.get("id")
+
+
 def call(key, body, cache_dir, cache_slot):
     # Each stochastic repetition has its own stable slot. Caching identical body bytes
     # into one file would make five "trials" five copies of the first response.
@@ -443,10 +471,8 @@ def call(key, body, cache_dir, cache_slot):
             with urllib.request.urlopen(
                     request, timeout=RUNTIME_CONFIG["timeoutsMs"]["personalOpenAI"] / 1000
             ) as response:
-                payload = json.loads(response.read())
-            message = next(o for o in payload.get("output", []) if o.get("type") == "message")
-            text = next(c for c in message["content"] if c.get("type") == "output_text")["text"]
-            result = json.loads(text)
+                result, _response_id = parse_api_response(
+                    response.read(), body.get("stream") is True)
             break
         except Exception as error:
             if attempt == 2:
@@ -663,7 +689,7 @@ def main():
         results = pool.map(lambda job: call_with_detection_policy(
             key, job[3], cache_dir,
             f"{job[0]}|{job[1].get('event_id') or job[1]['path']}|{job[2]}",
-            args.mode, len(entry_paths(job[1]))), jobs)
+            args.mode, len(prepared[job[1]["path"]][0])), jobs)
         for index, (job, returned) in enumerate(zip(jobs, results), 1):
             name, entry, trial, body, transforms = job
             result, cached, cache_keys = returned
@@ -671,7 +697,7 @@ def main():
                          "image": entry["path"], "label": entry["label"],
                          "labelled_by": entry.get("labelled_by"), "trial": trial,
                          "accuracy_eligible": entry.get("accuracy_eligible", True),
-                         "decision": native_decision(result, args.mode, len(entry_paths(entry))), "cached": cached,
+                         "decision": native_decision(result, args.mode, len(prepared[entry["path"]][0])), "cached": cached,
                          "request_hash": cache_keys[-1], "request_hashes": cache_keys,
                          "attempts": len(cache_keys), "transforms": transforms, **result})
             if index % 25 == 0:

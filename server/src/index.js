@@ -3331,6 +3331,20 @@ function warrantyFor(_published) {
   };
 }
 
+function validateTenderSelection(address, candidates, match, threshold = TENDER_CONFIG.minimumConfidence) {
+  if (!match || !Number.isInteger(match.match_index)
+      || match.match_index < 0 || match.match_index >= candidates.length
+      || !Number.isFinite(match.confidence) || match.confidence < threshold || match.confidence > 1) {
+    return { candidate: null, reason: "no_confident_match" };
+  }
+  const selected = candidates[match.match_index];
+  // A model can rank ambiguous locations, but cannot override scope or select
+  // an explicitly different road. Candidate text is data, not authorization.
+  if (isClearlyNonRoadOnlyScope(selected.title)) return { candidate: null, reason: "non_road_work_scope" };
+  if (modelSelectedRoadConflicts(address, selected)) return { candidate: null, reason: "road_location_conflict" };
+  return { candidate: selected, reason: null };
+}
+
 function publicTender(selected, confidence, reason, matchMethod) {
   return {
     tender_number: selected.tender_number,
@@ -3391,29 +3405,9 @@ async function tenderResult(env, context, jurisdiction, options = {}) {
       text: outputFormat(TENDER_PROMPT_CONFIG.schemaName, TENDER_SCHEMA),
       reasoning: { effort: TENDER_CONFIG.reasoningEffort },
     }, "tender");
-    if (!match || !Number.isInteger(match.match_index)
-        || match.match_index < 0 || match.match_index >= candidates.length
-        || !Number.isFinite(match.confidence)
-        || match.confidence < TENDER_CONFIG.minimumConfidence || match.confidence > 1) {
-      return { tender: null, reason: "no_confident_match" };
-    }
-    const selected = candidates[match.match_index];
-    // The model ranks location ambiguity, but it cannot override an explicit
-    // non-carriageway-only responsibility boundary. This is intentionally a
-    // negative-only gate: requiring every legitimate award to match the narrow
-    // deterministic-fallback vocabulary caused false negatives for common wording
-    // such as widening, asphalting, and paver-finish asphalt work.
-    if (isClearlyNonRoadOnlyScope(selected.title)) {
-      return { tender: null, reason: "non_road_work_scope" };
-    }
-    // Candidate text is untrusted data and the model is not an authorization
-    // boundary.  A prompt-injected or mistaken selection may not substitute a
-    // different explicitly named road merely because its locality also matched.
-    // Area-wide and unnamed-road packages remain eligible so this postgate does
-    // not collapse model recall to the narrow deterministic matcher.
-    if (modelSelectedRoadConflicts(jurisdiction.address, selected)) {
-      return { tender: null, reason: "road_location_conflict" };
-    }
+    const selection = validateTenderSelection(jurisdiction.address, candidates, match);
+    if (!selection.candidate) return { tender: null, reason: selection.reason };
+    const selected = selection.candidate;
     return {
       tender: publicTender(
         selected,
@@ -3949,6 +3943,7 @@ export const __test = {
   hasExplicitRoadWorkScope,
   isClearlyNonRoadOnlyScope,
   modelSelectedRoadConflicts,
+  validateTenderSelection,
   deterministicTenderMatch,
   validateDetectionVerdict,
   sharedDetectionReceiptsRequired,

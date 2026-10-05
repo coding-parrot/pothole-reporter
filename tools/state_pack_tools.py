@@ -36,8 +36,8 @@ REVIEW_AFTER = "2026-11-21"
 RESOURCE_REVIEW_AFTER = {
     # Hyderabad's 2026 three-corporation reorganisation and Ahmedabad's secondary
     # ward-boundary snapshot deserve a much shorter re-review interval.
-    "in-tg-routing": "2026-09-21",
-    "in-gj-routing": "2026-09-21",
+    "in-tg-routing": "2026-10-25",
+    "in-gj-routing": "2026-10-25",
 }
 MAX_PACK_BYTES = 16 * 1024 * 1024
 MANIFEST_KEYS = {"format", "schema_version", "catalog_version", "cache", "resources"}
