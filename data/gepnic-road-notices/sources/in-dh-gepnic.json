@@ -1,14 +1,37 @@
 {
   "format": "gepnic-road-surface-procurement-notices",
   "lifecycle": "procurement_notice",
-  "notices": [],
+  "notices": [
+    {
+      "closing_at": "2026-10-12T14:00:00+05:30",
+      "detail_url": "https://ddtenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvDPztlfv6LiLoSBd1qyr8w%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://ddtenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
+      "opening_at": "2026-10-12T16:00:00+05:30",
+      "organisation_chain": "Daman District||Public Works Department - Daman||Executive Engineer-PWD - Daman",
+      "organisation_path": [
+        "Daman District",
+        "Public Works Department - Daman",
+        "Executive Engineer-PWD - Daman"
+      ],
+      "published_at": "2026-09-21T18:55:00+05:30",
+      "retrieved_at": "2026-10-05T05:42:16Z",
+      "scope": "road_surface",
+      "source_name": "Dadra and Nagar Haveli and Daman and Diu e-Procurement Portal",
+      "source_url": "https://ddtenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvDPztlfv6LiLoSBd1qyr8w%3D%3D",
+      "state_code": "DH",
+      "tender_id": "2026_DAMAN_4976_1",
+      "tender_reference": "Tender Notice No.73/2026-27",
+      "title": "Strengthening and Widening of Panchayat Roads in Daman District ((Patlara, Magarwada, Pariyari, Damanwada and Dunetha (one) (EPC MODE)(3rd Call)"
+    }
+  ],
   "organisations": [
     "Daman District",
     "Diu District"
   ],
-  "retrieved_at": "2026-08-26T05:22:39Z",
-  "rows_excluded_by_scope": 12,
-  "rows_scanned": 12,
+  "retrieved_at": "2026-10-05T05:42:16Z",
+  "rows_excluded_by_scope": 13,
+  "rows_scanned": 14,
   "schema_version": 1,
   "source_id": "in-dh-gepnic",
   "source_name": "Dadra and Nagar Haveli and Daman and Diu e-Procurement Portal",

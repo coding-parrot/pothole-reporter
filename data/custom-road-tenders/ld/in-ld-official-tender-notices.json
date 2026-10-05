@@ -5,9 +5,9 @@
   "source_name": "UT Administration of Lakshadweep tender notices",
   "source_url": "https://lakshadweep.gov.in/notice_category/tenders/",
   "state_code": "LD",
-  "retrieved_at": "2026-08-26T07:00:00Z",
+  "retrieved_at": "2026-10-05T05:42:16Z",
   "lifecycle": "procurement_notice",
-  "rows_scanned": 11,
-  "rows_excluded_by_scope": 11,
+  "rows_scanned": 0,
+  "rows_excluded_by_scope": 0,
   "notices": []
 }

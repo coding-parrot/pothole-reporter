@@ -3,12 +3,14 @@
   "lifecycle": "procurement_notice",
   "notices": [],
   "organisations": [
-    "Nagaland Urban Infrastructure Development Project (NUIDP)-PMU-ADB",
+    "Department of Power",
+    "Electrical Inspectorate",
+    "Motor Vehicles Department",
     "Principal Director - Directorate of School Education - Nagaland - WBT"
   ],
-  "retrieved_at": "2026-08-26T05:22:39Z",
-  "rows_excluded_by_scope": 3,
-  "rows_scanned": 3,
+  "retrieved_at": "2026-10-05T05:42:16Z",
+  "rows_excluded_by_scope": 5,
+  "rows_scanned": 5,
   "schema_version": 1,
   "source_id": "in-nl-gepnic",
   "source_name": "Nagaland e-Procurement Portal",

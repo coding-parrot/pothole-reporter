@@ -3,37 +3,39 @@
   "lifecycle": "procurement_notice",
   "notices": [
     {
-      "closing_at": "2026-09-04T11:00:00+05:30",
-      "detail_url": "https://arunachaltenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S1rcd37FVOTVvm%2BFgR5W%2BmA%3D%3D",
+      "closing_at": "2026-10-09T10:00:00+05:30",
+      "detail_url": "https://arunachaltenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SV6cS5w2KNLeTY7nOhoy5Tg%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://arunachaltenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SBHgI013YJrPRYhqXDt5TRg%3D%3D",
-      "opening_at": "2026-09-04T15:00:00+05:30",
-      "organisation_chain": "Public Works Department||CE(PWD) Central Zone-B - PWDAP||CIRCLE- Boleng - PWDAP||DIV- Yingkiong - PWDAP",
+      "opening_at": "2026-10-09T11:00:00+05:30",
+      "organisation_chain": "Public Works Department||CE(PWD) Western Zone - PWDAP||CIRCLE- Sagalee - PWDAP||DIV- Seppa - PWDAP",
       "organisation_path": [
         "Public Works Department",
-        "CE(PWD) Central Zone-B - PWDAP",
-        "CIRCLE- Boleng - PWDAP",
-        "DIV- Yingkiong - PWDAP"
+        "CE(PWD) Western Zone - PWDAP",
+        "CIRCLE- Sagalee - PWDAP",
+        "DIV- Seppa - PWDAP"
       ],
-      "published_at": "2026-08-20T10:30:00+05:30",
-      "retrieved_at": "2026-08-26T05:22:39Z",
+      "published_at": "2026-09-18T10:00:00+05:30",
+      "retrieved_at": "2026-10-05T05:42:16Z",
       "scope": "road_surface",
       "source_name": "Arunachal Pradesh e-Procurement Portal",
-      "source_url": "https://arunachaltenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S1rcd37FVOTVvm%2BFgR5W%2BmA%3D%3D",
+      "source_url": "https://arunachaltenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SV6cS5w2KNLeTY7nOhoy5Tg%3D%3D",
       "state_code": "AR",
-      "tender_id": "2026_PWDAP_3652_1",
-      "tender_reference": "YA/NIT/RIDF-XXXI/2026-27/02",
-      "title": "Construction of double lane road from NH 513 to New Yingkiong township via Newly proposed Heliport Upper Siang District 4 KMs"
+      "tender_id": "2026_PWDAP_3702_1",
+      "tender_reference": "SEPD/W-114/2026-27/02",
+      "title": "Construction of Road from Ningcho Village to Langpia in East Kameng District."
     }
   ],
   "organisations": [
     "ARUNACHAL PRADESH POLICE (APP)",
     "Public Works Department",
-    "Resident Commissioner"
+    "RURAL DEVELOPMENT DEPARTMENT",
+    "Town Planning and Urban Local Bodies",
+    "Urban Development and Housing"
   ],
-  "retrieved_at": "2026-08-26T05:22:39Z",
-  "rows_excluded_by_scope": 8,
-  "rows_scanned": 9,
+  "retrieved_at": "2026-10-05T05:42:16Z",
+  "rows_excluded_by_scope": 9,
+  "rows_scanned": 10,
   "schema_version": 1,
   "source_id": "in-ar-gepnic",
   "source_name": "Arunachal Pradesh e-Procurement Portal",

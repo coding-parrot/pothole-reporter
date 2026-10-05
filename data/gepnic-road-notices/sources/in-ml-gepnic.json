@@ -3,58 +3,38 @@
   "lifecycle": "procurement_notice",
   "notices": [
     {
-      "closing_at": "2026-09-02T11:00:00+05:30",
-      "detail_url": "https://meghalayatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SPIJfl6wMs%2Ba%2FXeD4w2x7iA%3D%3D",
+      "closing_at": "2026-10-14T13:00:00+05:30",
+      "detail_url": "https://meghalayatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sxh7NaHuB2CKMAV0W%2FOzDng%3D%3D",
       "lifecycle": "procurement_notice",
-      "listing_url": "https://meghalayatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-09-02T13:00:00+05:30",
-      "organisation_chain": "CE,PWD(Roads), National Highway Meghalaya,Shillong",
+      "listing_url": "https://meghalayatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SDRJrn9Uk4%2BNbVN5Z%2B22JUA%3D%3D",
+      "opening_at": "2026-10-14T14:30:00+05:30",
+      "organisation_chain": "PUBLIC HEALTH ENGINEERING DEPARTMENT||CHIEF ENGINEER - PUBLIC HEALTH ENGINEERING",
       "organisation_path": [
-        "CE,PWD(Roads), National Highway Meghalaya,Shillong"
+        "PUBLIC HEALTH ENGINEERING DEPARTMENT",
+        "CHIEF ENGINEER - PUBLIC HEALTH ENGINEERING"
       ],
-      "published_at": "2026-08-19T18:00:00+05:30",
-      "retrieved_at": "2026-08-26T05:22:39Z",
+      "published_at": "2026-10-01T18:00:00+05:30",
+      "retrieved_at": "2026-10-05T05:42:16Z",
       "scope": "road_surface",
       "source_name": "Meghalaya e-Procurement Portal",
-      "source_url": "https://meghalayatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SPIJfl6wMs%2Ba%2FXeD4w2x7iA%3D%3D",
+      "source_url": "https://meghalayatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sxh7NaHuB2CKMAV0W%2FOzDng%3D%3D",
       "state_code": "ML",
-      "tender_id": "2026_NHShi_2042_1",
-      "tender_reference": "PW/NEC/T/4/2026/49",
-      "title": "Rehabilitation and Strengthening of a road from Chokpot to Kharukol via Warima, Kenegre, Paromgre, Nokatgre, Meghalaya Length L 46.080 Km under NESIDS (Roads)."
-    },
-    {
-      "closing_at": "2026-09-04T14:00:00+05:30",
-      "detail_url": "https://meghalayatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SjntU%2BMK5onZT6eoOJCX28w%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://meghalayatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-09-07T14:00:00+05:30",
-      "organisation_chain": "CE,PWD(Roads), National Highway Meghalaya,Shillong",
-      "organisation_path": [
-        "CE,PWD(Roads), National Highway Meghalaya,Shillong"
-      ],
-      "published_at": "2026-08-04T18:00:00+05:30",
-      "retrieved_at": "2026-08-26T05:22:39Z",
-      "scope": "road_surface",
-      "source_name": "Meghalaya e-Procurement Portal",
-      "source_url": "https://meghalayatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SjntU%2BMK5onZT6eoOJCX28w%3D%3D",
-      "state_code": "ML",
-      "tender_id": "2026_NHShi_2034_1",
-      "tender_reference": "PW/NEC/T/5/2026/10",
-      "title": "Construction of a road from Umsen to Barapathar via Pilangku A Jyrmang Chibra and Mawiong L 13.50 Km under NESIDS Roads"
+      "tender_id": "2026_PHED_2069_1",
+      "tender_reference": "CE/PHE/TB-263/2025-26/14",
+      "title": "Construction of Approach Road to Treatment Plant, Pump House and Sump under Improvement of Khliehrangnah Water Supply Scheme"
     }
   ],
   "organisations": [
-    "CE,PWD(Roads), National Highway Meghalaya,Shillong",
-    "Excise Registration Taxation And Stamps Department",
+    "Department of Sports and Youth Affairs",
+    "Education Department-ADB",
+    "MEGHALAYA BASIN DEVELOPMENT AUTHORITY - WORLD BANK",
     "Meghalaya Energy Corporation Limited",
     "Ministry of PWD,Meghalaya",
-    "PUBLIC HEALTH ENGINEERING DEPARTMENT",
-    "Social Welfare Department-ADB",
-    "Water Resources Department"
+    "PUBLIC HEALTH ENGINEERING DEPARTMENT"
   ],
-  "retrieved_at": "2026-08-26T05:22:39Z",
-  "rows_excluded_by_scope": 13,
-  "rows_scanned": 15,
+  "retrieved_at": "2026-10-05T05:42:16Z",
+  "rows_excluded_by_scope": 19,
+  "rows_scanned": 20,
   "schema_version": 1,
   "source_id": "in-ml-gepnic",
   "source_name": "Meghalaya e-Procurement Portal",
