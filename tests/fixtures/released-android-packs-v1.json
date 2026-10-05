@@ -74,7 +74,8 @@
     "v1.39.1",
     "v1.39.2",
     "v1.39.3",
-    "v1.39.4"
+    "v1.39.4",
+    "v1.39.6"
   ],
   "resources": [
     {
@@ -84,10 +85,28 @@
       "sha256": "4a9dd9fa626ca3169efd6db82e930b7650bf59fbe7fd7667214760444b22ba84"
     },
     {
+      "bytes": 8213,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/an/highways-ce45545c43b06c723bf97055f4b6bd8303f9c307e6e15629fd775d464b3ea5c2.json",
+      "sha256": "ce45545c43b06c723bf97055f4b6bd8303f9c307e6e15629fd775d464b3ea5c2"
+    },
+    {
       "bytes": 120023,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/ap/highways-bd23f677c5a25666a04e03575009d059a2f8b53c66756ec0b0f0189bd187772d.json",
       "sha256": "bd23f677c5a25666a04e03575009d059a2f8b53c66756ec0b0f0189bd187772d"
+    },
+    {
+      "bytes": 121050,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/ap/highways-cec55de99dea786b2cf657a9be2028c32a789726a6daca5b1ce631ee25d941b7.json",
+      "sha256": "cec55de99dea786b2cf657a9be2028c32a789726a6daca5b1ce631ee25d941b7"
+    },
+    {
+      "bytes": 59006,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/ar/highways-06421af2a8cc99fbcbb9be715f5181104ceb7bf5057ce72ea4cb409fcadda86e.json",
+      "sha256": "06421af2a8cc99fbcbb9be715f5181104ceb7bf5057ce72ea4cb409fcadda86e"
     },
     {
       "bytes": 56253,
@@ -114,10 +133,28 @@
       "sha256": "627c32e124cc47374412d8f5ce1b1dd59d00b17438cca79fb1e87ef6cd05f692"
     },
     {
+      "bytes": 90227,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/as/highways-c2d8309aaf526efdb7bbda489cd93edf5bed15ed9fc0c40b87bf93eda4ab325c.json",
+      "sha256": "c2d8309aaf526efdb7bbda489cd93edf5bed15ed9fc0c40b87bf93eda4ab325c"
+    },
+    {
+      "bytes": 70671,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/br/highways-0f788886620dbac2758e5df3240af51ac1d9c7c008b26b291f541a009e289411.json",
+      "sha256": "0f788886620dbac2758e5df3240af51ac1d9c7c008b26b291f541a009e289411"
+    },
+    {
       "bytes": 69846,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/br/highways-8ffa7e4e71be93a4f6f0f1f49ed111131e69bd7502065635d745e54653d8042b.json",
       "sha256": "8ffa7e4e71be93a4f6f0f1f49ed111131e69bd7502065635d745e54653d8042b"
+    },
+    {
+      "bytes": 66813,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/cg/highways-18f23b181b6f4b8016d27501e6c93880698bab80cc0775d45dd23376c4cfcc63.json",
+      "sha256": "18f23b181b6f4b8016d27501e6c93880698bab80cc0775d45dd23376c4cfcc63"
     },
     {
       "bytes": 66757,
@@ -132,16 +169,40 @@
       "sha256": "0ca1a4555127d8d27c8babaf6bc17181312d9242030c2015b7d698591dd16258"
     },
     {
+      "bytes": 1271,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/ch/highways-7b4cd0b8756cbc13144729accdcc2e40658f84bf340e6a5cd8f8990a6e799ca8.json",
+      "sha256": "7b4cd0b8756cbc13144729accdcc2e40658f84bf340e6a5cd8f8990a6e799ca8"
+    },
+    {
       "bytes": 2132,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/dh/highways-5a70b2123c9cce6de04c88595381bc87b291fd0107e570d9366ef0d0aa4b7292.json",
       "sha256": "5a70b2123c9cce6de04c88595381bc87b291fd0107e570d9366ef0d0aa4b7292"
     },
     {
+      "bytes": 2132,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/dh/highways-80f3c5599f2f0ed2f41bfaacbb023a765412065230499ea77324746e6df7fd71.json",
+      "sha256": "80f3c5599f2f0ed2f41bfaacbb023a765412065230499ea77324746e6df7fd71"
+    },
+    {
       "bytes": 15574,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/ga/highways-b84f82d3c3be9e39c9a0ae2bee9cb3833a919823c2151972b54bb9609a3e9a0e.json",
       "sha256": "b84f82d3c3be9e39c9a0ae2bee9cb3833a919823c2151972b54bb9609a3e9a0e"
+    },
+    {
+      "bytes": 18217,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/ga/highways-fefb23c965934e60df8f6739dc14faf4d857cdb1cc67653bd22086e2040cbdb1.json",
+      "sha256": "fefb23c965934e60df8f6739dc14faf4d857cdb1cc67653bd22086e2040cbdb1"
+    },
+    {
+      "bytes": 53330,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/gj/highways-41eb1e736c8ad109f9d56bbbeaba925cb0540bbd35c7732dc35f4dd75276cdd6.json",
+      "sha256": "41eb1e736c8ad109f9d56bbbeaba925cb0540bbd35c7732dc35f4dd75276cdd6"
     },
     {
       "bytes": 52136,
@@ -156,10 +217,28 @@
       "sha256": "232308058ef71ffde74f98d445f7f9e801906a6b066cb6b691ed1cd41fa2be86"
     },
     {
+      "bytes": 48773,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/hp/highways-e745bff5947a22d7fea2443931dd3c7ec2d6d46e82e0506bdab6fbf560f5f606.json",
+      "sha256": "e745bff5947a22d7fea2443931dd3c7ec2d6d46e82e0506bdab6fbf560f5f606"
+    },
+    {
+      "bytes": 16394,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/hr/highways-3f523131e853728e6e8f5bd3afc437991903cfc25496c90339b9adb08cd05e51.json",
+      "sha256": "3f523131e853728e6e8f5bd3afc437991903cfc25496c90339b9adb08cd05e51"
+    },
+    {
       "bytes": 16394,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/hr/highways-cd68196bf9e99342b1a62267f092fc7a401d3b54068316d5aac31508a7b9ab14.json",
       "sha256": "cd68196bf9e99342b1a62267f092fc7a401d3b54068316d5aac31508a7b9ab14"
+    },
+    {
+      "bytes": 41397,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/jh/highways-4cdf66b268245309bb2b56e1fbbf4b2c832c695feae6aa756446e9158af3c006.json",
+      "sha256": "4cdf66b268245309bb2b56e1fbbf4b2c832c695feae6aa756446e9158af3c006"
     },
     {
       "bytes": 41397,
@@ -180,16 +259,40 @@
       "sha256": "ab1169d8ce9d492f184c4774856ecebe8d2bd9e312f8b8d9a713f1786cda74a7"
     },
     {
+      "bytes": 43377,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/jk/highways-dfe32723de9e4c7265605d454f0df85526f33309cd4d03e6909b4254ac2a1561.json",
+      "sha256": "dfe32723de9e4c7265605d454f0df85526f33309cd4d03e6909b4254ac2a1561"
+    },
+    {
       "bytes": 99612,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/ka/highways-1381dc1ec6b746e9df4a177d08cc1b62059e6160c192301c7c30b9e6dcd126d1.json",
       "sha256": "1381dc1ec6b746e9df4a177d08cc1b62059e6160c192301c7c30b9e6dcd126d1"
     },
     {
+      "bytes": 100591,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/ka/highways-6b82794adb9fc56df11fa977ce05a84c90784e6b500cb998009b3b6dbc6d1f5a.json",
+      "sha256": "6b82794adb9fc56df11fa977ce05a84c90784e6b500cb998009b3b6dbc6d1f5a"
+    },
+    {
+      "bytes": 19808,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/kl/highways-75857fd6190fe8ffdbb4e8ce71e4ac128173178ee171c1e8578e0d4c0a177daa.json",
+      "sha256": "75857fd6190fe8ffdbb4e8ce71e4ac128173178ee171c1e8578e0d4c0a177daa"
+    },
+    {
       "bytes": 19800,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/kl/highways-7e5942ad166730cd97bf2bab283f62bc1b31cf07da3090c89911d45e74bf5f59.json",
       "sha256": "7e5942ad166730cd97bf2bab283f62bc1b31cf07da3090c89911d45e74bf5f59"
+    },
+    {
+      "bytes": 6564,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/la/highways-1add8f8cbeb4aef1f9f790d935f339814d2baf16fb59d7508a36d8eb9c5f87fc.json",
+      "sha256": "1add8f8cbeb4aef1f9f790d935f339814d2baf16fb59d7508a36d8eb9c5f87fc"
     },
     {
       "bytes": 4261,
@@ -210,6 +313,12 @@
       "sha256": "98294f36c57d803afbbe23efb88102383e8d2812136ee43547bb20cddfe98310"
     },
     {
+      "bytes": 190184,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/mh/highways-cd8fdbf454e3dcc3e6c85e574f50073bb3f799243cf203d0a9068557939cf443.json",
+      "sha256": "cd8fdbf454e3dcc3e6c85e574f50073bb3f799243cf203d0a9068557939cf443"
+    },
+    {
       "bytes": 9806,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/ml/highways-2a43e81e600af5d84ee787418f562077436be9b768286d42b2b529360a1c4071.json",
@@ -220,6 +329,12 @@
       "first_tag": "v1.38.1",
       "path": "packs/v1/contracts/ml/highways-3f249b9c113613669d9670ac914aeaebc20c3cfd89b77b532412edc3cdd7907f.json",
       "sha256": "3f249b9c113613669d9670ac914aeaebc20c3cfd89b77b532412edc3cdd7907f"
+    },
+    {
+      "bytes": 13201,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/ml/highways-83a2f7855dcdbb8461714bde24a36ca3dad6fdbbf5a92b25d26522f5f0583583.json",
+      "sha256": "83a2f7855dcdbb8461714bde24a36ca3dad6fdbbf5a92b25d26522f5f0583583"
     },
     {
       "bytes": 19845,
@@ -234,10 +349,28 @@
       "sha256": "d56e1ae9fc61b8505fe5d1f7142d142be29cfe621308ee1ac43d1ff69022cb7c"
     },
     {
+      "bytes": 24274,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/mn/highways-f2cb74c29b53260a4c9f896eaa2a5c021f4bd4dfd8139afd6e9f8c134d814fe1.json",
+      "sha256": "f2cb74c29b53260a4c9f896eaa2a5c021f4bd4dfd8139afd6e9f8c134d814fe1"
+    },
+    {
+      "bytes": 137254,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/mp/highways-3dae4b6301313ab37d9a36b9c0bda5de5ed1a555fae5da94dbcb8f19ef9fc5fb.json",
+      "sha256": "3dae4b6301313ab37d9a36b9c0bda5de5ed1a555fae5da94dbcb8f19ef9fc5fb"
+    },
+    {
       "bytes": 137222,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/mp/highways-80e366a8d0df3f41988de609d1e59404e7f32c2372c3ef1beeb80a019be22fa1.json",
       "sha256": "80e366a8d0df3f41988de609d1e59404e7f32c2372c3ef1beeb80a019be22fa1"
+    },
+    {
+      "bytes": 10297,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/mz/highways-16773fd4fedd9388f7f46d2a4ac54ea847b5138f452c11531475351f6ba55c7c.json",
+      "sha256": "16773fd4fedd9388f7f46d2a4ac54ea847b5138f452c11531475351f6ba55c7c"
     },
     {
       "bytes": 10298,
@@ -258,10 +391,22 @@
       "sha256": "8374c497479ef591135ab8668dea328d2de56ae1389b7bef95a7bf6a0d4a21f5"
     },
     {
+      "bytes": 40559,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/nl/highways-b57949e7b31f38731d332d14ae1798eabdb09538c5a708f5304594f4c954d75a.json",
+      "sha256": "b57949e7b31f38731d332d14ae1798eabdb09538c5a708f5304594f4c954d75a"
+    },
+    {
       "bytes": 38755,
       "first_tag": "v1.38.1",
       "path": "packs/v1/contracts/nl/highways-eb34838dee078bd02e12e49ecc010f7bcffaa02dc5a9237b62e365ed88de8840.json",
       "sha256": "eb34838dee078bd02e12e49ecc010f7bcffaa02dc5a9237b62e365ed88de8840"
+    },
+    {
+      "bytes": 80942,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/od/highways-9b0db2ef22482ca00066cea99b7600fb56b9d88e1edc115deed7ee52a3f9ebdb.json",
+      "sha256": "9b0db2ef22482ca00066cea99b7600fb56b9d88e1edc115deed7ee52a3f9ebdb"
     },
     {
       "bytes": 80942,
@@ -276,16 +421,34 @@
       "sha256": "296a71951f8c2efdccfb5c010f3af4ee3d1c33e5cc7631380edd93145e3395ec"
     },
     {
+      "bytes": 43951,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/pb/highways-b6a827633029694e2effd853a77c0d884cb3ed6ca7485a8429ce77e784fa2153.json",
+      "sha256": "b6a827633029694e2effd853a77c0d884cb3ed6ca7485a8429ce77e784fa2153"
+    },
+    {
       "bytes": 2166,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/py/highways-826af6f48d3802bfaacd624c448d79b555f128a8d6807ea5cc242e7ab480c748.json",
       "sha256": "826af6f48d3802bfaacd624c448d79b555f128a8d6807ea5cc242e7ab480c748"
     },
     {
+      "bytes": 2174,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/py/highways-ba32092695586602c17dfc1373ffefab33e6f0daa47bef38fc04231c6f47335b.json",
+      "sha256": "ba32092695586602c17dfc1373ffefab33e6f0daa47bef38fc04231c6f47335b"
+    },
+    {
       "bytes": 65483,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/rj/highways-7988af65a18cef1781b86c26c25bb88495e2ed3ec599b50fa5bb52e8ebc3f8bc.json",
       "sha256": "7988af65a18cef1781b86c26c25bb88495e2ed3ec599b50fa5bb52e8ebc3f8bc"
+    },
+    {
+      "bytes": 68634,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/rj/highways-b9bd7ac0c4ae323265a0f09c573cc31c89433c4dee0ced18b1eaf3e1800df385.json",
+      "sha256": "b9bd7ac0c4ae323265a0f09c573cc31c89433c4dee0ced18b1eaf3e1800df385"
     },
     {
       "bytes": 20318,
@@ -300,10 +463,22 @@
       "sha256": "7dc02434f954f44a90490709fd93ead28f4d069fd84745261cee3e7b51b31f43"
     },
     {
+      "bytes": 21216,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/sk/highways-fb95f8d8b0579c6642180436822a8396c6d772f46192edc152398fbcf2e7de0f.json",
+      "sha256": "fb95f8d8b0579c6642180436822a8396c6d772f46192edc152398fbcf2e7de0f"
+    },
+    {
       "bytes": 84931,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/tg/highways-b4c57cf4f0bb9bd75be25a6c684eab77bcddf062bc99fbeec2ec74d91dda3d4f.json",
       "sha256": "b4c57cf4f0bb9bd75be25a6c684eab77bcddf062bc99fbeec2ec74d91dda3d4f"
+    },
+    {
+      "bytes": 109881,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/tn/highways-5d9e3c76bb3c3ee82dd805aff277e22c1a9702d5ef5b0e541934f8b1d1d1b86a.json",
+      "sha256": "5d9e3c76bb3c3ee82dd805aff277e22c1a9702d5ef5b0e541934f8b1d1d1b86a"
     },
     {
       "bytes": 108646,
@@ -318,16 +493,34 @@
       "sha256": "2819badcfdaed86d7290dd8a0c38110128560dd4030dabd1f2131e43c14ca1ce"
     },
     {
+      "bytes": 32038,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/tr/highways-99ddd8f693e08a6b7dde1e8d5a1d737d49f040f17af55e47b638af04e7e3325b.json",
+      "sha256": "99ddd8f693e08a6b7dde1e8d5a1d737d49f040f17af55e47b638af04e7e3325b"
+    },
+    {
       "bytes": 1138,
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/tr/highways-d148ba64393320cff07f79cc4e8b6b28bc7a5aa395e08d490af42c03552cd896.json",
       "sha256": "d148ba64393320cff07f79cc4e8b6b28bc7a5aa395e08d490af42c03552cd896"
     },
     {
+      "bytes": 85810,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/ts/highways-2485d8175ec15952ac328d511c15bdcdd6b1191cba0abb013a2692cce314fae5.json",
+      "sha256": "2485d8175ec15952ac328d511c15bdcdd6b1191cba0abb013a2692cce314fae5"
+    },
+    {
       "bytes": 84931,
       "first_tag": "v1.38.1",
       "path": "packs/v1/contracts/ts/highways-93362e4d8ce9afb167f9befa9bf2a10c11da923a4621b335381d3c8953a5bbe3.json",
       "sha256": "93362e4d8ce9afb167f9befa9bf2a10c11da923a4621b335381d3c8953a5bbe3"
+    },
+    {
+      "bytes": 104972,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/uk/highways-37025bd0aa8996e59d74f87199d3aefa12618329b406f41b476437bcb7e4ad22.json",
+      "sha256": "37025bd0aa8996e59d74f87199d3aefa12618329b406f41b476437bcb7e4ad22"
     },
     {
       "bytes": 102312,
@@ -346,6 +539,18 @@
       "first_tag": "v1.36.0",
       "path": "packs/v1/contracts/up/highways-57cdfbd8c11401fc0cb6776a69012e05a6451f946d33b859e30d8963d078df87.json",
       "sha256": "57cdfbd8c11401fc0cb6776a69012e05a6451f946d33b859e30d8963d078df87"
+    },
+    {
+      "bytes": 113296,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/up/highways-8aa0189df485f73d9c2f6ad3127daf36ed589a77a29d347728391a0d785a1280.json",
+      "sha256": "8aa0189df485f73d9c2f6ad3127daf36ed589a77a29d347728391a0d785a1280"
+    },
+    {
+      "bytes": 141166,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/contracts/wb/highways-4100d1ac353980d93e602ec6e21f513809dc6dee1246496a5461cc68a01969e8.json",
+      "sha256": "4100d1ac353980d93e602ec6e21f513809dc6dee1246496a5461cc68a01969e8"
     },
     {
       "bytes": 125115,
@@ -966,6 +1171,12 @@
       "sha256": "51688ee1b9c554c652dbc87092f4de558f958bbcbe9b2f0eb2d49d3ee93e25c4"
     },
     {
+      "bytes": 6644,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/an/agreements-574f203dbf477a66729b9d4969ab2bd9e747fc67198d3ab5b7fc59c33d355b5e.json",
+      "sha256": "574f203dbf477a66729b9d4969ab2bd9e747fc67198d3ab5b7fc59c33d355b5e"
+    },
+    {
       "bytes": 4899,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/an/agreements-e8e7ff75f6b9016e5ad92b4820a8445331d37169c90bec8466e1d856ee806bbc.json",
@@ -978,10 +1189,28 @@
       "sha256": "1aa0229070d2a28281b5e89f953185e78979223b6cc7884fcc7140a53ff514b9"
     },
     {
+      "bytes": 98707,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/ap/agreements-76edbab2d7f81e73e3fb922061ba863ffef98cea4f3f512820f202b143c48e69.json",
+      "sha256": "76edbab2d7f81e73e3fb922061ba863ffef98cea4f3f512820f202b143c48e69"
+    },
+    {
+      "bytes": 62230,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/ar/agreements-9ffdb71457c91b00b004b3e6ff398358033978f8b8dc3b71b315dcea2e061983.json",
+      "sha256": "9ffdb71457c91b00b004b3e6ff398358033978f8b8dc3b71b315dcea2e061983"
+    },
+    {
       "bytes": 62923,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/ar/agreements-f4d6b63f010785e8a80a8c5944790178535ba610e463365b53c9de99914aa932.json",
       "sha256": "f4d6b63f010785e8a80a8c5944790178535ba610e463365b53c9de99914aa932"
+    },
+    {
+      "bytes": 113997,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/as/agreements-6ba8f25231233486ccabfb99de61b86b38efc0160e4bf07ea2ce0e344dd40cf7.json",
+      "sha256": "6ba8f25231233486ccabfb99de61b86b38efc0160e4bf07ea2ce0e344dd40cf7"
     },
     {
       "bytes": 96168,
@@ -996,10 +1225,22 @@
       "sha256": "b5ff1cc1adf99ced7c2d1ef1696a5e9f40480d28f39e5d325c4bd94fa99890ac"
     },
     {
+      "bytes": 248955,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/br/agreements-e349ead6b5823c53ae74059c0d08942c8adf638bb29e7429befb21c451fb913a.json",
+      "sha256": "e349ead6b5823c53ae74059c0d08942c8adf638bb29e7429befb21c451fb913a"
+    },
+    {
       "bytes": 290253,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/cg/agreements-3a715d8e101eb7ca1c6fecbff936038b4d92a947830ea4b44f0f942c0fa2ee20.json",
       "sha256": "3a715d8e101eb7ca1c6fecbff936038b4d92a947830ea4b44f0f942c0fa2ee20"
+    },
+    {
+      "bytes": 291126,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/cg/agreements-ef8f66a5987490958121a88534b27aa4ef9f7d30edb53338067cc0e1105d1204.json",
+      "sha256": "ef8f66a5987490958121a88534b27aa4ef9f7d30edb53338067cc0e1105d1204"
     },
     {
       "bytes": 1117,
@@ -1008,10 +1249,28 @@
       "sha256": "2d278dbc2c99c57f18f0d3875ef562a856bdcfcab0d69ff3e33ae863677e8e2c"
     },
     {
+      "bytes": 1117,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/ch/agreements-f254a09ca9dbd5c9466de9fb9097abf347957338d9bdebd9b5a7c681d22ea17a.json",
+      "sha256": "f254a09ca9dbd5c9466de9fb9097abf347957338d9bdebd9b5a7c681d22ea17a"
+    },
+    {
       "bytes": 1590,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/dh/agreements-77f2430b6202a18e990906a987bd8894f0d7f383d32c6a04d28b0c6055c279db.json",
       "sha256": "77f2430b6202a18e990906a987bd8894f0d7f383d32c6a04d28b0c6055c279db"
+    },
+    {
+      "bytes": 1590,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/dh/agreements-ea0aef4023ae5d94e85537b7f01c3928c00414d6ae741334d1cd3a2d0fc44b26.json",
+      "sha256": "ea0aef4023ae5d94e85537b7f01c3928c00414d6ae741334d1cd3a2d0fc44b26"
+    },
+    {
+      "bytes": 1113,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/dl/agreements-2179d50d9fa223ff983570fde1d3cc05ded4be4a3d666a2f4af7b8c8c8b4d711.json",
+      "sha256": "2179d50d9fa223ff983570fde1d3cc05ded4be4a3d666a2f4af7b8c8c8b4d711"
     },
     {
       "bytes": 1113,
@@ -1026,16 +1285,40 @@
       "sha256": "046063f661c801b601d11ded3bba12988277bfa04052aad2c3bfed6bd2921c10"
     },
     {
+      "bytes": 2478,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/ga/agreements-180d1ba14323b87bb679afd14c5a6deebb9419821c8319ba22e4cecb262548e3.json",
+      "sha256": "180d1ba14323b87bb679afd14c5a6deebb9419821c8319ba22e4cecb262548e3"
+    },
+    {
       "bytes": 38515,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/gj/agreements-94c49e25441a8a4cb214ee197bb56be4689cd81db8426219f5e2c410a269a1b9.json",
       "sha256": "94c49e25441a8a4cb214ee197bb56be4689cd81db8426219f5e2c410a269a1b9"
     },
     {
+      "bytes": 36635,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/gj/agreements-dbadd8e96d983c82e8fc108104c109272e9c487e972970cdfc868bdcf2a99ca8.json",
+      "sha256": "dbadd8e96d983c82e8fc108104c109272e9c487e972970cdfc868bdcf2a99ca8"
+    },
+    {
+      "bytes": 88996,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/hp/agreements-4adc57267c2ea4ccabaa9d068fe4f1c393acb6d9fbacaa2d93054bd23328f50d.json",
+      "sha256": "4adc57267c2ea4ccabaa9d068fe4f1c393acb6d9fbacaa2d93054bd23328f50d"
+    },
+    {
       "bytes": 86219,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/hp/agreements-608862c258d5ffaacdbcad59944abffd3f68b53c7b3ce217520817a9d91f6d16.json",
       "sha256": "608862c258d5ffaacdbcad59944abffd3f68b53c7b3ce217520817a9d91f6d16"
+    },
+    {
+      "bytes": 10224,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/hr/agreements-3fe71a610bbd961abf43f57924e84479ad9dfc89f0a9f75d62fd9f9d6269774a.json",
+      "sha256": "3fe71a610bbd961abf43f57924e84479ad9dfc89f0a9f75d62fd9f9d6269774a"
     },
     {
       "bytes": 10224,
@@ -1050,6 +1333,18 @@
       "sha256": "579bccce74525fa86cdb3539753632b11306e88a6261b521f10a4f47df61df79"
     },
     {
+      "bytes": 163393,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/jh/agreements-e0287f0b9626b1535c82364547eeea30bddf86d15389a81bc2e40d288903938a.json",
+      "sha256": "e0287f0b9626b1535c82364547eeea30bddf86d15389a81bc2e40d288903938a"
+    },
+    {
+      "bytes": 158830,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/jk/agreements-0131e4af0b8a8cb0be07a7df89c8b54506cc17be02150b7d325805c89e141280.json",
+      "sha256": "0131e4af0b8a8cb0be07a7df89c8b54506cc17be02150b7d325805c89e141280"
+    },
+    {
       "bytes": 118001,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/jk/agreements-d904acee497b2a01c25bfb655432b924ed44c2fec7d06c052110cfe81b9840e6.json",
@@ -1062,16 +1357,40 @@
       "sha256": "3c36b0b9a62227908e289f920a6960dde996d0188c2ace99adf3be58d378bf80"
     },
     {
+      "bytes": 21506,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/ka/agreements-a60d2995af6d51b7b4bb5122eac3a384e12ad784234879fccf9fcf7dfaffa908.json",
+      "sha256": "a60d2995af6d51b7b4bb5122eac3a384e12ad784234879fccf9fcf7dfaffa908"
+    },
+    {
       "bytes": 47766,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/kl/agreements-1bf89b0cd8ac3232e87b60e05205d321dfc8b5890416fb736f6a4dac132aa818.json",
       "sha256": "1bf89b0cd8ac3232e87b60e05205d321dfc8b5890416fb736f6a4dac132aa818"
     },
     {
+      "bytes": 47766,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/kl/agreements-ddd483ccb40ed6f34e510c5ced5df88b455d111e6fd74644ac3ce00d886c20fb.json",
+      "sha256": "ddd483ccb40ed6f34e510c5ced5df88b455d111e6fd74644ac3ce00d886c20fb"
+    },
+    {
       "bytes": 8711,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/la/agreements-69ae971a8469915d3e653e2de62bb08f39c9a4c8502253a7e0e8963d82831b28.json",
       "sha256": "69ae971a8469915d3e653e2de62bb08f39c9a4c8502253a7e0e8963d82831b28"
+    },
+    {
+      "bytes": 8711,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/la/agreements-fb17beed028836b9d1e15821347d79a810066a069a3001dd8e4032936ee351d7.json",
+      "sha256": "fb17beed028836b9d1e15821347d79a810066a069a3001dd8e4032936ee351d7"
+    },
+    {
+      "bytes": 1119,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/ld/agreements-ccabaa7c3d32f0c23d2751025c150154524dc100f6caf0bb2bb23119318a10ec.json",
+      "sha256": "ccabaa7c3d32f0c23d2751025c150154524dc100f6caf0bb2bb23119318a10ec"
     },
     {
       "bytes": 1119,
@@ -1086,10 +1405,28 @@
       "sha256": "1ae302aee76cc44c01a4c6a8f854a71c6a1c962587ed5dbc2ad6d70988f5f1eb"
     },
     {
+      "bytes": 203166,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/mh/agreements-4face09929f49b1b86969a1343ce2f26f223c0d70579a86335336548a93ccaa6.json",
+      "sha256": "4face09929f49b1b86969a1343ce2f26f223c0d70579a86335336548a93ccaa6"
+    },
+    {
       "bytes": 38929,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/ml/agreements-c4f7ca640c0c063187409f634c9f84d31b799b3b2016dfeffb1c9083ed49bbc4.json",
       "sha256": "c4f7ca640c0c063187409f634c9f84d31b799b3b2016dfeffb1c9083ed49bbc4"
+    },
+    {
+      "bytes": 38929,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/ml/agreements-dfbf37914c55dabdf22ff2e1b1bcae9682eb6909e1f8ae6860ff915690c90dd8.json",
+      "sha256": "dfbf37914c55dabdf22ff2e1b1bcae9682eb6909e1f8ae6860ff915690c90dd8"
+    },
+    {
+      "bytes": 20164,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/mn/agreements-293dba169c304247721f7307106f85904d7163942d126954242228ac0fab590d.json",
+      "sha256": "293dba169c304247721f7307106f85904d7163942d126954242228ac0fab590d"
     },
     {
       "bytes": 3077,
@@ -1098,10 +1435,22 @@
       "sha256": "526092bb525bdf5a2fcf88827d9f663d535deec19c5daf54b194005555ca4902"
     },
     {
+      "bytes": 274422,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/mp/agreements-8ba766bab6b2f0cddee22e374f06bc63c633de2473a30545f4f2bfe2ef855703.json",
+      "sha256": "8ba766bab6b2f0cddee22e374f06bc63c633de2473a30545f4f2bfe2ef855703"
+    },
+    {
       "bytes": 260441,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/mp/agreements-c81163bd4668d07dadd7d3b7596b28f31041dd54532d830fbec3efd4ddb12011.json",
       "sha256": "c81163bd4668d07dadd7d3b7596b28f31041dd54532d830fbec3efd4ddb12011"
+    },
+    {
+      "bytes": 4540,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/mz/agreements-3b0d16794ccf3ea846023c3e5c6752cdc556b48ce79a74698d9327b4c5084741.json",
+      "sha256": "3b0d16794ccf3ea846023c3e5c6752cdc556b48ce79a74698d9327b4c5084741"
     },
     {
       "bytes": 4540,
@@ -1116,10 +1465,22 @@
       "sha256": "993294f8b9d2bc4a399e6e5d8e5857c64ba41ed12f2acda6ec96a466fd4c1f1d"
     },
     {
+      "bytes": 7521,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/nl/agreements-f3a0f9e6a428bea0c222ba1941eb3b993ecd374c5acac9c8595db6ca2298a937.json",
+      "sha256": "f3a0f9e6a428bea0c222ba1941eb3b993ecd374c5acac9c8595db6ca2298a937"
+    },
+    {
       "bytes": 220409,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/od/agreements-55494f2573802a2f765b8f2ff23e8998dc73216757e5ec4c72c262f40057bea9.json",
       "sha256": "55494f2573802a2f765b8f2ff23e8998dc73216757e5ec4c72c262f40057bea9"
+    },
+    {
+      "bytes": 195467,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/od/agreements-ae1c00154b03e01bac165f88284bce32424334d37160a327bde7386442279e56.json",
+      "sha256": "ae1c00154b03e01bac165f88284bce32424334d37160a327bde7386442279e56"
     },
     {
       "bytes": 46529,
@@ -1128,10 +1489,28 @@
       "sha256": "7ec7da083afc3d2b60e6f7090dbfa58f4e06e57e88e04935b678ff8aa177dc75"
     },
     {
+      "bytes": 38635,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/pb/agreements-f7c0f960e3e52c4fec3898bc6b035a00dd5700fe25f0e5ff876cc6e6d7dc98ee.json",
+      "sha256": "f7c0f960e3e52c4fec3898bc6b035a00dd5700fe25f0e5ff876cc6e6d7dc98ee"
+    },
+    {
+      "bytes": 8272,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/py/agreements-5a72e416708714a84afcc20339b79390dff4c41810da13bab6487c9618f3cb13.json",
+      "sha256": "5a72e416708714a84afcc20339b79390dff4c41810da13bab6487c9618f3cb13"
+    },
+    {
       "bytes": 7723,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/py/agreements-783d0eab64563891e3ae4e2b72c98e46c189f489337cbfa1975b95abba0a6a4b.json",
       "sha256": "783d0eab64563891e3ae4e2b72c98e46c189f489337cbfa1975b95abba0a6a4b"
+    },
+    {
+      "bytes": 257871,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/rj/agreements-273517e82b97c8348fcde05fd183c85a17b85dcdfa13eb7c59766fe4c0a53c94.json",
+      "sha256": "273517e82b97c8348fcde05fd183c85a17b85dcdfa13eb7c59766fe4c0a53c94"
     },
     {
       "bytes": 257712,
@@ -1146,6 +1525,18 @@
       "sha256": "c7057ef0a65155e08c1aeaa55d8ed16f84d224d0c86f7e73041bdf125d4453a0"
     },
     {
+      "bytes": 12908,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/sk/agreements-cd5313745cf2a949106ec222753488f69c3d27b9ed667ed4fb6ddd5f5aa2f91e.json",
+      "sha256": "cd5313745cf2a949106ec222753488f69c3d27b9ed667ed4fb6ddd5f5aa2f91e"
+    },
+    {
+      "bytes": 31380,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/tg/agreements-c9ba93cbfec53e0c465b0458acd8c276a8d7d60549698b4f7e7e6bdea2e6a957.json",
+      "sha256": "c9ba93cbfec53e0c465b0458acd8c276a8d7d60549698b4f7e7e6bdea2e6a957"
+    },
+    {
       "bytes": 37498,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/tg/agreements-ed3b59c8130ec9394d547a89f444c4a8193797d2e9af896a32ecd9b514c64066.json",
@@ -1156,6 +1547,18 @@
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/tn/agreements-0a39fa7bf1bda6ba901968e7d647f22183b4134c13d2f8e1edf6c1cf0807493f.json",
       "sha256": "0a39fa7bf1bda6ba901968e7d647f22183b4134c13d2f8e1edf6c1cf0807493f"
+    },
+    {
+      "bytes": 191669,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/tn/agreements-ee7afdb2cb745c5a9791ef2a9f3abac198a43f7f0a52e1d341a3f64c58e199b0.json",
+      "sha256": "ee7afdb2cb745c5a9791ef2a9f3abac198a43f7f0a52e1d341a3f64c58e199b0"
+    },
+    {
+      "bytes": 42248,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/tr/agreements-76829241372e7f553e5c31dd5cdc1a55041111c83ec93554c48cd9e27855b1ad.json",
+      "sha256": "76829241372e7f553e5c31dd5cdc1a55041111c83ec93554c48cd9e27855b1ad"
     },
     {
       "bytes": 42096,
@@ -1170,10 +1573,22 @@
       "sha256": "9719a48e8da5f32ad1ffda015c968c179e6026741950128dac362a1a8d15749e"
     },
     {
+      "bytes": 62918,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/uk/agreements-e347a074e7b800be2ddbf63f6258b62c3e50458f467c3f947ef63c57a0f2d1c0.json",
+      "sha256": "e347a074e7b800be2ddbf63f6258b62c3e50458f467c3f947ef63c57a0f2d1c0"
+    },
+    {
       "bytes": 295540,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-agreements/up/agreements-272a7ce1042f0b2eafaa349c562ae9ec21418a145e9ed8d40de95c76eea06f35.json",
       "sha256": "272a7ce1042f0b2eafaa349c562ae9ec21418a145e9ed8d40de95c76eea06f35"
+    },
+    {
+      "bytes": 292875,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/up/agreements-2beedfd6c4c2815fcab6697984ebd021c2ca0264ec818d116fb3545fcccc9545.json",
+      "sha256": "2beedfd6c4c2815fcab6697984ebd021c2ca0264ec818d116fb3545fcccc9545"
     },
     {
       "bytes": 96654,
@@ -1182,16 +1597,34 @@
       "sha256": "0c90753fd1b30214268e1a06023a8c14471b63c09758d044b9b6407edcc6816a"
     },
     {
+      "bytes": 96399,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-agreements/wb/agreements-c757e15e7301884e100515d1499e2b04cfb3f6597faa7d39c49ed47cdfeb87d4.json",
+      "sha256": "c757e15e7301884e100515d1499e2b04cfb3f6597faa7d39c49ed47cdfeb87d4"
+    },
+    {
       "bytes": 5479,
       "first_tag": "v1.36.10",
       "path": "packs/v1/road-notices/an/notices-038b96cd7ac3f751733b9ffd3cb98bb656719bb725f48f14bee0a1b77cbe5b47.json",
       "sha256": "038b96cd7ac3f751733b9ffd3cb98bb656719bb725f48f14bee0a1b77cbe5b47"
     },
     {
+      "bytes": 5730,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/an/notices-5c3629dfdc1b46b252d7bc88fd4ce4efa247a3548842d2a802005c0a73e3ae25.json",
+      "sha256": "5c3629dfdc1b46b252d7bc88fd4ce4efa247a3548842d2a802005c0a73e3ae25"
+    },
+    {
       "bytes": 7263,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/an/notices-99a57ea06821fdeefe06fea336b1f7374dea95fad17ffca91ab29552782f3641.json",
       "sha256": "99a57ea06821fdeefe06fea336b1f7374dea95fad17ffca91ab29552782f3641"
+    },
+    {
+      "bytes": 1453,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/ar/notices-8884afb7b3562d2a0696c6c041b8c183c9e4f9c6810f8cf550d9803dc3d9a8bd.json",
+      "sha256": "8884afb7b3562d2a0696c6c041b8c183c9e4f9c6810f8cf550d9803dc3d9a8bd"
     },
     {
       "bytes": 1515,
@@ -1206,16 +1639,40 @@
       "sha256": "cae5ce53d999c5fafd32353b704d549959e78f5de8a06fd4abeca2681718549c"
     },
     {
+      "bytes": 33997,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/as/notices-df6e145ccef38da0865059821c1ac9a1f46b4e9f61e2af208bbd32ec33fad8fa.json",
+      "sha256": "df6e145ccef38da0865059821c1ac9a1f46b4e9f61e2af208bbd32ec33fad8fa"
+    },
+    {
       "bytes": 11724,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/br/notices-4527dd60b508a23d055e7f37f00e61805f37f1e0ee82f7d824320f5a4c6093be.json",
       "sha256": "4527dd60b508a23d055e7f37f00e61805f37f1e0ee82f7d824320f5a4c6093be"
     },
     {
+      "bytes": 70508,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/br/notices-8337371a0a4f2b2278f295e0a2b5c1bf21a6065420622d2742689b2f506deecb.json",
+      "sha256": "8337371a0a4f2b2278f295e0a2b5c1bf21a6065420622d2742689b2f506deecb"
+    },
+    {
+      "bytes": 37287,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/cg/notices-91db679c3c5cb830124179553793325641ab444dc5aa30b5e72845678ca4efc4.json",
+      "sha256": "91db679c3c5cb830124179553793325641ab444dc5aa30b5e72845678ca4efc4"
+    },
+    {
       "bytes": 33209,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/cg/notices-b7858b1b76d36505e7342a906924d4f565ef2d2cf5c03e15d40cd3349f220391.json",
       "sha256": "b7858b1b76d36505e7342a906924d4f565ef2d2cf5c03e15d40cd3349f220391"
+    },
+    {
+      "bytes": 13866,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/ch/notices-5530c5dd1a7731eb489db6782be4b0af39bf5099aee9f66179857ef26882e340.json",
+      "sha256": "5530c5dd1a7731eb489db6782be4b0af39bf5099aee9f66179857ef26882e340"
     },
     {
       "bytes": 7297,
@@ -1236,10 +1693,28 @@
       "sha256": "15e82d0f0d0cd02b75ee606ac4f1c3609fa2c20563af7ffd919ca88322ae7b5f"
     },
     {
+      "bytes": 1517,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/dh/notices-4f3e54a24463b8de8a020d093bc05dfda16c69c628bdeb2fd2fb213d43bc1d33.json",
+      "sha256": "4f3e54a24463b8de8a020d093bc05dfda16c69c628bdeb2fd2fb213d43bc1d33"
+    },
+    {
       "bytes": 8974,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/dl/notices-48d9c8f17d063b99188670b488a4ad32e70defcf4d3df77d4b96b2b35770fbac.json",
       "sha256": "48d9c8f17d063b99188670b488a4ad32e70defcf4d3df77d4b96b2b35770fbac"
+    },
+    {
+      "bytes": 18104,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/dl/notices-69b58e73880124ade96db7da50e42816ab9e6e6e74c4cd33f4559bb199ff7eaa.json",
+      "sha256": "69b58e73880124ade96db7da50e42816ab9e6e6e74c4cd33f4559bb199ff7eaa"
+    },
+    {
+      "bytes": 17052,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/ga/notices-8d7da0c45413a57aeb8af1a21398eb56897d06c10902cc3e341e37c89b2e3048.json",
+      "sha256": "8d7da0c45413a57aeb8af1a21398eb56897d06c10902cc3e341e37c89b2e3048"
     },
     {
       "bytes": 13895,
@@ -1254,10 +1729,28 @@
       "sha256": "ab1030c8fb3c51857a8ce61735d4a3206a7f52d7c4d2b30cf515a99e9c839f69"
     },
     {
+      "bytes": 185860,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/gj/notices-d5a7b8e1cb962a3c03136474b7397cc074ee8e72446cfea43541d54b2bcc8414.json",
+      "sha256": "d5a7b8e1cb962a3c03136474b7397cc074ee8e72446cfea43541d54b2bcc8414"
+    },
+    {
       "bytes": 30562,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/hp/notices-1aafce38b6f2439aba9bba51923f5db850cfbb47912fa1c126de8d00d29b4eec.json",
       "sha256": "1aafce38b6f2439aba9bba51923f5db850cfbb47912fa1c126de8d00d29b4eec"
+    },
+    {
+      "bytes": 56209,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/hp/notices-290ecae8f30bc961e555ca48d4a7cd3f238e4fb62ae08dd14e8387c6ed09d5e3.json",
+      "sha256": "290ecae8f30bc961e555ca48d4a7cd3f238e4fb62ae08dd14e8387c6ed09d5e3"
+    },
+    {
+      "bytes": 129521,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/hr/notices-621c8d919d8bf7b122a6b0d128f00d8ec750e568cc3ca52cf48776987c1848d2.json",
+      "sha256": "621c8d919d8bf7b122a6b0d128f00d8ec750e568cc3ca52cf48776987c1848d2"
     },
     {
       "bytes": 113231,
@@ -1272,6 +1765,18 @@
       "sha256": "28076d22f2a5a46101848f3e6a9d159bb4b74248130804a8e32a31a818b1363f"
     },
     {
+      "bytes": 102697,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/jh/notices-88fef817afff14d139a3503f9bcb9f92cf3a3e45bc588d2a06deff2239e34a24.json",
+      "sha256": "88fef817afff14d139a3503f9bcb9f92cf3a3e45bc588d2a06deff2239e34a24"
+    },
+    {
+      "bytes": 331069,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/jk/notices-c7f72bbd0f805759eaf8f21b97dd83c7b951f3d7276fbdd1cf1d6cc4cd60e919.json",
+      "sha256": "c7f72bbd0f805759eaf8f21b97dd83c7b951f3d7276fbdd1cf1d6cc4cd60e919"
+    },
+    {
       "bytes": 601117,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/jk/notices-e7666141aded86903ebc51363c8ed720d933a2bf922785db6adc0e7e8ba0f023.json",
@@ -1284,10 +1789,28 @@
       "sha256": "ab729556578a8267f513e84b667fbd9e3ac1e26a9cfb26920e2834a26b88e1be"
     },
     {
+      "bytes": 1143319,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/kl/notices-d2bc86d632922967a307dfcf88fcc9b605b5ea0360458598a28b8c1629541805.json",
+      "sha256": "d2bc86d632922967a307dfcf88fcc9b605b5ea0360458598a28b8c1629541805"
+    },
+    {
       "bytes": 4577,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/la/notices-5aa0f0bb6e8c3e13123c5e71b0cd990c50a28cf0c68389c346c14e7d5d0365c9.json",
       "sha256": "5aa0f0bb6e8c3e13123c5e71b0cd990c50a28cf0c68389c346c14e7d5d0365c9"
+    },
+    {
+      "bytes": 5466,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/la/notices-5b13212770a48352d256d2265bbe81d9585ea2d93739d6fb1731484c2aa4593a.json",
+      "sha256": "5b13212770a48352d256d2265bbe81d9585ea2d93739d6fb1731484c2aa4593a"
+    },
+    {
+      "bytes": 649,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/ld/notices-84b25c1a3b9775964232ce38b1d8f9ccdb21298e0754e2dfa8c8c5b589031ea2.json",
+      "sha256": "84b25c1a3b9775964232ce38b1d8f9ccdb21298e0754e2dfa8c8c5b589031ea2"
     },
     {
       "bytes": 651,
@@ -1302,16 +1825,40 @@
       "sha256": "ad5d1a26423b93ae85d629f0c9b9152c4dc29c5ba3b671127a27e587a3ff28c3"
     },
     {
+      "bytes": 74578,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/mh/notices-bc778d620bff4bae37e4a24551db8e4289cb16a38c8e0c88cd250de9c2f8aaa1.json",
+      "sha256": "bc778d620bff4bae37e4a24551db8e4289cb16a38c8e0c88cd250de9c2f8aaa1"
+    },
+    {
       "bytes": 2247,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/ml/notices-0e7f7dbf947fbe859aeb7b212620738a3b14a8f84e6eadfbbddc990527d25d61.json",
       "sha256": "0e7f7dbf947fbe859aeb7b212620738a3b14a8f84e6eadfbbddc990527d25d61"
     },
     {
+      "bytes": 1478,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/ml/notices-662a91b2019d6d41e569a674ecae535e7cbac31905eb65532cbef03969fb365c.json",
+      "sha256": "662a91b2019d6d41e569a674ecae535e7cbac31905eb65532cbef03969fb365c"
+    },
+    {
       "bytes": 670,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/mn/notices-2c84f9cb6520b1677b38e78e5f5f50f56bfde99e8b04c477a39fa698631e0426.json",
       "sha256": "2c84f9cb6520b1677b38e78e5f5f50f56bfde99e8b04c477a39fa698631e0426"
+    },
+    {
+      "bytes": 2133,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/mn/notices-f710cd3b5f250e31e2ed6c35b1fa56499b8c3d2842a1af79d111f7b4c0a5bcd1.json",
+      "sha256": "f710cd3b5f250e31e2ed6c35b1fa56499b8c3d2842a1af79d111f7b4c0a5bcd1"
+    },
+    {
+      "bytes": 588474,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/mp/notices-58ceaa1a2e01fbd1d691cbf85503999985d13be0b73a0a7be0ea4fbe75804703.json",
+      "sha256": "58ceaa1a2e01fbd1d691cbf85503999985d13be0b73a0a7be0ea4fbe75804703"
     },
     {
       "bytes": 557609,
@@ -1338,16 +1885,40 @@
       "sha256": "992803b87a13d166303c605e5dcf2347d51d9d79d1d5152d9a525ef82e29752d"
     },
     {
+      "bytes": 670,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/nl/notices-e3deccce5452c58e9d1d0d9f3a4b36f5d643ca43b9b0a6695674f7c2041a8469.json",
+      "sha256": "e3deccce5452c58e9d1d0d9f3a4b36f5d643ca43b9b0a6695674f7c2041a8469"
+    },
+    {
+      "bytes": 207285,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/od/notices-3779c50279893d156801b75f01c067043cef48407fa1cce5fe4bf71322811ba4.json",
+      "sha256": "3779c50279893d156801b75f01c067043cef48407fa1cce5fe4bf71322811ba4"
+    },
+    {
       "bytes": 210783,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/od/notices-c2fa157b7ed810d1d69c0df8186cde3a70b1645837d95584f6cf4cbec8bbbf59.json",
       "sha256": "c2fa157b7ed810d1d69c0df8186cde3a70b1645837d95584f6cf4cbec8bbbf59"
     },
     {
+      "bytes": 40261,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/pb/notices-2f75b4a5d82536347f23043236a3c28c0b76f91931daf12c10e727c01853a07c.json",
+      "sha256": "2f75b4a5d82536347f23043236a3c28c0b76f91931daf12c10e727c01853a07c"
+    },
+    {
       "bytes": 34753,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/pb/notices-c275d50b9cb9b68c15980c28fd76e891366728edb1829d6f65ffe52bbde5432c.json",
       "sha256": "c275d50b9cb9b68c15980c28fd76e891366728edb1829d6f65ffe52bbde5432c"
+    },
+    {
+      "bytes": 3776,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/py/notices-489e9b404afb7bac7d1d10411420c3a279e89094ab66ad176673aa5da3a4eafc.json",
+      "sha256": "489e9b404afb7bac7d1d10411420c3a279e89094ab66ad176673aa5da3a4eafc"
     },
     {
       "bytes": 1430,
@@ -1362,6 +1933,12 @@
       "sha256": "5efdbfd9ec6316c5e7714d391d31ecbf949d26fe16716064e4c3ce119368119d"
     },
     {
+      "bytes": 304062,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/rj/notices-749fe5a367efe0932b84ca44097714f24ef8b7fc2944f7caa7a3fe34dd15ab04.json",
+      "sha256": "749fe5a367efe0932b84ca44097714f24ef8b7fc2944f7caa7a3fe34dd15ab04"
+    },
+    {
       "bytes": 392509,
       "first_tag": "v1.36.10",
       "path": "packs/v1/road-notices/rj/notices-ef7aa684380d099bbc9fc491c6ee13bb6517375c0ce2a189145b2eb98e6f5e59.json",
@@ -1372,6 +1949,18 @@
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/sk/notices-a79665dc8f943c727dfa4b9ecc1a2393bd56814ee3b4fb77727e60d875553e50.json",
       "sha256": "a79665dc8f943c727dfa4b9ecc1a2393bd56814ee3b4fb77727e60d875553e50"
+    },
+    {
+      "bytes": 665,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/sk/notices-bebf9f7f063fadca4dafb07867cdc9107288e472faeb334d914e4c39d0198115.json",
+      "sha256": "bebf9f7f063fadca4dafb07867cdc9107288e472faeb334d914e4c39d0198115"
+    },
+    {
+      "bytes": 85286,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/tg/notices-61cb050fd02cf36c9ccd14f4cebfb8de4a4348eeb2995e9f19e2e3af436bd2ed.json",
+      "sha256": "61cb050fd02cf36c9ccd14f4cebfb8de4a4348eeb2995e9f19e2e3af436bd2ed"
     },
     {
       "bytes": 96531,
@@ -1392,10 +1981,28 @@
       "sha256": "60eaa6852985d457d7747952aa6cee68955878a0248f71cd715721bdc0d80408"
     },
     {
+      "bytes": 93548,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/tn/notices-b4b06c5813cd9bef644590d666c19f8b1d6f25ef8700250bbd4522470ccf37c9.json",
+      "sha256": "b4b06c5813cd9bef644590d666c19f8b1d6f25ef8700250bbd4522470ccf37c9"
+    },
+    {
       "bytes": 104045,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/tr/notices-0e0c5d6064b586d5d048134b032e49e950abbef229f74edab6666c5a33db8796.json",
       "sha256": "0e0c5d6064b586d5d048134b032e49e950abbef229f74edab6666c5a33db8796"
+    },
+    {
+      "bytes": 49945,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/tr/notices-f14bd6c006320023a21b97b97de3f680155fe7f8508a877df9e1830111c73027.json",
+      "sha256": "f14bd6c006320023a21b97b97de3f680155fe7f8508a877df9e1830111c73027"
+    },
+    {
+      "bytes": 54421,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/uk/notices-574884a4b6809c5be2ef062922f09ff543c72d7a7cfa301e72076692431a9564.json",
+      "sha256": "574884a4b6809c5be2ef062922f09ff543c72d7a7cfa301e72076692431a9564"
     },
     {
       "bytes": 52405,
@@ -1416,10 +2023,22 @@
       "sha256": "c7f48b9642b955039f1788831b52203da39647c5d1b4952f3869cd556599ad06"
     },
     {
+      "bytes": 1330321,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/up/notices-f510e4120f66d932a12ca6dd0ef6556da1342347f6a07d02730a81bbe51a5fe7.json",
+      "sha256": "f510e4120f66d932a12ca6dd0ef6556da1342347f6a07d02730a81bbe51a5fe7"
+    },
+    {
       "bytes": 406270,
       "first_tag": "v1.36.0",
       "path": "packs/v1/road-notices/wb/notices-134bcafc10688fb13a6fc3ea03456aedf90c743903fd8c57b7561fea2ff5db16.json",
       "sha256": "134bcafc10688fb13a6fc3ea03456aedf90c743903fd8c57b7561fea2ff5db16"
+    },
+    {
+      "bytes": 699950,
+      "first_tag": "v1.39.6",
+      "path": "packs/v1/road-notices/wb/notices-1b5ba0af670ce628965e6f34fd9e122b841e5d475c29635908b0aa2d2036373b.json",
+      "sha256": "1b5ba0af670ce628965e6f34fd9e122b841e5d475c29635908b0aa2d2036373b"
     },
     {
       "bytes": 404501,
