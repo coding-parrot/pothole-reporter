@@ -112,11 +112,17 @@ export function createGeolocator({
       const cacheKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
       const cached = cache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {
+        // The jurisdiction is a fact about the place and is shared. An address that
+        // came from a caller's hint is that caller's claim: the next caller in the cell
+        // brings their own, or none.
+        const geocoded = cached.value.address_source === "operator_geocoder";
+        const hint = bounded(addressHint, 500) || null;
         return {
           ...cached.value,
           lat,
           lng,
-          address: cached.value.address || bounded(addressHint, 500) || null,
+          address: geocoded ? cached.value.address : hint,
+          address_source: geocoded ? "operator_geocoder" : hint ? "client_hint" : "unresolved",
         };
       }
       let geocoder = null;

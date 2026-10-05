@@ -83,6 +83,26 @@ test("nearby points share a cache entry but keep their own coordinates", async (
   assert.equal(near.lng, 77.59463);
 });
 
+// Seen live on 5 Oct 2026: two installs asked about the same 11 m cell within five
+// minutes and the second got the first one's address, and so the first one's tender
+// match. A hint typed by one phone is that phone's claim, not a fact about the place.
+test("one caller's address hint is never served to the next caller in the cell", async () => {
+  const geolocator = createGeolocator({
+    fetchImpl: async (url) => new Response(JSON.stringify({ features:
+      url.includes("Admin_Dynamic_New")
+        ? [{ attributes: { KGISTownName: "Mysuru", LGD_TownCode: 252045 } }] : [] })),
+  });
+  const first = await geolocator.resolve({ lat: 12.3051, lng: 76.6551, addressHint: "Nirvikalpa Road" });
+  assert.equal(first.address, "Nirvikalpa Road");
+  const second = await geolocator.resolve({ lat: 12.30512, lng: 76.65512, addressHint: "Some Other Lane" });
+  assert.equal(second.address, "Some Other Lane");
+  assert.equal(second.address_source, "client_hint");
+  assert.equal(second.lgd, "252045");
+  const third = await geolocator.resolve({ lat: 12.30511, lng: 76.65511 });
+  assert.equal(third.address, null);
+  assert.equal(third.address_source, "unresolved");
+});
+
 // KGIS answers recorded on 21 Sep 2026, keyed by the smallest buffer at which each
 // highway polygon starts to match. The highway layers are land cover, not centre lines.
 const recordedHighways = [
