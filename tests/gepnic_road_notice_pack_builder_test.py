@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -381,35 +382,120 @@ class GePNICRoadNoticePackBuilderTest(unittest.TestCase):
             self.assertEqual(snapshot(root), before)
             self.assertEqual(len(values), 4)
 
-    def test_crawler_failure_ledger_is_preserved_and_blocks_production(self) -> None:
+    def _one_failed_source(self, root: Path) -> tuple[dict, bytes]:
+        values = write_sources(root)
+        failed_source = next(
+            value for value in values if value["source_id"] == "in-dh-gepnic"
+        )
+        (root / BUILDER.SOURCE_DIRECTORY / "in-dh-gepnic.json").unlink()
+        succeeded = [value for value in values if value is not failed_source]
+        report = {
+            "failures": [
+                {
+                    "source_id": failed_source["source_id"],
+                    "source_name": failed_source["source_name"],
+                    "state_code": failed_source["state_code"],
+                    "organisation_url": failed_source["source_url"],
+                    "error": "portal unavailable",
+                }
+            ],
+            "format": "india-gepnic-road-surface-crawl-report",
+            "retrieved_at": "2026-08-26T00:00:00Z",
+            "schema_version": 1,
+            "source_count_failed": 1,
+            "source_count_requested": len(values),
+            "source_count_succeeded": len(succeeded),
+            "states": state_summaries(succeeded),
+        }
+        rendered = (json.dumps(report, indent=4, sort_keys=False) + "\n").encode()
+        (root / BUILDER.CRAWL_REPORT_PATH).write_bytes(rendered)
+        return failed_source, rendered
+
+    def test_one_failed_portal_costs_only_its_own_state(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            values = write_sources(root)
-            failed_source = next(
-                value for value in values if value["source_id"] == "in-dh-gepnic"
+            failed_source, report_before = self._one_failed_source(root)
+            BUILDER.build_all(root)
+            BUILDER.verify_all(root)
+            manifest = json.loads(
+                (root / "static" / "road-notice-manifest-v1.36.json").read_text()
             )
-            report_before = write_report(
-                root,
-                values,
-                failures=[
-                    {
-                        "source_id": failed_source["source_id"],
-                        "source_name": failed_source["source_name"],
-                        "state_code": failed_source["state_code"],
-                        "organisation_url": failed_source["source_url"],
-                        "error": "portal unavailable",
-                    }
-                ],
+            states = {value["state_code"] for value in manifest["resources"].values()}
+            self.assertNotIn(failed_source["state_code"], states)
+            self.assertEqual(
+                states,
+                {value["state_code"] for value in default_sources()}
+                - {failed_source["state_code"]},
             )
-            with self.assertRaisesRegex(
-                BUILDER.BuildError,
-                "production GePNIC build requires zero crawler failures",
-            ):
-                BUILDER.build_all(root)
             self.assertEqual(
                 (root / BUILDER.CRAWL_REPORT_PATH).read_bytes(), report_before
             )
 
+    def test_more_failures_than_tolerated_block_production(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, report_before = self._one_failed_source(root)
+            with mock.patch.object(BUILDER, "MAX_FAILED_SOURCES", 0):
+                with self.assertRaisesRegex(
+                    BUILDER.BuildError,
+                    "tolerates at most 0 crawler failures",
+                ):
+                    BUILDER.build_all(root)
+            self.assertEqual(
+                (root / BUILDER.CRAWL_REPORT_PATH).read_bytes(), report_before
+            )
+
+    def test_failed_portal_with_a_stale_receipt_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            failed_source, _ = self._one_failed_source(root)
+            (root / BUILDER.SOURCE_DIRECTORY / "in-dh-gepnic.json").write_text(
+                json.dumps(failed_source), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(
+                BUILDER.BuildError, "recorded as failed still have receipts"
+            ):
+                BUILDER.build_all(root)
+    def _custom_with(self, root: Path, **counts: int) -> Path:
+        values = [source("in-br-gepnic", "BR", ["GEP-1"])]
+        write_sources(root, values)
+        add_custom_registry_source(root, "in-br-eproc2", "BR", "bihar_eproc2")
+        custom = {
+            "format": "official-road-surface-procurement-notices",
+            "schema_version": 1,
+            "source_id": "in-br-eproc2",
+            "source_name": "Bihar eProc2.0 public active tenders",
+            "source_url": "https://eproc2.bihar.gov.in/EPSV2Web/",
+            "retrieved_at": "2026-08-26T06:20:18Z",
+            "state_code": "BR",
+            "lifecycle": "procurement_notice",
+            "rows_excluded_by_scope": 1,
+            "records_kept": 0,
+            "notices": [],
+            **counts,
+        }
+        path = root / BUILDER.CUSTOM_SOURCE_DIRECTORY / "br" / "in-br-eproc2.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(custom, indent=2) + "\n", encoding="utf-8")
+        return path
+
+    def test_rows_dropped_for_deadline_or_cancellation_are_accounted_for(self) -> None:
+        # Bihar's puller also drops expired, cancelled and invalid rows. The first live
+        # pull with one expired row failed the whole national build on "row accounting".
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._custom_with(
+                root, rows_scanned=4, rows_excluded_by_deadline=1,
+                rows_excluded_cancelled=1, rows_excluded_invalid=1,
+            )
+            BUILDER.build_all(root)
+
+    def test_rows_that_vanish_without_a_reason_still_fail(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._custom_with(root, rows_scanned=4, rows_excluded_by_deadline=1)
+            with self.assertRaisesRegex(BUILDER.BuildError, "row accounting is inconsistent"):
+                BUILDER.build_all(root)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

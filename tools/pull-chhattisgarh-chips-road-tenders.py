@@ -14,6 +14,8 @@ import html
 import json
 import re
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -296,8 +298,7 @@ def fetch_rows(timeout: int = 120, include_details: bool = True) -> list[dict[st
             },
             method="POST",
         )
-        with opener.open(detail_request, timeout=timeout) as response:
-            detail_page = response.read().decode("utf-8", "replace")
+        detail_page = read_with_retries(opener, detail_request, timeout)
         parsed = parse_detail_page(detail_page)
         for key, value in parsed.items():
             if value:
@@ -306,6 +307,26 @@ def fetch_rows(timeout: int = 120, include_details: bool = True) -> list[dict[st
         if refreshed_token:
             token = refreshed_token.group(1)
     return rows
+
+
+DETAIL_ATTEMPTS = 4
+
+
+def read_with_retries(opener: Any, request: Any, timeout: float, pause: float = 2.0) -> str:
+    """Read one page, retrying a dropped connection.
+
+    The portal resets connections partway through a few hundred detail requests, and
+    one reset used to discard the whole State's pull.
+    """
+    for attempt in range(1, DETAIL_ATTEMPTS + 1):
+        try:
+            with opener.open(request, timeout=timeout) as response:
+                return response.read().decode("utf-8", "replace")
+        except (ConnectionError, TimeoutError, urllib.error.URLError):
+            if attempt == DETAIL_ATTEMPTS:
+                raise
+            time.sleep(pause * attempt)
+    raise AssertionError("unreachable")
 
 
 def load_rows(path: Path) -> list[dict[str, Any]]:

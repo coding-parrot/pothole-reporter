@@ -50,6 +50,13 @@ class LakshadweepRoadTenderPullerTest(unittest.TestCase):
         self.assertEqual(notice["closing_date"], "2026-09-10")
         self.assertEqual(notice["scope"], "road_surface")
 
+    def test_an_explicitly_empty_listing_is_zero_notices_not_a_failure(self):
+        page = "<html><body><p>No notice matched this category.</p></body></html>"
+        self.assertEqual(MODULE.parse_notice_page(page), ([], None))
+
+    def test_a_page_with_neither_table_nor_empty_message_still_fails(self):
+        with self.assertRaisesRegex(ValueError, "no Tender Notices table"):
+            MODULE.parse_notice_page("<html><body><p>Service unavailable</p></body></html>")
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -80,9 +80,16 @@ def parse_portal_date(value: Any) -> date | None:
         return None
 
 
+EMPTY_LISTING_RE = re.compile(r"No\s+notice\s+matched\s+this\s+category", re.I)
+
+
 def parse_notice_page(page: str) -> tuple[list[dict[str, Any]], str | None]:
     table_match = TABLE_RE.search(page)
     if not table_match:
+        # With nothing published the site drops the table and says so. That is an
+        # answer (zero notices), not a broken page, and it must not fail the refresh.
+        if EMPTY_LISTING_RE.search(page):
+            return [], None
         raise ValueError("Lakshadweep page has no Tender Notices table")
     rows: list[dict[str, Any]] = []
     for row_html in TR_RE.findall(table_match.group(1)):

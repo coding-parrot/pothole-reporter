@@ -52,6 +52,10 @@ SCHEMA_VERSION = 1
 PACK_VERSION = 1
 CATALOG_VERSION = 1
 REVIEW_DAYS = 7
+MAX_FAILED_SOURCES = 3
+OTHER_EXCLUSION_COUNTERS = (
+    "rows_excluded_by_deadline", "rows_excluded_cancelled", "rows_excluded_invalid",
+)
 MAX_PACK_BYTES = 8 * 1024 * 1024
 MAX_RECORDS_PER_PACK = 20_000
 CACHE_POLICY = {"max_bytes": 16 * 1024 * 1024, "max_unused_days": 14}
@@ -467,8 +471,19 @@ def _custom_source_snapshot(path: Path) -> SourceSnapshot:
         type(rows_excluded) is int and 0 <= rows_excluded <= rows_scanned,
         f"{field}.rows_excluded_by_scope is invalid",
     )
+    # Custom pullers may also drop rows that are past their deadline, cancelled or
+    # malformed. Those rows were scanned and are not notices, so they must be counted
+    # or a single expired tender makes an honest snapshot look inconsistent.
+    other_exclusions = 0
+    for key in OTHER_EXCLUSION_COUNTERS:
+        if key in value:
+            _expect(
+                type(value[key]) is int and value[key] >= 0,
+                f"{field}.{key} must be a non-negative integer",
+            )
+            other_exclusions += value[key]
     _expect(
-        rows_excluded + len(raw_notices) == rows_scanned,
+        rows_excluded + other_exclusions + len(raw_notices) == rows_scanned,
         f"{field} row accounting is inconsistent",
     )
     if value.get("records_kept") is not None:
@@ -541,6 +556,21 @@ def _expected_gepnic_sources(project_root: Path) -> dict[str, str]:
     return expected
 
 
+def _ledger_failed_sources(project_root: Path) -> set[str]:
+    """Source IDs the crawler recorded as failed; the full report is validated later."""
+    try:
+        report = json.loads((project_root / CRAWL_REPORT_PATH).read_bytes().decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return set()
+    failures = report.get("failures") if isinstance(report, dict) else None
+    if not isinstance(failures, list):
+        return set()
+    return {
+        failure["source_id"] for failure in failures
+        if isinstance(failure, dict) and isinstance(failure.get("source_id"), str)
+    }
+
+
 def _source_files(project_root: Path, expected: dict[str, str]) -> list[Path]:
     directory = project_root / SOURCE_DIRECTORY
     try:
@@ -548,11 +578,19 @@ def _source_files(project_root: Path, expected: dict[str, str]) -> list[Path]:
     except OSError as error:
         raise BuildError(f"cannot list GePNIC sources: {directory}: {error}") from error
     actual = {path.stem for path in paths}
-    missing = sorted(set(expected) - actual)
+    # A portal the crawler could not reach has no receipt. Its jurisdiction ships no
+    # notices from it, rather than every other State losing its catalogue too.
+    failed = _ledger_failed_sources(project_root)
+    missing = sorted(set(expected) - actual - failed)
     unexpected = sorted(actual - set(expected))
     _expect(
         not missing,
         "missing expected GePNIC source files: " + ", ".join(missing),
+    )
+    _expect(
+        not (actual & failed),
+        "GePNIC sources recorded as failed still have receipts: "
+        + ", ".join(sorted(actual & failed)),
     )
     _expect(
         not unexpected,
@@ -725,9 +763,12 @@ def _validated_crawl_report(
         len(failure_ids) == len(set(failure_ids)),
         "crawl-report failure ledger contains duplicate source IDs",
     )
+    # One unreachable portal used to block the whole national catalogue, which then
+    # expired everywhere. A few failures now cost only their own receipts; more than
+    # that means the crawler itself is broken, and nothing is published.
     _expect(
-        report["source_count_failed"] == 0 and failures == [],
-        "production GePNIC build requires zero crawler failures",
+        report["source_count_failed"] <= MAX_FAILED_SOURCES,
+        f"production GePNIC build tolerates at most {MAX_FAILED_SOURCES} crawler failures",
     )
     _expect(
         report["source_count_succeeded"] == len(snapshots),

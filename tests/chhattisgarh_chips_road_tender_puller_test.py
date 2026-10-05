@@ -87,6 +87,29 @@ class ChhattisgarhChipsRoadTenderPullerTest(unittest.TestCase):
         serial = "Sr no/b6/V S AREA AHIWARA/67-1/26-27/MANDI-273/2801/raipur/11.08.2026"
         self.assertEqual(MODULE.tender_reference_from_description(serial), serial)
 
+    def test_a_dropped_detail_request_is_retried_before_the_pull_fails(self):
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *exc): return False
+            def read(self): return b"<html>detail</html>"
+
+        class Opener:
+            def __init__(self, failures): self.failures, self.calls = failures, 0
+            def open(self, request, timeout=None):
+                self.calls += 1
+                if self.calls <= self.failures:
+                    raise ConnectionResetError(54, "Connection reset by peer")
+                return Response()
+
+        flaky = Opener(failures=2)
+        self.assertEqual(
+            MODULE.read_with_retries(flaky, object(), timeout=1, pause=0), "<html>detail</html>"
+        )
+        self.assertEqual(flaky.calls, 3)
+        dead = Opener(failures=99)
+        with self.assertRaises(ConnectionResetError):
+            MODULE.read_with_retries(dead, object(), timeout=1, pause=0)
+        self.assertEqual(dead.calls, MODULE.DETAIL_ATTEMPTS)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

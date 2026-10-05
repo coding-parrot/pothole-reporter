@@ -88,7 +88,13 @@ jobs:
             --output-dir data/gepnic-road-notices \
             --retrieved-at "$catalog_retrieved_at" \
             --timeout 45 \
-            --request-delay 0.20
+            --request-delay 0.20 \
+            --allow-partial || gepnic_status=$?
+          # Exit 3 is "some portals failed, ledger written". The pack builder decides
+          # whether that many failures may be published; anything else is a crash.
+          if [[ "${gepnic_status:-0}" != "0" && "${gepnic_status:-0}" != "3" ]]; then
+            exit "$gepnic_status"
+          fi
           # Source receipts plus the crawl report are the canonical inputs. The per-State
           # files duplicate every retained notice and are not used by the pack builder.
           find data/gepnic-road-notices/states -type f -name '*.json' -delete
