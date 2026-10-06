@@ -13,15 +13,20 @@ import { STOP } from "./tenders.mjs";
 // (Cox Town is ward 10) and the titles carry the old BBMP numbering (Cox Town is 108).
 //
 // Every rule below was read off the 795 Bengaluru titles and the 369 Bengaluru ward names
-// with tools/ward-tender-vocabulary.mjs, which prints the pairs each rule is there for.
+// with tools/ward-tender-vocabulary.mjs, which prints the pairs each rule is there for,
+// and three (sides of a ward, two-place ward names, two-word road names) off Mangaluru
+// and Mysuru. It is not proof against namesakes: a title that gives only a ward number
+// ("Ambedkar Nagar and surrounding area in Ward No.110") is taken for the ward of that
+// name wherever it is. One such pair in 40 read at random on 6 Oct 2026.
 
 // Words that say what kind of place a name is, or that every title carries. A name made
 // only of these names nothing ("Main Road", "2nd Stage", "Ward", "Layout").
 const GENERIC = new Set([...STOP,
-  "nagara", "layouts", "crosses", "streets", "colony", "extension", "extn", "badavane", "ward", "wards", "surrounding", "surroundings",
-  "areas", "garden", "gardens", "park", "temple", "old", "new", "sub", "st", "nd", "rd", "th",
-  "lane", "avenue", "bbmp", "gba", "bda", "improvement", "improvements", "drain", "drains",
-  "development", "construction", "asphalting", "resurfacing", "works", "work", "other",
+  "nagara", "layouts", "crosses", "streets", "colony", "extension", "extn", "badavane",
+  "ward", "wards", "surrounding", "surroundings", "areas", "garden", "gardens", "park",
+  "temple", "old", "new", "sub", "st", "nd", "rd", "th", "lane", "avenue", "bbmp", "gba",
+  "bda", "improvement", "improvements", "drain", "drains", "development", "construction",
+  "asphalting", "resurfacing", "works", "work", "other",
 ]);
 // Words that only join names. No name runs across one: "in Bommanahalli" is Bommanahalli.
 const JOINING = new Set(["the", "of", "at", "in", "from", "to", "and", "near", "no", "number",
@@ -150,7 +155,7 @@ export function sameLocality(left, right, without = null) {
 // not generic, less a generic ending written into the name ("Vignananagara").
 function named(words, without = null) {
   const own = localityKey(words.filter((word) => !GENERIC.has(word)), without)
-    .replace(/(?:nagar|laiout|layout|colon)$/, "");
+    .replace(/(?:nagar|laiout|colon)$/, "");
   return { key: localityKey(words, without), own: own.length };
 }
 
@@ -194,14 +199,13 @@ export const offeredFor = (want, name, without = null) => sameLocality(want, nam
 
 // Every run of one to three words in a title that could be a place name there, as a
 // spelling key, with the direction words that follow it (`toward`; null for none). Runs
-// stop at punctuation, at joining words and at numbers. A run is not
-// offered when the word after it makes it another name, a road's name or (but for area-wide
-// pothole filling) a larger unit's.
-// A name may be followed by the part of it the work is in ("Bhattarahalli Janatha
-// Colony"), but a name in front makes a compound that may be another place (Horamavu
-// Agara is not Agara). Such a run is offered with `lead`, the spellings of the name in
-// front, and counts only for a point that is in that place too ("Doddigunta Coxtown" for
-// a point in Doddigunta, Cox Town).
+// stop at punctuation, at joining words and at numbers. A run is not offered when the
+// word after it makes it another name, a road's name or (but for area-wide pothole
+// filling) a larger unit's. A name may be followed by the part of it the work is in
+// ("Bhattarahalli Janatha Colony"), but a name in front makes a compound that may be
+// another place (Horamavu Agara is not Agara). Such a run is offered with `lead`, the
+// spellings of the name in front, and counts only for a point that is in that place too
+// ("Doddigunta Coxtown" for a point in Doddigunta, Cox Town).
 export function titleNameKeys(title, without = null) {
   const keys = new Map();
   const ways = new Map();
