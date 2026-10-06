@@ -1,0 +1,60 @@
+name: Production health
+
+# The rules in infra/aws-central/tools/production-health.mjs, judged every six hours
+# against the live service. A broken rule fails the run and opens or updates one issue,
+# so a failure users feel is never silent again. The same script gates every deploy.
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: production-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    name: Judge the last six hours and run the canary
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.PRODUCTION_HEALTH_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.PRODUCTION_HEALTH_AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ap-south-1
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84a9f0a1e1ea5ad3c # v4.4.0
+        with:
+          node-version: "22"
+      - name: Judge the window and run the canary
+        id: health
+        run: |
+          set -o pipefail
+          node infra/aws-central/tools/production-health.mjs --window 6h --canary | tee health.txt
+      - name: Open or update the issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          title="Production health is failing"
+          body="$(printf 'Run: %s\n\n```\n%s\n```\n' "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "$(tail -60 health.txt)")"
+          number="$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')"
+          if [[ -n "$number" ]]; then
+            gh issue comment "$number" --body "$body"
+          else
+            gh issue create --title "$title" --label bug --body "$body"
+          fi
+      - name: Close the issue when healthy
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          number="$(gh issue list --state open --search "\"Production health is failing\" in:title" --json number --jq '.[0].number // empty')"
+          [[ -z "$number" ]] || gh issue close "$number" --comment "Healthy again: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
