@@ -89,7 +89,8 @@ function main() {
   }
   console.log(`\nward names with at least one tender: ${matched.length} of ${wards.length} `
     + `(${pairs.length} ward and tender pairs, ${new Set(pairs.map((pair) => pair.title)).size} distinct tenders)`);
-  console.log(`\nleft out as a namesake across town (the title's own ward is over 3 km away): ${namesakes.length}`);
+  console.log(`\nleft out once the point and the register's wards are given (a namesake ward over 3 km away, a division `
+    + `that works nowhere near, an old ward number that is not the ward's): ${namesakes.length}`);
   for (const pair of namesakes) console.log(`  [${pair.ward}]  ${pair.title.slice(0, 130)}`);
   console.log(`\nspelling variants accepted (not written the same after normalising): ${variants.size}`);
   for (const [label, { ward, title, count }] of [...variants].sort()) {

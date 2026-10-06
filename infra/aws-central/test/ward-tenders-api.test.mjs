@@ -6,7 +6,7 @@ import { createGeolocator } from "../service/geolocation.mjs";
 import { matchTender } from "../service/tenders.mjs";
 import { loadBodyTenders } from "../tools/ward-tender-vocabulary.mjs";
 import { harness, memoryRepository } from "./support.mjs";
-import { CASES } from "./ward-tender-cases.mjs";
+import { CASES, GANDHI_NAGAR } from "./ward-tender-cases.mjs";
 
 // /v1/tenders/resolve and the routing object of /v1/potholes/report carry ward_tenders
 // beside `tender`: the same three real points as ward-tenders.test.mjs, through the whole
@@ -59,6 +59,19 @@ for (const [name, point] of Object.entries(CASES)) {
     assert.equal(logged.tender_catalogue, null);
   });
 }
+
+test("POST /v1/tenders/resolve, Gandhi Nagar in Munnekolala: only Munnekolala's tenders are answered", async () => {
+  const h = await bengaluruService({ addresses: { gandhiNagar: GANDHI_NAGAR } });
+  const result = await h.post("/v1/tenders/resolve", { lat: GANDHI_NAGAR.lat, lng: GANDHI_NAGAR.lng });
+  assert.equal(result.statusCode, 200, result.body);
+  const body = JSON.parse(result.body);
+  assert.equal(body.jurisdiction.address, GANDHI_NAGAR.street);
+  assert.equal(body.jurisdiction.ward_name, "Munnenkolalu");
+  assert.deepEqual(body.jurisdiction.address_parts.localities, ["Gandhi Nagar", "Munnenkolalu"]);
+  assert.deepEqual(titles(body.ward_tenders).sort(), [...GANDHI_NAGAR.expected].sort());
+  assert.ok(!body.ward_tenders.some((entry) => /gandhi/i.test(entry.title)));
+  assert.equal(lastRequest(h).ward_tender_count, 2);
+});
 
 test("POST /v1/tenders/resolve: a ward with no tender answers an empty ward_tenders", async () => {
   const agaram = { lat: 12.97298, lng: 77.62247, address: { road: "Artillery Road", neighbourhood: "Gowthamapura", suburb: "Agaram", city: "Bengaluru", state: "Karnataka" } };

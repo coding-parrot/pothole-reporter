@@ -25,3 +25,18 @@ export const CASES = {
     expected: ["Improvements to Roads and Drain at Doddigunta Coxtown and Surrounding area in Ward no.108"],
   },
 };
+
+// Live on 6 Oct 2026, after the first ward tender release: a street in the Gandhi Nagar
+// of Munnekolala was answered with the Gandhinagaras of Yelahanka (25 km north) and of
+// Kengeri (the other side of the city).
+export const GANDHI_NAGAR = {
+  lat: 12.9547, lng: 77.7113, ward: "Munnenkolalu", ward_no: "41",
+  address: { road: "2nd Cross Road", neighbourhood: "Gandhi Nagar", suburb: "Munnenkolalu", city: "Bengaluru", state: "Karnataka", postcode: "560037" },
+  street: "2nd Cross Road, Gandhi Nagar, Munnenkolalu, Bengaluru, 560037",
+  expected: [
+    "Improvements to roads and drains in Munnekolala colony at Munnekolala ward no.105",
+    "Improvements to roads and drains in Ambedkar colony at Munnekolala ward no.105",
+  ],
+  yelahanka: "Resurfacing of Gandhinagara 1st main and cross roads and Nehru nagara in kempegowda ward no 01 of yelahanka Sub division",
+  kengeri: "Comprehensive Development of Roads and Drains at Gandhinagara Mini Gandhinagara Bapuji Colony Kengeri Kote and Arundhathi Nagara i",
+};

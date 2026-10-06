@@ -6,10 +6,10 @@ import { wardRosterOf } from "../service/geolocation.mjs";
 import { matchTender } from "../service/tenders.mjs";
 import {
   WARD_TENDER_LIMIT, elsewhere, localityKeys, matchWardTenders, offeredFor, sameLocality, titleNameKeys,
-  titledWardKeys,
+  titledWardKeys, wardNumbers,
 } from "../service/ward-tenders.mjs";
 import { loadBodyTenders, loadWardNames } from "../tools/ward-tender-vocabulary.mjs";
-import { CASES } from "./ward-tender-cases.mjs";
+import { CASES, GANDHI_NAGAR } from "./ward-tender-cases.mjs";
 
 // On 6 Oct 2026, 40 real Bengaluru pothole locations went through the street matcher
 // with the 795 Bengaluru road tenders: 1 matched. Tenders for those exact localities
@@ -226,6 +226,168 @@ test("a namesake across town is left out when the title says which ward its work
   assert.equal(matchWardTenders({ wardName: "Vinayaka Layout", tenders: [tender(title)] }).length, 1);
   assert.equal(elsewhere("Asphalting of roads in Vinayaka layout", west, ROSTER), false);
   assert.equal(elsewhere("Asphalting of roads in ward no 12 Nowhere Known", west, ROSTER), false);
+});
+
+// ------------------------------------------------- a locality's name is not a place
+//
+// A ward's name is the register's and a tender that attaches it to its own ward marker
+// is about that ward. A locality's name (Gandhi Nagar, Ambedkar Colony, Vinayaka Layout)
+// is one of many across the city, so a tender matched on it has to be anchored.
+
+test("Gandhi Nagar, Munnekolala: the Gandhinagaras of Yelahanka and Kengeri are not answered", () => {
+  const point = { lat: GANDHI_NAGAR.lat, lng: GANDHI_NAGAR.lng };
+  const real = (title) => BENGALURU.find((row) => row.title.startsWith(title));
+  assert.equal(real(GANDHI_NAGAR.yelahanka).location, "BBMP Yelahanka Division");
+  assert.equal(real(GANDHI_NAGAR.kengeri).location, "BBMP Kengeri Rajarajeshwarinagar");
+  const found = matchWardTenders({
+    wardName: GANDHI_NAGAR.ward, localities: localitiesOf(GANDHI_NAGAR.address), tenders: BENGALURU,
+    point, roster: ROSTER, limit: Infinity,
+  });
+  assert.deepEqual(titles(found).sort(), [...GANDHI_NAGAR.expected].sort());
+  assert.ok(found.every((entry) => entry.match_basis === "ward name Munnenkolalu"));
+  // Each rule on its own. With no roster there is no geography, and the ward's own
+  // tenders (Mahadevapura Division) are what say the two are elsewhere.
+  const byDivision = matchWardTenders({
+    wardName: GANDHI_NAGAR.ward, localities: ["Gandhi Nagar"], limit: Infinity,
+    tenders: [real(GANDHI_NAGAR.expected[0]), real(GANDHI_NAGAR.yelahanka), real(GANDHI_NAGAR.kengeri)],
+  });
+  assert.deepEqual(titles(byDivision), [GANDHI_NAGAR.expected[0]]);
+  // With no ward tender at all, the name is in two divisions: it says nothing.
+  const ambiguous = matchWardTenders({
+    wardName: GANDHI_NAGAR.ward, localities: ["Gandhi Nagar"], limit: Infinity,
+    tenders: [real(GANDHI_NAGAR.yelahanka), real(GANDHI_NAGAR.kengeri)],
+  });
+  assert.deepEqual(ambiguous, []);
+  // Alone in the index each would be unambiguous, and each still names somewhere the
+  // register can place far from the point: "kempegowda ward ... of yelahanka Sub
+  // division", "Kengeri Kote".
+  for (const title of [GANDHI_NAGAR.yelahanka, GANDHI_NAGAR.kengeri]) {
+    assert.equal(elsewhere(real(title).title, point, ROSTER, { wide: true }), true, title);
+    assert.deepEqual(matchWardTenders({
+      wardName: GANDHI_NAGAR.ward, localities: ["Gandhi Nagar"], tenders: [real(title)], point, roster: ROSTER,
+    }), [], title);
+  }
+});
+
+test("a locality tender is kept only in a division that serves the point's ward", () => {
+  const ward = tender("Asphalting of roads in Ward No.105 Munnekolala", { tender_number: "W", location: "BBMP Mahadevapura Division" });
+  const here = tender("Asphalting of roads in Gandhi Nagar and surrounding area", { tender_number: "HERE", location: "BBMP Mahadevapura Division" });
+  const there = tender("Resurfacing of roads in Gandhinagar 2nd stage", { tender_number: "THERE", location: "BBMP Yelahanka Division" });
+  const found = matchWardTenders({ wardName: "Munnenkolalu", localities: ["Gandhi Nagar"], tenders: [there, here, ward] });
+  assert.deepEqual(found.map((entry) => entry.tender_number), ["W", "HERE"]);
+  assert.equal(found[1].match_basis, "locality Gandhi Nagar");
+});
+
+test("with no tender for the ward, a locality tender is kept only if its name is in one division", () => {
+  const one = tender("Asphalting of roads in Thubarahalli", { tender_number: "ONE", location: "BBMP Mahadevapura Division" });
+  const again = tender("Improvements to drains and roads in Tubarahalli extension", { tender_number: "AGAIN", location: "BBMP Mahadevapura Division" });
+  const other = tender("Asphalting of roads in Thubarahalli and surrounding area", { tender_number: "OTHER", location: "BBMP Dasarahalli Division" });
+  const unambiguous = matchWardTenders({ wardName: "Kundalahalli", localities: ["Thubarahalli Palya"], tenders: [one, again] });
+  assert.deepEqual(unambiguous.map((entry) => entry.tender_number).sort(), ["AGAIN", "ONE"]);
+  assert.deepEqual(matchWardTenders({ wardName: "Kundalahalli", localities: ["Thubarahalli Palya"], tenders: [one, again, other] }), []);
+});
+
+test("a locality tender whose title names a ward the register places far away is left out", () => {
+  const point = { lat: GANDHI_NAGAR.lat, lng: GANDHI_NAGAR.lng };
+  const kept = (title) => matchWardTenders({ wardName: "Munnenkolalu", localities: ["Gandhi Nagar"], tenders: [tender(title)], point, roster: ROSTER }).length;
+  assert.equal(kept("Asphalting of roads in Gandhi Nagar and surrounding area"), 1, "nothing in the title is placed");
+  assert.equal(kept("Asphalting of roads in Gandhi Nagar near Kengeri"), 0, "a plain mention of a register ward");
+  assert.equal(kept("Asphalting of roads in Gandhi Nagar in kempegowda ward no 01"), 0, "an old ward found inside register names");
+  assert.equal(kept("Asphalting of roads in Gandhi Nagar of yelahanka Sub division"), 0, "a sub division");
+  assert.equal(kept("Asphalting of roads in Gandhi Nagar in Mahadevapura Division"), 1, "a unit that is here");
+  assert.equal(kept("Asphalting of roads in Gandhi Nagar in Rajarajeshwarinagara Division"), 0, "a unit across the city");
+  assert.equal(kept("Asphalting of roads in Gandhi Nagar and Marathahalli"), 1, "a neighbouring ward");
+  // A common word inside a register name is not a place: Lakshmi Devi Nagar is a ward.
+  assert.equal(kept("Asphalting of roads in Gandhi Nagar and Lakshmi layout"), 1);
+});
+
+test("a title's ward markers are read as a list, names and old numbers both", () => {
+  const names = (title) => titledWardKeys(title).map((entry) => entry.key);
+  const numbers = (title) => [...wardNumbers(title)].sort((a, b) => a - b);
+  const list = "Pothole filling IN Ward No 57 Rajmahal Gutthalli, 58- Kadumalleshwara, 59- Subramanyanagar & 60- Gayathrinagar in Malleshwaram Sub Division";
+  assert.deepEqual(numbers(list), [57, 58, 59, 60]);
+  for (const ward of ["Rajamahal", "Subramanyanagara", "Gayathri Nagara"]) {
+    assert.ok(localityKeys(ward).some((key) => titledWardKeys(list).some((name) => sameLocality(key, name))), ward);
+  }
+  assert.ok(!names(list).includes("maleshvaram"), "the sub division is not one of the wards");
+  const mixed = "Comprehensive Development of roads in ward No 147 Adugodi, 148 Ejipura, 151 Koramangala and 173 Jakkasandra in BTM Layout";
+  assert.deepEqual(numbers(mixed), [147, 148, 151, 173]);
+  assert.ok(names(mixed).includes(localityKeys("Jakkasandra")[0].key));
+  assert.deepEqual(numbers("Improvements at Tata Silk Farm in Ward No-188 Yediyur (Old Ward No-167)."), [167, 188]);
+  assert.deepEqual(numbers("Roads in 7th Block Koramangala in ward No. 176 (Old No.147) Adugodi"), [147, 176]);
+  assert.deepEqual(numbers("5th Block HBR Layout Ward No-76/24 Hennur"), [24, 76]);
+  assert.deepEqual(numbers("Asphalting to Bad Reaches in Ward 182, 183 & 186 in Shakambari Nagar Sub Division"), [182, 183, 186]);
+  assert.deepEqual(numbers("Filling of potholes in ward No. 173, 174 and 175 in Koramangala Sub Division"), [173, 174, 175]);
+  assert.deepEqual(numbers("Roads in Coxtown in ward no -108, Coxtown (Block no 22, 23, 25)"), [108]);
+  assert.deepEqual(numbers("Pothole Filling Works in Ward No. 213-Jaraganahalli for the year 2024-25 in Bommanahalli Division."), [213]);
+  assert.deepEqual(numbers("Resurfacing of 1st main 24th cross in kempegowda ward no 01 of yelahanka Sub division"), [1]);
+  assert.deepEqual(numbers("Improvements to roads at 5th cross in ward 5th block from 27th Cross to 7th Cross"), []);
+  assert.deepEqual(numbers("Census Block Number 120 in Vijinapura Ward No.89"), [89]);
+  // The register's own number is never an input: only titles are read.
+  assert.deepEqual(numbers("Improvements to roads in Wad no 113 Hoysalanagara"), [113]);
+});
+
+test("a ward with no tender of its own takes a mention only if its name is in one division", () => {
+  // Ambedkarnagar is a register ward of the Central corporation. The index has an
+  // Ambedkar Nagar in four divisions, none of them filed under a ward of that name.
+  const tenders = BENGALURU.filter((row) => /ambedkar\s*nagar/i.test(row.title));
+  assert.equal(new Set(tenders.map((row) => row.location)).size, 4);
+  const ward = ROSTER.find((entry) => entry.name === "Ambedkarnagar");
+  const point = { lat: (ward.bbox[1] + ward.bbox[3]) / 2, lng: (ward.bbox[0] + ward.bbox[2]) / 2 };
+  assert.deepEqual(matchWardTenders({ wardName: "Ambedkarnagar", tenders: BENGALURU, point, roster: ROSTER, limit: Infinity }), []);
+  // Kundalahalli has no tender of its own either, and is in one division.
+  const kundalahalli = matchWardTenders({
+    wardName: "Kundalahalli", tenders: BENGALURU, point: { lat: 12.95906, lng: 77.7207 }, roster: ROSTER, limit: Infinity,
+  });
+  assert.equal(kundalahalli.length, 2);
+});
+
+test("a numbered part of a layout does not take another part's tender", () => {
+  const second = tender("Improvements to drains and Roads in 10th Cross and Surrounding area in J P Nagar 2nd Phase in Ward No-187 Sarakki", { tender_number: "P2" });
+  const sixth = tender("Improvements to Roads and drains in 16th Cross in JP Nagar 6th Phase in ward No-187 Sarakki", { tender_number: "P6" });
+  const both = tender("Improvements to Roads in 4th cross 7th Main in JP Nagar 3rd Phase and 5th Cross in JP Nagar 2nd Phase", { tender_number: "P3+2" });
+  const before = tender("Improvements to drains and Roads in 16th Cross and Surrounding area in 4th Phase J P Nagara", { tender_number: "P4" });
+  const list = tender("Improvements of drains and roads in Jayanagara 1st and 2nd Block in Ward No 163", { tender_number: "B1+2" });
+  const whole = tender("Asphalting to bad reaches in Ward No.184, 185 & 187 J P Nagara", { tender_number: "ALL" });
+  const tenders = [second, sixth, both, before, list, whole];
+  const numbers = (locality) => matchWardTenders({ wardName: "Marenahalli South", localities: [locality], tenders, limit: 10 })
+    .map((entry) => entry.tender_number).sort();
+  assert.deepEqual(numbers("JP Nagar 2nd Phase"), ["ALL", "P2", "P3+2"]);
+  assert.deepEqual(numbers("JP Nagar 4th Phase"), ["ALL", "P4"]);
+  assert.deepEqual(numbers("J.P Nagar"), ["ALL", "P2", "P3+2", "P4", "P6"], "the whole layout takes every part");
+  // The ward a title files the work under is not where the work is: "2nd Phase in Ward
+  // No 185 J P Nagara" is 2nd Phase work.
+  const filed = tender("Improvements to drains and Roads in 2nd cross in J P Nagar 2nd Phase in Ward No 185 J P Nagara", { tender_number: "P2/185" });
+  const under = (locality) => matchWardTenders({ wardName: "Marenahalli South", localities: [locality], tenders: [filed, whole] })
+    .map((entry) => entry.tender_number).sort();
+  assert.deepEqual(under("JP Nagar 1st Phase"), ["ALL"]);
+  // The same with the marker written "Ward No-185", which splits the title at the dash.
+  const dashed = tender("Improvements to drains and Roads in 2nd main road and Surrounding area in 4th Phase J P Nagara in Ward No-185 J P Nagara", { tender_number: "P4/185" });
+  assert.deepEqual(matchWardTenders({ wardName: "Shakambarinagara", localities: ["LIC Colony", "JP Nagar 1st Phase", "JP Nagar"], tenders: [dashed] }), []);
+  assert.equal(matchWardTenders({ wardName: "Shakambarinagara", localities: ["JP Nagar 4th Phase"], tenders: [dashed] }).length, 1);
+  assert.deepEqual(under("JP Nagar 2nd Phase"), ["ALL", "P2/185"]);
+  assert.deepEqual(numbers("Jayanagar 2nd Block"), ["B1+2"]);
+  assert.deepEqual(numbers("Jayanagar 5th Block"), []);
+  // The real case of 6 Oct 2026 is untouched: no part is named beside BEML layout.
+  assert.deepEqual(localityKeys("BEML Layout 6th Stage").map((entry) => entry.part), ["stage 6"]);
+});
+
+test("a ward's name used for a place in another division's ward is left out", () => {
+  // Kothanur is a ward of the South corporation and a village in the north-east. The
+  // tender is K R Puram's and names no ward of its own.
+  const south = ROSTER.find((ward) => ward.name === "Kothanur");
+  const point = { lat: (south.bbox[1] + south.bbox[3]) / 2, lng: (south.bbox[0] + south.bbox[2]) / 2 };
+  const north = BENGALURU.filter((row) => /kothanur Balaji layout/i.test(row.title));
+  assert.equal(north.length, 1);
+  assert.equal(north[0].location, "BBMP K R Puram Mahadevapura");
+  // It is the only Kothanur in the index, so the South ward has nothing.
+  assert.deepEqual(matchWardTenders({ wardName: "Kothanur", tenders: BENGALURU, point, roster: ROSTER, limit: Infinity }), []);
+  // The same mention is kept for a point K R Puram's division does work near: K
+  // Narayanapura, the next ward to the northern Kothanur.
+  const beside = ROSTER.find((ward) => ward.name === "K Narayanapura");
+  const there = { lat: (beside.bbox[1] + beside.bbox[3]) / 2, lng: (beside.bbox[0] + beside.bbox[2]) / 2 };
+  const kept = matchWardTenders({ wardName: "K Narayanapura", localities: ["Kothanur"], tenders: BENGALURU, point: there, roster: ROSTER, limit: Infinity });
+  assert.ok(titles(kept).includes(north[0].title), titles(kept).join("\n"));
 });
 
 test("the rules still find what they found on the day they were written", () => {
