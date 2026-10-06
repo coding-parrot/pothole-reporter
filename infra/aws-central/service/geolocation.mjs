@@ -18,6 +18,14 @@ const KGIS_GP = "https://kgis.ksrsac.in/kgismaps/rest/services/Boundaries/GP_Bou
 export const LOCAL_GEOMETRY_PATH = new URL("../../../data/karnataka-local-geometry.json", import.meta.url);
 export const LOCAL_GEOMETRY_FORMAT = "pothole-karnataka-local-geometry";
 
+// The ward a municipal point is in: every polygon of the KGIS "Ward New" layer, grouped
+// by town, built by the same tool and shipped at this same path relative to the service.
+// It is read on every municipal lookup, KGIS up or down, because a live ward query would
+// add a slow call (20 s answers happen) to the request path for a fact that changes when
+// a delimitation does.
+export const WARD_GEOMETRY_PATH = new URL("../../../data/karnataka-ward-geometry.json", import.meta.url);
+export const WARD_GEOMETRY_FORMAT = "pothole-karnataka-ward-geometry";
+
 const bounded = (value, maximum) => typeof value === "string"
   ? value.trim().slice(0, maximum) : "";
 
@@ -106,6 +114,12 @@ function partsFromGeocoder(data) {
     road,
     ref,
     suburb: bounded(address.suburb || address.village || address.neighbourhood, 160) || null,
+    // Every named place the geocoder put the point in, most specific first. Ward-level
+    // tender matching reads these; in Bengaluru the neighbourhood ("Doddigunta") is often
+    // the name a tender title uses when the ward's own name is not.
+    localities: [address.neighbourhood, address.hamlet, address.quarter, address.suburb, address.village]
+      .map((value) => bounded(value, 160))
+      .filter((value, index, all) => value && all.indexOf(value) === index),
     city: bounded(address.city || address.town || address.municipality, 160) || null,
     state: bounded(address.state, 80) || null,
     highway_ref: highwayRefsFromAddress(road, ref),
@@ -121,19 +135,26 @@ function validLocalGeometry(geometry) {
     && Number.isFinite(geometry.highways?.match_metres);
 }
 
+function validWardGeometry(geometry) {
+  return geometry && geometry.format === WARD_GEOMETRY_FORMAT
+    && Number.isFinite(geometry.coordinate_scale) && geometry.coordinate_scale > 0
+    && geometry.towns && typeof geometry.towns === "object"
+    && Object.values(geometry.towns).every((town) => Array.isArray(town?.bbox) && Array.isArray(town?.wards));
+}
+
 // One parse per process per file. The Lambda keeps it across invocations; the tests
 // share it across the many geolocators they build.
 const localGeometryCache = new Map();
-function loadLocalGeometry(path, logger) {
+function loadBundle(path, logger, valid, event) {
   const key = String(path);
   if (!localGeometryCache.has(key)) {
     localGeometryCache.set(key, readFile(path, "utf8").then(JSON.parse).then((geometry) => {
-      if (!validLocalGeometry(geometry)) throw new Error("not a local geometry bundle");
+      if (!valid(geometry)) throw new Error("not the expected geometry bundle");
       return geometry;
     }).catch((error) => {
       // Logged once, not per lookup: the file is either in the package or it is not.
       logger.error(JSON.stringify({
-        event: "local_geometry_unavailable",
+        event,
         path: key,
         error_message: String(error?.message || error).slice(0, 300),
       }));
@@ -141,6 +162,36 @@ function loadLocalGeometry(path, logger) {
     }));
   }
   return localGeometryCache.get(key);
+}
+const loadLocalGeometry = (path, logger) => loadBundle(path, logger, validLocalGeometry, "local_geometry_unavailable");
+const loadWardGeometry = (path, logger) => loadBundle(path, logger, validWardGeometry, "ward_geometry_unavailable");
+
+// KGIS names a Bengaluru ward "41 - Munnenkolalu". The number is the current (Greater
+// Bengaluru) numbering and is reported on its own; the name is what people and tender
+// titles use.
+export function wardNameWithoutNumber(name) {
+  return bounded(String(name ?? "").replace(/^\s*\d+\s*-\s*/, ""), 160) || null;
+}
+
+// The ward polygon containing the point, as the register names it. The caller's town is
+// tried first, which settles any overlap at a town line in that town's favour. Every other
+// town whose box holds the point is tried after it, because the two KGIS layers do not
+// agree everywhere: the 20 wards filed under town code 1006 lie inside the polygon the
+// town layer calls Bhatkal (1002).
+export function wardAt(geometry, lat, lng, townCode) {
+  const scale = geometry.coordinate_scale;
+  const x = lng * scale;
+  const y = lat * scale;
+  const own = townCode ? geometry.towns[townCode] : null;
+  const towns = own ? [own, ...Object.values(geometry.towns).filter((town) => town !== own)]
+    : Object.values(geometry.towns);
+  for (const town of towns) {
+    if (!withinBox(x, y, town.bbox)) continue;
+    for (const [code, no, name, bbox, rings] of town.wards) {
+      if (withinBox(x, y, bbox) && pointInRings(x, y, rings)) return { code, no, name };
+    }
+  }
+  return null;
 }
 
 // The same order of precedence as the KGIS path: a highway through a town is not the
@@ -172,6 +223,7 @@ function classifyLocally(geometry, lat, lng) {
       road_ownership: "municipal",
       lgd: String(town.lgd),
       town: town.name,
+      town_code: town.kgis_code || null,
       local: "municipal_polygon",
     };
   }
@@ -190,6 +242,7 @@ export function createGeolocator({
   kgisTimeoutMs = 3_000,
   kgisBreakerMs = 60_000,
   localGeometryPath = LOCAL_GEOMETRY_PATH,
+  wardGeometryPath = WARD_GEOMETRY_PATH,
   logger = console,
 } = {}) {
   const cache = new Map();
@@ -284,6 +337,7 @@ export function createGeolocator({
       const attrs = townFeature?.attributes || {};
       let lgd = attrs.LGD_TownCode == null ? "" : bounded(String(attrs.LGD_TownCode), 64);
       let townName = bounded(attrs.KGISTownName, 160) || null;
+      let townCode = attrs.KGISTownCode == null ? "" : bounded(String(attrs.KGISTownCode), 16);
       let roadOwnership = "unknown";
       let highwayName = null;
       let ruralBody = null;
@@ -324,10 +378,24 @@ export function createGeolocator({
           highwayName = verdict.highway_name || null;
           lgd = verdict.lgd || "";
           townName = verdict.town || null;
+          townCode = verdict.town_code || "";
           if (roadOwnership === "municipal") source = "kgis_snapshot";
         }
       }
       const municipal = roadOwnership === "municipal";
+      // The ward, from the packaged copy of the KGIS ward layer. No live call: the town
+      // (live or snapshot) is already known, and the polygons are local.
+      let ward = null;
+      let wardLookup = !inKarnataka ? "out_of_scope" : "not_municipal";
+      if (municipal && lgd) {
+        const wards = await loadWardGeometry(wardGeometryPath, logger);
+        if (!wards) {
+          wardLookup = "unavailable";
+        } else {
+          ward = wardAt(wards, lat, lng, townCode || null);
+          wardLookup = ward ? "resolved" : "no_ward";
+        }
+      }
       const value = {
         lat,
         lng,
@@ -338,6 +406,13 @@ export function createGeolocator({
         state_code: stateCodeFor(geocoded.data?.address),
         lgd: municipal ? lgd || null : null,
         town: municipal ? townName : null,
+        // ward_no is KGIS's number under the current delimitation. Bengaluru's tender
+        // titles carry the old BBMP numbers (Cox Town is 10 here and 108 there), so the
+        // number is labelled and nothing compares it with a tender's.
+        ward_name: ward ? wardNameWithoutNumber(ward.name) : null,
+        ward_no: ward ? ward.no : null,
+        ward_code: ward ? ward.code : null,
+        ward_numbering: ward ? "kgis_current" : null,
         source: municipal && lgd ? source : "unresolved",
         address_source: geocoded.available
           ? "operator_geocoder" : addressHint ? "client_hint" : "unresolved",
@@ -354,6 +429,7 @@ export function createGeolocator({
               ? "available" : "unavailable",
           kgis_gp: gpAvailable ? "available" : "not_needed_or_unavailable",
           local,
+          ward: wardLookup,
           geocoder: geocoded.available ? "available"
             : addressHint ? "skipped_client_hint" : "unavailable",
         },

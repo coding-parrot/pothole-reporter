@@ -45,6 +45,9 @@ cp llm/generated/contract.mjs "$TMP_DIR/package/llm/generated/"
 # answers road ownership from when KGIS cannot. Same path relative to the service as in
 # the repo, so geolocation.mjs needs no configuration to find it.
 cp data/karnataka-local-geometry.json "$TMP_DIR/package/data/"
+# Karnataka ward polygons (KGIS Ward New layer, 7,421 wards): what the service names a
+# municipal point's ward from, with no live KGIS call. About 6.4 MB, 2.2 MB zipped.
+cp data/karnataka-ward-geometry.json "$TMP_DIR/package/data/"
 # The national tender catalogues (highway contracts, State/UT road notices, PMGSY
 # agreements): the manifests the shipped phone names, under fixed names, and the pack
 # they pin for every state, hash-checked. national-tenders.mjs reads them lazily per
