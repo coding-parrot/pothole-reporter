@@ -366,3 +366,23 @@ test("the resolve route's log line says which register answered", async () => {
   assert.equal(liveLine.road_ownership_source, "kgis");
   assert.equal(liveLine.local_lookup, null);
 });
+
+// Every request's log line says where its time went: how many database calls it made
+// and how long the database, the detector and the geolocator took in total.
+test("the request log attributes time to the database and the geolocator", async () => {
+  const repository = reportRepository();
+  repository.queryTenders = async () => [];
+  const slowGeolocator = { resolve: async (input) => {
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    return geolocator.resolve(input);
+  } };
+  const h = await harness({ repository, geolocator: slowGeolocator });
+  const result = await h.post("/v1/potholes/report", reportBody(Date.now()));
+  assert.equal(result.statusCode, 200, result.body);
+  const line = h.lines.log.map((entry) => JSON.parse(entry)).find((entry) => entry.event === "http_request"
+    && entry.route === "/v1/potholes/report");
+  assert.ok(line.db_calls >= 5, `db_calls ${line.db_calls}`);
+  assert.ok(line.geo_ms >= 25, `geo_ms ${line.geo_ms}`);
+  assert.equal(typeof line.db_ms, "number");
+  assert.match(line.slowest, /geo\.resolve:\d+/);
+});

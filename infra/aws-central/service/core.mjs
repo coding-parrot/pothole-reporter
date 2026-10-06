@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 
 import {
@@ -198,10 +199,61 @@ function validDay(value) {
     && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 }
 
+// Where a request's time goes. Every call into the database, the detector, the
+// geolocator and the tender catalogue is timed and attributed to the request that made
+// it, so the log line says how much of duration_ms was ours and how much was upstream.
+// Calls made in parallel each count in full: the sums are work done, not wall time.
+const profile = new AsyncLocalStorage();
+
+function timed(target, kind) {
+  if (!target) return target;
+  return new Proxy(target, {
+    get(object, property) {
+      const value = object[property];
+      if (typeof value !== "function") return value;
+      return (...args) => {
+        const store = profile.getStore();
+        if (!store) return value.apply(object, args);
+        const started = performance.now();
+        const finish = () => {
+          const elapsed = performance.now() - started;
+          store[kind].ms += elapsed;
+          store[kind].calls += 1;
+          const key = `${kind}.${String(property)}`;
+          store.by[key] = (store.by[key] || 0) + elapsed;
+        };
+        let result;
+        try {
+          result = value.apply(object, args);
+        } catch (error) {
+          finish();
+          throw error;
+        }
+        if (!result || typeof result.then !== "function") {
+          finish();
+          return result;
+        }
+        return result.then((answer) => { finish(); return answer; },
+          (error) => { finish(); throw error; });
+      };
+    },
+  });
+}
+
+const newTimings = () => ({
+  db: { ms: 0, calls: 0 }, detector: { ms: 0, calls: 0 }, geo: { ms: 0, calls: 0 },
+  catalogue: { ms: 0, calls: 0 }, by: {},
+});
+
 export function createService({
-  repository, detector, geolocator, catalogue = null, logger = console, lockWaitMs = 250,
+  repository: rawRepository, detector: rawDetector, geolocator: rawGeolocator,
+  catalogue: rawCatalogue = null, logger = console, lockWaitMs = 250,
 } = {}) {
-  if (!repository || !detector || !geolocator) throw new Error("Service dependencies are required.");
+  if (!rawRepository || !rawDetector || !rawGeolocator) throw new Error("Service dependencies are required.");
+  const repository = timed(rawRepository, "db");
+  const detector = timed(rawDetector, "detector");
+  const geolocator = timed(rawGeolocator, "geo");
+  const catalogue = timed(rawCatalogue, "catalogue");
 
   async function authenticate(event, context, path, method, raw) {
     const inputHeaders = headers(event);
@@ -868,7 +920,7 @@ export function createService({
     return report(parsed.value, context);
   }
 
-  return async function handle(event, awsContext = {}) {
+  async function handleProfiled(event, awsContext, timings) {
     const startedAt = Date.now();
     const context = {
       requestId: bounded(event.requestContext?.requestId, 128)
@@ -942,6 +994,13 @@ export function createService({
       detector_screened_by: context.detectorScreenedBy || null,
       detector_screen_confirmed: context.detectorScreenConfirmed ?? null,
       quota_refunded: context.quotaRefunded || false,
+      db_ms: Math.round(timings.db.ms),
+      db_calls: timings.db.calls,
+      detector_ms: Math.round(timings.detector.ms),
+      geo_ms: Math.round(timings.geo.ms),
+      catalogue_ms: Math.round(timings.catalogue.ms),
+      slowest: Object.entries(timings.by).sort((a, b) => b[1] - a[1]).slice(0, 5)
+        .map(([name, ms]) => `${name}:${Math.round(ms)}`).join(" "),
       road_ownership: context.roadOwnership || null,
       road_ownership_source: context.ownershipSource || null,
       kgis_lookup: context.kgisLookup || null,
@@ -951,5 +1010,10 @@ export function createService({
       tender_catalogue: context.tenderCatalogue || null,
     }));
     return result;
+  }
+
+  return function handle(event, awsContext = {}) {
+    const timings = newTimings();
+    return profile.run(timings, () => handleProfiled(event, awsContext, timings));
   };
 }
