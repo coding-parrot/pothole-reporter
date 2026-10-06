@@ -8,7 +8,11 @@
 // caller's claim; the local snapshot cannot tell a state highway from a street; and an
 // outage must be asked again, not remembered.
 
-const VERSION = "v1";
+// The version is part of every key. Raise it whenever the stored answer gains a field
+// the service reads, or cells stored under the old shape keep answering without it for
+// up to a week. v2: the ward (ward_name, ward_no, ward_code, lookup.ward) and
+// address_parts.localities, which ward tender matching reads.
+const VERSION = "v2";
 const WEEK_MS = 7 * 86_400_000;
 
 function storable(value) {
@@ -23,6 +27,10 @@ export function createCachedGeolocator({ geolocator, repository, ttlMs = WEEK_MS
   const cellOf = (lat, lng) => `GEO#${VERSION}#${lat.toFixed(4)},${lng.toFixed(4)}`;
   return {
     kgisTimeoutMs: geolocator.kgisTimeoutMs,
+    // The ward roster is read from the packaged polygons, not from an upstream: nothing
+    // to cache, but core.mjs asks its geolocator for it and must find it here.
+    wardRoster: (wardCode) => (typeof geolocator.wardRoster === "function"
+      ? geolocator.wardRoster(wardCode) : Promise.resolve([])),
     async resolve(input) {
       const { lat, lng } = input;
       const cell = Number.isFinite(lat) && Number.isFinite(lng) ? cellOf(lat, lng) : null;
