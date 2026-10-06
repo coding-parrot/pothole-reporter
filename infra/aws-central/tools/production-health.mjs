@@ -127,6 +127,20 @@ async function windowRules(hours) {
     ok("tenders match", `${matched} matched of ${resolves} lookups`);
   }
 
+  // Since 6 Oct 2026 every lookup with a street and a State/UT is matched against the
+  // national catalogues too, so a window with many resolved streets and no match anywhere
+  // in India means the packed catalogues are missing, expired past their review date
+  // (the weekly refresh was not deployed) or matching is broken. These four outcomes are
+  // exactly the lookups whose street reached a matcher.
+  const streetResolved = ["tender_matched", "no_location_match", "no_confident_match", "no_tenders_for_jurisdiction"]
+    .reduce((sum, outcome) => sum + count("/v1/tenders/resolve", outcome), 0);
+  const resolveMatched = count("/v1/tenders/resolve", "tender_matched");
+  if (streetResolved >= 50 && resolveMatched === 0) {
+    fail("tenders match somewhere in India", `${streetResolved} lookups had a street and none matched any catalogue; check the packed national catalogues and their review dates`);
+  } else {
+    ok("tenders match somewhere in India", `${resolveMatched} matched of ${streetResolved} lookups with a street`);
+  }
+
   const detect = rows.filter((row) => row.route === "/v1/vision/detect" && Number(row.status) === 200);
   const detections = detect.reduce((sum, row) => sum + Number(row.n), 0);
   if (detections >= 20) {
