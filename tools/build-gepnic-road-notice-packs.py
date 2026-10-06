@@ -52,7 +52,7 @@ SCHEMA_VERSION = 1
 PACK_VERSION = 1
 CATALOG_VERSION = 1
 REVIEW_DAYS = 7
-MAX_FAILED_SOURCES = 3
+MAX_FAILED_SOURCES = 5
 OTHER_EXCLUSION_COUNTERS = (
     "rows_excluded_by_deadline", "rows_excluded_cancelled", "rows_excluded_invalid",
 )

@@ -262,3 +262,27 @@ test("a report whose road ownership is unknown still lands, without routing", as
   assert.equal(result.statusCode, 200, result.body);
   assert.equal(JSON.parse(result.body).routing, null);
 });
+
+// 45 reports in a month, 31 of them on one day, were told to retry because a frame from
+// the same drive held the location lock for the 400 ms it takes to consolidate. The
+// server now waits for the lock a few times itself; only a lock that stays held is 425.
+test("a report waits for a briefly held location lock instead of answering 425", async () => {
+  const repository = reportRepository();
+  let attempts = 0;
+  repository.acquireLocationLocks = async () => { attempts += 1; return attempts >= 3; };
+  const h = await harness({ repository, geolocator });
+  const result = await h.post("/v1/potholes/report", reportBody(Date.now()));
+  assert.equal(result.statusCode, 200, result.body);
+  assert.equal(attempts, 3);
+});
+
+test("a lock that stays held is still a retryable 425", async () => {
+  const repository = reportRepository();
+  let attempts = 0;
+  repository.acquireLocationLocks = async () => { attempts += 1; return false; };
+  const h = await harness({ repository, geolocator, lockWaitMs: 0 });
+  const result = await h.post("/v1/potholes/report", reportBody(Date.now()));
+  assert.equal(result.statusCode, 425);
+  assert.equal(JSON.parse(result.body).error, "location_dedupe_in_progress");
+  assert.equal(attempts, 4);
+});

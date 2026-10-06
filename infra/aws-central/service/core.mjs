@@ -34,6 +34,7 @@ const CAPTURE_SOURCES = new Set(["manual", "drive_live", "drive_vod", "imported_
 const FEEDBACK_TEST_MODES = new Set(["bike", "car", "walk", "other"]);
 const FEEDBACK_TEXT_MAX = 2_000;
 const OBSERVED_AHEAD_MS = 10 * 60_000;
+const LOCK_ATTEMPTS = 4;
 const SIGNED_ROUTES = [
   "/v1/activity",
   "/v1/vision/detect",
@@ -192,7 +193,9 @@ function validDay(value) {
     && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 }
 
-export function createService({ repository, detector, geolocator, logger = console } = {}) {
+export function createService({
+  repository, detector, geolocator, logger = console, lockWaitMs = 250,
+} = {}) {
   if (!repository || !detector || !geolocator) throw new Error("Service dependencies are required.");
 
   async function authenticate(event, context, path, method, raw) {
@@ -562,7 +565,15 @@ export function createService({ repository, detector, geolocator, logger = conso
     const routingKnown = jurisdiction.road_ownership !== "unknown"
       && (jurisdiction.road_ownership !== "municipal" || municipal);
     const cells = nearbyCells(lat, lng, repository.dedupeRadiusMetres);
-    if (!await repository.acquireLocationLocks(cells, context.requestId)) {
+    // Consolidating a nearby report holds the lock for a few hundred milliseconds, and
+    // a drive sends frames from the same spot seconds apart. Wait that long here rather
+    // than hand the phone a 425 to retry; a lock that stays held is still refused.
+    let locked = false;
+    for (let attempt = 0; attempt < LOCK_ATTEMPTS && !locked; attempt += 1) {
+      if (attempt) await new Promise((resolve) => setTimeout(resolve, lockWaitMs * attempt));
+      locked = await repository.acquireLocationLocks(cells, context.requestId);
+    }
+    if (!locked) {
       throw new HttpError(425, "location_dedupe_in_progress",
         "A nearby report is being consolidated. Retry shortly.", { retryable: true });
     }

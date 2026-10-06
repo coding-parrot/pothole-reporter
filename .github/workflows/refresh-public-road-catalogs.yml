@@ -87,7 +87,7 @@ jobs:
           python3 tools/pull-india-gepnic.py \
             --output-dir data/gepnic-road-notices \
             --retrieved-at "$catalog_retrieved_at" \
-            --timeout 45 \
+            --timeout 90 \
             --request-delay 0.20 \
             --allow-partial || gepnic_status=$?
           # Exit 3 is "some portals failed, ledger written". The pack builder decides
