@@ -1,5 +1,6 @@
 import { createDetector, createSecretProvider } from "./detectors.mjs";
 import { createDynamoRepository } from "./dynamo-repository.mjs";
+import { createCachedGeolocator } from "./geo-cache.mjs";
 import { createGeolocator } from "./geolocation.mjs";
 import { createNationalCatalogue } from "./national-tenders.mjs";
 import { createService } from "./core.mjs";
@@ -34,9 +35,10 @@ const detector = createDetector({
   yoloUrl: process.env.YOLO_URL || "",
   yoloModel: process.env.YOLO_MODEL || "pothole-yolo",
 });
-const geolocator = createGeolocator({
+const liveGeolocator = createGeolocator({
   geocoderUrl: process.env.GEOCODER_REVERSE_URL || "",
 });
+const geolocator = createCachedGeolocator({ geolocator: liveGeolocator, repository });
 
 // The national tender catalogues are staged into the package by deploy.sh (see
 // tools/stage-national-tenders.mjs) at the module's default path.

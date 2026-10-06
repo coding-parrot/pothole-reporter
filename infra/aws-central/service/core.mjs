@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 
 import {
   DETECT_PROMPT_VERSION,
@@ -92,6 +93,7 @@ function response(statusCode, payload, requestId, cacheControl = "no-store") {
       "access-control-expose-headers": "x-request-id",
       "x-content-type-options": "nosniff",
       "x-request-id": requestId,
+      vary: "accept-encoding",
     },
     body: JSON.stringify({ request_id: requestId, ...payload }),
     isBase64Encoded: false,
@@ -199,6 +201,38 @@ function validDay(value) {
     && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 }
 
+// The HTTP API does not compress, so a 52.8 KB map went over a weak mobile link as
+// 52.8 KB. Anything over a kilobyte is gzipped for a client that says it accepts it.
+const GZIP_MIN_BYTES = 1024;
+
+function compressed(result, event) {
+  if (!result || result.isBase64Encoded || typeof result.body !== "string"
+      || Buffer.byteLength(result.body) < GZIP_MIN_BYTES
+      || !/\bgzip\b/i.test(headers(event)["accept-encoding"] || "")) return result;
+  return {
+    ...result,
+    headers: { ...result.headers, "content-encoding": "gzip" },
+    body: gzipSync(Buffer.from(result.body, "utf8")).toString("base64"),
+    isBase64Encoded: true,
+  };
+}
+
+// Keep a loaded value for as long as it is declared fresh. The promise is stored, so
+// requests arriving together share one read; a failed read is forgotten at once.
+function freshFor(ttlMs, maximum = 64) {
+  const entries = new Map();
+  return (key, load) => {
+    const held = entries.get(key);
+    if (held && held.until > Date.now()) return held.value;
+    const value = Promise.resolve().then(load);
+    const entry = { value, until: Date.now() + ttlMs };
+    entries.set(key, entry);
+    value.catch(() => { if (entries.get(key) === entry) entries.delete(key); });
+    while (entries.size > maximum) entries.delete(entries.keys().next().value);
+    return value;
+  };
+}
+
 // Where a request's time goes. Every call into the database, the detector, the
 // geolocator and the tender catalogue is timed and attributed to the request that made
 // it, so the log line says how much of duration_ms was ours and how much was upstream.
@@ -254,6 +288,12 @@ export function createService({
   const detector = timed(rawDetector, "detector");
   const geolocator = timed(rawGeolocator, "geo");
   const catalogue = timed(rawCatalogue, "catalogue");
+  // The map and impact routes tell clients their answer is good for 30 and 60 seconds
+  // and the app polls both; the rows are kept exactly that long. A body's tender list
+  // changes only when the table is reseeded, and Bengaluru's is 795 rows per lookup.
+  const mapRows = freshFor(30_000);
+  const impactRows = freshFor(60_000);
+  const tenderRows = freshFor(600_000);
 
   async function authenticate(event, context, path, method, raw) {
     const inputHeaders = headers(event);
@@ -542,6 +582,8 @@ export function createService({
     context.ownershipSource = jurisdiction.source || null;
     context.kgisLookup = jurisdiction.lookup?.kgis || null;
     context.localLookup = jurisdiction.lookup?.local || null;
+    context.addressSource = jurisdiction.address_source || null;
+    context.geoCache = jurisdiction.lookup?.cache || null;
   }
 
   async function resolveTender(body, context) {
@@ -581,7 +623,8 @@ export function createService({
     const municipal = jurisdiction.road_ownership === "municipal";
     let matched = null;
     if (municipal) {
-      const tenders = await repository.queryTenders(jurisdiction.lgd);
+      const tenders = await tenderRows(String(jurisdiction.lgd),
+        () => repository.queryTenders(jurisdiction.lgd));
       matched = tenders.length
         ? matchTender(jurisdiction.address, tenders)
         : { tender: null, reason: "no_tenders_for_jurisdiction" };
@@ -809,7 +852,8 @@ export function createService({
         throw new HttpError(400, "bad_bbox", "bbox must be west,south,east,north.");
       }
     }
-    const potholes = await repository.listPotholes({ since, bbox, limit });
+    const potholes = await mapRows(`${params.since ?? ""}|${params.bbox ?? ""}|${limit}`,
+      () => repository.listPotholes({ since, bbox, limit }));
     context.outcome = "map_read";
     return response(200, {
       type: "FeatureCollection",
@@ -834,7 +878,7 @@ export function createService({
         || Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`) > 90 * 86_400_000) {
       throw new HttpError(400, "bad_period", "Use a valid period of at most 90 days.");
     }
-    const data = await repository.impact({ from, to });
+    const data = await impactRows(`${from}|${to}`, () => repository.impact({ from, to }));
     const requestsTotal = data.requests.reduce((sum, item) => sum + item.count, 0);
     const captureTotal = data.captures.reduce((sum, item) => sum + item.count, 0);
     context.outcome = "impact_read";
@@ -1005,6 +1049,8 @@ export function createService({
       road_ownership_source: context.ownershipSource || null,
       kgis_lookup: context.kgisLookup || null,
       local_lookup: context.localLookup || null,
+      address_source: context.addressSource || null,
+      geo_cache: context.geoCache || null,
       // Which catalogue answered a tender_matched: ka_index, nh_contract, road_notice or
       // road_agreement. Null when nothing matched.
       tender_catalogue: context.tenderCatalogue || null,
@@ -1014,6 +1060,7 @@ export function createService({
 
   return function handle(event, awsContext = {}) {
     const timings = newTimings();
-    return profile.run(timings, () => handleProfiled(event, awsContext, timings));
+    return profile.run(timings, async () => compressed(
+      await handleProfiled(event, awsContext, timings), event));
   };
 }
