@@ -115,6 +115,20 @@ export function createDynamoRepository({
       }));
     },
 
+    // Cached location answers share the control table: one id, expired by expires_at.
+    async getGeoCell(cell) {
+      const result = await send(new GetCommand({ TableName: tables.control, Key: { id: cell } }));
+      if (!result.Item?.value_json) return null;
+      return { value: JSON.parse(result.Item.value_json), expiresAt: Number(result.Item.expires_ms) };
+    },
+
+    async putGeoCell(cell, value, expiresAt) {
+      await send(new PutCommand({
+        TableName: tables.control,
+        Item: { id: cell, value_json: JSON.stringify(value), expires_ms: expiresAt, expires_at: ttl(expiresAt) },
+      }));
+    },
+
     async claimReplay(signatureHash, expiresAt) {
       try {
         await send(new PutCommand({

@@ -8103,7 +8103,7 @@
       if (REPORT_BINARY_FIELDS.includes(key) || REPORT_DETAIL_ONLY_FIELDS.includes(key)) continue;
       row[key] = rec[key];
     }
-    row.status = publicEmailStatus(rec.status);
+    row.status = publicEmailStatus(rec.status, rec);
     row.has_photo = !!rec.photo;
     row.has_full_frame = !!rec.photo_full;
     row.has_repair_photo = !!rec.repair_photo;
@@ -8581,11 +8581,14 @@
   };
 
   // Older builds used "sent" after merely opening the mail composer. Preserve those
-  // records, but never present that unverified state as successful delivery.
-  const publicEmailStatus = (status) => status === "sent" ? "queued" : status;
+  // records, but never present that unverified state as successful delivery. The app
+  // still cannot see the mail app's Send button; "sent" is shown only when the person
+  // answered "Email sent?" after the composer returned, which email_sent_confirmed records.
+  const publicEmailStatus = (status, rec) =>
+    status === "sent" && !(rec && rec.email_sent_confirmed) ? "queued" : status;
   // repairEvidenceHtml renders the after-photo from repair_photo_url and hides the whole
   // block without it, so a repaired pothole showed no evidence and no confirm/reopen.
-  const toDict = (r) => ({ ...r, status: publicEmailStatus(r.status),
+  const toDict = (r) => ({ ...r, status: publicEmailStatus(r.status, r),
                           photo_url: photoBlob(r.photo),
                           repair_photo_url: photoBlob(r.repair_photo) || null });
   // The list never renders the evidence copy, so it never receives it.
@@ -8792,8 +8795,9 @@
               rec.duplicate = true;
               rec.duplicate_of = rec.server_pothole_id || (serverId && String(serverId)) || null;
               // A user might have opened the draft before connectivity returned.
-              // Preserve that history, but do not claim the email was delivered.
-              if (rec.status === "sent") rec.status = "queued";
+              // Preserve that history, but do not claim the email was delivered. A send
+              // the person confirmed is their statement and stays.
+              if (rec.status === "sent" && !rec.email_sent_confirmed) rec.status = "queued";
             }
           }
           outbox.delete(key);
@@ -9952,8 +9956,23 @@
     rec.status = "queued";
     rec.email_opened_at = rec.email_opened_at || rec.sent_at || Date.now() / 1000;
     rec.sent_at = null;
+    rec.email_sent_confirmed = false;
     await putReport(rec);
     return toDict(rec);
+  }
+
+  // The person's own answer to "Email sent?" once the composer has returned. The app
+  // never observes the mail app, so this is the only way sent_at is ever set, and the
+  // card calls the result "sent by you", not delivered.
+  function confirmEmailSent(id) {
+    return mutateReportAtomically(id, (rec) => {
+      if (rec.status !== "queued" && rec.status !== "sent") {
+        throw new Error("Open the email first.");
+      }
+      rec.status = "sent";
+      rec.sent_at = Date.now() / 1000;
+      rec.email_sent_confirmed = true;
+    });
   }
 
   // ---------- dataset export ----------
@@ -10430,6 +10449,9 @@
     if (path === "/api/frame" && method === "POST") return createReport(opts.body, true);
     if (path === "/api/native-report" && method === "POST") {
       return importNativeReport(JSON.parse(opts.body || "{}"));
+    }
+    if ((m = path.match(/^\/api\/reports\/(\d+)\/sent$/)) && method === "POST") {
+      return confirmEmailSent(m[1]);
     }
     if ((m = path.match(/^\/api\/reports\/(\d+)\/send$/)) && method === "POST") {
       const rec = await getReport(m[1]);
@@ -12789,7 +12811,7 @@
                    clearPackCache, compatibleDamage, compatibleDraftRoute,
                    complaintBodyWithFooter, complaintFooter, complaintLanguage,
                    complaintOutputsForRecord, complaintRouteError, complaintRoutingBlock,
-                   completeCentralRetry, conciseRouteLabel, conditionStatus,
+                   completeCentralRetry, conciseRouteLabel, conditionStatus, confirmEmailSent,
                    confirmedTemporaryAssessment, connectivityError, containingMmrAuthorities,
                    contractLookupEvidence, contractPackProvenance, contractVerificationFor,
                    coordinatedRoadNoun, createCivicReport, createReport,

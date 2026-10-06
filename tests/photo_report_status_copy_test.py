@@ -61,14 +61,21 @@ with sync_playwright() as playwright:
         detected = page.evaluate("() => t('verdict_detected')")
         size = page.evaluate("() => tSize('medium')")
         reopen = page.evaluate("() => t('verdict_queued')")
+        # "queued" is a draft the composer opened; "sent" is the person's own answer to
+        # "Email sent?", which needs no reopen instruction.
         for status in ("queued", "sent"):
             got = detail({**BASE, "id": f"s-{status}", "status": status})
             if detected not in got["verdict"] or size not in got["verdict"]:
                 fails.append(f"{status}: verdict slot reads {got['verdict']!r}, lost the detection")
             if reopen in got["verdict"]:
                 fails.append(f"{status}: the reopen instruction is still styled as the verdict")
-            if reopen not in got["text"]:
+            if status == "queued" and reopen not in got["text"]:
                 fails.append(f"{status}: the reopen instruction is no longer shown")
+            if status == "sent" and reopen in got["text"]:
+                fails.append("sent: a send the person confirmed still says it is not sent")
+        sent_chip = page.evaluate("() => t('chip_sent')")
+        if detail({**BASE, "id": "s-sent", "status": "sent"})["chip"] != sent_chip:
+            fails.append("sent: the chip does not say the person sent it")
 
         got = detail({**BASE, "id": "d-1", "status": "draft"})
         if BASE["description"] not in got["text"]:

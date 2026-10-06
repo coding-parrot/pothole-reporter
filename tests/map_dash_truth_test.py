@@ -206,7 +206,9 @@ async def main():
                 state = await open_dash(page)
                 if not state["contributionShown"] or not state["breakShown"]:
                     fails.append("the contribution cards stay hidden outside #public-map")
-                if "opened0eventschecked" not in squash(state["dashStats"]):
+                # The tile before "events checked" is the count of emails the person
+                # confirmed sending; the anchor only pins the 0 to the right label.
+                if "byyou0eventschecked" not in squash(state["dashStats"]):
                     fails.append(f"events checked is not the drive total: {state['dashStats']!r}")
                 if "\u2014" in state["text"] or "\u2013" in state["text"]:
                     fails.append(f"the dash still prints a dash as a value: {state['breakdown']!r}")

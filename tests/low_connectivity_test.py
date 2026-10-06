@@ -273,8 +273,13 @@ async def main():
                     # and the drive would then report GPS lost, which is not the subject.
                     await context.set_geolocation({"latitude": 12.9716 + elapsed * 0.0001,
                                                    "longitude": 77.5946, "accuracy": 5})
+                    # Everything the HUD says: the count, the status line and the tally
+                    # of states ("2 sent, 5 checking"), where there is one.
                     text, tally, paused = await page.evaluate("""() => [
-                      document.getElementById("driveStatus").textContent,
+                      ["driveCount", "driveStatus", "driveStates"].map((id) => {
+                        const el = document.getElementById(id);
+                        return el && !el.classList.contains("hidden") ? el.textContent : "";
+                      }).join(" | "),
                       drive ? { ...drive.tally, inFlight: drive.inFlight, queued: drive.queue.length } : null,
                       !!(drive && drive.paused)]""")
                     if text != last_text:

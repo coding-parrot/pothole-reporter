@@ -155,6 +155,21 @@ async function windowRules(hours) {
     ok("detection is fast", `${detections} detections, too few to judge`);
   }
 
+  // Our own share of a request. The detector is the model's time; everything the
+  // service itself does around it (ten database calls on a detection) has a budget, so
+  // a slow query or a serial wait added later shows up here and not as "the app is slow".
+  const own = await insights(
+    'filter event="http_request" and ispresent(db_ms) and status=200 and route in ["/v1/vision/detect","/v1/potholes/report","/v1/tenders/resolve"] | stats count() as n, pct(db_ms, 90) as db90, pct(duration_ms - detector_ms - geo_ms, 90) as own90 by route',
+    hours,
+  );
+  for (const row of own) {
+    if (Number(row.n) < 20) continue;
+    const own90 = Number(row.own90);
+    own90 > 400
+      ? fail(`service overhead is small (${row.route})`, `p90 ${own90.toFixed(0)} ms outside the detector and the geolocator over ${row.n} requests; budget 400 ms`)
+      : ok(`service overhead is small (${row.route})`, `p90 ${own90.toFixed(0)} ms, database p90 ${Number(row.db90).toFixed(0)} ms over ${row.n} requests`);
+  }
+
   const lambdaErrors = await insights('filter @message like /Task timed out|Runtime exited|Error: Runtime/ | stats count() as n', hours);
   const crashes = Number(lambdaErrors[0]?.n || 0);
   crashes ? fail("no runtime crashes", `${crashes} timeouts or runtime exits`) : ok("no runtime crashes", "0");
@@ -189,6 +204,17 @@ async function canary() {
     const result = await timed(route, publicGet(route), 10_000);
     result.status === 200 ? ok(route, `200 in ${result.took} ms`) : fail(route, `${result.status}`);
   }
+  // The map is the largest thing the app downloads from the service. It went over the
+  // air uncompressed (52.8 KB) until 6 Oct 2026; the wire size is asked for raw here,
+  // because fetch would quietly decompress and hide a regression.
+  const wire = await fetch(`${API_URL}/v1/map`, { headers: { "accept-encoding": "gzip" },
+    signal: AbortSignal.timeout(20_000) });
+  const encoding = wire.headers.get("content-encoding");
+  const plainBytes = Buffer.byteLength(await wire.text());
+  const sentBytes = Number(wire.headers.get("content-length")) || null;
+  plainBytes < 1024 || encoding === "gzip"
+    ? ok("map is compressed", `${plainBytes} bytes of JSON${sentBytes ? ` sent as ${sentBytes}` : ""}, ${encoding || "small enough to send plain"}`)
+    : fail("map is compressed", `${plainBytes} bytes sent with content-encoding ${encoding}`);
 
   const { publicKey, privateKey } = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
   const registration = await fetch(`${API_URL}/v1/installations`, {
