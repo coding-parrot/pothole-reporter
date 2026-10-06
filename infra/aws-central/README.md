@@ -22,10 +22,36 @@ operator-controlled secret workflow) to:
 {"openai_api_key":"sk-..."}
 ```
 
-The Lambda never receives that key as an environment variable. `openai_then_yolo` first
-uses the shared OpenAI detector, then attempts the configured YOLO gateway only for the
-documented exhaustion/fallback errors. Until an evaluated YOLO release is configured,
-that second leg fails closed; the public map and tender/authority APIs remain available.
+The Lambda never receives that key as an environment variable. The provider order is
+the `SharedDetectorProvider` stack parameter (env `SHARED_DETECTOR_PROVIDER`):
+
+- `openai_then_yolo` (the default and today's order) first uses the shared OpenAI
+  detector, then attempts the configured YOLO Lambda only for the documented
+  exhaustion/fallback errors. Until an evaluated YOLO release is configured, that
+  second leg fails closed; the public map and tender/authority APIs remain available.
+- `yolo_then_openai` screens every Drive Mode frame with the YOLO Lambda first. A frame
+  YOLO calls undamaged or rejected is answered by YOLO alone, well under a second warm.
+  A frame YOLO flags as damaged goes to gpt-5-mini, whose verdict is the one returned
+  (`detector.screened_by: "yolo"` in the response). Manual photos keep the
+  `openai_then_yolo` order because one deliberate report is worth the slower, more
+  accurate model. A YOLO leg that is missing, capped, slow (10 s screen budget) or broken
+  falls through to OpenAI for that frame with `detector.fallback_from: "yolo"`, so the
+  mode can never make a drive slower than today's order; it only removes calls.
+
+The YOLO Lambda is named by the `YoloFunctionName` parameter (env `YOLO_FUNCTION_NAME`),
+which also grants the central role `lambda:InvokeFunction` on exactly that function.
+Its bearer token is the `yolo_api_key` field of the same detector secret. Flip both
+without touching the code:
+
+```bash
+EXTRA_PARAMETER_OVERRIDES="SharedDetectorProvider=yolo_then_openai YoloFunctionName=pothole-reporter-central-yolo" \
+  AWS_REGION=ap-south-1 infra/aws-central/deploy.sh
+```
+
+`GET /v1/health` reports the active order as `shared_vision_provider_mode` and whether
+the drive screen is usable as `shared_vision_drive_screen_configured`. Every detect
+request logs `detector_screened_by` and `detector_screen_confirmed`, which is the
+evidence to read before trusting YOLO's damaged verdicts without confirmation.
 
 Use the CloudFormation `ApiUrl` output as the app's default `service_url`. Do not point
 new releases at the retired Cloudflare Worker hostname.

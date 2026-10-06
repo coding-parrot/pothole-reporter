@@ -41,6 +41,24 @@ Parameters:
   LogRetentionDays:
     Type: Number
     Default: 30
+  SharedDetectorProvider:
+    Type: String
+    Default: openai_then_yolo
+    AllowedValues: [openai, yolo, openai_then_yolo, yolo_then_openai]
+    Description: >-
+      openai_then_yolo is today's order (gpt-5-mini judges every frame, YOLO covers
+      exhaustion only). yolo_then_openai screens drive frames with the YOLO Lambda first
+      and sends only flagged frames to gpt-5-mini; manual photos stay OpenAI first.
+  YoloFunctionName:
+    Type: String
+    Default: ''
+    AllowedPattern: '^$|^[A-Za-z0-9_-]{1,64}$'
+    Description: >-
+      Name of the YOLO detector Lambda in this account and region (YOLO_MODE lambda).
+      Blank leaves the YOLO leg unconfigured and grants no invoke permission.
+
+Conditions:
+  HasYoloFunction: !Not [!Equals [!Ref YoloFunctionName, '']]
 
 Resources:
   DetectorSecret:
@@ -196,6 +214,13 @@ Resources:
                 Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource: !Ref DetectorSecret
+              - !If
+                - HasYoloFunction
+                - Sid: InvokeYoloDetector
+                  Effect: Allow
+                  Action: lambda:InvokeFunction
+                  Resource: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${YoloFunctionName}'
+                - !Ref AWS::NoValue
 
   CentralFunction:
     Type: AWS::Lambda::Function
@@ -225,8 +250,9 @@ Resources:
           TENDERS_TABLE: !Ref TendersTable
           METRICS_TABLE: !Ref MetricsTable
           SHARED_SECRET_ARN: !Ref DetectorSecret
-          SHARED_DETECTOR_PROVIDER: openai_then_yolo
+          SHARED_DETECTOR_PROVIDER: !Ref SharedDetectorProvider
           YOLO_MODE: lambda
+          YOLO_FUNCTION_NAME: !If [HasYoloFunction, !Ref YoloFunctionName, !Ref AWS::NoValue]
           DEDUPE_RADIUS_METRES: !Ref DedupeRadiusMetres
           DAILY_VISION_CAP: !Ref DailyVisionCap
           GLOBAL_VISION_MINUTE_CAP: !Ref GlobalVisionMinuteCap

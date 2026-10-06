@@ -31,6 +31,16 @@ const promptConfig = LLM_CONTRACT.prompts.detection;
 // give up first and leave this much time to answer, release and log.
 const LAMBDA_RESPONSE_RESERVE_MS = 3_000;
 const MIN_UPSTREAM_MS = 1_000;
+// openai_then_yolo is the order deployed today: gpt-5-mini judges every frame and the
+// YOLO leg only covers OpenAI exhaustion. yolo_then_openai puts the fast detector first
+// on drive frames and keeps OpenAI first for manual photos.
+export const PROVIDER_MODES = Object.freeze([
+  "openai", "yolo", "openai_then_yolo", "yolo_then_openai",
+]);
+// A drive frame screened by YOLO still has to reach gpt-5-mini when it is flagged, so
+// the screen may take at most this much of the Lambda's 29 s. A warm ONNX call is well
+// under a second; a cold container is a few seconds; anything longer is not a screen.
+const YOLO_SCREEN_TIMEOUT_MS = 10_000;
 
 function timeoutSignal(milliseconds) {
   const controller = new AbortController();
@@ -116,6 +126,7 @@ export function createDetector({
   lambdaClient = new LambdaClient({}),
   openaiTimeoutMs = RUNTIME_CONFIG.timeoutsMs.serverOpenAIMax,
   yoloTimeoutMs = RUNTIME_CONFIG.timeoutsMs.serverYoloMax,
+  yoloScreenTimeoutMs = YOLO_SCREEN_TIMEOUT_MS,
 } = {}) {
   const secrets = secretProvider || (async () => ({}));
 
@@ -247,7 +258,7 @@ export function createDetector({
     };
   }
 
-  async function yolo(input, context) {
+  async function yolo(input, context, budgetMs = yoloTimeoutMs) {
     const secret = await readSecret("shared_yolo_not_configured",
       "The shared YOLO detector secret could not be read.");
     if (!secret.yoloApiKey) {
@@ -263,23 +274,37 @@ export function createDetector({
         throw new HttpError(503, "shared_yolo_not_configured",
           "The YOLO Lambda function is not configured.");
       }
-      const invoked = await lambdaClient.send(new InvokeCommand({
-        FunctionName: yoloFunctionName,
-        InvocationType: "RequestResponse",
-        Payload: Buffer.from(JSON.stringify({
-          version: "2.0",
-          routeKey: "POST /v1/detect",
-          rawPath: "/v1/detect",
-          headers: {
-            "x-request-id": context.requestId,
-            "x-yolo-api-key": secret.yoloApiKey,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify(payload),
-          isBase64Encoded: false,
-          requestContext: { requestId: context.requestId },
-        })),
-      }));
+      // The YOLO function's own timeout is longer than this function's remaining time,
+      // so an invoke that is not bounded here can outlive the caller.
+      const timeout = timeoutSignal(upstreamBudget(budgetMs, context));
+      let invoked;
+      try {
+        invoked = await lambdaClient.send(new InvokeCommand({
+          FunctionName: yoloFunctionName,
+          InvocationType: "RequestResponse",
+          Payload: Buffer.from(JSON.stringify({
+            version: "2.0",
+            routeKey: "POST /v1/detect",
+            rawPath: "/v1/detect",
+            headers: {
+              "x-request-id": context.requestId,
+              "x-yolo-api-key": secret.yoloApiKey,
+              "content-type": "application/json",
+            },
+            body: JSON.stringify(payload),
+            isBase64Encoded: false,
+            requestContext: { requestId: context.requestId },
+          })),
+        }), { abortSignal: timeout.signal });
+      } catch (error) {
+        throw new HttpError(503, "shared_vision_unavailable",
+          timeout.signal.aborted
+            ? "The YOLO Lambda did not answer in time."
+            : "The YOLO Lambda could not be invoked.",
+          { retryable: true }, { cause: error });
+      } finally {
+        timeout.cancel();
+      }
       if (invoked.FunctionError) {
         throw new HttpError(503, "shared_vision_unavailable",
           "The YOLO Lambda failed to complete inference.");
@@ -293,7 +318,7 @@ export function createDetector({
         throw new HttpError(503, "shared_yolo_not_configured",
           "The YOLO HTTPS endpoint is not configured.");
       }
-      const timeout = timeoutSignal(yoloTimeoutMs);
+      const timeout = timeoutSignal(upstreamBudget(budgetMs, context));
       let response;
       try {
         response = await fetchImpl(yoloUrl, {
@@ -338,6 +363,58 @@ export function createDetector({
     };
   }
 
+  // Today's order. OpenAI judges; YOLO covers only the documented exhaustion errors.
+  async function openaiThenYolo(input, context) {
+    try {
+      return await openai(input, context);
+    } catch (error) {
+      if (!(error instanceof HttpError)
+          || !error.details?.fallback_allowed) throw error;
+      context.detectorFallbackReason = error.code;
+      try {
+        const result = await yolo(input, context);
+        return { ...result, fallbackFrom: "openai", fallbackReason: error.code };
+      } catch (fallbackError) {
+        // No fallback deployed is not news. The OpenAI reason is the one to report.
+        if (fallbackError?.code === "shared_yolo_not_configured") throw error;
+        throw fallbackError;
+      }
+    }
+  }
+
+  // Drive frames arrive several times a second and most show plain road. The fast
+  // detector answers those itself; only a frame it flags as damaged costs a gpt-5-mini
+  // call, and gpt-5-mini's verdict is the one the app gets. A YOLO leg that is absent,
+  // capped, slow or broken falls through to OpenAI alone, so flipping the mode can never
+  // make a drive worse than today's order; it is only ever faster.
+  async function yoloThenOpenai(input, context) {
+    let screen;
+    try {
+      screen = await yolo(input, context, yoloScreenTimeoutMs);
+    } catch (error) {
+      if (!(error instanceof HttpError)) throw error;
+      context.detectorFallbackReason = error.code;
+      const result = await openai(input, context);
+      return { ...result, fallbackFrom: "yolo", fallbackReason: error.code };
+    }
+    const flagged = screen.verdict?.image_quality === "acceptable"
+      && screen.verdict?.assessment === "damaged";
+    if (!flagged) return screen;
+    context.detectorScreenedBy = "yolo";
+    try {
+      const confirmed = await openai(input, context);
+      context.detectorScreenConfirmed = confirmed.verdict?.assessment === "damaged";
+      return { ...confirmed, screenedBy: "yolo", screenModel: screen.model };
+    } catch (error) {
+      // The same rule as openai_then_yolo: a missing or exhausted OpenAI credential
+      // leaves the screen's verdict standing; a timeout, rate limit or 5xx stays an error
+      // rather than silently changing which model judged the frame.
+      if (!(error instanceof HttpError) || !error.details?.fallback_allowed) throw error;
+      context.detectorFallbackReason = error.code;
+      return { ...screen, fallbackFrom: "openai", fallbackReason: error.code };
+    }
+  }
+
   return {
     status() {
       return {
@@ -348,6 +425,7 @@ export function createDetector({
           && (yoloMode === "lambda" ? Boolean(yoloFunctionName) : /^https:\/\//.test(yoloUrl)),
         yolo_mode: yoloMode,
         yolo_model: yoloModel,
+        drive_screen_provider: providerMode === "yolo_then_openai" ? "yolo" : null,
       };
     },
     // The presence of a secret ARN says nothing about the secret's contents. Health
@@ -374,25 +452,16 @@ export function createDetector({
     async detect(input, context) {
       if (providerMode === "openai") return openai(input, context);
       if (providerMode === "yolo") return yolo(input, context);
-      if (providerMode !== "openai_then_yolo") {
-        throw new HttpError(503, "shared_vision_not_configured",
-          "SHARED_DETECTOR_PROVIDER is invalid.");
+      if (providerMode === "openai_then_yolo") return openaiThenYolo(input, context);
+      if (providerMode === "yolo_then_openai") {
+        // A manual photo is one deliberate report, so accuracy outranks speed there:
+        // OpenAI judges it and YOLO keeps its exhaustion-only role.
+        return input.captureMode === "drive"
+          ? yoloThenOpenai(input, context)
+          : openaiThenYolo(input, context);
       }
-      try {
-        return await openai(input, context);
-      } catch (error) {
-        if (!(error instanceof HttpError)
-            || !error.details?.fallback_allowed) throw error;
-        context.detectorFallbackReason = error.code;
-        try {
-          const result = await yolo(input, context);
-          return { ...result, fallbackFrom: "openai", fallbackReason: error.code };
-        } catch (fallbackError) {
-          // No fallback deployed is not news. The OpenAI reason is the one to report.
-          if (fallbackError?.code === "shared_yolo_not_configured") throw error;
-          throw fallbackError;
-        }
-      }
+      throw new HttpError(503, "shared_vision_not_configured",
+        "SHARED_DETECTOR_PROVIDER is invalid.");
     },
   };
 }

@@ -404,6 +404,10 @@ export function createService({
           fallback_from: detection.fallbackFrom,
           fallback_reason: detection.fallbackReason,
         } : {}),
+        ...(detection.screenedBy ? {
+          screened_by: detection.screenedBy,
+          screen_model: detection.screenModel,
+        } : {}),
       },
       quota: { used: null, limit: quota.limit },
     };
@@ -761,6 +765,10 @@ export function createService({
         shared_vision_fallback_provider: "yolo",
         shared_vision_fallback_configured: ready.yolo_configured,
         shared_vision_fallback_model: detector.status().yolo_model,
+        // In yolo_then_openai the YOLO leg also screens every drive frame before OpenAI.
+        shared_vision_drive_screen_provider: detector.status().drive_screen_provider || null,
+        shared_vision_drive_screen_configured: Boolean(detector.status().drive_screen_provider)
+          && ready.yolo_configured,
         detection_prompt_version: DETECT_PROMPT_VERSION,
         detection_schema_version: DETECT_SCHEMA_VERSION,
         shared_detection_receipts_required: true,
@@ -862,6 +870,8 @@ export function createService({
       openai_request_id: context.openaiRequestId || null,
       yolo_request_id: context.yoloRequestId || null,
       detector_fallback_reason: context.detectorFallbackReason || null,
+      detector_screened_by: context.detectorScreenedBy || null,
+      detector_screen_confirmed: context.detectorScreenConfirmed ?? null,
       quota_refunded: context.quotaRefunded || false,
     }));
     return result;
