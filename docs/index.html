@@ -504,6 +504,7 @@ const I18N = {
     native_video_error: "Video import problem: {err}",
     your_reports: "Your reports",
     no_reports: "No reports yet.",
+    history_show_more: "Show {n} more",
     nudge_text: "You have made a few reports. How is it going? Two minutes of feedback shapes the next version.",
     nudge_dismiss: "Not now",
     nudge_open: "Give feedback",
@@ -813,6 +814,7 @@ const I18N = {
     native_video_error: "ವಿಡಿಯೋ ಆಮದು ಸಮಸ್ಯೆ: {err}",
     your_reports: "ನಿಮ್ಮ ವರದಿಗಳು",
     no_reports: "ಇನ್ನೂ ವರದಿಗಳಿಲ್ಲ. ಗುಂಡಿ ಹುಡುಕಲು ಹೊರಡಿ.",
+    history_show_more: "ಇನ್ನೂ {n} ತೋರಿಸಿ",
     nudge_text: "ನೀವು ಕೆಲವು ವರದಿಗಳನ್ನು ಮಾಡಿದ್ದೀರಿ. ಹೇಗೆ ನಡೆಯುತ್ತಿದೆ? ಎರಡು ನಿಮಿಷದ ಅಭಿಪ್ರಾಯ ಮುಂದಿನ ಆವೃತ್ತಿಯನ್ನು ರೂಪಿಸುತ್ತದೆ.",
     nudge_dismiss: "ಈಗ ಬೇಡ",
     nudge_open: "ಅಭಿಪ್ರಾಯ ನೀಡಿ",
@@ -1095,6 +1097,7 @@ const I18N = {
     drive_active_label: "ड्राइव्ह सुरू आहे, उघडा",
     your_reports: "तुमचे अहवाल",
     no_reports: "अजून कोणतेही अहवाल नाहीत.",
+    history_show_more: "आणखी {n} दाखवा",
     nudge_text: "तुम्ही काही अहवाल केले आहेत. कसे चालले आहे? दोन मिनिटांचा अभिप्राय पुढील आवृत्ती घडवतो.",
     nudge_dismiss: "आता नको",
     nudge_open: "अभिप्राय द्या",
@@ -1405,6 +1408,7 @@ const I18N = {
     drive_active_label: "ড্রাইভ চালু আছে, খুলুন",
     your_reports: "আপনার রিপোর্ট",
     no_reports: "এখনও কোনও রিপোর্ট নেই।",
+    history_show_more: "আরও {n} দেখান",
     nudge_text: "আপনি কয়েকটি রিপোর্ট করেছেন। কেমন চলছে? দুই মিনিটের মতামত পরের সংস্করণ গড়ে তোলে।",
     nudge_dismiss: "এখন নয়",
     nudge_open: "মতামত দিন",
@@ -2141,6 +2145,7 @@ async function getNativeDriveHistory(options = {}) {
 
 async function openReportDetail(r, items) {
   if (!r) return;
+  await hydrateReport(r);
   // Native Drive history contains photo bytes in Room/files, not in the lightweight
   // listReports() metadata response. Fetch only the one image the person opened;
   // loading every historical image here made Android History wait on N bridge calls.
@@ -2211,6 +2216,20 @@ async function mergeNativeDriveHistory(drives, footage) {
   }
 }
 
+// Old drive frames and capped video go in the background, at launch and after a drive.
+// History repaints only when something was removed. Never while a drive runs: its
+// frames are still being written and its footage is the drive in progress.
+function pruneStoredHistory() {
+  if (drive) return;
+  api("/api/storage/prune", { method: "POST", body: JSON.stringify({}) })
+    .then((result) => {
+      if (result && (result.frames_deleted || (result.footage_drives_evicted || []).length)) {
+        loadReports();
+      }
+    })
+    .catch(() => {});
+}
+
 function loadReports() {
   loadReportsRequestedGeneration++;
   if (!loadReportsPromise) {
@@ -2230,11 +2249,19 @@ function loadReports() {
   return loadReportsPromise;
 }
 
+// Home paints this many history entries (a report, or a drive with its reports) and
+// this many cards inside an opened drive; "Show more" extends either window. A phone
+// with months of use had every report painted at once, each with its photo pinned.
+const HISTORY_PAGE = 50;
+let historyWindow = HISTORY_PAGE;
+const driveWindows = new Map();
+
 async function renderReports() {
-  const [reports, drives, footage] = await Promise.all([
-    api("/api/reports"), api("/api/drives").catch(() => []),
-    api("/api/footage").catch(() => []),
-  ]);
+  // Metadata only: no photo leaves IndexedDB for the list. Thumbnails are read for
+  // the cards painted, and a report's full row loads when it is opened.
+  const history = await api("/api/history");
+  const reports = history.reports || [], drives = history.drives || [];
+  const footage = history.footage || [];
 
   // ---------- Merge native Drive Mode reports from Room ----------
   let nativeReports = [];
@@ -2291,10 +2318,11 @@ async function renderReports() {
       && !["rejected", "review", "unrouted", "duplicate"].includes(r.status)
       && physicalCondition(r) !== "fixed";
     const src = safePhotoSrc(photoSrc(r));
+    const wantsThumb = src || (r.has_photo && !r._native);
     return `
     <div class="card row" data-id="${escapeAttr(r.id)}" style="cursor:pointer">
       <button type="button" class="card-open">
-      ${src ? `<img class="thumb" src="${src}" alt="" loading="lazy" decoding="async">`
+      ${wantsThumb ? `<img class="thumb thumb-empty"${src ? ` src="${src}"` : ""} data-thumb="${escapeAttr(r.id)}" alt="" loading="lazy" decoding="async">`
         : `<span class="thumb thumb-empty" style="display:block" aria-hidden="true"></span>`}
       <span style="min-width:0;flex:1;display:block">
         <span style="display:block">${chip(r.status, r)} ${damageType(r) ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tDamage(r)}</span>` : ""} ${r.size ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tSize(r.size)}</span>` : ""}</span>
@@ -2342,12 +2370,16 @@ async function renderReports() {
     if (!g.driveId) continue;
     g.items.sort((a, b) => (FOUND.includes(b.status) ? 1 : 0) - (FOUND.includes(a.status) ? 1 : 0) || b.id - a.id);
   }
-  const willShow = groups.flatMap((g) =>
-    (!g.driveId || expandedDrives.has(String(g.driveId))) ? g.items : []);
-  // Do not fetch/decode every historical photo before painting the list. Blob rows can
-  // become object URLs synchronously and data-URL rows remain lazy <img> sources.
-  // Browser loading="lazy" and decoding="async" take care of the visible thumbnails.
-  releaseThumbs(new Set(allReports.map((r) => r.id)));
+  const driveWindow = (id) => driveWindows.get(String(id)) || HISTORY_PAGE;
+  const driveCards = (g) => {
+    const shown = g.items.slice(0, driveWindow(g.driveId));
+    const rest = g.items.length - shown.length;
+    return shown.map(cardHtml).join("") + (rest > 0
+      ? `<button type="button" class="ghost" data-drivemore="${escapeAttr(g.driveId)}" style="width:100%;margin:6px 0">${escapeHtml(t("history_show_more", { n: rest }))}</button>`
+      : "");
+  };
+  const shownGroups = groups.slice(0, historyWindow);
+  const hiddenGroups = groups.length - shownGroups.length;
   const footageRowHtml = (driveId, fo, open) => !fo ? "" :
     `<div class="card" data-footagerow="${driveId}" style="padding:10px 12px;${open ? "" : "display:none"}">
       <div class="meta">${t("footage_line", { mb: mbText(fo.bytes), segments: fo.segments })}${fo.native && fo.keyframes ? ` · ${fo.keyframes} saved frame${fo.keyframes === 1 ? "" : "s"}` : ""}</div>
@@ -2358,9 +2390,9 @@ async function renderReports() {
         <button class="ghost danger" data-delfootage="${driveId}">${t("delete_footage")}</button>
       </div>
     </div>`;
-  list.innerHTML = groups.map((g) => {
+  list.innerHTML = shownGroups.map((g) => {
     const cards = expandedDrives.has(String(g.driveId)) || !g.driveId
-      ? g.items.map(cardHtml).join("") : "";
+      ? driveCards(g) : "";
     if (!g.driveId) return cards;
     const rec = driveById[String(g.driveId)], fo = footageById[String(g.driveId)];
     // The cards are the canonical unique events. A drive summary only describes its live
@@ -2396,7 +2428,28 @@ async function renderReports() {
       </button>` + footageRow
       + `<div data-drivebody="${g.driveId}"${open ? ' data-filled="1"' : ' style="display:none"'}>`
       + (open ? cards : "") + `</div>`;
-  }).join("");
+  }).join("") + (hiddenGroups > 0
+    ? `<button type="button" class="ghost" id="historyMore" style="width:100%;margin:6px 0">${escapeHtml(t("history_show_more", { n: hiddenGroups }))}</button>`
+    : "");
+  const more = $("historyMore");
+  if (more) more.onclick = () => { historyWindow += HISTORY_PAGE; loadReports(); };
+  const wireDriveMore = (root) => {
+    for (const el of root.querySelectorAll("[data-drivemore]")) {
+      el.onclick = (ev) => {
+        ev.stopPropagation();
+        const id = el.dataset.drivemore;
+        driveWindows.set(id, driveWindow(id) + HISTORY_PAGE);
+        const g = groups.find((x) => String(x.driveId) === id);
+        const body = list.querySelector(`[data-drivebody="${id}"]`);
+        if (!g || !body) { loadReports(); return; }
+        body.innerHTML = driveCards(g);
+        wireCards(body, g.items);
+        wireDriveMore(body);
+        void hydrateThumbs(body);
+      };
+    }
+  };
+  wireDriveMore(list);
   for (const el of list.querySelectorAll("[data-drive]")) {
     el.onclick = () => {
       const id = el.dataset.drive;
@@ -2414,8 +2467,10 @@ async function renderReports() {
         const g = groups.find((x) => String(x.driveId) === id);
         if (g && !body.dataset.filled) {
           body.dataset.filled = "1";
-          body.innerHTML = g.items.map(cardHtml).join("");
+          body.innerHTML = driveCards(g);
           wireCards(body, g.items);
+          wireDriveMore(body);
+          void hydrateThumbs(body);
         }
         body.style.display = "";
         if (footageRow) footageRow.style.display = "";
@@ -2468,8 +2523,50 @@ async function renderReports() {
       loadReports();
     };
   }
-  const visible = groups.flatMap((g) => (!g.driveId || expandedDrives.has(String(g.driveId))) ? g.items : []);
+  const visible = shownGroups.flatMap((g) => (!g.driveId || expandedDrives.has(String(g.driveId))) ? g.items : []);
   wireCards(list, visible);
+  // Object URLs pin their photo. Keep only the painted cards' and the open detail's.
+  const keep = new Set(Array.from(list.querySelectorAll("[data-id]"), (el) => el.dataset.id));
+  const shownDetail = detailList[detailIdx];
+  if (shownDetail) keep.add(String(shownDetail.id));
+  releaseThumbs(keep);
+  await hydrateThumbs(list);
+}
+
+// Thumbnails for the cards in `root` that have none yet: one batched read of exactly
+// those photos. Native rows hydrate on open, as before.
+async function hydrateThumbs(root) {
+  const pending = Array.from(root.querySelectorAll("img.thumb[data-thumb]"))
+    .filter((img) => !img.getAttribute("src"));
+  const ids = [...new Set(pending.map((img) => img.dataset.thumb)
+    .filter((id) => /^\d+$/.test(id) && !thumbUrls.has(Number(id))))].map(Number);
+  if (ids.length) {
+    let photos = {};
+    try { photos = await api("/api/reports/thumbs", { method: "POST", body: JSON.stringify({ ids }) }); }
+    catch (_) { photos = {}; }
+    for (const [id, photo] of Object.entries(photos || {})) {
+      if (photo instanceof Blob) thumbUrls.set(Number(id), URL.createObjectURL(photo));
+      else if (typeof photo === "string") thumbUrls.set(Number(id), photo);
+    }
+  }
+  for (const img of pending) {
+    const src = safePhotoSrc(thumbUrls.get(Number(img.dataset.thumb)) || "");
+    if (src) img.setAttribute("src", src);
+  }
+}
+
+// A list row is metadata. Before the detail screen, the composer or the viewer reads
+// its photo or complaint text, load the full row by id into the same object.
+async function hydrateReport(r) {
+  if (!r || !r.summary_only || r._native) return r;
+  try {
+    const full = await api(`/api/reports/${encodeURIComponent(r.id)}`);
+    if (full && full.id === r.id) {
+      Object.assign(r, full);
+      delete r.summary_only;
+    }
+  } catch (_) {}
+  return r;
 }
 
 // The most recent fix the phone handed any part of the app: the photo sampler, a
@@ -5362,6 +5459,7 @@ function stopDrive() {
         already_ids: [...ctx.duplicateIds],
         gps_track: gpsTrack }) })
       .catch(() => {});
+    pruneStoredHistory();
     await returnHome();
     // Captured frames that were never checked are road nobody looked at; say how many.
     const fatalKey = ctx.fatalError && SHARED_SERVICE_ERROR_KEYS[String(ctx.fatalError.code || "")];
@@ -5926,12 +6024,14 @@ function closeViewer() {
   if (wasOpen && photo) photo.focus({ preventScroll: true });
 }
 
-function viewerStep(delta) {
+async function viewerStep(delta) {
   if (detailList.length < 2) return;
   const i = detailIdx + delta;
   if (i < 0 || i >= detailList.length) return;
   detailIdx = i;
   const r = detailList[i];
+  await hydrateReport(r);
+  if (detailIdx !== i) return;
   openDetail(r, detailList);          // keep the card behind the viewer in sync
   openViewer(r);
 }
@@ -8147,7 +8247,7 @@ async function openDash() {
   // The pins wait only for /v1/map. The impact counts are several times slower and the
   // local history grows with every drive; their tiles fill in when each settles.
   const localP = Promise.all([
-    publicOnly ? Promise.resolve([]) : api("/api/reports").catch(() => []),
+    publicOnly ? Promise.resolve([]) : api("/api/history").then((h) => h.reports || []).catch(() => []),
     publicOnly ? Promise.resolve([]) : api("/api/drives").catch(() => []),
     publicOnly ? Promise.resolve([]) : api("/api/footage").catch(() => []),
   ]);
@@ -9011,6 +9111,7 @@ nativeInitialRestorePromise = (async () => {
   }
   // Only once storage is known to work: the restored photo becomes a report.
   listenForRestoredCameraPhoto();
+  pruneStoredHistory();
   const m = location.hash.match(/^#report-(\d+)$/);
   // The initial render is already complete. A second immediate call increments the
   // refresh generation and rebuilds the entire History list for no user-visible gain.
