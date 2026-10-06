@@ -58,3 +58,70 @@ export function nearbyCells(lat, lng, radiusMetres) {
 export function roundedPublicCoordinate(value) {
   return Math.round(value * 100_000) / 100_000;
 }
+
+// The local geometry (town polygons, the state boundary, highway centre lines) is stored
+// the way the app's highway tiles are: integer coordinates at a fixed scale, each ring or
+// line as [x0, y0, dx1, dy1, dx2, dy2, ...]. Decoding is done per candidate after a
+// bounding-box test, so a lookup touches a handful of rings, not the whole state.
+export function decodeRun(encoded) {
+  const points = new Array(encoded.length / 2);
+  let x = encoded[0];
+  let y = encoded[1];
+  points[0] = [x, y];
+  for (let index = 2; index < encoded.length; index += 2) {
+    x += encoded[index];
+    y += encoded[index + 1];
+    points[index / 2] = [x, y];
+  }
+  return points;
+}
+
+export function withinBox(x, y, box, padX = 0, padY = padX) {
+  return x >= box[0] - padX && x <= box[2] + padX && y >= box[1] - padY && y <= box[3] + padY;
+}
+
+// Even-odd rule across every ring, so holes and multi-part polygons need no orientation
+// bookkeeping: a point inside an outer ring and inside one of its holes crosses an odd
+// number of edges twice and is outside. x and y are in the rings' scaled units.
+export function pointInRings(x, y, rings) {
+  let inside = false;
+  for (const encoded of rings) {
+    const ring = decodeRun(encoded);
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+      const [xi, yi] = ring[i];
+      const [xj, yj] = ring[j];
+      if ((yi > y) !== (yj > y) && x < xi + ((y - yi) * (xj - xi)) / (yj - yi)) {
+        inside = !inside;
+      }
+    }
+  }
+  return inside;
+}
+
+// Same local flat-earth metric as the app's highway matcher, so the server and the phone
+// agree on how far a fix is from a mapped carriageway.
+export function metresToSegment(lng, lat, aLng, aLat, bLng, bLat) {
+  const radians = Math.PI / 180;
+  const metresPerLng = 111_320 * Math.cos(lat * radians);
+  const ax = (aLng - lng) * metresPerLng;
+  const ay = (aLat - lat) * 110_540;
+  const bx = (bLng - lng) * metresPerLng;
+  const by = (bLat - lat) * 110_540;
+  const dx = bx - ax;
+  const dy = by - ay;
+  const denominator = dx * dx + dy * dy;
+  const turn = denominator ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / denominator)) : 0;
+  return Math.hypot(ax + turn * dx, ay + turn * dy);
+}
+
+export function metresToPolyline(lng, lat, encoded, scale) {
+  const line = decodeRun(encoded);
+  let nearest = Infinity;
+  for (let index = 1; index < line.length; index += 1) {
+    const distance = metresToSegment(lng, lat,
+      line[index - 1][0] / scale, line[index - 1][1] / scale,
+      line[index][0] / scale, line[index][1] / scale);
+    if (distance < nearest) nearest = distance;
+  }
+  return nearest;
+}
