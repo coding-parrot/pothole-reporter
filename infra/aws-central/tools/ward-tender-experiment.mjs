@@ -4,6 +4,7 @@
 // tender matcher with the Bengaluru rows of the tender pack.
 //
 //   node infra/aws-central/tools/ward-tender-experiment.mjs [--limit 40] [--skip 0] [--cache <file>] [--examples 10] [--live-kgis]
+//        [--points <file>] [--pairs]
 //
 // Reads GET /v1/map, keeps the features whose town starts with "GBA", one per 100 m cell
 // (lat and lng to 3 decimals), and reverse-geocodes each exactly as geolocation.mjs does,
@@ -12,6 +13,11 @@
 // snapshot, as it does in the service. KGIS itself is not called, so the town and the
 // road class come from the snapshots too (what the service answers when KGIS is down);
 // --live-kgis asks KGIS for those two, as the service does when it is up. Read-only.
+//
+// --points reads the locations from a JSON array of {lat, lng} instead of the map (one
+// point inside each Bengaluru ward, say), and --pairs lists every ward tender of every
+// point, not only the five answered, with its basis and its division, for a person to
+// read: a tender matched on a locality's name is the kind that can be a namesake.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,11 +36,15 @@ const skip = Number(arg("--skip", "0"));
 const examples = Number(arg("--examples", "10"));
 const cachePath = arg("--cache", "");
 const liveKgis = args.includes("--live-kgis");
+const pointsPath = arg("--points", "");
+const listPairs = args.includes("--pairs");
 
 async function main() {
-  const map = await (await fetch(`${API_URL}/v1/map`, { signal: AbortSignal.timeout(30_000) })).json();
+  const map = pointsPath ? { features: [] }
+    : await (await fetch(`${API_URL}/v1/map`, { signal: AbortSignal.timeout(30_000) })).json();
   const cells = new Set();
-  const points = [];
+  const points = pointsPath
+    ? JSON.parse(fs.readFileSync(pointsPath, "utf8")).map(({ lat, lng }) => ({ lat, lng })) : [];
   for (const feature of map.features || []) {
     if (!String(feature.properties?.town || "").startsWith("GBA")) continue;
     const [lng, lat] = feature.geometry.coordinates;
@@ -100,9 +110,21 @@ async function main() {
   console.log(`street-level tender: ${rows.filter((row) => row.street.tender).length} of ${rows.length}  ${JSON.stringify(reasons)}`);
   console.log(`at least one ward tender: ${rows.filter((row) => row.ward.length).length} of ${rows.length}`);
   console.log(`either: ${rows.filter((row) => row.ward.length || row.street.tender).length} of ${rows.length}`);
+  const byBasis = (kind) => rows.reduce((sum, row) => sum
+    + row.every.filter((entry) => entry.match_basis.startsWith(kind)).length, 0);
+  console.log(`ward tender pairs, every one and not only the five: ${byBasis("ward name")} on the ward's name, `
+    + `${byBasis("locality")} on a locality's (${rows.filter((row) => row.every.some((entry) => entry.match_basis.startsWith("locality"))).length} points)`);
   const crowded = rows.filter((row) => row.every.length > row.ward.length
     && row.every.slice(row.ward.length).some((entry) => entry.match_basis.startsWith("locality")));
   console.log(`points where a locality tender fell outside the five: ${crowded.length}`);
+  if (listPairs) {
+    console.log("\nevery pair:");
+    for (const [index, row] of rows.entries()) {
+      for (const entry of row.every) {
+        console.log(`P${index + 1} | ${row.jurisdiction.ward_name} | ${entry.match_basis} | ${entry.location} | ${entry.title}`);
+      }
+    }
+  }
   console.log("\nevery point:");
   for (const [index, row] of rows.entries()) {
     const top = row.ward[0];
