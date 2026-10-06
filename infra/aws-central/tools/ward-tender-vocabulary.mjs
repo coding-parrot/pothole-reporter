@@ -13,7 +13,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  ENDING_RULES, SPELLING_EDITS, SPELLING_RULES, localityKeys, matchWardTenders, sameLocality, titleNameKeys,
+  ENDING_RULES, SPELLING_EDITS, SPELLING_RULES, localityKeys, matchWardTenders, offeredFor, sameLocality,
+  titleNameKeys,
 } from "../service/ward-tenders.mjs";
 import { prepareTenders } from "./seed-tenders.mjs";
 
@@ -78,7 +79,7 @@ function main() {
     for (const entry of keys) {
       for (const [index, names] of titleKeys.entries()) {
         for (const name of names) {
-          if (sameLocality(entry, name) !== "variant") continue;
+          if (sameLocality(entry, name) !== "variant" || !offeredFor(entry, name)) continue;
           const label = `${entry.key} ~ ${name.key}`;
           if (!variants.has(label)) variants.set(label, { ward: ward.name, title: rows[index].title, count: 0 });
           variants.get(label).count += 1;
@@ -99,7 +100,7 @@ function main() {
   const covered = (without) => new Set(wards.filter((ward) => {
     const keys = localityKeys(ward.name, without);
     return keys.length && rows.some((row) => namesIn(row.title, without)
-      .some((name) => keys.some((entry) => sameLocality(entry, name, without))));
+      .some((name) => keys.some((entry) => offeredFor(entry, name, without))));
   }).map((ward) => ward.name));
   const everything = covered(null);
   console.log("\nwhat each rule is there for (ward names that find no tender without it):");

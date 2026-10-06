@@ -5,7 +5,8 @@ import test from "node:test";
 import { wardRosterOf } from "../service/geolocation.mjs";
 import { matchTender } from "../service/tenders.mjs";
 import {
-  WARD_TENDER_LIMIT, elsewhere, localityKeys, matchWardTenders, sameLocality, titleNameKeys, titledWardKeys,
+  WARD_TENDER_LIMIT, elsewhere, localityKeys, matchWardTenders, offeredFor, sameLocality, titleNameKeys,
+  titledWardKeys,
 } from "../service/ward-tenders.mjs";
 import { loadBodyTenders, loadWardNames } from "../tools/ward-tender-vocabulary.mjs";
 import { CASES } from "./ward-tender-cases.mjs";
@@ -127,7 +128,7 @@ test("another place with a near name is another place", () => {
 
 test("a name inside another name, a road's name or a larger unit's is not offered", () => {
   const offered = (title, name) => localityKeys(name)
-    .some((key) => titleNameKeys(title).some((entry) => !entry.lead && sameLocality(key, entry)));
+    .some((key) => titleNameKeys(title).some((entry) => !entry.lead && offeredFor(key, entry)));
   assert.ok(offered("Improvements to roads at Horamavu agara Jyothi Nagara Colony in ward No.87 Horamavu", "Horamavu"));
   assert.ok(!offered("Improvements to roads at Horamavu agara Jyothi Nagara Colony in ward No.87 Horamavu", "Agara"));
   assert.ok(!offered("Asphalting of roads in Old Guddadahalli", "Guddadahalli"));
@@ -138,6 +139,8 @@ test("a name inside another name, a road's name or a larger unit's is not offere
   assert.ok(offered("Resurfacing of roads in Chowdeshwari ward no-02", "Chowdeshwari ward"));
   assert.ok(!offered("Asphalting of Hennur Main Road from the junction", "Hennur"));
   assert.ok(!offered("Asphalting of Anandapura road", "Anandapura"));
+  assert.ok(!offered("Widening of Kadri Kambla road of 30th Kodialbail ward in MCC limits", "KADRI NORTH"));
+  assert.ok(offered("Widening of Kadri Kambla road of 30th Kodialbail ward in MCC limits", "KODIYALBAIL"));
   assert.ok(!offered("Pothole filling in Ward No. 214-Puttenahalli in Bommanahalli Division", "Bommanahalli"));
   assert.ok(offered("Pothole filling in Ward No. 214-Puttenahalli in Bommanahalli Division", "Puttenahalli"));
   assert.ok(offered("Improvements to roads at Bhattarahalli Janatha Colony in ward No-91 K R Pura", "Bhattarahalli"));
@@ -149,6 +152,27 @@ test("a name inside another name, a road's name or a larger unit's is not offere
   assert.ok(offered("Pothole filling works in ward limits of Mahadevapura Assembly Constituency for the year 2024-25", "Mahadevapura"));
   assert.ok(offered("Maintenance of roads and pot holes filling in ward No.46,47,48 & 49 Nagapura sub division", "Nagapura"));
   assert.ok(offered("Improvements to roads in Munnekolala colony at Munnekolala ward no.105", "Munnenkolalu"));
+});
+
+test("a ward that is one side of a place does not take the other side's tender", () => {
+  // Mangaluru: Kunjathbail North and Kunjathbail South are two wards.
+  const north = tender("Providing concrete pavement near KHB colony of 13 Kunjathbail north ward in MCC limits");
+  const plain = tender("Asphalting of roads in Kunjathbail in MCC limits");
+  assert.deepEqual(titles(matchWardTenders({ wardName: "KUNJATHBAIL SOUTH", tenders: [north, plain] })), [plain.title]);
+  assert.deepEqual(titles(matchWardTenders({ wardName: "KUNJATHBAIL NORTH", tenders: [north, plain] })).sort(),
+    [north.title, plain.title].sort());
+  assert.deepEqual(titles(matchWardTenders({ wardName: "Kunjathbail", tenders: [north, plain] })).sort(),
+    [north.title, plain.title].sort(), "a ward with no side takes either");
+  // A title that says the name both ways is taken.
+  const both = tender("Asphalting of roads in Jayanagar West and in Jayanagar 4th block");
+  assert.equal(matchWardTenders({ wardName: "Jayanagar East", tenders: [both] }).length, 1);
+  assert.equal(matchWardTenders({ wardName: "Jayanagar East", tenders: [tender("Asphalting of roads in Jayanagar West")] }).length, 0);
+});
+
+test("a ward named for two places is found under either", () => {
+  // Mysuru's "Gokulam,Brudhavana".
+  assert.deepEqual(localityKeys("Gokulam,Brudhavana").map((entry) => entry.key), ["gokulam", "brudavan"]);
+  assert.equal(matchWardTenders({ wardName: "Gokulam,Brudhavana", tenders: [tender("Asphalting of roads in Gokulam 3rd stage")] }).length, 1);
 });
 
 test("a name behind another name counts only for a point in both places", () => {

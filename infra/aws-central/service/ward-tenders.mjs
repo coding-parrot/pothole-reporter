@@ -52,6 +52,8 @@ const NAME_FORMING = new Set(["nagar", "nagara", "pura", "puram", "palya", "hall
 // wards: "Hennur Main Road" is not a tender for Hennur ward.
 const ROAD_WORDS = new Set(["road", "rd", "street", "highway", "flyover", "underpass", "junction", "circle"]);
 const ROAD_LEADERS = new Set(["main", "cross", "ring", "link", "service", "high", "double"]);
+const namesRoad = (words, index) => ROAD_WORDS.has(words[index])
+  || (ROAD_LEADERS.has(words[index]) && ROAD_WORDS.has(words[index + 1]));
 
 const VOWELS = new Set(["a", "e", "i", "o", "u"]);
 
@@ -156,30 +158,43 @@ const wordsOf = (value) => String(value || "").toLowerCase().match(/[a-z]+|\d+[a
 const numbered = (word) => /^\d/.test(word);
 
 // The spellings a ward or locality name may be found under in a title, or none when the
-// name is generic. "49 - Doddakannelli Ward" is Doddakannelli, "Jayanagar East" is
-// Jayanagar, "BEML Layout 6th Stage" is BEML Layout, "Thubarahalli Palya" (the hamlet of
-// Thubarahalli) is also Thubarahalli.
+// name is generic. "49 - Doddakannelli Ward" is Doddakannelli, "BEML Layout 6th Stage" is
+// BEML Layout, "Thubarahalli Palya" (the hamlet of Thubarahalli) is also Thubarahalli, and
+// "Gokulam,Brudhavana" (a Mysuru ward) is two names. "Jayanagar East" is Jayanagar with
+// `toward` east: a title's plain Jayanagar is taken, its Jayanagar West is not (Mangaluru
+// has Kunjathbail North and Kunjathbail South).
 export function localityKeys(name, without = null) {
-  let words = wordsOf(String(name || "").replace(/^\s*\d+\s*-\s*/, ""));
-  const firstNumber = words.findIndex(numbered);
-  if (firstNumber > 0) words = words.slice(0, firstNumber);
-  words = words.filter((word) => !numbered(word));
-  while (words.length > 1 && (words[words.length - 1] === "ward" || DIRECTIONS.has(words[words.length - 1]))) {
-    words = words.slice(0, -1);
-  }
-  const distinctive = words.filter((word) => !GENERIC.has(word)).join("");
-  if (distinctive.length < 2) return [];
-  const keys = [named(words, without)];
-  const last = words[words.length - 1];
-  if (words.length > 1 && last === "palya" && /(?:halli|sandra|pura|kere)$/.test(words[words.length - 2])) {
-    keys.push(named(words.slice(0, -1), without));
+  const keys = [];
+  for (const part of String(name || "").replace(/^\s*\d+\s*-\s*/, "").split(/[,;/&]+/)) {
+    let words = wordsOf(part);
+    const firstNumber = words.findIndex(numbered);
+    if (firstNumber > 0) words = words.slice(0, firstNumber);
+    words = words.filter((word) => !numbered(word));
+    let toward = null;
+    while (words.length > 1 && (words[words.length - 1] === "ward" || DIRECTIONS.has(words[words.length - 1]))) {
+      if (DIRECTIONS.has(words[words.length - 1])) toward = toward || words[words.length - 1];
+      words = words.slice(0, -1);
+    }
+    const distinctive = words.filter((word) => !GENERIC.has(word)).join("");
+    if (distinctive.length < 2) continue;
+    keys.push({ ...named(words, without), toward });
+    const last = words[words.length - 1];
+    if (words.length > 1 && last === "palya" && /(?:halli|sandra|pura|kere)$/.test(words[words.length - 2])) {
+      keys.push({ ...named(words.slice(0, -1), without), toward });
+    }
   }
   return keys.filter((entry, index, all) => entry.key.length >= 3
     && all.findIndex((other) => other.key === entry.key) === index);
 }
 
+// A wanted name against a name a title offers: the same place, and not the title's other
+// half of it.
+export const offeredFor = (want, name, without = null) => sameLocality(want, name, without)
+  && (!want.toward || !name.toward || name.toward.has(null) || name.toward.has(want.toward));
+
 // Every run of one to three words in a title that could be a place name there, as a
-// spelling key. Runs stop at punctuation, at joining words and at numbers. A run is not
+// spelling key, with the direction words that follow it (`toward`; null for none). Runs
+// stop at punctuation, at joining words and at numbers. A run is not
 // offered when the word after it makes it another name, a road's name or (but for area-wide
 // pothole filling) a larger unit's.
 // A name may be followed by the part of it the work is in ("Bhattarahalli Janatha
@@ -189,6 +204,7 @@ export function localityKeys(name, without = null) {
 // a point in Doddigunta, Cox Town).
 export function titleNameKeys(title, without = null) {
   const keys = new Map();
+  const ways = new Map();
   const titled = new Set(titledWardKeys(title).map((entry) => entry.key));
   const pothole = potholeWork(title);
   const segments = String(title || "").toLowerCase().split(/[^a-z0-9.\s]+|\s-\s/)
@@ -215,17 +231,21 @@ export function titleNameKeys(title, without = null) {
         const run = words.slice(start, start + length);
         if (boundary(run[run.length - 1])) break;
         const after = words[start + length];
-        const afterNext = words[start + length + 1];
         if (after && NAME_FORMING.has(after)) continue;
-        if (after && (ROAD_WORDS.has(after) || (ROAD_LEADERS.has(after) && ROAD_WORDS.has(afterNext)))) continue;
+        if (namesRoad(words, start + length)) continue;
+        // "Kadri Kambla road" is a road too: Kadri is not where the work is.
+        if (after && !boundary(after) && !GENERIC.has(after) && namesRoad(words, start + length + 1)) continue;
         const entry = { ...named(run, without), lead };
         if (entry.key.length < 3) continue;
         if (after && largerUnit(after, start + length === words.length - 1 && lastSegment)
             && !(pothole && (!titled.size || titled.has(localityKey(run))))) continue;
+        // The direction words that follow the name, from every mention of its kind.
+        const slot = `${lead ? "behind" : "plain"} ${entry.key}`;
+        if (!ways.has(slot)) ways.set(slot, new Set());
+        entry.toward = ways.get(slot).add(DIRECTIONS.has(after) ? after : null);
         const held = keys.get(entry.key);
         // A plainly bounded mention beats a compound one, then the shorter own part.
-        if (held && (!held.lead || lead) && held.own <= entry.own) continue;
-        if (held && !held.lead && lead) continue;
+        if (held && ((!held.lead && lead) || (Boolean(held.lead) === Boolean(lead) && held.own <= entry.own))) continue;
         keys.set(entry.key, entry);
       }
     }
@@ -376,7 +396,7 @@ export function matchWardTenders({
     let locality = null;
     for (const want of wanted) {
       if ((want.ward ? ward : locality)
-          || !names.some((name) => sameLocality(want.key, name) && ours(name))) continue;
+          || !names.some((name) => offeredFor(want.key, name) && ours(name))) continue;
       if (want.ward) ward = want.basis;
       else locality = want.basis;
     }

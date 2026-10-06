@@ -3,13 +3,15 @@
 // pothole locations from the public map, put through the street matcher and the ward
 // tender matcher with the Bengaluru rows of the tender pack.
 //
-//   node infra/aws-central/tools/ward-tender-experiment.mjs [--limit 40] [--skip 0] [--cache <file>] [--examples 10]
+//   node infra/aws-central/tools/ward-tender-experiment.mjs [--limit 40] [--skip 0] [--cache <file>] [--examples 10] [--live-kgis]
 //
 // Reads GET /v1/map, keeps the features whose town starts with "GBA", one per 100 m cell
 // (lat and lng to 3 decimals), and reverse-geocodes each exactly as geolocation.mjs does,
 // at most one request a second. --cache keeps the geocoder's answers in a file so a
 // second run asks for nothing it already has. The ward comes from the packaged KGIS
-// snapshot (KGIS itself is not called), as it does in the service. Read-only.
+// snapshot, as it does in the service. KGIS itself is not called, so the town and the
+// road class come from the snapshots too (what the service answers when KGIS is down);
+// --live-kgis asks KGIS for those two, as the service does when it is up. Read-only.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,6 +29,7 @@ const limit = Number(arg("--limit", "40"));
 const skip = Number(arg("--skip", "0"));
 const examples = Number(arg("--examples", "10"));
 const cachePath = arg("--cache", "");
+const liveKgis = args.includes("--live-kgis");
 
 async function main() {
   const map = await (await fetch(`${API_URL}/v1/map`, { signal: AbortSignal.timeout(30_000) })).json();
@@ -43,14 +46,18 @@ async function main() {
   const chosen = points.slice(skip, skip + limit);
   const cache = cachePath && fs.existsSync(cachePath) ? JSON.parse(fs.readFileSync(cachePath, "utf8")) : {};
   let lastAsked = 0;
-  // The service's own geolocator, with the network narrowed to the geocoder: KGIS is
-  // refused, so the town and the ward both come from the packaged snapshots.
+  // The service's own geolocator, with the network narrowed to the geocoder (and to KGIS
+  // with --live-kgis, given 20 s where the service gives it 3).
   const geolocator = createGeolocator({
     geocoderUrl: GEOCODER,
+    kgisTimeoutMs: 20_000,
     logger: { error() {}, log() {} },
     fetchImpl: async (input, options) => {
       const url = new URL(input);
-      if (url.origin !== new URL(GEOCODER).origin) throw new Error("KGIS is not called by this tool");
+      if (url.origin !== new URL(GEOCODER).origin) {
+        if (liveKgis && url.hostname === "kgis.ksrsac.in") return fetch(input, options);
+        throw new Error("KGIS is not called by this tool");
+      }
       const key = `${url.searchParams.get("lat")},${url.searchParams.get("lon")}`;
       if (!cache[key]) {
         const wait = lastAsked + 1_100 - Date.now();
@@ -68,21 +75,26 @@ async function main() {
   const rows = [];
   for (const point of chosen) {
     const jurisdiction = await geolocator.resolve(point);
-    const street = matchTender(jurisdiction.address, tenders);
+    // As core.mjs routes it: a town's index is read for a municipal point only, and the
+    // street-level tender is not repeated among the ward tenders.
+    const municipal = jurisdiction.road_ownership === "municipal";
+    const street = municipal ? matchTender(jurisdiction.address, tenders) : { tender: null, reason: jurisdiction.road_ownership };
     const roster = jurisdiction.ward_code ? await geolocator.wardRoster(jurisdiction.ward_code) : null;
     const input = {
       wardName: jurisdiction.ward_name, localities: jurisdiction.address_parts?.localities || [], tenders, point, roster,
     };
+    const besides = (found) => found.filter((entry) => entry.tender_number !== street.tender?.tender_number);
     rows.push({
       ...point, jurisdiction, street,
-      ward: matchWardTenders(input),
-      every: matchWardTenders({ ...input, limit: Infinity }),
+      ward: municipal ? besides(matchWardTenders(input)) : [],
+      every: municipal ? besides(matchWardTenders({ ...input, limit: Infinity })) : [],
     });
   }
   const located = rows.filter((row) => row.jurisdiction.road_ownership === "municipal");
   const reasons = {};
   for (const row of rows) reasons[row.street.reason || "tender_matched"] = (reasons[row.street.reason || "tender_matched"] || 0) + 1;
   console.log(`${rows.length} points (${points.length} cells on the map, skipped ${skip}), ${tenders.length} Bengaluru road tenders`);
+  console.log(`road class from ${rows.filter((row) => row.jurisdiction.source === "kgis").length ? "live KGIS" : "the packaged snapshot"}`);
   console.log(`municipal: ${located.length}, ward resolved: ${rows.filter((row) => row.jurisdiction.ward_name).length}, `
     + `geocoded: ${rows.filter((row) => row.jurisdiction.address_source === "operator_geocoder").length}`);
   console.log(`street-level tender: ${rows.filter((row) => row.street.tender).length} of ${rows.length}  ${JSON.stringify(reasons)}`);
@@ -99,17 +111,24 @@ async function main() {
       + ` | street ${row.street.tender ? row.street.tender.title : row.street.reason}`
       + ` | ward tenders ${row.ward.length} of ${row.every.length}${top ? ` | top [${top.match_basis}] ${top.title}` : ""}`);
   }
-  // One example per distinct ward and top tender, so ten examples are ten judgements.
-  const seen = new Set();
-  const shown = rows.filter((row) => {
-    const key = `${row.jurisdiction.ward_name}|${row.jurisdiction.address_parts?.localities?.[0]}|${row.ward[0]?.tender_number}`;
-    if (!row.ward.length || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, examples);
+  // Reports cluster, so many points share a ward and a top tender. Each distinct answer is
+  // shown once first; other addresses with a repeated answer fill what is left.
+  const answers = new Set();
+  const addresses = new Set();
+  const fresh = [];
+  const repeats = [];
+  for (const row of rows) {
+    if (!row.ward.length || addresses.has(row.jurisdiction.address)) continue;
+    addresses.add(row.jurisdiction.address);
+    const answer = row.ward.map((entry) => entry.tender_number).join("|");
+    (answers.has(answer) ? repeats : fresh).push(row);
+    answers.add(answer);
+  }
+  const shown = [...fresh, ...repeats].slice(0, examples);
+  console.log(`\ndistinct answers among the points with a ward tender: ${fresh.length}`);
   console.log(`\n${shown.length} examples to judge:`);
   for (const row of shown) {
-    console.log(`- address: ${row.jurisdiction.address}\n  ward: ${row.jurisdiction.ward_no} ${row.jurisdiction.ward_name} (KGIS current numbering)`);
+    console.log(`- address: ${row.jurisdiction.address}\n  ward: ${row.jurisdiction.ward_name} (KGIS ward ${row.jurisdiction.ward_no}, current numbering)`);
     for (const entry of row.ward) console.log(`  [${entry.match_basis}] ${entry.published} ${entry.title}`);
   }
 }
