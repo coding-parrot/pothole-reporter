@@ -160,6 +160,7 @@ def main():
                 body: document.body.textContent,
                 stats: document.querySelector('#communityStats').textContent,
                 note: document.querySelector('#communityNote').textContent,
+                period: document.querySelector('#communityPeriod').textContent,
                 mapNote: document.querySelector('#mapNote').textContent,
                 popups,
                 pinKeys: Object.keys(sample).sort(),
@@ -183,7 +184,7 @@ def main():
             failures.append(f"public aggregate tile missing {expected!r}: {state['stats']!r}")
     if state["mapNote"] != "2 potholes · 5 reports":
         failures.append(f"wrong canonical-location/count summary: {state['mapNote']!r}")
-    if "cannot verify that an email was sent" not in state["note"]:
+    if "cannot verify that an email was sent" not in state["note"] + " " + state.get("period", ""):
         failures.append("public count does not disclose that email delivery is unverified")
     popup_text = " ".join(state["popups"])
     for expected in ("Pothole #41", "3 complaint reports", "Pothole #42", "2 complaint reports"):

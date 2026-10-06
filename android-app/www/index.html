@@ -616,6 +616,7 @@ const I18N = {
     public_map_refresh: "Refresh",
     public_map_offline: "The public map did not load: the connection is slow or offline. Tap Refresh to try again.",
     public_map_privacy: "Reports grouped by nearby location.",
+    public_map_unverified: "The app opens email drafts but cannot verify that an email was sent.",
     impact_period: "Aggregate counts for {from} to {to}.",
     pothole_ref: "Pothole #{id}",
     complaint_one: "1 complaint report", complaint_many: "{n} complaint reports",
@@ -918,6 +919,7 @@ const I18N = {
     public_map_refresh: "ಮತ್ತೆ ಲೋಡ್ ಮಾಡಿ",
     public_map_offline: "ಸಾರ್ವಜನಿಕ ನಕ್ಷೆ ಲೋಡ್ ಆಗಲಿಲ್ಲ: ಸಂಪರ್ಕ ನಿಧಾನವಾಗಿದೆ ಅಥವಾ ಇಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲು \"ಮತ್ತೆ ಲೋಡ್ ಮಾಡಿ\" ಒತ್ತಿರಿ.",
     public_map_privacy: "ಹತ್ತಿರದ ಸ್ಥಳದಿಂದ ವರದಿಗಳನ್ನು ಗುಂಪು ಮಾಡಲಾಗಿದೆ.",
+    public_map_unverified: "ಆ್ಯಪ್ ಇಮೇಲ್ ಕರಡು ತೆರೆಯುತ್ತದೆ, ಆದರೆ ಇಮೇಲ್ ಕಳುಹಿಸಲಾಗಿದೆಯೇ ಎಂದು ಪರಿಶೀಲಿಸಲಾಗದು.",
     impact_period: "{from} ರಿಂದ {to} ರವರೆಗಿನ ಒಟ್ಟು ಎಣಿಕೆಗಳು.",
     pothole_ref: "ರಸ್ತೆ ಗುಂಡಿ #{id}",
     complaint_one: "1 ದೂರು ವರದಿ", complaint_many: "{n} ದೂರು ವರದಿಗಳು",
@@ -1324,6 +1326,7 @@ const I18N = {
     provider_shared: "सामायिक प्रकल्प सेवा: की लागत नाही",
     provider_shared_note: "वैयक्तिक की नसेल तेव्हा हेच डीफॉल्ट. API की लागत नाही. निवडक चित्रे प्रकल्प सर्व्हरमार्फत, तिथे न साठवता, त्याच्या सामायिक तपासणी यंत्रणेकडे (OpenAI किंवा स्वतःचे YOLO gateway) जातात. जबाबदार प्राधिकरण आणि संभाव्य निविदा व कंत्राटदार हेही सर्व्हरच ठरवतो. सेवेकडे क्षमता नसेल, तर नुकसान नाही असे न सांगता तपासणी स्पष्टपणे अयशस्वी होते.",
     public_map_privacy: "जवळच्या ठिकाणानुसार अहवाल एकत्र.",
+    public_map_unverified: "अ‍ॅप ईमेल मसुदा उघडते, पण ईमेल पाठवला गेला का हे पडताळू शकत नाही.",
     public_map_refresh: "पुन्हा लोड करा",
     public_map_offline: "सार्वजनिक नकाशा लोड झाला नाही: कनेक्शन धीमे आहे किंवा नाही. पुन्हा प्रयत्न करण्यासाठी \"पुन्हा लोड करा\" दाबा.",
     public_map_unavailable: "सार्वजनिक नकाशा तात्पुरता उपलब्ध नाही. त्याऐवजी कोणतीही स्थानिक किंवा खाजगी माहिती दाखवली जात नाही.",
@@ -1638,6 +1641,7 @@ const I18N = {
     provider_shared: "শেয়ার-করা প্রকল্প পরিষেবা: কোনও key লাগে না",
     provider_shared_note: "ব্যক্তিগত key না থাকলে এটিই ডিফল্ট। কোনও API key লাগে না। বাছাই-করা ছবি প্রকল্প সার্ভারের মাধ্যমে, সেখানে সংরক্ষণ ছাড়াই, তার শেয়ার-করা শনাক্তকারীতে (OpenAI বা নিজস্ব YOLO gateway) যায়। দায়ী কর্তৃপক্ষ এবং সম্ভাব্য দরপত্র ও ঠিকাদারও সার্ভারই নির্ধারণ করে। পরিষেবার সামর্থ্য না থাকলে ক্ষতি নেই বলে দাবি না করে যাচাই স্পষ্টভাবে ব্যর্থ হয়।",
     public_map_privacy: "কাছাকাছি স্থান অনুযায়ী রিপোর্ট একত্রিত।",
+    public_map_unverified: "অ্যাপ ইমেল খসড়া খোলে, কিন্তু ইমেল পাঠানো হয়েছে কি না যাচাই করতে পারে না।",
     public_map_refresh: "আবার লোড করুন",
     public_map_offline: "সর্বজনীন মানচিত্র লোড হয়নি: সংযোগ ধীর বা নেই। আবার চেষ্টা করতে \"আবার লোড করুন\" চাপুন।",
     public_map_unavailable: "সর্বজনীন মানচিত্র সাময়িকভাবে পাওয়া যাচ্ছে না। এর বদলে কোনও স্থানীয় বা ব্যক্তিগত তথ্য দেখানো হচ্ছে না।",
@@ -8215,7 +8219,7 @@ async function openDash() {
           to: String(impact.period.to).slice(0, 10),
         }) : "";
     $("communityNote").textContent = t("public_map_privacy");
-    $("communityPeriod").textContent = period.trim();
+    $("communityPeriod").textContent = `${period.trim()} ${t("public_map_unverified")}`.trim();
   } else {
     // With neither answer there is nothing to count: zero tiles would be invented, and
     // the problem is already said once in the map box.

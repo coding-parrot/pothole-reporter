@@ -6641,10 +6641,11 @@
         request_id: result.request_id || null,
         reason: result.reason || null,
       };
-      if (!result.jurisdiction
-          || result.jurisdiction.road_ownership !== "municipal") {
-        return { ...resolution, tender: null };
-      }
+      // The service matches the same four catalogues this file does, under the same
+      // evidence rules (parity-tested byte for byte on the server), for any point in
+      // India. A tender it names is shown whatever the road class; only a lookup with
+      // no jurisdiction at all is discarded.
+      if (!result.jurisdiction) return { ...resolution, tender: null };
       if (!result.tender) return { ...resolution, tender: null };
       const t = result.tender;
       const inferredWarranty = warrantyFor(t.published);
