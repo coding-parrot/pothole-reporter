@@ -738,7 +738,10 @@
           ...options, reclocked: true, exactBody: body, idempotencyKey: signedIdempotencyKey,
         });
       }
-      if (response.status === 408 || response.status === 425 || response.status === 429
+      // A 425 is the service answering (a lock or a counter is busy for a moment), not
+      // the service missing; holding it against the service for a minute stalled every
+      // outbox flush and personal-mode count behind one busy write.
+      if (response.status === 408 || response.status === 429
           || response.status >= 500) markProjectServiceUnavailable();
       throw error;
     }
@@ -8361,13 +8364,35 @@
     return request;
   }
 
+  // A 425 is the service asking for a moment: another report near the same spot holds
+  // the location lock (the previous frame of this drive, most often), the shared
+  // counters are busy, or the same key is still being processed. The lock is normally
+  // gone within a second, so the write is retried here with backoff before it falls
+  // back to the outbox and the outbox's minute-long schedule. Measured over 30 days,
+  // 45 reports got this answer and every one of them waited for the outbox.
+  const CENTRAL_BUSY_RETRY_DELAYS_MS = [1000, 2000, 4000];
+  const busyCentralFailure = (error) => !!error && error.status === 425
+    && !!(error.details && error.details.retryable === true);
+  async function postCentralReport(path, request, exactBody, idempotencyKey) {
+    const delays = Array.isArray(window.__centralBusyRetryDelaysMs)
+      ? window.__centralBusyRetryDelaysMs : CENTRAL_BUSY_RETRY_DELAYS_MS;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await signedServicePost(path, request, {
+          idempotencyKey, exactBody,
+          fallback: "The pothole could not be added to the shared map.",
+        });
+      } catch (error) {
+        if (!busyCentralFailure(error) || attempt >= delays.length) throw error;
+        await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+      }
+    }
+  }
+
   async function registerCentralPothole(request, exactBody) {
     if (!request) return null;
-    return signedServicePost("/v1/potholes/report", request, {
-      idempotencyKey: request.client_observation_id,
-      exactBody,
-      fallback: "The pothole could not be added to the shared map.",
-    });
+    return postCentralReport("/v1/potholes/report", request, exactBody,
+      request.client_observation_id);
   }
 
   // The server refuses these for good (bad or expired receipt, replay, too large, not
@@ -8518,11 +8543,8 @@
         let response;
         try {
           const request = JSON.parse(queued.body);
-          response = await signedServicePost(queued.path || "/v1/potholes/report", request, {
-            idempotencyKey: queued.client_observation_id,
-            exactBody: queued.body,
-            fallback: "The pothole could not be added to the shared map.",
-          });
+          response = await postCentralReport(queued.path || "/v1/potholes/report", request,
+            queued.body, queued.client_observation_id);
           if (!response || !response.pothole || !response.pothole.id) {
             throw new Error("The reporting service returned an incomplete pothole record.");
           }
@@ -12202,7 +12224,7 @@
                    AUTHORITY_COMPLAINT_PROFILES, AUTHORITY_REGISTRY_VERSION,
                    BENGALURU_AUTHORITY_NAMES, BENGALURU_HANDOFF, BIHAR_ROUTING_ENVELOPE,
                    BIHAR_STATE_AUTHORITY, BIHAR_STATE_GEOMETRY_SHA256, BLR, BLR_BODIES,
-                   CENTRAL_OWNERSHIP_SOURCE,
+                   CENTRAL_BUSY_RETRY_DELAYS_MS, CENTRAL_OWNERSHIP_SOURCE,
                    CHHATTISGARH_ROUTING_ENVELOPE, CHHATTISGARH_STATE_AUTHORITY,
                    CHHATTISGARH_STATE_GEOMETRY_SHA256, CIVIC_HANDOFF_OVERRIDES,
                    COMPLAINT_TEMPLATE_VERSION, CONTRACT_LOOKUP_UNAVAILABLE,
@@ -12288,7 +12310,7 @@
                    authorityComplaintProfile, authorityRoute, averageLuminance, b64ToBytes,
                    biharCoverage, biharRouteFromGeocode, binaryAssessment, blobToDataUrl,
                    bmcWardFromBoundary, bodies, buildComplaintOutputs, buildDetectionRequest,
-                   buildTenderMatchRequest, bytesToB64, bytesToBase64,
+                   buildTenderMatchRequest, busyCentralFailure, bytesToB64, bytesToBase64,
                    cachedPackBytes, canSearchTenderCatalog, candidateLeadIsUnambiguous,
                    canonicalJson, canonicalServiceRequest, catalogResourceWithinReview,
                    centralPotholeRequest, centralReportIsConfirmed, chhattisgarhCoverage,
@@ -12357,7 +12379,7 @@
                    photoBlob, photoToBase64, pinnedStateCoverage, pinnedStateRoute, pmsg,
                    pointInEnvelope, pointInGeometry, pointInPolygon, pointInRing,
                    pointOnSegment, pointToHighwaySegment, pointToSegmentMeters,
-                   preferredLowerCatalogMatch, prepareComplaint,
+                   postCentralReport, preferredLowerCatalogMatch, prepareComplaint,
                    presentDataStores, prewarm, probeProjectService, progress,
                    projectServiceAvailable, pruneStatePacks, publicEmailStatus, punjabCoverage,
                    punjabRouteFromGeocode, putCachedStatePack, putDrive, putFootage, putReport,
