@@ -254,6 +254,31 @@ test("a report carries the routing answer the resolve route would give", async (
   assert.equal(routing.reason, "no_tenders_for_jurisdiction");
 });
 
+// A photo or frame taken while the live fix was late is placed on the phone's last fix
+// (at most 15 s old) and says how old it was. The age lands on the observation so the
+// placement can be judged later; a report that says nothing, or nonsense, stores null.
+
+test("a report carries the age of the fix it was placed on", async () => {
+  const repository = reportRepository();
+  const h = await harness({ repository, geolocator });
+  const result = await h.post("/v1/potholes/report",
+    { ...reportBody(Date.now()), location_age_ms: 8412.6 });
+  assert.equal(result.statusCode, 200, result.body);
+  assert.equal(repository.seen.observations[0].location_age_ms, 8413);
+});
+
+test("a report without a fix age, or with a nonsense one, stores none", async () => {
+  for (const [index, age] of [[0, undefined], [1, "soon"], [2, -4]].entries()) {
+    const repository = reportRepository();
+    const h = await harness({ repository, geolocator });
+    const body = { ...reportBody(Date.now()), client_observation_id: `obs-age-${index}` };
+    if (age !== undefined) body.location_age_ms = age;
+    const result = await h.post("/v1/potholes/report", body);
+    assert.equal(result.statusCode, 200, result.body);
+    assert.equal(repository.seen.observations[0].location_age_ms, null, String(age));
+  }
+});
+
 test("a report whose road ownership is unknown still lands, without routing", async () => {
   const repository = reportRepository();
   const unknown = { async resolve() { return { road_ownership: "unknown", source: "unresolved" }; } };
