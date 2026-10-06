@@ -24,7 +24,11 @@ mode = {"report": "offline"}
 
 
 def service(route, request):
-    if urlparse(request.url).path == "/v1/potholes/report" and mode["report"] == "offline":
+    path = urlparse(request.url).path
+    # A body the shipped pack has an address for, so the drive's reports are drafts.
+    if routed(route, request, path, None):
+        return None
+    if path == "/v1/potholes/report" and mode["report"] == "offline":
         # The phone has no connection: the request never reaches the service.
         return route.abort("connectionfailed")
     return fh.central_service(route, request)
