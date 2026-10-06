@@ -75,6 +75,9 @@
   .chip.queued { background:#122f33; color:#7cd8e8; }
   .chip.unrouted { background:#2b2b33; color:#b9b9c6; }
   .chip.duplicate { background:#24263a; color:#b9c2ff; }
+  .chip.saved { background:#2b2b33; color:#d5d5da; }
+  .chip.synced { background:#12331d; color:#7ce8a2; }
+  .chip.failed { background:#331516; color:#ff9d9d; }
   .meta { color:var(--mut); font-size:14px; line-height:1.4; margin-top:2px; }
   label { display:block; font-size:14px; color:var(--mut); margin:10px 0 4px; }
   input[type=text], input[type=password], select, textarea { width:100%; background:#131417; color:#f2f2f4; border:1px solid var(--line); border-radius:10px; padding:12px; min-height:48px; font:inherit; font-size:14px; }
@@ -182,6 +185,7 @@
       <div role="status" aria-live="polite" style="position:absolute;left:12px;bottom:12px;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:10px;max-width:75%">
         <div class="verdict" id="driveCount" style="margin:0;font-size:16px;color:#fff">0 potholes</div>
         <div class="meta" id="driveStatus" style="color:#d5d5da">Starting...</div>
+        <div class="meta hidden" id="driveStates" style="color:#d5d5da"></div>
       </div>
     </div>
     <div id="nativeDrivePanel" class="hidden">
@@ -554,7 +558,10 @@ const I18N = {
     back: "Back", save: "Save", del: "Delete", email_btn: "Email complaint", stop: "&#9632; Stop", working: "Working...",
     native_pause: "Pause", native_resume: "Resume", native_video_on: "Video: On", native_video_off: "Video: Off", open_maps: "Maps", analyse_saved_btn: "Check saved frames", saved_frames_running: "Saved frames are already being checked.", saved_frames_none: "Every saved frame from this drive has already been checked.", saved_frames_done: "Saved frames checked: {checked}, {found} new, {known} already reported.", saved_frames_stopped: "Saved-frame check stopped: {checked} checked, {found} new, {known} already reported.", saved_frames_failed: " {n} could not be checked.", saved_frames_remaining: " {n} saved frames are left; checking resumes while the app is open.",
     manual_analysis_active: "The previous photo is still being analysed. Wait for it to finish before taking another.",
-    chip_draft: "Draft", chip_sent: "Opened in email", chip_queued: "Opened in email", chip_rejected: "Undamaged", chip_review: "Retake / review",
+    chip_draft: "Draft", chip_sent: "Sent by you", chip_queued: "Email drafted", chip_rejected: "Undamaged", chip_review: "Retake / review",
+    chip_saved: "Saved on phone", chip_synced: "Sent to service", chip_failed: "Failed",
+    hud_tally_sent: "{n} sent", hud_tally_saved: "{n} queued", hud_tally_failed: "{n} failed", hud_tally_checking: "{n} checking",
+    email_sent_q: "Email sent?", email_sent_yes: "Sent", email_sent_no: "Not yet", email_reopen_btn: "Open email again",
     chip_unrouted: "Outside coverage", chip_duplicate: "Already reported",
     chip_no_gps: "No GPS", chip_gps_coarse: "GPS too coarse", chip_routing_unavailable: "Routing unavailable",
     chip_no_address: "No address", chip_highway: "Highway",
@@ -603,7 +610,7 @@ const I18N = {
     dash_range: "{days} of reporting · first on {first}",
     dash_empty: "No reports yet. Your map fills up as you report issues or drive.",
     day_one: "1 day", day_many: "{n} days",
-    stat_found: "damage events found", stat_reported: "email drafts opened", stat_frames: "events checked",
+    stat_found: "damage events found", stat_reported: "email drafts opened", stat_sent: "emails sent by you", stat_frames: "events checked",
     stat_drives: "drives", stat_footage: "MB of footage", stat_km: "km of road covered",
     by_type: "By damage type", by_size: "By size", by_area: "By corporation",
     pin_one: "1 pothole", pin_many: "{n} potholes",
@@ -689,7 +696,7 @@ const I18N = {
     early_yes: "{type} found. Preparing the complaint...",
     early_review: "Possible road damage. A clearer photo is needed.",
     early_no: "No road damage in this photo.",
-    verdict_queued: "Email draft opened. Tap Email complaint again if you closed it without sending.",
+    verdict_queued: "Drafted, not sent yet.",
     routes_to: "Routes to:",
     getting_location: "Getting your location...",
     waiting_gps: "Waiting for GPS...",
@@ -857,7 +864,10 @@ const I18N = {
     back: "ಹಿಂದೆ", save: "ಉಳಿಸಿ", del: "ಅಳಿಸಿ", email_btn: "ಇಮೇಲ್ ದೂರು", stop: "&#9632; ನಿಲ್ಲಿಸಿ", working: "ನಡೆಯುತ್ತಿದೆ...",
     native_pause: "ವಿರಾಮ", native_resume: "ಮುಂದುವರಿಸಿ", native_video_on: "ವಿಡಿಯೋ: ಆನ್", native_video_off: "ವಿಡಿಯೋ: ಆಫ್", open_maps: "ನಕ್ಷೆ", analyse_saved_btn: "ಉಳಿಸಿದ ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಿ", saved_frames_running: "ಉಳಿಸಿದ ಫ್ರೇಮ್‌ಗಳ ಪರಿಶೀಲನೆ ಈಗಾಗಲೇ ನಡೆಯುತ್ತಿದೆ.", saved_frames_none: "ಈ ಡ್ರೈವ್‌ನ ಎಲ್ಲಾ ಉಳಿಸಿದ ಫ್ರೇಮ್‌ಗಳನ್ನು ಈಗಾಗಲೇ ಪರಿಶೀಲಿಸಲಾಗಿದೆ.", saved_frames_done: "ಉಳಿಸಿದ ಫ್ರೇಮ್‌ಗಳ ಪರಿಶೀಲನೆ ಮುಗಿಯಿತು: {checked} ಪರಿಶೀಲನೆ, {found} ಹೊಸದು, {known} ಈಗಾಗಲೇ ವರದಿಯಾಗಿದೆ.", saved_frames_stopped: "ಉಳಿಸಿದ ಫ್ರೇಮ್‌ಗಳ ಪರಿಶೀಲನೆ ನಿಲ್ಲಿಸಲಾಗಿದೆ: {checked} ಪರಿಶೀಲನೆ, {found} ಹೊಸದು, {known} ಈಗಾಗಲೇ ವರದಿಯಾಗಿದೆ.", saved_frames_failed: " {n} ಪರಿಶೀಲಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.", saved_frames_remaining: " ಇನ್ನೂ {n} ಉಳಿಸಿದ ಫ್ರೇಮ್‌ಗಳಿವೆ; ಆ್ಯಪ್ ತೆರೆದಿರುವಾಗ ಪರಿಶೀಲನೆ ಮುಂದುವರಿಯುತ್ತದೆ.",
     manual_analysis_active: "ಹಿಂದಿನ ಫೋಟೋ ಇನ್ನೂ ವಿಶ್ಲೇಷಣೆಯಾಗುತ್ತಿದೆ. ಮತ್ತೊಂದು ತೆಗೆಯುವ ಮೊದಲು ಅದು ಮುಗಿಯುವವರೆಗೆ ಕಾಯಿರಿ.",
-    chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_queued: "ಇಮೇಲ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ", chip_rejected: "ಹಾನಿ ಇಲ್ಲ", chip_review: "ಮರುಚಿತ್ರ / ಪರಿಶೀಲನೆ",
+    chip_draft: "ಡ್ರಾಫ್ಟ್", chip_sent: "ನೀವು ಕಳುಹಿಸಿದ್ದೀರಿ", chip_queued: "ಇಮೇಲ್ ಕರಡು ಸಿದ್ಧ", chip_rejected: "ಹಾನಿ ಇಲ್ಲ", chip_review: "ಮರುಚಿತ್ರ / ಪರಿಶೀಲನೆ",
+    chip_saved: "ಫೋನ್‌ನಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ", chip_synced: "ಸೇವೆಗೆ ಕಳುಹಿಸಲಾಗಿದೆ", chip_failed: "ವಿಫಲವಾಗಿದೆ",
+    hud_tally_sent: "{n} ಕಳುಹಿಸಲಾಗಿದೆ", hud_tally_saved: "{n} ಸರದಿಯಲ್ಲಿ", hud_tally_failed: "{n} ವಿಫಲ", hud_tally_checking: "{n} ಪರಿಶೀಲನೆಯಲ್ಲಿ",
+    email_sent_q: "ಇಮೇಲ್ ಕಳುಹಿಸಿದಿರಾ?", email_sent_yes: "ಕಳುಹಿಸಿದೆ", email_sent_no: "ಇನ್ನೂ ಇಲ್ಲ", email_reopen_btn: "ಇಮೇಲ್ ಮತ್ತೆ ತೆರೆಯಿರಿ",
     chip_unrouted: "ವ್ಯಾಪ್ತಿಯ ಹೊರಗೆ", chip_duplicate: "ಈಗಾಗಲೇ ವರದಿ",
     chip_no_gps: "GPS ಇಲ್ಲ", chip_gps_coarse: "GPS ನಿಖರವಾಗಿಲ್ಲ", chip_routing_unavailable: "ಸ್ವೀಕರಿಸುವವರ ಹುಡುಕಾಟ ಲಭ್ಯವಿಲ್ಲ",
     chip_no_address: "ವಿಳಾಸ ಇಲ್ಲ", chip_highway: "ಹೆದ್ದಾರಿ",
@@ -906,7 +916,7 @@ const I18N = {
     dash_range: "{days} ವರದಿ · ಮೊದಲನೆಯದು {first}",
     dash_empty: "ಇನ್ನೂ ವರದಿಗಳಿಲ್ಲ. ಸಮಸ್ಯೆಗಳನ್ನು ವರದಿ ಮಾಡಿದಂತೆ ಅಥವಾ ಡ್ರೈವ್ ಮಾಡಿದಂತೆ ನಕ್ಷೆ ತುಂಬುತ್ತದೆ.",
     day_one: "1 ದಿನ", day_many: "{n} ದಿನಗಳು",
-    stat_found: "ಗುಂಡಿಗಳು ಪತ್ತೆ", stat_reported: "ತೆರೆದ ಇಮೇಲ್ ಕರಡುಗಳು", stat_frames: "ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ",
+    stat_found: "ಗುಂಡಿಗಳು ಪತ್ತೆ", stat_reported: "ತೆರೆದ ಇಮೇಲ್ ಕರಡುಗಳು", stat_sent: "ನೀವು ಕಳುಹಿಸಿದ ಇಮೇಲ್‌ಗಳು", stat_frames: "ಫ್ರೇಮ್ ಪರಿಶೀಲನೆ",
     stat_drives: "ಡ್ರೈವ್‌ಗಳು", stat_footage: "MB ವಿಡಿಯೋ", stat_km: "ಕಿಮೀ ರಸ್ತೆ",
     by_type: "ಹಾನಿಯ ಪ್ರಕಾರ", by_size: "ಗಾತ್ರದ ಪ್ರಕಾರ", by_area: "ಪಾಲಿಕೆ ಪ್ರಕಾರ",
     pin_one: "1 ಗುಂಡಿ", pin_many: "{n} ಗುಂಡಿಗಳು",
@@ -992,7 +1002,7 @@ const I18N = {
     early_yes: "{type} ಪತ್ತೆಯಾಗಿದೆ. ದೂರು ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ...",
     early_review: "ಸಂಭಾವ್ಯ ರಸ್ತೆ ಹಾನಿ. ಸ್ಪಷ್ಟ ಫೋಟೋ ಬೇಕು.",
     early_no: "ಈ ಫೋಟೋದಲ್ಲಿ ರಸ್ತೆ ಹಾನಿ ಇಲ್ಲ.",
-    verdict_queued: "ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್‌ನಲ್ಲಿ ತೆರೆಯಲಾಗಿದೆ. ಕಳುಹಿಸಿಲ್ಲದಿದ್ದರೆ ತಿದ್ದಿ ಮತ್ತೆ ತೆರೆಯಿರಿ.",
+    verdict_queued: "ಕರಡು ಸಿದ್ಧ, ಇನ್ನೂ ಕಳುಹಿಸಿಲ್ಲ.",
     routes_to: "ಯಾರಿಗೆ:",
     getting_location: "ನಿಮ್ಮ ಸ್ಥಳ ಪಡೆಯಲಾಗುತ್ತಿದೆ...",
     waiting_gps: "GPS ಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ...",
@@ -1135,7 +1145,10 @@ const I18N = {
     back: "मागे", save: "जतन करा", del: "हटवा", email_btn: "ईमेल",
     stop: "&#9632; थांबवा", working: "प्रक्रिया सुरू आहे...",
     native_pause: "थांबवा", native_resume: "पुन्हा सुरू करा", native_video_on: "व्हिडिओ: सुरू", native_video_off: "व्हिडिओ: बंद", open_maps: "नकाशा", analyse_saved_btn: "जतन केलेल्या फ्रेम्स तपासा", saved_frames_running: "जतन केलेल्या फ्रेम्सची तपासणी आधीच सुरू आहे.", saved_frames_none: "या ड्राइव्हमधील सर्व जतन केलेल्या फ्रेम्स आधीच तपासल्या आहेत.", saved_frames_done: "जतन केलेल्या फ्रेम्स तपासल्या: {checked} तपासल्या, {found} नवीन, {known} आधीच नोंदवलेले.", saved_frames_stopped: "जतन केलेल्या फ्रेम्सची तपासणी थांबवली: {checked} तपासल्या, {found} नवीन, {known} आधीच नोंदवलेले.", saved_frames_failed: " {n} तपासता आल्या नाहीत.", saved_frames_remaining: " आणखी {n} जतन केलेल्या फ्रेम्स बाकी आहेत; अॅप उघडे असताना तपासणी पुढे सुरू राहते.",
-    chip_draft: "मसुदा", chip_sent: "ईमेलमध्ये उघडले", chip_queued: "ईमेलमध्ये उघडले",
+    chip_draft: "मसुदा", chip_sent: "तुम्ही पाठवले", chip_queued: "ईमेल मसुदा तयार",
+    chip_saved: "फोनवर जतन केले", chip_synced: "सेवेकडे पाठवले", chip_failed: "अयशस्वी",
+    hud_tally_sent: "{n} पाठवले", hud_tally_saved: "{n} रांगेत", hud_tally_failed: "{n} अयशस्वी", hud_tally_checking: "{n} तपासणीत",
+    email_sent_q: "ईमेल पाठवला का?", email_sent_yes: "पाठवला", email_sent_no: "अजून नाही", email_reopen_btn: "ईमेल पुन्हा उघडा",
     chip_rejected: "खड्डा: नाही",
     chip_review: "पुनर्तपासणी आवश्यक", chip_unrouted: "मार्ग निश्चित नाही",
     chip_no_gps: "GPS नाही", chip_gps_coarse: "GPS पुरेसे अचूक नाही", chip_routing_unavailable: "प्राप्तकर्ता शोध उपलब्ध नाही",
@@ -1181,7 +1194,7 @@ const I18N = {
     dash_range: "नोंदींचा कालावधी: {days} · पहिली नोंद {first}",
     dash_empty: "अजून तक्रारी नाहीत. समस्या नोंदवल्यावर किंवा ड्राइव्ह केल्यावर नकाशा भरत जाईल.",
     day_one: "1 दिवस", day_many: "{n} दिवस",
-    stat_found: "आढळलेले नुकसान", stat_reported: "उघडलेले ईमेल मसुदे", stat_frames: "तपासलेल्या नोंदी",
+    stat_found: "आढळलेले नुकसान", stat_reported: "उघडलेले ईमेल मसुदे", stat_sent: "तुम्ही पाठवलेले ईमेल", stat_frames: "तपासलेल्या नोंदी",
     stat_drives: "ड्राइव्ह", stat_footage: "MB व्हिडिओ", stat_km: "किमी तपासलेला रस्ता",
     by_type: "नुकसानाच्या प्रकारानुसार", by_size: "आकारानुसार", by_area: "महानगरपालिकेनुसार",
     pin_one: "1 खड्डा", pin_many: "{n} खड्डे",
@@ -1240,7 +1253,7 @@ const I18N = {
     early_yes: "{type} आढळला. तक्रार तयार करत आहे...",
     early_review: "रस्त्याचे संभाव्य नुकसान. अधिक स्पष्ट फोटो आवश्यक आहे.",
     early_no: "या फोटोमध्ये रस्त्याचे नुकसान नाही.",
-    verdict_queued: "ईमेल अॅपमध्ये उघडले आहे; हे पाठवले असल्याचा पुरावा नाही.",
+    verdict_queued: "मसुदा तयार, अजून पाठवला नाही.",
     routes_to: "यांच्याकडे पाठवले जाईल:",
     getting_location: "तुमचे स्थान मिळवत आहे...", waiting_gps: "GPS ची प्रतीक्षा करत आहे...",
     gps_30s: "30 सेकंदांनंतरही GPS स्थान मिळाले नाही. उच्च अचूकतेसह स्थान सेवा सुरू आहे का ते तपासा.",
@@ -1444,7 +1457,10 @@ const I18N = {
     detail_option_original: "মূল (শুধু {models})",
     back: "ফিরে যান", save: "সংরক্ষণ করুন", del: "মুছুন", email_btn: "ইমেল", stop: "&#9632; থামান", working: "কাজ চলছে...",
     native_pause: "বিরতি", native_resume: "আবার শুরু", native_video_on: "ভিডিও: চালু", native_video_off: "ভিডিও: বন্ধ", open_maps: "মানচিত্র", analyse_saved_btn: "সংরক্ষিত ফ্রেম যাচাই করুন", saved_frames_running: "সংরক্ষিত ফ্রেম ইতিমধ্যে যাচাই করা হচ্ছে।", saved_frames_none: "এই ড্রাইভের সব সংরক্ষিত ফ্রেম ইতিমধ্যে যাচাই করা হয়েছে।", saved_frames_done: "সংরক্ষিত ফ্রেম যাচাই শেষ: {checked}টি যাচাই, {found} নতুন, {known} আগেই রিপোর্ট করা।", saved_frames_stopped: "সংরক্ষিত ফ্রেম যাচাই থামানো হয়েছে: {checked}টি যাচাই, {found} নতুন, {known} আগেই রিপোর্ট করা।", saved_frames_failed: " {n}টি যাচাই করা যায়নি।", saved_frames_remaining: " আরও {n}টি সংরক্ষিত ফ্রেম বাকি; অ্যাপ খোলা থাকলে যাচাই চলতে থাকবে।",
-    chip_draft: "খসড়া", chip_sent: "ইমেলে খোলা হয়েছে", chip_queued: "ইমেলে খোলা হয়েছে", chip_rejected: "রাস্তার গর্ত: না", chip_review: "যাচাই প্রয়োজন",
+    chip_draft: "খসড়া", chip_sent: "আপনি পাঠিয়েছেন", chip_queued: "ইমেল খসড়া তৈরি", chip_rejected: "রাস্তার গর্ত: না", chip_review: "যাচাই প্রয়োজন",
+    chip_saved: "ফোনে সংরক্ষিত", chip_synced: "সার্ভিসে পাঠানো হয়েছে", chip_failed: "ব্যর্থ",
+    hud_tally_sent: "{n}টি পাঠানো", hud_tally_saved: "{n}টি অপেক্ষায়", hud_tally_failed: "{n}টি ব্যর্থ", hud_tally_checking: "{n}টি যাচাই চলছে",
+    email_sent_q: "ইমেল পাঠিয়েছেন?", email_sent_yes: "পাঠিয়েছি", email_sent_no: "এখনও না", email_reopen_btn: "ইমেল আবার খুলুন",
     chip_unrouted: "প্রাপক নির্ধারিত নয়",
     chip_no_gps: "GPS নেই", chip_gps_coarse: "GPS যথেষ্ট নির্ভুল নয়", chip_routing_unavailable: "প্রাপক খোঁজা যাচ্ছে না",
     chip_no_address: "ঠিকানা নেই", chip_highway: "মহাসড়ক",
@@ -1489,7 +1505,7 @@ const I18N = {
     dash_range: "{days} ধরে রিপোর্ট · প্রথম রিপোর্ট {first}",
     dash_empty: "এখনও কোনও রিপোর্ট নেই। সমস্যা রিপোর্ট করা বা ড্রাইভ করার সঙ্গে সঙ্গে মানচিত্র পূর্ণ হবে।",
     day_one: "1 দিন", day_many: "{n} দিন",
-    stat_found: "পাওয়া ক্ষতির ঘটনা", stat_reported: "খোলা ইমেল খসড়া", stat_frames: "যাচাই করা ঘটনা",
+    stat_found: "পাওয়া ক্ষতির ঘটনা", stat_reported: "খোলা ইমেল খসড়া", stat_sent: "আপনার পাঠানো ইমেল", stat_frames: "যাচাই করা ঘটনা",
     stat_drives: "ড্রাইভ", stat_footage: "MB ভিডিও ফুটেজ", stat_km: "কিমি রাস্তা পর্যবেক্ষণ",
     by_type: "ক্ষতির ধরন অনুযায়ী", by_size: "আকার অনুযায়ী", by_area: "পৌরসংস্থা অনুযায়ী",
     pin_one: "1টি গর্ত", pin_many: "{n}টি গর্ত",
@@ -1553,7 +1569,7 @@ const I18N = {
     early_yes: "{type} পাওয়া গেছে। অভিযোগের খসড়া তৈরি হচ্ছে...",
     early_review: "রাস্তার সম্ভাব্য ক্ষতি। আরও পরিষ্কার ছবি প্রয়োজন।",
     early_no: "এই ছবিতে রাস্তার কোনও ক্ষতি নেই।",
-    verdict_queued: "ইমেল অ্যাপে খোলা হয়েছে। পাঠিয়ে না থাকলে সম্পাদনা করে আবার পাঠান।",
+    verdict_queued: "খসড়া তৈরি, এখনও পাঠানো হয়নি।",
     routes_to: "যে দপ্তরে যাবে:",
     getting_location: "আপনার অবস্থান নেওয়া হচ্ছে...",
     waiting_gps: "GPS-এর অপেক্ষা চলছে...",
@@ -1820,13 +1836,73 @@ const UNROUTED_CHIPS = {
   state_highway: "chip_highway", district_highway: "chip_highway",
 };
 
+// Where an accepted report got to, in one word, read from facts the record already
+// holds. A tester with five potholes from one drive could not tell which had reached
+// the shared map, which were waiting for a connection and which had been refused: every
+// one wore "Draft".
+//   sent     status "sent" with email_sent_confirmed: the person answered "Email sent?"
+//   drafted  status "queued": the mail composer opened, nothing proves a send
+//   failed   server_sync_terminal (refused for good), or still pending after the
+//            service answered with an error (server_request_id names that answer)
+//   saved    central_sync_pending with no answer yet: offline or queued in the outbox
+//   synced   the service holds it (server_pothole_id) and nothing is pending
+//   draft    accepted, with no shared-map write to speak of
+// Native Room rows carry server_pothole_id and central_sync_error; their email state
+// lives in nativeEmailState because the bridge has no field for it.
+const NATIVE_EMAIL_STATE_KEY = "native_email_state";
+function nativeEmailState(report) {
+  if (!report || !report._native) return null;
+  try {
+    const all = JSON.parse(localStorage.getItem(NATIVE_EMAIL_STATE_KEY) || "{}");
+    return all[String(report._nativeId)] || null;
+  } catch (e) { return null; }
+}
+function setNativeEmailState(report, patch) {
+  if (!report || !report._native) return;
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem(NATIVE_EMAIL_STATE_KEY) || "{}") || {}; } catch (e) {}
+  all[String(report._nativeId)] = { ...(all[String(report._nativeId)] || {}), ...patch };
+  try { localStorage.setItem(NATIVE_EMAIL_STATE_KEY, JSON.stringify(all)); } catch (e) {}
+}
+function emailStatusOf(report) {
+  const native = nativeEmailState(report);
+  if (native && native.sent_at) return "sent";
+  if (native && native.opened_at) return "queued";
+  return report ? report.status : null;
+}
+// The shared-map write alone, whatever the routing said: a pothole the app could not
+// address still reaches the service, and the Drive tally counts it.
+function syncStateOf(report) {
+  if (!report) return null;
+  const confirmed = StandaloneAPI.__pure.centralReportIsConfirmed(report);
+  if (report._native) {
+    if (confirmed) return "synced";
+    if (report.central_sync_error) return "failed";
+    return report.central_sync_eligible ? "saved" : null;
+  }
+  if (report.server_sync_terminal && !confirmed) return "failed";
+  if (report.central_sync_pending) return report.server_request_id ? "failed" : "saved";
+  return confirmed ? "synced" : null;
+}
+function reportDeliveryState(report) {
+  if (!report) return null;
+  const status = emailStatusOf(report);
+  if (status === "sent") return "sent";
+  if (status === "queued") return "drafted";
+  if (status !== "draft") return null;
+  return syncStateOf(report) || "draft";
+}
+
 function chip(status, report) {
   const unroutedKey = status === "unrouted" && report && UNROUTED_CHIPS[report.unrouted_reason];
   const labels = { draft: t("chip_draft"), sent: t("chip_sent"), queued: t("chip_queued"),
                    rejected: t("chip_rejected"), review: t("chip_review"),
-                   unrouted: t(unroutedKey || "chip_unrouted"), duplicate: t("chip_duplicate") };
-  const css = Object.prototype.hasOwnProperty.call(labels, status) ? status : "review";
-  return `<span class="chip ${css}">${escapeHtml(labels[status] || status)}</span>`;
+                   unrouted: t(unroutedKey || "chip_unrouted"), duplicate: t("chip_duplicate"),
+                   saved: t("chip_saved"), synced: t("chip_synced"), failed: t("chip_failed") };
+  const state = ["draft", "queued", "sent"].includes(status) ? reportDeliveryState(report) : null;
+  const key = state === "drafted" ? "queued" : state || status;
+  const css = Object.prototype.hasOwnProperty.call(labels, key) ? key : "review";
+  return `<span class="chip ${css}">${escapeHtml(labels[key] || status)}</span>`;
 }
 
 const physicalCondition = (report) => report && report.condition_status === "fixed"
@@ -2289,7 +2365,9 @@ async function renderReports() {
     // email addressed to a guess or creates a duplicate complaint.
     const canEmail = StandaloneAPI.__pure.centralReportIsConfirmed(r)
       && !["rejected", "review", "unrouted", "duplicate"].includes(r.status)
-      && physicalCondition(r) !== "fixed";
+      && physicalCondition(r) !== "fixed"
+      // A tap here would turn a send the person confirmed back into a draft.
+      && emailStatusOf(r) !== "sent";
     const src = safePhotoSrc(photoSrc(r));
     return `
     <div class="card row" data-id="${escapeAttr(r.id)}" style="cursor:pointer">
@@ -3119,6 +3197,52 @@ function importedLocationHtml(r) {
   return `<div class="meta">${escapeHtml(note)}</div>`;
 }
 
+// The report whose mail composer has just returned. The composer plugin resolves open()
+// from the mail activity's result, so that resolution is the return; the app still
+// cannot see whether Send was pressed, so it asks once and records the answer.
+let composerReturn = null;
+
+function emailSentPromptHtml(r) {
+  if (!composerReturn || String(composerReturn.id) !== String(r.id)) return "";
+  return `<div id="emailSentPrompt" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)">
+      <div class="verdict" style="margin-bottom:8px">${escapeHtml(t("email_sent_q"))}</div>
+      <div class="btn-row" style="margin:0">
+        <button class="send" id="emailSentYes">${escapeHtml(t("email_sent_yes"))}</button>
+        <button class="ghost" id="emailSentNo">${escapeHtml(t("email_sent_no"))}</button>
+      </div>
+    </div>`;
+}
+
+function wireEmailSentPrompt(r) {
+  const yes = $("emailSentYes"), no = $("emailSentNo");
+  if (!yes || !no) return;
+  no.onclick = () => { composerReturn = null; openDetail(r, detailList); };
+  yes.onclick = async () => {
+    yes.disabled = true; no.disabled = true;
+    composerReturn = null;
+    try {
+      if (r._native) {
+        // Room has no field for the person's answer; the bridge cannot store it.
+        setNativeEmailState(r, { sent_at: Date.now() / 1000 });
+        await loadReports().catch(() => {});
+        openDetail(r, detailList);
+        return;
+      }
+      const updated = await api(`/api/reports/${r.id}/sent`, { method: "POST" });
+      const latest = await loadReports().catch(() => null) || [];
+      openDetail(updated, latest.length ? latest : [updated]);
+    } catch (e) {
+      alert(e.message);
+      openDetail(r, detailList);
+    }
+  };
+}
+
+// Once the composer has opened, the one action is to open it again.
+const emailReopens = (r) => ["queued", "sent"].includes(emailStatusOf(r));
+const emailActionHtml = (r) => emailReopens(r)
+  ? escapeHtml(t("email_reopen_btn")) : `${escapeHtml(sendLabel())} &#9993;`;
+
 function openDetail(r, list) {
   if (list) { detailList = list; detailIdx = list.findIndex((x) => x.id === r.id); }
   else if (!detailList.some((x) => x.id === r.id)) { detailList = [r]; detailIdx = 0; }
@@ -3190,11 +3314,14 @@ function openDetail(r, list) {
         ${r.address ? `<div class="meta">&#128205; ${escapeHtml(r.address)}</div>` : ""}
         ${showCivicAttribution && r.body_name ? `<div class="meta">${escapeHtml(r.body_name)}</div>` : ""}
         ${showCivicAttribution && r.tender_note ? `<div class="meta">&#128209; ${escapeHtml(r.tender_note)}</div>` : ""}
+        <div>${chip(r.status, r)} ${conditionChip(r)}</div>
+        ${emailStatusOf(r) === "queued" ? `<div class="meta">${escapeHtml(t("verdict_queued"))}</div>` : ""}
         <div class="meta">${escapeHtml(r.description || "")}</div>
         ${!nativeSendable && !r.server_duplicate ? `<div class="meta">${escapeHtml(t("email_waiting_dedupe"))}</div>` : ""}
+        ${emailSentPromptHtml(r)}
         <div class="btn-row">
           <button class="ghost" id="backBtn">${t("back")}</button>
-          ${nativeSendable ? `<button class="send" id="sendBtn" data-complaint-action="email">${sendLabel()} &#9993;</button>` : ""}
+          ${nativeSendable ? `<button class="send" id="sendBtn" data-complaint-action="email">${emailActionHtml(r)}</button>` : ""}
         </div>
         <button class="ghost danger" id="discardBtn" style="width:100%;margin-top:10px">${t("del")}</button>
       </div>`;
@@ -3202,8 +3329,9 @@ function openDetail(r, list) {
   } else {
     // "queued" stays reopenable: the user may have canceled the email composer and
     // must not be stranded. The reopen note sits under the verdict, not in its place,
-    // so the card still says what was found after the email opens.
-    const reopenNote = r.status === "queued" || r.status === "sent"
+    // so the card still says what was found after the email opens. A "sent" here is the
+    // person's own confirmation and needs no note.
+    const reopenNote = r.status === "queued"
       ? `<div class="meta">${escapeHtml(t("verdict_queued"))}</div>` : "";
     const showCivicAttribution = hasAuthoritativeMunicipalCivicCache(r);
     const browserConfirmed = StandaloneAPI.__pure.centralReportIsConfirmed(r);
@@ -3229,9 +3357,10 @@ function openDetail(r, list) {
         ${!browserConfirmed && r.central_sync_pending && !r.server_sync_terminal
           ? `<button class="ghost" id="syncRetryBtn" style="width:100%;margin-top:10px">${escapeHtml(t("sync_retry_btn"))}</button>` : ""}
         ${repairEvidenceHtml(r)}
+        ${emailSentPromptHtml(r)}
         <div class="btn-row">
           <button class="ghost" id="backBtn">${t("back")}</button>
-          ${browserSendable ? `<button class="send" id="sendBtn" data-complaint-action="email">${sendLabel()} &#9993;</button>` : ""}
+          ${browserSendable ? `<button class="send" id="sendBtn" data-complaint-action="email">${emailActionHtml(r)}</button>` : ""}
         </div>
         <button class="ghost danger" id="discardBtn" style="width:100%;margin-top:10px">${t("del")}</button>
       </div>`;
@@ -3239,6 +3368,7 @@ function openDetail(r, list) {
   }
   wireConditionActions(r);
   wireDetailChrome(r);
+  wireEmailSentPrompt(r);
   const retryRouting = $("retryRoutingBtn");
   if (retryRouting) retryRouting.onclick = async () => {
     retryRouting.disabled = true;
@@ -3436,10 +3566,16 @@ async function sendReport(r) {
         attachments: [{ type: "base64", name: "road-damage.jpg",
           path: await StandaloneAPI.__pure.photoToBase64(evidence.dataUrl) }],
       });
-      btn.disabled = false; btn.innerHTML = sendLabel() + " &#9993;";
+      // open() resolves when the mail activity returns: ask now whether it was sent.
+      setNativeEmailState(r, { opened_at: Date.now() / 1000, sent_at: null });
+      composerReturn = { id: r.id };
+      openDetail(r, detailList);
       return;
     }
+    // The route awaits the composer, so it resolves on the return from the mail app
+    // (at once on the web build, where a mailto: link opens the visitor's own client).
     const updated = await api(`/api/reports/${r.id}/send`, { method: "POST" });
+    composerReturn = { id: r.id };
     await loadReports();
     openDetail(updated);
   } catch (e) {
@@ -4690,6 +4826,7 @@ async function startDriveAdmitted() {
   video.srcObject = null;
   $("driveStop").disabled = false;
   $("driveStatus").textContent = t("starting_camera");
+  $("driveStates").classList.add("hidden");
   $("driveTip").textContent = t("drive_tip");
   show("drive");
 
@@ -4794,6 +4931,9 @@ async function startDriveAdmitted() {
     stream, pos: null, lastCapPos: null,
     tally: { checked: 0, found: 0, already: 0, repaired: 0, captured: 0, dropped: 0 },
     duplicateIds: new Set(),
+    // report id -> reportDeliveryState, for the per-state tally on the HUD and in the
+    // end summary. The frame result carries the saved row; a later outbox flush updates it.
+    events: new Map(),
     queue: [], pending: new Set(), inFlight: 0, errors: 0, wakeLock: null,
     sessionId: String(Date.now()), startedAt: Date.now(), captureSeq: 0, stillBusy: false,
     stopping: false, drained: false, readyAt: Date.now() + 250,
@@ -4900,6 +5040,32 @@ function sharedChecksLeftText() {
   return limit ? ` · ${t("shared_checks_left", { left: Math.max(0, limit - used), limit })}` : "";
 }
 
+// "3 sent, 1 saved on phone, 1 checking": one line, states only, nothing when the drive
+// has found nothing yet. The same counts close the end summary, without "checking".
+function driveStatesText(ctx, live) {
+  if (!ctx) return "";
+  const counts = { synced: 0, saved: 0, failed: 0 };
+  for (const state of (ctx.events || new Map()).values()) if (state in counts) counts[state]++;
+  const parts = [];
+  if (counts.synced) parts.push(t("hud_tally_sent", { n: counts.synced }));
+  if (counts.saved) parts.push(t("hud_tally_saved", { n: counts.saved }));
+  if (counts.failed) parts.push(t("hud_tally_failed", { n: counts.failed }));
+  const checking = live ? (ctx.inFlight || 0) + (ctx.queue ? ctx.queue.length : 0) : 0;
+  if (checking) parts.push(t("hud_tally_checking", { n: checking }));
+  return parts.join(", ");
+}
+
+// An outbox flush changes rows this drive saved; re-read those rows' states.
+async function refreshDriveEventStates(ctx) {
+  if (!ctx || !ctx.events || !ctx.events.size) return;
+  const reports = await api("/api/reports").catch(() => null);
+  if (!reports) return;
+  for (const report of reports) {
+    const id = String(report.id);
+    if (ctx.events.has(id)) ctx.events.set(id, syncStateOf(report));
+  }
+}
+
 function updateHud(status, ctx = drive) {
   if (!ctx || drive !== ctx) return;
   if (!status && ctx.paused) status = t("drive_service_paused");
@@ -4918,15 +5084,23 @@ function updateHud(status, ctx = drive) {
     + (ctx.tally.already ? ` · ${alreadyCountText(ctx.tally.already)}` : "")
     + (ctx.tally.repaired ? ` · ${ctx.tally.repaired} fixed` : "")
     + (ctx.tally.unclear ? ` · ${t("drive_hud_unclear", { n: ctx.tally.unclear })}` : "");
+  // Frames in flight are counted on the tally line below ("2 checking"), once.
   $("driveStatus").textContent = status ||
-    t("scanning", { mode: "live", checked: ctx.tally.checked,
-      analyzing: (ctx.inFlight || ctx.queue.length) ? t("analyzing_suffix", { n: ctx.inFlight + ctx.queue.length }) : "" })
+    t("scanning", { mode: "live", checked: ctx.tally.checked, analyzing: "" })
       + (ctx.tally.dropped ? ` · ${ctx.tally.dropped} ${t("coverage_dropped")}` : "")
       + (ctx.cameraWarning ? ` · ${ctx.cameraWarning}` : "")
       + sharedChecksLeftText()
       + (recCtx && !recCtx.failed
           ? " " + t("rec_suffix", { mb: (recCtx.bytes / 1048576).toFixed(0) })
           : (recCtx && recCtx.failed ? " " + t("rec_failed") : ""));
+  // Once the tally has appeared in a drive it keeps its line, so the overlay does not
+  // change height each time the last frame in flight comes back.
+  const states = $("driveStates");
+  if (states) {
+    const text = driveStatesText(ctx, true);
+    if (text) states.classList.remove("hidden");
+    states.textContent = text || "\u00a0";
+  }
 }
 
 const withTimeout = (p, ms) => {
@@ -5032,8 +5206,12 @@ function drainDriveQueue(ctx) {
         ctx.errors = 0;
         // A frame the model could not judge (dark, rain, glare) is not a clear road.
         if (res && res.review) ctx.tally.unclear = (ctx.tally.unclear || 0) + 1;
-        if (res && res.found) ctx.tally.found++;
-        else if (res && res.repaired) ctx.tally.repaired++;
+        if (res && res.found) {
+          ctx.tally.found++;
+          if (ctx.events && res.report && res.report.id != null) {
+            ctx.events.set(String(res.report.id), syncStateOf(res.report));
+          }
+        } else if (res && res.repaired) ctx.tally.repaired++;
         else if (res && res.duplicate && res.duplicate_of != null) {
           ctx.duplicateIds.add(String(res.duplicate_of));
           ctx.tally.already = ctx.duplicateIds.size;
@@ -5385,9 +5563,12 @@ function stopDrive() {
           : t("drive_end_zero", { checked: tally.checked, debug: localStorage.getItem("debug_mode") === "1" ? t("debug_saved_suffix") : "" }))
       : t("drive_end", { found: eventCountText(tally.found), checked: tally.checked })
         + (tally.already ? t("drive_seen_suffix", { already: known }) : "")) + unclearNote + failedNote;
+    // The outbox may have flushed during the drive; the summary counts what is true now.
+    await refreshDriveEventStates(ctx).catch(() => {});
+    const states = driveStatesText(ctx, false);
     // Keep startup locked until the old drive's final UI/prompt is complete, otherwise
     // it can interrupt a newly started drive after an asynchronous recorder flush.
-    alert(summary);
+    alert(states ? `${summary} ${states}.` : summary);
     const mine = (await api("/api/footage").catch(() => []))
       .find((f) => String(f.drive_id) === String(sessionId));
     if (!mine) return;
@@ -8181,7 +8362,10 @@ async function openDash() {
   if (generation !== dashGeneration) return;
   const FOUND = ["draft", "queued", "sent", "unrouted", "duplicate"];
   const holes = reports.filter((r) => FOUND.includes(r.status));
-  const emailDrafts = reports.filter((r) => r.status === "sent" || r.status === "queued").length;
+  // Opening the composer is a draft; "sent" is the person's own confirmation, counted
+  // on its own so a drafted email never reads as a sent one.
+  const emailDrafts = reports.filter((r) => r.status === "queued").length;
+  const emailsSent = reports.filter((r) => r.status === "sent").length;
   // Only drives count checked frames; a report is not one, and 300 reports with no
   // drives read as 300 events checked.
   const frames = drives.reduce((n, d) => n + (d.checked || 0), 0);
@@ -8194,11 +8378,14 @@ async function openDash() {
   const dayTxt = days === 1 ? t("day_one") : t("day_many", { n: days });
   $("dashRange").innerHTML = holes.length ? t("dash_range", { days: dayTxt, first }) : t("dash_empty");
 
-  const tile = (n, label) => `<div class="card" style="flex:1 1 30%;min-width:96px;margin:0;text-align:center">
+  const tile = (n, label, wide) => `<div class="card" style="flex:1 1 ${wide ? "100%" : "30%"};min-width:96px;margin:0;text-align:center">
       <div class="verdict" style="font-size:22px;margin:0">${escapeHtml(n)}</div>
       <div class="meta">${escapeHtml(label)}</div></div>`;
+  // Seven tiles three to a row left the last one stretched alone; the headline count
+  // takes the first row and the other six sit in two rows of three.
   $("dashStats").innerHTML =
-    tile(holes.length, t("stat_found")) + tile(emailDrafts, t("stat_reported")) +
+    tile(holes.length, t("stat_found"), true) + tile(emailDrafts, t("stat_reported")) +
+    tile(emailsSent, t("stat_sent")) +
     tile(frames, t("stat_frames")) + tile(drives.length, t("stat_drives")) +
     tile(km.toFixed(1), t("stat_km")) + tile(mb.toFixed(0), t("stat_footage"));
 
@@ -8446,6 +8633,10 @@ window.addEventListener("pipeline-verdict", (e) => {
 // retry, a reconnect, or the flush at launch. Redraw the list, and the open card when
 // it is that report, so Email appears without the tester having to back out and in.
 window.addEventListener("central-outbox-flushed", () => {
+  if (drive && drive.events && drive.events.size) {
+    const ctx = drive;
+    void refreshDriveEventStates(ctx).then(() => updateHud(undefined, ctx)).catch(() => {});
+  }
   void loadReports().then((latest) => {
     const shown = detailList[detailIdx];
     if (!shown || $("detail").classList.contains("hidden")) return;

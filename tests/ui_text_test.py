@@ -169,13 +169,15 @@ def translations(key):
     return dict(zip(LANGUAGES, found))
 
 
-# Both statuses mean the composer opened; the app cannot know that anything was sent.
+# "queued" means the composer opened; "sent" means the person answered "Email sent?".
+# Neither is a submission the app verified, so neither may claim one.
 chip_sent, chip_queued = translations("chip_sent"), translations("chip_queued")
-stat_reported = translations("stat_reported")
+stat_reported, stat_sent = translations("stat_reported"), translations("stat_sent")
 for language in LANGUAGES:
-    if chip_sent[language] != chip_queued[language]:
-        fails.append(f"{language} chip_sent and chip_queued differ for the same opened draft")
-    for value in (chip_sent[language], stat_reported[language]):
+    if chip_sent[language] == chip_queued[language]:
+        fails.append(f"{language} chip_sent and chip_queued read the same, so a draft looks sent")
+    for value in (chip_sent[language], chip_queued[language], stat_reported[language],
+                  stat_sent[language]):
         for claim in ("सादर", "पुष्टी", "জমা", "নিশ্চিত"):
             if claim in value:
                 fails.append(f"{language} says a complaint was submitted: {value}")
