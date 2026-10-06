@@ -738,7 +738,10 @@
           ...options, reclocked: true, exactBody: body, idempotencyKey: signedIdempotencyKey,
         });
       }
-      if (response.status === 408 || response.status === 425 || response.status === 429
+      // A 425 is the service answering (a lock or a counter is busy for a moment), not
+      // the service missing; holding it against the service for a minute stalled every
+      // outbox flush and personal-mode count behind one busy write.
+      if (response.status === 408 || response.status === 429
           || response.status >= 500) markProjectServiceUnavailable();
       throw error;
     }
@@ -1105,6 +1108,9 @@
     }
     if (observation && observation.location_source) {
       body.location_source = String(observation.location_source);
+    }
+    if (observation && Number.isFinite(observation.location_age_ms)) {
+      body.location_age_ms = observation.location_age_ms;
     }
     // The server-issued receipt binds an accepted result to this stable observation and
     // location. The later map write repeats the same values, preventing a caller from
@@ -8342,6 +8348,9 @@
         : rec.capture_source || "manual",
       location_source: rec.location_source || (finiteCoord(rec.lat) && finiteCoord(rec.lng)
         ? "device_gps" : "none"),
+      // How old the fix was when the photo or frame was placed on it: 0 for a live fix,
+      // up to 15 s when the live one was late and the phone's last fix was used.
+      ...(Number.isFinite(rec.location_age_ms) ? { location_age_ms: rec.location_age_ms } : {}),
       damage_type: rec.damage_type,
       size: rec.size || null,
       image_hash: await imageHash(workingDataUrl),
@@ -8355,13 +8364,35 @@
     return request;
   }
 
+  // A 425 is the service asking for a moment: another report near the same spot holds
+  // the location lock (the previous frame of this drive, most often), the shared
+  // counters are busy, or the same key is still being processed. The lock is normally
+  // gone within a second, so the write is retried here with backoff before it falls
+  // back to the outbox and the outbox's minute-long schedule. Measured over 30 days,
+  // 45 reports got this answer and every one of them waited for the outbox.
+  const CENTRAL_BUSY_RETRY_DELAYS_MS = [1000, 2000, 4000];
+  const busyCentralFailure = (error) => !!error && error.status === 425
+    && !!(error.details && error.details.retryable === true);
+  async function postCentralReport(path, request, exactBody, idempotencyKey) {
+    const delays = Array.isArray(window.__centralBusyRetryDelaysMs)
+      ? window.__centralBusyRetryDelaysMs : CENTRAL_BUSY_RETRY_DELAYS_MS;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await signedServicePost(path, request, {
+          idempotencyKey, exactBody,
+          fallback: "The pothole could not be added to the shared map.",
+        });
+      } catch (error) {
+        if (!busyCentralFailure(error) || attempt >= delays.length) throw error;
+        await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+      }
+    }
+  }
+
   async function registerCentralPothole(request, exactBody) {
     if (!request) return null;
-    return signedServicePost("/v1/potholes/report", request, {
-      idempotencyKey: request.client_observation_id,
-      exactBody,
-      fallback: "The pothole could not be added to the shared map.",
-    });
+    return postCentralReport("/v1/potholes/report", request, exactBody,
+      request.client_observation_id);
   }
 
   // The server refuses these for good (bad or expired receipt, replay, too large, not
@@ -8512,11 +8543,8 @@
         let response;
         try {
           const request = JSON.parse(queued.body);
-          response = await signedServicePost(queued.path || "/v1/potholes/report", request, {
-            idempotencyKey: queued.client_observation_id,
-            exactBody: queued.body,
-            fallback: "The pothole could not be added to the shared map.",
-          });
+          response = await postCentralReport(queued.path || "/v1/potholes/report", request,
+            queued.body, queued.client_observation_id);
           if (!response || !response.pothole || !response.pothole.id) {
             throw new Error("The reporting service returned an incomplete pothole record.");
           }
@@ -8787,6 +8815,9 @@
     ]);
     const locationSource = allowedLocationSources.has(requestedLocationSource)
       ? requestedLocationSource : (finiteCoord(lat) && finiteCoord(lng) ? "device_gps" : "none");
+    const locationAgeRaw = Math.round(parseFloat(fd.get("location_age_ms")));
+    const locationAgeMs = locationSource !== "none" && Number.isFinite(locationAgeRaw)
+      && locationAgeRaw >= 0 ? locationAgeRaw : null;
     const sourceEventKey = driveMode && fd.get("source_event_key")
       ? String(fd.get("source_event_key")).slice(0, 180) : null;
     // Bind the request to the mode in which it began. A Settings change while a slow
@@ -8856,7 +8887,8 @@
       detectionDetail, driveMode ? "drive" : "manual",
       `vision:${clientObservationId}:${detectSettings}`,
       { client_observation_id: clientObservationId, lat, lng,
-        capture_source: captureSource, location_source: locationSource, signal });
+        capture_source: captureSource, location_source: locationSource,
+        location_age_ms: locationAgeMs, signal });
     const decision = decisionFor(a);
     const accepted = decision === "accept";
     const detector = {
@@ -8913,6 +8945,7 @@
         prompt_version: PROMPT_VERSION, schema_version: SCHEMA_VERSION,
         evidence_count: imageInputs.length,
         capture_source: storedCaptureSource, location_source: locationSource,
+        location_age_ms: locationAgeMs,
         captured_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : null,
         gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
         speed_mps: Number.isFinite(speedRaw) ? speedRaw : null,
@@ -9081,6 +9114,7 @@
       drive_id: driveId,
       capture_source: storedCaptureSource,
       location_source: locationSource,
+      location_age_ms: locationAgeMs,
       source_event_key: sourceEventKey,
       source_event_keys: sourceEventKey ? [sourceEventKey] : [],
       captured_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : null,
@@ -12190,10 +12224,11 @@
                    AUTHORITY_COMPLAINT_PROFILES, AUTHORITY_REGISTRY_VERSION,
                    BENGALURU_AUTHORITY_NAMES, BENGALURU_HANDOFF, BIHAR_ROUTING_ENVELOPE,
                    BIHAR_STATE_AUTHORITY, BIHAR_STATE_GEOMETRY_SHA256, BLR, BLR_BODIES,
-                   CENTRAL_OWNERSHIP_SOURCE, CHHATTISGARH_ROUTING_ENVELOPE,
-                   CHHATTISGARH_STATE_AUTHORITY, CHHATTISGARH_STATE_GEOMETRY_SHA256,
-                   CIVIC_HANDOFF_OVERRIDES, COMPLAINT_TEMPLATE_VERSION,
-                   CONTRACT_LOOKUP_UNAVAILABLE, CONTRACT_MANIFEST_FILE, CONTRACT_PACK_MAX_BYTES,
+                   CENTRAL_BUSY_RETRY_DELAYS_MS, CENTRAL_OWNERSHIP_SOURCE,
+                   CHHATTISGARH_ROUTING_ENVELOPE, CHHATTISGARH_STATE_AUTHORITY,
+                   CHHATTISGARH_STATE_GEOMETRY_SHA256, CIVIC_HANDOFF_OVERRIDES,
+                   COMPLAINT_TEMPLATE_VERSION, CONTRACT_LOOKUP_UNAVAILABLE,
+                   CONTRACT_MANIFEST_FILE, CONTRACT_PACK_MAX_BYTES,
                    CONTRACT_STATE_BOUNDARY_PACKS, CRC, DAMAGE_RE, DAMAGE_TYPES,
                    DEDUPE_ADJACENT_RADIUS_M, DEDUPE_HISTORY_RADIUS_M, DEDUPE_HISTORY_S,
                    DEDUPE_MISSING_HEADING_RADIUS_M, DEDUPE_POOR_GPS_S, DEDUPE_SAME_DRIVE_S,
@@ -12275,15 +12310,16 @@
                    authorityComplaintProfile, authorityRoute, averageLuminance, b64ToBytes,
                    biharCoverage, biharRouteFromGeocode, binaryAssessment, blobToDataUrl,
                    bmcWardFromBoundary, bodies, buildComplaintOutputs, buildDetectionRequest,
-                   buildTenderMatchRequest, bytesToB64, bytesToBase64, cachedPackBytes,
-                   canSearchTenderCatalog, candidateLeadIsUnambiguous, canonicalJson,
-                   canonicalServiceRequest, catalogResourceWithinReview, centralPotholeRequest,
-                   centralReportIsConfirmed, chhattisgarhCoverage, chhattisgarhRouteFromGeocode,
-                   civicIssueName, clearAllStoredRecords, clearPackCache, compatibleDamage,
-                   compatibleDraftRoute, complaintBodyWithFooter, complaintFooter,
-                   complaintLanguage, complaintOutputsForRecord, complaintRouteError,
-                   complaintRoutingBlock, completeCentralRetry, conciseRouteLabel,
-                   conditionStatus, confirmedTemporaryAssessment, containingMmrAuthorities,
+                   buildTenderMatchRequest, busyCentralFailure, bytesToB64, bytesToBase64,
+                   cachedPackBytes, canSearchTenderCatalog, candidateLeadIsUnambiguous,
+                   canonicalJson, canonicalServiceRequest, catalogResourceWithinReview,
+                   centralPotholeRequest, centralReportIsConfirmed, chhattisgarhCoverage,
+                   chhattisgarhRouteFromGeocode, civicIssueName, clearAllStoredRecords,
+                   clearPackCache, compatibleDamage, compatibleDraftRoute,
+                   complaintBodyWithFooter, complaintFooter, complaintLanguage,
+                   complaintOutputsForRecord, complaintRouteError, complaintRoutingBlock,
+                   completeCentralRetry, conciseRouteLabel, conditionStatus,
+                   confirmedTemporaryAssessment, containingMmrAuthorities,
                    contractLookupEvidence, contractPackProvenance, contractVerificationFor,
                    coordinatedRoadNoun, createCivicReport, createReport,
                    currentOfficialRouteBinding, damageTypeOf, dataUrlToBlob, decisionFor,
@@ -12343,12 +12379,12 @@
                    photoBlob, photoToBase64, pinnedStateCoverage, pinnedStateRoute, pmsg,
                    pointInEnvelope, pointInGeometry, pointInPolygon, pointInRing,
                    pointOnSegment, pointToHighwaySegment, pointToSegmentMeters,
-                   preferredLowerCatalogMatch, prepareComplaint, presentDataStores, prewarm,
-                   probeProjectService, progress, projectServiceAvailable, pruneStatePacks,
-                   publicEmailStatus, punjabCoverage, punjabRouteFromGeocode,
-                   putCachedStatePack, putDrive, putFootage, putReport, rajasthanCoverage,
-                   rajasthanRouteFromGeocode, randomId, readFeedbackQueue, readJson,
-                   rebuildOfficialAuthorityIndex, recordCentralRetryFailure,
+                   postCentralReport, preferredLowerCatalogMatch, prepareComplaint,
+                   presentDataStores, prewarm, probeProjectService, progress,
+                   projectServiceAvailable, pruneStatePacks, publicEmailStatus, punjabCoverage,
+                   punjabRouteFromGeocode, putCachedStatePack, putDrive, putFootage, putReport,
+                   rajasthanCoverage, rajasthanRouteFromGeocode, randomId, readFeedbackQueue,
+                   readJson, rebuildOfficialAuthorityIndex, recordCentralRetryFailure,
                    refreshAndPersistOfficialHandoff, refreshGeneratedComplaintFields,
                    registerCentralPothole, rejectedVerdict, remainingStateCoverage,
                    remainingStateRouteFromGeocode, repairProvenanceIsExact,

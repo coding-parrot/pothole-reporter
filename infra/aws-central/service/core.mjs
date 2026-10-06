@@ -652,6 +652,10 @@ export function createService({
           speed_mps: Number.isFinite(number(body.speed_mps)) ? body.speed_mps : null,
           capture_source: source.captureSource,
           location_source: source.locationSource,
+          // How old the phone's fix was when the observation was placed on it: 0 for a
+          // live fix, up to 15 s when the live fix was late and the last one was used.
+          location_age_ms: Number.isFinite(number(body.location_age_ms))
+            && body.location_age_ms >= 0 ? Math.round(body.location_age_ms) : null,
           damage_type: damageType,
           size,
           image_hash: imageHash,
