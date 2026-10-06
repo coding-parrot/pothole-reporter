@@ -55,3 +55,35 @@ evidence to read before trusting YOLO's damaged verdicts without confirmation.
 
 Use the CloudFormation `ApiUrl` output as the app's default `service_url`. Do not point
 new releases at the retired Cloudflare Worker hostname.
+
+## Road ownership when KGIS cannot answer
+
+`service/geolocation.mjs` asks the Karnataka state GIS (KGIS) which town or highway
+covers a report. KGIS stalls for tens of seconds at a time; one 3 s timeout opens a
+one-minute breaker, and in the 30 days to 6 Oct 2026 that turned 227 of 450 tender
+lookups into `503 road_ownership_unavailable`. Since then, whenever KGIS gives no
+verdict (down, stalled, malformed, breaker open, or its panchayat layer alone failing),
+the service answers from `data/karnataka-local-geometry.json`, packaged by `deploy.sh`:
+
+- the 319 KGIS town polygons (`data/karnataka-town-polygons.json`, a dated snapshot of
+  the same layer the live lookup queries) give `municipal` with the LGD code;
+- the app's pinned national highway centre lines (OpenStreetMap, 15 m) give
+  `national_highway`;
+- the app's pinned Karnataka boundary (OpenStreetMap) gives `rural` (no panchayat named)
+  or `outside_state`.
+
+KGIS answers win when they arrive. A snapshot answer carries `source: "kgis_snapshot"`
+and `lookup.local` names what answered (`municipal_polygon`, `national_highway_geometry`,
+`state_polygon`, `outside_state_polygon`, `town_without_lgd`, or `unavailable` when the
+bundle is missing); the request log repeats `road_ownership_source`, `kgis_lookup` and
+`local_lookup`. State and district highways are not in the bundle, so a point on one of
+those inside a town answers `municipal` while KGIS is down. ELCITA, the one KGIS town
+with no LGD code, stays `unknown` as it does live.
+
+Rebuild after KGIS edits its layer (the snapshot records `source_last_edited`) or the app
+re-pins its packs; the test suite fails when the bundle's recorded hashes no longer match:
+
+```bash
+node infra/aws-central/tools/build-karnataka-geometry.mjs --snapshot   # fetches from KGIS
+node infra/aws-central/tools/build-karnataka-geometry.mjs              # rebuilds the bundle
+```

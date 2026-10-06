@@ -36,16 +36,20 @@ done
 npm install --prefix infra/aws-central --omit=dev --no-audit --no-fund
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
-mkdir -p "$TMP_DIR/package/infra/aws-central" "$TMP_DIR/package/llm/generated"
+mkdir -p "$TMP_DIR/package/infra/aws-central" "$TMP_DIR/package/llm/generated" "$TMP_DIR/package/data"
 cp -R infra/aws-central/service "$TMP_DIR/package/infra/aws-central/"
 cp infra/aws-central/package.json "$TMP_DIR/package/infra/aws-central/"
 cp -R infra/aws-central/node_modules "$TMP_DIR/package/infra/aws-central/"
 cp llm/generated/contract.mjs "$TMP_DIR/package/llm/generated/"
-(cd "$TMP_DIR/package" && zip -q -r "$TMP_DIR/central-lambda.zip" infra llm)
+# Karnataka town polygons, state boundary and national highway lines: what the service
+# answers road ownership from when KGIS cannot. Same path relative to the service as in
+# the repo, so geolocation.mjs needs no configuration to find it.
+cp data/karnataka-local-geometry.json "$TMP_DIR/package/data/"
+(cd "$TMP_DIR/package" && zip -q -r "$TMP_DIR/central-lambda.zip" infra llm data)
 # A content-addressed key makes CloudFormation see every code change; a fixed key reports
 # "No changes" and leaves the old Lambda code running.
 if [[ -z "$CODE_KEY" ]]; then
-  CODE_SHA="$( (cd "$TMP_DIR/package" && find infra llm -type f ! -path '*/node_modules/*' -print0 | sort -z | xargs -0 shasum -a 256) | shasum -a 256 | cut -c1-16)"
+  CODE_SHA="$( (cd "$TMP_DIR/package" && find infra llm data -type f ! -path '*/node_modules/*' -print0 | sort -z | xargs -0 shasum -a 256) | shasum -a 256 | cut -c1-16)"
   CODE_KEY="releases/central-lambda-${CODE_SHA}.zip"
 fi
 
