@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import time
 from typing import Any
 
 
@@ -94,6 +95,27 @@ def _write_json(path: Path, value: Any) -> None:
     path.write_text(rendered, encoding="utf-8")
 
 
+CRAWL_ATTEMPTS = 3
+RETRY_PAUSE_SECONDS = 30
+
+
+def crawl_with_retries(crawler: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Ask a portal up to three times.
+
+    From GitHub's runners the State portals reset connections, time out and answer
+    503 for a minute at a time; on 6 Oct 2026 seven of thirty did in one pass. One
+    dropped connection used to cost that State its notices for the week.
+    """
+    for attempt in range(1, CRAWL_ATTEMPTS + 1):
+        try:
+            return crawler.crawl_live(**kwargs)
+        except (crawler.CrawlerError, OSError):
+            if attempt == CRAWL_ATTEMPTS:
+                raise
+            time.sleep(RETRY_PAUSE_SECONDS * attempt)
+    raise AssertionError("unreachable")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state-code", action="append", default=[],
@@ -128,7 +150,7 @@ def main() -> int:
     for source in sources:
         print(f"pull {source['source_id']} ({source['state_code']})", file=sys.stderr)
         try:
-            result = crawler.crawl_live(
+            result = crawl_with_retries(crawler, dict(
                 source_url=source["organisation_url"],
                 source_name=source["source_name"],
                 state_code=source["state_code"],
@@ -136,7 +158,7 @@ def main() -> int:
                 timeout=args.timeout,
                 request_delay=args.request_delay,
                 retrieved_at=retrieved_at,
-            )
+            ))
             result["source_id"] = source["source_id"]
             successes.append(result)
             _write_json(args.output_dir / "sources" / f"{source['source_id']}.json", result)
