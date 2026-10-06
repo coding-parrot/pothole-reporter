@@ -168,6 +168,7 @@
   <div id="progress" class="hidden">
     <img id="progressPhoto" class="big-photo" alt="">
     <div class="status" role="status" aria-live="polite"><div class="spin"></div><div id="progressText">Working...</div></div>
+    <button class="ghost hidden" id="progressRetry" style="width:100%">Retry location</button>
     <button class="ghost danger hidden" id="progressCancel" style="width:100%">Cancel video analysis</button>
   </div>
 
@@ -692,6 +693,9 @@ const I18N = {
     waiting_gps: "Waiting for GPS...",
     gps_30s: "Still no GPS fix after 30 s. Check that location is on with high accuracy.",
     gps_lost: "GPS signal lost, waiting for a fresh fix...",
+    location_waiting: "Still waiting for a GPS fix. Stay where the photo was taken; the check starts as soon as the phone knows where it is.",
+    location_retry: "Retry location",
+    photo_location_off: "Location permission is off, so this photo cannot be placed. Allow Location for Pothole Reporter in phone Settings, then tap Retry location.",
     holding: "Holding position ({checked} checked, {found} found)",
     scanning: "Scanning ({mode})... {checked} checked{analyzing}",
     starting_camera: "Starting camera…",
@@ -991,6 +995,9 @@ const I18N = {
     waiting_gps: "GPS ಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ...",
     gps_30s: "30 ಸೆಕೆಂಡ್ ನಂತರವೂ GPS ಸಿಕ್ಕಿಲ್ಲ. ಲೊಕೇಶನ್ ಆನ್ ಇದೆಯೇ ಪರಿಶೀಲಿಸಿ.",
     gps_lost: "GPS ಸಿಗ್ನಲ್ ಕಳೆದುಹೋಗಿದೆ, ಹೊಸ ಫಿಕ್ಸ್‌ಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ...",
+    location_waiting: "GPS ಫಿಕ್ಸ್‌ಗಾಗಿ ಇನ್ನೂ ಕಾಯಲಾಗುತ್ತಿದೆ. ಫೋಟೋ ತೆಗೆದ ಸ್ಥಳದಲ್ಲೇ ಇರಿ; ಫೋನ್‌ಗೆ ಸ್ಥಳ ತಿಳಿದ ಕೂಡಲೇ ಪರಿಶೀಲನೆ ಆರಂಭವಾಗುತ್ತದೆ.",
+    location_retry: "ಸ್ಥಳ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+    photo_location_off: "ಲೊಕೇಶನ್ ಅನುಮತಿ ಆಫ್ ಆಗಿದೆ, ಆದ್ದರಿಂದ ಈ ಫೋಟೋದ ಸ್ಥಳವನ್ನು ಗುರುತಿಸಲಾಗದು. ಫೋನ್ ಸೆಟ್ಟಿಂಗ್ಸ್‌ನಲ್ಲಿ Pothole Reporter ಗೆ ಲೊಕೇಶನ್ ಅನುಮತಿ ನೀಡಿ, ನಂತರ ಸ್ಥಳ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ ಒತ್ತಿ.",
     holding: "ಸ್ಥಳದಲ್ಲಿದ್ದೀರಿ ({checked} ಪರಿಶೀಲನೆ, {found} ಪತ್ತೆ)",
     scanning: "ಸ್ಕ್ಯಾನ್ ({mode})... {checked} ಪರಿಶೀಲನೆ{analyzing}",
     starting_camera: "ಕ್ಯಾಮೆರಾ ಪ್ರಾರಂಭವಾಗುತ್ತಿದೆ…",
@@ -1235,6 +1242,9 @@ const I18N = {
     getting_location: "तुमचे स्थान मिळवत आहे...", waiting_gps: "GPS ची प्रतीक्षा करत आहे...",
     gps_30s: "30 सेकंदांनंतरही GPS स्थान मिळाले नाही. उच्च अचूकतेसह स्थान सेवा सुरू आहे का ते तपासा.",
     gps_lost: "GPS सिग्नल हरवला; नवीन स्थानाची प्रतीक्षा करत आहे...",
+    location_waiting: "GPS स्थानाची अजून प्रतीक्षा आहे. छायाचित्र जिथे काढले तिथेच थांबा; फोनला स्थान कळताच तपासणी सुरू होईल.",
+    location_retry: "स्थान पुन्हा शोधा",
+    photo_location_off: "स्थान परवानगी बंद आहे, त्यामुळे या छायाचित्राचे स्थान ठरवता येत नाही. फोनच्या सेटिंग्जमध्ये Pothole Reporter ला स्थान परवानगी द्या, मग स्थान पुन्हा शोधा दाबा.",
     holding: "स्थान स्थिर ({checked} तपासले, {found} आढळले)",
     scanning: "स्कॅन सुरू ({mode})... {checked} तपासले{analyzing}", analyzing_suffix: ", {n} चे विश्लेषण सुरू",
     potholes_one: "{n} नुकसान नोंद", potholes_many: "{n} नुकसान नोंदी",
@@ -1545,6 +1555,9 @@ const I18N = {
     waiting_gps: "GPS-এর অপেক্ষা চলছে...",
     gps_30s: "30 সেকেন্ড পরেও GPS অবস্থান পাওয়া যায়নি। উচ্চ নির্ভুলতাসহ লোকেশন চালু আছে কি না দেখুন।",
     gps_lost: "GPS সংকেত হারিয়েছে; নতুন অবস্থানের অপেক্ষা চলছে...",
+    location_waiting: "GPS অবস্থানের জন্য এখনও অপেক্ষা চলছে। ছবি যেখানে তোলা হয়েছে সেখানেই থাকুন; ফোন অবস্থান জানলেই পরীক্ষা শুরু হবে।",
+    location_retry: "অবস্থান আবার খুঁজুন",
+    photo_location_off: "লোকেশনের অনুমতি বন্ধ, তাই এই ছবির অবস্থান ঠিক করা যাচ্ছে না। ফোনের সেটিংসে Pothole Reporter-কে লোকেশনের অনুমতি দিন, তারপর অবস্থান আবার খুঁজুন চাপুন।",
     holding: "একই অবস্থানে ({checked}টি পরীক্ষা, {found}টি পাওয়া গেছে)",
     scanning: "স্ক্যান চলছে ({mode})... {checked}টি পরীক্ষা{analyzing}",
     analyzing_suffix: ", {n}টি বিশ্লেষণাধীন",
@@ -2453,7 +2466,25 @@ async function renderReports() {
   wireCards(list, visible);
 }
 
-async function getPosition(timeoutMs = 10000) {
+// The most recent fix the phone handed any part of the app: the photo sampler, a
+// one-shot request, or the drive's watch. When the live fix is late at the moment a
+// photo or a frame is taken, a fix at most this old is used and its age travels with
+// the request as location_age_ms. Older than that, nothing is filed without a fix.
+const RECENT_FIX_MAX_AGE_MS = 15000;
+let lastKnownFix = null;
+function rememberFix(fix) {
+  if (!fix || !Number.isFinite(fix.lat) || !Number.isFinite(fix.lng)
+      || !Number.isFinite(fix.observed_at_ms)) return;
+  if (!lastKnownFix || fix.observed_at_ms >= lastKnownFix.observed_at_ms) lastKnownFix = fix;
+}
+function recentFix(atMs = Date.now(), maxAgeMs = RECENT_FIX_MAX_AGE_MS) {
+  if (!lastKnownFix) return null;
+  const age = atMs - lastKnownFix.observed_at_ms;
+  return age > maxAgeMs || age < -1000 ? null : { ...lastKnownFix };
+}
+const fixAgeAt = (fix, atMs) => Math.max(0, atMs - fix.observed_at_ms);
+
+async function getPosition(timeoutMs = 10000, maxAgeMs = 10000) {
   const native = isNativeApp() && (Capacitor.Plugins || {}).Geolocation;
   const options = { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 5000 };
   try {
@@ -2465,10 +2496,94 @@ async function getPosition(timeoutMs = 10000) {
     // Native providers can ignore their timeout; also bound the JS promise.
     const p = await withTimeout(request, timeoutMs);
     const fix = positionFix(p);
-    if (!fix || !Number.isFinite(p.timestamp) || Date.now() - p.timestamp > 10000
-        || p.timestamp > Date.now() + 1000) return null;
+    if (!fix || !Number.isFinite(p.timestamp) || p.timestamp > Date.now() + 1000) return null;
+    rememberFix(fix);
+    if (Date.now() - p.timestamp > maxAgeMs) return null;
     return { ...fix, fixedAt: p.timestamp };
   } catch (_) { return null; }
+}
+
+// A plain watch for the time a photo waits on its fix: whichever fix lands first
+// continues the check without a tap. Nothing is asked of a phone that refused location.
+function watchForFix(onFix) {
+  const native = isNativeApp() && (Capacitor.Plugins || {}).Geolocation;
+  if (!native && !navigator.geolocation) return () => {};
+  const options = { enableHighAccuracy: true, maximumAge: 0, timeout: 10000,
+    minimumUpdateInterval: 1000, interval: 1000 };
+  let watchId = null, stopped = false;
+  const clearWatch = (id) => {
+    if (native) Promise.resolve(native.clearWatch({ id })).catch(() => {});
+    else navigator.geolocation.clearWatch(id);
+  };
+  const stop = () => {
+    if (stopped) return;
+    stopped = true;
+    if (watchId != null) { try { clearWatch(watchId); } catch (_) {} }
+  };
+  const accept = (position) => {
+    const fix = positionFix(position);
+    if (!fix || stopped) return;
+    rememberFix(fix);
+    // A platform replays its cached fix to every new watch. One older than the rule
+    // allows is not news; the wait is for a fix the phone has just taken.
+    if (Date.now() - fix.observed_at_ms > RECENT_FIX_MAX_AGE_MS) return;
+    onFix(fix);
+  };
+  try {
+    if (native) {
+      Promise.resolve(native.watchPosition(options, (p, e) => { if (!e) accept(p); }))
+        .then((id) => { watchId = id; if (stopped) { try { clearWatch(id); } catch (_) {} } })
+        .catch(() => {});
+    } else {
+      watchId = navigator.geolocation.watchPosition(accept, () => {}, options);
+      if (stopped) { try { clearWatch(watchId); } catch (_) {} }
+    }
+  } catch (_) {}
+  return stop;
+}
+
+// The photo waits here with Retry and Cancel. Retry asks the phone again; a fix the
+// watch delivers meanwhile continues on its own; Cancel files nothing.
+let manualLocationWait = null;
+function waitForLocationRetry(withWatch = true) {
+  return new Promise((resolve) => {
+    const retry = $("progressRetry");
+    let stopWatch = () => {};
+    const finish = (outcome, fix = null) => {
+      if (!manualLocationWait || manualLocationWait.finish !== finish) return;
+      manualLocationWait = null;
+      stopWatch();
+      retry.classList.add("hidden");
+      retry.onclick = null;
+      resolve({ outcome, fix });
+    };
+    manualLocationWait = { finish };
+    retry.textContent = t("location_retry");
+    retry.classList.remove("hidden");
+    retry.onclick = () => finish("retry");
+    if (withWatch) stopWatch = watchForFix((fix) => finish("fix", fix));
+  });
+}
+
+// Keep acquiring until a fix lands or the tester gives up. The flow never files a photo
+// without a location on its own: a 20 s wait with nothing to show for it is told to the
+// tester, who can retry or cancel, rather than turned into an unroutable report.
+async function acquireManualPosition(token) {
+  for (;;) {
+    $("progressText").textContent = t("getting_location");
+    const permission = await requestNativeLocationPermission();
+    if (token !== manualAnalysisSequence) return null;
+    const denied = !!permission && permission !== "granted";
+    const fix = denied ? null : await getPosition(10000, RECENT_FIX_MAX_AGE_MS);
+    if (token !== manualAnalysisSequence) return null;
+    if (fix) return fix;
+    $("progressText").textContent = t(denied ? "photo_location_off" : "location_waiting");
+    showManualCancel(token);
+    if (denied) alertWithAppSettings(t("photo_location_off"), false);
+    const waited = await waitForLocationRetry(!denied);
+    if (token !== manualAnalysisSequence || waited.outcome === "cancel") return null;
+    if (waited.fix) return waited.fix;
+  }
 }
 
 let primedManualPosition = null;
@@ -2548,6 +2663,7 @@ function startCapturePositionSampler() {
   const accept = (position) => {
       const fix = positionFix(position);
       if (!fix || stopped) return;
+      rememberFix(fix);
       samples.push(fix);
       if (samples.length > 40) samples.shift();
       if (waiting) waiting();
@@ -2764,13 +2880,23 @@ async function handleFile(file, captureMeta = {}) {
       : suppliedPosition ? captureMeta.position
         : prefetched ? await positionWithin(prefetched, 750) : null;
     if (token !== manualAnalysisSequence) return;
-    if (!pos && bindCurrentLocation && !suppliedPosition) {
-      await requestNativeLocationPermission();
-      if (token !== manualAnalysisSequence) return;
+    // A fix's age is measured from the shutter for a photo taken now. An imported photo
+    // has no shutter the fix could relate to: the location is "here, now", by the
+    // tester's own confirmation, so its age counts from the moment it was attached.
+    const locationAtMs = captureSource === "manual_camera" && Number.isFinite(capturedAtMs)
+      ? capturedAtMs : Date.now();
+    // The prefetch began before the camera opened. A long camera session leaves it as
+    // old as any other fix, and past 15 s it is no better than none.
+    if (pos && !suppliedPosition && fixAgeAt(pos, locationAtMs) > RECENT_FIX_MAX_AGE_MS) pos = null;
+    if (!pos && bindCurrentLocation) pos = recentFix(locationAtMs);
+    if (!pos && bindCurrentLocation) {
       // Two seconds routinely expires before Android acquires its first fix,
       // permanently stripping road/tender lookup from an otherwise valid report.
-      pos = await getPosition(10000);
+      pos = await acquireManualPosition(token);
+      if (token !== manualAnalysisSequence) return;
+      if (!pos) { show("home"); return; }
     }
+    const locationAgeMs = pos ? fixAgeAt(pos, locationAtMs) : null;
     if (token !== manualAnalysisSequence) return;
     // The health probe is started while the camera is open. Waiting here means a
     // slow shared-service check never delays the camera picker or preview.
@@ -2791,6 +2917,7 @@ async function handleFile(file, captureMeta = {}) {
       fd.append("lat", pos.lat); fd.append("lng", pos.lng);
       fd.append("location_source", captureSource === "manual_camera"
         ? "device_gps" : "current_position_confirmed");
+      fd.append("location_age_ms", String(Math.round(locationAgeMs)));
       if (pos.accuracy != null) fd.append("gps_accuracy", String(pos.accuracy));
       if (pos.speed != null) fd.append("speed", String(pos.speed));
       if (pos.heading != null) fd.append("heading", String(pos.heading));
@@ -2866,6 +2993,7 @@ function cancelManualAnalysis() {
   // so at once), so Back can never start a second paid analysis in parallel.
   if (manualAbort) manualAbort.abort();
   manualAnalysisSequence++; // the in-flight request cannot retake the UI
+  if (manualLocationWait) manualLocationWait.finish("cancel");
   hideManualCancel();
   clearManualPreview();
   show("home");
@@ -3346,7 +3474,9 @@ const MAX_CAPTURE_MS = 1500;
 const PARKED_CAPTURE_MS = 1000; // GPS zero-speed is not proof that the scene is stationary
 const GPS_COARSE_M = 30;
 const MOVING_MS = 1.0;
-const GPS_MAX_AGE_MS = 10000; // a fix older than this is stale: pause rather than mistag
+// A frame is placed on the latest fix while that fix is at most this old, and says how
+// old it was (location_age_ms). Older is stale: pause rather than mistag.
+const GPS_MAX_AGE_MS = RECENT_FIX_MAX_AGE_MS;
 // Capture remains independent of inference workers and waits in a bounded local
 // queue rather than leaving unseen road gaps.
 const MAX_IN_FLIGHT = 6;
@@ -4730,6 +4860,8 @@ async function startDriveAdmitted() {
         ? p.coords.speed : null;
       ctx.posHeading = typeof p.coords.heading === "number" && !Number.isNaN(p.coords.heading)
         ? p.coords.heading : null;
+      rememberFix({ lat: ctx.pos.lat, lng: ctx.pos.lng, accuracy: ctx.posAccuracy,
+                    speed: ctx.posSpeed, heading: ctx.posHeading, observed_at_ms: ctx.posAt });
       (ctx.gpsTrack || (ctx.gpsTrack = [])).push(
         [Math.round((Date.now() - ctx.startedAt) / 100) / 10,
          +p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6),
@@ -4884,6 +5016,7 @@ function drainDriveQueue(ctx) {
     fd.append("source_offset_ms", String(job.sourceOffsetMs));
     fd.append("captured_at_ms", String(job.capturedAt));
     if (job.gpsAccuracy != null) fd.append("gps_accuracy", String(job.gpsAccuracy));
+    if (job.locationAgeMs != null) fd.append("location_age_ms", String(Math.round(job.locationAgeMs)));
     if (job.speed != null) fd.append("speed", String(job.speed));
     if (job.heading != null) fd.append("heading", String(job.heading));
     ctx.inFlight++;
@@ -5058,6 +5191,7 @@ async function driveTick() {
   }
   if (ctx.paused) { updateHud(); return; }
   const pos = { ...ctx.pos };
+  const posAt = ctx.posAt;
   const sinceLastCapture = Date.now() - (ctx.lastCapAt || 0);
   // Use either real displacement or a speed-derived time interval. A stuck/coarse fix
   // can no longer turn a moving drive into an eight-second stationary cadence.
@@ -5114,6 +5248,7 @@ async function driveTick() {
   enqueueDriveEvent(ctx, { frame, pos, capturedAt: ctx.lastCapAt,
                            sourceOffsetMs: ctx.lastCapAt - ctx.startedAt,
                            captureSeq: ++ctx.captureSeq, gpsAccuracy: ctx.posAccuracy,
+                           locationAgeMs: Math.max(0, captureStartedAt - posAt),
                            speed: ctx.posSpeed, heading: ctx.posHeading });
   updateHud();
 }

@@ -1106,6 +1106,9 @@
     if (observation && observation.location_source) {
       body.location_source = String(observation.location_source);
     }
+    if (observation && Number.isFinite(observation.location_age_ms)) {
+      body.location_age_ms = observation.location_age_ms;
+    }
     // The server-issued receipt binds an accepted result to this stable observation and
     // location. The later map write repeats the same values, preventing a caller from
     // turning one paid detection into arbitrary impact-map points.
@@ -8342,6 +8345,9 @@
         : rec.capture_source || "manual",
       location_source: rec.location_source || (finiteCoord(rec.lat) && finiteCoord(rec.lng)
         ? "device_gps" : "none"),
+      // How old the fix was when the photo or frame was placed on it: 0 for a live fix,
+      // up to 15 s when the live one was late and the phone's last fix was used.
+      ...(Number.isFinite(rec.location_age_ms) ? { location_age_ms: rec.location_age_ms } : {}),
       damage_type: rec.damage_type,
       size: rec.size || null,
       image_hash: await imageHash(workingDataUrl),
@@ -8787,6 +8793,9 @@
     ]);
     const locationSource = allowedLocationSources.has(requestedLocationSource)
       ? requestedLocationSource : (finiteCoord(lat) && finiteCoord(lng) ? "device_gps" : "none");
+    const locationAgeRaw = Math.round(parseFloat(fd.get("location_age_ms")));
+    const locationAgeMs = locationSource !== "none" && Number.isFinite(locationAgeRaw)
+      && locationAgeRaw >= 0 ? locationAgeRaw : null;
     const sourceEventKey = driveMode && fd.get("source_event_key")
       ? String(fd.get("source_event_key")).slice(0, 180) : null;
     // Bind the request to the mode in which it began. A Settings change while a slow
@@ -8856,7 +8865,8 @@
       detectionDetail, driveMode ? "drive" : "manual",
       `vision:${clientObservationId}:${detectSettings}`,
       { client_observation_id: clientObservationId, lat, lng,
-        capture_source: captureSource, location_source: locationSource, signal });
+        capture_source: captureSource, location_source: locationSource,
+        location_age_ms: locationAgeMs, signal });
     const decision = decisionFor(a);
     const accepted = decision === "accept";
     const detector = {
@@ -8913,6 +8923,7 @@
         prompt_version: PROMPT_VERSION, schema_version: SCHEMA_VERSION,
         evidence_count: imageInputs.length,
         capture_source: storedCaptureSource, location_source: locationSource,
+        location_age_ms: locationAgeMs,
         captured_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : null,
         gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
         speed_mps: Number.isFinite(speedRaw) ? speedRaw : null,
@@ -9081,6 +9092,7 @@
       drive_id: driveId,
       capture_source: storedCaptureSource,
       location_source: locationSource,
+      location_age_ms: locationAgeMs,
       source_event_key: sourceEventKey,
       source_event_keys: sourceEventKey ? [sourceEventKey] : [],
       captured_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : null,
@@ -12190,10 +12202,11 @@
                    AUTHORITY_COMPLAINT_PROFILES, AUTHORITY_REGISTRY_VERSION,
                    BENGALURU_AUTHORITY_NAMES, BENGALURU_HANDOFF, BIHAR_ROUTING_ENVELOPE,
                    BIHAR_STATE_AUTHORITY, BIHAR_STATE_GEOMETRY_SHA256, BLR, BLR_BODIES,
-                   CENTRAL_OWNERSHIP_SOURCE, CHHATTISGARH_ROUTING_ENVELOPE,
-                   CHHATTISGARH_STATE_AUTHORITY, CHHATTISGARH_STATE_GEOMETRY_SHA256,
-                   CIVIC_HANDOFF_OVERRIDES, COMPLAINT_TEMPLATE_VERSION,
-                   CONTRACT_LOOKUP_UNAVAILABLE, CONTRACT_MANIFEST_FILE, CONTRACT_PACK_MAX_BYTES,
+                   CENTRAL_OWNERSHIP_SOURCE,
+                   CHHATTISGARH_ROUTING_ENVELOPE, CHHATTISGARH_STATE_AUTHORITY,
+                   CHHATTISGARH_STATE_GEOMETRY_SHA256, CIVIC_HANDOFF_OVERRIDES,
+                   COMPLAINT_TEMPLATE_VERSION, CONTRACT_LOOKUP_UNAVAILABLE,
+                   CONTRACT_MANIFEST_FILE, CONTRACT_PACK_MAX_BYTES,
                    CONTRACT_STATE_BOUNDARY_PACKS, CRC, DAMAGE_RE, DAMAGE_TYPES,
                    DEDUPE_ADJACENT_RADIUS_M, DEDUPE_HISTORY_RADIUS_M, DEDUPE_HISTORY_S,
                    DEDUPE_MISSING_HEADING_RADIUS_M, DEDUPE_POOR_GPS_S, DEDUPE_SAME_DRIVE_S,
@@ -12275,15 +12288,16 @@
                    authorityComplaintProfile, authorityRoute, averageLuminance, b64ToBytes,
                    biharCoverage, biharRouteFromGeocode, binaryAssessment, blobToDataUrl,
                    bmcWardFromBoundary, bodies, buildComplaintOutputs, buildDetectionRequest,
-                   buildTenderMatchRequest, bytesToB64, bytesToBase64, cachedPackBytes,
-                   canSearchTenderCatalog, candidateLeadIsUnambiguous, canonicalJson,
-                   canonicalServiceRequest, catalogResourceWithinReview, centralPotholeRequest,
-                   centralReportIsConfirmed, chhattisgarhCoverage, chhattisgarhRouteFromGeocode,
-                   civicIssueName, clearAllStoredRecords, clearPackCache, compatibleDamage,
-                   compatibleDraftRoute, complaintBodyWithFooter, complaintFooter,
-                   complaintLanguage, complaintOutputsForRecord, complaintRouteError,
-                   complaintRoutingBlock, completeCentralRetry, conciseRouteLabel,
-                   conditionStatus, confirmedTemporaryAssessment, containingMmrAuthorities,
+                   buildTenderMatchRequest, bytesToB64, bytesToBase64,
+                   cachedPackBytes, canSearchTenderCatalog, candidateLeadIsUnambiguous,
+                   canonicalJson, canonicalServiceRequest, catalogResourceWithinReview,
+                   centralPotholeRequest, centralReportIsConfirmed, chhattisgarhCoverage,
+                   chhattisgarhRouteFromGeocode, civicIssueName, clearAllStoredRecords,
+                   clearPackCache, compatibleDamage, compatibleDraftRoute,
+                   complaintBodyWithFooter, complaintFooter, complaintLanguage,
+                   complaintOutputsForRecord, complaintRouteError, complaintRoutingBlock,
+                   completeCentralRetry, conciseRouteLabel, conditionStatus,
+                   confirmedTemporaryAssessment, containingMmrAuthorities,
                    contractLookupEvidence, contractPackProvenance, contractVerificationFor,
                    coordinatedRoadNoun, createCivicReport, createReport,
                    currentOfficialRouteBinding, damageTypeOf, dataUrlToBlob, decisionFor,
@@ -12343,12 +12357,12 @@
                    photoBlob, photoToBase64, pinnedStateCoverage, pinnedStateRoute, pmsg,
                    pointInEnvelope, pointInGeometry, pointInPolygon, pointInRing,
                    pointOnSegment, pointToHighwaySegment, pointToSegmentMeters,
-                   preferredLowerCatalogMatch, prepareComplaint, presentDataStores, prewarm,
-                   probeProjectService, progress, projectServiceAvailable, pruneStatePacks,
-                   publicEmailStatus, punjabCoverage, punjabRouteFromGeocode,
-                   putCachedStatePack, putDrive, putFootage, putReport, rajasthanCoverage,
-                   rajasthanRouteFromGeocode, randomId, readFeedbackQueue, readJson,
-                   rebuildOfficialAuthorityIndex, recordCentralRetryFailure,
+                   preferredLowerCatalogMatch, prepareComplaint,
+                   presentDataStores, prewarm, probeProjectService, progress,
+                   projectServiceAvailable, pruneStatePacks, publicEmailStatus, punjabCoverage,
+                   punjabRouteFromGeocode, putCachedStatePack, putDrive, putFootage, putReport,
+                   rajasthanCoverage, rajasthanRouteFromGeocode, randomId, readFeedbackQueue,
+                   readJson, rebuildOfficialAuthorityIndex, recordCentralRetryFailure,
                    refreshAndPersistOfficialHandoff, refreshGeneratedComplaintFields,
                    registerCentralPothole, rejectedVerdict, remainingStateCoverage,
                    remainingStateRouteFromGeocode, repairProvenanceIsExact,
