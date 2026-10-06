@@ -286,3 +286,58 @@ test("a lock that stays held is still a retryable 425", async () => {
   assert.equal(JSON.parse(result.body).error, "location_dedupe_in_progress");
   assert.equal(attempts, 4);
 });
+
+// From 6 Oct 2026 the geolocator answers from its own snapshot of the KGIS polygons when
+// KGIS cannot. A body named that way carries the same LGD code and must be stored and
+// routed exactly like a live answer; the request log must still tell the two apart.
+
+const snapshotGeolocator = {
+  async resolve({ lat, lng }) {
+    return { lat, lng, road_ownership: "municipal", source: "kgis_snapshot", lgd: "305851",
+      town: "GBA - Central", lookup: { kgis: "unavailable", local: "municipal_polygon" } };
+  },
+};
+
+test("a body named by the snapshot is stored and routed like a live KGIS answer", async () => {
+  const repository = memoryRepository();
+  const created = [];
+  Object.assign(repository, {
+    async acquireLocationLocks() { return true; },
+    async releaseLocationLocks() {},
+    async findNearby() { return []; },
+    async createPothole(candidate) { created.push(candidate); return true; },
+    async attachObservation() { return { newObserver: true }; },
+    async getPothole() { return created[0]; },
+    async recordReport() {},
+    async queryTenders(lgd) { return lgd === "305851" ? [] : null; },
+  });
+  const h = await harness({ repository, geolocator: snapshotGeolocator });
+  const result = await h.post("/v1/potholes/report", reportBody(Date.now()));
+  assert.equal(result.statusCode, 201, result.body);
+  assert.equal(created[0].body_lgd, "305851");
+  assert.equal(created[0].town, "GBA - Central");
+  assert.equal(JSON.parse(result.body).routing.reason, "no_tenders_for_jurisdiction");
+  const logged = JSON.parse(h.lines.log.filter((line) => line.includes('"http_request"')).pop());
+  assert.equal(logged.road_ownership, "municipal");
+  assert.equal(logged.road_ownership_source, "kgis_snapshot");
+  assert.equal(logged.kgis_lookup, "unavailable");
+  assert.equal(logged.local_lookup, "municipal_polygon");
+});
+
+test("the resolve route's log line says which register answered", async () => {
+  const repository = memoryRepository();
+  repository.queryTenders = async () => [];
+  const h = await harness({ repository, geolocator: snapshotGeolocator });
+  const result = await h.post("/v1/tenders/resolve", { lat: 12.99657, lng: 77.62034 });
+  assert.equal(result.statusCode, 200, result.body);
+  assert.equal(JSON.parse(result.body).jurisdiction.source, "kgis_snapshot");
+  const logged = JSON.parse(h.lines.log.filter((line) => line.includes('"http_request"')).pop());
+  assert.equal(logged.outcome, "no_tenders_for_jurisdiction");
+  assert.equal(logged.road_ownership_source, "kgis_snapshot");
+  assert.equal(logged.local_lookup, "municipal_polygon");
+  const live = await harness({ repository, geolocator });
+  await live.post("/v1/tenders/resolve", { lat: 12.99657, lng: 77.62034 });
+  const liveLine = JSON.parse(live.lines.log.filter((line) => line.includes('"http_request"')).pop());
+  assert.equal(liveLine.road_ownership_source, "kgis");
+  assert.equal(liveLine.local_lookup, null);
+});

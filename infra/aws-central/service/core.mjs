@@ -35,6 +35,10 @@ const FEEDBACK_TEST_MODES = new Set(["bike", "car", "walk", "other"]);
 const FEEDBACK_TEXT_MAX = 2_000;
 const OBSERVED_AHEAD_MS = 10 * 60_000;
 const LOCK_ATTEMPTS = 4;
+// A municipal body may be named by the live KGIS register or, when KGIS cannot answer,
+// by the service's snapshot of the same register's polygons. Either carries an LGD code
+// the tender index is keyed on.
+const MUNICIPAL_SOURCES = new Set(["kgis", "kgis_snapshot"]);
 const SIGNED_ROUTES = [
   "/v1/activity",
   "/v1/vision/detect",
@@ -477,6 +481,16 @@ export function createService({
     return complete(context, 201, { accepted: true, created_at: createdAt });
   }
 
+  // The request log has to show which register answered. 227 of 450 tender lookups in
+  // the 30 days to 6 Oct 2026 were 503s with nothing in the log saying KGIS was the
+  // reason, and an answer from the local snapshot must be tellable from a live one.
+  function noteJurisdiction(context, jurisdiction) {
+    context.roadOwnership = jurisdiction.road_ownership || null;
+    context.ownershipSource = jurisdiction.source || null;
+    context.kgisLookup = jurisdiction.lookup?.kgis || null;
+    context.localLookup = jurisdiction.lookup?.local || null;
+  }
+
   async function resolveTender(body, context) {
     const lat = number(body.lat);
     const lng = number(body.lng);
@@ -488,6 +502,7 @@ export function createService({
       lng,
       addressHint: bounded(body.address_hint, 500),
     });
+    noteJurisdiction(context, jurisdiction);
     if (jurisdiction.road_ownership === "unknown") {
       throw new HttpError(503, "road_ownership_unavailable",
         "Road ownership could not be verified. Retry later.", { retryable: true });
@@ -562,7 +577,8 @@ export function createService({
       lng,
       addressHint: bounded(body.address_hint, 500),
     }).catch(() => ({ road_ownership: "unknown", source: "unresolved" }));
-    const municipal = jurisdiction.source === "kgis"
+    noteJurisdiction(context, jurisdiction);
+    const municipal = MUNICIPAL_SOURCES.has(jurisdiction.source)
       && jurisdiction.road_ownership === "municipal";
     // Unknown ownership, or a town KGIS could not name, is the resolve route's 503 to
     // report and retry. Here the report still lands and routing is simply left out.
@@ -873,6 +889,10 @@ export function createService({
       detector_screened_by: context.detectorScreenedBy || null,
       detector_screen_confirmed: context.detectorScreenConfirmed ?? null,
       quota_refunded: context.quotaRefunded || false,
+      road_ownership: context.roadOwnership || null,
+      road_ownership_source: context.ownershipSource || null,
+      kgis_lookup: context.kgisLookup || null,
+      local_lookup: context.localLookup || null,
     }));
     return result;
   };
