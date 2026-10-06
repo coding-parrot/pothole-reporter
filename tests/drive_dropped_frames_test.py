@@ -2,8 +2,8 @@
 """Frames a drive captured but never checked are counted in the summary, the drive record
 and History.
 
-On a slow link the capture queue overflows and its oldest frames are dropped; a failed
-request loses its frame too. A 60 s drive dropped 71 of 131 captured frames and ended
+On a slow link the capture queue overflows and its oldest frames are dropped; a request
+the service answers with an error loses its frame too. A 60 s drive dropped 71 of 131 captured frames and ended
 with "9 damage events found, 60 frames checked.", as if the rest of the road had been
 seen. The drive record kept only checked and found, so History could not say it either.
 Here a slow detector and a burst of captures overflow the queue, every third request
@@ -37,7 +37,12 @@ with sync_playwright() as playwright:
         page.evaluate("""() => {
           window.__frameStub.delayMs = 1500;
           window.__frameStub.answer = (n) => {
-            if (n % 3 === 0) throw new Error("Network request failed");
+            // An answer from the service, not a dropped link: a frame the link failed
+            // is retried (low_connectivity_test), a frame the service refused is lost.
+            if (n % 3 === 0) {
+              throw Object.assign(new Error("The service could not complete this request."),
+                { status: 500, code: "internal_error", sharedService: true });
+            }
             return { found: false };
           };
         }""")

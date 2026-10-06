@@ -58,15 +58,19 @@
     ? localStorage.getItem("app_lang") : MODEL_CONFIG.defaultLanguage;
   const PROGRESS = {
     en: { compress: "Preparing photo...", capture: "Preparing photo...",
+          saved: "Saved on this phone. AI checking for road damage...",
           detect: "AI checking for road damage...", finalize: "Finalizing address and contract...",
           write: "Writing the complaint...", email: "Opening your email app..." },
     kn: { compress: "ಫೋಟೋ ಸಂಕುಚಿಸಲಾಗುತ್ತಿದೆ...", capture: "ಫ್ರೇಮ್ ಸೆರೆಹಿಡಿಯಲಾಗುತ್ತಿದೆ...",
+          saved: "ಈ ಫೋನ್‌ನಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ. AI ರಸ್ತೆ ಹಾನಿ ಪರಿಶೀಲಿಸುತ್ತಿದೆ...",
           detect: "AI ರಸ್ತೆ ಹಾನಿ ಪರಿಶೀಲಿಸುತ್ತಿದೆ...", finalize: "ವಿಳಾಸ ಮತ್ತು ಗುತ್ತಿಗೆ ಖಚಿತಪಡಿಸಲಾಗುತ್ತಿದೆ...",
           write: "ದೂರು ಬರೆಯಲಾಗುತ್ತಿದೆ...", email: "ನಿಮ್ಮ ಇಮೇಲ್ ಆ್ಯಪ್ ತೆರೆಯಲಾಗುತ್ತಿದೆ..." },
     mr: { compress: "फोटो तयार करत आहे...", capture: "रस्त्याची दृश्ये तयार करत आहे...",
+          saved: "या फोनवर जतन केले. AI खड्डा: होय किंवा नाही हे तपासत आहे...",
           detect: "AI खड्डा: होय किंवा नाही हे तपासत आहे...", finalize: "पत्ता आणि मार्ग निश्चित करत आहे...",
           write: "तक्रारीचा मसुदा तयार करत आहे...", email: "ईमेल अॅप उघडत आहे..." },
     bn: { compress: "ছবি প্রস্তুত করা হচ্ছে...", capture: "রাস্তার দৃশ্য প্রস্তুত করা হচ্ছে...",
+          saved: "এই ফোনে সংরক্ষিত। AI রাস্তার গর্ত: হ্যাঁ অথবা না পরীক্ষা করছে...",
           detect: "AI রাস্তার গর্ত: হ্যাঁ অথবা না পরীক্ষা করছে...", finalize: "ঠিকানা ও অভিযোগের পথ চূড়ান্ত করা হচ্ছে...",
           write: "অভিযোগের খসড়া তৈরি হচ্ছে...", email: "ইমেল অ্যাপ খোলা হচ্ছে..." },
   };
@@ -7978,6 +7982,8 @@
     }
     return new Error((err && err.message) || "Could not save to this device's storage.");
   }
+  // Every row with its photos. Only /api/reports, the test surface, reads this way now;
+  // the app's own screens use scanReports() and never hold more than one row's Blob.
   const allReports = () => op("readonly", (s) => s.getAll());
   const getReport = (id) => op("readonly", (s) => s.get(Number(id)));
   const putReport = (r) => op("readwrite", (s) => s.put(r));
@@ -8058,6 +8064,287 @@
       tx.onabort = died;
       tx.onerror = died;
     }));
+  }
+
+  // Walk the reports store one row at a time and keep only what `project` returns.
+  // getAll() clones every row, and every row carries its photo, so Home on a phone with
+  // months of reports held hundreds of photos at once. With a cursor at most one row is
+  // live; a projection that drops the Blob fields keeps the list to its metadata.
+  // `project` returns null to skip a row. Newest first by default: the list wants it.
+  function scanReports(project, { index = null, range = null, direction = "prev" } = {}) {
+    return idb().then((d) => new Promise((resolve, reject) => {
+      const tx = d.transaction("reports", "readonly");
+      const store = tx.objectStore("reports");
+      const source = index ? store.index(index) : store;
+      const req = source.openCursor(range, direction);
+      const rows = [];
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor) return;
+        const row = project(cursor.value);
+        if (row != null) rows.push(row);
+        cursor.continue();
+      };
+      req.onerror = () => reject(req.error);
+      tx.oncomplete = () => resolve(rows);
+      tx.onabort = () => reject(storageError(tx.error));
+    }));
+  }
+
+  // The fields a list never renders: the photo, the evidence copy and the repair photo
+  // (Blobs, or megabytes of bytes on WebKit), and the three complaint texts that are
+  // only read on the detail screen, which loads its row by id.
+  const REPORT_BINARY_FIELDS = ["photo", "photo_full", "repair_photo", "thumb"];
+  const REPORT_DETAIL_ONLY_FIELDS = ["email_body", "whatsapp_text", "portal_copy_text",
+                                     "portal_fields"];
+  function reportSummary(rec) {
+    const row = {};
+    for (const key of Object.keys(rec)) {
+      if (REPORT_BINARY_FIELDS.includes(key) || REPORT_DETAIL_ONLY_FIELDS.includes(key)) continue;
+      row[key] = rec[key];
+    }
+    row.status = publicEmailStatus(rec.status, rec);
+    row.has_photo = !!rec.photo;
+    row.has_full_frame = !!rec.photo_full;
+    row.has_repair_photo = !!rec.repair_photo;
+    row.photo_url = null;
+    row.repair_photo_url = null;
+    // The detail screen hydrates the full row by id before it renders this report.
+    row.summary_only = true;
+    return row;
+  }
+
+  // Thumbnails for the cards actually on screen. A card is 64 px wide, and an <img>
+  // pointed at the stored photo decodes all of it: 12 MB of pixels for a 2000 px Photo,
+  // so fifty cards held 600 MB of decoded images (measured) and a long history killed
+  // the WebView. The list gets a 256 px copy instead, made once from the whole frame
+  // (a downscale, never a crop), stored on the row, and read from there afterwards.
+  // This is a display copy only: detection, evidence and export still use the photo.
+  const THUMB_MAX_DIM = 256;
+  // An OffscreenCanvas where the engine has one: no DOM canvas, and the encode is
+  // asynchronous either way, so making a thumbnail never blocks a frame.
+  async function toThumbImage(source) {
+    const bmp = await createImageBitmap(photoBlob(source), { imageOrientation: "from-image" });
+    let c = null;
+    try {
+      const scale = Math.min(1, THUMB_MAX_DIM / Math.max(bmp.width, bmp.height));
+      const w = Math.max(1, Math.round(bmp.width * scale));
+      const h = Math.max(1, Math.round(bmp.height * scale));
+      let blob = null;
+      if (typeof OffscreenCanvas === "function") {
+        const off = new OffscreenCanvas(w, h);
+        off.getContext("2d").drawImage(bmp, 0, 0, bmp.width, bmp.height, 0, 0, w, h);
+        blob = await off.convertToBlob({ type: "image/jpeg", quality: 0.7 });
+      } else {
+        c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d").drawImage(bmp, 0, 0, bmp.width, bmp.height, 0, 0, w, h);
+        blob = await new Promise((resolve) => c.toBlob(resolve, "image/jpeg", 0.7));
+      }
+      if (!blob) return null;
+      return (await idbTakesBlobs()) ? blob
+        : { bytes: await blob.arrayBuffer(), type: blob.type || "image/jpeg" };
+    } finally {
+      if (typeof bmp.close === "function") bmp.close();
+      if (c) { c.width = 0; c.height = 0; }
+    }
+  }
+  async function reportThumb(id) {
+    const rec = await getReport(id);
+    if (!rec || !rec.photo) return null;
+    if (rec.thumb) return photoBlob(rec.thumb);
+    let thumb = null;
+    try {
+      thumb = await toThumbImage(rec.photo);
+    } catch (_) { thumb = null; }
+    // A photo this engine cannot decode is shown as it always was.
+    if (!thumb) return photoBlob(rec.photo);
+    await idb().then((d) => new Promise((resolve) => {
+      const tx = d.transaction("reports", "readwrite");
+      const store = tx.objectStore("reports");
+      const read = store.get(Number(id));
+      read.onsuccess = () => {
+        const current = read.result;
+        if (current && current.photo && !current.thumb) {
+          current.thumb = thumb;
+          store.put(current);
+        }
+      };
+      // A full disk loses only the cached copy; the thumbnail is still shown this time.
+      tx.oncomplete = tx.onabort = () => resolve();
+      tx.onerror = (event) => { event.preventDefault(); };
+    })).catch(() => {});
+    return photoBlob(thumb);
+  }
+  async function reportThumbs(ids) {
+    const wanted = [...new Set((Array.isArray(ids) ? ids : []).map(Number)
+      .filter((id) => Number.isSafeInteger(id) && id > 0))].slice(0, 50);
+    const out = {};
+    // One at a time: each first-time thumbnail decodes a whole photo, briefly.
+    for (const id of wanted) {
+      const thumb = await reportThumb(id).catch(() => null);
+      if (thumb) out[id] = thumb;
+    }
+    return out;
+  }
+
+  // Drive rows without their GPS track: an hour of driving is thousands of points,
+  // and the history list only reads the counts and the times.
+  function driveSummaries() {
+    return idb().then((d) => new Promise((resolve, reject) => {
+      const tx = d.transaction("drives", "readonly");
+      const req = tx.objectStore("drives").openCursor();
+      const rows = [];
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor) return;
+        const { gps_track: track, ...rest } = cursor.value;
+        rest.gps_points = Array.isArray(track) ? track.length : 0;
+        rows.push(rest);
+        cursor.continue();
+      };
+      req.onerror = () => reject(req.error);
+      tx.oncomplete = () => resolve(rows);
+      tx.onabort = () => reject(storageError(tx.error));
+    }));
+  }
+
+  // Per-drive footage totals from the lightweight walk, never the clips themselves.
+  async function footageSummaries() {
+    const byDrive = {};
+    for (const f of await footageMetadata()) {
+      const clipStart = Number.isFinite(f.recording_started_at_ms)
+        ? f.recording_started_at_ms / 1000 : f.at;
+      const d = byDrive[f.drive_id] || (byDrive[f.drive_id] = {
+        drive_id: f.drive_id, segments: 0, bytes: 0, mime: f.mime,
+        started_at: clipStart || null, ended_at: f.at || clipStart || null,
+      });
+      d.segments++; d.bytes += f.bytes;
+      if (clipStart) {
+        d.started_at = d.started_at == null ? clipStart : Math.min(d.started_at, clipStart);
+      }
+      if (f.at || clipStart) {
+        const clipEnd = f.at || clipStart;
+        d.ended_at = d.ended_at == null ? clipEnd : Math.max(d.ended_at, clipEnd);
+      }
+    }
+    return Object.values(byDrive);
+  }
+
+  // Everything Home needs, and nothing it does not: report metadata newest first, drive
+  // rows without tracks, footage totals. No photo bytes and no Blob handles leave the
+  // store for this screen, so its cost no longer grows with every pothole ever found.
+  async function historySummary() {
+    const [reports, drives, footage] = await Promise.all([
+      scanReports(reportSummary), driveSummaries(), footageSummaries(),
+    ]);
+    return { reports, drives, footage };
+  }
+
+  // ---------- retention ----------
+  // A drive's rejected frames (kept in debug mode) and its video are evidence for the
+  // reports it produced. Once every report of a drive has left the phone and the drive
+  // is a week old, the frames have nothing left to prove, so they go. Video is capped
+  // as a whole, oldest drive first, because one long recording is hundreds of
+  // megabytes and the phone was never asked to keep a dashcam archive. The drive in
+  // progress, any drive of the last seven days and any drive with an unfiled report
+  // keep everything: those are the ones a tester may still analyse or send from.
+  const FRAME_RETENTION_S = 7 * 86400;
+  const FOOTAGE_RETENTION_BYTES = 1024 * 1024 * 1024;
+  const REPORT_STATUSES = ["draft", "queued", "sent", "unrouted", "duplicate"];
+  const isReportRow = (rec) => !!rec && (rec.decision === "accept"
+    || REPORT_STATUSES.includes(rec.status));
+  // Unrouted is not unfiled: nobody can be written to, so nothing is waiting.
+  const isUnfiledReport = (rec) => isReportRow(rec)
+    && (rec.status === "draft" || !!rec.routing_pending || !!rec.central_sync_pending);
+  // Labelled frames are the detector's ground truth and are exported by hand; they stay.
+  const isPrunableFrame = (rec) => !!rec && rec.drive_id != null && !isReportRow(rec)
+    && !rec.human_label;
+
+  function deleteDriveFrames(driveId) {
+    return idb().then((d) => new Promise((resolve, reject) => {
+      const tx = d.transaction("reports", "readwrite");
+      const req = tx.objectStore("reports").index("by_drive")
+        .openCursor(IDBKeyRange.only(String(driveId)));
+      let failure = null, deleted = 0, freed = 0;
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor) return;
+        const rec = cursor.value;
+        if (isPrunableFrame(rec)) {
+          const photo = rec.photo;
+          freed += photo instanceof Blob ? photo.size
+            : storedPhoto(photo) ? photo.bytes.byteLength
+              : typeof photo === "string" ? photo.length : 0;
+          const del = cursor.delete();
+          del.onerror = () => { failure = del.error; };
+          deleted++;
+        }
+        cursor.continue();
+      };
+      req.onerror = () => { failure = req.error; };
+      tx.oncomplete = () => resolve({ deleted, freed });
+      const died = () => reject(storageError(failure || tx.error));
+      tx.onabort = died;
+      tx.onerror = died;
+    }));
+  }
+
+  async function pruneStoredHistory(options = {}) {
+    const activeDriveId = options.active_drive_id == null ? null : String(options.active_drive_id);
+    const now = Number.isFinite(options.now) ? options.now : Date.now() / 1000;
+    const capBytes = Number.isFinite(options.footage_cap_bytes)
+      ? options.footage_cap_bytes : FOOTAGE_RETENTION_BYTES;
+    const byDrive = {};
+    await scanReports((rec) => {
+      if (rec.drive_id == null) return null;
+      const id = String(rec.drive_id);
+      const d = byDrive[id] || (byDrive[id] = { unfiled: 0, frames: 0, last: 0 });
+      d.last = Math.max(d.last, Number(rec.created_at) || 0);
+      if (isUnfiledReport(rec)) d.unfiled++;
+      else if (isPrunableFrame(rec)) d.frames++;
+      return null;
+    });
+    const drives = await driveSummaries();
+    const footage = await footageSummaries();
+    const endOf = (id) => {
+      const row = drives.find((x) => String(x.id) === id);
+      const clips = footage.find((x) => String(x.drive_id) === id);
+      return (row && (row.ended_at || row.started_at))
+        || (byDrive[id] && byDrive[id].last)
+        || (clips && (clips.ended_at || clips.started_at)) || 0;
+    };
+    const keepsEverything = (id) => id === activeDriveId
+      || now - endOf(id) < FRAME_RETENTION_S
+      || (byDrive[id] && byDrive[id].unfiled > 0);
+    let framesDeleted = 0, freed = 0;
+    const framesOf = [];
+    for (const [id, d] of Object.entries(byDrive)) {
+      if (!d.frames || keepsEverything(id)) continue;
+      const result = await deleteDriveFrames(id);
+      framesDeleted += result.deleted;
+      freed += result.freed;
+      framesOf.push(id);
+    }
+    let footageBytes = footage.reduce((sum, f) => sum + (f.bytes || 0), 0);
+    const evicted = [];
+    if (footageBytes > capBytes) {
+      const candidates = footage
+        .filter((f) => !keepsEverything(String(f.drive_id)))
+        .sort((a, b) => (a.started_at || 0) - (b.started_at || 0));
+      for (const f of candidates) {
+        if (footageBytes <= capBytes) break;
+        freed += await deleteFootageFor(f.drive_id);
+        footageBytes -= f.bytes || 0;
+        evicted.push(String(f.drive_id));
+      }
+    }
+    // Deleted rows reach the quota seconds later; only on a phone short of room does
+    // this wait, so the next Photo or drive is not refused for space already freed.
+    if (freed) await waitForFreedSpace(freed);
+    return { frames_deleted: framesDeleted, frames_of_drives: framesOf,
+             footage_drives_evicted: evicted, freed_bytes: freed,
+             footage_bytes: footageBytes, footage_cap_bytes: capBytes };
   }
 
   // Accepted Drive jobs finish concurrently. A separate getAll() followed by add()
@@ -8791,7 +9078,114 @@
     }
   }
 
-  async function createReport(fd, driveMode, signal = null) {
+  // A failure the link caused, not the service: a timeout, a transport error, a phone
+  // that knows it is offline. These are queued and retried. Anything the service
+  // answered, a cap, a refusal or its own 5xx, is its answer: the tester is told, as
+  // before, because only they can act on it.
+  function connectivityError(error) {
+    if (!error || error.cancelled || error.fatal) return false;
+    const status = Number(error.status);
+    if (Number.isFinite(status) && status > 0) return false;
+    if (error.timeout || navigator.onLine === false) return true;
+    return /could not reach|did not respond|network|failed to fetch|load failed/i
+      .test(String(error.message || ""));
+  }
+  function pendingDetectionFields(fd) {
+    const fields = {};
+    for (const [key, value] of fd.entries()) {
+      if (key !== "photo" && typeof value === "string") fields[key] = value;
+    }
+    return fields;
+  }
+  async function markDetectionDeferred(id, error) {
+    const row = await getReport(id);
+    if (!row || row.status !== "pending") return null;
+    const pending = row.detection_pending || { fields: {}, queued_at: Date.now(), attempts: 0 };
+    pending.attempts = (pending.attempts | 0) + 1;
+    pending.last_attempt_at = Date.now();
+    pending.last_error = String(error && error.message || "network");
+    row.detection_pending = pending;
+    await putReport(row);
+    return row;
+  }
+  async function markDetectionRefused(id, error) {
+    const row = await getReport(id);
+    if (!row || row.status !== "pending") return null;
+    delete row.detection_pending;
+    row.status = "review";
+    row.decision = "review";
+    row.description = String(error && error.message || "The check could not be completed.");
+    await putReport(row);
+    return row;
+  }
+  // Rows whose check is running in this page, so a retry pass never starts a second
+  // one, and rows the tester has left the progress screen for: their check finishes in
+  // the background, where a refusal keeps the photo instead of deleting it unseen.
+  const detectionsInFlight = new Set();
+  const detachedDetections = new Set();
+  // A check that ended in an error while its row was still only queued. Cancel removes
+  // the photo, as it always did. A foreground refusal removes it too and the caller
+  // says why. A background refusal keeps it as a retake with the reason.
+  async function settleQueuedFailure(id, error, background) {
+    const row = await getReport(id).catch(() => null);
+    if (!row || row.status !== "pending") return;
+    const keep = !(error && error.cancelled) && (background || detachedDetections.has(id));
+    detachedDetections.delete(id);
+    if (keep) await markDetectionRefused(id, error).catch(() => {});
+    else await deleteReportAndCentralOutbox(id).catch(() => {});
+  }
+  // While the app stays open a weak link raises no "online" event, so queued photos are
+  // retried on a timer: 15 s, 30 s, 60 s, then every two minutes.
+  let pendingDetectionTimer = null;
+  function schedulePendingDetectionRetry(attempts) {
+    if (pendingDetectionTimer) return;
+    const delay = Math.min(120000, 15000 * Math.pow(2, Math.max(0, (attempts | 0) - 1)));
+    pendingDetectionTimer = setTimeout(() => {
+      pendingDetectionTimer = null;
+      void resumePendingDetections().catch(() => {});
+    }, typeof window !== "undefined" && window.__pendingDetectionRetryMs || delay);
+  }
+  // Queued photos, oldest first, each through the same capture path with its stored
+  // inputs and its own observation id. A row the link still refuses ends the pass;
+  // the next launch or online event starts another.
+  let pendingDetectionResume = null;
+  function resumePendingDetections() {
+    if (pendingDetectionResume) return pendingDetectionResume;
+    pendingDetectionResume = (async () => {
+      const queued = await scanReports((r) => r && r.status === "pending" && r.detection_pending
+        ? r : null, { direction: "next" });
+      let finished = 0, remaining = queued.length;
+      for (const rec of queued) {
+        if (navigator.onLine === false) break;
+        if (detectionsInFlight.has(rec.id)) continue;
+        const photo = photoBlob(rec.photo);
+        if (!photo) {
+          await deleteReportAndCentralOutbox(rec.id).catch(() => {});
+          finished++; remaining--;
+          continue;
+        }
+        const fd = new FormData();
+        fd.append("photo", photo, "queued-photo.jpg");
+        const fields = rec.detection_pending.fields || {};
+        for (const key of Object.keys(fields)) fd.append(key, fields[key]);
+        let result = null;
+        try {
+          result = await createReport(fd, false, null, rec);
+        } catch (_) {
+          result = null; // refused: the row was turned into a review item
+        }
+        if (result && result.queued) break;
+        finished++; remaining--;
+      }
+      if (finished) {
+        try { window.dispatchEvent(new CustomEvent("reports-changed")); } catch (e) {}
+      }
+      return { finished, remaining };
+    })().finally(() => { pendingDetectionResume = null; });
+    return pendingDetectionResume;
+  }
+
+  async function createReport(fd, driveMode, signal = null, resume = null) {
     const photo = fd.get("photo");
     if (!photo || !photo.size) throw new Error("Empty photo.");
     if (!driveMode) await ensureStorageHeadroom(MANUAL_STORAGE_HEADROOM_BYTES);
@@ -8800,7 +9194,13 @@
     const lng = lngRaw != null && lngRaw !== "" ? parseFloat(lngRaw) : null;
     const driveId = driveMode ? (fd.get("drive_id") || null) : null;
     const commitTurn = driveMode ? reserveDriveCommit(driveId) : null;
+    // The row a Photo is saved under before its check; null for Drive frames.
+    let queuedRowId = !driveMode && resume ? Number(resume.id) : null;
+    if (queuedRowId != null) detectionsInFlight.add(queuedRowId);
     try {
+    // A queued photo keeps the time it was taken at, not the time its check got through.
+    const createdAt = resume && Number(resume.created_at) > 0
+      ? Number(resume.created_at) : Date.now() / 1000;
     const capturedAtRaw = parseInt(fd.get("captured_at_ms"), 10);
     const sourceOffsetRaw = parseInt(fd.get("source_offset_ms"), 10);
     const gpsAccuracyRaw = parseFloat(fd.get("gps_accuracy"));
@@ -8832,8 +9232,11 @@
     const trackSightings = !S.debug;
     const normalizedHeading = Number.isFinite(headingRaw)
       ? ((headingRaw % 360) + 360) % 360 : null;
-    const clientObservationId = sourceEventKey
-      ? `capture-${await sha256HexText(sourceEventKey)}` : randomId();
+    // A queued photo keeps its id across retries: the detect idempotency key is built
+    // from it, so a retry after a dropped link is answered from the service's record.
+    const clientObservationId = resume && resume.client_observation_id
+      ? String(resume.client_observation_id)
+      : sourceEventKey ? `capture-${await sha256HexText(sourceEventKey)}` : randomId();
 
     progress(driveMode ? pmsg("capture") : pmsg("compress"));
     // Measured on a real device: a 2000px frame is ~1.1 MB of base64 and every request
@@ -8863,7 +9266,40 @@
       : toEvidenceImage(photo, evidenceInput.maxDimension, evidenceInput.jpegQuality)
         .catch(() => null);
     const shortOf = (g) => (g && g.short) || null;
-    progress(pmsg("detect"));
+    // A Photo is on the phone before the detector is asked. On a weak link the check
+    // can take a minute and used to be the only thing standing between the shutter and
+    // the first write, so a dropped connection, a kill or a timeout lost the photo.
+    // The row is queued, visibly, and the check runs now, or on the next launch or
+    // online event through resumePendingDetections. The final write replaces it.
+    let pendingId = resume ? Number(resume.id) : null;
+    if (!driveMode && pendingId == null) {
+      const queuedFrame = await dataUrlToBlob(dataUrl);
+      pendingId = await addReport({
+        created_at: createdAt, lat, lng, address: null,
+        client_observation_id: clientObservationId,
+        photo: queuedFrame, photo_full: queuedFrame,
+        decision: null, status: "pending", condition_status: "open", drive_id: null,
+        capture_source: storedCaptureSource, location_source: locationSource,
+        location_age_ms: locationAgeMs,
+        captured_at: Number.isFinite(capturedAtRaw) ? capturedAtRaw / 1000 : null,
+        gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
+        speed_mps: Number.isFinite(speedRaw) ? speedRaw : null,
+        heading: normalizedHeading, debug_capture: S.debug,
+        dedupe_eligible: false, seen_count: 0,
+        vision_provider: usingSharedVision() ? "shared_server" : "personal_openai",
+        detection_pending: { fields: pendingDetectionFields(fd), queued_at: Date.now(),
+                             attempts: 0, last_attempt_at: null, last_error: null },
+      });
+      queuedRowId = pendingId;
+      detectionsInFlight.add(pendingId);
+      requestPersistentStorage();
+      try {
+        window.dispatchEvent(new CustomEvent("report-saved", { detail: { id: pendingId } }));
+      } catch (e) {}
+      progress(pmsg("saved"));
+    } else {
+      progress(pmsg("detect"));
+    }
     // Tender resolution can send exact coordinates to the project service and may use
     // shared model quota. It therefore begins only after the vision verdict accepts this
     // observation. Shared mode does not also contact public GIS/geocoder services from
@@ -8887,13 +9323,33 @@
     // Drive Mode has no verdict on screen to update, so it passed no callback and took
     // the unstreamed path, waiting for a description it discards on every rejected frame.
     // It streams now purely to stop as soon as the frame is known to be rejected.
-    const a = await analyzeImage(imageInputs, detectPrompt, "assessment", ASSESS_SCHEMA, detectionModel,
-      driveMode ? null : emitVerdict, driveMode && !S.debug,
-      detectionDetail, driveMode ? "drive" : "manual",
-      `vision:${clientObservationId}:${detectSettings}`,
-      { client_observation_id: clientObservationId, lat, lng,
-        capture_source: captureSource, location_source: locationSource,
-        location_age_ms: locationAgeMs, signal });
+    let a;
+    try {
+      a = await analyzeImage(imageInputs, detectPrompt, "assessment", ASSESS_SCHEMA, detectionModel,
+        driveMode || resume ? null : emitVerdict, driveMode && !S.debug,
+        detectionDetail, driveMode ? "drive" : "manual",
+        `vision:${clientObservationId}:${detectSettings}`,
+        { client_observation_id: clientObservationId, lat, lng,
+          capture_source: captureSource, location_source: locationSource,
+          location_age_ms: locationAgeMs, signal });
+    } catch (error) {
+      // The link failed, not the photo: it stays queued and is checked later.
+      if (queuedRowId != null && connectivityError(error)) {
+        const queued = await markDetectionDeferred(queuedRowId, error);
+        if (queued) {
+          schedulePendingDetectionRetry(queued.detection_pending.attempts);
+          return { ...toDict(queued), queued: true };
+        }
+      }
+      throw error;
+    }
+    // Deleted from its detail screen while the check was in flight: the tester's answer
+    // is "not this photo", so the late verdict must not write the row back.
+    if (queuedRowId != null && !(await getReport(queuedRowId))) {
+      const gone = new Error("Cancelled.");
+      gone.cancelled = true;
+      throw gone;
+    }
     const decision = decisionFor(a);
     const accepted = decision === "accept";
     const detector = {
@@ -8935,11 +9391,10 @@
     // six seconds, so a kill in that gap lost the photo and a detection already counted
     // against the daily cap. The accepted row is saved first as unrouted and marked
     // routing_pending; the final write replaces it, or the next launch finishes it.
-    let pendingId = null;
     if (accepted && synchronousCentral && !driveMode && finiteCoord(lat) && finiteCoord(lng)) {
       const pendingFrame = await dataUrlToBlob(dataUrl);
-      pendingId = await addReport({
-        created_at: Date.now() / 1000, lat, lng, address: null,
+      const routingRow = {
+        created_at: createdAt, lat, lng, address: null,
         client_observation_id: clientObservationId,
         photo: pendingFrame, photo_full: pendingFrame,
         damage_type: a.damage_type, assessment: a.assessment, image_quality: a.image_quality,
@@ -8959,7 +9414,13 @@
         dedupe_eligible: false, seen_count: 1,
         vision_provider: "shared_server", vision_request_id: a && a.request_id || null,
         routing_pending: { detector, detection_receipt: detectionReceipt },
-      });
+      };
+      if (pendingId != null) {
+        routingRow.id = pendingId;
+        await putReport(routingRow);
+      } else {
+        pendingId = await addReport(routingRow);
+      }
     }
     const geo = accepted && !deferEnrichment && !usingSharedVision()
       ? await (lat != null ? reverseGeocode(lat, lng).catch(() => null) : Promise.resolve(null))
@@ -9034,7 +9495,7 @@
     const storedFrame = await dataUrlToBlob(dataUrl);
 
     const rec = {
-      created_at: Date.now() / 1000, lat, lng, address,
+      created_at: createdAt, lat, lng, address,
       client_observation_id: clientObservationId,
       photo: storedFrame,
       photo_full: photoFull === dataUrl ? storedFrame : await dataUrlToBlob(photoFull),
@@ -9227,6 +9688,9 @@
         // next launch or network toggle however long the app stayed open.
         scheduleCentralRetry();
       }
+    } else if (pendingId != null) {
+      rec.id = pendingId;
+      await putReport(rec);
     } else {
       rec.id = await addReport(rec);
     }
@@ -9238,7 +9702,11 @@
           decision, review: false,
           ...a, observation: { ...a }, detector, report: toDict(rec) }
       : toDict(rec);
+    } catch (error) {
+      if (queuedRowId != null) await settleQueuedFailure(queuedRowId, error, !!resume);
+      throw error;
     } finally {
+      if (queuedRowId != null) detectionsInFlight.delete(queuedRowId);
       if (commitTurn) commitTurn.done();
     }
   }
@@ -9570,8 +10038,9 @@
   // Exports only what a human actually labelled: a model verdict is not ground truth,
   // and a benchmark built from the detector's own opinions cannot measure the detector.
   async function exportDataset() {
-    const labelled = (await allReports()).filter((r) =>
-      normaliseIssueType(r.issue_type) === "road_damage" && r.human_label);
+    const labelled = await scanReports((r) =>
+      normaliseIssueType(r.issue_type) === "road_damage" && r.human_label ? r : null,
+      { direction: "next" });
     if (!labelled.length) throw new Error("Nothing labelled yet. Open Review frames and tag some first.");
     if (labelled.some((report) => !fullFramePhoto(report))) {
       throw new Error("A labelled legacy row has no provable full-frame image; remove its label or recapture it before export.");
@@ -9762,6 +10231,21 @@
       const reports = (await allReports()).sort((a, b) => b.id - a.id);
       return (await migrateLegacyComplaintDrafts(reports)).map(listDict);
     }
+    if (path === "/api/history" && method === "GET") return historySummary();
+    if (path === "/api/reports/thumbs" && method === "POST") {
+      const body = JSON.parse((opts && opts.body) || "{}");
+      return reportThumbs(body.ids);
+    }
+    if ((m = path.match(/^\/api\/reports\/(\d+)\/detach$/)) && method === "POST") {
+      detachedDetections.add(Number(m[1]));
+      return { ok: true };
+    }
+    if (path === "/api/reports/resume-detections" && method === "POST") {
+      return resumePendingDetections();
+    }
+    if (path === "/api/storage/prune" && method === "POST") {
+      return pruneStoredHistory(JSON.parse((opts && opts.body) || "{}"));
+    }
     if (path === "/api/repair-targets" && method === "GET") {
       return { target_ids: await getRepairTargetIds() };
     }
@@ -9825,26 +10309,7 @@
     }
     // Summaries only: the caller asks for the blobs separately, because a drive's
     // footage is hundreds of megabytes and must never be materialised by accident.
-    if (path === "/api/footage" && method === "GET") {
-      const byDrive = {};
-      for (const f of await footageMetadata()) {
-        const clipStart = Number.isFinite(f.recording_started_at_ms)
-          ? f.recording_started_at_ms / 1000 : f.at;
-        const d = byDrive[f.drive_id] || (byDrive[f.drive_id] = {
-          drive_id: f.drive_id, segments: 0, bytes: 0, mime: f.mime,
-          started_at: clipStart || null, ended_at: f.at || clipStart || null,
-        });
-        d.segments++; d.bytes += f.bytes;
-        if (clipStart) {
-          d.started_at = d.started_at == null ? clipStart : Math.min(d.started_at, clipStart);
-        }
-        if (f.at || clipStart) {
-          const clipEnd = f.at || clipStart;
-          d.ended_at = d.ended_at == null ? clipEnd : Math.max(d.ended_at, clipEnd);
-        }
-      }
-      return Object.values(byDrive);
-    }
+    if (path === "/api/footage" && method === "GET") return footageSummaries();
     if ((m = path.match(/^\/api\/footage\/([^/]+)\/manifest$/)) && method === "GET") {
       const segs = (await footageMetadata(decodeURIComponent(m[1])))
         .sort((a, b) => a.seq - b.seq);
@@ -10015,6 +10480,9 @@
     if ((m = path.match(/^\/api\/reports\/(\d+)$/))) {
       const rec = await getReport(m[1]);
       if (!rec) throw new Error("Report not found.");
+      // The full row, photo included, for the one report the tester opened. The list
+      // carries metadata only, so this is where its complaint text and evidence load.
+      if (method === "GET") return toDict((await migrateLegacyComplaintDrafts([rec]))[0]);
       if (method === "PATCH") {
         const upd = JSON.parse(opts.body);
         return mutateReportAtomically(rec.id, (current) => {
@@ -10719,7 +11187,8 @@
     if (pendingRoutingResume) return pendingRoutingResume;
     pendingRoutingResume = (async () => {
       if (!usingSharedVision()) return;
-      const pending = (await allReports()).filter((r) => r && r.routing_pending);
+      const pending = await scanReports((r) => r && r.routing_pending ? r : null,
+        { direction: "next" });
       for (const rec of pending) {
         if (rec.status === "unrouted" && rec.unrouted_reason === "jurisdiction_unavailable") {
           await retryCivicRouting(rec).catch(() => null);
@@ -12257,34 +12726,34 @@
                    DEDUPE_MISSING_HEADING_RADIUS_M, DEDUPE_POOR_GPS_S, DEDUPE_SAME_DRIVE_S,
                    DEFAULT_MODEL, DELHI_ENVELOPE, DELHI_GEOMETRY_SHA256, DELHI_PWD_AUTHORITY,
                    DETECTION_PROMPT_CONFIG, DETECT_PROMPT, DRIVE_SHARED_VISION_TIMEOUT_MS,
-                   FEEDBACK_QUEUE_KEY, GENERAL_CIVIC_AUTHORITY_IDS, GOA_ROUTING_ENVELOPE,
-                   GOA_STATE_AUTHORITY, GOA_STATE_GEOMETRY_SHA256,
-                   HIGHWAY_CONTRACT_LOCATION_STOP, HIGHWAY_FETCH_TIMEOUT_MS,
-                   HIGHWAY_MANIFEST_MAX_BYTES, HIGHWAY_REF_RE, HIGHWAY_TILE_MAX_BYTES,
-                   IMAGING_CONFIG, INDIA_STATE_CODE_BY_NAME, INSTALLATION_KEY, ISSUE_TYPES,
-                   ISSUE_TYPE_SET, IST_MONTHS, KARNATAKA_ROUTING_ENVELOPE, KARNATAKA_STATES,
-                   KARNATAKA_STATE_AUTHORITY, KARNATAKA_STATE_GEOMETRY_SHA256,
-                   KARNATAKA_STATE_ROUTING_ENVELOPE, KERALA_ROUTING_ENVELOPE,
-                   KERALA_STATE_AUTHORITY, KERALA_STATE_GEOMETRY_SHA256, KGIS_DH_URL,
-                   KGIS_GP_URL, KGIS_NH_URL, KGIS_SH_URL, KGIS_TOWN_URL, KMC_AUTHORITY,
-                   KMC_GEOMETRY_SHA256, LANG, LAUNCHABLE_PACKAGES,
-                   LEGACY_ANDHRA_PRADESH_TOP50_REGIONS, LEGACY_ANDHRA_PRADESH_TOP50_SHA256,
-                   LEGACY_NATIVE_V13_PROMPT_VERSION, LEGACY_NATIVE_V15_PROMPT_VERSION,
-                   LEGACY_NATIVE_V16_PROMPT_VERSION, LEGACY_TAMIL_NADU_TOP50_REGIONS,
-                   LEGACY_TAMIL_NADU_TOP50_SHA256, LLM, LOCATION_PREPOSITIONS,
-                   MADHYA_PRADESH_ROUTING_ENVELOPE, MADHYA_PRADESH_STATE_AUTHORITY,
-                   MADHYA_PRADESH_STATE_GEOMETRY_SHA256, MAHARASHTRA_ROUTING_ENVELOPE,
-                   MAHARASHTRA_STATE_AUTHORITY, MAHARASHTRA_STATE_GEOMETRY_SHA256,
-                   MAJOR_CITY_CANDIDATE_CENTRES, MANUAL_STORAGE_HEADROOM_BYTES,
-                   MAX_DETECTION_IMAGES, MAX_REPAIR_TARGETS, MAX_REPAIR_TARGET_BATCH_SIZE,
-                   MAX_REPAIR_TARGET_IMAGE_BYTES, MAX_REPAIR_TARGET_TOTAL_BYTES,
-                   MMR_ALIAS_INDEX, MMR_AUTHORITIES, MMR_DIRECT_AUTHORITY_IDS,
-                   MMR_FALLBACK_AUTHORITY, MMR_FALLBACK_AUTHORITY_IDS, MODEL_CONFIG,
-                   MUMBAI_DISTRICTS, MUMBAI_STATES, MUMBAI_WARDS, MUNICIPAL_CITY_CONFIGS,
-                   NATIONAL_HIGHWAY_AUTHORITY, NATIVE, NATIVE_REPAIR_CONTRACT_VERSION,
-                   NOMINATIM_REVERSE_ENDPOINT, NON_CARRIAGEWAY_ASSETS,
-                   NON_SURFACE_ROAD_MODIFIERS, NO_VERIFIED_CONTRACT, OAI_URL,
-                   ODISHA_ROUTING_ENVELOPE, ODISHA_STATE_AUTHORITY,
+                   FEEDBACK_QUEUE_KEY, FOOTAGE_RETENTION_BYTES, FRAME_RETENTION_S,
+                   GENERAL_CIVIC_AUTHORITY_IDS, GOA_ROUTING_ENVELOPE, GOA_STATE_AUTHORITY,
+                   GOA_STATE_GEOMETRY_SHA256, HIGHWAY_CONTRACT_LOCATION_STOP,
+                   HIGHWAY_FETCH_TIMEOUT_MS, HIGHWAY_MANIFEST_MAX_BYTES, HIGHWAY_REF_RE,
+                   HIGHWAY_TILE_MAX_BYTES, IMAGING_CONFIG, INDIA_STATE_CODE_BY_NAME,
+                   INSTALLATION_KEY, ISSUE_TYPES, ISSUE_TYPE_SET, IST_MONTHS,
+                   KARNATAKA_ROUTING_ENVELOPE, KARNATAKA_STATES, KARNATAKA_STATE_AUTHORITY,
+                   KARNATAKA_STATE_GEOMETRY_SHA256, KARNATAKA_STATE_ROUTING_ENVELOPE,
+                   KERALA_ROUTING_ENVELOPE, KERALA_STATE_AUTHORITY,
+                   KERALA_STATE_GEOMETRY_SHA256, KGIS_DH_URL, KGIS_GP_URL, KGIS_NH_URL,
+                   KGIS_SH_URL, KGIS_TOWN_URL, KMC_AUTHORITY, KMC_GEOMETRY_SHA256, LANG,
+                   LAUNCHABLE_PACKAGES, LEGACY_ANDHRA_PRADESH_TOP50_REGIONS,
+                   LEGACY_ANDHRA_PRADESH_TOP50_SHA256, LEGACY_NATIVE_V13_PROMPT_VERSION,
+                   LEGACY_NATIVE_V15_PROMPT_VERSION, LEGACY_NATIVE_V16_PROMPT_VERSION,
+                   LEGACY_TAMIL_NADU_TOP50_REGIONS, LEGACY_TAMIL_NADU_TOP50_SHA256, LLM,
+                   LOCATION_PREPOSITIONS, MADHYA_PRADESH_ROUTING_ENVELOPE,
+                   MADHYA_PRADESH_STATE_AUTHORITY, MADHYA_PRADESH_STATE_GEOMETRY_SHA256,
+                   MAHARASHTRA_ROUTING_ENVELOPE, MAHARASHTRA_STATE_AUTHORITY,
+                   MAHARASHTRA_STATE_GEOMETRY_SHA256, MAJOR_CITY_CANDIDATE_CENTRES,
+                   MANUAL_STORAGE_HEADROOM_BYTES, MAX_DETECTION_IMAGES, MAX_REPAIR_TARGETS,
+                   MAX_REPAIR_TARGET_BATCH_SIZE, MAX_REPAIR_TARGET_IMAGE_BYTES,
+                   MAX_REPAIR_TARGET_TOTAL_BYTES, MMR_ALIAS_INDEX, MMR_AUTHORITIES,
+                   MMR_DIRECT_AUTHORITY_IDS, MMR_FALLBACK_AUTHORITY, MMR_FALLBACK_AUTHORITY_IDS,
+                   MODEL_CONFIG, MUMBAI_DISTRICTS, MUMBAI_STATES, MUMBAI_WARDS,
+                   MUNICIPAL_CITY_CONFIGS, NATIONAL_HIGHWAY_AUTHORITY, NATIVE,
+                   NATIVE_REPAIR_CONTRACT_VERSION, NOMINATIM_REVERSE_ENDPOINT,
+                   NON_CARRIAGEWAY_ASSETS, NON_SURFACE_ROAD_MODIFIERS, NO_VERIFIED_CONTRACT,
+                   OAI_URL, ODISHA_ROUTING_ENVELOPE, ODISHA_STATE_AUTHORITY,
                    ODISHA_STATE_GEOMETRY_SHA256, OFFICERS, OFFICER_TITLES, OFFICIAL_AUTHORITIES,
                    OFFICIAL_AUTHORITY_INDEX, OFFICIAL_HANDOFF_CHANNELS,
                    OPTIONAL_CATALOG_TIMEOUT_MS, ORIGINAL_DETAIL_MODELS,
@@ -12302,6 +12771,7 @@
                    REPAIR_EVIDENCE_TYPES, REPAIR_MAX_ACCURACY_M,
                    REPAIR_MAX_HEADING_DIFFERENCE_DEG, REPAIR_MISSING_HEADING_RADIUS_M,
                    REPAIR_RADIUS_M, REPAIR_SCHEMA_VERSION, REPAIR_VERIFICATION_VERSION,
+                   REPORT_BINARY_FIELDS, REPORT_DETAIL_ONLY_FIELDS, REPORT_STATUSES,
                    REQUEST_TIMEOUT_MS, ROAD_AGREEMENT_MANIFEST_FILE,
                    ROAD_AGREEMENT_PACK_MAX_BYTES, ROAD_NOTICE_MANIFEST_FILE,
                    ROAD_NOTICE_PACK_MAX_BYTES, ROAD_NOTICE_STOP, ROAD_NOTICE_TIMESTAMP_RE,
@@ -12314,7 +12784,7 @@
                    TELANGANA_STATE_AUTHORITY, TELANGANA_STATE_GEOMETRY_SHA256,
                    TEMPORARY_DRIVABLE_SURFACE, TENDER_CONFIG, TENDER_MATCH_INSTRUCTIONS,
                    TENDER_PROMPT_CONFIG, TENDER_RECORD_FIELDS, TENDER_RETRY_DELAY_MS,
-                   TENDER_SCHEMA, TENDER_STOP, TERMINAL_CENTRAL_STATUSES,
+                   TENDER_SCHEMA, TENDER_STOP, TERMINAL_CENTRAL_STATUSES, THUMB_MAX_DIM,
                    TOP50_AUTHORITY_BY_STATE, TOP50_MAJOR_CITY_RANKS,
                    UTTAR_PRADESH_ROUTING_ENVELOPE, UTTAR_PRADESH_STATE_AUTHORITY,
                    UTTAR_PRADESH_STATE_GEOMETRY_SHA256, VERIFIED_HANDOFF_FIELDS,
@@ -12342,14 +12812,15 @@
                    complaintBodyWithFooter, complaintFooter, complaintLanguage,
                    complaintOutputsForRecord, complaintRouteError, complaintRoutingBlock,
                    completeCentralRetry, conciseRouteLabel, conditionStatus, confirmEmailSent,
-                   confirmedTemporaryAssessment, containingMmrAuthorities,
+                   confirmedTemporaryAssessment, connectivityError, containingMmrAuthorities,
                    contractLookupEvidence, contractPackProvenance, contractVerificationFor,
                    coordinatedRoadNoun, createCivicReport, createReport,
                    currentOfficialRouteBinding, damageTypeOf, dataUrlToBlob, decisionFor,
                    decodeRepairEvidence, delCentralOutbox, deleteCachedStatePack,
-                   deleteFootageFor, deleteReportAndCentralOutbox, delhiCoverage,
-                   delhiRouteFromGeocode, detectionEnhancementPlan, distMeters,
-                   draftCivicComplaint, draftEmail, drainSSE, driveCommitTails,
+                   deleteDriveFrames, deleteFootageFor, deleteReportAndCentralOutbox,
+                   delhiCoverage, delhiRouteFromGeocode, detachedDetections,
+                   detectionEnhancementPlan, detectionsInFlight, distMeters,
+                   draftCivicComplaint, draftEmail, drainSSE, driveCommitTails, driveSummaries,
                    effectiveVisionProvider, eligibleRepairTarget, emailAttachmentBase64,
                    emitVerdict, ensureStorageHeadroom, envelopeGeometry, eventSighting,
                    eventTime, evidenceForReport, exactObjectKeys, exactPinnedContractStateCode,
@@ -12358,21 +12829,23 @@
                    fetchHighwayTileOnce, fetchOptionalCatalogManifest, fetchRoadAgreementPack,
                    fetchRoadNoticePack, fetchStatePack, fetchStatePackOnce, fetchWithTimeout,
                    findDuplicateReport, finiteCoord, flushCentralOutbox, flushFeedbackQueue,
-                   fmt, footageFor, footageMetadata, forgetInstallationIdentity,
-                   formatCapturedIst, fullFramePhoto, geometryBoundaryDistanceMeters,
-                   getCachedStatePack, getContractPackManifest, getDrive, getFootage,
-                   getHighwayPackManifest, getRepairTargetBatch, getRepairTargetIds, getReport,
-                   getRoadAgreementManifest, getRoadNoticeManifest, getStatePackManifest,
-                   goaCoverage, goaRouteFromGeocode, gpsAccuracyEnvelope, handle, hasAny,
+                   fmt, footageFor, footageMetadata, footageSummaries,
+                   forgetInstallationIdentity, formatCapturedIst, fullFramePhoto,
+                   geometryBoundaryDistanceMeters, getCachedStatePack, getContractPackManifest,
+                   getDrive, getFootage, getHighwayPackManifest, getRepairTargetBatch,
+                   getRepairTargetIds, getReport, getRoadAgreementManifest,
+                   getRoadNoticeManifest, getStatePackManifest, goaCoverage,
+                   goaRouteFromGeocode, gpsAccuracyEnvelope, handle, hasAny,
                    hasAuthoritativeMunicipalOwnership, hasCentralOwnershipProof,
                    hasCoverageGeometry, headingDifference, highwayContractCandidates,
                    highwayPackProvenance, highwayRefsInNotice, highwayRefsOf, highwayTileIdFor,
-                   idb, idbTakesBlobs, imageHash, importNativeReport, inCoverage,
-                   inDelhiEnvelope, inKarnatakaRoutingEnvelope, inMaharashtraRoutingEnvelope,
-                   inMajorCityCandidateEnvelope, inWestBengalRoutingEnvelope,
-                   indianStateMatches, installRoutingAuthorities, installationIdentity,
-                   isKarnatakaGeocode, isKnownNonKarnatakaGeocode, isMaharashtraGeocode,
-                   isManualCaptureSource, isOfficialHandoff, isStatewideHandoff,
+                   historySummary, idb, idbTakesBlobs, imageHash, importNativeReport,
+                   inCoverage, inDelhiEnvelope, inKarnatakaRoutingEnvelope,
+                   inMaharashtraRoutingEnvelope, inMajorCityCandidateEnvelope,
+                   inWestBengalRoutingEnvelope, indianStateMatches, installRoutingAuthorities,
+                   installationIdentity, isKarnatakaGeocode, isKnownNonKarnatakaGeocode,
+                   isMaharashtraGeocode, isManualCaptureSource, isOfficialHandoff,
+                   isPrunableFrame, isReportRow, isStatewideHandoff, isUnfiledReport,
                    isWestBengalGeocode, issueFileStem, jurisdictionOf, karnatakaStateCoverage,
                    karnatakaStateRouteFromGeocode, keralaCoverage, keralaRouteFromGeocode,
                    kgisCivicJurisdiction, kgisJurisdiction, kgisPoint, kolkataCoverage,
@@ -12381,10 +12854,11 @@
                    loadStatePack, localDamageFamily, madhyaPradeshCoverage,
                    madhyaPradeshRouteFromGeocode, maharashtraCoverage,
                    maharashtraRouteFromGeocode, majorCityCoverage, majorCityRouteFromGeocode,
-                   mapStatus, markPackInUse, markProjectServiceAvailable,
-                   markProjectServiceUnavailable, matchHighwayContract, matchHighwayTile,
-                   matchRoadAgreement, matchRoadNotice, matchTender, matchTenderAt,
-                   matchedMmrAuthorities, matchesEverySameDriveSighting, materialPavementRe,
+                   mapStatus, markDetectionDeferred, markDetectionRefused, markPackInUse,
+                   markProjectServiceAvailable, markProjectServiceUnavailable,
+                   matchHighwayContract, matchHighwayTile, matchRoadAgreement, matchRoadNotice,
+                   matchTender, matchTenderAt, matchedMmrAuthorities,
+                   matchesEverySameDriveSighting, materialPavementRe,
                    migrateLegacyAndhraPradeshHandoff, migrateLegacyComplaintDrafts,
                    migrateLegacyComplaintRecord, migrateLegacyTamilNaduHandoff, mixedRoadScope,
                    mumbaiFromGeocode, mumbaiWardFromName, municipalCityCoverage,
@@ -12399,50 +12873,54 @@
                    officialPointRegionMatch, op, openBengaluruHandoff, openEmailDraft, openIdb,
                    openNationalHighwayHandoff, openOfficialHandoff, optionalCatalogResult,
                    outerStateBoundaryGeometry, partialAssessment, peekReject, peekVerdict,
-                   photoBlob, photoToBase64, pinnedStateCoverage, pinnedStateRoute, pmsg,
-                   pointInEnvelope, pointInGeometry, pointInPolygon, pointInRing,
-                   pointOnSegment, pointToHighwaySegment, pointToSegmentMeters,
+                   pendingDetectionFields, photoBlob, photoToBase64, pinnedStateCoverage,
+                   pinnedStateRoute, pmsg, pointInEnvelope, pointInGeometry, pointInPolygon,
+                   pointInRing, pointOnSegment, pointToHighwaySegment, pointToSegmentMeters,
                    postCentralReport, preferredLowerCatalogMatch, prepareComplaint,
                    presentDataStores, prewarm, probeProjectService, progress,
-                   projectServiceAvailable, pruneStatePacks, publicEmailStatus, punjabCoverage,
-                   punjabRouteFromGeocode, putCachedStatePack, putDrive, putFootage, putReport,
-                   rajasthanCoverage, rajasthanRouteFromGeocode, randomId, readFeedbackQueue,
-                   readJson, rebuildOfficialAuthorityIndex, recordCentralRetryFailure,
+                   projectServiceAvailable, pruneStatePacks, pruneStoredHistory,
+                   publicEmailStatus, punjabCoverage, punjabRouteFromGeocode,
+                   putCachedStatePack, putDrive, putFootage, putReport, rajasthanCoverage,
+                   rajasthanRouteFromGeocode, randomId, readFeedbackQueue, readJson,
+                   rebuildOfficialAuthorityIndex, recordCentralRetryFailure,
                    refreshAndPersistOfficialHandoff, refreshGeneratedComplaintFields,
                    registerCentralPothole, rejectedVerdict, remainingStateCoverage,
                    remainingStateRouteFromGeocode, repairProvenanceIsExact,
-                   repairTargetPhotoBytes, replaceStableObject, requestPersistentStorage,
-                   reserveDriveCommit, resetContractPackMemory, resetHighwayPackMemory,
+                   repairTargetPhotoBytes, replaceStableObject, reportSummary, reportThumb,
+                   reportThumbs, requestPersistentStorage, reserveDriveCommit,
+                   resetContractPackMemory, resetHighwayPackMemory,
                    resetRoadAgreementPackMemory, resetRoadNoticePackMemory,
-                   resetStatePackMemory, resolvePackUrl, resumePendingRouting,
-                   retryCentralOutbox, retryCivicRouting, retryQuery, reverseGeocode,
-                   reverseGeocodeCache, reverseGeocodeUncached, roadAgreementAddressParts,
-                   roadAgreementCandidates, roadAgreementPackProvenance, roadEventMatch,
-                   roadIsNonSurfaceModifier, roadNoticeAddressParts, roadNoticeCandidates,
-                   roadNoticePackProvenance, roadsideVegetationRe, routeForIssue, routeOfficer,
-                   routeWhereFromCentral, routingPackForAuthority, sameMunicipalAliases,
-                   sameMunicipalEnvelope, sameRoadEvent, sameSet, savedBoundaryLocationMatches,
+                   resetStatePackMemory, resolvePackUrl, resumePendingDetections,
+                   resumePendingRouting, retryCentralOutbox, retryCivicRouting, retryQuery,
+                   reverseGeocode, reverseGeocodeCache, reverseGeocodeUncached,
+                   roadAgreementAddressParts, roadAgreementCandidates,
+                   roadAgreementPackProvenance, roadEventMatch, roadIsNonSurfaceModifier,
+                   roadNoticeAddressParts, roadNoticeCandidates, roadNoticePackProvenance,
+                   roadsideVegetationRe, routeForIssue, routeOfficer, routeWhereFromCentral,
+                   routingPackForAuthority, sameMunicipalAliases, sameMunicipalEnvelope,
+                   sameRoadEvent, sameSet, savedBoundaryLocationMatches,
                    savedMajorCityLocationMatches, savedMunicipalLocationMatches,
-                   savedNonMunicipalLocationMatches, savedOfficialRouteBinding,
-                   scheduleCentralRetry, schemaStrings, separateRoadResponsibility,
-                   serviceError, serviceGet, sha256Bytes, sha256Hex, sha256HexBytes,
-                   sha256HexText, sharedChecksToday, shortlistFor, signedServicePost,
-                   sizeConflict, startLowerCatalogMatches, stateCodeForGeocode,
-                   statePackCacheKey, statePackProvenance, statusError, storageError,
-                   storedComplaintLanguage, storedDamageType, storedPhoto, storedSightings,
-                   structuredPlaceMatch, summarizeFootageAnalysis, surfaceTreatmentRe,
-                   tamilNaduCoverage, tamilNaduRouteFromGeocode, telanganaCoverage,
-                   telanganaRouteFromGeocode, temporarySurfaceNeedsConfirmation,
-                   temporarySurfaceVoteEligible, temporarySurfaceVoteNeedsAnother,
-                   tenderCoversCarriageway, tenderFromService, tenderTokens, tenders,
-                   tendersFor, terminalCentralFailure, toDataUrl, toDict, toEvidenceImage,
-                   touchStatePack, trustedContractStateCode, undirectedHeadingDifference,
-                   unroutedComplaintMessage, unroutedRoute, usingSharedVision,
-                   uttarPradeshCoverage, uttarPradeshRouteFromGeocode, validContractDate,
-                   validMmrAuthorityBoundaries, validMunicipalAliasList, validMunicipalEnvelope,
-                   validMunicipalExclusion, validOfficialPointQuery, validRoadAgreementPolicy,
-                   validRoadNoticePolicy, validateAndhraPradeshPayload,
-                   validateAuthorityRegistry, validateBiharPayload, validateChhattisgarhPayload,
+                   savedNonMunicipalLocationMatches, savedOfficialRouteBinding, scanReports,
+                   scheduleCentralRetry, schedulePendingDetectionRetry, schemaStrings,
+                   separateRoadResponsibility, serviceError, serviceGet, settleQueuedFailure,
+                   sha256Bytes, sha256Hex, sha256HexBytes, sha256HexText, sharedChecksToday,
+                   shortlistFor, signedServicePost, sizeConflict, startLowerCatalogMatches,
+                   stateCodeForGeocode, statePackCacheKey, statePackProvenance, statusError,
+                   storageError, storedComplaintLanguage, storedDamageType, storedPhoto,
+                   storedSightings, structuredPlaceMatch, summarizeFootageAnalysis,
+                   surfaceTreatmentRe, tamilNaduCoverage, tamilNaduRouteFromGeocode,
+                   telanganaCoverage, telanganaRouteFromGeocode,
+                   temporarySurfaceNeedsConfirmation, temporarySurfaceVoteEligible,
+                   temporarySurfaceVoteNeedsAnother, tenderCoversCarriageway, tenderFromService,
+                   tenderTokens, tenders, tendersFor, terminalCentralFailure, toDataUrl, toDict,
+                   toEvidenceImage, toThumbImage, touchStatePack, trustedContractStateCode,
+                   undirectedHeadingDifference, unroutedComplaintMessage, unroutedRoute,
+                   usingSharedVision, uttarPradeshCoverage, uttarPradeshRouteFromGeocode,
+                   validContractDate, validMmrAuthorityBoundaries, validMunicipalAliasList,
+                   validMunicipalEnvelope, validMunicipalExclusion, validOfficialPointQuery,
+                   validRoadAgreementPolicy, validRoadNoticePolicy,
+                   validateAndhraPradeshPayload, validateAuthorityRegistry,
+                   validateBiharPayload, validateChhattisgarhPayload,
                    validateContractPackManifest, validateDecodedContractPack,
                    validateDecodedRoadAgreementPack, validateDecodedRoadNoticePack,
                    validateDecodedStatePack, validateGoaPayload, validateHighwayContractPack,
@@ -12469,6 +12947,7 @@
   // at bounded lifecycle signals; the stable body/idempotency key prevents double count.
   window.addEventListener("online", () => {
     void flushFeedbackQueue().catch(() => {});
+    void resumePendingDetections().catch(() => {});
     if (projectServiceAvailable()) {
       void flushCentralOutbox().catch(() => {});
       return;
@@ -12485,6 +12964,7 @@
   // shared detector automatically.
   window.addEventListener("load", () => {
     if (readFeedbackQueue().length) void flushFeedbackQueue().catch(() => {});
+    void resumePendingDetections().catch(() => {});
     void probeProjectService().then(async (available) => {
       if (!available) return;
       await resumePendingRouting().catch(() => {});
