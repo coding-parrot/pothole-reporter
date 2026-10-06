@@ -65,7 +65,8 @@ async (id) => {
   db.close();
   await loadReports();
   const row = loadReports.latest.find((item) => item.id === id);
-  openDetail(row, loadReports.latest);
+  // History rows are metadata; opening one loads its photos, as a tap on the card does.
+  await openReportDetail(row, loadReports.latest);
   return [...document.querySelectorAll("#detail button")].map((button) => button.id);
 }
 """

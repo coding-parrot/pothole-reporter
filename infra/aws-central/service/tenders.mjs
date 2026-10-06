@@ -7,6 +7,8 @@ export const STOP = new Set([
   "area", "locality", "village", "town", "zone", "division", "circle", "junction",
   "the", "of", "at", "in", "from", "to", "and", "near", "no", "number", "limits", "tmc", "cmc", "dma",
 ]);
+const GENERIC_ROAD_WORDS = new Set(["main", "cross", "service", "road", "street", "lane",
+  "link", "ring", "inner", "outer", "new", "old", "double", "bypass", "feeder"]);
 function tokens(value) {
   const words = String(value || "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
   const result = new Set(words.filter((word) => word.length > 2 && !STOP.has(word)));
@@ -47,6 +49,13 @@ export function matchTender(address, tenders) {
   if (!wanted.size && !wantedWards.size) return { tender: null, reason: "address_unresolved" };
   const road = String(address || '').split(',')[0].trim().toLowerCase();
   const namedRoad = /^[a-z0-9]+(?:\s+[a-z0-9]+){0,3}\s+(?:road|street|cross|lane)$/i.test(road);
+  // Every layout has a 2nd Cross, an 8th Main and a Service Road. A road whose name is
+  // only a number and generic words identifies nothing by itself, so a title that
+  // repeats it must also name the place the road is in.
+  const genericRoad = Boolean(road) && road.split(/[^a-z0-9]+/).filter(Boolean)
+    .every((word) => /^\d+(?:st|nd|rd|th)?$/.test(word) || /^[a-z]$/.test(word)
+      || GENERIC_ROAD_WORDS.has(word));
+  const roadTokens = tokens(road);
   const eligible = [];
   for (const tender of tenders) {
     if (!hasRoadSurfaceScope(tender.title)) continue;
@@ -62,8 +71,15 @@ export function matchTender(address, tenders) {
     // stretch covers the photo. Remove those words from both sides of matching.
     const administrative = tokens(tender.location);
     let overlap = 0;
-    for (const token of wanted) if (candidate.has(token) && !administrative.has(token)) overlap += 1;
-    if ([...wantedWards].some(w => wards.has(w))) overlap += 2;
+    let placeOverlap = 0;
+    for (const token of wanted) {
+      if (!candidate.has(token) || administrative.has(token)) continue;
+      overlap += 1;
+      if (!roadTokens.has(token)) placeOverlap += 1;
+    }
+    const sameWard = [...wantedWards].some(w => wards.has(w));
+    if (genericRoad && !areaWide && !placeOverlap && !sameWard) continue;
+    if (sameWard) overlap += 2;
     const citywideDescription = /\broads\s+in\s+(?:the\s+)?limits\s+of\b/.test(title);
     if (!namedRoad && citywideDescription && [...wanted].some(token => administrative.has(token) && candidate.has(token))) overlap += 1;
     if (overlap) eligible.push({ tender, overlap });
