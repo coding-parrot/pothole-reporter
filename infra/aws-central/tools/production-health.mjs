@@ -22,6 +22,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { WARD_TENDER_QUERY, judgeWardTenders } from "./health-rules.mjs";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(`--${name}`);
@@ -140,6 +142,12 @@ async function windowRules(hours) {
   } else {
     ok("tenders match somewhere in India", `${resolveMatched} matched of ${streetResolved} lookups with a street`);
   }
+
+  // Most Bengaluru tenders name a ward or a locality, never a street, so since the ward
+  // tender release a municipal lookup with a resolved ward should often come back with
+  // something a person can read.
+  const wardTenders = judgeWardTenders(await insights(WARD_TENDER_QUERY, hours));
+  wardTenders.broken ? fail("wards find their tenders", wardTenders.detail) : ok("wards find their tenders", wardTenders.detail);
 
   const detect = rows.filter((row) => row.route === "/v1/vision/detect" && Number(row.status) === 200);
   const detections = detect.reduce((sum, row) => sum + Number(row.n), 0);
