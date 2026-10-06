@@ -1,5 +1,6 @@
 import { HttpError } from "./errors.mjs";
 
+const GEOCODER_USER_AGENT = "PotholeReporter-central/1 (+https://coding-parrot.github.io/pothole-reporter/; contact@aiengg.dev)";
 const KGIS_TOWN = "https://kgis.ksrsac.in/kgismaps/rest/services/Boundaries/Admin_Dynamic_New/MapServer/1/query";
 const KGIS_NH = "https://kgis.ksrsac.in/kgismaps/rest/services/State_Basemap/State_Basemap_Dynamic/MapServer/289/query";
 const KGIS_SH = "https://kgis.ksrsac.in/kgismaps/rest/services/State_Basemap/State_Basemap_Dynamic/MapServer/290/query";
@@ -137,8 +138,11 @@ export function createGeolocator({
           url.searchParams.set("addressdetails", "1");
           geocoder = {
             url: url.href,
-            headers: geocoderBearerToken
-              ? { authorization: `Bearer ${geocoderBearerToken}` } : {},
+            headers: {
+              // Nominatim's usage policy refuses anonymous clients.
+              "user-agent": GEOCODER_USER_AGENT,
+              ...(geocoderBearerToken ? { authorization: `Bearer ${geocoderBearerToken}` } : {}),
+            },
           };
         } catch {
           throw new HttpError(503, "geocoder_misconfigured",

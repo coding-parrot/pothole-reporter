@@ -261,3 +261,26 @@ test("a coordinate just outside the Karnataka border is still put to KGIS", asyn
   await geolocator.resolve({ lat: 12.7409, lng: 77.8253 });
   assert.ok(kgisCalls > 0, "a border point must still be resolved against KGIS");
 });
+
+// 197 lookups on 6 Oct 2026 ended address_unresolved: the phone sent no street and the
+// service had no geocoder configured, so tender matching had nothing to match on.
+test("with a geocoder configured the service finds the street itself and identifies to it", async () => {
+  const seen = [];
+  const geolocator = createGeolocator({
+    geocoderUrl: "https://nominatim.example/reverse",
+    fetchImpl: async (url, init) => {
+      seen.push({ url: String(url), headers: init?.headers || {} });
+      if (String(url).startsWith("https://nominatim.example/")) {
+        return new Response(JSON.stringify({ address: { road: "Nirvikalpa Road", suburb: "Kuvempunagar", city: "Mysuru" } }));
+      }
+      return new Response(JSON.stringify({ features: String(url).includes("Admin_Dynamic_New")
+        ? [{ attributes: { KGISTownName: "Mysuru", LGD_TownCode: 252045 } }] : [] }));
+    },
+  });
+  const result = await geolocator.resolve({ lat: 12.3051, lng: 76.6551 });
+  assert.equal(result.address, "Nirvikalpa Road, Kuvempunagar, Mysuru");
+  assert.equal(result.address_source, "operator_geocoder");
+  const call = seen.find((item) => item.url.startsWith("https://nominatim.example/"));
+  assert.match(call.url, /lat=12\.3051&lon=76\.6551&format=jsonv2&zoom=17&addressdetails=1/);
+  assert.match(call.headers["user-agent"], /PotholeReporter.*contact@aiengg\.dev/);
+});

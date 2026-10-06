@@ -17,10 +17,10 @@ const repository = createDynamoRepository({
   },
   dedupeRadiusMetres: Number(process.env.DEDUPE_RADIUS_METRES || 30),
   quota: {
-    perInstallDay: Number(process.env.DAILY_VISION_CAP || 500),
-    globalMinute: Number(process.env.GLOBAL_VISION_MINUTE_CAP || 60),
-    globalDay: Number(process.env.GLOBAL_VISION_DAILY_CAP || 10_000),
-    globalMonth: Number(process.env.MONTHLY_VISION_CAP || 20_000),
+    perInstallDay: Number(process.env.DAILY_VISION_CAP || 2000),
+    globalMinute: Number(process.env.GLOBAL_VISION_MINUTE_CAP || 300),
+    globalDay: Number(process.env.GLOBAL_VISION_DAILY_CAP || 30_000),
+    globalMonth: Number(process.env.MONTHLY_VISION_CAP || 200_000),
   },
 });
 

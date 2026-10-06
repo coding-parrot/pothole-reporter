@@ -16,6 +16,23 @@ fi
 cd "$ROOT_DIR"
 # The unit tests include the IAM check; a red suite must never reach the stack.
 (cd infra/aws-central && npm test)
+
+# What production looked like before this deploy. Informational here (a deploy is how
+# a broken rule gets fixed); the same rules fail the scheduled run in CI.
+node infra/aws-central/tools/production-health.mjs --window 24h || true
+
+# Caps and the geocoder are decided in template.yaml. CloudFormation keeps a stack's old
+# parameter values unless they are passed again, which is how the template said 500 a day
+# while the stack still ran 50. Pass every such parameter explicitly from the template.
+template_default() {
+  sed -n "/^  $1:\$/,/Default:/p" infra/aws-central/template.yaml | sed -n 's/^    Default: //p' | head -1
+}
+TEMPLATE_PARAMETERS=""
+for name in DailyVisionCap GlobalVisionMinuteCap GlobalVisionDailyCap MonthlyVisionCap GeocoderReverseUrl AlertEmail; do
+  default_value="$(template_default "$name")"
+  [[ -n "$default_value" ]] || { echo "template.yaml declares no default for $name" >&2; exit 1; }
+  TEMPLATE_PARAMETERS="$TEMPLATE_PARAMETERS $name=$default_value"
+done
 npm install --prefix infra/aws-central --omit=dev --no-audit --no-fund
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -48,7 +65,7 @@ aws cloudformation deploy \
   --stack-name "$STACK_NAME" \
   --region "$AWS_REGION" \
   --capabilities CAPABILITY_NAMED_IAM \
-  --parameter-overrides CodeS3Bucket="$ARTIFACT_BUCKET" CodeS3Key="$CODE_KEY" ${EXTRA_PARAMETER_OVERRIDES:-} \
+  --parameter-overrides CodeS3Bucket="$ARTIFACT_BUCKET" CodeS3Key="$CODE_KEY" $TEMPLATE_PARAMETERS ${EXTRA_PARAMETER_OVERRIDES:-} \
   --no-fail-on-empty-changeset
 
 aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" \
@@ -66,5 +83,15 @@ for route in /v1/health /v1/map /v1/impact; do
 done
 if [[ "$smoke_failed" != "0" ]]; then
   echo "Post-deploy smoke failed; the stack is live with the new code, so roll back or fix now." >&2
+  exit 1
+fi
+
+# The canary registers an install, runs a real detection and two tender lookups against
+# the live stack and fails on any rule a user would feel. A deploy is not done until it
+# passes; the previous code key is printed so a rollback is one command away.
+echo "previous code key: $(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" \
+  --query "Stacks[0].Parameters[?ParameterKey=='CodeS3Key'].ParameterValue" --output text 2>/dev/null || true)"
+if ! API_URL="$API_URL" node infra/aws-central/tools/production-health.mjs --canary; then
+  echo "Post-deploy canary failed; the stack is live with the new code. Fix forward or redeploy the previous code key." >&2
   exit 1
 fi

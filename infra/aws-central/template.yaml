@@ -17,16 +17,24 @@ Parameters:
     Default: 30
   DailyVisionCap:
     Type: Number
-    Default: 500
+    Default: 2000
   GlobalVisionMinuteCap:
     Type: Number
-    Default: 60
+    Default: 300
   GlobalVisionDailyCap:
     Type: Number
-    Default: 10000
+    Default: 30000
   MonthlyVisionCap:
     Type: Number
-    Default: 20000
+    Default: 200000
+  GeocoderReverseUrl:
+    Type: String
+    Default: https://nominatim.openstreetmap.org/reverse
+    Description: Reverse geocoder the service asks for a street address when the phone sends none. Tender matching needs the street; without it every lookup ends address_unresolved.
+  AlertEmail:
+    Type: String
+    Default: gkcs@aiengg.dev
+    Description: Where production alarms go. The subscription must be confirmed once from that inbox.
   ReservedConcurrency:
     Type: Number
     Default: 20
@@ -224,6 +232,7 @@ Resources:
           GLOBAL_VISION_MINUTE_CAP: !Ref GlobalVisionMinuteCap
           GLOBAL_VISION_DAILY_CAP: !Ref GlobalVisionDailyCap
           MONTHLY_VISION_CAP: !Ref MonthlyVisionCap
+          GEOCODER_REVERSE_URL: !Ref GeocoderReverseUrl
           NODE_OPTIONS: --enable-source-maps
 
   Api:
@@ -266,7 +275,177 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*'
 
+  # Production alarms. Every one of these fired silently for weeks before 6 October 2026:
+  # 227 lookups failed on the state GIS, 197 on a missing address, 125 reports were
+  # rejected on their receipt and the daily cap was hit 74 times, and nobody was told.
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${ProjectPrefix}-alerts'
+  AlertSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlertTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+  ServerErrorFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref LambdaLogs
+      FilterPattern: '"\"event\":\"http_request\"" "\"status\":5"'
+      MetricTransformations:
+        - MetricNamespace: !Ref ProjectPrefix
+          MetricName: ServerErrors
+          MetricValue: '1'
+          DefaultValue: 0
+  RoadOwnershipUnavailableFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref LambdaLogs
+      FilterPattern: '"\"outcome\":\"road_ownership_unavailable\""'
+      MetricTransformations:
+        - MetricNamespace: !Ref ProjectPrefix
+          MetricName: RoadOwnershipUnavailable
+          MetricValue: '1'
+          DefaultValue: 0
+  AddressUnresolvedFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref LambdaLogs
+      FilterPattern: '"\"outcome\":\"address_unresolved\""'
+      MetricTransformations:
+        - MetricNamespace: !Ref ProjectPrefix
+          MetricName: AddressUnresolved
+          MetricValue: '1'
+          DefaultValue: 0
+  InvalidReceiptFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref LambdaLogs
+      FilterPattern: '"\"outcome\":\"invalid_detection_receipt\""'
+      MetricTransformations:
+        - MetricNamespace: !Ref ProjectPrefix
+          MetricName: InvalidDetectionReceipt
+          MetricValue: '1'
+          DefaultValue: 0
+  VisionLimitFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref LambdaLogs
+      FilterPattern: '"\"outcome\":\"daily_vision_limit\""'
+      MetricTransformations:
+        - MetricNamespace: !Ref ProjectPrefix
+          MetricName: DailyVisionLimit
+          MetricValue: '1'
+          DefaultValue: 0
+  TenderMatchedFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref LambdaLogs
+      FilterPattern: '"\"outcome\":\"tender_matched\""'
+      MetricTransformations:
+        - MetricNamespace: !Ref ProjectPrefix
+          MetricName: TenderMatched
+          MetricValue: '1'
+          DefaultValue: 0
+  ServerErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectPrefix}-5xx'
+      AlarmDescription: Five or more 5xx answers in 15 minutes.
+      Namespace: !Ref ProjectPrefix
+      MetricName: ServerErrors
+      Statistic: Sum
+      Period: 900
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  RoadOwnershipAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectPrefix}-road-ownership-unavailable'
+      AlarmDescription: Ten or more tender lookups in an hour could not classify the road; the state GIS is down and the local fallback did not cover the points.
+      Namespace: !Ref ProjectPrefix
+      MetricName: RoadOwnershipUnavailable
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 10
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  AddressUnresolvedAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectPrefix}-address-unresolved'
+      AlarmDescription: Ten or more tender lookups in an hour had no usable street address; the reverse geocoder is failing.
+      Namespace: !Ref ProjectPrefix
+      MetricName: AddressUnresolved
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 10
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  InvalidReceiptAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectPrefix}-invalid-detection-receipt'
+      AlarmDescription: A shared report was rejected on its own detection receipt. This is a bug, never user error.
+      Namespace: !Ref ProjectPrefix
+      MetricName: InvalidDetectionReceipt
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  VisionLimitAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectPrefix}-daily-vision-limit'
+      AlarmDescription: Users hit the per-install daily detection cap five or more times in an hour. Raise DailyVisionCap.
+      Namespace: !Ref ProjectPrefix
+      MetricName: DailyVisionLimit
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  LambdaErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectPrefix}-lambda-errors'
+      AlarmDescription: The function crashed or was throttled.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref CentralFunction
+      Statistic: Sum
+      Period: 900
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+
+
 Outputs:
+  AlertTopicArn:
+    Value: !Ref AlertTopic
   ApiUrl:
     Description: Native AWS API endpoint; use this as the app's shared service URL.
     Value: !GetAtt Api.ApiEndpoint
