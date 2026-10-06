@@ -15,6 +15,7 @@ import {
 import { HttpError, asHttpError } from "./errors.mjs";
 import { highwayRefsFromAddress } from "./national-tenders.mjs";
 import { matchTender } from "./tenders.mjs";
+import { matchWardTenders } from "./ward-tenders.mjs";
 import {
   metresBetween,
   REPORT_MAX_ABS_LAT,
@@ -490,6 +491,7 @@ export function createService({
     context.ownershipSource = jurisdiction.source || null;
     context.kgisLookup = jurisdiction.lookup?.kgis || null;
     context.localLookup = jurisdiction.lookup?.local || null;
+    context.wardLookup = jurisdiction.lookup?.ward || null;
   }
 
   async function resolveTender(body, context) {
@@ -525,11 +527,49 @@ export function createService({
   // (highway contracts when the road is a national highway, then the state's road
   // tender notices, then PMGSY agreements). Before 6 Oct 2026 everything outside
   // Karnataka answered "outside_state" with no tender, whatever the catalogues held.
+  //
+  // ward_tenders is a second, weaker answer beside `tender`: up to five road-surface
+  // tenders of the town whose title names the point's ward or locality (see
+  // ward-tenders.mjs). It never changes `tender` or `reason`.
   async function routing(jurisdiction, context = {}) {
+    const named = [];
+    const routed = await streetRouting(jurisdiction, context, named);
+    // The street-level tender is not said twice.
+    const ward = named.filter((entry) => entry.tender_number !== routed.tender?.tender_number);
+    context.wardTenderCount = ward.length;
+    return { ...routed, ward_tenders: ward };
+  }
+
+  // The tenders that name the ward or locality of a municipal point. A failure here costs
+  // the list and nothing else.
+  async function wardTenders(jurisdiction, tenders, context) {
+    try {
+      const roster = jurisdiction.ward_code && typeof geolocator.wardRoster === "function"
+        ? await geolocator.wardRoster(jurisdiction.ward_code) : null;
+      return matchWardTenders({
+        wardName: jurisdiction.ward_name,
+        localities: jurisdiction.address_parts?.localities || [],
+        tenders,
+        point: { lat: jurisdiction.lat, lng: jurisdiction.lng },
+        roster,
+      });
+    } catch (error) {
+      logger.error(JSON.stringify({
+        event: "ward_tender_match_failed",
+        request_id: context.requestId || null,
+        error_type: String(error?.name || "Error").slice(0, 80),
+        error_message: String(error?.message || error).slice(0, 300),
+      }));
+      return [];
+    }
+  }
+
+  async function streetRouting(jurisdiction, context, named) {
     const municipal = jurisdiction.road_ownership === "municipal";
     let matched = null;
     if (municipal) {
       const tenders = await repository.queryTenders(jurisdiction.lgd);
+      if (tenders.length) named.push(...await wardTenders(jurisdiction, tenders, context));
       matched = tenders.length
         ? matchTender(jurisdiction.address, tenders)
         : { tender: null, reason: "no_tenders_for_jurisdiction" };
@@ -946,6 +986,10 @@ export function createService({
       road_ownership_source: context.ownershipSource || null,
       kgis_lookup: context.kgisLookup || null,
       local_lookup: context.localLookup || null,
+      // resolved, no_ward, unavailable, not_municipal or out_of_scope; null when the route
+      // resolved no location. ward_tender_count is the length of ward_tenders answered.
+      ward_lookup: context.wardLookup || null,
+      ward_tender_count: context.wardTenderCount ?? null,
       // Which catalogue answered a tender_matched: ka_index, nh_contract, road_notice or
       // road_agreement. Null when nothing matched.
       tender_catalogue: context.tenderCatalogue || null,
