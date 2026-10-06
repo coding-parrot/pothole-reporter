@@ -1,12 +1,12 @@
 name: Production health
 
 # The rules in infra/aws-central/tools/production-health.mjs, judged every six hours
-# against the live service. A broken rule fails the run and opens or updates one issue,
+# against the live service, hourly while the app is being shown. A broken rule fails the run and opens or updates one issue,
 # so a failure users feel is never silent again. The same script gates every deploy.
 
 on:
   schedule:
-    - cron: "17 */6 * * *"
+    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:
