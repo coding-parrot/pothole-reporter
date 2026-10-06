@@ -1,4 +1,7 @@
+import { readFile } from "node:fs/promises";
+
 import { HttpError } from "./errors.mjs";
+import { metresToPolyline, pointInRings, withinBox } from "./spatial.mjs";
 
 const GEOCODER_USER_AGENT = "PotholeReporter-central/1 (+https://coding-parrot.github.io/pothole-reporter/; contact@aiengg.dev)";
 const KGIS_TOWN = "https://kgis.ksrsac.in/kgismaps/rest/services/Boundaries/Admin_Dynamic_New/MapServer/1/query";
@@ -6,6 +9,13 @@ const KGIS_NH = "https://kgis.ksrsac.in/kgismaps/rest/services/State_Basemap/Sta
 const KGIS_SH = "https://kgis.ksrsac.in/kgismaps/rest/services/State_Basemap/State_Basemap_Dynamic/MapServer/290/query";
 const KGIS_DH = "https://kgis.ksrsac.in/kgismaps/rest/services/State_Basemap/State_Basemap_Dynamic/MapServer/291/query";
 const KGIS_GP = "https://kgis.ksrsac.in/kgismaps/rest/services/Boundaries/GP_Boundary/MapServer/0/query";
+
+// What the service answers from when KGIS cannot: the 319 KGIS town polygons, the state
+// boundary and the national highway centre lines, built by
+// infra/aws-central/tools/build-karnataka-geometry.mjs and shipped in the Lambda package
+// at this same path relative to the service.
+export const LOCAL_GEOMETRY_PATH = new URL("../../../data/karnataka-local-geometry.json", import.meta.url);
+export const LOCAL_GEOMETRY_FORMAT = "pothole-karnataka-local-geometry";
 
 const bounded = (value, maximum) => typeof value === "string"
   ? value.trim().slice(0, maximum) : "";
@@ -83,17 +93,92 @@ function addressFromGeocoder(data) {
   return bounded(parts.join(", ") || data?.display_name, 500) || null;
 }
 
+function validLocalGeometry(geometry) {
+  return geometry && geometry.format === LOCAL_GEOMETRY_FORMAT
+    && Number.isFinite(geometry.coordinate_scale) && geometry.coordinate_scale > 0
+    && Array.isArray(geometry.towns?.features) && geometry.towns.features.length > 0
+    && Array.isArray(geometry.state?.rings) && Array.isArray(geometry.state?.bbox)
+    && Array.isArray(geometry.highways?.features)
+    && Number.isFinite(geometry.highways?.match_metres);
+}
+
+// One parse per process per file. The Lambda keeps it across invocations; the tests
+// share it across the many geolocators they build.
+const localGeometryCache = new Map();
+function loadLocalGeometry(path, logger) {
+  const key = String(path);
+  if (!localGeometryCache.has(key)) {
+    localGeometryCache.set(key, readFile(path, "utf8").then(JSON.parse).then((geometry) => {
+      if (!validLocalGeometry(geometry)) throw new Error("not a local geometry bundle");
+      return geometry;
+    }).catch((error) => {
+      // Logged once, not per lookup: the file is either in the package or it is not.
+      logger.error(JSON.stringify({
+        event: "local_geometry_unavailable",
+        path: key,
+        error_message: String(error?.message || error).slice(0, 300),
+      }));
+      return null;
+    }));
+  }
+  return localGeometryCache.get(key);
+}
+
+// The same order of precedence as the KGIS path: a highway through a town is not the
+// town's road, and a town is checked before the state line because a town polygon can
+// overhang the OpenStreetMap boundary by a few metres.
+function classifyLocally(geometry, lat, lng) {
+  const scale = geometry.coordinate_scale;
+  const x = lng * scale;
+  const y = lat * scale;
+  const metres = geometry.highways.match_metres;
+  const padY = Math.ceil((metres / 110_540) * scale);
+  const padX = Math.ceil((metres / Math.max(20_000, 111_320 * Math.cos((lat * Math.PI) / 180))) * scale);
+  let nearest = null;
+  for (const [ref, box, encoded] of geometry.highways.features) {
+    if (!withinBox(x, y, box, padX, padY)) continue;
+    const distance = metresToPolyline(lng, lat, encoded, scale);
+    if (distance <= metres && (!nearest || distance < nearest.distance)) nearest = { ref, distance };
+  }
+  if (nearest) {
+    return { road_ownership: "national_highway", highway_name: nearest.ref, local: "national_highway_geometry" };
+  }
+  for (const town of geometry.towns.features) {
+    if (!withinBox(x, y, town.bbox) || !pointInRings(x, y, town.rings)) continue;
+    // ELCITA, the Electronic City industrial township, is in the KGIS layer with no LGD
+    // code. KGIS itself answers "unknown" for it (a town the directory cannot key), and
+    // the snapshot must not say more than the register does.
+    if (town.lgd == null) return { road_ownership: "unknown", local: "town_without_lgd" };
+    return {
+      road_ownership: "municipal",
+      lgd: String(town.lgd),
+      town: town.name,
+      local: "municipal_polygon",
+    };
+  }
+  if (withinBox(x, y, geometry.state.bbox) && pointInRings(x, y, geometry.state.rings)) {
+    // Inside Karnataka and in no urban body: gram panchayat country. The snapshot holds
+    // no panchayat polygons, so the body is not named.
+    return { road_ownership: "rural", local: "state_polygon" };
+  }
+  return { road_ownership: "outside_state", local: "outside_state_polygon" };
+}
+
 export function createGeolocator({
   fetchImpl = fetch,
   geocoderUrl = "",
   geocoderBearerToken = "",
   kgisTimeoutMs = 3_000,
   kgisBreakerMs = 60_000,
+  localGeometryPath = LOCAL_GEOMETRY_PATH,
+  logger = console,
 } = {}) {
   const cache = new Map();
   // KGIS stalls on its query endpoints for minutes at a time while its root still
   // answers. One timeout opens the breaker so later reports skip KGIS at once instead
-  // of each holding a Lambda slot while it waits.
+  // of each holding a Lambda slot while it waits. While it is open, and whenever KGIS
+  // gives no verdict, the local geometry answers instead. After kgisBreakerMs the next
+  // lookup puts KGIS back on trial.
   let kgisClosedAt = 0;
   const kgis = async (url) => {
     if (Date.now() < kgisClosedAt) return UNAVAILABLE;
@@ -107,6 +192,7 @@ export function createGeolocator({
   };
   return {
     kgisTimeoutMs,
+    kgisBreakerMs,
     async resolve({ lat, lng, addressHint = "" }) {
       // Four decimals is about 11 m, well inside a phone's GPS error. At five, that
       // jitter made nearly every report a miss.
@@ -174,11 +260,14 @@ export function createGeolocator({
       const townFeature = town.data?.features?.[0];
       const highway = highwayLayers.find(([item]) => item.data?.features?.[0]);
       const attrs = townFeature?.attributes || {};
-      const lgd = attrs.LGD_TownCode == null ? "" : bounded(String(attrs.LGD_TownCode), 64);
+      let lgd = attrs.LGD_TownCode == null ? "" : bounded(String(attrs.LGD_TownCode), 64);
+      let townName = bounded(attrs.KGISTownName, 160) || null;
       let roadOwnership = "unknown";
       let highwayName = null;
       let ruralBody = null;
       let gpAvailable = false;
+      let source = "unresolved";
+      let local = !inKarnataka ? "out_of_scope" : "not_needed";
       if (!inKarnataka) {
         // Geography, not availability: this coordinate is hundreds of kilometres from
         // the Karnataka line. The client turns this into a regional-routing answer that
@@ -190,11 +279,30 @@ export function createGeolocator({
           highwayName = bounded(highway[0].data.features[0]?.attributes?.Name, 160) || null;
         } else if (townFeature && lgd) {
           roadOwnership = "municipal";
+          source = "kgis";
         } else if (!townFeature) {
           const gp = await askKgis(pointUrl(KGIS_GP, lat, lng, "KGISGPName"));
           gpAvailable = gp.available;
           ruralBody = bounded(gp.data?.features?.[0]?.attributes?.KGISGPName, 160) || null;
           roadOwnership = gp.available ? (ruralBody ? "rural" : "outside_state") : "unknown";
+        }
+      }
+      if (inKarnataka && roadOwnership === "unknown") {
+        // KGIS gave no verdict: a layer was down, stalled, malformed, or the breaker is
+        // open. 227 of 450 tender lookups in the 30 days to 6 Oct 2026 ended here as a
+        // 503. The same register's polygons, snapshotted, answer instead; only a point
+        // they genuinely cannot place stays unknown.
+        const geometry = await loadLocalGeometry(localGeometryPath, logger);
+        if (!geometry) {
+          local = "unavailable";
+        } else {
+          const verdict = classifyLocally(geometry, lat, lng);
+          local = verdict.local;
+          roadOwnership = verdict.road_ownership;
+          highwayName = verdict.highway_name || null;
+          lgd = verdict.lgd || "";
+          townName = verdict.town || null;
+          if (roadOwnership === "municipal") source = "kgis_snapshot";
         }
       }
       const municipal = roadOwnership === "municipal";
@@ -203,8 +311,8 @@ export function createGeolocator({
         lng,
         address: addressFromGeocoder(geocoded.data) || bounded(addressHint, 500) || null,
         lgd: municipal ? lgd || null : null,
-        town: municipal ? bounded(attrs.KGISTownName, 160) || null : null,
-        source: municipal && lgd ? "kgis" : "unresolved",
+        town: municipal ? townName : null,
+        source: municipal && lgd ? source : "unresolved",
         address_source: geocoded.available
           ? "operator_geocoder" : addressHint ? "client_hint" : "unresolved",
         road_ownership: roadOwnership,
@@ -219,6 +327,7 @@ export function createGeolocator({
             : highwayLayers.every(([item]) => item.available)
               ? "available" : "unavailable",
           kgis_gp: gpAvailable ? "available" : "not_needed_or_unavailable",
+          local,
           geocoder: geocoded.available ? "available"
             : addressHint ? "skipped_client_hint" : "unavailable",
         },
