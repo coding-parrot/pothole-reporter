@@ -135,7 +135,7 @@ with sync_playwright() as playwright:
             if value.startswith("email_") or value.startswith("chip_"):
                 fails.append(f"{key} has no string")
         for key, value in strings.items():
-            if "—" in value or "–" in value:
+            if "\u2014" in value or "\u2013" in value:
                 fails.append(f"{key} carries a dash: {value!r}")
 
         # Never drafted: no question, even after a resume.
