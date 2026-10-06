@@ -1,4 +1,6 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 
 import {
   DETECT_PROMPT_VERSION,
@@ -92,6 +94,7 @@ function response(statusCode, payload, requestId, cacheControl = "no-store") {
       "access-control-expose-headers": "x-request-id",
       "x-content-type-options": "nosniff",
       "x-request-id": requestId,
+      vary: "accept-encoding",
     },
     body: JSON.stringify({ request_id: requestId, ...payload }),
     isBase64Encoded: false,
@@ -199,10 +202,99 @@ function validDay(value) {
     && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
 }
 
+// The HTTP API does not compress, so a 52.8 KB map went over a weak mobile link as
+// 52.8 KB. Anything over a kilobyte is gzipped for a client that says it accepts it.
+const GZIP_MIN_BYTES = 1024;
+
+function compressed(result, event) {
+  if (!result || result.isBase64Encoded || typeof result.body !== "string"
+      || Buffer.byteLength(result.body) < GZIP_MIN_BYTES
+      || !/\bgzip\b/i.test(headers(event)["accept-encoding"] || "")) return result;
+  return {
+    ...result,
+    headers: { ...result.headers, "content-encoding": "gzip" },
+    body: gzipSync(Buffer.from(result.body, "utf8")).toString("base64"),
+    isBase64Encoded: true,
+  };
+}
+
+// Keep a loaded value for as long as it is declared fresh. The promise is stored, so
+// requests arriving together share one read; a failed read is forgotten at once.
+function freshFor(ttlMs, maximum = 64) {
+  const entries = new Map();
+  return (key, load) => {
+    const held = entries.get(key);
+    if (held && held.until > Date.now()) return held.value;
+    const value = Promise.resolve().then(load);
+    const entry = { value, until: Date.now() + ttlMs };
+    entries.set(key, entry);
+    value.catch(() => { if (entries.get(key) === entry) entries.delete(key); });
+    while (entries.size > maximum) entries.delete(entries.keys().next().value);
+    return value;
+  };
+}
+
+// Where a request's time goes. Every call into the database, the detector, the
+// geolocator and the tender catalogue is timed and attributed to the request that made
+// it, so the log line says how much of duration_ms was ours and how much was upstream.
+// Calls made in parallel each count in full: the sums are work done, not wall time.
+const profile = new AsyncLocalStorage();
+
+function timed(target, kind) {
+  if (!target) return target;
+  return new Proxy(target, {
+    get(object, property) {
+      const value = object[property];
+      if (typeof value !== "function") return value;
+      return (...args) => {
+        const store = profile.getStore();
+        if (!store) return value.apply(object, args);
+        const started = performance.now();
+        const finish = () => {
+          const elapsed = performance.now() - started;
+          store[kind].ms += elapsed;
+          store[kind].calls += 1;
+          const key = `${kind}.${String(property)}`;
+          store.by[key] = (store.by[key] || 0) + elapsed;
+        };
+        let result;
+        try {
+          result = value.apply(object, args);
+        } catch (error) {
+          finish();
+          throw error;
+        }
+        if (!result || typeof result.then !== "function") {
+          finish();
+          return result;
+        }
+        return result.then((answer) => { finish(); return answer; },
+          (error) => { finish(); throw error; });
+      };
+    },
+  });
+}
+
+const newTimings = () => ({
+  db: { ms: 0, calls: 0 }, detector: { ms: 0, calls: 0 }, geo: { ms: 0, calls: 0 },
+  catalogue: { ms: 0, calls: 0 }, by: {},
+});
+
 export function createService({
-  repository, detector, geolocator, catalogue = null, logger = console, lockWaitMs = 250,
+  repository: rawRepository, detector: rawDetector, geolocator: rawGeolocator,
+  catalogue: rawCatalogue = null, logger = console, lockWaitMs = 250,
 } = {}) {
-  if (!repository || !detector || !geolocator) throw new Error("Service dependencies are required.");
+  if (!rawRepository || !rawDetector || !rawGeolocator) throw new Error("Service dependencies are required.");
+  const repository = timed(rawRepository, "db");
+  const detector = timed(rawDetector, "detector");
+  const geolocator = timed(rawGeolocator, "geo");
+  const catalogue = timed(rawCatalogue, "catalogue");
+  // The map and impact routes tell clients their answer is good for 30 and 60 seconds
+  // and the app polls both; the rows are kept exactly that long. A body's tender list
+  // changes only when the table is reseeded, and Bengaluru's is 795 rows per lookup.
+  const mapRows = freshFor(30_000);
+  const impactRows = freshFor(60_000);
+  const tenderRows = freshFor(600_000);
 
   async function authenticate(event, context, path, method, raw) {
     const inputHeaders = headers(event);
@@ -492,6 +584,8 @@ export function createService({
     context.kgisLookup = jurisdiction.lookup?.kgis || null;
     context.localLookup = jurisdiction.lookup?.local || null;
     context.wardLookup = jurisdiction.lookup?.ward || null;
+    context.addressSource = jurisdiction.address_source || null;
+    context.geoCache = jurisdiction.lookup?.cache || null;
   }
 
   async function resolveTender(body, context) {
@@ -568,7 +662,8 @@ export function createService({
     const municipal = jurisdiction.road_ownership === "municipal";
     let matched = null;
     if (municipal) {
-      const tenders = await repository.queryTenders(jurisdiction.lgd);
+      const tenders = await tenderRows(String(jurisdiction.lgd),
+        () => repository.queryTenders(jurisdiction.lgd));
       if (tenders.length) named.push(...await wardTenders(jurisdiction, tenders, context));
       matched = tenders.length
         ? matchTender(jurisdiction.address, tenders)
@@ -797,7 +892,8 @@ export function createService({
         throw new HttpError(400, "bad_bbox", "bbox must be west,south,east,north.");
       }
     }
-    const potholes = await repository.listPotholes({ since, bbox, limit });
+    const potholes = await mapRows(`${params.since ?? ""}|${params.bbox ?? ""}|${limit}`,
+      () => repository.listPotholes({ since, bbox, limit }));
     context.outcome = "map_read";
     return response(200, {
       type: "FeatureCollection",
@@ -822,7 +918,7 @@ export function createService({
         || Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`) > 90 * 86_400_000) {
       throw new HttpError(400, "bad_period", "Use a valid period of at most 90 days.");
     }
-    const data = await repository.impact({ from, to });
+    const data = await impactRows(`${from}|${to}`, () => repository.impact({ from, to }));
     const requestsTotal = data.requests.reduce((sum, item) => sum + item.count, 0);
     const captureTotal = data.captures.reduce((sum, item) => sum + item.count, 0);
     context.outcome = "impact_read";
@@ -908,7 +1004,7 @@ export function createService({
     return report(parsed.value, context);
   }
 
-  return async function handle(event, awsContext = {}) {
+  async function handleProfiled(event, awsContext, timings) {
     const startedAt = Date.now();
     const context = {
       requestId: bounded(event.requestContext?.requestId, 128)
@@ -982,6 +1078,13 @@ export function createService({
       detector_screened_by: context.detectorScreenedBy || null,
       detector_screen_confirmed: context.detectorScreenConfirmed ?? null,
       quota_refunded: context.quotaRefunded || false,
+      db_ms: Math.round(timings.db.ms),
+      db_calls: timings.db.calls,
+      detector_ms: Math.round(timings.detector.ms),
+      geo_ms: Math.round(timings.geo.ms),
+      catalogue_ms: Math.round(timings.catalogue.ms),
+      slowest: Object.entries(timings.by).sort((a, b) => b[1] - a[1]).slice(0, 5)
+        .map(([name, ms]) => `${name}:${Math.round(ms)}`).join(" "),
       road_ownership: context.roadOwnership || null,
       road_ownership_source: context.ownershipSource || null,
       kgis_lookup: context.kgisLookup || null,
@@ -991,10 +1094,18 @@ export function createService({
       // ward_tenders answered.
       ward_lookup: context.wardLookup || null,
       ward_tender_count: context.wardTenderCount ?? null,
+      address_source: context.addressSource || null,
+      geo_cache: context.geoCache || null,
       // Which catalogue answered a tender_matched: ka_index, nh_contract, road_notice or
       // road_agreement. Null when nothing matched.
       tender_catalogue: context.tenderCatalogue || null,
     }));
     return result;
+  }
+
+  return function handle(event, awsContext = {}) {
+    const timings = newTimings();
+    return profile.run(timings, async () => compressed(
+      await handleProfiled(event, awsContext, timings), event));
   };
 }
