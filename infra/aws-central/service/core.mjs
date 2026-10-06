@@ -986,8 +986,9 @@ export function createService({
       road_ownership_source: context.ownershipSource || null,
       kgis_lookup: context.kgisLookup || null,
       local_lookup: context.localLookup || null,
-      // resolved, no_ward, unavailable, not_municipal or out_of_scope; null when the route
-      // resolved no location. ward_tender_count is the length of ward_tenders answered.
+      // resolved, resolved_unnamed, no_ward, unavailable, not_municipal or out_of_scope;
+      // null when the route resolved no location. ward_tender_count is the length of
+      // ward_tenders answered.
       ward_lookup: context.wardLookup || null,
       ward_tender_count: context.wardTenderCount ?? null,
       // Which catalogue answered a tender_matched: ka_index, nh_contract, road_notice or

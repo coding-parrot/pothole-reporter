@@ -22,8 +22,9 @@ export function judgeWardSnapshot(rows) {
     : { broken: false, unavailable, detail: "0 lookups without the ward snapshot" };
 }
 
-// 795 Bengaluru tenders named the ward or locality of 18 of 40 real pothole locations
-// (45%) on 6 Oct 2026. Under one in five, across 30 or more lookups, means the ward
+// Only a ward KGIS names is judged (ward_lookup "resolved"; a ward with only a number
+// logs "resolved_unnamed" and has nothing to be matched on). 795 Bengaluru tenders named
+// the ward or locality of 18 of 40 real pothole locations (45%) on 6 Oct 2026. Under one in five, across 30 or more lookups, means the ward
 // snapshot, the tender table or the name matching has stopped working, not that the
 // wards went quiet.
 export function judgeWardTenders(rows, { minimum = 30, share = 0.2 } = {}) {

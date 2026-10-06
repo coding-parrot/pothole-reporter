@@ -78,6 +78,18 @@ test("a town the ward layer does not cover answers no_ward", async () => {
   assert.equal(result.lookup.ward, "no_ward");
 });
 
+test("a ward KGIS gives only a number is resolved_unnamed, with its number and code", async () => {
+  // Hubballi-Dharwad: 82 wards in the layer, none with a name.
+  const geolocator = createGeolocator({ fetchImpl: async () => { throw new Error("down"); }, logger: quiet });
+  const result = await geolocator.resolve({ lat: 15.3647, lng: 75.124, addressHint: "x" });
+  assert.equal(result.town, "HUBLI DHARWAD");
+  assert.equal(result.ward_name, null);
+  assert.match(result.ward_no, /^\d+$/);
+  assert.match(result.ward_code, /^0903\d{3}$/);
+  assert.equal(result.ward_numbering, "kgis_current");
+  assert.equal(result.lookup.ward, "resolved_unnamed");
+});
+
 test("a missing ward bundle costs the ward and nothing else", async () => {
   const errors = [];
   const geolocator = createGeolocator({

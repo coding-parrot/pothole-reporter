@@ -420,7 +420,10 @@ export function createGeolocator({
           wardLookup = "unavailable";
         } else {
           ward = wardAt(wards, lat, lng, townCode || null);
-          wardLookup = ward ? "resolved" : "no_ward";
+          // KGIS names 2,290 of its 7,421 wards (all of Bengaluru, Mangaluru and Mysuru;
+          // none of Hubballi-Dharwad or Davanagere). A ward with only a number is said
+          // apart, because nothing can be matched on it.
+          wardLookup = !ward ? "no_ward" : ward.name ? "resolved" : "resolved_unnamed";
         }
       }
       const value = {
