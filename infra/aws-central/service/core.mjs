@@ -13,6 +13,7 @@ import {
   verifyInstallationSignature,
 } from "./auth.mjs";
 import { HttpError, asHttpError } from "./errors.mjs";
+import { highwayRefsFromAddress } from "./national-tenders.mjs";
 import { matchTender } from "./tenders.mjs";
 import {
   metresBetween,
@@ -198,7 +199,7 @@ function validDay(value) {
 }
 
 export function createService({
-  repository, detector, geolocator, logger = console, lockWaitMs = 250,
+  repository, detector, geolocator, catalogue = null, logger = console, lockWaitMs = 250,
 } = {}) {
   if (!repository || !detector || !geolocator) throw new Error("Service dependencies are required.");
 
@@ -511,22 +512,70 @@ export function createService({
       throw new HttpError(503, "geolocation_unavailable",
         "The municipal body could not be resolved.", { retryable: true });
     }
-    const routed = await routing(jurisdiction);
+    const routed = await routing(jurisdiction, context);
     context.outcome = routed.tender ? "tender_matched" : routed.reason;
     return complete(context, 200, routed);
   }
 
   // The answer /v1/tenders/resolve gives, for a jurisdiction already resolved. The report
   // route returns it too, so the app need not make a second serial round trip for it.
-  async function routing(jurisdiction) {
-    if (jurisdiction.road_ownership !== "municipal") {
-      return { jurisdiction, tender: null, reason: jurisdiction.road_ownership };
+  //
+  // A Karnataka town is matched against its LGD-keyed index first. Any point with a
+  // State/UT and a street is then put to the national catalogues the phone also reads
+  // (highway contracts when the road is a national highway, then the state's road
+  // tender notices, then PMGSY agreements). Before 6 Oct 2026 everything outside
+  // Karnataka answered "outside_state" with no tender, whatever the catalogues held.
+  async function routing(jurisdiction, context = {}) {
+    const municipal = jurisdiction.road_ownership === "municipal";
+    let matched = null;
+    if (municipal) {
+      const tenders = await repository.queryTenders(jurisdiction.lgd);
+      matched = tenders.length
+        ? matchTender(jurisdiction.address, tenders)
+        : { tender: null, reason: "no_tenders_for_jurisdiction" };
+      if (matched.tender) {
+        context.tenderCatalogue = "ka_index";
+        return { jurisdiction, ...matched, catalogue: "ka_index" };
+      }
     }
-    const tenders = await repository.queryTenders(jurisdiction.lgd);
-    const matched = tenders.length
-      ? matchTender(jurisdiction.address, tenders)
-      : { tender: null, reason: "no_tenders_for_jurisdiction" };
-    return { jurisdiction, ...matched };
+    if (!catalogue || jurisdiction.road_ownership === "unknown") {
+      return { jurisdiction, ...(matched || { tender: null, reason: jurisdiction.road_ownership }), catalogue: null };
+    }
+    const parts = jurisdiction.address_parts || {};
+    const ownership = jurisdiction.road_ownership;
+    // Highway contracts are searched when the road is a national highway. Inside
+    // Karnataka that is the register's verdict ("BELLARY ROAD NH 7" from KGIS, "NH-44"
+    // from its snapshot), and a road the register classed municipal, rural or a state
+    // or district highway is not one, whatever ref OpenStreetMap carries for it (Sankey
+    // Road in Bengaluru carries NH44). Outside Karnataka the service has no register,
+    // and the geocoder's name or ref for the road is what says NH.
+    const highwayRef = ownership === "national_highway"
+      ? highwayRefsFromAddress(parts.road, parts.ref, jurisdiction.highway_name)
+      : ownership === "outside_state" ? highwayRefsFromAddress(parts.road, parts.ref) : null;
+    const national = await catalogue.match({
+      stateCode: jurisdiction.state_code,
+      address: jurisdiction.address,
+      highwayRef,
+    }).catch((error) => {
+      logger.error(JSON.stringify({
+        event: "national_match_failed",
+        request_id: context.requestId || null,
+        error_type: String(error?.name || "Error").slice(0, 80),
+        error_message: String(error?.message || error).slice(0, 300),
+      }));
+      return { tender: null, reason: "no_location_match", catalogue: null };
+    });
+    if (national.tender) {
+      context.tenderCatalogue = national.catalogue;
+      return { jurisdiction, tender: national.tender, reason: null, catalogue: national.catalogue };
+    }
+    // Nothing matched. A Karnataka answer keeps the reason it always had (its index's
+    // verdict for a town, the road class otherwise); outside Karnataka the reason says
+    // how far national matching got.
+    const reason = matched ? matched.reason
+      : jurisdiction.road_ownership === "outside_state" ? national.reason
+        : jurisdiction.road_ownership;
+    return { jurisdiction, tender: null, reason, catalogue: null };
   }
 
   async function report(body, context) {
@@ -680,7 +729,7 @@ export function createService({
       await repository.recordReport({ newPothole: created, verification });
     }
     const routed = routingKnown
-      ? await routing(jurisdiction).catch(() => null) : null;
+      ? await routing(jurisdiction, context).catch(() => null) : null;
     return complete(context, created ? 201 : 200, {
       pothole: publicPothole(pothole),
       routing: routed,
@@ -897,6 +946,9 @@ export function createService({
       road_ownership_source: context.ownershipSource || null,
       kgis_lookup: context.kgisLookup || null,
       local_lookup: context.localLookup || null,
+      // Which catalogue answered a tender_matched: ka_index, nh_contract, road_notice or
+      // road_agreement. Null when nothing matched.
+      tender_catalogue: context.tenderCatalogue || null,
     }));
     return result;
   };

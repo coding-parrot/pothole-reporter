@@ -87,3 +87,32 @@ re-pins its packs; the test suite fails when the bundle's recorded hashes no lon
 node infra/aws-central/tools/build-karnataka-geometry.mjs --snapshot   # fetches from KGIS
 node infra/aws-central/tools/build-karnataka-geometry.mjs              # rebuilds the bundle
 ```
+
+## Tenders for any point in India
+
+`POST /v1/tenders/resolve` matched only the Karnataka municipal index (DynamoDB, keyed by
+LGD code) until 6 Oct 2026; everything else answered `outside_state` with no tender. The
+service now also matches the three official catalogues the phone reads, with the phone's
+own evidence rules (`service/national-tenders.mjs` copies them from `static/standalone.js`
+and `test/national-tenders.test.mjs` fails on any drift):
+
+1. national highway contracts (MoRTH, NHIDCL) when the road is a national highway: KGIS's
+   verdict inside Karnataka, the geocoder's road name or ref outside it;
+2. the State/UT's road tender notices (e-procurement portals), open bids only;
+3. PMGSY rural road agreements.
+
+The State/UT comes from the geocoder (`jurisdiction.state_code`, from Nominatim's
+`ISO3166-2-lvl4` or the state name). A Karnataka town is still matched against its index
+first; the catalogues are consulted when the index has nothing. The response carries
+`catalogue` (`ka_index`, `nh_contract`, `road_notice`, `road_agreement`) and the
+`http_request` log line carries the same as `tender_catalogue`.
+
+The catalogues are packaged with the Lambda, not fetched: `deploy.sh` runs
+`tools/stage-national-tenders.mjs`, which copies the three manifests `static/standalone.js`
+names (so the phone and the service read the same catalogue) to
+`data/national-tenders/*-manifest.json` and the pack each pins for every state (about
+11 MB, 103 files), checking every sha256. The service loads a state's pack on first use
+and refuses one past its manifest `review_after`, as the phone does. Road notices are
+reviewed weekly: a refresh that is merged but not deployed stops notice matching on that
+date, which the "tenders match somewhere in India" rule in `tools/production-health.mjs`
+reports.

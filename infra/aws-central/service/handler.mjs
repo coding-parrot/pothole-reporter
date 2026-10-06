@@ -1,6 +1,7 @@
 import { createDetector, createSecretProvider } from "./detectors.mjs";
 import { createDynamoRepository } from "./dynamo-repository.mjs";
 import { createGeolocator } from "./geolocation.mjs";
+import { createNationalCatalogue } from "./national-tenders.mjs";
 import { createService } from "./core.mjs";
 
 const repository = createDynamoRepository({
@@ -37,4 +38,8 @@ const geolocator = createGeolocator({
   geocoderUrl: process.env.GEOCODER_REVERSE_URL || "",
 });
 
-export const handler = createService({ repository, detector, geolocator });
+// The national tender catalogues are staged into the package by deploy.sh (see
+// tools/stage-national-tenders.mjs) at the module's default path.
+const catalogue = createNationalCatalogue();
+
+export const handler = createService({ repository, detector, geolocator, catalogue });

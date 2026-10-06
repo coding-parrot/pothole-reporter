@@ -45,7 +45,13 @@ cp llm/generated/contract.mjs "$TMP_DIR/package/llm/generated/"
 # answers road ownership from when KGIS cannot. Same path relative to the service as in
 # the repo, so geolocation.mjs needs no configuration to find it.
 cp data/karnataka-local-geometry.json "$TMP_DIR/package/data/"
+# The national tender catalogues (highway contracts, State/UT road notices, PMGSY
+# agreements): the manifests the shipped phone names, under fixed names, and the pack
+# they pin for every state, hash-checked. national-tenders.mjs reads them lazily per
+# state from this same path relative to the service. About 11 MB, 103 files.
+node infra/aws-central/tools/stage-national-tenders.mjs "$TMP_DIR/package/data/national-tenders"
 (cd "$TMP_DIR/package" && zip -q -r "$TMP_DIR/central-lambda.zip" infra llm data)
+echo "package: $(du -h "$TMP_DIR/central-lambda.zip" | cut -f1) zipped, $(du -sh "$TMP_DIR/package" | cut -f1) unpacked"
 # A content-addressed key makes CloudFormation see every code change; a fixed key reports
 # "No changes" and leaves the old Lambda code running.
 if [[ -z "$CODE_KEY" ]]; then

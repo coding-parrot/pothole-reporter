@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 import { HttpError } from "./errors.mjs";
+import { highwayRefsFromAddress, stateCodeFor } from "./national-tenders.mjs";
 import { metresToPolyline, pointInRings, withinBox } from "./spatial.mjs";
 
 const GEOCODER_USER_AGENT = "PotholeReporter-central/1 (+https://coding-parrot.github.io/pothole-reporter/; contact@aiengg.dev)";
@@ -91,6 +92,24 @@ function addressFromGeocoder(data) {
     address.postcode,
   ].filter((value, index, all) => value && all.indexOf(value) === index);
   return bounded(parts.join(", ") || data?.display_name, 500) || null;
+}
+
+// The parts of the geocoder's answer that national tender matching reads on their own:
+// the State/UT code picks the catalogue pack, and a road that is a national highway
+// (by its name, or by the ref OpenStreetMap carries for it) opens the highway contracts.
+function partsFromGeocoder(data) {
+  if (!data || typeof data !== "object" || !data.address) return null;
+  const address = data.address;
+  const ref = bounded(data.namedetails?.ref, 80) || null;
+  const road = bounded(address.road || address.pedestrian || address.residential || address.footway, 160) || null;
+  return {
+    road,
+    ref,
+    suburb: bounded(address.suburb || address.village || address.neighbourhood, 160) || null,
+    city: bounded(address.city || address.town || address.municipality, 160) || null,
+    state: bounded(address.state, 80) || null,
+    highway_ref: highwayRefsFromAddress(road, ref),
+  };
 }
 
 function validLocalGeometry(geometry) {
@@ -209,6 +228,7 @@ export function createGeolocator({
           lat,
           lng,
           address: geocoded ? cached.value.address : hint,
+          address_parts: geocoded ? cached.value.address_parts : null,
           address_source: geocoded ? "operator_geocoder" : hint ? "client_hint" : "unresolved",
         };
       }
@@ -222,6 +242,8 @@ export function createGeolocator({
           url.searchParams.set("format", "jsonv2");
           url.searchParams.set("zoom", "17");
           url.searchParams.set("addressdetails", "1");
+          // namedetails carries the road's ref ("NH 48") when its name does not say it.
+          url.searchParams.set("namedetails", "1");
           geocoder = {
             url: url.href,
             headers: {
@@ -310,6 +332,10 @@ export function createGeolocator({
         lat,
         lng,
         address: addressFromGeocoder(geocoded.data) || bounded(addressHint, 500) || null,
+        address_parts: partsFromGeocoder(geocoded.data),
+        // The State/UT the geocoder places the point in, as the national tender
+        // manifests key their packs. Karnataka's own index is still keyed by LGD code.
+        state_code: stateCodeFor(geocoded.data?.address),
         lgd: municipal ? lgd || null : null,
         town: municipal ? townName : null,
         source: municipal && lgd ? source : "unresolved",
