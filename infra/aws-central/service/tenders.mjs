@@ -1,6 +1,6 @@
 import { tenderCoversCarriageway } from './tender-scope.mjs';
 
-const STOP = new Set([
+export const STOP = new Set([
   "road", "roads", "street", "cross", "main", "layout", "bengaluru", "bangalore",
   "karnataka", "india", "ward", "city", "corporation", "south", "north", "east",
   "west", "central", "urban", "sector", "stage", "block", "phase", "nagar",

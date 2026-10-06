@@ -194,6 +194,29 @@ export function wardAt(geometry, lat, lng, townCode) {
   return null;
 }
 
+// The named wards whose towns share a tender index with the given ward, each with its box
+// in degrees. Ward tender matching uses it to tell a ward from its namesake across town.
+// A town's index is its own, but for the five Greater Bengaluru corporations (KGIS town
+// codes 20G1 to 20G5), whose tenders dynamo-repository.mjs files together under "BLR".
+const wardRosters = new WeakMap();
+export function wardRosterOf(geometry, wardCode) {
+  const own = Object.keys(geometry.towns).find((code) => String(wardCode || "").startsWith(code)
+    && geometry.towns[code].wards.some((ward) => ward[0] === wardCode));
+  if (!own) return [];
+  const group = /^20G\d$/.test(own) ? "20G" : own;
+  if (!wardRosters.has(geometry)) wardRosters.set(geometry, new Map());
+  const rosters = wardRosters.get(geometry);
+  if (!rosters.has(group)) {
+    const scale = geometry.coordinate_scale;
+    rosters.set(group, Object.entries(geometry.towns)
+      .filter(([code]) => (group === "20G" ? /^20G\d$/.test(code) : code === own))
+      .flatMap(([, town]) => town.wards)
+      .map(([code, , name, bbox]) => ({ code, name: wardNameWithoutNumber(name), bbox: bbox.map((value) => value / scale) }))
+      .filter((ward) => ward.name));
+  }
+  return rosters.get(group);
+}
+
 // The same order of precedence as the KGIS path: a highway through a town is not the
 // town's road, and a town is checked before the state line because a town polygon can
 // overhang the OpenStreetMap boundary by a few metres.
@@ -265,6 +288,10 @@ export function createGeolocator({
   return {
     kgisTimeoutMs,
     kgisBreakerMs,
+    async wardRoster(wardCode) {
+      const wards = wardCode ? await loadWardGeometry(wardGeometryPath, logger) : null;
+      return wards ? wardRosterOf(wards, wardCode) : [];
+    },
     async resolve({ lat, lng, addressHint = "" }) {
       // Four decimals is about 11 m, well inside a phone's GPS error. At five, that
       // jitter made nearly every report a miss.
@@ -386,7 +413,7 @@ export function createGeolocator({
       // The ward, from the packaged copy of the KGIS ward layer. No live call: the town
       // (live or snapshot) is already known, and the polygons are local.
       let ward = null;
-      let wardLookup = !inKarnataka ? "out_of_scope" : "not_municipal";
+      let wardLookup = roadOwnership === "outside_state" ? "out_of_scope" : "not_municipal";
       if (municipal && lgd) {
         const wards = await loadWardGeometry(wardGeometryPath, logger);
         if (!wards) {
