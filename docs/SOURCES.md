@@ -883,8 +883,12 @@ curl -s "https://kgis.ksrsac.in/kgismaps/rest/services/Boundaries/Admin_Dynamic_
 Returns `MYSURU`, type `CC`, LGD code `252045`. That layer holds exactly 319 polygons,
 matching the state's 319 urban local bodies. A point outside a Town polygon falls
 through to the gram-panchayat layer and is not routed to a municipal recipient. If any
-required KGIS check is unavailable or malformed, ownership stays unknown and routing
-fails closed.
+required KGIS check is unavailable or malformed, the service answers from its own copy
+of the same Town layer (`data/karnataka-town-polygons.json`, 319 polygons, snapshotted
+from KGIS with provenance), the pinned state polygon and the national highway tiles;
+state and district highways are not in that copy, so a point on one answers municipal
+while KGIS is down. A point the local geometry cannot classify stays unknown and routing
+fails closed. KGIS answers win whenever they arrive.
 
 The officer directory is keyed on **LGD_TownCode**, the Local Government Directory code
 issued by the Ministry of Panchayati Raj, so a body is identified by a national
