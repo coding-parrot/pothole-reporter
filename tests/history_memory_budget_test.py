@@ -39,6 +39,7 @@ HEAP_BUDGET_MB = 150
 RSS_BUDGET_MB = 600
 HOME_COLD_BUDGET_MS = 4000
 HOME_WARM_BUDGET_MS = 1500
+FIRST_THUMBS_BUDGET_MS = 6000
 DAY = 86400
 
 SEED = r"""
@@ -59,7 +60,32 @@ async ({ reports, drives, framesPerDrive, photoBytes, frameBytes, segmentBytes,
     }
     return out;
   };
-  const photoNoise = noise(photoBytes), frameNoise = noise(frameBytes);
+  // A real JPEG at the size the app stores (2000 px for a Photo, 1280 px for a Drive
+  // frame), padded with random bytes after its end marker to the wanted size on disk.
+  // Decoders ignore the padding, so every thumbnail really decodes: 12 MB of pixels
+  // for a Photo. Undecodable bytes would hide the cost of painting the whole history.
+  const jpegOf = async (width, height, bytes) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width; canvas.height = height;
+    const g = canvas.getContext("2d");
+    const sky = g.createLinearGradient(0, 0, 0, height);
+    sky.addColorStop(0, "#8fa3b8"); sky.addColorStop(0.45, "#6f6f6c"); sky.addColorStop(1, "#3c3c3a");
+    g.fillStyle = sky; g.fillRect(0, 0, width, height);
+    let seed = 7;
+    for (let i = 0; i < 4000; i++) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      g.fillStyle = `rgba(${seed & 255},${(seed >> 8) & 255},${(seed >> 16) & 255},0.25)`;
+      g.fillRect(seed % width, (seed >> 4) % height, 24, 12);
+    }
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.8));
+    const jpeg = new Uint8Array(await blob.arrayBuffer());
+    if (jpeg.length > bytes) throw new Error(`seed JPEG is ${jpeg.length} B, over ${bytes}`);
+    const out = noise(bytes);
+    out.set(jpeg, 0);
+    return out;
+  };
+  const photoNoise = await jpegOf(2000, 1500, photoBytes);
+  const frameNoise = await jpegOf(1280, 720, frameBytes);
   const segmentNoise = noise(segmentBytes);
   // One Blob object per row, used for both photo fields as a Drive frame is; a copy
   // per row keeps every row's bytes distinct on disk. The photo_full of a manual report
@@ -172,6 +198,34 @@ def renderer_rss_mb(browser_cdp):
     return round(best)
 
 
+def scroll_history(page, browser_cdp):
+    """Scroll the whole list as a tester hunting for an old report does, pausing so
+    lazy thumbnails load and decode, and return the peak renderer RSS on the way."""
+    peak, y = 0, 0
+    deadline = time.time() + 120
+    while time.time() < deadline:
+        height = page.evaluate("() => document.body.scrollHeight")
+        if y > height:
+            break
+        page.evaluate("(y) => window.scrollTo(0, y)", y)
+        page.wait_for_timeout(60)
+        if (y // 700) % 6 == 0:
+            peak = max(peak, renderer_rss_mb(browser_cdp))
+        y += 700
+    # Let the thumbnails of the painted cards finish, sampling while they decode.
+    for _ in range(40):
+        peak = max(peak, renderer_rss_mb(browser_cdp))
+        done = page.evaluate("""() => {
+          const imgs = Array.from(document.querySelectorAll("#list img.thumb"));
+          return imgs.every((i) => i.complete && i.getAttribute("src"));
+        }""")
+        if done:
+            break
+        page.wait_for_timeout(250)
+    page.wait_for_timeout(300)
+    return max(peak, renderer_rss_mb(browser_cdp))
+
+
 def sample(page, cdp, browser_cdp, label):
     cdp.send("HeapProfiler.collectGarbage")
     metrics = {m["name"]: m["value"] for m in cdp.send("Performance.getMetrics")["metrics"]}
@@ -236,18 +290,24 @@ def main():
             cards = page.locator("#list .card").count()
             print(f"  cards painted on Home: {cards}")
             numbers["cards"] = cards
+            # Thumbnails arrive after the list: on old data each is made from its photo
+            # the first time it is listed. The list is usable before they land.
+            try:
+                page.wait_for_function("""() => {
+                  const imgs = Array.from(document.querySelectorAll("#list img.thumb"));
+                  return imgs.length && imgs.filter((i) => i.naturalWidth > 0).length >= Math.min(8, imgs.length);
+                }""", timeout=60_000)
+                numbers["first_thumbs_ms"] = round((time.time() - t0) * 1000)
+            except Exception:
+                numbers["first_thumbs_ms"] = None
+            print(f"  cold start to the first screen of thumbnails: {numbers['first_thumbs_ms']} ms")
             numbers["after_home"] = sample(page, cdp, browser_cdp, "after Home")
 
-            # Scroll the whole list so every lazy thumbnail is requested, as a tester
-            # looking for an old report does.
-            page.evaluate("""async () => {
-              const list = document.getElementById("list");
-              for (let y = 0; y <= document.body.scrollHeight; y += 700) {
-                window.scrollTo(0, y);
-                await new Promise((r) => setTimeout(r, 15));
-              }
-              await new Promise((r) => setTimeout(r, 500));
-            }""")
+            numbers["scroll_peak_rss_mb"] = scroll_history(page, browser_cdp)
+            numbers["thumbs_decoded"] = page.evaluate("""() =>
+              Array.from(document.querySelectorAll("#list img.thumb")).filter((i) => i.naturalWidth > 0).length""")
+            print(f"  peak renderer RSS while scrolling: {numbers['scroll_peak_rss_mb']} MB, "
+                  f"{numbers['thumbs_decoded']} thumbnails decoded")
             numbers["after_scroll"] = sample(page, cdp, browser_cdp, "after scrolling the list")
 
             # Returning to Home re-reads history: every Back press pays this.
@@ -278,7 +338,13 @@ def main():
     if report_only:
         return
     worst_heap = max(v["heap_mb"] for k, v in numbers.items() if isinstance(v, dict) and "heap_mb" in v)
-    worst_rss = max(v["rss_mb"] for k, v in numbers.items() if isinstance(v, dict) and "rss_mb" in v)
+    worst_rss = max([numbers["scroll_peak_rss_mb"]] + [
+        v["rss_mb"] for k, v in numbers.items() if isinstance(v, dict) and "rss_mb" in v])
+    if numbers["first_thumbs_ms"] is None or numbers["first_thumbs_ms"] > FIRST_THUMBS_BUDGET_MS:
+        failures.append(f"the first screen of thumbnails took {numbers['first_thumbs_ms']} ms "
+                        f"(budget {FIRST_THUMBS_BUDGET_MS})")
+    if numbers["thumbs_decoded"] < 20:
+        failures.append(f"only {numbers['thumbs_decoded']} thumbnails decoded: the list shows no photos")
     if numbers["home_cold_ms"] > HOME_COLD_BUDGET_MS:
         failures.append(f"cold start to Home took {numbers['home_cold_ms']} ms "
                         f"(budget {HOME_COLD_BUDGET_MS})")
