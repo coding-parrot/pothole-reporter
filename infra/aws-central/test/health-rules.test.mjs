@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createGeolocator } from "../service/geolocation.mjs";
-import { WARD_TENDER_QUERY, judgeWardTenders } from "../tools/health-rules.mjs";
+import { WARD_TENDER_QUERY, judgeWardSnapshot, judgeWardTenders } from "../tools/health-rules.mjs";
 import { loadBodyTenders } from "../tools/ward-tender-vocabulary.mjs";
 import { harness, memoryRepository } from "./support.mjs";
 import { CASES } from "./ward-tender-cases.mjs";
@@ -12,8 +12,9 @@ import { CASES } from "./ward-tender-cases.mjs";
 // tender, once there are 30 to judge. The rule reads the request log, so these tests feed
 // it rows made from the service's own log lines, grouped the way the query groups them.
 
-const rows = (...groups) => groups.map(([n, wardTenderCount, catalogue]) => ({
-  n: String(n), ward_tender_count: wardTenderCount === null ? undefined : String(wardTenderCount),
+const rows = (...groups) => groups.map(([n, wardTenderCount, catalogue, wardLookup = "resolved"]) => ({
+  n: String(n), ward_lookup: wardLookup || undefined,
+  ward_tender_count: wardTenderCount === null ? undefined : String(wardTenderCount),
   tender_catalogue: catalogue || undefined,
 }));
 
@@ -38,6 +39,25 @@ test("a fifth answered holds the rule, and a street tender counts", () => {
   assert.equal(judgeWardTenders(rows([24, 0], [3, 1], [3, 0, "ka_index"])).broken, false);
   assert.equal(judgeWardTenders(rows([24, 0], [6, 0, "ka_index"])).broken, false);
   assert.equal(judgeWardTenders(rows([100, 5])).broken, false);
+});
+
+test("only lookups whose ward was resolved are judged", () => {
+  // 40 municipal lookups in a town KGIS draws no wards for, 10 in Bengaluru.
+  const verdict = judgeWardTenders(rows([40, 0, null, "no_ward"], [10, 0]));
+  assert.equal(verdict.resolved, 10);
+  assert.equal(verdict.broken, false);
+  assert.equal(judgeWardTenders(rows([40, 0, null, "no_ward"], [30, 0])).broken, true);
+  // Lines from before the ward release have no ward_lookup and no count.
+  assert.equal(judgeWardTenders(rows([500, null, null, null])).resolved, 0);
+});
+
+test("a package without the ward snapshot is said out loud", () => {
+  const missing = judgeWardSnapshot(rows([12, 0, null, "unavailable"], [3, 0, "ka_index", "unavailable"]));
+  assert.equal(missing.broken, true);
+  assert.match(missing.detail, /15 municipal lookups/);
+  // The tender rule alone would have stayed quiet: nothing was resolved.
+  assert.equal(judgeWardTenders(rows([15, 0, null, "unavailable"])).broken, false);
+  assert.equal(judgeWardSnapshot(rows([40, 0], [9, 2], [7, 0, null, "no_ward"], [500, null, null, null])).broken, false);
 });
 
 test("the query reads the fields the service logs, and the rule counts them rightly", async () => {
@@ -65,16 +85,16 @@ test("the query reads the fields the service logs, and the rule counts them righ
     const result = await h.post("/v1/tenders/resolve", { lat: point.lat, lng: point.lng });
     assert.equal(result.statusCode, 200, result.body);
   }
-  // What the query does: keep municipal lookups with a resolved ward on the two routes,
-  // group by the two fields the rule reads.
+  // What the query does: keep municipal lookups on the two routes, group by the three
+  // fields the rules read.
   const lines = h.lines.log.map((line) => JSON.parse(line)).filter((line) => line.event === "http_request"
-    && line.road_ownership === "municipal" && line.ward_lookup === "resolved"
+    && line.road_ownership === "municipal"
     && ["/v1/tenders/resolve", "/v1/potholes/report"].includes(line.route));
   assert.equal(lines.length, 4, "three wards with tenders and Agaram; Pune is not a Karnataka town");
   const grouped = new Map();
   for (const line of lines) {
-    const key = `${line.ward_tender_count}|${line.tender_catalogue}`;
-    const group = grouped.get(key) || { n: 0, ward_tender_count: String(line.ward_tender_count), tender_catalogue: line.tender_catalogue || undefined };
+    const key = `${line.ward_lookup}|${line.ward_tender_count}|${line.tender_catalogue}`;
+    const group = grouped.get(key) || { n: 0, ward_lookup: line.ward_lookup, ward_tender_count: String(line.ward_tender_count), tender_catalogue: line.tender_catalogue || undefined };
     group.n += 1;
     grouped.set(key, group);
   }
@@ -82,4 +102,21 @@ test("the query reads the fields the service logs, and the rule counts them righ
   assert.equal(verdict.resolved, 4);
   assert.equal(verdict.answered, 3);
   assert.equal(verdict.broken, false);
+  assert.equal(judgeWardSnapshot([...grouped.values()]).broken, false);
+});
+
+test("a service packaged without the ward bundle logs ward_lookup unavailable", async () => {
+  const geolocator = createGeolocator({
+    fetchImpl: async () => { throw new Error("KGIS is down"); },
+    wardGeometryPath: "/nonexistent/karnataka-ward-geometry.json",
+    logger: { error() {}, log() {} },
+  });
+  const repository = memoryRepository();
+  repository.queryTenders = async () => [];
+  const h = await harness({ geolocator, repository });
+  const result = await h.post("/v1/tenders/resolve", { lat: 12.99657, lng: 77.62034, address_hint: "Thambhuchetty Road" });
+  assert.equal(result.statusCode, 200, result.body);
+  const logged = JSON.parse(h.lines.log.findLast((line) => line.includes('"http_request"')));
+  assert.equal(logged.ward_lookup, "unavailable");
+  assert.equal(judgeWardSnapshot([{ n: "1", ward_lookup: logged.ward_lookup }]).broken, true);
 });

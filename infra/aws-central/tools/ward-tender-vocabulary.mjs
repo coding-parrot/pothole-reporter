@@ -2,7 +2,7 @@
 // The data the ward tender name rules (service/ward-tenders.mjs) were read off, and the
 // check that they still hold. Reads only files in the repo:
 //
-//   node infra/aws-central/tools/ward-tender-vocabulary.mjs [--body BLR] [--towns 20G] [--seed 1] [--all-variants]
+//   node infra/aws-central/tools/ward-tender-vocabulary.mjs [--body BLR] [--towns 20G] [--seed 1]
 //
 // Prints: the place-name vocabulary of the body's tender titles and of the KGIS ward
 // names, how many ward names find a tender, every pair of spellings that each rule is

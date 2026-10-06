@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { WARD_TENDER_QUERY, judgeWardTenders } from "./health-rules.mjs";
+import { WARD_TENDER_QUERY, judgeWardSnapshot, judgeWardTenders } from "./health-rules.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const args = process.argv.slice(2);
@@ -146,7 +146,10 @@ async function windowRules(hours) {
   // Most Bengaluru tenders name a ward or a locality, never a street, so since the ward
   // tender release a municipal lookup with a resolved ward should often come back with
   // something a person can read.
-  const wardTenders = judgeWardTenders(await insights(WARD_TENDER_QUERY, hours));
+  const wardRows = await insights(WARD_TENDER_QUERY, hours);
+  const wardSnapshot = judgeWardSnapshot(wardRows);
+  wardSnapshot.broken ? fail("ward snapshot is in the package", wardSnapshot.detail) : ok("ward snapshot is in the package", wardSnapshot.detail);
+  const wardTenders = judgeWardTenders(wardRows);
   wardTenders.broken ? fail("wards find their tenders", wardTenders.detail) : ok("wards find their tenders", wardTenders.detail);
 
   const detect = rows.filter((row) => row.route === "/v1/vision/detect" && Number(row.status) === 200);
@@ -247,6 +250,17 @@ async function canary() {
     ok("Bengaluru street is classified municipal", `LGD ${jurisdiction.lgd} ${jurisdiction.town} via ${jurisdiction.lookup?.kgis === "available" ? "state GIS" : "local fallback"}; tender ${withHint.body.tender ? withHint.body.tender.tender_number : `none (${withHint.body.reason})`} in ${withHint.took} ms`);
     if (withHint.body.reason === "address_unresolved") fail("hinted address is used for matching", "address_unresolved with a hint present");
     if (withHint.body.reason === "no_tenders_for_jurisdiction") fail("tender table has rows for Bengaluru", "no_tenders_for_jurisdiction; seed the table");
+    // The canary point is in KGIS ward 10, Cox Town, whose tenders the index names by the
+    // old BBMP ward 108. A service from before the ward release answers no lookup.ward at
+    // all and is not judged here.
+    if (jurisdiction.lookup?.ward !== undefined) {
+      jurisdiction.lookup.ward === "resolved" && jurisdiction.ward_name === "Cox Town"
+        ? ok("ward is named from the packaged snapshot", `${jurisdiction.ward_name}, KGIS ward ${jurisdiction.ward_no}`)
+        : fail("ward is named from the packaged snapshot", `lookup.ward ${jurisdiction.lookup.ward}, ward_name ${jurisdiction.ward_name}`);
+      Array.isArray(withHint.body.ward_tenders) && withHint.body.ward_tenders.length
+        ? ok("the ward's tenders are answered", `${withHint.body.ward_tenders.length}, first: ${withHint.body.ward_tenders[0].title.slice(0, 80)}`)
+        : fail("the ward's tenders are answered", `ward_tenders ${JSON.stringify(withHint.body.ward_tenders)?.slice(0, 120)}`);
+    }
   } else {
     fail("Bengaluru street is classified municipal", `${withHint.status} ${JSON.stringify(withHint.body).slice(0, 300)}`);
   }
