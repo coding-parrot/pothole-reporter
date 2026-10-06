@@ -133,7 +133,7 @@ def main():
         # Serve a real (tiny) tile rather than aborting: with no tile at all the app
         # correctly falls back to the offline scatter plot, and this test is about the
         # map's markers and popups, not the fallback.
-        page.route("https://tile.openstreetmap.org/**", lambda route: route.fulfill(
+        page.route("https://server.arcgisonline.com/**", lambda route: route.fulfill(
             status=200, content_type="image/png", body=TILE_PNG))
         page.goto(APP + "#public-map")
         page.wait_for_function(

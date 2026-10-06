@@ -139,7 +139,7 @@
   <div class="row" style="justify-content:space-between;align-items:flex-start">
     <div>
       <h1>Pothole Reporter</h1>
-      <div class="sub i18n-pending" id="subTitle">Capture it. Verify the damage. Email the responsible authority.</div>
+      <div class="sub i18n-pending" id="subTitle">Report potholes to the authority.</div>
     </div>
     <button class="ghost" id="gearBtn" style="flex:none;padding:10px 14px;min-width:48px;min-height:48px" aria-label="Settings">&#9881;&#65039;</button>
   </div>
@@ -212,6 +212,7 @@
         <div style="min-width:0">
           <div class="verdict" id="communityTitle">Public pothole map</div>
           <div class="meta" id="communityNote">Loading public map and complaint counts...</div>
+          <div class="meta" id="communityPeriod"></div>
         </div>
         <button class="ghost" id="dashRefresh" style="flex:none;padding:12px 14px;min-height:44px">Refresh</button>
       </div>
@@ -468,7 +469,7 @@ $("setModel").addEventListener("change", syncDetailOptions);
 // ---------- i18n (English / Kannada / Marathi) ----------
 const I18N = {
   en: {
-    sub: "Capture it. Verify the damage. Email the responsible authority.",
+    sub: "Report potholes to the authority.",
     report_btn: "&#128247; &nbsp;Photo",
     drive_btn: "&#128663; &nbsp;Drive",
     drive_active_label: "Drive active, open it",
@@ -613,7 +614,7 @@ const I18N = {
     public_map_unavailable: "The public map is temporarily unavailable. No local or private data is being shown in its place.",
     public_map_refresh: "Refresh",
     public_map_offline: "The public map did not load: the connection is slow or offline. Tap Refresh to try again.",
-    public_map_privacy: "Accepted app reports are grouped by nearby location. Counts and the app's pothole numbers are public; names, contact details, photos and device or request identifiers are never shown. The app opens email drafts but cannot verify that an email was sent.",
+    public_map_privacy: "Reports grouped by nearby location.",
     impact_period: "Aggregate counts for {from} to {to}.",
     pothole_ref: "Pothole #{id}",
     complaint_one: "1 complaint report", complaint_many: "{n} complaint reports",
@@ -773,7 +774,7 @@ const I18N = {
     drive_service_paused: "Project server unreachable, pausing scans. Scanning resumes when it is back.",
   },
   kn: {
-    sub: "ಚಿತ್ರ ಸೆರೆಹಿಡಿಯಿರಿ. ಹಾನಿ ಪರಿಶೀಲಿಸಿ. ಜವಾಬ್ದಾರ ಅಧಿಕಾರಿಗೆ ಇಮೇಲ್ ಮಾಡಿ.",
+    sub: "ಗುಂಡಿಗಳನ್ನು ಅಧಿಕಾರಿಗಳಿಗೆ ವರದಿ ಮಾಡಿ.",
     report_btn: "&#128247; &nbsp;ಫೋಟೋ",
     drive_btn: "&#128663; &nbsp;ಡ್ರೈವ್",
     drive_active_label: "ಡ್ರೈವ್ ಸಕ್ರಿಯವಾಗಿದೆ, ತೆರೆಯಿರಿ",
@@ -912,7 +913,7 @@ const I18N = {
     public_map_unavailable: "ಸಾರ್ವಜನಿಕ ನಕ್ಷೆ ತಾತ್ಕಾಲಿಕವಾಗಿ ಲಭ್ಯವಿಲ್ಲ. ಅದರ ಬದಲು ಸ್ಥಳೀಯ ಅಥವಾ ಖಾಸಗಿ ಡೇಟಾವನ್ನು ತೋರಿಸಲಾಗುವುದಿಲ್ಲ.",
     public_map_refresh: "ಮತ್ತೆ ಲೋಡ್ ಮಾಡಿ",
     public_map_offline: "ಸಾರ್ವಜನಿಕ ನಕ್ಷೆ ಲೋಡ್ ಆಗಲಿಲ್ಲ: ಸಂಪರ್ಕ ನಿಧಾನವಾಗಿದೆ ಅಥವಾ ಇಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲು \"ಮತ್ತೆ ಲೋಡ್ ಮಾಡಿ\" ಒತ್ತಿರಿ.",
-    public_map_privacy: "ಸ್ವೀಕರಿಸಿದ ಆ್ಯಪ್ ವರದಿಗಳನ್ನು ಹತ್ತಿರದ ಸ್ಥಳದ ಆಧಾರದಲ್ಲಿ ಒಟ್ಟುಗೂಡಿಸಲಾಗಿದೆ. ಎಣಿಕೆಗಳು ಮತ್ತು ರಸ್ತೆ ಗುಂಡಿ ಸಂಖ್ಯೆಗಳು ಸಾರ್ವಜನಿಕ; ಹೆಸರು, ಸಂಪರ್ಕ ವಿವರ, ಫೋಟೋ ಮತ್ತು ಸಾಧನ ಅಥವಾ ವಿನಂತಿ ಗುರುತುಗಳನ್ನು ಎಂದಿಗೂ ತೋರಿಸಲಾಗುವುದಿಲ್ಲ. ಆ್ಯಪ್ ಇಮೇಲ್ ಕರಡು ತೆರೆಯುತ್ತದೆ, ಆದರೆ ಇಮೇಲ್ ಕಳುಹಿಸಲಾಗಿದೆ ಎಂದು ದೃಢಪಡಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+    public_map_privacy: "ಹತ್ತಿರದ ಸ್ಥಳದಿಂದ ವರದಿಗಳನ್ನು ಗುಂಪು ಮಾಡಲಾಗಿದೆ.",
     impact_period: "{from} ರಿಂದ {to} ರವರೆಗಿನ ಒಟ್ಟು ಎಣಿಕೆಗಳು.",
     pothole_ref: "ರಸ್ತೆ ಗುಂಡಿ #{id}",
     complaint_one: "1 ದೂರು ವರದಿ", complaint_many: "{n} ದೂರು ವರದಿಗಳು",
@@ -1078,7 +1079,7 @@ const I18N = {
     drive_service_paused: "ಯೋಜನೆಯ ಸರ್ವರ್ ತಲುಪುತ್ತಿಲ್ಲ, ಸ್ಕ್ಯಾನ್ ನಿಲ್ಲಿಸಲಾಗಿದೆ. ಸರ್ವರ್ ಮರಳಿದಾಗ ಸ್ಕ್ಯಾನ್ ಮುಂದುವರಿಯುತ್ತದೆ.",
   },
   mr: {
-    sub: "फोटो घ्या. नुकसान पडताळा. जबाबदार कार्यालयाला ईमेल करा.",
+    sub: "खड्डे प्राधिकरणाला कळवा.",
     report_btn: "&#128247; &nbsp;फोटो",
     issue_road_damage: "रस्त्याचे नुकसान",
     drive_btn: "&#128663; &nbsp;ड्राइव्ह",
@@ -1312,7 +1313,7 @@ const I18N = {
     provider_personal_note: "तुमची OpenAI API की वापरते. तुमची की आणि निवडक चित्रे थेट OpenAI कडे जातात; की कधीही प्रकल्प सेवेकडे पाठवली जात नाही. स्वीकारलेल्या खड्ड्यांसाठी जबाबदार प्राधिकरण, निविदा, कंत्राटदार, डुप्लिकेट तपासणी आणि नकाशा यासाठी प्रकल्प सर्व्हरच वापरला जातो.",
     provider_shared: "सामायिक प्रकल्प सेवा: की लागत नाही",
     provider_shared_note: "वैयक्तिक की नसेल तेव्हा हेच डीफॉल्ट. API की लागत नाही. निवडक चित्रे प्रकल्प सर्व्हरमार्फत, तिथे न साठवता, त्याच्या सामायिक तपासणी यंत्रणेकडे (OpenAI किंवा स्वतःचे YOLO gateway) जातात. जबाबदार प्राधिकरण आणि संभाव्य निविदा व कंत्राटदार हेही सर्व्हरच ठरवतो. सेवेकडे क्षमता नसेल, तर नुकसान नाही असे न सांगता तपासणी स्पष्टपणे अयशस्वी होते.",
-    public_map_privacy: "स्वीकारलेले अहवाल जवळच्या स्थानानुसार गटात दाखवले जातात. संख्या आणि अॅपचे खड्डा क्रमांक सार्वजनिक असतात; नावे, संपर्क तपशील, फोटो आणि साधन किंवा विनंती ओळख क्रमांक कधीही दाखवले जात नाहीत. अॅप ईमेलचा मसुदा उघडते, पण ईमेल पाठवला गेला याची खातरजमा करू शकत नाही.",
+    public_map_privacy: "जवळच्या ठिकाणानुसार अहवाल एकत्र.",
     public_map_refresh: "पुन्हा लोड करा",
     public_map_offline: "सार्वजनिक नकाशा लोड झाला नाही: कनेक्शन धीमे आहे किंवा नाही. पुन्हा प्रयत्न करण्यासाठी \"पुन्हा लोड करा\" दाबा.",
     public_map_unavailable: "सार्वजनिक नकाशा तात्पुरता उपलब्ध नाही. त्याऐवजी कोणतीही स्थानिक किंवा खाजगी माहिती दाखवली जात नाही.",
@@ -1384,7 +1385,7 @@ const I18N = {
     drive_service_paused: "प्रकल्प सर्व्हरशी संपर्क होत नाही, स्कॅन थांबवले आहे. सर्व्हर परत आल्यावर स्कॅन पुन्हा सुरू होईल.",
   },
   bn: {
-    sub: "ছবি তুলুন। ক্ষতি যাচাই করুন। দায়িত্বপ্রাপ্ত দপ্তরে ইমেল করুন।",
+    sub: "গর্ত কর্তৃপক্ষকে জানান।",
     report_btn: "&#128247; &nbsp;ছবি",
     issue_road_damage: "রাস্তার ক্ষতি",
     drive_btn: "&#128663; &nbsp;ড্রাইভ",
@@ -1623,7 +1624,7 @@ const I18N = {
     provider_personal_note: "আপনার OpenAI API key ব্যবহার করে। আপনার key ও বাছাই-করা ছবি সরাসরি OpenAI-তে যায়; key কখনও প্রকল্প পরিষেবায় পাঠানো হয় না। গৃহীত গর্তের জন্য দায়ী কর্তৃপক্ষ, দরপত্র, ঠিকাদার, ডুপ্লিকেট যাচাই ও মানচিত্রের কাজ প্রকল্প সার্ভারই করে।",
     provider_shared: "শেয়ার-করা প্রকল্প পরিষেবা: কোনও key লাগে না",
     provider_shared_note: "ব্যক্তিগত key না থাকলে এটিই ডিফল্ট। কোনও API key লাগে না। বাছাই-করা ছবি প্রকল্প সার্ভারের মাধ্যমে, সেখানে সংরক্ষণ ছাড়াই, তার শেয়ার-করা শনাক্তকারীতে (OpenAI বা নিজস্ব YOLO gateway) যায়। দায়ী কর্তৃপক্ষ এবং সম্ভাব্য দরপত্র ও ঠিকাদারও সার্ভারই নির্ধারণ করে। পরিষেবার সামর্থ্য না থাকলে ক্ষতি নেই বলে দাবি না করে যাচাই স্পষ্টভাবে ব্যর্থ হয়।",
-    public_map_privacy: "গৃহীত রিপোর্ট কাছাকাছি অবস্থান অনুযায়ী দলবদ্ধ করে দেখানো হয়। সংখ্যা ও অ্যাপের গর্ত নম্বর সর্বজনীন; নাম, যোগাযোগের তথ্য, ছবি এবং ডিভাইস বা অনুরোধের পরিচয় কখনও দেখানো হয় না। অ্যাপ ইমেলের খসড়া খোলে, কিন্তু ইমেল পাঠানো হয়েছে কি না তা যাচাই করতে পারে না।",
+    public_map_privacy: "কাছাকাছি স্থান অনুযায়ী রিপোর্ট একত্রিত।",
     public_map_refresh: "আবার লোড করুন",
     public_map_offline: "সর্বজনীন মানচিত্র লোড হয়নি: সংযোগ ধীর বা নেই। আবার চেষ্টা করতে \"আবার লোড করুন\" চাপুন।",
     public_map_unavailable: "সর্বজনীন মানচিত্র সাময়িকভাবে পাওয়া যাচ্ছে না। এর বদলে কোনও স্থানীয় বা ব্যক্তিগত তথ্য দেখানো হচ্ছে না।",
@@ -7912,7 +7913,7 @@ function loadLeaflet() {
 // One Leaflet map for the life of the page. A removed L.map stays reachable in Leaflet
 // 1.9.4, so building one per open leaked a whole map (1000 DOM nodes and 1.6 MB at 1000
 // pins) every time the screen was shown. Each draw swaps the markers in mapGroup.
-let mapCanvas = null, mapTiles = null, mapGroup = null;
+let mapCanvas = null, mapTiles, mapRoads = null, mapGroup = null;
 // The pins of the draw on screen, for the offline fallback to plot.
 let mapDrawPins = null;
 // Said after the shared counts: that they are capped, or a saved copy.
@@ -8077,7 +8078,8 @@ async function openDash() {
           from: String(impact.period.from).slice(0, 10),
           to: String(impact.period.to).slice(0, 10),
         }) : "";
-    $("communityNote").textContent = t("public_map_privacy") + period;
+    $("communityNote").textContent = t("public_map_privacy");
+    $("communityPeriod").textContent = period.trim();
   } else {
     // With neither answer there is nothing to count: zero tiles would be invented, and
     // the problem is already said once in the map box.
@@ -8085,6 +8087,7 @@ async function openDash() {
       ? tile(visibleComplaintReports, t("stat_observations"))
         + tile(sharedPins.length, t("stat_mapped")) : "";
     $("communityNote").textContent = t("public_map_privacy");
+    $("communityPeriod").textContent = "";
   }
 
   const bars = (title, counts) => {
@@ -8160,8 +8163,17 @@ function drawMap(pins, unavailable = false) {
       mapCanvas.style.height = "100%";
       host.appendChild(mapCanvas);
       mapObj = L.map(mapCanvas, { attributionControl: true });
-      mapTiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-        { maxZoom: 19, attribution: "&copy; OpenStreetMap contributors" });
+      // Satellite imagery with a roads-only reference layer on top. Neither draws a
+      // political boundary, so the map never shows a border India does not recognise.
+      // OpenStreetMap's tiles draw the Line of Control as an international border,
+      // which is unlawful to publish in India; ISRO's Bhuvan WMS was tried first and
+      // every one of its endpoints was failing on 6 Oct 2026.
+      mapTiles = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 19, attribution: "Imagery &copy; Esri, Maxar, Earthstar Geographics" });
+      mapRoads = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 19, attribution: "Roads &copy; Esri" });
       // A tile on screen settles the wait; a later slow tile must not start it again.
       mapTiles.on("tileload", () => {
         if (mapFallbackTimer) { clearTimeout(mapFallbackTimer); mapFallbackTimer = null; }
@@ -8170,6 +8182,7 @@ function drawMap(pins, unavailable = false) {
       // them. Its load event fires once every requested tile has loaded or failed.
       mapTiles.on("load", () => useOfflinePlot(mapDrawGeneration));
       mapTiles.addTo(mapObj);
+      mapRoads.addTo(mapObj);
       mapGroup = L.featureGroup().addTo(mapObj);
     }
     for (const child of [...host.children]) if (child !== mapCanvas) child.remove();
@@ -8191,7 +8204,11 @@ function drawMap(pins, unavailable = false) {
       mapGroup.addLayer(m);
     }
     // One pin fitted to zoom 19 showed 100 m with no street to find it by.
-    mapObj.fitBounds(mapGroup.getBounds().pad(0.25), { maxZoom: 16 });
+    // Start on India. Three of 135 pins were filed from Mauritius, Brazil and Java and
+    // fitting to all of them opened the map on the whole world.
+    const indian = pins.filter((r) => r.lat >= 6 && r.lat <= 38 && r.lng >= 68 && r.lng <= 98);
+    const fit = indian.length ? L.latLngBounds(indian.map((r) => [r.lat, r.lng])) : mapGroup.getBounds();
+    mapObj.fitBounds(fit.pad(0.25), { maxZoom: 16 });
     mapDrawPins = pins;
     // Bound the wait. Offline, tile requests can fail without Leaflet ever firing its
     // load event, and the map then sat empty forever instead of plotting the points.

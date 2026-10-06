@@ -144,7 +144,7 @@ def main():
         context.route("**/*.amazonaws.com/**", route_central)
         # Deterministically offline for tiles: whether this machine can reach
         # openstreetmap.org must not decide which branch the suite exercises.
-        context.route("https://tile.openstreetmap.org/**", lambda route: route.abort())
+        context.route("https://server.arcgisonline.com/**", lambda route: route.abort())
         page = context.new_page()
         page.goto(APP)
         page.wait_for_load_state("networkidle")
@@ -224,7 +224,7 @@ def main():
         context.route("**/*.amazonaws.com/**", route_central)
         page = context.new_page()
         page.route(
-            "https://tile.openstreetmap.org/**",
+            "https://server.arcgisonline.com/**",
             lambda route: route.fulfill(status=200, content_type="image/png", body=TILE_PNG),
         )
         page.goto(APP)

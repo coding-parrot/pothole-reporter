@@ -81,7 +81,7 @@ async def open_app(browser, map_handler, tile_delay=0.0, hash_=""):
         "localStorage.setItem('initial_setup_complete', '1');"
         "localStorage.setItem('app_lang', 'en');")
     await context.route(f"{SERVICE}/**", service(map_handler))
-    await context.route("https://tile.openstreetmap.org/**", tiles(tile_delay))
+    await context.route("https://server.arcgisonline.com/**", tiles(tile_delay))
     page = await context.new_page()
     await page.goto(APP + hash_)
     await page.wait_for_function("() => typeof openDash === 'function'", timeout=30_000)

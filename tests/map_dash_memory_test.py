@@ -66,7 +66,7 @@ with sync_playwright() as playwright:
             "localStorage.setItem('initial_setup_complete', '1');"
             "localStorage.setItem('app_lang', 'en');")
         context.route(f"{SERVICE}/**", route_service)
-        context.route("https://tile.openstreetmap.org/**", lambda route: route.fulfill(
+        context.route("https://server.arcgisonline.com/**", lambda route: route.fulfill(
             status=200, content_type="image/png", body=TILE_PNG))
         page = context.new_page()
         page.goto(APP)
