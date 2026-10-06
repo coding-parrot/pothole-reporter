@@ -217,6 +217,13 @@ with sync_playwright() as playwright:
             fails.append(f"Home shows the sent report as {chips.get('91001')!r}")
         if chips.get("91002") != strings["synced"]:
             fails.append(f"Home shows the untouched report as {chips.get('91002')!r}")
+        # One tap on Home would turn the confirmed send back into a draft.
+        quick = page.evaluate("""() => [...document.querySelectorAll('#list [data-quick-email]')]
+          .map((el) => el.dataset.quickEmail)""")
+        if "91001" in quick:
+            fails.append("Home still offers one-tap Email on a report already sent")
+        if "91002" not in quick:
+            fails.append(f"Home lost one-tap Email on an unsent report: {quick}")
 
         # The question is for the return from the mail app, not for every visit.
         page.reload()
