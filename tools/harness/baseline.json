@@ -105,7 +105,7 @@
   "repair_status_test.py": true,
   "rajasthan_routing_test.py": true,
   "road_agreement_matching_test.py": true,
-  "road_notice_matching_test.py": false,
+  "road_notice_matching_test.py": true,
   "server_client_contract_test.py": true,
   "released_pack_compatibility_test.py": true,
   "standalone_default_test.py": true,
@@ -132,5 +132,17 @@
   "top50_routing_test.py": true,
   "uttar_pradesh_routing_test.py": true,
   "routing_test.py": true,
-  "repeat_detection_test.py": true
+  "repeat_detection_test.py": true,
+  "history_memory_budget_test.py": true,
+  "drive_retention_test.py": true,
+  "low_connectivity_test.py": true,
+  "drive_stop_dead_link_test.py": true,
+  "report_status_badges_test.py": true,
+  "email_sent_prompt_test.py": true,
+  "gepnic_pull_retry_test.py": true,
+  "manual_recent_fix_test.py": true,
+  "drive_recent_fix_test.py": true,
+  "central_report_busy_retry_test.py": true,
+  "drive_capture_latency_test.py": true,
+  "native_hosted_catalog_manifest_test.py": true
 }
