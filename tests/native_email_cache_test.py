@@ -287,8 +287,14 @@ for name in ("sharedToPersonal", "personalToShared"):
     outcome = result[name]
     if outcome.get("composed") or outcome.get("code") != "national_highway":
         fails.append(f"{name} trusted a stale municipal cache instead of central highway ownership: {outcome}")
-if len(central_calls) != 4:
-    fails.append(f"authority cases made {len(central_calls)} central ownership checks, expected 4")
+# Four ownership checks, and one ward lookup: the second Email tap on report 77 finds its
+# owner proven and asks, once, which road works were tendered for its ward. The tap after
+# the reload reuses that answer (ward_tenders_on_demand_test holds the rest).
+if len(central_calls) != 5:
+    fails.append(f"authority cases made {len(central_calls)} central calls, expected 4 ownership "
+                 "checks and 1 ward lookup")
+elif sum(1 for call in central_calls if call.get("lat") == 12.9) != 1:
+    fails.append(f"the Drive Mode report was asked about its ward more than once: {central_calls}")
 if result["cacheSuccess"].get("road_ownership") != "municipal":
     fails.append(f"central municipal success was not usable: {result['cacheSuccess']}")
 if result["cacheFailure"].get("composed") or result["cacheFailure"].get("code") != "road_class_unknown":

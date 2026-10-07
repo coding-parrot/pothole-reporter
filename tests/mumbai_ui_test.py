@@ -54,20 +54,22 @@ SCENARIO = r"""
      body.startsWith("प्रति Brihanmumbai Municipal Corporation,")
        && !body.startsWith("प्रति BMC Pothole QuickFix"), body);
   const complaintBlocks = body.trim().split(/\n{2,}/).map((part) => part.trim());
-  const complaintWithoutFooter = complaintBlocks.slice(0, -1).join("\n\n");
-  ok("draft: complaint has one final independent-app verification footer",
-     body.split(complaintFooter).length - 1 === 1
-       && complaintBlocks.at(-1) === complaintFooter, body);
+  // The footer asked the officer to verify a suggested body, ward, owner and tender.
+  // The letter suggests none of them now and ends at the sender's name.
+  ok("draft: complaint ends at the sign-off, with no independent-app footer",
+     !body.includes(complaintFooter) && complaintBlocks.at(-1).startsWith("आपले विश्वासू,\n"), body);
   ok("draft: complaint removes the old no-submission sentence",
      !body.includes("दाखल करत नाही")
        && !/official (?:grievance )?submission/i.test(body), body);
-  ok("draft: footer tells the reader to verify road ownership",
-     complaintFooter.includes("रस्त्याची मालकी") && complaintFooter.includes("पडताळा"),
-     complaintFooter);
+  ok("draft: the letter asks the office to verify that the road is its own",
+     complaintBlocks.includes("कृपया हा रस्ता आपल्या कार्यालयाच्या देखभालीखाली आहे का, याची पडताळणी करा."),
+     body);
   ok("draft: unmatched Mumbai route has no tender, contractor or warranty details",
      !/संभाव्य निविदा जुळणी|निविदा क्रमांक|कामाचे नाव|कंत्राटदार|हमी स्थिती|दोष दायित्व|देखभाल कालावधी/.test(
-       complaintWithoutFooter), body);
-  ok("draft: suggested ward is visibly qualified", body.includes("K/W"), body);
+       body), body);
+  // A ward read off a map boundary is a suggestion, and the letter makes none.
+  ok("draft: the letter suggests no ward, body or road owner",
+     !body.includes("K/W") && !/Suggested ward|जबाबदार कार्यालय|Road owner/.test(body), body);
 
   const report = {
     id: 72001, status: "queued", created_at: 1787260200,

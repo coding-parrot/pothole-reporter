@@ -43,7 +43,9 @@ with sync_playwright() as playwright:
         tender_note: "Stale probable match", tender_title: "Stale title",
         tender_published: "01-01-2020", tender_resolution_reason: "matched",
         tender_resolution_checked_at: 1, unrouted_reason: "stale",
-        unrouted_body: "stale", photo: new Blob(["thumbnail"]),
+        unrouted_body: "stale",
+        ward_tenders: [{ tender_number: "STALE-WARD", title: "Stale ward work", published: null }],
+        ward_name: "Stale Ward", photo: new Blob(["thumbnail"]),
         photo_full: new Blob(["full-evidence"]), created_at: 1,
       };
       await new Promise((resolve, reject) => {
@@ -94,7 +96,7 @@ cleared = (
     "email_subject", "email_body", "email_opened_at", "sent_at", "tender_number",
     "contractor", "tender_note", "tender_title", "tender_published",
     "tender_resolution_reason", "tender_resolution_checked_at", "unrouted_reason",
-    "unrouted_body",
+    "unrouted_body", "ward_tenders", "ward_name",
 )
 # Row 2 was parked in the old duplicate state, which no longer exists: repeat-detection
 # dedupe was removed, so an upgrade releases it as an ordinary draft the owner can send.

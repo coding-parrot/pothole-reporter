@@ -172,13 +172,27 @@ def main() -> None:
         failures.append(f"PMGSY candidate lost road-from detail: {actual!r}")
     elif actual.get("road_to") != result["sourceRoadTo"]:
         failures.append(f"PMGSY candidate lost road-to detail: {actual!r}")
+    # Without segment, contractor and DLP proof the agreement is a candidate. The letter
+    # puts it to the office once, by its reference and title, and states no finding. The
+    # portal copy still fails closed.
     complaint_body = result["complaintBody"] or ""
-    if "No verified exact-road public contract found; tender and contractor omitted" not in complaint_body:
-        failures.append("PMGSY complaint did not fail closed without segment/contractor/DLP proof")
+    reference = (result["actual"] or {}).get("tender_number") or ""
+    if not reference or f"if this location is covered by - {reference}: " not in complaint_body:
+        failures.append("PMGSY complaint does not put the candidate agreement as one question: "
+                        f"{complaint_body[-420:]!r}")
+    for finding in ("No verified exact-road", "Verified", "DLP", "CONTRACT VERIFICATION",
+                    "Road-segment match", "Award/work-order"):
+        if finding in complaint_body:
+            failures.append(f"PMGSY complaint states a finding without proof: {finding}")
     for leaked in (result["sourceAgreementNumber"], result["sourcePackage"],
                    result["actual"].get("organisation") if result["actual"] else None):
-        if leaked and leaked in complaint_body:
+        if leaked and leaked != reference and leaked in complaint_body.replace(reference, ""):
             failures.append(f"unverified PMGSY identity leaked into complaint: {leaked}")
+    portal_fields = result["portalFields"] or {}
+    if "No verified exact-road public contract found; tender and contractor omitted" \
+            not in (portal_fields.get("contract_verification_status") or "") \
+            or "tender_number" in portal_fields:
+        failures.append("PMGSY portal copy did not fail closed without segment/contractor/DLP proof")
     if not result["normalised"]:
         failures.append("valid PMGSY road record was rejected by normalisation")
     if result["crossState"] is not None:
