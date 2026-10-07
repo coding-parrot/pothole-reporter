@@ -2,15 +2,16 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-// The live stack runs 2000 detections per install per day (50 until 21 Sept 2026, 500
-// until 6 Oct 2026, when the cap was hit 74 times and the owner ordered it raised), 300 a
+// The live stack runs 10000 detections per install per day (50 until 21 Sept 2026, 500
+// until 6 Oct 2026, when the cap was hit 74 times and the owner ordered it raised, 2000
+// until 7 Oct 2026, when one phone on a long drive used all 2000 and was refused), 300 a
 // minute (60 until 6 Oct, hit 10 times), 30000 a day and 200000 a month. The template
 // defaults and the handler's fallbacks once disagreed with the stack, so a fresh stack or
 // a missing variable quietly changed the spend. Raising a cap is a decision made here,
 // in the stack parameters and in the fallbacks together, never by a stray default.
 
 const deployed = {
-  DailyVisionCap: ["DAILY_VISION_CAP", "perInstallDay", 2000],
+  DailyVisionCap: ["DAILY_VISION_CAP", "perInstallDay", 10000],
   GlobalVisionMinuteCap: ["GLOBAL_VISION_MINUTE_CAP", "globalMinute", 300],
   GlobalVisionDailyCap: ["GLOBAL_VISION_DAILY_CAP", "globalDay", 30_000],
   MonthlyVisionCap: ["MONTHLY_VISION_CAP", "globalMonth", 200_000],
