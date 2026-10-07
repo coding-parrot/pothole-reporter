@@ -288,20 +288,26 @@ def bharat():
     source per recorded clip (the file name's timestamp and clip number)."""
     path = str(RAW / "bharatpothole" / "bharatpothole.zip")
     archive = zipfile.ZipFile(path)
-    candidates = []
-    for info in archive.infolist():
+    by_frame = {}
+    for info in sorted(archive.infolist(), key=lambda item: item.filename):
         if "/images/" not in info.filename or not info.filename.lower().endswith(".jpg"):
             continue
         label = info.filename.replace("/images/", "/labels/")[:-4] + ".txt"
         boxes = archive.read(label).decode().split()
         stem = info.filename.rsplit("/", 1)[1].split("_jpg.rf.")[0]
         clip = stem.split("_frame_")[0].lower().replace("_", "-")
-        candidates.append({
+        # The export holds some source frames more than once (7,074 files, fewer frames).
+        # One copy is kept, the first by name; a pothole box on any copy counts.
+        if stem in by_frame:
+            if boxes:
+                by_frame[stem].update(tier="pothole", annotated_pothole=True)
+            continue
+        by_frame[stem] = {
             "name": stem + ".jpg", "ref": {"zip": path, "member": info.filename},
             "dataset": "bharat", "domain": "bharatpothole", "source": f"bharat-{clip}",
             "split_hint": "train", "tier": "pothole" if boxes else "none",
-            "annotated_pothole": bool(boxes), "extra": {}})
-    yield "bharatpothole", candidates, {"pothole": 2500, "none": 1500}
+            "annotated_pothole": bool(boxes), "extra": {}}
+    yield "bharatpothole", list(by_frame.values()), {"pothole": 2500, "none": 1500}
 
 
 # --- Road Damage (alvarobasily) -------------------------------------------------------
@@ -392,6 +398,8 @@ def main():
             continue
         for domain, candidates, plan in adapter():
             chosen, offered = take(candidates, plan, random.Random(SEED))
+            if len({(c["source"], c["name"]) for c in chosen}) != len(chosen):
+                raise SystemExit(f"{domain}: two chosen images would be written to one frame path")
             selection[domain] = {
                 "offered": offered, "chosen": dict(Counter(c["tier"] for c in chosen)),
                 "frames": len(chosen), "split": dict(Counter(c["split_hint"] for c in chosen)),

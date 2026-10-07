@@ -90,7 +90,7 @@ restore_v1_labels() {
 
 prepare() {
   "$PYTHON" datasets.py prepare
-  aws s3 sync "$WORK/frames" "$S3/frames/" --only-show-errors --exclude "desktop-*" --exclude "downloads-*" --exclude "rdd2022-india-*"
+  aws s3 sync "$WORK/frames" "$S3/frames/" --only-show-errors --delete --exclude "desktop-*" --exclude "downloads-*" --exclude "rdd2022-india-*"
   aws s3 cp "$WORK/selection.json" "$S3/frames/selection.json" --only-show-errors
   echo "prepared: $(wc -l < "$WORK/frames/index.jsonl") frames indexed"
 }

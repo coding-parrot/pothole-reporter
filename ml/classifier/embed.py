@@ -22,7 +22,7 @@ from PIL import Image
 
 from augment import augment
 from common import EMBEDDINGS, FRAMES, WORK
-from models import ENCODERS, Encoder
+from models import ENCODERS, Encoder, default_device
 
 
 class Frames(torch.utils.data.Dataset):
@@ -38,7 +38,7 @@ class Frames(torch.utils.data.Dataset):
         # so a rerun over a longer list reproduces the views it already made.
         rng = (None if self.view is None
                else np.random.default_rng((20261007, self.view, zlib.crc32(path.encode()))))
-        return torch.from_numpy(np.ascontiguousarray(
+        return torch.from_numpy(np.array(
             augment(Image.open(FRAMES / path), self.size, rng)))
 
 
@@ -79,7 +79,7 @@ def main():
     parser.add_argument("--size", type=int, required=True)
     parser.add_argument("--views", type=int, default=0, help="augmented views of training frames")
     parser.add_argument("--batch", type=int, default=16)
-    parser.add_argument("--device", default="mps" if torch.backends.mps.is_available() else "cpu")
+    parser.add_argument("--device", default=default_device())
     args = parser.parse_args()
     EMBEDDINGS.mkdir(parents=True, exist_ok=True)
     encoder = Encoder(args.encoder, args.size).eval().to(args.device)

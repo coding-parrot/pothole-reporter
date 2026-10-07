@@ -22,6 +22,12 @@ ENCODERS = {
 }
 
 
+def default_device():
+    if torch.cuda.is_available():
+        return "cuda"
+    return "mps" if torch.backends.mps.is_available() else "cpu"
+
+
 def letterbox(image, size):
     """PIL image -> size x size RGB uint8 array holding the whole frame."""
     from PIL import Image

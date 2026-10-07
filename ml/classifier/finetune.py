@@ -32,13 +32,7 @@ from PIL import Image
 from augment import augment
 from common import FRAMES, WORK, soft_target, write_json
 from metrics import at_threshold, auc, threshold_for_recall
-from models import Encoder, Head
-
-
-def default_device():
-    if torch.cuda.is_available():
-        return "cuda"
-    return "mps" if torch.backends.mps.is_available() else "cpu"
+from models import Encoder, Head, default_device
 
 
 class Frames(torch.utils.data.Dataset):
@@ -55,7 +49,7 @@ class Frames(torch.utils.data.Dataset):
         index, draw = item if isinstance(item, tuple) else (item, 0)
         rng = np.random.default_rng((self.seed, draw, index)) if self.augmented else None
         pixels = augment(Image.open(FRAMES / self.paths[index]), self.size, rng)
-        return torch.from_numpy(np.ascontiguousarray(pixels)), self.targets[index]
+        return torch.from_numpy(np.array(pixels)), self.targets[index]
 
 
 class BalancedEpoch(torch.utils.data.Sampler):
@@ -167,6 +161,7 @@ def main():
     parser.add_argument("--device", default=default_device())
     args = parser.parse_args()
     torch.manual_seed(args.seed)
+    torch.backends.cudnn.benchmark = True  # one input size throughout
     amp = args.device == "cuda"
 
     rows = [json.loads(line) for line in (WORK / "manifest.jsonl").read_text().splitlines()]
