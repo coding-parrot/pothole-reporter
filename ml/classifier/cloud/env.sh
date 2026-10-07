@@ -16,4 +16,4 @@ ML_AMI_PARAMETER="/aws/service/deeplearning/ami/x86_64/oss-nvidia-driver-gpu-pyt
 ML_REPO="https://github.com/coding-parrot/pothole-reporter.git"
 ML_BRANCH="feat/screen-v2"
 # Every dataset whose raw archive is mirrored under datasets/<name>/raw/ (30-day expiry).
-ML_DATASETS="rdd2022 rad-bengaluru irdd-iraq bucko-dashcam cracks-potholes-brazil attain-iran rome-road-damage bharatpothole"
+ML_DATASETS="rdd2022 rad-bengaluru irdd-iraq bucko-dashcam cracks-potholes-brazil attain-iran rome-road-damage bharatpothole road-damage-alvarobasily"

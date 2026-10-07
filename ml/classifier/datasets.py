@@ -143,6 +143,117 @@ def rad():
     yield "rad_bengaluru", candidates, {"road_damage": None, "speed_breaker": None, "none": None}
 
 
+# --- IRDD ----------------------------------------------------------------------------
+def irdd():
+    """Iraqi Road Damage Dataset: phone-on-dashboard frames, portrait and landscape, with
+    oriented boxes in the RDD classes. The whole dataset is held out: test only."""
+    path = str(RAW / "irdd-iraq" / "IRDD_v1.0_final.zip")
+    archive = zipfile.ZipFile(path)
+    labels = {info.filename[:-4].replace("/labels/", "/images/"): info
+              for info in archive.infolist() if info.filename.endswith(".txt")}
+    candidates = []
+    for info in archive.infolist():
+        if not info.filename.lower().endswith(".jpg"):
+            continue
+        kinds = {line.split()[0] for line in archive.read(labels[info.filename[:-4]]).decode().splitlines()
+                 if line.strip()}
+        classes = sorted({"0": "D00", "1": "D10", "2": "D20", "3": "D40"}[kind] for kind in kinds)
+        candidates.append({
+            "name": info.filename.rsplit("/", 1)[1], "ref": {"zip": path, "member": info.filename},
+            "dataset": "irdd", "domain": "irdd_iraq", "source": "irdd-iraq", "split_hint": "test",
+            "tier": rdd_tier(classes), "annotated_pothole": "D40" in classes,
+            "extra": {"rdd_classes": classes, "irdd_folder": info.filename.split("/", 1)[0]}})
+    yield "irdd_iraq", candidates, {"pothole": None, "alligator": 500, "cracks": 500, "none": 1000}
+
+
+# --- Bučko et al. --------------------------------------------------------------------
+def bucko():
+    """Dash-camera frames in clear weather, at sunset, in the evening, at night and in
+    rain, each with pothole boxes. One source per recorded video."""
+    path = str(RAW / "bucko-dashcam" / "Potholes_dataset.zip")
+    archive = zipfile.ZipFile(path)
+    names = {info.filename for info in archive.infolist()}
+    candidates = []
+    for name in sorted(names):
+        if not name.lower().endswith(".jpg"):
+            continue
+        label = name[:-4] + ".txt"
+        boxes = archive.read(label).decode().split() if label in names else []
+        condition, stem = name.split("/")[-2:]
+        video = re.match(r"(Vid_\d+)", stem)
+        candidates.append({
+            "name": f"{condition}__{stem}", "ref": {"zip": path, "member": name},
+            "dataset": "bucko", "domain": "bucko_dashcam",
+            "source": "bucko-" + (video.group(1) if video else condition).lower().replace("_", "-"),
+            "split_hint": "train", "tier": "pothole" if boxes else "none",
+            "annotated_pothole": bool(boxes), "extra": {"condition": condition}})
+    yield "bucko_dashcam", candidates, {"pothole": None, "none": None}
+
+
+# --- Cracks and Potholes in Road Images (Brazil) ----------------------------------------
+def brazil():
+    """Survey-vehicle frames from Brazilian federal roads, each with a road, a crack and a
+    pothole mask. A frame counts as an annotated pothole when its pothole mask is not empty."""
+    import io
+
+    import numpy as np
+    from PIL import Image
+
+    path = str(RAW / "cracks-potholes-brazil" / "cracks-and-potholes-in-road-images.zip")
+    archive = zipfile.ZipFile(path)
+    candidates = []
+    for info in archive.infolist():
+        if not info.filename.endswith("_RAW.jpg"):
+            continue
+        mask = np.asarray(Image.open(io.BytesIO(archive.read(info.filename.replace("_RAW.jpg", "_POTHOLE.png")))))
+        pothole = bool((mask > 127).any())
+        stem = info.filename.rsplit("/", 1)[1][:-len("_RAW.jpg")]
+        road = "-".join(stem.split("_")[1:4]).lower()
+        candidates.append({
+            "name": stem + ".jpg", "ref": {"zip": path, "member": info.filename},
+            "dataset": "brazil", "domain": "cracks_potholes_brazil", "source": f"brazil-{road}",
+            "split_hint": "train", "tier": "pothole" if pothole else "cracks",
+            "annotated_pothole": pothole, "extra": {}})
+    yield "cracks_potholes_brazil", candidates, {"pothole": None, "cracks": 700}
+
+
+# --- Attain (windshield subsets) ------------------------------------------------------
+def attain():
+    """Amirkabir University's smartphone-on-windshield frames with distress type and
+    severity. The WS subsets are taken; OS is not a windshield view."""
+    path = str(RAW / "attain-iran" / "attain-nykrzdm74f-v1.zip")
+    archive = zipfile.ZipFile(path)
+    ws1 = ["Alligator crack", "Alligator crack", "Alligator crack", "Block crack", "Faded marking",
+           "Faded marking", "Linear crack", "Linear crack", "Manhole", "Manhole", "Patch", "Pothole",
+           "Pothole", "Raveling", "Weathering", "Weathering"]
+    names = {info.filename for info in archive.infolist()}
+    candidates = []
+    for name in sorted(names):
+        if not name.lower().endswith(".jpg") or "_WS_" not in name:
+            continue
+        subset = name.split("/")[2]
+        text_label = name.replace("/Images/", "/Labels/")[:-4] + ".txt"
+        xml_label = name.replace("/Images/", "/Labels/")[:-4] + ".xml"
+        if text_label in names:
+            kinds = {ws1[int(line.split()[0])] for line in archive.read(text_label).decode().splitlines()
+                     if line.strip()}
+        elif xml_label in names:
+            kinds = {found.split(" - ")[0].split("- ")[0].strip() for found in
+                     re.findall(r"<name>([^<]+)</name>", archive.read(xml_label).decode("utf-8", "replace"))}
+        else:
+            continue
+        tier = ("pothole" if "Pothole" in kinds else
+                "alligator" if kinds & {"Alligator crack", "Raveling", "Block crack"} else
+                "cracks" if "Linear crack" in kinds else "none")
+        candidates.append({
+            "name": name.rsplit("/", 1)[1], "ref": {"zip": path, "member": name},
+            "dataset": "attain", "domain": "attain_iran",
+            "source": "attain-" + subset.lower().replace("attain_smp_", "").replace("_", "-").replace(".", "-"),
+            "split_hint": "train", "tier": tier, "annotated_pothole": "Pothole" in kinds,
+            "extra": {"ann_classes": sorted(kinds)}})
+    yield "attain_iran", candidates, {"pothole": None, "alligator": None, "cracks": None, "none": None}
+
+
 # --- the owner's labelled images: the final check, never training data -------------------
 def owner_rows():
     """work/owner holds the owner-labelled eval images as v1 prepared them. They are
@@ -165,7 +276,8 @@ def owner_rows():
     return rows
 
 
-ADAPTERS = {"rdd2022": rdd2022, "rad": rad}
+ADAPTERS = {"rdd2022": rdd2022, "rad": rad, "irdd": irdd, "bucko": bucko, "brazil": brazil,
+            "attain": attain}
 
 
 def prepare_one(candidate):

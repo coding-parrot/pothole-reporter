@@ -19,6 +19,7 @@ cracks-potholes-brazil|cracks-and-potholes-in-road-images.zip|https://data.mende
 attain-iran|attain-nykrzdm74f-v1.zip|https://data.mendeley.com/public-api/zip/nykrzdm74f/download/1
 rome-road-damage|data.zip|https://zenodo.org/api/records/18528034/files/data.zip/content
 bharatpothole|bharatpothole.zip|https://www.kaggle.com/api/v1/datasets/download/surbhisaswatimohanty/bharatpothole
+road-damage-alvarobasily|road-damage.zip|https://www.kaggle.com/api/v1/datasets/download/alvarobasily/road-damage
 '
 
 receipt() {  # name file url
@@ -35,7 +36,7 @@ echo "$SOURCES" | while IFS='|' read -r name file url; do
   mkdir -p "$target"
   if [[ -s "$target/receipt.json" ]]; then echo "$name: already fetched"; continue; fi
   for attempt in 1 2 3 4 5; do
-    if curl -fL --retry 5 --retry-delay 5 --connect-timeout 30 --max-time 7200 -C - \
+    if curl -fsSL --retry 5 --retry-delay 5 --connect-timeout 30 --max-time 7200 -C - \
         -A "curl/8" -o "$target/$file" "$url"; then break; fi
     [[ $attempt -lt 5 ]] || { echo "$name: download failed" >&2; exit 1; }
     sleep 15

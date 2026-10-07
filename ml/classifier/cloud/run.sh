@@ -31,7 +31,13 @@ stage() {  # name, then the command
   if [[ -e "$WORK/.done/$name" ]]; then echo "$name: done before"; return 0; fi
   echo "$name: start $(date -u +%H:%M:%S)"
   local started=$SECONDS status=0
-  "$@" > "$WORK/logs/$name.log" 2>&1 || status=$?
+  # A subshell with its own `set -e`, and not on the left of `||`: bash ignores errexit
+  # inside anything whose status is being tested, which would let a stage run on after
+  # a failed step.
+  set +e
+  ( set -e; "$@" ) > "$WORK/logs/$name.log" 2>&1
+  status=$?
+  set -e
   aws s3 cp "$WORK/logs/$name.log" "$S3/runs/$RUN_ID/logs/$name.log" --only-show-errors || true
   if [[ $status -ne 0 ]]; then
     progress "$name FAILED after $((SECONDS - started))s: $(tail -n 3 "$WORK/logs/$name.log" | tr '\n' ' ' | cut -c1-300)"
@@ -50,7 +56,9 @@ setup() {
     curl -fsSL https://nodejs.org/dist/latest-v22.x/SHASUMS256.txt | grep " $file\$" | sed "s# $file# /tmp/node.tar.xz#" | sha256sum -c -
     mkdir -p /opt/node && tar -xJf /tmp/node.tar.xz -C /opt/node --strip-components 1 && rm /tmp/node.tar.xz
   fi
-  (cd lambda && npm ci --no-audit --no-fund && npm test)
+  # The serving path (sharp + ONNX Runtime) for release.py. The Lambda's own tests run
+  # on the Mac, in lambda/deploy.sh, before anything is deployed.
+  (cd lambda && npm ci --no-audit --no-fund)
   "$PYTHON" -c "import torch, timm; print('torch', torch.__version__, 'cuda', torch.cuda.is_available(), 'timm', timm.__version__)"
 }
 
