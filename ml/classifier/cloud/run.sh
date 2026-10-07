@@ -97,9 +97,14 @@ prepare() {
 
 label() {
   "$PYTHON" datasets.py paths
-  "$PYTHON" teacher_label.py --max-usd "$TEACHER_MAX_USD" --concurrency 48 --paths-file "$WORK/label-once.txt"
+  # Each pass is run twice: the second asks again only for the calls that failed.
+  for pass in 1 2; do
+    "$PYTHON" teacher_label.py --max-usd "$TEACHER_MAX_USD" --concurrency 48 --paths-file "$WORK/label-once.txt"
+  done
   # Validation and test frames get a second, independent answer: it measures the teacher.
-  "$PYTHON" teacher_label.py --max-usd "$TEACHER_MAX_USD" --concurrency 48 --paths-file "$WORK/label-twice.txt" --trial 1
+  for pass in 1 2; do
+    "$PYTHON" teacher_label.py --max-usd "$TEACHER_MAX_USD" --concurrency 48 --paths-file "$WORK/label-twice.txt" --trial 1
+  done
   tar -C "$WORK" -cf "$WORK/teacher.tar" teacher
   aws s3 cp "$WORK/teacher.tar" "$S3/labels/teacher.tar" --only-show-errors && rm "$WORK/teacher.tar"
   "$PYTHON" teacher_label.py --max-usd "$TEACHER_MAX_USD" --paths-file "$WORK/label-once.txt" | tail -n 2

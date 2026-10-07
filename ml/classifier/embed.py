@@ -12,6 +12,7 @@ and test frames are never augmented.
 """
 import argparse
 import json
+import os
 import time
 import zlib
 
@@ -42,7 +43,8 @@ class Frames(torch.utils.data.Dataset):
 
 
 def embed(encoder, paths, size, device, batch, view=None):
-    loader = torch.utils.data.DataLoader(Frames(paths, size, view), batch_size=batch, num_workers=3)
+    loader = torch.utils.data.DataLoader(Frames(paths, size, view), batch_size=batch,
+                                         num_workers=max(3, (os.cpu_count() or 4) - 2))
     chunks = []
     started = time.monotonic()
     with torch.inference_mode():
@@ -80,7 +82,6 @@ def main():
     parser.add_argument("--device", default="mps" if torch.backends.mps.is_available() else "cpu")
     args = parser.parse_args()
     EMBEDDINGS.mkdir(parents=True, exist_ok=True)
-    torch.set_num_threads(3)
     encoder = Encoder(args.encoder, args.size).eval().to(args.device)
     # Every frame that has or can get a label. The unannotated RDD2022 India test images
     # were never labelled.

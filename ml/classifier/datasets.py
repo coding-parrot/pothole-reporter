@@ -18,7 +18,7 @@ the whole frame, downscaled only, never cropped (AGENTS.md).
 
 Splits are by source and fixed here, before any label exists:
   train       RDD2022 Japan, Norway, China motorbike, China drone; RAD training videos;
-              BharatPotHole; the dash-camera pothole set; Brazil; Attain
+              BharatPotHole; the dash-camera pothole set; Brazil; Attain; Road Damage
   validation  RDD2022 Czech (whole country); the Rome set (whole dataset); RAD validation videos
   test        IRDD (whole dataset, phone-on-dashboard, never trained on); RAD test videos
 """
@@ -304,6 +304,31 @@ def bharat():
     yield "bharatpothole", candidates, {"pothole": 2500, "none": 1500}
 
 
+# --- Road Damage (alvarobasily) -------------------------------------------------------
+def alvaro():
+    """Forward-facing phone frames from a moving vehicle (the uploader's own, CC0), with
+    pothole, alligator, lateral and longitudinal crack boxes. One source per recording
+    (the file name's letter prefix)."""
+    path = str(RAW / "road-damage-alvarobasily" / "road-damage.zip")
+    archive = zipfile.ZipFile(path)
+    names = {info.filename for info in archive.infolist()}
+    candidates = []
+    for name in sorted(names):
+        if not name.lower().endswith((".jpeg", ".jpg")):
+            continue
+        label = name.rsplit(".", 1)[0] + ".txt"
+        kinds = ({line.split()[0] for line in archive.read(label).decode().splitlines() if line.strip()}
+                 if label in names else set())
+        classes = sorted({"0": "D40", "1": "D20", "2": "D10", "3": "D00"}[kind] for kind in kinds)
+        recording = name.rsplit("/", 1)[-1].split("_")[0].lower()
+        candidates.append({
+            "name": name.rsplit("/", 1)[-1], "ref": {"zip": path, "member": name},
+            "dataset": "alvaro", "domain": "road_damage_alvarobasily", "source": f"alvaro-{recording}",
+            "split_hint": "train", "tier": rdd_tier(classes), "annotated_pothole": "D40" in classes,
+            "extra": {"rdd_classes": classes}})
+    yield "road_damage_alvarobasily", candidates, {"pothole": None, "alligator": 400, "cracks": 400, "none": None}
+
+
 # --- the owner's labelled images: the final check, never training data -------------------
 def owner_rows():
     """work/owner holds the owner-labelled eval images as v1 prepared them. They are
@@ -327,7 +352,8 @@ def owner_rows():
 
 
 ADAPTERS = {"rdd2022": rdd2022, "rad": rad, "irdd": irdd, "bucko": bucko, "brazil": brazil,
-            "attain": attain, "rome": rome, "bharat": bharat}
+            "attain": attain, "rome": rome, "bharat": bharat,
+            "alvaro": alvaro}
 
 
 def prepare_one(candidate):
