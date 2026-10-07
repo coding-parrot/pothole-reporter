@@ -48,3 +48,4 @@
 - CI build 3 on branch c8a23f0 (merged main + gzip fix): 239/247, only the 8 known failures, service 728/729 (1 skipped), exit 0, 7 minutes MEDIUM. Project default switched to SMALL (origin/main took 10 billed minutes there).
 - CI build 4 (branch 7832456, SMALL default): pothole-reporter-ci:4a8ff27a-5836-47b5-a7fd-3d3a4b4bb5b2
 - Passive and animating instrumented drives (run 0747ec02) both clean: toBlob 35 ms. Suspicion: reading the accessibility tree every second (the test itself) starves the page, so the pause may be an observer effect. Run f64645e4-341d-4917-ab09-7d3449fb9a48 (4 phones, release 1.40.0): first and second drives untouched, third watched; camera opens counted per drive. Results folder ~/Downloads/pothole-testers/device-farm/1.40.0/run-20261007-183945. Device minutes so far 18.6 before this run.
+- CI build 4 on SMALL (branch 7832456): 239/247, only the 8 known, exit 0, 10 billed minutes USD 0.05. CodeBuild spend so far about USD 0.34.

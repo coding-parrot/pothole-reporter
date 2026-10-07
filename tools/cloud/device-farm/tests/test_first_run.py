@@ -481,6 +481,8 @@ def launch():
         "appium:appWaitDuration": 60000,
         "appium:newCommandTimeout": 600,
         "appium:autoGrantPermissions": False,
+        # The app is stopped when the session ends; the unattended drive starts it again.
+        "appium:shouldTerminateApp": True,
         "appium:adbExecTimeout": 60000,
         "appium:uiautomator2ServerInstallTimeout": 120000,
         "appium:uiautomator2ServerLaunchTimeout": 120000,
@@ -539,6 +541,7 @@ def drive_notice():
         nodes, _ = tree()
         button = find(nodes, "drive")
         if button:
+            state["drive_xy"] = button.centre
             tap(*button.centre)
         try:
             _, nodes, xml = wait_for(
@@ -593,8 +596,33 @@ def permissions():
 
 
 def device_clock():
-    """The phone's own clock, in the form logcat stamps its lines with."""
-    return adb("shell", "date", "+%m-%d %H:%M:%S").strip()
+    """The phone's own time of day, as logcat stamps its lines (HH:MM:SS)."""
+    return adb("shell", "date", "+%H:%M:%S").strip()[-8:]
+
+
+OPENED = re.compile(r"cr_VideoCapture: CameraDevice\.StateCallback onOpened"
+                    r'|CameraService::connect call \(PID -?\d+ "%s"' % re.escape(PACKAGE))
+
+
+def camera_opens_since(clock):
+    """Times the app opened the camera since the given device time, read from logcat
+    now (some phones keep only the last minute or two). Chromium logs each open itself
+    and the camera service logs each connect; whichever the phone shows more of."""
+    log = adb("logcat", "-d", "-v", "threadtime", "-s", "cr_VideoCapture:*", "CameraService:*", timeout=60)
+    chromium, service = [], []
+    for line in log.splitlines():
+        fields = line.split()
+        if len(fields) < 2 or not OPENED.search(line) or fields[1][:8] < clock:
+            continue
+        (chromium if "cr_VideoCapture" in line else service).append(fields[1])
+    return chromium if len(chromium) >= len(service) else service
+
+
+def close_window(window):
+    window["ended"] = device_clock()
+    window["camera_open_times"] = camera_opens_since(window["opens_from"])
+    window["camera_opens"] = len(window["camera_open_times"])
+    print("  drive window:", window, flush=True)
 
 
 def watch_drive(seconds, label, quiet=False):
@@ -645,7 +673,7 @@ def watch_drive(seconds, label, quiet=False):
         if time.time() - began >= seconds:
             break
         time.sleep(1.0)
-    window["ended"] = device_clock()
+    close_window(window)
     capture("%s-drive-after-%ss" % (label, seconds), xml)
     if pid() != before:
         problems.append("the app process died or restarted during the drive")
@@ -666,6 +694,7 @@ def stop_drive():
     button = find(nodes, "stop")
     if not button:
         raise AssertionError("no Stop button to press")
+    state["stop_xy"] = button.centre
     tap(*button.centre)
     _, nodes, xml = wait_for("Home after Stop", is_home, 45)
     capture("home-after-stop", xml)
@@ -793,8 +822,46 @@ def recorded_errors():
     return "Feedback offers no recorded errors"
 
 
-def opens_unknown():
-    return bool(result.get("drives")) and not result.get("camera_opens")
+def unattended_drive():
+    """One more drive with Appium gone: no UiAutomator, no accessibility client, only
+    two adb taps. This is the app as a driver has it, and the proof that what the other
+    drives show is not caused by the test looking at the screen."""
+    if not state.get("drive_xy") or not state.get("stop_xy") or not state.get("on_home"):
+        note("no unattended drive: the earlier steps did not end on Home with both buttons located")
+        return
+    print("STEP unattended drive (adb only)", flush=True)
+    # A fresh process that no accessibility client has ever been attached to.
+    adb("shell", "am", "force-stop", PACKAGE)
+    time.sleep(1)
+    activity = adb("shell", "cmd", "package", "resolve-activity", "--brief",
+                   "-c", "android.intent.category.LAUNCHER", PACKAGE).strip().splitlines()[-1].strip()
+    if not activity.startswith(PACKAGE + "/"):
+        note("no unattended drive: no launchable activity (%s)" % activity[:80])
+        return
+    adb("shell", "am", "start", "-n", activity)
+    time.sleep(9)
+    fresh = remember_pid()
+    if not fresh:
+        note("no unattended drive: the app did not start again")
+        return
+    window = {"drive": "unattended", "quiet": True, "appium": False, "pid": fresh,
+              "started": device_clock()}
+    window["opens_from"] = window["started"]
+    result.setdefault("drives", []).append(window)
+    adb("shell", "input", "tap", str(state["drive_xy"][0]), str(state["drive_xy"][1]))
+    time.sleep(15)
+    close_window(window)
+    if not window["camera_opens"]:
+        note("the unattended drive shows no camera open in logcat: it may not have started")
+    adb("shell", "input", "tap", str(state["stop_xy"][0]), str(state["stop_xy"][1]))
+    time.sleep(4)
+    # The end-of-drive alert says how many frames were looked at. One dump, afterwards.
+    adb("shell", "uiautomator", "dump", "/sdcard/pothole-ui.xml", timeout=40)
+    dump = adb("shell", "cat", "/sdcard/pothole-ui.xml", timeout=20)
+    message = re.search(r'text="([^"]*)"[^>]*resource-id="android:id/message"', dump)
+    window["end_alert"] = message.group(1)[:200] if message else ""
+    window["pid_alive"] = bool(pid())
+    print("  unattended drive:", window, flush=True)
 
 
 def scan_logcat():
@@ -820,14 +887,7 @@ def scan_logcat():
             handle.write("-----\n")
     # How often the app opened the camera. One per drive is normal; more means the app's
     # own watchdog decided the camera was lost and reopened it.
-    opened = re.compile(r'CameraService::connect call \(PID -?\d+ "%s"' % re.escape(PACKAGE))
-    opens = [" ".join(line.split()[:2])[:14] for line in lines if opened.search(line)]
-    result["camera_opens"] = opens
-    for window in result.get("drives", []):
-        # Opened shortly before the watch began (the drive starts, then the sheets) up
-        # to its end. More than one means the app reopened a camera it already had.
-        inside = [at for at in opens if at <= window.get("ended", "99") and at >= window.get("opens_from", window["started"])]
-        window["camera_opens"] = len(inside)
+    result["camera_opens"] = [line.split()[1] for line in lines if OPENED.search(line)]
     result["permission_sheets_at"] = [line.split()[1] for line in lines
                                       if "START u0" in line and "REQUEST_PERMISSIONS" in line]
     result["logcat_findings"] = findings[:40]
@@ -843,20 +903,35 @@ def main():
     try:
         if launch():
             for run in steps[1:]:
-                run()
+                state["on_home"] = False
+                if run() and run in (recorded_errors, settings, watched_drive, second_drive, stop_drive):
+                    state["on_home"] = True
     finally:
+        try:
+            if state["session"]:
+                call("DELETE", session(), timeout=60)
+                time.sleep(3)
+        except Exception as error:
+            note("closing the Appium session failed: %s" % str(error)[:120])
+        try:
+            if state["session"]:
+                unattended_drive()
+        except Exception as error:
+            note("the unattended drive could not run: %s" % str(error)[:200])
         try:
             findings = scan_logcat()
         except Exception as error:
             findings = ["logcat scan failed: %s" % error]
             result["logcat_findings"] = findings
-        reopened = ["%s drive: the app opened the camera %d times" % (w["drive"], w["camera_opens"])
+        reopened = ["%s drive: the app opened the camera %d times (%s)" % (
+                        w["drive"], w["camera_opens"], ", ".join(w.get("camera_open_times", [])))
                     for w in result.get("drives", []) if w.get("camera_opens", 0) > 1]
         result["camera_reopened"] = reopened
-        if opens_unknown():
+        if result.get("drives") and not any(w.get("camera_opens") for w in result["drives"]):
             note("logcat on this phone does not show camera opens; reopening is judged from the screen only")
-        if len(state["pids"]) > 1:
-            note("the app ran under more than one pid: %s" % state["pids"])
+        expected_pids = 1 + sum(1 for w in result.get("drives", []) if w.get("pid"))
+        if len(state["pids"]) > expected_pids:
+            note("the app ran under more pids than expected: %s" % state["pids"])
         hard_failures = [entry for entry in result["steps"] if entry["hard"] and not entry["ok"]]
         ran = {entry["name"] for entry in result["steps"]}
         missing = [run.step_name for run in steps if run.step_name not in ran]
@@ -865,11 +940,6 @@ def main():
         result["seconds"] = elapsed()
         with open(os.path.join(OUT, "result.json"), "w", encoding="utf-8") as handle:
             json.dump(result, handle, indent=2, ensure_ascii=False)
-        try:
-            if state["session"]:
-                call("DELETE", session(), timeout=30)
-        except Exception:
-            pass
     print("\nRESULT %s in %ss" % ("PASSED" if result["passed"] else "FAILED", result["seconds"]))
     for entry in result["steps"]:
         print("  %-4s %s: %s" % ("ok" if entry["ok"] else "FAIL", entry["name"], entry["detail"][:160]))
