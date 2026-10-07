@@ -81,6 +81,19 @@ nothing the phone receives names the audit. An audit that cannot reach gpt-5-min
 credit, a rate limit, a timeout, a 5xx) answers as the screen did and logs
 `screen_audit_error`. Every path costs the install one unit.
 
+Switched on in production on 8 Oct 2026, on the owner's instruction, with
+`road-screen-v2-mobilenetv3l-448` at threshold 0.0549 and `ScreenAuditRate` 0.1. The
+readiness line below had not said READY and could not have: it needs 300 damaged frames
+from real drives, and the only shadow traffic was emulators and rack phones that were not
+looking at a road (4.5% of those frames cleared). The evidence the switch rests on is the
+held-out test: 135 of 137 damaged frames of the owner's Bengaluru drive video flagged,
+90.9% of its undamaged frames cleared. Proof run after the switch, sent as the canary's
+install: of 37 frames from three ordinary drive clips the screen answered 35 alone in
+109 ms (p50, server side) against 1,570 ms for a frame gpt-5-mini judges; of 109 frames
+from the two construction-road clips it flagged 107, and gpt-5-mini called 68 of those
+damaged. The audit is now the measure of live recall; `live screen recall` is the rule
+to read.
+
 When to switch on: read the readiness line over a week.
 
 ```bash
