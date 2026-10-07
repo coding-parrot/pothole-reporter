@@ -132,7 +132,7 @@ probes() {
 finetunes() {
   # Full fine-tunes with augmentation. Each run checkpoints every epoch and is skipped
   # once its scores exist.
-  for job in ${FINETUNE_JOBS:-mobilenetv3_l:1 efficientnet_b0:1 mobilenetv3_l:2 mobilenetv3_l:3 efficientnet_b0:2}; do
+  for job in ${FINETUNE_JOBS:-mobilenetv3_l:1 efficientnet_b0:1 mobilenetv3_l:2}; do
     local encoder="${job%%:*}" seed="${job##*:}"
     local name="ft_s$seed"
     if [[ ! -s "$WORK/scores/${encoder}_448_${name}.npz" ]]; then
