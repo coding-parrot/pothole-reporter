@@ -630,9 +630,21 @@ def camera_opens_since(clock):
     return chromium if len(chromium) >= len(service) else service
 
 
+def note_opens(window):
+    """Add the camera opens logcat shows right now to the drive's list. Called every few
+    seconds: the Redmi keeps about 20 s of log, and a single read at the end of a 30 s
+    drive missed the first open and counted a reopened camera as one."""
+    seen = set(window.setdefault("camera_open_times", []))
+    for at in camera_opens_since(window["opens_from"]):
+        if at not in seen:
+            seen.add(at)
+            window["camera_open_times"].append(at)
+    window["camera_open_times"].sort()
+
+
 def close_window(window):
     window["ended"] = device_clock()
-    window["camera_open_times"] = camera_opens_since(window["opens_from"])
+    note_opens(window)
     window["camera_opens"] = len(window["camera_open_times"])
     print("  drive window:", window, flush=True)
 
@@ -652,7 +664,10 @@ def watch_drive(seconds, label, quiet=False):
     result.setdefault("drives", []).append(window)
     problems, xml = [], ""
     if quiet:
-        time.sleep(seconds)
+        # Reading logcat is not touching the app: no UI call, no accessibility request.
+        while time.time() - began < seconds:
+            note_opens(window)
+            time.sleep(max(0.0, min(5.0, seconds - (time.time() - began))))
     while True:
         nodes, xml = tree()
         if clear_the_way(nodes, xml):
@@ -684,7 +699,8 @@ def watch_drive(seconds, label, quiet=False):
             problems.append("no Stop button %ss into the watch" % at)
         if time.time() - began >= seconds:
             break
-        time.sleep(1.0)
+        note_opens(window)
+        time.sleep(0.7)
     close_window(window)
     capture("%s-drive-after-%ss" % (label, seconds), xml)
     if pid() != before:
@@ -861,7 +877,9 @@ def unattended_drive():
     window["opens_from"] = window["started"]
     result.setdefault("drives", []).append(window)
     adb("shell", "input", "tap", str(state["drive_xy"][0]), str(state["drive_xy"][1]))
-    time.sleep(15)
+    for _ in range(3):
+        time.sleep(5)
+        note_opens(window)
     close_window(window)
     if not window["camera_opens"]:
         note("the unattended drive shows no camera open in logcat: it may not have started")
