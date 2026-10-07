@@ -63,6 +63,7 @@ jobs:
           python3 tests/pmgsy_road_agreement_puller_test.py
           python3 tests/pmgsy_road_agreement_pack_builder_test.py
           python3 tests/catalog_pack_pruner_test.py
+          python3 tests/pull_or_keep_test.py
 
       - name: Refresh official source snapshots
         run: |
@@ -99,23 +100,30 @@ jobs:
           # files duplicate every retained notice and are not used by the pack builder.
           find data/gepnic-road-notices/states -type f -name '*.json' -delete
 
-          python3 tools/pull-bihar-road-tenders.py \
+          # A State portal that is down keeps its last snapshot (inside the 7-day review
+          # window) instead of aborting every other State's refresh.
+          python3 tools/pull-or-keep.py --output data/custom-road-tenders/br/in-br-eproc2.json -- \
+            python3 tools/pull-bihar-road-tenders.py \
             --output data/custom-road-tenders/br/in-br-eproc2.json \
             --as-of "$catalog_retrieved_at" \
             --timeout 120
-          python3 tools/pull-chhattisgarh-chips-road-tenders.py \
+          python3 tools/pull-or-keep.py --output data/custom-road-tenders/cg/in-ct-chips.json -- \
+            python3 tools/pull-chhattisgarh-chips-road-tenders.py \
             --output data/custom-road-tenders/cg/in-ct-chips.json \
             --as-of "$catalog_retrieved_at" \
             --timeout 120
-          python3 tools/pull-gujarat-nprocure-road-tenders.py \
+          python3 tools/pull-or-keep.py --output data/custom-road-tenders/gj/in-gj-nprocure.json -- \
+            python3 tools/pull-gujarat-nprocure-road-tenders.py \
             --output data/custom-road-tenders/gj/in-gj-nprocure.json \
             --as-of "$catalog_retrieved_at" \
             --timeout 120
-          python3 tools/pull-lakshadweep-road-tenders.py \
+          python3 tools/pull-or-keep.py --output data/custom-road-tenders/ld/in-ld-official-tender-notices.json -- \
+            python3 tools/pull-lakshadweep-road-tenders.py \
             --output data/custom-road-tenders/ld/in-ld-official-tender-notices.json \
             --as-of "$catalog_retrieved_at" \
             --timeout 120
-          python3 tools/pull-telangana-road-tenders.py \
+          python3 tools/pull-or-keep.py --output data/custom-road-tenders/tg/in-tg-eprocurement.json -- \
+            python3 tools/pull-telangana-road-tenders.py \
             --output data/custom-road-tenders/tg/in-tg-eprocurement.json \
             --as-of "$catalog_retrieved_at" \
             --timeout 120

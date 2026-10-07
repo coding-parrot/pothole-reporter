@@ -83,6 +83,18 @@ class BiharRoadTenderPullerTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "canonical contract"):
             MODULE.validate_pack(pack)
 
+    def test_puller_carries_the_issuer_certificate_the_portal_omits(self):
+        # eproc2.bihar.gov.in serves its own certificate without its issuer. A fresh
+        # Linux runner then fails with "unable to get local issuer certificate" (run
+        # 37498782971, 6 Oct 2026). The puller keeps verification on and supplies the
+        # issuer itself.
+        subjects = [
+            dict(pair[0] for pair in item["subject"]).get("commonName")
+            for item in MODULE.tls_context().get_ca_certs()
+        ]
+        self.assertIn("Sectigo Public Server Authentication CA OV R36", subjects)
+        self.assertTrue(MODULE.tls_context().check_hostname)
+
     def test_checked_in_live_snapshot_validates(self):
         snapshot = ROOT / "data" / "custom-road-tenders" / "br" / "in-br-eproc2.json"
         if not snapshot.exists():
