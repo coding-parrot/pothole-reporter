@@ -181,6 +181,21 @@ async function windowRules(hours) {
       : ok(`service overhead is small (${row.route})`, `p90 ${own90.toFixed(0)} ms, database p90 ${Number(row.db90).toFixed(0)} ms over ${row.n} requests`);
   }
 
+  // A place the service has already answered for is one map read and one metrics write:
+  // 6 ms on 7 Oct 2026, down from 90 to 145. The public map is the same. Anything that
+  // puts a table read or a recomputation back on that path shows up here.
+  const fast = await insights(
+    'filter event="http_request" and status=200 and (route="/v1/map" or (route="/v1/tenders/resolve" and answer_cache="hit")) | stats count() as n, pct(duration_ms, 50) as p50, pct(duration_ms, 90) as p90 by route',
+    hours,
+  );
+  for (const row of fast) {
+    if (Number(row.n) < 20) continue;
+    const p50 = Number(row.p50);
+    p50 > 15
+      ? fail(`known answers are instant (${row.route})`, `p50 ${p50.toFixed(0)} ms, p90 ${Number(row.p90).toFixed(0)} ms over ${row.n} requests; budget p50 15 ms`)
+      : ok(`known answers are instant (${row.route})`, `p50 ${p50.toFixed(0)} ms, p90 ${Number(row.p90).toFixed(0)} ms over ${row.n} requests`);
+  }
+
   const lambdaErrors = await insights('filter @message like /Task timed out|Runtime exited|Error: Runtime/ | stats count() as n', hours);
   const crashes = Number(lambdaErrors[0]?.n || 0);
   crashes ? fail("no runtime crashes", `${crashes} timeouts or runtime exits`) : ok("no runtime crashes", "0");
