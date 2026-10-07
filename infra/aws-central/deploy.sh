@@ -50,6 +50,14 @@ cp data/karnataka-ownership.bin "$TMP_DIR/package/data/"
 # Karnataka ward polygons (KGIS Ward New layer, 7,421 wards): what the service names a
 # municipal point's ward from, with no live KGIS call. About 6.4 MB, 2.2 MB zipped.
 cp data/karnataka-ward-geometry.json "$TMP_DIR/package/data/"
+# Street and locality names (OpenStreetMap extract, ODbL): Karnataka and nine cities
+# outside it, one directory of hash-checked tiles per region. local-address.mjs reads a
+# tile on first need, so the geocoder is asked only where no region has a street. The
+# build's working directory (data/streets/.work, 4.4 GB) is never packaged. About 42 MB.
+mkdir -p "$TMP_DIR/package/data/streets"
+for region in data/streets/*/; do
+  cp -R "$region" "$TMP_DIR/package/data/streets/"
+done
 # The national tender catalogues (highway contracts, State/UT road notices, PMGSY
 # agreements): the manifests the shipped phone names, under fixed names, and the pack
 # they pin for every state, hash-checked. national-tenders.mjs reads them lazily per

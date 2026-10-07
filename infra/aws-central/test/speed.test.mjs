@@ -110,6 +110,20 @@ test("an answer from the packaged state GIS layers is stored", async () => {
   assert.equal(second.lookup.kgis, "snapshot");
 });
 
+test("an address from the packaged street index is stored like a geocoded one", async () => {
+  let asked = 0;
+  const repository = cellStore();
+  const geolocator = createCachedGeolocator({ repository, geolocator: { resolve: async ({ lat, lng }) => {
+    asked += 1;
+    return { ...liveAnswer(lat, lng), address_source: "packaged_streets",
+      lookup: { kgis: "snapshot", streets: "street", geocoder: "not_needed" } };
+  } } });
+  await geolocator.resolve({ lat: 12.99657, lng: 77.62034 });
+  const second = await geolocator.resolve({ lat: 12.99658, lng: 77.62031 });
+  assert.equal(asked, 1);
+  assert.equal(second.address_source, "packaged_streets");
+});
+
 test("an answer that came from a caller's hint, a fallback or an outage is never stored", async () => {
   for (const patch of [
     { address_source: "client_hint" },

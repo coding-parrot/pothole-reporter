@@ -2,6 +2,7 @@ import { createDetector, createSecretProvider } from "./detectors.mjs";
 import { createDynamoRepository } from "./dynamo-repository.mjs";
 import { createCachedGeolocator } from "./geo-cache.mjs";
 import { createGeolocator } from "./geolocation.mjs";
+import { createLocalAddress } from "./local-address.mjs";
 import { createNationalCatalogue } from "./national-tenders.mjs";
 import { createService } from "./core.mjs";
 
@@ -35,8 +36,11 @@ const detector = createDetector({
   yoloUrl: process.env.YOLO_URL || "",
   yoloModel: process.env.YOLO_MODEL || "pothole-yolo",
 });
+// Street names come from the packaged index (data/streets, staged by deploy.sh); the
+// geocoder is asked only for a point the index has no street for.
 const liveGeolocator = createGeolocator({
   geocoderUrl: process.env.GEOCODER_REVERSE_URL || "",
+  localAddress: createLocalAddress(),
 });
 const geolocator = createCachedGeolocator({ geolocator: liveGeolocator, repository });
 

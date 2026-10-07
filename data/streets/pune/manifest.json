@@ -1,0 +1,83 @@
+{
+ "format": "pothole-street-address-region",
+ "version": 1,
+ "region": "pune",
+ "name": "Pune and Pimpri-Chinchwad",
+ "country": "India",
+ "country_code": "in",
+ "provenance": {
+  "source": "OpenStreetMap contributors, ODbL 1.0",
+  "licence": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "distributor": "Geofabrik GmbH",
+  "extract_url": "https://download.geofabrik.de/asia/india-261006.osm.pbf",
+  "extract_date": "2026-10-06",
+  "extract_md5": "b02c63449ffbeda80757a75496bf7c8f",
+  "rules": "Nominatim 5.3.0",
+  "coverage": [
+   [
+    73.65,
+    18.38,
+    74.05,
+    18.72
+   ]
+  ],
+  "built_by": "infra/aws-central/tools/build-street-index.mjs"
+ },
+ "tile_format": "pothole-street-address-tile",
+ "tile_version": 1,
+ "tile_degrees": 0.25,
+ "cell_degrees": 0.0025,
+ "scale": 200000,
+ "simplify_metres": 2,
+ "snap_limit_degrees": 0.007,
+ "counts": {
+  "streets": 64410,
+  "named_streets": 8937,
+  "street_pieces": 65516,
+  "places": 591,
+  "areas": 2126,
+  "address_tuples": 1599,
+  "points_before_simplifying": 443014,
+  "points": 283163,
+  "tiles": 6,
+  "bytes": 1442087
+ },
+ "tiles": {
+  "1014_433": {
+   "file": "t_1014_433.bin",
+   "bytes": 37833,
+   "sha256": "e7ec1c4dd873a744e3b5c89a264fd1274ebb89246e41a74a2a28fb6b8369143d",
+   "streets": 1058
+  },
+  "1014_434": {
+   "file": "t_1014_434.bin",
+   "bytes": 142740,
+   "sha256": "953acdc41a46bcfff5b3f5cfc22a8ea9942a878509a2be3984c28bb517edca1a",
+   "streets": 6395
+  },
+  "1015_433": {
+   "file": "t_1015_433.bin",
+   "bytes": 404407,
+   "sha256": "0eb568c5254274fcfd7e36d4f58fbea9ca8640ee925b3ce492e348c3b9dee970",
+   "streets": 21515
+  },
+  "1015_434": {
+   "file": "t_1015_434.bin",
+   "bytes": 756200,
+   "sha256": "6e77292011090035ab001fb8dd832a393bff907b419f14218466083375dc035a",
+   "streets": 40285
+  },
+  "1016_433": {
+   "file": "t_1016_433.bin",
+   "bytes": 35068,
+   "sha256": "462c1eaa49eba5de61782c2884068e4769529b87993f7a2eb7f00234acf71344",
+   "streets": 1421
+  },
+  "1016_434": {
+   "file": "t_1016_434.bin",
+   "bytes": 65839,
+   "sha256": "01001bb7cee8db1e030fe73d01edb2b5810e9edc844069fbdb3c837b7d230a56",
+   "streets": 3077
+  }
+ }
+}

@@ -132,6 +132,10 @@ function partsFromGeocoder(data) {
   };
 }
 
+// An address the service found itself, as against one a caller claimed: from the public
+// geocoder, or (since 7 Oct 2026) from the packaged OpenStreetMap street index.
+export const SERVER_ADDRESS_SOURCES = new Set(["operator_geocoder", "packaged_streets"]);
+
 function validWardGeometry(geometry) {
   return geometry && geometry.format === WARD_GEOMETRY_FORMAT
     && Number.isFinite(geometry.coordinate_scale) && geometry.coordinate_scale > 0
@@ -370,6 +374,9 @@ export function createGeolocator({
   kgisBreakerMs = 60_000,
   localGeometryPath = LOCAL_GEOMETRY_PATH,
   wardGeometryPath = WARD_GEOMETRY_PATH,
+  // The packaged street index (local-address.mjs). The handler passes it; without one
+  // every street name is asked of the geocoder, as before 7 Oct 2026.
+  localAddress = null,
   logger = console,
 } = {}) {
   const cache = new Map();
@@ -392,7 +399,7 @@ export function createGeolocator({
         // The jurisdiction is a fact about the place and is shared. An address that
         // came from a caller's hint is that caller's claim: the next caller in the cell
         // brings their own, or none.
-        const geocoded = cached.value.address_source === "operator_geocoder";
+        const geocoded = SERVER_ADDRESS_SOURCES.has(cached.value.address_source);
         const hint = bounded(addressHint, 500) || null;
         return {
           ...cached.value,
@@ -400,11 +407,32 @@ export function createGeolocator({
           lng,
           address: geocoded ? cached.value.address : hint,
           address_parts: geocoded ? cached.value.address_parts : null,
-          address_source: geocoded ? "operator_geocoder" : hint ? "client_hint" : "unresolved",
+          address_source: geocoded ? cached.value.address_source : hint ? "client_hint" : "unresolved",
         };
       }
+      // The street the point is on, read from the packaged index: no call, under 1 ms
+      // warm. Only a street within the geocoder's own snapping distance replaces the
+      // geocoder (717 of 722 points checked on 7 Oct 2026 gave its road exactly, and no
+      // tender answer changed); where the index can offer only the surrounding area's
+      // name, or holds no region for the point, the geocoder is asked as before.
+      let packaged = null;
+      let streets = "off";
+      if (localAddress) {
+        let found = null;
+        try {
+          found = localAddress.lookup(lat, lng);
+        } catch (error) {
+          logger.error(JSON.stringify({
+            event: "local_address_failed", error_message: String(error?.message || error).slice(0, 300),
+          }));
+        }
+        streets = found ? found.basis : "no_region";
+        if (found?.basis === "street") {
+          packaged = { available: true, data: { address: found.address, namedetails: found.namedetails } };
+        }
+      }
       let geocoder = null;
-      if (geocoderUrl) {
+      if (geocoderUrl && !packaged) {
         try {
           const url = new URL(geocoderUrl);
           if (url.protocol !== "https:" || url.username || url.password) throw new Error();
@@ -428,9 +456,9 @@ export function createGeolocator({
             "The operator geocoder URL is invalid.");
         }
       }
-      // The street name is the one upstream call left on this path. It runs while the
-      // polygons are read, never after them.
-      const geocoding = geocoder
+      // The geocoder is the one upstream call left on this path, and only where the
+      // street index has no answer. It runs while the polygons are read, never after them.
+      const geocoding = packaged ? Promise.resolve(packaged) : geocoder
         ? readJson(fetchImpl, geocoder.url, { headers: geocoder.headers })
         : Promise.resolve({ available: false, data: null });
       // A point far outside Karnataka is not a question for Karnataka's register: it has
@@ -528,7 +556,7 @@ export function createGeolocator({
         ward_code: ward ? ward.code : null,
         ward_numbering: ward ? "kgis_current" : null,
         source: municipal && lgd ? source : "unresolved",
-        address_source: geocoded.available
+        address_source: packaged ? "packaged_streets" : geocoded.available
           ? "operator_geocoder" : addressHint ? "client_hint" : "unresolved",
         road_ownership: roadOwnership,
         highway_name: highwayName,
@@ -537,7 +565,8 @@ export function createGeolocator({
           ...kgisLookup,
           local,
           ward: wardLookup,
-          geocoder: geocoded.available ? "available"
+          streets,
+          geocoder: packaged ? "not_needed" : geocoded.available ? "available"
             : addressHint ? "skipped_client_hint" : "unavailable",
         },
       };

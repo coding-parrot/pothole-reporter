@@ -16,12 +16,15 @@
 // from the packaged layers, and a point inside Karnataka with no named panchayat is
 // rural where the live lookup had stored outside_state.
 const VERSION = "v3";
+// An address the service found itself (geolocation.mjs SERVER_ADDRESS_SOURCES). Listed
+// here too so this module stays free of the geolocator's imports.
+const SERVER_ADDRESS_SOURCES = new Set(["operator_geocoder", "packaged_streets"]);
 const WEEK_MS = 7 * 86_400_000;
 const MEMORY_CELLS = 5_000;
 
 function storable(value) {
   if (!value || !value.road_ownership || value.road_ownership === "unknown") return false;
-  if (value.address_source !== "operator_geocoder" || !value.address) return false;
+  if (!SERVER_ADDRESS_SOURCES.has(value.address_source) || !value.address) return false;
   return ["available", "out_of_scope", "snapshot"].includes(value.lookup?.kgis);
 }
 

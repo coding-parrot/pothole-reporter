@@ -1,0 +1,71 @@
+{
+ "format": "pothole-street-address-region",
+ "version": 1,
+ "region": "visakhapatnam",
+ "name": "Visakhapatnam",
+ "country": "India",
+ "country_code": "in",
+ "provenance": {
+  "source": "OpenStreetMap contributors, ODbL 1.0",
+  "licence": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "distributor": "Geofabrik GmbH",
+  "extract_url": "https://download.geofabrik.de/asia/india-261006.osm.pbf",
+  "extract_date": "2026-10-06",
+  "extract_md5": "b02c63449ffbeda80757a75496bf7c8f",
+  "rules": "Nominatim 5.3.0",
+  "coverage": [
+   [
+    83.05,
+    17.55,
+    83.45,
+    17.9
+   ]
+  ],
+  "built_by": "infra/aws-central/tools/build-street-index.mjs"
+ },
+ "tile_format": "pothole-street-address-tile",
+ "tile_version": 1,
+ "tile_degrees": 0.25,
+ "cell_degrees": 0.0025,
+ "scale": 200000,
+ "simplify_metres": 2,
+ "snap_limit_degrees": 0.007,
+ "counts": {
+  "streets": 26375,
+  "named_streets": 2245,
+  "street_pieces": 26994,
+  "places": 1752,
+  "areas": 262,
+  "address_tuples": 1613,
+  "points_before_simplifying": 199941,
+  "points": 130342,
+  "tiles": 4,
+  "bytes": 672621
+ },
+ "tiles": {
+  "1052_430": {
+   "file": "t_1052_430.bin",
+   "bytes": 220091,
+   "sha256": "3cb04ecc518723d9cb0827758179f133afde8fa9882f9579c57087f42ca237fb",
+   "streets": 10319
+  },
+  "1052_431": {
+   "file": "t_1052_431.bin",
+   "bytes": 163810,
+   "sha256": "aee56cec12066d8c95fd072363ae5b9c72cca37e1d201d29fc327245128d7cfd",
+   "streets": 7209
+  },
+  "1053_430": {
+   "file": "t_1053_430.bin",
+   "bytes": 113639,
+   "sha256": "01dd2882becf6c11432890fbd1292e0d24f26df2fa44f717d6dcd273a42d8a31",
+   "streets": 5420
+  },
+  "1053_431": {
+   "file": "t_1053_431.bin",
+   "bytes": 175081,
+   "sha256": "648f0d68694bf07abf4008b6253660fa7c6587e29ad6d9f9e2ac36e0232a08d5",
+   "streets": 8013
+  }
+ }
+}
