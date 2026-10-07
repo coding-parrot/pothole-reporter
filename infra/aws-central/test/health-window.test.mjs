@@ -5,7 +5,7 @@ import { createInsights } from "../service/health/insights.mjs";
 import { createReport } from "../service/health/report.mjs";
 import { LOOKUP_QUERY, SCREEN_QUERY } from "../service/health/rules.mjs";
 import { CRASH_QUERY, KNOWN_ANSWER_QUERY, OWN_TIME_QUERY, REQUEST_QUERY, judgeWindow, parseWindow } from "../service/health/window.mjs";
-import { BROKEN_WINDOW, HEALTHY_WINDOW, QUIET_WINDOW, scriptedQuery } from "./health-support.mjs";
+import { BROKEN_WINDOW, HEALTHY_WINDOW, QUIET_WINDOW, row, scriptedQuery } from "./health-support.mjs";
 
 // The log window rules as a library: scripted Logs Insights rows in, one verdict per
 // rule out. The command-line script and the scheduled function both call judgeWindow,
@@ -79,7 +79,7 @@ test("every rule that can break is reported broken, with the number that broke i
     ["tenders match somewhere in India", "60 lookups had a street and none matched any catalogue"],
     ["road ownership layers are in the package", "26 lookups could not read the road ownership layers"],
     ["ward snapshot is in the package", "5 municipal lookups could not read the ward snapshot"],
-    ["wards find their tenders", "5 of 55 lookups with a ward (9.1%) answered a ward tender or a street tender"],
+    ["wards find their tenders", "0 of 55 lookups with a ward (0.0%) answered a ward tender or a street tender"],
     ["ward snapshots outside Karnataka are in the package", "6 lookups outside Karnataka could not read a ward snapshot the package should hold: GJ/ahmedabad (4), data/wards/runtime.json (2)"],
     ["detection is fast", "p50 2600 ms, p90 4200 ms over 30 detections"],
     ["service overhead is small (/v1/tenders/resolve)", "p90 401 ms outside the detector and the geolocator over 110 requests"],
@@ -131,8 +131,30 @@ test("the percentage rules break past 5% or past 20 lookups, and not at them", a
 // from a person's, and none of them matches a tender (its Bengaluru point answers
 // no_location_match). So these two thresholds are also the ceiling on how many canary
 // lookups a window may hold: test/template-health.test.mjs holds the schedule under it.
+// A lookup is answered by a street tender or by its ward's tenders. Until 7 Oct 2026 only
+// the street tender counted, so on a day when 73 of 86 lookups came back with ward tenders
+// and none with a street tender the rule said "the tender table is empty or matching is
+// broken". Both rules now break only when nothing at all was answered.
+// No ward is resolved here, so the ward rule has nothing to judge and only the two
+// matching rules speak.
+const NOTHING_ANSWERED = [row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "no_ward", ward_tender_count: 0, n: 80 })];
+const lookupsOf = (script, rows) => script.map((entry) => (entry.match === "by road_ownership, local_lookup" ? { ...entry, rows } : entry));
+
+test("ward tenders answer a lookup: no street match with ward tenders is not a broken matcher", async () => {
+  const noStreet = requestRows(() => [group("/v1/health", "healthy", 200, 50), group("/v1/tenders/resolve", "no_location_match", 200, 86)]);
+  const withWards = await judge(lookupsOf(noStreet, [
+    row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "resolved", ward_tender_count: 5, n: 73 }),
+    row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "resolved", ward_tender_count: 0, n: 13 }),
+  ]));
+  assert.deepEqual(withWards.failures, []);
+  const tenders = withWards.rules.find((rule) => rule.name === "tenders match");
+  assert.match(tenders.detail, /73 of 86 lookups answered with ward tenders/);
+  const nothing = await judge(lookupsOf(noStreet, NOTHING_ANSWERED));
+  assert.deepEqual(nothing.failures.map((failure) => failure.name), ["tenders match", "tenders match somewhere in India"]);
+});
+
 test("twenty lookups that reach matching with none matched break the rule, nineteen do not", async () => {
-  const unmatched = (n) => judge(requestRows(() => [group("/v1/health", "healthy", 200, 50), group("/v1/tenders/resolve", "no_location_match", 200, n)]));
+  const unmatched = (n) => judge(lookupsOf(requestRows(() => [group("/v1/health", "healthy", 200, 50), group("/v1/tenders/resolve", "no_location_match", 200, n)]), NOTHING_ANSWERED));
   assert.deepEqual((await unmatched(19)).failures, []);
   assert.deepEqual((await unmatched(20)).failures.map((failure) => failure.name), ["tenders match"]);
   assert.deepEqual((await unmatched(50)).failures.map((failure) => failure.name), ["tenders match", "tenders match somewhere in India"]);

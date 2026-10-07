@@ -101,7 +101,7 @@ const BROKEN_WINDOW_LINES = [
   "  FAIL tenders match somewhere in India: 60 lookups had a street and none matched any catalogue; check the packed national catalogues and their review dates",
   "  FAIL road ownership layers are in the package: 26 lookups could not read the road ownership layers; data/karnataka-ownership.bin is missing from the package",
   "  FAIL ward snapshot is in the package: 5 municipal lookups could not read the ward snapshot; data/karnataka-ward-geometry.json is missing from the package",
-  "  FAIL wards find their tenders: 5 of 55 lookups with a ward (9.1%) answered a ward tender or a street tender; the rule is 20%. Check the packaged ward snapshot, the tender table and ward-tenders.mjs",
+  "  FAIL wards find their tenders: 0 of 55 lookups with a ward (0.0%) answered a ward tender or a street tender; the rule is 20%. Check the packaged ward snapshot, the tender table and ward-tenders.mjs",
   "  FAIL ward snapshots outside Karnataka are in the package: 6 lookups outside Karnataka could not read a ward snapshot the package should hold: GJ/ahmedabad (4), data/wards/runtime.json (2). Check that deploy.sh ran tools/stage-india-wards.mjs",
   "  FAIL detection is fast: p50 2600 ms, p90 4200 ms over 30 detections; rule is p50 under 2.5 s and p90 under 4 s",
   "  ok   shadow screen (report only): no drive frames were shadow screened in the window",
@@ -170,7 +170,9 @@ test("a query Logs Insights fails is one broken rule, and the canary is not run"
   const failed = HEALTHY_WINDOW.map((entry) => (entry.match === "by road_ownership, local_lookup" ? { ...entry, status: "Failed" } : entry));
   const result = await run(["--window", "6h", "--canary"], { window: failed });
   assert.deepEqual(result.lines, [
-    ...HEALTHY_WINDOW_LINES.slice(0, 13),
+    // The two tender rules read the lookup rows too (ward tenders answer a lookup), so
+    // the window now stops before them.
+    ...HEALTHY_WINDOW_LINES.slice(0, 11),
     "  FAIL health check ran: Logs Insights Failed",
     "",
     "UNHEALTHY: 1 rule(s) broken (771 requests in 6 h)",

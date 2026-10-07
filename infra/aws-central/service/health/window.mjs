@@ -98,13 +98,23 @@ export async function judgeWindow({ query, hours, logGroup, report }) {
     ? fail("reports land", `${inProgress} of ${reports} reports (${inProgressPct.toFixed(1)}%) were told to retry on the location lock`)
     : ok("reports land", `${inProgress} of ${reports} retried on the lock`);
 
+  // A lookup is answered by a street tender or by its ward's tenders (the list the app
+  // shows since 1.40.0). Counting only street tenders called a day broken on which 73 of
+  // 86 lookups came back with ward tenders (7 Oct 2026). Both rules below break only
+  // when nothing at all was answered.
+  const lookupRows = await asked.lookups;
+  const wardAnswered = lookupRows.filter((row) => Number(row.ward_tender_count) > 0)
+    .reduce((sum, row) => sum + (Number(row.n) || 0), 0);
+  const lookedUp = lookupRows.reduce((sum, row) => sum + (Number(row.n) || 0), 0);
+  const wardNote = `${wardAnswered} of ${lookedUp} lookups answered with ward tenders`;
+
   const matched = count("/v1/tenders/resolve", "tender_matched") + count("/v1/potholes/report", "tender_matched");
   const municipal = resolves - unresolved - unavailable - count("/v1/tenders/resolve", "outside_state")
     - count("/v1/tenders/resolve", "preflight") - count("/v1/tenders/resolve", "idempotent_replay");
-  if (municipal >= 20 && matched === 0) {
+  if (municipal >= 20 && matched === 0 && wardAnswered === 0) {
     fail("tenders match", `${municipal} lookups reached matching and none matched; the tender table is empty or matching is broken`);
   } else {
-    ok("tenders match", `${matched} matched of ${resolves} lookups`);
+    ok("tenders match", matched ? `${matched} matched of ${resolves} lookups` : `${matched} matched of ${resolves} lookups; ${wardNote}`);
   }
 
   // Since 6 Oct 2026 every lookup with a street and a State/UT is matched against the
@@ -115,13 +125,12 @@ export async function judgeWindow({ query, hours, logGroup, report }) {
   const streetResolved = ["tender_matched", "no_location_match", "no_confident_match", "no_tenders_for_jurisdiction"]
     .reduce((sum, outcome) => sum + count("/v1/tenders/resolve", outcome), 0);
   const resolveMatched = count("/v1/tenders/resolve", "tender_matched");
-  if (streetResolved >= 50 && resolveMatched === 0) {
+  if (streetResolved >= 50 && resolveMatched === 0 && wardAnswered === 0) {
     fail("tenders match somewhere in India", `${streetResolved} lookups had a street and none matched any catalogue; check the packed national catalogues and their review dates`);
   } else {
     ok("tenders match somewhere in India", `${resolveMatched} matched of ${streetResolved} lookups with a street`);
   }
 
-  const lookupRows = await asked.lookups;
   const roadLayers = judgeRoadLayers(lookupRows);
   roadLayers.broken ? fail("road ownership layers are in the package", roadLayers.detail) : ok("road ownership layers are in the package", roadLayers.detail);
 

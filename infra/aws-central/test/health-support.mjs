@@ -14,7 +14,7 @@ import { installationPublicKey, verifyInstallationSignature } from "../service/a
 // library directly, the command-line script as a process (through a stand-in `aws`
 // executable and a local HTTP server) and the scheduled function.
 
-const row = (fields) => Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, String(value)]));
+export const row = (fields) => Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, String(value)]));
 const requests = (...groups) => groups.map(([route, outcome, status, n, p50 = 5, p90 = 9]) => row({ route, outcome, status, n, p50, p90 }));
 
 // One entry per query the gate asks. `match` is a piece of the query text that only
@@ -81,7 +81,7 @@ export const BROKEN_WINDOW = [
     row({ local_lookup: "unavailable", n: 26 }),
     row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "unavailable", n: 5 }),
     row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "resolved", ward_tender_count: 0, n: 50 }),
-    row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "resolved", ward_tender_count: 2, n: 5 }),
+    row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "resolved", ward_tender_count: 0, n: 5 }),
     row({ road_ownership: "outside_state", local_lookup: "out_of_scope", ward_lookup: "unavailable", ward_snapshot: "GJ/ahmedabad", n: 4 }),
     row({ road_ownership: "outside_state", local_lookup: "out_of_scope", ward_lookup: "unavailable", n: 2 }),
   ] },
