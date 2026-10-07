@@ -3440,8 +3440,12 @@ const emailActionHtml = (r) => emailReopens(r)
 // than tender_note, so it stays folded until asked for and says what it is not. The
 // stored list is sanitised again here: a row may predate the field or hold a wiped one.
 function wardTendersHtml(r) {
-  const tenders = StandaloneAPI.__pure.sanitiseWardTenders(r && r.ward_tenders);
-  if (!tenders.length) return "";
+  // A report never asked about its ward (a Drive Mode row, or one from an older build)
+  // draws from the answer fetched for it earlier, and otherwise leaves an empty slot that
+  // fillWardTenders fills once the card is on screen.
+  const held = StandaloneAPI.__pure.heldWardAnswer(r);
+  const tenders = StandaloneAPI.__pure.sanitiseWardTenders(held ? held.ward_tenders : r && r.ward_tenders);
+  if (!tenders.length) return `<div id="wardTendersSlot" hidden></div>`;
   return `<details class="meta ward-tenders">
     <summary>${escapeHtml(t("ward_tenders_summary", { n: tenders.length }))}</summary>
     <div class="ward-tenders-note">${escapeHtml(t("ward_tenders_note"))}</div>
@@ -3451,6 +3455,26 @@ function wardTendersHtml(r) {
         ? ` · ${escapeHtml(t("ward_tenders_published", { date: tender.published }))}` : ""}</div>
     </li>`).join("")}</ul>
   </details>`;
+}
+
+// The card never waits for this: it is already drawn, and the folded row is added under
+// its meta lines when the answer arrives. A list row is a summary without the stored
+// list, so it is not asked about; the full row is, when it has loaded. A lookup that
+// fails shows nothing and leaves the report to be asked again the next time it is opened.
+function fillWardTenders(r) {
+  if (!r || r.summary_only || !$("wardTendersSlot")) return;
+  StandaloneAPI.wardTenders(r).then((answer) => {
+    if (!answer) return;
+    // A report in this app's store now holds the answer; this copy of it should too.
+    if (!r._native && !Array.isArray(r.ward_tenders)) {
+      r.ward_tenders = answer.ward_tenders;
+      r.ward_name = answer.ward_name || null;
+    }
+    const slot = $("wardTendersSlot");
+    if (slot && !$("detail").classList.contains("hidden") && detailList[detailIdx] === r) {
+      slot.outerHTML = wardTendersHtml(r);
+    }
+  }).catch(() => {});
 }
 
 function openDetail(r, list) {
@@ -3602,6 +3626,7 @@ function openDetail(r, list) {
   wireConditionActions(r);
   wireDetailChrome(r);
   wireEmailSentPrompt(r);
+  fillWardTenders(r);
   const retryRouting = $("retryRoutingBtn");
   if (retryRouting) retryRouting.onclick = async () => {
     retryRouting.disabled = true;
@@ -3703,11 +3728,22 @@ async function sendReport(r) {
         throw new Error("The email composer is not available on this device.");
       }
       const authorityCacheIsSafe = hasAuthoritativeMunicipalCivicCache(r);
+      const sentBefore = emailStatusOf(r) === "sent";
+      // Room has no column for a ward list or a tender's title, so a Drive Mode report is
+      // asked about its ward here, unless its card already was: one lookup, and the tap
+      // waits no longer than the budget for it. A row whose owner is unproven is not
+      // asked here, because prepareComplaint revalidates it and that answer carries both.
+      const wardAnswer = authorityCacheIsSafe && !sentBefore
+        ? await StandaloneAPI.wardTenders(r, StandaloneAPI.__pure.WARD_LOOKUP_BUDGET_MS)
+          .catch(() => null)
+        : undefined;
       let complaint = authorityCacheIsSafe ? r._preparedComplaint : null;
-      // A letter Room cached from an older template is written again, not sent as it is.
-      // One the person marked sent is the exception: it goes out again as it was sent.
-      const outdated = (body) => emailStatusOf(r) !== "sent"
-        && StandaloneAPI.__pure.staleRoadComplaintBody(body);
+      // A cached letter is written again when it is from an older template, or when it
+      // asks only the plain question and there is now a road work to ask about. One the
+      // person marked sent is the exception: it goes out again as it was sent.
+      const outdated = (body) => !sentBefore
+        && (StandaloneAPI.__pure.staleRoadComplaintBody(body)
+          || StandaloneAPI.__pure.letterLacksRoadWork(r, wardAnswer || null, body));
       if (complaint && outdated(complaint.body)) complaint = null;
       if (!complaint && authorityCacheIsSafe
           && r.email_to && r.email_subject && r.email_body
@@ -3723,7 +3759,10 @@ async function sendReport(r) {
             published: r.tender_published || null,
           } : null };
       }
-      if (!complaint) complaint = await StandaloneAPI.prepareComplaint(r);
+      if (!complaint) {
+        complaint = await StandaloneAPI.prepareComplaint(
+          r, wardAnswer === undefined ? {} : { wardAnswer });
+      }
       if (!complaint || complaint.road_ownership !== "municipal"
           || (!r._native && complaint.road_ownership_source !== "central_v1")) {
         throw new Error("Could not verify that a municipal authority owns this road.");

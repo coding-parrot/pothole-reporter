@@ -6648,7 +6648,8 @@
     return name || null;
   }
 
-  async function tenderFromService(lat, lng, address, lgd, clientObservationId) {
+  async function tenderFromService(lat, lng, address, lgd, clientObservationId,
+                                   retryDeadline = 0) {
     if (!finiteCoord(lat) || !finiteCoord(lng)) return { reached: false, tender: null };
     try {
       const request = { lat, lng };
@@ -6669,6 +6670,9 @@
         if (!error || error.status !== 503 || !error.details || !error.details.retryable) {
           throw error;
         }
+        // A caller holding a tap open has a deadline. A retry that cannot start before
+        // it is not sent at all: its answer would arrive after the caller has moved on.
+        if (retryDeadline && Date.now() + TENDER_RETRY_DELAY_MS >= retryDeadline) throw error;
         await new Promise((resolveDelay) => setTimeout(resolveDelay, TENDER_RETRY_DELAY_MS));
         return resolve();
       });
@@ -6709,6 +6713,180 @@
     } catch (error) {
       return { reached: false, tender: null, error };
     }
+  }
+
+  // ---------- ward tenders on demand ----------
+  // Drive Mode reports live in Room, which has no column for a ward list or for a tender's
+  // title, and reports from older builds were never asked. Such a report is asked about
+  // once, when its card is opened or Email is tapped. The answer feeds the card and the
+  // letter and nothing else: the owner, authority, recipient, tender number and
+  // contractor a report stores stay what its own resolver stored.
+  //
+  // An array in ward_tenders, even an empty one, means the report was answered. Anything
+  // else means it was never asked, and a lookup that fails leaves it that way.
+  const WARD_LOOKUP_BUDGET_MS = 2500;
+  const WARD_ANSWER_MEMORY_LIMIT = 500;
+  // Room cannot hold the answer, so a Drive Mode report's answer is kept here, beside
+  // native_email_state and for the same reason. Delete-all clears it with the rest.
+  const NATIVE_WARD_ANSWERS_KEY = "native_ward_answers";
+  const NATIVE_WARD_ANSWERS_LIMIT = 200;
+  // An Email tap draws the card again when the composer returns. A lookup that has just
+  // failed is not repeated for that redraw; the next view a few seconds on asks again.
+  const WARD_LOOKUP_RETRY_AFTER_MS = 3000;
+  const wardAnswers = new Map();
+  const wardLookups = new Map();
+  const wardLookupFailedAt = new Map();
+  let nativeWardAnswerBag = null;
+
+  function wardLookupWanted(rec) {
+    return !!rec && rec.id != null && !Array.isArray(rec.ward_tenders)
+      && usingSharedVision() && normaliseIssueType(rec.issue_type) === "road_damage"
+      && finiteCoord(rec.lat) && finiteCoord(rec.lng);
+  }
+  function nativeWardAnswers() {
+    if (!nativeWardAnswerBag) {
+      try {
+        nativeWardAnswerBag = JSON.parse(localStorage.getItem(NATIVE_WARD_ANSWERS_KEY) || "{}");
+      } catch (_) { nativeWardAnswerBag = null; }
+      if (!nativeWardAnswerBag || typeof nativeWardAnswerBag !== "object") nativeWardAnswerBag = {};
+    }
+    return nativeWardAnswerBag;
+  }
+  function storeNativeWardAnswer(key, answer) {
+    const bag = nativeWardAnswers();
+    bag[key] = answer;
+    const keys = Object.keys(bag);
+    if (keys.length > NATIVE_WARD_ANSWERS_LIMIT) {
+      keys.sort((a, b) => (Number(bag[a] && bag[a].at) || 0) - (Number(bag[b] && bag[b].at) || 0))
+        .slice(0, keys.length - NATIVE_WARD_ANSWERS_LIMIT).forEach((old) => { delete bag[old]; });
+    }
+    try { localStorage.setItem(NATIVE_WARD_ANSWERS_KEY, JSON.stringify(bag)); } catch (_) {}
+  }
+  // The answer's own street-level tender, kept only to lend a title to a stored number.
+  function answerStreetTender(tender) {
+    const street = tender && sanitiseWardTenders([tender])[0];
+    if (!street) return null;
+    return { ...street, contractor: typeof tender.contractor === "string"
+      ? tender.contractor.trim().slice(0, 160) || null : null };
+  }
+  function rememberWardAnswer(key, answer) {
+    wardAnswers.delete(key);
+    wardAnswers.set(key, answer);
+    while (wardAnswers.size > WARD_ANSWER_MEMORY_LIMIT) {
+      wardAnswers.delete(wardAnswers.keys().next().value);
+    }
+  }
+  // The answer already in hand for a report that was never asked, without a call. Report
+  // ids start again after a delete-all, so an answer counts only for the place it was
+  // fetched for.
+  function heldWardAnswer(rec) {
+    if (!wardLookupWanted(rec)) return null;
+    const key = String(rec.id);
+    let held = wardAnswers.get(key) || null;
+    if (!held && rec._native) {
+      const kept = nativeWardAnswers()[key];
+      if (kept && typeof kept === "object" && Array.isArray(kept.ward_tenders)) {
+        held = { lat: kept.lat, lng: kept.lng, at: Number(kept.at) || 0,
+          ward_tenders: sanitiseWardTenders(kept.ward_tenders), ward_name: wardNameOf(kept),
+          street: answerStreetTender(kept.street) };
+        rememberWardAnswer(key, held);
+      }
+    }
+    return held && held.lat === rec.lat && held.lng === rec.lng ? held : null;
+  }
+  // One lookup per report at a time. With a budget the caller gets null when it runs out,
+  // and the lookup goes on: an answer that lands late is there for the next view.
+  function wardAnswerFor(rec, budgetMs = 0) {
+    if (!wardLookupWanted(rec)) return Promise.resolve(null);
+    const held = heldWardAnswer(rec);
+    if (held) return Promise.resolve(held);
+    const key = String(rec.id);
+    let lookup = wardLookups.get(key);
+    if (!lookup && Date.now() - (wardLookupFailedAt.get(key) || 0) < WARD_LOOKUP_RETRY_AFTER_MS) {
+      return Promise.resolve(null);
+    }
+    if (!lookup) {
+      lookup = tenderFromService(rec.lat, rec.lng, null, null,
+        `ward-lookup:${rec.client_observation_id || rec.source_event_key || key}`,
+        budgetMs > 0 ? Date.now() + budgetMs : 0)
+        .then((central) => {
+          if (!central || !central.reached) {
+            if (wardLookupFailedAt.size >= WARD_ANSWER_MEMORY_LIMIT) wardLookupFailedAt.clear();
+            wardLookupFailedAt.set(key, Date.now());
+            return null;
+          }
+          wardLookupFailedAt.delete(key);
+          const answer = {
+            lat: rec.lat, lng: rec.lng, at: Date.now(),
+            ward_tenders: central.ward_tenders, ward_name: central.ward_name,
+            street: answerStreetTender(central.tender),
+          };
+          rememberWardAnswer(key, answer);
+          if (rec._native) storeNativeWardAnswer(key, answer);
+          return answer;
+        }, () => null)
+        .finally(() => { wardLookups.delete(key); });
+      wardLookups.set(key, lookup);
+    }
+    if (!(budgetMs > 0)) return lookup;
+    return Promise.race([lookup,
+      new Promise((resolve) => setTimeout(() => resolve(null), budgetMs))]);
+  }
+  // A report in this app's own store keeps the answer on its row, and only that: the row
+  // is read and written in one transaction and nothing else on it is touched.
+  function storeWardAnswer(reportId, answer) {
+    return idb().then((d) => new Promise((resolve, reject) => {
+      const tx = d.transaction("reports", "readwrite");
+      const store = tx.objectStore("reports");
+      const read = store.get(Number(reportId));
+      read.onsuccess = () => {
+        const current = read.result;
+        if (!current || Array.isArray(current.ward_tenders)) return;
+        current.ward_tenders = answer.ward_tenders;
+        current.ward_name = answer.ward_name;
+        store.put(current);
+      };
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => reject(storageError(tx.error));
+      tx.onerror = () => {};
+    }));
+  }
+  // What the card and the Email tap call. A list row may be a copy that predates the
+  // answer, so for a report in this app's store the stored row decides.
+  async function wardTendersForReport(report, budgetMs = 0) {
+    if (!wardLookupWanted(report)) return null;
+    if (report._native) return wardAnswerFor(report, budgetMs);
+    const stored = await getReport(report.id).catch(() => null);
+    if (!stored) return null;
+    if (Array.isArray(stored.ward_tenders)) {
+      return { ward_tenders: stored.ward_tenders, ward_name: stored.ward_name || null, street: null };
+    }
+    const answer = await wardAnswerFor(stored, budgetMs);
+    if (answer) await storeWardAnswer(stored.id, answer).catch(() => {});
+    return answer;
+  }
+  // The stored tender number is the report's; an answer never replaces it. The answer may
+  // only lend it a title, and only when it names the same number. A stored tender the
+  // answer does not name has no title to print, so the letter asks about a ward tender.
+  function letterTenderWithAnswer(tender, answer) {
+    if (!tender || String(tender.title || "").trim() || !answer || !answer.street
+        || answer.street.tender_number !== String(tender.tender_number || "").trim()) return tender;
+    return { ...tender, title: answer.street.title,
+      contractor: tender.contractor || answer.street.contractor || null,
+      published: tender.published || answer.street.published || "" };
+  }
+  function complaintRoadWorkForRecord(rec, answer = null) {
+    const stored = rec && rec.tender_number ? {
+      tender_number: rec.tender_number, title: rec.tender_title || "",
+      contractor: rec.contractor || null, published: rec.tender_published || "",
+    } : null;
+    return complaintRoadWork(letterTenderWithAnswer(stored, answer),
+      rec && Array.isArray(rec.ward_tenders) ? rec.ward_tenders : answer && answer.ward_tenders);
+  }
+  // A letter written before the answer was known asks only the plain question.
+  function letterLacksRoadWork(rec, answer, body) {
+    const work = complaintRoadWorkForRecord(rec, answer);
+    return !!work && !String(body || "").includes(work.tender_number);
   }
 
   async function matchTender(address, lgd, lat, lng, clientObservationId) {
@@ -9704,7 +9882,7 @@
         ? Date.now() / 1000 : null,
       // Listed on the report card. The letter above asks about the first, as a question.
       ward_tenders: centralResolution && centralResolution.reached
-        ? centralResolution.ward_tenders : [],
+        ? centralResolution.ward_tenders : null,
       ward_name: centralResolution && centralResolution.reached
         ? centralResolution.ward_name : null,
       road_ownership: centralJurisdiction && centralJurisdiction.road_ownership || null,
@@ -9855,7 +10033,9 @@
   const hasAuthoritativeMunicipalOwnership = (rec) => !!rec
     && rec.road_ownership === "municipal" && hasCentralOwnershipProof(rec);
 
-  async function prepareComplaint(rec) {
+  // options.wardAnswer: what a caller that already asked for the ward answer got (null
+  // when the lookup failed or ran out of time), so one tap never asks twice.
+  async function prepareComplaint(rec, options = {}) {
     const lat = finiteCoord(rec && rec.lat) ? rec.lat : null;
     const lng = finiteCoord(rec && rec.lng) ? rec.lng : null;
     // The project service is the single ownership/tender authority for both detector
@@ -9888,6 +10068,8 @@
         contractor: rec.contractor || null,
         title: rec.tender_title || "",
         published: rec.tender_published || "",
+        // The caller writes this tender back to the record, so the stored note goes with it.
+        note: rec.tender_note || null,
         // Ignore legacy inferred DLP/maintenance values stored by older app builds.
         ...warrantyFor(rec.tender_published),
       };
@@ -9978,15 +10160,23 @@
       tender = await matchTender(address, lgd, lat, lng,
         rec.client_observation_id || rec.source_event_key || `native-${rec.id}`).catch(() => null);
     }
+    // A report never asked about its ward is asked now, unless this call already put the
+    // question to the resolver above. Only the letter below reads the answer.
+    let wardAnswer = options.wardAnswer || null;
+    if (options.wardAnswer === undefined && !sharedNeedsRevalidation) {
+      wardAnswer = await wardAnswerFor(rec, WARD_LOOKUP_BUDGET_MS);
+    }
     // The same facts the capture-time letter states, and the ward list this call's
     // answer carried, or the stored one when the resolver was not asked.
     const [subject, body] = draftEmail(
-      rec || {}, lat, lng, address, officerName, tender, null, {
+      rec || {}, lat, lng, address, officerName, letterTenderWithAnswer(tender, wardAnswer),
+      null, {
         captured_at: rec && (rec.captured_at || rec.created_at),
         gps_accuracy: Number(rec && rec.gps_accuracy),
         photo_provenance: rec && rec.capture_source === "manual_import"
           ? "User-selected/imported photo" : "Pothole Reporter camera evidence",
-        ward_tenders: wardTenders || (rec && rec.ward_tenders),
+        ward_tenders: wardTenders || (rec && Array.isArray(rec.ward_tenders)
+          ? rec.ward_tenders : wardAnswer && wardAnswer.ward_tenders),
       });
     const roadOwnership = authoritativeJurisdiction
       && authoritativeJurisdiction.road_ownership || null;
@@ -10013,6 +10203,26 @@
       error.report = toDict(rec);
       throw error;
     }
+    // A saved letter is sent as it stands, with no resolver call. A report never asked
+    // about its ward is asked first, inside the Email budget, so the letter can carry the
+    // question. Without a saved letter prepareComplaint asks, once, whichever way it goes.
+    const usesSavedLetter = hasAuthoritativeMunicipalOwnership(rec)
+      && !!rec.officer_email && !!rec.email_subject && !!rec.email_body
+      && rec.tender_resolution_checked_at != null;
+    const wardAnswer = usesSavedLetter && !options.keepLetter
+      ? await wardAnswerFor(rec, WARD_LOOKUP_BUDGET_MS) : null;
+    // What the app wrote for this report before it knew the answer, to tell its own text
+    // from anything a person changed.
+    const unanswered = wardAnswer && ["draft", "queued"].includes(rec.status)
+      ? (() => {
+          try {
+            return generatedComplaintOutputs(rec, storedComplaintLanguage(rec.email_body)).email_body;
+          } catch (_) { return null; }
+        })() : null;
+    if (wardAnswer) {
+      rec.ward_tenders = wardAnswer.ward_tenders;
+      rec.ward_name = wardAnswer.ward_name;
+    }
     // The saved text is what the composer receives, so an untouched draft from an older
     // template is brought up to date here, exactly as mutateReportAtomically does.
     const migrated = options.keepLetter ? rec : migrateLegacyComplaintRecord(rec);
@@ -10022,11 +10232,18 @@
         rec[field] = migrated[field];
       }
     }
+    // A current letter that is exactly the app's own text, written with only the plain
+    // question, is written again now that there is a road work to ask about.
+    if (unanswered && rec.email_body === unanswered
+        && letterLacksRoadWork(rec, wardAnswer, rec.email_body)) {
+      const rebuilt = generatedComplaintOutputs(rec, storedComplaintLanguage(rec.email_body));
+      for (const field of ["email_body", "whatsapp_text", "portal_fields", "portal_copy_text"]) {
+        rec[field] = rebuilt[field];
+      }
+    }
     let prepared;
     try {
-      prepared = hasAuthoritativeMunicipalOwnership(rec)
-          && rec.officer_email && rec.email_subject && rec.email_body
-          && rec.tender_resolution_checked_at != null
+      prepared = usesSavedLetter
         ? { to: rec.officer_email, officer_name: rec.officer_name || null,
             subject: rec.email_subject, body: rec.email_body,
             address: rec.address || null, body_lgd: rec.body_lgd || null,
@@ -10096,10 +10313,17 @@
       rec.tender_match_method = null;
     }
     // A resolver answer replaces the stored ward list, even with an empty one. A draft
-    // opened from its saved text asked nothing, so its list stays as it was.
+    // opened from its saved text asked nothing, so its list stays as it was. A report
+    // never asked keeps the answer prepareComplaint fetched for its letter.
     if (Array.isArray(prepared.ward_tenders)) {
       rec.ward_tenders = prepared.ward_tenders;
       rec.ward_name = prepared.ward_name || null;
+    } else {
+      const held = heldWardAnswer(rec);
+      if (held) {
+        rec.ward_tenders = held.ward_tenders;
+        rec.ward_name = held.ward_name;
+      }
     }
     progress(pmsg("email"));
     if (NATIVE) {
@@ -12933,7 +13157,8 @@
                    MMR_DIRECT_AUTHORITY_IDS, MMR_FALLBACK_AUTHORITY, MMR_FALLBACK_AUTHORITY_IDS,
                    MODEL_CONFIG, MUMBAI_DISTRICTS, MUMBAI_STATES, MUMBAI_WARDS,
                    MUNICIPAL_CITY_CONFIGS, NATIONAL_HIGHWAY_AUTHORITY, NATIVE,
-                   NATIVE_REPAIR_CONTRACT_VERSION, NOMINATIM_REVERSE_ENDPOINT,
+                   NATIVE_REPAIR_CONTRACT_VERSION, NATIVE_WARD_ANSWERS_KEY,
+                   NATIVE_WARD_ANSWERS_LIMIT, NOMINATIM_REVERSE_ENDPOINT,
                    NON_CARRIAGEWAY_ASSETS, NON_SURFACE_ROAD_MODIFIERS, NO_VERIFIED_CONTRACT,
                    OAI_URL, ODISHA_ROUTING_ENVELOPE, ODISHA_STATE_AUTHORITY,
                    ODISHA_STATE_GEOMETRY_SHA256, OFFICERS, OFFICER_TITLES, OFFICIAL_AUTHORITIES,
@@ -12971,6 +13196,7 @@
                    THUMB_MAX_DIM, TOP50_AUTHORITY_BY_STATE, TOP50_MAJOR_CITY_RANKS,
                    UTTAR_PRADESH_ROUTING_ENVELOPE, UTTAR_PRADESH_STATE_AUTHORITY,
                    UTTAR_PRADESH_STATE_GEOMETRY_SHA256, VERIFIED_HANDOFF_FIELDS,
+                   WARD_ANSWER_MEMORY_LIMIT, WARD_LOOKUP_BUDGET_MS, WARD_LOOKUP_RETRY_AFTER_MS,
                    WARD_TENDER_LIMITS, WEST_BENGAL_ROUTING_ENVELOPE, WEST_BENGAL_STATES,
                    WEST_BENGAL_STATE_AUTHORITY, WEST_BENGAL_STATE_GEOMETRY_SHA256,
                    _contractPackMemory, _contractPackPromises, _highwayTileMemory,
@@ -12980,29 +13206,30 @@
                    _statePackPromises, acceptedReport, accuracyCircleWithinEnvelope, addReport,
                    addReportUnlessDuplicate, allCentralOutbox, allDrives, allReports,
                    allStatePacks, allStoredRecordsAreEmpty, analyzeImage, analyzeViaService,
-                   andhraPradeshCoverage, andhraPradeshRouteFromGeocode, applyCentralPothole,
-                   applyDetectionEnhancement, applyRouteRecord, applyTenderRecord,
-                   applyVerifiedHandoff, assertComplaintInvariants, assessmentOf, authHeaders,
-                   authorityComplaintProfile, authorityRoute, averageLuminance, b64ToBytes,
-                   biharCoverage, biharRouteFromGeocode, binaryAssessment, blobToDataUrl,
-                   bmcWardFromBoundary, bodies, buildComplaintOutputs, buildDetectionRequest,
-                   buildTenderMatchRequest, busyCentralFailure, bytesToB64, bytesToBase64,
-                   cachedPackBytes, canSearchTenderCatalog, candidateLeadIsUnambiguous,
-                   canonicalJson, canonicalServiceRequest, catalogResourceWithinReview,
-                   centralPotholeRequest, centralReportIsConfirmed, chhattisgarhCoverage,
-                   chhattisgarhRouteFromGeocode, civicIssueName, clearAllStoredRecords,
-                   clearPackCache, compatibleDamage, compatibleDraftRoute,
-                   complaintBodyWithFooter, complaintFooter, complaintLanguage,
-                   complaintOutputsForRecord, complaintRoadWork, complaintRouteError,
-                   complaintRoutingBlock, completeCentralRetry, conciseRouteLabel,
-                   conditionStatus, confirmEmailSent, confirmedTemporaryAssessment,
-                   connectivityError, containingMmrAuthorities, contractLookupEvidence,
-                   contractPackProvenance, contractVerificationFor, coordinatedRoadNoun,
-                   createCivicReport, createReport, currentOfficialRouteBinding, damageTypeOf,
-                   dataUrlToBlob, decisionFor, decodeRepairEvidence, delCentralOutbox,
-                   deleteCachedStatePack, deleteDriveFrames, deleteFootageFor,
-                   deleteReportAndCentralOutbox, delhiCoverage, delhiRouteFromGeocode,
-                   detachedDetections, detectionEnhancementPlan, detectionsInFlight, distMeters,
+                   andhraPradeshCoverage, andhraPradeshRouteFromGeocode, answerStreetTender,
+                   applyCentralPothole, applyDetectionEnhancement, applyRouteRecord,
+                   applyTenderRecord, applyVerifiedHandoff, assertComplaintInvariants,
+                   assessmentOf, authHeaders, authorityComplaintProfile, authorityRoute,
+                   averageLuminance, b64ToBytes, biharCoverage, biharRouteFromGeocode,
+                   binaryAssessment, blobToDataUrl, bmcWardFromBoundary, bodies,
+                   buildComplaintOutputs, buildDetectionRequest, buildTenderMatchRequest,
+                   busyCentralFailure, bytesToB64, bytesToBase64, cachedPackBytes,
+                   canSearchTenderCatalog, candidateLeadIsUnambiguous, canonicalJson,
+                   canonicalServiceRequest, catalogResourceWithinReview, centralPotholeRequest,
+                   centralReportIsConfirmed, chhattisgarhCoverage, chhattisgarhRouteFromGeocode,
+                   civicIssueName, clearAllStoredRecords, clearPackCache, compatibleDamage,
+                   compatibleDraftRoute, complaintBodyWithFooter, complaintFooter,
+                   complaintLanguage, complaintOutputsForRecord, complaintRoadWork,
+                   complaintRoadWorkForRecord, complaintRouteError, complaintRoutingBlock,
+                   completeCentralRetry, conciseRouteLabel, conditionStatus, confirmEmailSent,
+                   confirmedTemporaryAssessment, connectivityError, containingMmrAuthorities,
+                   contractLookupEvidence, contractPackProvenance, contractVerificationFor,
+                   coordinatedRoadNoun, createCivicReport, createReport,
+                   currentOfficialRouteBinding, damageTypeOf, dataUrlToBlob, decisionFor,
+                   decodeRepairEvidence, delCentralOutbox, deleteCachedStatePack,
+                   deleteDriveFrames, deleteFootageFor, deleteReportAndCentralOutbox,
+                   delhiCoverage, delhiRouteFromGeocode, detachedDetections,
+                   detectionEnhancementPlan, detectionsInFlight, distMeters,
                    draftCivicComplaint, draftEmail, drainSSE, driveCommitTails, driveSummaries,
                    effectiveVisionProvider, eligibleRepairTarget, emailAttachmentBase64,
                    emitVerdict, ensureStorageHeadroom, envelopeGeometry, eventSighting,
@@ -13020,22 +13247,23 @@
                    getRoadAgreementManifest, getRoadNoticeManifest, getStatePackManifest,
                    goaCoverage, goaRouteFromGeocode, gpsAccuracyEnvelope, handle, hasAny,
                    hasAuthoritativeMunicipalOwnership, hasCentralOwnershipProof,
-                   hasCoverageGeometry, headingDifference, highwayContractCandidates,
-                   highwayPackProvenance, highwayRefsInNotice, highwayRefsOf, highwayTileIdFor,
-                   historySummary, idb, idbTakesBlobs, imageHash, importNativeReport,
-                   inCoverage, inDelhiEnvelope, inKarnatakaRoutingEnvelope,
-                   inMaharashtraRoutingEnvelope, inMajorCityCandidateEnvelope,
-                   inWestBengalRoutingEnvelope, indianStateMatches, installRoutingAuthorities,
-                   installationIdentity, isKarnatakaGeocode, isKnownNonKarnatakaGeocode,
-                   isMaharashtraGeocode, isManualCaptureSource, isOfficialHandoff,
-                   isPrunableFrame, isReportRow, isStatewideHandoff, isUnfiledReport,
-                   isWestBengalGeocode, issueFileStem, jurisdictionOf, karnatakaStateCoverage,
-                   karnatakaStateRouteFromGeocode, keralaCoverage, keralaRouteFromGeocode,
-                   kgisCivicJurisdiction, kgisJurisdiction, kgisPoint, kolkataCoverage,
-                   kolkataRouteFromGeocode, listDict, loadHighwayContractPack, loadHighwayTile,
-                   loadInstallationIdentity, loadRoadAgreementPack, loadRoadNoticePack,
-                   loadStatePack, localDamageFamily, madhyaPradeshCoverage,
-                   madhyaPradeshRouteFromGeocode, maharashtraCoverage,
+                   hasCoverageGeometry, headingDifference, heldWardAnswer,
+                   highwayContractCandidates, highwayPackProvenance, highwayRefsInNotice,
+                   highwayRefsOf, highwayTileIdFor, historySummary, idb, idbTakesBlobs,
+                   imageHash, importNativeReport, inCoverage, inDelhiEnvelope,
+                   inKarnatakaRoutingEnvelope, inMaharashtraRoutingEnvelope,
+                   inMajorCityCandidateEnvelope, inWestBengalRoutingEnvelope,
+                   indianStateMatches, installRoutingAuthorities, installationIdentity,
+                   isKarnatakaGeocode, isKnownNonKarnatakaGeocode, isMaharashtraGeocode,
+                   isManualCaptureSource, isOfficialHandoff, isPrunableFrame, isReportRow,
+                   isStatewideHandoff, isUnfiledReport, isWestBengalGeocode, issueFileStem,
+                   jurisdictionOf, karnatakaStateCoverage, karnatakaStateRouteFromGeocode,
+                   keralaCoverage, keralaRouteFromGeocode, kgisCivicJurisdiction,
+                   kgisJurisdiction, kgisPoint, kolkataCoverage, kolkataRouteFromGeocode,
+                   letterLacksRoadWork, letterTenderWithAnswer, listDict,
+                   loadHighwayContractPack, loadHighwayTile, loadInstallationIdentity,
+                   loadRoadAgreementPack, loadRoadNoticePack, loadStatePack, localDamageFamily,
+                   madhyaPradeshCoverage, madhyaPradeshRouteFromGeocode, maharashtraCoverage,
                    maharashtraRouteFromGeocode, majorCityCoverage, majorCityRouteFromGeocode,
                    mapStatus, markDetectionDeferred, markDetectionRefused, markPackInUse,
                    markProjectServiceAvailable, markProjectServiceUnavailable,
@@ -13048,10 +13276,10 @@
                    municipalCityCoverageCache, municipalCityCoveragePromises,
                    municipalCityRouteFromGeocode, municipalGeometryBounds,
                    mutateReportAtomically, nationalHighwayRoute, nativeDetectorContract,
-                   nonCarriagewayTreatmentTargetRe, nonWorksServiceRe, normaliseAuthorityValue,
-                   normaliseDetail, normaliseIssueType, normaliseManualCaptureSource,
-                   normaliseModel, normaliseTenderMatch, noteSharedCheck,
-                   nullableRoadAgreementText, oai, oaiStream, odishaCoverage,
+                   nativeWardAnswers, nonCarriagewayTreatmentTargetRe, nonWorksServiceRe,
+                   normaliseAuthorityValue, normaliseDetail, normaliseIssueType,
+                   normaliseManualCaptureSource, normaliseModel, normaliseTenderMatch,
+                   noteSharedCheck, nullableRoadAgreementText, oai, oaiStream, odishaCoverage,
                    odishaRouteFromGeocode, officialArcGisCount, officialIndianPublicRecordUrl,
                    officialPointRegionMatch, op, openBengaluruHandoff, openEmailDraft, openIdb,
                    openNationalHighwayHandoff, openOfficialHandoff, optionalCatalogResult,
@@ -13068,7 +13296,7 @@
                    rebuildOfficialAuthorityIndex, recordCentralRetryFailure,
                    refreshAndPersistOfficialHandoff, refreshGeneratedComplaintFields,
                    registerCentralPothole, rejectedVerdict, remainingStateCoverage,
-                   remainingStateRouteFromGeocode, repairProvenanceIsExact,
+                   remainingStateRouteFromGeocode, rememberWardAnswer, repairProvenanceIsExact,
                    repairTargetPhotoBytes, replaceStableObject, reportSummary, reportThumb,
                    reportThumbs, requestPersistentStorage, reserveDriveCommit,
                    resetContractPackMemory, resetHighwayPackMemory,
@@ -13089,10 +13317,11 @@
                    sha256Bytes, sha256Hex, sha256HexBytes, sha256HexText, sharedChecksToday,
                    shortlistFor, signedServicePost, sizeConflict, staleRoadComplaintBody,
                    startLowerCatalogMatches, stateCodeForGeocode, statePackCacheKey,
-                   statePackProvenance, statusError, storageError, storedComplaintLanguage,
-                   storedDamageType, storedPhoto, storedSightings, structuredPlaceMatch,
-                   summarizeFootageAnalysis, surfaceTreatmentRe, tamilNaduCoverage,
-                   tamilNaduRouteFromGeocode, telanganaCoverage, telanganaRouteFromGeocode,
+                   statePackProvenance, statusError, storageError, storeNativeWardAnswer,
+                   storeWardAnswer, storedComplaintLanguage, storedDamageType, storedPhoto,
+                   storedSightings, structuredPlaceMatch, summarizeFootageAnalysis,
+                   surfaceTreatmentRe, tamilNaduCoverage, tamilNaduRouteFromGeocode,
+                   telanganaCoverage, telanganaRouteFromGeocode,
                    temporarySurfaceNeedsConfirmation, temporarySurfaceVoteEligible,
                    temporarySurfaceVoteNeedsAnother, tenderCoversCarriageway, tenderFromService,
                    tenderTokens, tenders, tendersFor, terminalCentralFailure, toDataUrl, toDict,
@@ -13119,12 +13348,15 @@
                    validateTamilNaduPayload, validateTelanganaPayload, validateTenderPack,
                    validateUttarPradeshPayload, verifiedBdaResponsibility,
                    verifiedContractForComplaint, vodBurstTimes, vodSampleTimes,
-                   waitForFreedSpace, waitForNominatimSlot, wardNameOf, warrantyFor,
-                   westBengalCoverage, withDriveImagePreparation, withPackRetries,
-                   withSpeedDefaults, writeFeedbackQueue, zip, matchTenderFor: matchTender,
+                   waitForFreedSpace, waitForNominatimSlot, wardAnswerFor, wardAnswers,
+                   wardLookupFailedAt, wardLookupWanted, wardLookups, wardNameOf,
+                   wardTendersForReport, warrantyFor, westBengalCoverage,
+                   withDriveImagePreparation, withPackRetries, withSpeedDefaults,
+                   writeFeedbackQueue, zip, matchTenderFor: matchTender,
                  };
 
-  window.StandaloneAPI = { __pure, handle, prewarm, prepareComplaint, sharedChecksToday };
+  window.StandaloneAPI = { __pure, handle, prewarm, prepareComplaint, sharedChecksToday,
+                           wardTenders: wardTendersForReport };
 
   // Pending accepted observations contain no image or complaint text. Retry them only
   // at bounded lifecycle signals; the stable body/idempotency key prevents double count.
