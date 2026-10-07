@@ -507,21 +507,25 @@ export const SOURCES = [
 // What a ward of each committed snapshot can be matched by, and how that is known. Read
 // off data/wards/COVERAGE.md (7 Oct 2026): "tested" means notices of the body were
 // matched and read by a person; "untested" means the body has too few notices in the
-// packs to say, and the vintage is the only guide.
+// packs to say, and the vintage is the only guide. The service uses a snapshot only if
+// this says match by name or by number, a match by number says "current", and the pairs
+// the service returns were read (tools/india-ward-runtime.mjs, data/wards/runtime.json).
+// "A later map" in the evidence is a newer ward map that may not be copied (OpenCity's
+// files of 2022 to 2024, licence unclear) and was only measured against.
 const USE = {
   "UP/kanpur": { by: "name", numbers: "wrong", evidence: "tested: every title that gives a name beside a number the file draws gives another name than the file's (17 of 17); 20 of 23 number pairs read were wrong" },
   "UP/lucknow": { by: "name", numbers: "untested", evidence: "untested: one notice of the body in the packs" },
-  "MP/bhopal": { by: "number", numbers: "current", evidence: "tested: the places seven titles name lie in or within 100 m of the ward of the title's number; names are in Devanagari and cannot be matched to Latin-letter titles" },
+  "MP/bhopal": { by: "number", numbers: "current", evidence: "tested: 41 of 41 pairs the service returns were read right, 29 of them with a place the title names found in or beside the ward of its number; a 2024 ward map keeps the number of 97.7% of the file's area. Names are in Devanagari and cannot be matched to Latin-letter titles" },
   "GJ/ahmedabad": { by: "name", numbers: "untested", evidence: "tested by name: 30 of 30 pairs read were right; the titles carry no ward numbers" },
   "GJ/vadodara": { by: "name", numbers: "untested", evidence: "untested: no notice of the body in the packs" },
   "DL/delhi-2017": { by: "name", numbers: "wrong", evidence: "numbers are the 2017 delimitation's, replaced in 2022; by name 1 of 15 pairs read was right, 10 were one sub-city name spread over five wards" },
   "TG/hyderabad": { by: "name", numbers: "wrong", evidence: "tested: titles of 2026 use a new numbering (ward 17 is Cherlapally, here ward 3); a name on the title's own ward marker was right in 5 of 5 pairs read" },
-  "TN/chennai": { by: "number", numbers: "untested", evidence: "untested: the titles write \"Div-128\" and \"Dn 62\", which the service's parser does not read as ward numbers" },
-  "TN/coimbatore": { by: "number", numbers: "untested", evidence: "untested: two notices of the body in the packs" },
+  "TN/chennai": { by: "nothing", numbers: "wrong", evidence: "tested: 8 of 17 pairs read were wrong. The 200 wards were renumbered after the file was drawn: its ward 29 lies wholly in ward 22 of the corporation's 2022 map, and 61.5% of its area keeps its number. The file has no names" },
+  "TN/coimbatore": { by: "nothing", numbers: "wrong", evidence: "tested: 12% of the file's area keeps its number in the corporation's later 100-ward map; neither of the two pairs read could be told. The file has no names" },
   "TN/tiruchirappalli": { by: "number", numbers: "untested", evidence: "untested: no notice of the body in the packs" },
-  "OD/bhubaneswar": { by: "number", numbers: "untested", evidence: "11 of the body's 12 notices give a ward number the file draws; no place in them could be located to check" },
+  "OD/bhubaneswar": { by: "number", numbers: "untested", evidence: "partly tested: 12 of 15 pairs read were right (six titles name a place found inside the ward of their number, three group wards the file draws side by side) and 3 could not be told; no later map was found to check the other 55 wards" },
   "CH/chandigarh-2016": { by: "nothing", numbers: "wrong", evidence: "the 26-ward numbering was replaced by 35 wards in 2021 and the file has no names" },
-  "HR/faridabad": { by: "number", numbers: "untested", evidence: "untested: 40 wards as drawn, not checked against the later re-delimitation" },
+  "HR/faridabad": { by: "nothing", numbers: "wrong", evidence: "tested: 2 of 5 pairs read were wrong and 2 right (the title's Sector 14 is 3.7 km from the file's ward 35; Dabua Colony is in its ward 10). The file has no names" },
   "RJ/jaipur-2009": { by: "nothing", numbers: "wrong", evidence: "tested: 14 of 15 number pairs read were wrong (the title's ward 57 is Chitrakoot, 9.4 km from this file's ward 57) and the file has no names" },
   "RJ/kishangarh": { by: "number", numbers: "untested", evidence: "untested: no notice of the body in the packs" },
   "WB/kolkata": { by: "number", numbers: "untested", evidence: "untested: no notice of the body in the packs" },
@@ -529,7 +533,7 @@ const USE = {
   "MH/mumbai-electoral-2017": { by: "number", numbers: "untested", evidence: "untested: three notices of the body in the packs" },
   "MH/pune": { by: "number", numbers: "untested", evidence: "untested: none of the body's five notices gives a prabhag number" },
   "MH/pune-2022": { by: "name", numbers: "wrong", evidence: "numbers are the 2022 delimitation's, replaced in 2025; names untested" },
-  "MH/navi-mumbai": { by: "number", numbers: "untested", evidence: "untested: two notices of the body in the packs; wards of 2015" },
+  "MH/navi-mumbai": { by: "nothing", numbers: "wrong", evidence: "tested: both pairs read were wrong (Sanpada is 1.4 km from the file's ward 18, CBD Belapur 10.9 km from its ward 28); wards of 2015. The file has no names" },
   "MH/pimpri-chinchwad": { by: "number", numbers: "untested", evidence: "untested: no notice of the body in the packs; undated and likely superseded" },
   "KL/kochi": { by: "name", numbers: "wrong", evidence: "divisions of 2022, replaced in 2025; names untested (five notices of the body)" },
   "AP/vijayawada": { by: "number", numbers: "untested", evidence: "untested: the app ships no Andhra Pradesh notices" },

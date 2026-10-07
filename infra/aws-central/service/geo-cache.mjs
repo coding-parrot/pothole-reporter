@@ -41,6 +41,9 @@ export function createCachedGeolocator({ geolocator, repository, ttlMs = WEEK_MS
     // to cache, but core.mjs asks its geolocator for it and must find it here.
     wardRoster: (wardCode) => (typeof geolocator.wardRoster === "function"
       ? geolocator.wardRoster(wardCode) : Promise.resolve([])),
+    // Likewise the ward snapshots outside Karnataka: read from the package, passed through.
+    wardSnapshot: (id) => (typeof geolocator.wardSnapshot === "function"
+      ? geolocator.wardSnapshot(id) : Promise.resolve(null)),
     async resolve(input) {
       const { lat, lng } = input;
       const cell = Number.isFinite(lat) && Number.isFinite(lng) ? cellOf(lat, lng) : null;
@@ -51,7 +54,13 @@ export function createCachedGeolocator({ geolocator, repository, ttlMs = WEEK_MS
           : await repository.getGeoCell(cell).catch(() => null);
         if (stored && stored.expiresAt > now() && storable(stored.value)) {
           if (stored !== held) remember(cell, stored.value, stored.expiresAt);
-          return { ...stored.value, lat, lng, lookup: { ...stored.value.lookup, cache: "hit" } };
+          const hit = { ...stored.value, lat, lng, lookup: { ...stored.value.lookup, cache: "hit" } };
+          // The ward of a point outside Karnataka is not taken from the stored answer:
+          // which ward snapshots are switched on changes with a deploy, and a cell kept
+          // for a week would go on naming a ward from one that was switched off (or name
+          // none for one switched on). It is worked out from the packaged polygons, under
+          // a millisecond. A Karnataka answer comes back from placeWard untouched.
+          return typeof geolocator.placeWard === "function" ? geolocator.placeWard(hit) : hit;
         }
       }
       const value = await geolocator.resolve(input);
