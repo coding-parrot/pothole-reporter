@@ -114,6 +114,17 @@ export function metresToSegment(lng, lat, aLng, aLat, bLng, bLat) {
   return Math.hypot(ax + turn * dx, ay + turn * dy);
 }
 
+// Metres in one degree of latitude and of longitude at a latitude, on the WGS84
+// ellipsoid. KGIS buffers a query point geodesically; over the few metres a highway
+// buffer spans, these two factors reproduce that to well under a millimetre.
+export function metresPerDegree(lat) {
+  const phi = lat * Math.PI / 180;
+  return {
+    lat: 111_132.92 - 559.82 * Math.cos(2 * phi) + 1.175 * Math.cos(4 * phi) - 0.0023 * Math.cos(6 * phi),
+    lng: 111_412.84 * Math.cos(phi) - 93.5 * Math.cos(3 * phi) + 0.118 * Math.cos(5 * phi),
+  };
+}
+
 export function metresToPolyline(lng, lat, encoded, scale) {
   const line = decodeRun(encoded);
   let nearest = Infinity;
