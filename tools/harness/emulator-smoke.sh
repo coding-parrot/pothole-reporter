@@ -179,9 +179,15 @@ for _ in 1 2 3 4 5 6 7 8; do
   if grant_visible_permission; then
     granted=$((granted + 1))
   else
-    # No dialog on screen. One may still be on its way, so look again before moving on.
-    sleep 2
-    "$ADB" shell dumpsys window 2>/dev/null | grep -q GrantPermissionsActivity || break
+    # No dialog on screen. One may still be on its way: on a loaded machine the location
+    # sheet followed the camera sheet by more than 2 s, the loop gave up in the gap, and
+    # the run failed with the sheet still up (twice on 7 Oct 2026). Look for 12 s.
+    coming=0
+    for _ in 1 2 3 4 5 6; do
+      sleep 2
+      if "$ADB" shell dumpsys window 2>/dev/null | grep -q GrantPermissionsActivity; then coming=1; break; fi
+    done
+    [ "$coming" = "1" ] || break
   fi
 done
 echo "   granted $granted permission dialog(s)"
