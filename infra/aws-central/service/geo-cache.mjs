@@ -14,8 +14,10 @@
 // up to a week. v2: the ward (ward_name, ward_no, ward_code, lookup.ward) and
 // address_parts.localities, which ward tender matching reads. v3: the road class comes
 // from the packaged layers, and a point inside Karnataka with no named panchayat is
-// rural where the live lookup had stored outside_state.
-const VERSION = "v3";
+// rural where the live lookup had stored outside_state. v4: the street is read from the
+// packaged index (address_source "packaged_streets", lookup.streets); a cell stored from
+// the geocoder would keep saying so for a week and hide a package without the index.
+const VERSION = "v4";
 // An address the service found itself (geolocation.mjs SERVER_ADDRESS_SOURCES). Listed
 // here too so this module stays free of the geolocator's imports.
 const SERVER_ADDRESS_SOURCES = new Set(["operator_geocoder", "packaged_streets"]);
