@@ -30,7 +30,20 @@ EFFORT = MODEL_CONFIG["reasoningEffortByModel"].get(
 PROMPT = DETECTION["base"] + DETECTION["captureLayouts"]["drive"]
 # gpt-5-mini list price in USD per million tokens (OpenAI pricing page, October 2026).
 USD_PER_M = {"input": 0.25, "cached_input": 0.025, "output": 2.00}
-ESTIMATE_TOKENS = {"input": 1963, "output": 100}
+# What a call costs, for the check made before any money is spent. Fitted to v1's usage:
+# 863 input tokens of prompt and schema plus about 1.2 per 32-pixel patch of the image
+# (1,276 measured for a 480 x 720 frame, 1,496 for 720 x 720), and about 100 output tokens.
+ESTIMATE_OUTPUT_TOKENS = 100
+
+
+def estimate_usd(path):
+    from PIL import Image
+
+    width, height = Image.open(path).size
+    patches = -(-width // 32) * -(-height // 32)
+    return cost_usd({"input_tokens": 863 + 1.2 * patches, "output_tokens": ESTIMATE_OUTPUT_TOKENS})
+
+
 CONTRACT_KEY = sha256_hex(json.dumps({
     "model": MODEL, "detail": DETAIL, "effort": EFFORT, "prompt": PROMPT,
     "schema": DETECTION["schema"], "verbosity": RUNTIME_CONFIG["textVerbosity"],
@@ -161,8 +174,7 @@ def main():
     todo = [row for row in rows if not cache_path(row["sha256"], args.trial).exists()]
     if args.limit:
         todo = todo[:args.limit]
-    estimate = len(todo) * cost_usd({"input_tokens": ESTIMATE_TOKENS["input"],
-                                     "output_tokens": ESTIMATE_TOKENS["output"]})
+    estimate = sum(estimate_usd(FRAMES / row["path"]) for row in todo)
     print(f"contract {CONTRACT_KEY} model {MODEL} detail {DETAIL} effort {EFFORT}")
     print(f"{len(rows)} frames selected, {len(todo)} to label, already spent "
           f"USD {spent:.2f}, this run about USD {estimate:.2f}", flush=True)

@@ -26,6 +26,7 @@ import argparse
 import json
 import random
 import re
+import shutil
 import sys
 import zipfile
 from collections import Counter
@@ -91,8 +92,12 @@ def rdd2022():
     inner_dir.mkdir(exist_ok=True)
     with zipfile.ZipFile(outer_path) as outer:
         for country in RDD_COUNTRIES:
-            if not (inner_dir / f"{country}.zip").exists():
-                (inner_dir / f"{country}.zip").write_bytes(outer.read(f"RDD2022/{country}.zip"))
+            target = inner_dir / f"{country}.zip"
+            if not target.exists():  # Norway's is 10.6 GB: copied as a stream, never held in memory
+                partial = target.with_suffix(".part")
+                with outer.open(f"RDD2022/{country}.zip") as source, open(partial, "wb") as output:
+                    shutil.copyfileobj(source, output, 16 * 1024 * 1024)
+                partial.rename(target)
     for country, (split, plan) in RDD_COUNTRIES.items():
         slug = country.lower().replace("_", "-")
         path = str(inner_dir / f"{country}.zip")
