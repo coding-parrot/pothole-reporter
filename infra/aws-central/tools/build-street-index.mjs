@@ -12,12 +12,15 @@
 //     Needs osmium-tool (brew install osmium-tool). Filters the extract once to streets,
 //     place names, administrative boundaries, named landuse and postcodes (about three
 //     minutes, 0.8 GB of memory), renumbers its nodes (2.2 GB at the peak, the most any
-//     step takes), averages the postcode centres of all India, then cuts each region's
-//     box out with a 0.2 degree margin. Writes only under .work/.
+//     step takes), averages the postcode centres of all India, cuts each region's box
+//     out with a 0.2 degree margin, and hands each region the state to city level
+//     boundaries around it. Writes only under .work/; a step whose output is there is
+//     not run again, so delete a file to redo its step.
 //
 //   node infra/aws-central/tools/build-street-index.mjs build [--region <id>]...
 //     Reads a region's cut, computes every street's address the way Nominatim does, and
 //     writes data/streets/<id>/manifest.json and one tile file per quarter degree.
+//     Karnataka takes 45 seconds and 1.7 GB.
 //
 //   node infra/aws-central/tools/build-street-index.mjs sizes
 //     Prints what each built region costs in the package.
@@ -39,10 +42,19 @@
 //                label, not a place of its own
 //   choice       by rank: areas before nodes, then nearest; a node counts only inside
 //                the last boundary chosen
-//   read back    one line per rank, an area that contains the street's centre first
+//   read back    one line per rank, an area that contains the point's place on the
+//                street first: so a street is cut where it leaves one such area for
+//                another, and each stretch is stored with its own address
 //   postcode     the street's own tag, else that of the most specific place that has
-//                one, else the nearest postcode centre within 5 km (the centre being
-//                the mean position of every object in India tagged with that postcode)
+//                one, else a mapped postcode area over the street's centre, else the
+//                nearest postcode centre within 5 km (the centre being the mean position
+//                of every object in India tagged with that postcode)
+//
+// What this cannot reproduce: Nominatim stores a street's address and postcode when it
+// indexes the street and leaves them until the street is indexed again. A place node
+// added since, more than 220 m away, is in this tool's answer and not yet in Nominatim's
+// (5 of 419 Bengaluru points on 7 Oct 2026), and a postcode centre moves as objects are
+// tagged (13 of 298 points outside Bengaluru's mapped postcode areas).
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -88,7 +100,11 @@ export const REGIONS = Object.freeze([
 
 export const TILE_DEGREES = 0.25;
 export const CELL_DEGREES = 0.0025;
-export const SCALE = 100_000;
+// Coordinates are whole numbers of 1/200,000 of a degree (0.55 m) and a street is
+// simplified to 2 m, keeping every vertex where another street joins. Measured on 419
+// Bengaluru points against the street Nominatim chose: with the junctions dropped 5 points
+// snapped to a different street, with them kept and a 1.1 m unit 1 did, with this, none.
+export const SCALE = 200_000;
 export const SIMPLIFY_METRES = 2;
 // The run-time grid reaches this many cells past a tile's edge, so a point at the edge
 // still finds every street within the snap limit in its own tile.
@@ -601,8 +617,10 @@ export function boxOfMetres(lng, lat, radius) {
   return [lng - ground / perLng, lat - ground / perLat, lng + ground / perLng, lat + ground / perLat];
 }
 
-// Douglas and Peucker, with distances in metres at the line's own latitude.
-export function simplify(coords, metres) {
+// Douglas and Peucker, with distances in metres at the line's own latitude. `fixed(x, y)`
+// names vertices that must stay: where another street joins, so that a point nearest a
+// junction is still exactly as far from each street that meets there.
+export function simplify(coords, metres, fixed = null) {
   const points = coords.length / 2;
   if (points <= 2 || !(metres > 0)) return coords;
   const kx = 111_320 * Math.cos((coords[1] * Math.PI) / 180);
@@ -610,7 +628,14 @@ export function simplify(coords, metres) {
   const keep = new Uint8Array(points);
   keep[0] = 1;
   keep[points - 1] = 1;
-  const stack = [[0, points - 1]];
+  const stack = [];
+  let from = 0;
+  for (let index = 1; index < points; index += 1) {
+    if (index !== points - 1 && !(fixed && fixed(coords[index * 2], coords[index * 2 + 1]))) continue;
+    keep[index] = 1;
+    stack.push([from, index]);
+    from = index;
+  }
   while (stack.length) {
     const [first, last] = stack.pop();
     let worst = 0;
@@ -633,6 +658,62 @@ export function simplify(coords, metres) {
     to += 2;
   }
   return out;
+}
+
+// The vertices that more than one street passes through, as a test on (x, y). Every
+// vertex is packed into one number, the numbers are sorted, and a repeat is a junction.
+export function junctionsOf(streets) {
+  let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity; let total = 0;
+  for (const street of streets) {
+    const coords = street.coords;
+    if (!coords) continue;
+    total += coords.length / 2;
+    for (let index = 0; index < coords.length; index += 2) {
+      if (coords[index] < minX) minX = coords[index];
+      if (coords[index] > maxX) maxX = coords[index];
+      if (coords[index + 1] < minY) minY = coords[index + 1];
+      if (coords[index + 1] > maxY) maxY = coords[index + 1];
+    }
+  }
+  // OpenStreetMap coordinates have seven decimals. Two of them fit one exact number as
+  // long as the region is not much wider than a large state.
+  const tall = Math.round((maxY - minY) * 1e7) + 1;
+  if (total && (Math.round((maxX - minX) * 1e7) + 1) * tall > Number.MAX_SAFE_INTEGER) {
+    throw new Error("region too large to index its junctions: split it into two regions");
+  }
+  const pack = (x, y) => Math.round((x - minX) * 1e7) * tall + Math.round((y - minY) * 1e7);
+  const keys = new Float64Array(total);
+  let at = 0;
+  for (const street of streets) {
+    const coords = street.coords;
+    if (!coords) continue;
+    // A way that returns to one of its own vertices is not a junction with another.
+    const own = new Set();
+    for (let index = 0; index < coords.length; index += 2) {
+      const key = pack(coords[index], coords[index + 1]);
+      if (own.has(key)) continue;
+      own.add(key);
+      keys[at] = key;
+      at += 1;
+    }
+  }
+  const sorted = keys.subarray(0, at).sort();
+  let count = 0;
+  for (let index = 1; index < sorted.length; index += 1) {
+    if (sorted[index] === sorted[index - 1] && (count === 0 || sorted[count - 1] !== sorted[index])) { sorted[count] = sorted[index]; count += 1; }
+  }
+  const shared = sorted.slice(0, count);
+  return (x, y) => {
+    const key = pack(x, y);
+    let low = 0;
+    let high = shared.length - 1;
+    while (low <= high) {
+      const middle = (low + high) >> 1;
+      if (shared[middle] === key) return true;
+      if (shared[middle] < key) low = middle + 1; else high = middle - 1;
+    }
+    return false;
+  };
 }
 
 // ---------------------------------------------------------------------------------------
@@ -1002,9 +1083,9 @@ const zigzag = (value) => ((value << 1) ^ (value >> 31)) >>> 0;
 
 const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 
-function encodeTile({ region, key, ix, iy, tileDegrees, streets, tupleOf, coverage }) {
-  const originX = Math.round((ix * tileDegrees - 180) * SCALE);
-  const originY = Math.round((iy * tileDegrees - 90) * SCALE);
+function encodeTile({ region, key, ix, iy, tileDegrees, scale, streets, tupleOf, coverage }) {
+  const originX = Math.round((ix * tileDegrees - 180) * scale);
+  const originY = Math.round((iy * tileDegrees - 90) * scale);
   // Oldest way first; the pieces of one way keep their order along it (the sort is stable).
   streets.sort((left, right) => left.id - right.id);
   // Strings by how often they are used, so the common ones take one byte to name.
@@ -1031,8 +1112,8 @@ function encodeTile({ region, key, ix, iy, tileDegrees, streets, tupleOf, covera
     if (street.ref) varint(streetBytes, stringIndex.get(street.ref));
     varint(streetBytes, tupleIndex.get(street.tuple));
     if (street.closed) {
-      varint(streetBytes, zigzag(Math.round(street.centroid[0] * SCALE) - originX));
-      varint(streetBytes, zigzag(Math.round(street.centroid[1] * SCALE) - originY));
+      varint(streetBytes, zigzag(Math.round(street.centroid[0] * scale) - originX));
+      varint(streetBytes, zigzag(Math.round(street.centroid[1] * scale) - originY));
     }
     const units = street.units;
     varint(streetBytes, units.length / 2);
@@ -1048,7 +1129,7 @@ function encodeTile({ region, key, ix, iy, tileDegrees, streets, tupleOf, covera
   const stringBytes = Buffer.from(`${strings.join("\n")}\n`, "utf8");
   const header = {
     format: TILE_FORMAT, version: TILE_VERSION, region, tile: key,
-    origin: [ix * tileDegrees - 180, iy * tileDegrees - 90], tile_degrees: tileDegrees, scale: SCALE,
+    origin: [ix * tileDegrees - 180, iy * tileDegrees - 90], tile_degrees: tileDegrees, scale,
     cell_degrees: CELL_DEGREES, grid_margin_cells: GRID_MARGIN_CELLS, coverage: { cols: coverage.cols, rows: coverage.rows },
     counts: { streets: streets.length, strings: strings.length, tuples: tuples.length },
     tuple_fields: TUPLE_FIELDS, sections: {},
@@ -1073,18 +1154,28 @@ function encodeTile({ region, key, ix, iy, tileDegrees, streets, tupleOf, covera
 // an async iterable; `postcodes` is [{ postcode, lng, lat }], the postcode centres.
 export async function buildRegion({
   directory = STREETS_ROOT, region, features, relationLabels = new Map(), postcodes = [], provenance = EXTRACT,
-  tileDegrees = TILE_DEGREES, simplifyMetres = SIMPLIFY_METRES, log = console.log,
+  tileDegrees = TILE_DEGREES, simplifyMetres = SIMPLIFY_METRES, scale = SCALE, keepJunctions = true, log = console.log,
 }) {
   const streets = [];
   const places = [];
   const postcodeAreas = [];
   let read = 0;
+  const streetIds = new Set();
+  // A boundary can come twice: from the region's cut and from the boundaries around it.
+  const placeKeys = new Set();
   for await (const feature of features) {
     read += 1;
     const street = streetFromFeature(feature);
-    if (street) { streets.push(street); continue; }
+    if (street) {
+      // A closed way with an area tag as well is exported as a line and as a polygon.
+      if (!streetIds.has(street.id)) { streetIds.add(street.id); streets.push(street); }
+      continue;
+    }
+    const type = feature?.properties?.["@type"];
+    const placeKey = `${type}${feature?.properties?.["@id"]}`;
+    if (type !== "node" && placeKeys.has(placeKey)) continue;
     const place = placeFromFeature(feature);
-    if (place) { places.push(place); continue; }
+    if (place) { placeKeys.add(placeKey); places.push(place); continue; }
     const postal = postcodeAreaFromFeature(feature);
     if (postal) postcodeAreas.push(postal);
   }
@@ -1157,15 +1248,13 @@ export async function buildRegion({
   for (const street of streets) {
     const coords = street.coords;
     let wanted = false;
-    let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
-    for (let index = 0; index < coords.length; index += 2) {
-      if (!wanted && nearCoverage(coords[index], coords[index + 1])) wanted = true;
-      if (coords[index] < minX) minX = coords[index];
-      if (coords[index] > maxX) maxX = coords[index];
-      if (coords[index + 1] < minY) minY = coords[index + 1];
-      if (coords[index + 1] > maxY) maxY = coords[index + 1];
-    }
-    if (!wanted) { street.coords = null; continue; }
+    for (let index = 0; index < coords.length && !wanted; index += 2) wanted = nearCoverage(coords[index], coords[index + 1]);
+    if (!wanted) street.coords = null;
+  }
+  const junction = keepJunctions ? junctionsOf(streets) : null;
+  for (const street of streets) {
+    const coords = street.coords;
+    if (!coords) continue;
     kept += 1;
     if (street.display) named += 1;
     pointsBefore += coords.length / 2;
@@ -1174,7 +1263,7 @@ export async function buildRegion({
       const values = TUPLE_FIELDS.map((field) => piece.parts[field] || "");
       const tuple = values.join("\u0001");
       if (!tupleOf.has(tuple)) tupleOf.set(tuple, values);
-      const simple = simplify(piece.coords, simplifyMetres);
+      const simple = simplify(piece.coords, simplifyMetres, junction);
       const units = [];
       let pieceMinX = Infinity; let pieceMinY = Infinity; let pieceMaxX = -Infinity; let pieceMaxY = -Infinity;
       for (let index = 0; index < simple.length; index += 2) {
@@ -1182,8 +1271,8 @@ export async function buildRegion({
         if (simple[index] > pieceMaxX) pieceMaxX = simple[index];
         if (simple[index + 1] < pieceMinY) pieceMinY = simple[index + 1];
         if (simple[index + 1] > pieceMaxY) pieceMaxY = simple[index + 1];
-        const x = Math.round(simple[index] * SCALE);
-        const y = Math.round(simple[index + 1] * SCALE);
+        const x = Math.round(simple[index] * scale);
+        const y = Math.round(simple[index + 1] * scale);
         if (units.length && units[units.length - 2] === x && units[units.length - 1] === y) continue;
         units.push(x, y);
       }
@@ -1236,7 +1325,7 @@ export async function buildRegion({
     }
     if (!any) continue;
     const bytes = encodeTile({
-      region: region.id, key, ix, iy, tileDegrees, streets: members, tupleOf,
+      region: region.id, key, ix, iy, tileDegrees, scale, streets: members, tupleOf,
       coverage: { cols: cellsPerTile, rows: cellsPerTile, bits },
     });
     const file = `t_${key}.bin`;
@@ -1259,7 +1348,7 @@ export async function buildRegion({
       built_by: "infra/aws-central/tools/build-street-index.mjs",
     },
     tile_format: TILE_FORMAT, tile_version: TILE_VERSION, tile_degrees: tileDegrees, cell_degrees: CELL_DEGREES,
-    scale: SCALE, simplify_metres: simplifyMetres, snap_limit_degrees: SNAP_LIMIT_DEGREES,
+    scale, simplify_metres: simplifyMetres, snap_limit_degrees: SNAP_LIMIT_DEGREES,
     counts: {
       streets: kept, named_streets: named, street_pieces: records, places: model.nodes.length, areas: model.areas.length,
       address_tuples: tupleOf.size, points_before_simplifying: pointsBefore, points: pointsAfter,
@@ -1323,10 +1412,15 @@ async function averagePostcodes(file, areaFile) {
   for (const area of areas) index.add(area, area.geom.bbox);
   const within = [];
   const sums = new Map();
+  const counted = new Set();
   for await (const line of lines(file)) {
     const feature = JSON.parse(line);
     const tags = feature.properties;
     if (tags.boundary === "postal_code" && tags["@type"] === "relation") continue;
+    // One object, one vote, however many shapes it was exported as.
+    const object = `${tags["@type"]}${tags["@id"]}`;
+    if (counted.has(object)) continue;
+    counted.add(object);
     const raw = [tags["addr:postcode"], tags.postcode, tags.postal_code].find((value) => typeof value === "string" && value);
     if (!raw || raw.includes(",") || raw.includes(";")) continue;
     const code = postcodeOf({ postcode: raw });
@@ -1353,6 +1447,19 @@ async function averagePostcodes(file, areaFile) {
     .map(([postcode, [x, y, count]]) => ({ postcode, lng: x / count / 1e7, lat: y / count / 1e7, count }));
 }
 
+// Relation members are not in the export. A boundary's label node is one.
+function labelsOf(file) {
+  const relations = spawnSync("osmium", ["cat", file, "-t", "relation", "-f", "opl"], { maxBuffer: 1 << 30 });
+  if (relations.status !== 0) throw new Error("osmium cat failed");
+  const labels = {};
+  for (const line of relations.stdout.toString("utf8").split("\n")) {
+    const id = /^r(\d+) /.exec(line);
+    const label = /[M,]n(\d+)@label(?:,|$)/.exec(line);
+    if (id && label) labels[id[1]] = Number(label[1]);
+  }
+  return labels;
+}
+
 async function prepare(regions) {
   const source = extractFile();
   if (!fs.existsSync(source)) throw new Error(`${source} is missing: run "fetch" first`);
@@ -1377,7 +1484,10 @@ async function prepare(regions) {
   const postcodeFile = path.join(WORK, "postcodes.json");
   if (!fs.existsSync(postcodeFile)) {
     const exported = path.join(WORK, "india-postcode-src.geojsonl");
-    run("osmium", ["export", postcodeSource, "-f", "geojsonseq", "-x", "print_record_separator=false", "-o", exported, "--overwrite"]);
+    // A closed way is an area to Nominatim and is exported as one, not as a line as well.
+    const postcodeConfig = path.join(WORK, "export-postcode-config.json");
+    fs.writeFileSync(postcodeConfig, JSON.stringify({ attributes: { type: true, id: true }, linear_tags: false, area_tags: true }));
+    run("osmium", ["export", postcodeSource, "-c", postcodeConfig, "-f", "geojsonseq", "-x", "print_record_separator=false", "-o", exported, "--overwrite"]);
     const areaCut = path.join(WORK, "india-postcode-areas.osm.pbf");
     const areaFile = path.join(WORK, "india-postcode-areas.geojsonl");
     run("osmium", ["tags-filter", denseSource, "r/boundary=postal_code", "-o", areaCut, "--overwrite"]);
@@ -1386,6 +1496,35 @@ async function prepare(regions) {
     fs.writeFileSync(postcodeFile, JSON.stringify(centres));
     fs.rmSync(exported);
     console.log(`postcodes: ${centres.length} centres`);
+  }
+  // A cut holds a boundary only when one of its ways passes through the box. Pune's box
+  // is inside Maharashtra and inside Pune district, far from the edge of either, so both
+  // were missing and every Pune street had no state. The state to city level boundaries
+  // of all India are small (8,042 relations): each is handed to every region it overlaps.
+  const adminFile = path.join(WORK, "india-admin.geojsonl");
+  const adminLabels = path.join(WORK, "india-admin.labels.json");
+  if (!fs.existsSync(adminFile) || !fs.existsSync(adminLabels)) {
+    const adminCut = path.join(WORK, "india-admin.osm.pbf");
+    run("osmium", ["tags-filter", denseSource, "r/admin_level=4,5,6,7,8", "-o", adminCut, "--overwrite"]);
+    run("osmium", ["export", adminCut, "-c", exportConfig, "-f", "geojsonseq", "-x", "print_record_separator=false", "-o", adminFile, "--overwrite"]);
+    fs.writeFileSync(adminLabels, JSON.stringify(labelsOf(adminCut)));
+  }
+  const around = regions.filter((region) => !fs.existsSync(path.join(WORK, `${region.id}.around.geojsonl`)));
+  if (around.length) {
+    const outputs = new Map(around.map((region) => [region, fs.openSync(path.join(WORK, `${region.id}.around.geojsonl`), "w")]));
+    for await (const line of lines(adminFile)) {
+      if (!line.includes('"relation"') || !line.includes('"administrative"')) continue;
+      const feature = JSON.parse(line);
+      if (feature.properties["@type"] !== "relation" || feature.properties.boundary !== "administrative") continue;
+      const polygons = polygonsOf(feature.geometry);
+      if (!polygons) continue;
+      const box = new Area(polygons).bbox;
+      for (const [region, file] of outputs) {
+        const cut = cutBox(region);
+        if (box[0] <= cut[2] && box[2] >= cut[0] && box[1] <= cut[3] && box[3] >= cut[1]) fs.writeSync(file, `${line}\n`);
+      }
+    }
+    for (const file of outputs.values()) fs.closeSync(file);
   }
   const wanted = regions.filter((region) => !fs.existsSync(path.join(WORK, `${region.id}.geojsonl`)));
   if (wanted.length) {
@@ -1399,16 +1538,7 @@ async function prepare(regions) {
       const cut = path.join(WORK, `${region.id}.osm.pbf`);
       run("osmium", ["export", cut, "-c", exportConfig, "-f", "geojsonseq", "-x", "print_record_separator=false",
         "-o", path.join(WORK, `${region.id}.geojsonl`), "--overwrite"]);
-      // Relation members are not in the export. A boundary's label node is one.
-      const relations = spawnSync("osmium", ["cat", cut, "-t", "relation", "-f", "opl"], { maxBuffer: 1 << 30 });
-      if (relations.status !== 0) throw new Error("osmium cat failed");
-      const labels = {};
-      for (const line of relations.stdout.toString("utf8").split("\n")) {
-        const id = /^r(\d+) /.exec(line);
-        const label = /[M,]n(\d+)@label(?:,|$)/.exec(line);
-        if (id && label) labels[id[1]] = Number(label[1]);
-      }
-      fs.writeFileSync(path.join(WORK, `${region.id}.labels.json`), JSON.stringify(labels));
+      fs.writeFileSync(path.join(WORK, `${region.id}.labels.json`), JSON.stringify(labelsOf(cut)));
     }
   }
 }
@@ -1425,9 +1555,14 @@ async function build(regions) {
   const postcodes = JSON.parse(fs.readFileSync(path.join(WORK, "postcodes.json"), "utf8"));
   for (const region of regions) {
     const started = Date.now();
-    const labels = JSON.parse(fs.readFileSync(path.join(WORK, `${region.id}.labels.json`), "utf8"));
+    const labels = { ...JSON.parse(fs.readFileSync(path.join(WORK, "india-admin.labels.json"), "utf8")),
+      ...JSON.parse(fs.readFileSync(path.join(WORK, `${region.id}.labels.json`), "utf8")) };
+    const both = async function* both() {
+      yield* featuresOf(path.join(WORK, `${region.id}.geojsonl`));
+      yield* featuresOf(path.join(WORK, `${region.id}.around.geojsonl`));
+    };
     await buildRegion({
-      region, features: featuresOf(path.join(WORK, `${region.id}.geojsonl`)),
+      region, features: both(),
       relationLabels: new Map(Object.entries(labels).map(([id, node]) => [Number(id), node])), postcodes,
     });
     console.log(`${region.id}: built in ${((Date.now() - started) / 1000).toFixed(1)} s`);

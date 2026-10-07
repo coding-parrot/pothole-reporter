@@ -9,7 +9,9 @@ import { fileURLToPath } from "node:url";
 import {
   SNAP_LIMIT_DEGREES, STREET_DIRECTORY, TILE_FORMAT, createLocalAddress,
 } from "../service/local-address.mjs";
-import { REGIONS, buildRegion, createAddressModel, fuzzyBox, streetFromFeature } from "../tools/build-street-index.mjs";
+import {
+  REGIONS, buildRegion, createAddressModel, fuzzyBox, junctionsOf, simplify, streetFromFeature,
+} from "../tools/build-street-index.mjs";
 
 // service/local-address.mjs answers the street and locality of a point from OpenStreetMap
 // data packaged with the service, where geolocation.mjs asked the public Nominatim
@@ -234,6 +236,58 @@ test("a postcode comes from the street's own tag, else the nearest postcode cent
   assert.equal(local.lookup(12.96, 77.6251).postcode, "560042");
 });
 
+test("a mapped postcode area is the postcode of every street whose centre it covers", async () => {
+  // Bengaluru's postcodes are mapped as boundary relations. Where one covers a street's
+  // centre Nominatim never looks at the postcode centres, however near one is.
+  const features = [...TOWN, area("relation", 50, { boundary: "postal_code", postal_code: "560 008", name: "Halasuru - 560008" },
+    square(77.598, 12.97, 0.004))];
+  const model = createAddressModel({ features, postcodes: [{ postcode: "560025", lng: 77.6, lat: 12.9701 }] });
+  assert.equal(model.addressOf(streetFromFeature(TOWN[5])).postcode, "560008", "its centre is inside the area");
+  assert.equal(model.addressOf(streetFromFeature(TOWN[7])).postcode, "560001", "its own tag still comes first");
+  assert.equal(model.addressOf(streetFromFeature(TOWN[9])).postcode, "560025", "outside the area: the nearest centre within 5 km");
+});
+
+test("a street that crosses a ward boundary answers with the ward the point is in", async () => {
+  // Nominatim files a street under the ward its middle is in, and then, for each point,
+  // prefers a ward that contains the point's place on the street. 11 of the 419 measured
+  // answers are a ward the street's middle is not in.
+  const half = (id, name, west, east) => area("relation", id, { boundary: "administrative", admin_level: "10", name },
+    [[west, 12.96], [east, 12.96], [east, 12.98], [west, 12.98], [west, 12.96]]);
+  const features = [TOWN[0], TOWN[1], half(60, "Jogupalya", 77.59, 77.6), half(61, "Halasuru", 77.6, 77.61),
+    way(600, { highway: "tertiary", name: "Old Madras Road" }, [[77.598, 12.97], [77.6, 12.97], [77.603, 12.97]])];
+  const model = createAddressModel({ features });
+  const street = streetFromFeature(features[4]);
+  assert.equal(model.addressOf(street).suburb, "Halasuru", "the middle of the street is east of the line");
+  assert.equal(model.addressOf(street, 77.599, 12.97).suburb, "Jogupalya");
+  assert.deepEqual(model.piecesOf(street).map((piece) => [piece.parts.suburb, Array.from(piece.coords)]),
+    [["Jogupalya", [77.598, 12.97, 77.6, 12.97]], ["Halasuru", [77.6, 12.97, 77.603, 12.97]]]);
+  const { directory, manifest } = await packaged(features);
+  assert.equal(manifest.counts.streets, 1);
+  assert.equal(manifest.counts.street_pieces, 2);
+  const local = createLocalAddress({ directory, logger: quiet });
+  assert.deepEqual([local.lookup(12.97002, 77.599).suburb, local.lookup(12.97002, 77.602).suburb], ["Jogupalya", "Halasuru"]);
+  assert.equal(local.lookup(12.97002, 77.599).road, "Old Madras Road");
+});
+
+test("simplifying a street keeps every vertex where another street joins", async () => {
+  // A side street joins a through street at a vertex that lies almost on the straight
+  // line between its neighbours. Dropped, the through street moves half a metre and a
+  // point nearest the junction is no longer exactly as far from both, which is how five
+  // of the 419 measured points came to snap to another street than Nominatim's.
+  const through = way(700, { highway: "residential" }, [[77.6, 12.97], [77.6005, 12.970005], [77.601, 12.97]]);
+  const side = way(701, { highway: "residential", name: "Temple Street" }, [[77.6005, 12.970005], [77.6005, 12.969]]);
+  const coords = streetFromFeature(through).coords;
+  assert.equal(simplify(coords, 2).length, 4, "two points: the middle one is 0.55 m off the line");
+  const junction = junctionsOf([streetFromFeature(through), streetFromFeature(side)]);
+  assert.equal(junction(77.6005, 12.970005), true);
+  assert.equal(junction(77.6, 12.97), false);
+  assert.equal(simplify(coords, 2, junction).length, 6);
+  const { directory } = await packaged([...TOWN.slice(0, 3), through, side]);
+  // North of the junction and nearest to it: both streets are exactly as far, and the
+  // named one is the answer.
+  assert.equal(createLocalAddress({ directory, logger: quiet }).lookup(12.97006, 77.6005).road, "Temple Street");
+});
+
 test("a point inside a street mapped as a closed loop belongs to the loop", async () => {
   // Nominatim imports every closed way as a polygon, so a point inside a block's ring
   // road is at distance zero from it whatever other street is nearer. It only counts a
@@ -334,6 +388,12 @@ test("the manifest carries the provenance of the extract", async () => {
   assert.equal(manifest.tile_format, TILE_FORMAT);
   assert.equal(manifest.counts.streets, 4, "the unnamed service road is not a street");
   assert.equal(manifest.counts.named_streets, 3);
+  assert.equal(manifest.counts.areas, 3);
+  // A boundary reaches a build twice when it is both in the region's cut and among the
+  // boundaries around it, and a closed way with an area tag is exported in two shapes.
+  const twice = await packaged([...TOWN, TOWN[2], TOWN[5]]);
+  assert.equal(twice.manifest.counts.areas, 3);
+  assert.equal(twice.manifest.counts.streets, 4);
 });
 
 test("adding a state or a city box is one registry line", () => {
