@@ -5258,9 +5258,13 @@ async function startDriveAdmitted() {
   const settings = track && track.getSettings ? track.getSettings() : {};
   ctx.cameraSettings = { width: settings.width || null, height: settings.height || null,
                          frameRate: settings.frameRate || null };
-  if ((settings.width && settings.width < 1280) || (settings.frameRate && settings.frameRate < 20)) {
+  // A phone held upright returns the 1280 x 720 it was asked for turned on its side,
+  // 720 wide and 1280 tall. Judging the width alone told every driver on a real phone
+  // "camera only 720px" for the whole drive; the long side is what was asked for.
+  const longSide = Math.max(settings.width || 0, settings.height || 0);
+  if ((longSide && longSide < 1280) || (settings.frameRate && settings.frameRate < 20)) {
     ctx.cameraWarning = t("camera_low_quality", {
-      width: settings.width || "?", fps: Math.round(settings.frameRate || 0) || "?",
+      width: longSide || "?", fps: Math.round(settings.frameRate || 0) || "?",
     });
   }
   startRecording(stream, ctx.sessionId, ctx.startedAt);
