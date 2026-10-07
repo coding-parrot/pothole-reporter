@@ -38,10 +38,23 @@ CONTRACT_KEY = sha256_hex(json.dumps({
 
 
 def api_key():
+    """The OpenAI key, held in memory only. On the training instance it is read from the
+    detector secret (DETECTOR_SECRET_ARN, field openai_api_key) with the instance role;
+    it is never printed, logged or written to disk."""
     key = os.environ.get("OPENAI_API_KEY", "").strip()
     if key:
         return key
-    # The key lives in the main checkout's .env, never in a worktree.
+    secret = os.environ.get("DETECTOR_SECRET_ARN", "").strip()
+    if secret:
+        import boto3
+
+        region = secret.split(":")[3]
+        value = boto3.client("secretsmanager", region_name=region).get_secret_value(SecretId=secret)
+        key = json.loads(value["SecretString"]).get("openai_api_key", "").strip()
+        if key:
+            return key
+        raise SystemExit("the detector secret has no openai_api_key")
+    # On the Mac the key lives in the main checkout's .env, never in a worktree.
     for env in (ROOT / ".env", Path.home() / "Downloads" / "pothole-reporter" / ".env"):
         if env.exists():
             for line in env.read_text().splitlines():
