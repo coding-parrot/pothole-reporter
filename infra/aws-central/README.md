@@ -56,37 +56,96 @@ evidence to read before trusting YOLO's damaged verdicts without confirmation.
 Use the CloudFormation `ApiUrl` output as the app's default `service_url`. Do not point
 new releases at the retired Cloudflare Worker hostname.
 
-## Road ownership when KGIS cannot answer
+## Road ownership is answered locally
 
-`service/geolocation.mjs` asks the Karnataka state GIS (KGIS) which town or highway
-covers a report. KGIS stalls for tens of seconds at a time; one 3 s timeout opens a
-one-minute breaker, and in the 30 days to 6 Oct 2026 that turned 227 of 450 tender
-lookups into `503 road_ownership_unavailable`. Since then, whenever KGIS gives no
-verdict (down, stalled, malformed, breaker open, or its panchayat layer alone failing),
-the service answers from `data/karnataka-local-geometry.json`, packaged by `deploy.sh`:
+Until 7 Oct 2026 `service/geolocation.mjs` asked the Karnataka state GIS (KGIS) which
+town or highway covers a point: four layer queries per lookup, a fifth for the gram
+panchayat, 700 to 2,600 ms when KGIS answered and a 20 s stall when it did not (227 of
+450 tender lookups in the 30 days to 6 Oct 2026 ended `503 road_ownership_unavailable`).
 
-- the 319 KGIS town polygons (`data/karnataka-town-polygons.json`, a dated snapshot of
-  the same layer the live lookup queries) give `municipal` with the LGD code;
-- the app's pinned national highway centre lines (OpenStreetMap, 15 m) give
-  `national_highway`;
-- the app's pinned Karnataka boundary (OpenStreetMap) gives `rural` (no panchayat named)
-  or `outside_state`.
+The request path no longer calls KGIS at all. Every layer the live lookup read is copied
+into one packaged file, `data/karnataka-ownership.bin` (about 38 MB, 22 MB zipped), and a
+lookup is a walk through one cell of its grid:
 
-KGIS answers win when they arrive. A snapshot answer carries `source: "kgis_snapshot"`
-and `lookup.local` names what answered (`municipal_polygon`, `national_highway_geometry`,
-`state_polygon`, `outside_state_polygon`, `town_without_lgd`, or `unavailable` when the
-bundle is missing); the request log repeats `road_ownership_source`, `kgis_lookup` and
-`local_lookup`. State and district highways are not in the bundle, so a point on one of
-those inside a town answers `municipal` while KGIS is down. ELCITA, the one KGIS town
-with no LGD code, stays `unknown` as it does live.
+| Layer | Source | Polygons |
+| --- | --- | --- |
+| national highway | KGIS `State_Basemap_Dynamic/MapServer/289` | 93 |
+| state highway | KGIS `State_Basemap_Dynamic/MapServer/290` | 7,613 |
+| district highway | KGIS `State_Basemap_Dynamic/MapServer/291` | 15,192 |
+| town | KGIS `Admin_Dynamic_New/MapServer/1` (`data/karnataka-town-polygons.json`) | 319 |
+| gram panchayat | KGIS `GP_Boundary/MapServer/0` | 7,581 |
+| state | the app's pinned `in-ka-state-routing` pack (OpenStreetMap) | 1 |
 
-Rebuild after KGIS edits its layer (the snapshot records `source_last_edited`) or the app
-re-pins its packs; the test suite fails when the bundle's recorded hashes no longer match:
+The rules are the live lookup's own, in its order: a highway polygon within 5 m of the
+point (national, then state, then district; `HIGHWAY_BUFFER_METRES`, measured on the
+ground as KGIS's `distance` parameter does) is a highway even inside a town; otherwise
+the town containing the point is `municipal` with its LGD code; otherwise the gram
+panchayat containing it is `rural` with `rural_body`; otherwise `outside_state`. Highway
+polygons are stored on a 0.55 m grid, the others on the 1.1 m grid the town snapshot uses.
+
+An answer carries `lookup.kgis: "snapshot"` (so do `kgis_town`, `kgis_highway` and
+`kgis_gp`), `source: "kgis_snapshot"` when it is municipal, and `lookup.local` names the
+layer that answered: `national_highway_polygon`, `state_highway_polygon`,
+`district_highway_polygon`, `municipal_polygon`, `gp_polygon`, `town_without_lgd` (ELCITA,
+the one KGIS town with no LGD code, stays `unknown` as it did live), the three kinds of
+`outside_state` below, or `unavailable` when the file is missing from the package (the
+answer is then `unknown`; KGIS is still not asked). The request log repeats
+`road_ownership_source`, `kgis_lookup` and `local_lookup`.
+
+One rule is copied from the live lookup and is wrong inside Karnataka. KGIS's panchayat
+layer holds 309 polygons with a blank name and has gaps; the live code read "no panchayat
+name" as `outside_state`, and so does this. 2.7% of the state's area is in a blank
+polygon and in no town (`lookup.local: "gp_polygon_unnamed"`), 0.1% is in no panchayat
+polygon at all (`"state_polygon_no_panchayat"`); a point outside the state boundary too
+is `"outside_state_polygon"`. Answering `rural` with no body for the first two is a
+two-line change in `classifyLocally`, left for a decision.
+
+The live lookup is still in `geolocation.mjs` behind `createGeolocator({ liveKgis: true })`
+for one purpose, checking the copy against the register:
 
 ```bash
-node infra/aws-central/tools/build-karnataka-geometry.mjs --snapshot   # fetches from KGIS
-node infra/aws-central/tools/build-karnataka-geometry.mjs              # rebuilds the bundle
+node infra/aws-central/tools/verify-local-ownership.mjs   # about 1,075 points, each put to KGIS and to the bundle
 ```
+
+It asks KGIS one request at a time, keeps every answer in `data/.kgis-work/` (gitignored),
+and lists each disagreement. On 7 Oct 2026, over 1,075 points (275 from the public map,
+150 in towns, 300 inside highway polygons, 270 at set distances outside one, 50 rural,
+30 at junctions), 1,028 were identical in every field and none differed without a cause:
+
+- 25 differed in road class, every one a point placed exactly 5 m from a highway polygon.
+  KGIS's own polygon is 4.95 to 5.03 m from those points and it draws the line at 5.00 m
+  to within 2 cm; the stored coordinates are rounded by up to 0.39 m (0.31 m at most over
+  the 270 points measured). All 120 points at 4 m and 6 m agree, and all 111 at 15 m and
+  beyond.
+- 22 differed in `highway_name` only: two polygons of one class cover the point (a
+  junction, or a named stretch of road meeting an unnamed one) and KGIS listed the other
+  first. Its order is its spatial index's and changed with the output fields of the
+  query; the packaged lookup picks the polygon the point is in or nearest to, then a
+  named one, then the lowest OBJECTID. About 2% of points on a highway have two names
+  to choose from.
+
+### Refreshing the copy (weekly)
+
+KGIS edits its layers (the town and panchayat layers record `source_last_edited`; the
+highway layers publish no date, so a change shows as a new hash). Refresh once a week,
+and after the app re-pins its state pack:
+
+```bash
+node infra/aws-central/tools/build-karnataka-geometry.mjs --refresh   # every KGIS layer, then both bundles
+node infra/aws-central/tools/verify-local-ownership.mjs               # the new copy against live KGIS
+(cd infra/aws-central && npm test)
+```
+
+`--refresh` reads the town, ward, highway and panchayat layers one request at a time at
+each layer's page size (about 420 MB, a few minutes when KGIS is well and much longer when
+it is not; stop it and run it again and it resumes at the next page), checks every count
+against KGIS's own `returnCountOnly`, and rebuilds `data/karnataka-ownership.bin` and
+`data/karnataka-ward-geometry.json`. The test suite fails when a recorded hash no longer
+matches what a bundle holds, when a layer's count moves (update the expected counts in
+`test/karnataka-geometry.test.mjs` with the refresh), or when a lookup leaves its budget
+(under 1 ms in the heaviest cell of the state, under 150 ms to load). Run the build tool
+with no arguments to rebuild the bundles from what is already in the repo, with no
+network.
 
 ## Tenders for any point in India
 

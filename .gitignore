@@ -26,3 +26,6 @@ eval/.rad-data/
 eval/.rad-cache/
 eval/rad-data/
 eval/rad-results/
+
+# KGIS layer downloads in progress (build-karnataka-geometry.mjs --refresh)
+data/.kgis-work/
