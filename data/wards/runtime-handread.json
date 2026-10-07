@@ -1,0 +1,1382 @@
+{
+ "_comment": "Ward and notice pairs the service returns outside Karnataka, read by a person one at a time. For each body: three points inside every ward of its snapshot were put through the service's own lookup and matcher with the clock set to the day the notices were retrieved, and every pair returned was read: node infra/aws-central/tools/india-ward-runtime.mjs --pairs <STATE/city> (with --as number for a body whose index entry now says match by nothing, because this reading found its numbers wrong). Titles are the notice pack's, with a long dash written as a hyphen. tools/india-ward-runtime.mjs --write switches a snapshot on only if none of its pairs here is wrong, at most one in ten could not be told and at least ten were read.",
+ "format": "pothole-india-ward-runtime-handread",
+ "schema_version": 1,
+ "read_on": "2026-10-07",
+ "notices": "road-notice-manifest-v1.36.json, generated 2026-10-05",
+ "evidence": "the title itself; the zone and the name the snapshot records for a ward; every tag of every named OpenStreetMap feature inside the city's box (Geofabrik India extract, data of 6 Oct 2026); and, for the bodies listed under later_maps, a newer ward map that may not be copied, measured against and not kept",
+ "verdicts": {
+  "right": "the pair is the ward the work is in: the title says that ward on its own ward marker, and where the match is by number the file's numbering is shown to be the title's for that ward",
+  "wrong": "it is not, for the reason given",
+  "cannot tell": "the evidence above does not settle it"
+ },
+ "later_maps": {
+  "_comment": "The share of a committed snapshot's area (81 points a ward) that a newer ward map gives the same ward number. Measured on 7 Oct 2026 against OpenCity files of unclear or refused licence held outside the repo; this cannot be repeated from the repo alone.",
+  "MP/bhopal": {
+   "map": "OpenCity, Bhopal Wards Map 2024 (85 wards)",
+   "same_number": "97.7%",
+   "note": "no ward under 89%"
+  },
+  "GJ/ahmedabad": {
+   "map": "OpenCity, Amdavad Wards Map 2024 (48 wards)",
+   "same_number": "93.9%",
+   "note": "46 wards at 85% or more by name; Khadia 54% and Jamalpur 52%, where the 2024 map calls Lal Darwaja and Mirzapur Dariyapur and an AMC title of 2026 says Jamalpur Ward, in the Raikhad and Mirzapur areas, as the committed file does"
+  },
+  "TN/chennai": {
+   "map": "OpenCity, GCC Ward Map 2022 (200 wards)",
+   "same_number": "61.5%",
+   "note": "63 of 200 wards under half: renumbered"
+  },
+  "TN/coimbatore": {
+   "map": "OpenCity, Coimbatore Wards Map (100 wards)",
+   "same_number": "12.2%",
+   "note": "86 of 100 wards under half: renumbered"
+  },
+  "OD/bhubaneswar": {
+   "map": "OpenCity, Bhubaneswar administrative boundaries (67 wards)",
+   "same_number": "99.9%",
+   "note": "the same drawing as the committed file, so it says nothing about today"
+  }
+ },
+ "bodies": {
+  "MP/bhopal": {
+   "read_as": "number",
+   "points": 255,
+   "wards_sampled": 85,
+   "wards_with_a_pair": 27,
+   "notices_of_body": 50,
+   "notices_returned": 41,
+   "pairs_returned": 41,
+   "pairs": [
+    {
+     "n": 1,
+     "basis": "number",
+     "ward_code": "MP-bhopal-2",
+     "ward": "2 एयरपोर्ट",
+     "tender_number": "2026201090 [2026_UAD_535609_1]",
+     "title": "CONSTRUCTION OF CC ROAD AT DEVLOK COLONY POOJA SHRI COLONY NANDA NAGAR CTO AND CONSTRUCTION OF RCC DRAIN AT KAILASH NAGAR WARD 02 ZONE 20",
+     "verdict": "right",
+     "reason": "02 is the title's ward number; its CTO is the street of Sarvodaya Colony, which is inside the ward"
+    },
+    {
+     "n": 2,
+     "basis": "number",
+     "ward_code": "MP-bhopal-4",
+     "ward": "4 हेमू कॉलोनी",
+     "tender_number": "2026200554 [2026_UAD_539921_1]",
+     "title": "Construction of Drain and road cross at CRP dayal house to fatak road ward 04, zone 01",
+     "verdict": "right",
+     "reason": "04 is the title's ward number; Fatak Road was not located; the 2024 ward map draws ward 4 over 97% of the file's"
+    },
+    {
+     "n": 3,
+     "basis": "number",
+     "ward_code": "MP-bhopal-6",
+     "ward": "6 महावीरगिरी",
+     "tender_number": "2026200859 [2026_UAD_535653_1]",
+     "title": "CONSTRUCTION OF CC ROAD AT JAIN NAGAR VALLABH NAGAR VIJAY NAGAR VITTHAL NAGAR W-06 Z-20",
+     "verdict": "right",
+     "reason": "W-06 is the title's ward number and Z-20 its zone; two hospitals addressed Vijay Nagar, Lalghati are inside the ward"
+    },
+    {
+     "n": 4,
+     "basis": "number",
+     "ward_code": "MP-bhopal-6",
+     "ward": "6 महावीरगिरी",
+     "tender_number": "2026202165 [2026_UAD_534388_1]",
+     "title": "Construction of cc road from canara bank to mahindra showroom and vallabh nagar sanjeevani to vijay nagar main road w06,z20",
+     "verdict": "right",
+     "reason": "w06 is the title's ward number and z20 its zone; two hospitals addressed Vijay Nagar, Lalghati are inside the ward"
+    },
+    {
+     "n": 5,
+     "basis": "number",
+     "ward_code": "MP-bhopal-14",
+     "ward": "14 शाहजहाँनाबाद",
+     "tender_number": "2026201756 [2026_UAD_538160_1]",
+     "title": "Construction of C.C. Road From Arman Bhai to Shabir Bhai House and From Jkram Bhai to Kallu Bhai at Congress Nagar in Ward No.14, Zone No.05",
+     "verdict": "right",
+     "reason": "14 is the title's ward number; a hospital addressed Congress Nagar is 51 m from the ward"
+    },
+    {
+     "n": 6,
+     "basis": "number",
+     "ward_code": "MP-bhopal-15",
+     "ward": "15 जे.पी. नगर",
+     "tender_number": "2026202543 [2026_UAD_539421_1]",
+     "title": "CONSTRUCTION OF C.C. ROAD FRONT OF PARK BEHIND MPEB OFFICE BOUNDARY WALL AT RAMBHA NAGAR WARD 15 ZONE 04",
+     "verdict": "right",
+     "reason": "15 is the title's ward number; Rambha Nagar was not located; the 2024 ward map draws ward 15 over 97% of the file's"
+    },
+    {
+     "n": 7,
+     "basis": "number",
+     "ward_code": "MP-bhopal-17",
+     "ward": "17 इब्राहिमगंज",
+     "tender_number": "2026201539 [2026_UAD_536712_1]",
+     "title": "CONSTRUCTION OF C.C. ROAD AND DRAIN (BOTH SIDES) AT MUNNE BHAI GALI QAZI CAMP WARD 17 ZONE 04",
+     "verdict": "right",
+     "reason": "17 is the title's ward number; a hospital addressed Qazi Camp is inside the ward"
+    },
+    {
+     "n": 8,
+     "basis": "number",
+     "ward_code": "MP-bhopal-17",
+     "ward": "17 इब्राहिमगंज",
+     "tender_number": "2026201540 [2026_UAD_536800_1]",
+     "title": "CONSTRUCTION OF C.C. ROAD AFTER REMOVING PAVER BLOCKS NEAR PARI BAJI KIRANA QAZI CAMP WARD 17 ZONE 04",
+     "verdict": "right",
+     "reason": "17 is the title's ward number; a hospital addressed Qazi Camp is inside the ward"
+    },
+    {
+     "n": 9,
+     "basis": "number",
+     "ward_code": "MP-bhopal-17",
+     "ward": "17 इब्राहिमगंज",
+     "tender_number": "2026201542 [2026_UAD_536781_1]",
+     "title": "CONSTRUCTION OF C.C. ROAD AND DRAIN IN FRONT OF MASJID MUHAN MOHAMMAD KHAN NEAR GANGORE KI BAODI QAZI CAMP WARD 17 ZONE 04",
+     "verdict": "right",
+     "reason": "17 is the title's ward number; a hospital addressed Qazi Camp is inside the ward"
+    },
+    {
+     "n": 10,
+     "basis": "number",
+     "ward_code": "MP-bhopal-17",
+     "ward": "17 इब्राहिमगंज",
+     "tender_number": "2026201543 [2026_UAD_536882_1]",
+     "title": "CONSTRUCTION OF CC ROAD BY REMOVING PAVER BLOCKS IN FRONT OF GANGORE KI BAODI AREA AT BADHSHAH BHAI GALI WARD 17 ZONE 04",
+     "verdict": "right",
+     "reason": "17 is the title's ward number; another title puts Gangore ki Baodi at Qazi Camp, and a hospital addressed Qazi Camp is inside the ward"
+    },
+    {
+     "n": 11,
+     "basis": "number",
+     "ward_code": "MP-bhopal-19",
+     "ward": "19 लाल बहादुर शास्त्री",
+     "tender_number": "2026201902 [2026_UAD_533164_2]",
+     "title": "CONSTRUCTION OF C.C. ROAD AT GHASIYARAN KI GALI AND ROAD CROSS AT CHHAVNI WARD 19 ZONE 05",
+     "verdict": "right",
+     "reason": "19 is the title's ward number and 05 its zone; Chhavni was not located; the 2024 ward map draws ward 19 over all of the file's"
+    },
+    {
+     "n": 12,
+     "basis": "number",
+     "ward_code": "MP-bhopal-22",
+     "ward": "22 मोती मस्जिद",
+     "tender_number": "20262002939 [2026_UAD_538241_1]",
+     "title": "Construction of C.C. Road work at Ghati Badbuja Sulemania Road in ward no.22, zone no.05",
+     "verdict": "right",
+     "reason": "22 is the title's ward number; the snapshot calls the ward Moti Masjid, beside Ghati Bhadbhuja, and the mosque is inside it"
+    },
+    {
+     "n": 13,
+     "basis": "number",
+     "ward_code": "MP-bhopal-22",
+     "ward": "22 मोती मस्जिद",
+     "tender_number": "2026201433 [2026_UAD_539990_1]",
+     "title": "Construction of C.C. Road Near Ginnori Unani Shafakhana Road Site Ginnori Road in Ward No.22, Zone No.05",
+     "verdict": "right",
+     "reason": "22 is the title's ward number; Ginnori was not located; the snapshot calls the ward Moti Masjid and the mosque is inside it"
+    },
+    {
+     "n": 14,
+     "basis": "number",
+     "ward_code": "MP-bhopal-27",
+     "ward": "27 गोस्वामी तुलसीदास",
+     "tender_number": "2026202153 [2026_UAD_539326_1]",
+     "title": "CONSTRUCTION OF CC ROAD NEAR LIG LINE KOTRA W27 Z08",
+     "verdict": "right",
+     "reason": "W27 is the title's ward number and Z08 its zone; OpenStreetMap's Kotra is inside the ward"
+    },
+    {
+     "n": 15,
+     "basis": "number",
+     "ward_code": "MP-bhopal-28",
+     "ward": "28 रानी अवंतीबाई",
+     "tender_number": "2026202070 [2026_UAD_538625_1]",
+     "title": "CONSTRUCTION OF CC ROAD FROM BUDH VIHAR AMBEDKAR GATE TO AMBEDKAR PARK TO LUMBNI PARISAR WARD 28 ZONE 08",
+     "verdict": "right",
+     "reason": "28 is the title's ward number and 08 its zone; the places were not located; the 2024 ward map draws ward 28 over 94% of the file's"
+    },
+    {
+     "n": 16,
+     "basis": "number",
+     "ward_code": "MP-bhopal-30",
+     "ward": "30 कुशाभाऊ ठाकरे",
+     "tender_number": "2026200704 [2026_UAD_540569_1]",
+     "title": "ASPHALTING OF ROAD FROM 31 DEEPAK SOCIETY TO 37 PARIKA PHASE 2FROM SUKOON HOUSE TO PULIYA AND INTERMEDIATE ROAD NEAR STERLING GREENVIEW PHASE 2 AND AFTER 70A JANKI NAGAR TO COMFORT GARDEN W30 Z08",
+     "verdict": "right",
+     "reason": "W30 is the title's ward number; Janki Nagar and Comfort Garden are inside the ward"
+    },
+    {
+     "n": 17,
+     "basis": "number",
+     "ward_code": "MP-bhopal-30",
+     "ward": "30 कुशाभाऊ ठाकरे",
+     "tender_number": "2026201497 [2026_UAD_538865_1]",
+     "title": "CONSTRUCTION OF CC ROAD NEAR BHUMIKA PARISAR W30 Z08",
+     "verdict": "right",
+     "reason": "W30 is the title's ward number; Bhumika Parisar was not located; the 2024 ward map draws ward 30 over 95% of the file's"
+    },
+    {
+     "n": 18,
+     "basis": "number",
+     "ward_code": "MP-bhopal-39",
+     "ward": "39 नवीन नगर",
+     "tender_number": "2026201396 [2026_UAD_535279_1]",
+     "title": "CONSTRUCTION OF C.C. ROAD AND ROAD CROSS AISHABAG WARD OFFICE 39 TO SUVIDHA ELECTRANICS AISHABAG HOUSING BOARD COLONY AT WARD NO.39 ZONE NO.11",
+     "verdict": "right",
+     "reason": "39 is the title's ward number, read from WARD NO.39 and not from the ward office on the way; the snapshot calls the ward Naveen Nagar, which is inside it beside Aish Bagh"
+    },
+    {
+     "n": 19,
+     "basis": "number",
+     "ward_code": "MP-bhopal-42",
+     "ward": "42 महारानी लक्ष्मी बाई",
+     "tender_number": "2026201964 [2026_UAD_538162_1]",
+     "title": "CONSTRUCTION OF DRAIN AND CC ROAD AT MAKKA MASJID ,BACK SIDE OF RAJA BHAI HOUSE AND INFRONT OF TAJ KIRANA WARD 42 ZONE 10",
+     "verdict": "right",
+     "reason": "42 is the title's ward number and 10 its zone; Makka Masjid was not located; the 2024 ward map draws ward 42 over 92% of the file's"
+    },
+    {
+     "n": 20,
+     "basis": "number",
+     "ward_code": "MP-bhopal-43",
+     "ward": "43 महाराणा प्रताप",
+     "tender_number": "2026202571 [2026_UAD_539500_1]",
+     "title": "CONSTRUCTION OF C.C ROAD AT BACK SIDE OF SANCHI COMPLEX AND LAYING OF PAVER BLOCK CONSTRUCTION OF DRAIN AND RENEWAL OF C.C ROAD INFRONT OF SANCHI COMPLEX AT WARD 43 ZONE 12",
+     "verdict": "right",
+     "reason": "43 is the title's ward number and 12 its zone; Sanchi Complex was not located; the 2024 ward map draws ward 43 over all of the file's"
+    },
+    {
+     "n": 21,
+     "basis": "number",
+     "ward_code": "MP-bhopal-47",
+     "ward": "47 डाॅ. राजेन्द्र प्रसाद",
+     "tender_number": "2026201446 [2026_UAD_533442_2]",
+     "title": "CONSTRUCTION OF CC ROAD FROM ROHIT KIRANA TO SHOP OF GANGARAM KUSHWAHA AT PANCHSHEEL NAGAR WARD 47 ZONE 06",
+     "verdict": "right",
+     "reason": "47 is the title's ward number and 06 its zone; four OpenStreetMap features named Panchsheel Nagar are inside the ward"
+    },
+    {
+     "n": 22,
+     "basis": "number",
+     "ward_code": "MP-bhopal-49",
+     "ward": "49 आशा निकेतन",
+     "tender_number": "2026202300 [2026_UAD_538071_1]",
+     "title": "CONSTRUCTION OF CC ROAD AT E7-71 TO HANUMAN GADHI MANDIR WARD -49 ZONE 10",
+     "verdict": "right",
+     "reason": "49 is the title's ward number; the snapshot calls the ward Asha Niketan, which is in E-7 Arera Colony and inside it"
+    },
+    {
+     "n": 23,
+     "basis": "number",
+     "ward_code": "MP-bhopal-49",
+     "ward": "49 आशा निकेतन",
+     "tender_number": "2026202302 [2026_UAD_538079_1]",
+     "title": "CONSTRUCTION OF CC ROAD AT E7 ARERA COLONY PNB BANK TO AANADI ANANTA HOUSE (SERVICE ROAD) WARD 49 ZONE 10",
+     "verdict": "right",
+     "reason": "49 is the title's ward number; the snapshot calls the ward Asha Niketan, which is in E-7 Arera Colony and inside it"
+    },
+    {
+     "n": 24,
+     "basis": "number",
+     "ward_code": "MP-bhopal-50",
+     "ward": "50 गुलमोहर",
+     "tender_number": "2026201754 [2026_UAD_537830_1]",
+     "title": "CONSTRUCTION OF CC ROAD AT INFRONT OF BACHPAN PLAY SCHOOL ANAMIKA NAGAR WARD 50 ZONE 10",
+     "verdict": "right",
+     "reason": "50 is the title's ward number; OpenStreetMap's Anamika Nagar is 39 m from the ward"
+    },
+    {
+     "n": 25,
+     "basis": "number",
+     "ward_code": "MP-bhopal-50",
+     "ward": "50 गुलमोहर",
+     "tender_number": "2026202074 [2026_UAD_537859_1]",
+     "title": "CONSTRUCTION OF CC ROAD AT BACKSIDE OF WARD 50 OFFICE AND SAJID ALI JI HOUSE WARD 50 ZONE 10",
+     "verdict": "right",
+     "reason": "50 is the title's ward number, read from WARD 50 ZONE 10 and not from the ward office it passes; the snapshot calls the ward Gulmohar"
+    },
+    {
+     "n": 26,
+     "basis": "number",
+     "ward_code": "MP-bhopal-50",
+     "ward": "50 गुलमोहर",
+     "tender_number": "2026202076 [2026_UAD_537875_1]",
+     "title": "CONSTRUCTION OF CC ROAD G-3 GULMOHAR BUNDELA JI HOUSE TO GULDASTA APARTMENT WARD 50 ZONE 10",
+     "verdict": "right",
+     "reason": "50 is the title's ward number; the snapshot calls the ward Gulmohar, the colony the title names"
+    },
+    {
+     "n": 27,
+     "basis": "number",
+     "ward_code": "MP-bhopal-51",
+     "ward": "51 शाहपुरा",
+     "tender_number": "2026201372 [2026_UAD_537832_1]",
+     "title": "CONSTRUCTION OF CC ROAD FROM SAHAKAR NAGAR PARK TO PEEPAL CHOUK AND FROM HOUSE NO. E-8/20 TO NEW DIMENSIONAL SCHOOL WARD 51 ZONE 06",
+     "verdict": "right",
+     "reason": "51 is the title's ward number and 06 its zone; the snapshot calls the ward Shahpura, where E-8 is"
+    },
+    {
+     "n": 28,
+     "basis": "number",
+     "ward_code": "MP-bhopal-51",
+     "ward": "51 शाहपुरा",
+     "tender_number": "2026201965 [2026_UAD_537809_1]",
+     "title": "CONSTRUCTION OF CC ROAD FROM HN B-164 TO FORTUNE PRIDE COLONY AT NEAR MAHAKALI SOCIETY WARD 51 ZONE 06",
+     "verdict": "right",
+     "reason": "51 is the title's ward number; a hospital addressed Mahakali Society is inside the ward"
+    },
+    {
+     "n": 29,
+     "basis": "number",
+     "ward_code": "MP-bhopal-53",
+     "ward": "53 जाटखेड़ी",
+     "tender_number": "2026202069 [2026_UAD_537121_1]",
+     "title": "CONSTRUCTION OF CC ROAD AT SANGRILA HOUSING SOCIETY AT JATKHEDI W-53 Z-13",
+     "verdict": "right",
+     "reason": "W-53 is the title's ward number; the snapshot calls the ward Jatkhedi and three hospitals addressed Jatkhedi are inside it"
+    },
+    {
+     "n": 30,
+     "basis": "number",
+     "ward_code": "MP-bhopal-57",
+     "ward": "57 साकेत शक्ति",
+     "tender_number": "2026201448 [2026_UAD_537451_1]",
+     "title": "CONSTRUCTION OF C.C ROAD WORK NEAR ANGANBADI , ARUN TO NITYA GOUR , KUSHWAHA JI WALI GALI HANUMAN MANDIR AT PIPLIYA PENDE KHA WARD 57 ZONE 14",
+     "verdict": "right",
+     "reason": "57 is the title's ward number; OpenStreetMap's Pipalia Pende Khan is inside the ward"
+    },
+    {
+     "n": 31,
+     "basis": "number",
+     "ward_code": "MP-bhopal-64",
+     "ward": "64 सोनागिरी",
+     "tender_number": "2026200192 [2026_UAD_536651_1]",
+     "title": "CONSTRUCTION OF CC ROAD INFRONT OF SANDHYA RAI JI HOUSE NEW ASHOK VIHAR W-64 Z-15",
+     "verdict": "right",
+     "reason": "W-64 is the title's ward number; a hospital addressed Ashok Vihar is inside the ward"
+    },
+    {
+     "n": 32,
+     "basis": "number",
+     "ward_code": "MP-bhopal-66",
+     "ward": "66 नरेला शंकरी",
+     "tender_number": "2026200607 [2026_UAD_536880_1]",
+     "title": "ASPHALTING OF ROAD WORK FROM H.NO.165-171 AND FROM H.NO.319-KIDS PARADISE SCHOOL DURGESH VIHAR, NEAR SIDDESHWAR MAHADEV MANDIR PARK AND FROM H.NO.146-131 NEERJA NAGAR W-66 Z-15.",
+     "verdict": "right",
+     "reason": "W-66 is the title's ward number; Durgesh Vihar and Neerja Nagar were not located; the 2024 ward map draws ward 66 over all of the file's"
+    },
+    {
+     "n": 33,
+     "basis": "number",
+     "ward_code": "MP-bhopal-66",
+     "ward": "66 नरेला शंकरी",
+     "tender_number": "2026202204 [2026_UAD_536812_1]",
+     "title": "CONSTRUCTION OF CC ROAD NEAR KRIPA RAJPUT JI HOUSE NARELA GAON,FROM H.NO.70-75 RAJSAMRAT PHASE 2 COLONY,FROM H.NO.110 TO BHARAT MATA MANDIR BHARAT NAGAR AND FROM MAIN GATE TO MAHESH RAJPUT JI HOUSE BHAWANI NAGAR W-66 Z-15",
+     "verdict": "right",
+     "reason": "W-66 is the title's ward number; the snapshot calls the ward Narela Shankari, and Bharat Nagar's park is inside it"
+    },
+    {
+     "n": 34,
+     "basis": "number",
+     "ward_code": "MP-bhopal-66",
+     "ward": "66 नरेला शंकरी",
+     "tender_number": "2026202498 [2026_UAD_537886_1]",
+     "title": "CONSTRUCTION OF CC ROAD INFRONT OF HOUSE NO B17 CHHATRSAL NAGAR PHASE 1 WARD 66 ZONE 15",
+     "verdict": "right",
+     "reason": "66 is the title's ward number; OpenStreetMap's Chhatrasal Nagar is inside the ward"
+    },
+    {
+     "n": 35,
+     "basis": "number",
+     "ward_code": "MP-bhopal-68",
+     "ward": "68 अयोध्या नगर",
+     "tender_number": "2026200732 [2026_UAD_535039_1]",
+     "title": "CONSTRUCTION OF CC ROAD AT MARUTI VIHAR MAIN ROAD WARD 68 ZONE 16",
+     "verdict": "right",
+     "reason": "68 is the title's ward number; Maruti Vihar was not located; the 2024 ward map draws ward 68 over all of the file's"
+    },
+    {
+     "n": 36,
+     "basis": "number",
+     "ward_code": "MP-bhopal-68",
+     "ward": "68 अयोध्या नगर",
+     "tender_number": "2026202273 [2026_UAD_536558_1]",
+     "title": "CONSTRUCTION OF C.C ROAD WORK INFRONT OF BHAKTI RAI JI HOUSE F SECTOR AYODHYA NAGAR WARD 68 ZONE 16",
+     "verdict": "right",
+     "reason": "68 is the title's ward number; the snapshot calls the ward Ayodhya Nagar and its post office is inside it"
+    },
+    {
+     "n": 37,
+     "basis": "number",
+     "ward_code": "MP-bhopal-72",
+     "ward": "72 राजीव गाँधी",
+     "tender_number": "2026200451 [2026_UAD_535040_2]",
+     "title": "CONSTRUCTION OF CC ROAD MAIN ROAD INFRONT OF SHRI RAM MANDIR ATAL NEHRU NAGAR MAIN ROAD WARD 72 ZONE 16",
+     "verdict": "right",
+     "reason": "72 is the title's ward number; Atal Nehru Nagar was not located; the 2024 ward map draws ward 72 over all of the file's"
+    },
+    {
+     "n": 38,
+     "basis": "number",
+     "ward_code": "MP-bhopal-73",
+     "ward": "73 भोपाल मेमोरियल अस्पताल",
+     "tender_number": "2026200015 [2026_UAD_535042_2]",
+     "title": "CONSTRUCTION OF CC ROAD AND RCC DRAIN NEAR DR.BRAJESH GAUTAM AT SHIV NAGAR PHASE 2 WARD 73 ZONE 16",
+     "verdict": "right",
+     "reason": "73 is the title's ward number; Shiv Nagar was not located; the 2024 ward map draws ward 73 over 97% of the file's"
+    },
+    {
+     "n": 39,
+     "basis": "number",
+     "ward_code": "MP-bhopal-74",
+     "ward": "74 भानपुर",
+     "tender_number": "2026200536 [2026_UAD_535045_1]",
+     "title": "CONSTRUCTION OF C.C ROAD WORK MEENAL RAIKAWAR ,DURGA MANDIR RAWEEL WALI GALI CHOTI WALI GALI AT KAILASH NAGAR WARD 74 ZONE 16",
+     "verdict": "right",
+     "reason": "74 is the title's ward number; Kailash Nagar was not located; the 2024 ward map draws ward 74 over all of the file's"
+    },
+    {
+     "n": 40,
+     "basis": "number",
+     "ward_code": "MP-bhopal-74",
+     "ward": "74 भानपुर",
+     "tender_number": "2026201478 [2026_UAD_524740_5]",
+     "title": "PROVIDING AND FIXING OF PAVING BLOCK, KOTA STONE, CONSTRUCTION OF CC ROAD AND DRAIN INFRONT OF HANUMAN MANDIR GRAM BHANPUR WARD 74 ZONE 16",
+     "verdict": "right",
+     "reason": "74 is the title's ward number, and the snapshot calls the ward Bhanpur, the village the title names"
+    },
+    {
+     "n": 41,
+     "basis": "number",
+     "ward_code": "MP-bhopal-85",
+     "ward": "85 कटारा",
+     "tender_number": "2026201505 [2026_UAD_534956_1]",
+     "title": "CONSTRUCTION OF CC ROAD AT KOUSHAL NAGAR NEAR TEMPLE , EXCELL STATE , BHAIROPUR VILLAGE , JHARNESHWAR COLONY AND VARIOUS OTHER PLACES WARD 85 ZONE 19",
+     "verdict": "right",
+     "reason": "85 is the title's ward number; OpenStreetMap's Bhairopur is inside the ward"
+    }
+   ]
+  },
+  "GJ/ahmedabad": {
+   "read_as": "name",
+   "points": 144,
+   "wards_sampled": 48,
+   "wards_with_a_pair": 8,
+   "notices_of_body": 46,
+   "notices_returned": 30,
+   "pairs_returned": 30,
+   "pairs": [
+    {
+     "n": 1,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-5",
+     "ward": "5 RANIP",
+     "tender_number": "26-27 [348372]",
+     "title": "Construction of New Road, Regrade and Resurface work at Different roads of Ranip Ward of West Zone of AMC (ARC).",
+     "verdict": "right",
+     "reason": "the title says Ranip Ward of West Zone"
+    },
+    {
+     "n": 2,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-16",
+     "ward": "16 SHAHIBAG",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.136 [346534]",
+     "title": "In the area of Shahibaug ward of the Central zone, Bhogilal Chali, Vasudev Pura Bhilwas, Gowaji Chhapra, Kuberpura and other areas, online complaints are coming daily for demolition of existing RCC roads and construction of new roads, interlocking paver blocks,Stone paving repairs, and upgradation carrying out civil works as per the necessary requirements (Annual Rate Tender)",
+     "verdict": "right",
+     "reason": "the title opens with Shahibaug ward of the Central zone; OpenStreetMap's Shahibaug is inside the ward"
+    },
+    {
+     "n": 3,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-16",
+     "ward": "16 SHAHIBAG",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.142 [346546]",
+     "title": "In the area of Shahibaug ward of the Central zone, Road paving upgradation budget given by (70:20:10) scheme Mu.Coun., Mla Shree, Mp Shree, Mayor Shree and other grant, or online complaints are coming daily for demolition of existing RCC roads and construction of new roads, interlocking paver blocks/Stone paving repairs, and upgradation",
+     "verdict": "right",
+     "reason": "the title opens with Shahibaug ward of the Central zone"
+    },
+    {
+     "n": 4,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-16",
+     "ward": "16 SHAHIBAG",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.145 [346552]",
+     "title": "In the area of Shahibaug ward of the Central zone, Road paving upgradation budget given by (70:20:10) scheme Mu.Coun., Mla Shree, Mp Shree, Mayor Shree and other grant, or online complaints are coming daily for demolition of existing RCC roads and construction of new roads, interlocking paver blocks/Stone paving repairs, and upgradation carrying out civil works as per the necessary requirements (Annual Rate Tender).",
+     "verdict": "right",
+     "reason": "the title opens with Shahibaug ward of the Central zone"
+    },
+    {
+     "n": 5,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-16",
+     "ward": "16 SHAHIBAG",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.146 [346554]",
+     "title": "In the area of Shahibaug ward of the Central zone, Road paving upgradation budget given by (70:20:10) scheme Mu.Coun., Mla Shree, Mp Shree, Mayor Shree and other grant, or online complaints are coming daily for demolition of existing RCC roads and construction of new roads, interlocking paver blocks/Stone paving repairs, and upgradation carrying out civil works as per the necessary requirements (Annual Rate Tender).",
+     "verdict": "right",
+     "reason": "the title opens with Shahibaug ward of the Central zone"
+    },
+    {
+     "n": 6,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-16",
+     "ward": "16 SHAHIBAG",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.149 [346558]",
+     "title": "In Shahibaug Ward of Central Zone, Regarding the Road Departments work arrangements are being made for the supply of Wetmix to fill potholes and carry out patchwork repairs.(ARC Tender)",
+     "verdict": "right",
+     "reason": "the title opens with Shahibaug Ward of Central Zone"
+    },
+    {
+     "n": 7,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-16",
+     "ward": "16 SHAHIBAG",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.150 [346691]",
+     "title": "Repairing of Road Potholes using Cold mix Injection potholes patching repairing machine in civil hospital road, mohan cinema road, badiya limdi road, fsl road, ghoda camp road and other different present main road in shahibaug ward of Central Zone of Ahmedabad Municipal Corporation)",
+     "verdict": "right",
+     "reason": "the title says its roads are in shahibaug ward of Central Zone"
+    },
+    {
+     "n": 8,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-16",
+     "ward": "16 SHAHIBAG",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.152 [346738]",
+     "title": "In the area of Shahibaug ward of the Central zone, Road paving upgradation budget given by (70:20:10) scheme Mu.Coun., Mla Shree, Mp Shree, Mayor Shree and other grant, or online complaints are coming daily for demolition of existing RCC roads and construction of new roads, interlocking paver blocks/Stone paving repairs, and upgradation carrying out civil works as per the necessary requirements (Annual Rate Tender).",
+     "verdict": "right",
+     "reason": "the title opens with Shahibaug ward of the Central zone"
+    },
+    {
+     "n": 9,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-16",
+     "ward": "16 SHAHIBAG",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.153 [346750]",
+     "title": "In the area of Shahibaug ward of the Central zone, Road paving upgradation budget given by (70:20:10) scheme Mu.Coun., Mla Shree, Mp Shree, Mayor Shree and other grant, or online complaints are coming daily for demolition of existing RCC roads and construction of new roads, interlocking paver blocks/Stone paving repairs, and upgradation carrying out civil works as per the necessary requirements (Annual Rate Tender).",
+     "verdict": "right",
+     "reason": "the title opens with Shahibaug ward of the Central zone"
+    },
+    {
+     "n": 10,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-16",
+     "ward": "16 SHAHIBAG",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.154 [346781]",
+     "title": "In the area of Shahibaug ward of the Central zone, Road paving upgradation budget given by (70:20:10) scheme Mu.Coun., Mla Shree, Mp Shree, Mayor Shree and other grant, or online complaints are coming daily for demolition of existing RCC roads and construction of new roads, interlocking paver blocks/Stone paving repairs, and upgradation carrying out civil works as per the necessary requirements (Annual Rate Tender).",
+     "verdict": "right",
+     "reason": "the title opens with Shahibaug ward of the Central zone"
+    },
+    {
+     "n": 11,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-16",
+     "ward": "16 SHAHIBAG",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.155 [346790]",
+     "title": "Repairing of Road Potholes using Cold mix Injection potholes patching repairing machine in mahakali temple to ladla pir bridge, jetha bhai garden road, hitendra desai garden road, hathi khana road, lakhaji kuvarnji road, and other different present main road in shahibaug ward of Central Zone of Ahmedabad Municipal Corporation)",
+     "verdict": "right",
+     "reason": "the title says its roads are in shahibaug ward of Central Zone"
+    },
+    {
+     "n": 12,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-25",
+     "ward": "25 VIRATNAGAR",
+     "tender_number": "EZ 08-2026-27 [347768]",
+     "title": "Transporting & Laying Water Distribution Network, Providing & Laying Sewerage Network with Demolition and Construction of Road at Rajpur- Arbuda Nagar area in Rajiv Garib Nagar, Noor Nagar and Different Location of Various Chawl area in Viratnagar Ward in East Zone of AMC area",
+     "verdict": "right",
+     "reason": "the title says Viratnagar Ward in East Zone; the notice is for water and sewer lines with the road rebuilt over them"
+    },
+    {
+     "n": 13,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-28",
+     "ward": "28 KHADIA",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.243 [347342]",
+     "title": "Repairing of Road Potholes using Cold mix Injection potholes patching repairing machine in Diff. road in Khadia ward of Central Zone of Ahmedabad Municipal Corporation)",
+     "verdict": "right",
+     "reason": "the title says Khadia ward of Central Zone"
+    },
+    {
+     "n": 14,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-29",
+     "ward": "29 JAMALPUR",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.258 [347746]",
+     "title": "In Jamalpur Ward, carrying out RCC road construction work from the budget provision of Hon. MLA Shri Imranbhai Khedawala and other budget provisions. (AMC)",
+     "verdict": "right",
+     "reason": "the title opens with Jamalpur Ward"
+    },
+    {
+     "n": 15,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-29",
+     "ward": "29 JAMALPUR",
+     "tender_number": "Central Zone E-Tender Notice No.07/2026-2027 Tender No.259 [347752]",
+     "title": "In Jamalpur Ward, in the Raikhad and Mirzapur areas, carrying out RCC road construction work from the budget provision of Hon. MLA Shri Imranbhai Khedawala and other budget provisions. (AMC)",
+     "verdict": "right",
+     "reason": "the title opens with Jamalpur Ward and names Raikhad, which is inside the ward"
+    },
+    {
+     "n": 16,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-42",
+     "ward": "42 INDRAPURI",
+     "tender_number": "SZ-E-Tender Notice No.06 / 2026-27 Tender No.425 [351328]",
+     "title": "Hot mix patch work using milling method to repair pot holes on TP roads of Khokhara and Indrapuri ward & other wards of South Zone(ARC)",
+     "verdict": "right",
+     "reason": "the title says Khokhara and Indrapuri ward and other wards of South Zone: Indrapuri is one of the wards it names"
+    },
+    {
+     "n": 17,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-46",
+     "ward": "46 LAMBHA",
+     "tender_number": "tender notice no.06/2026-27, tender no.402 [352066]",
+     "title": "providing & supply Wetmix material for pothole filling & to make weak road moterable during monsoon period at areas behind Narol court & different areas of lambha Ward in SZ",
+     "verdict": "right",
+     "reason": "the title says different areas of lambha Ward in SZ, behind Narol court; Narol is inside the ward"
+    },
+    {
+     "n": 18,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-46",
+     "ward": "46 LAMBHA",
+     "tender_number": "tender notice no.06/2026-27, tender no.404 [352068]",
+     "title": "Regarding the work of supplying tractors, trolleys, permits and necessary machinery for filling potholes on the roads in monsson period at Areas behind narol court and various places in the Lambha ward of south zone as per the requirement",
+     "verdict": "right",
+     "reason": "the title says the Lambha ward of south zone"
+    },
+    {
+     "n": 19,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-46",
+     "ward": "46 LAMBHA",
+     "tender_number": "tender notice no.6/2026-27, tender no.377 [352012]",
+     "title": "Regarding the work of supplying Coldmix for pothole repair at kamodgam, gyaspurgam and other places as per requirement in Lambha ward of South Zone.",
+     "verdict": "right",
+     "reason": "the title says Lambha ward of South Zone"
+    },
+    {
+     "n": 20,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-46",
+     "ward": "46 LAMBHA",
+     "tender_number": "tender notice no.6/2026-27, tender no.379 [351879]",
+     "title": "Regarding the work of supplying Wet Mix for pothole repairs and making unpaved road sections motorable during the monsoon season in Piplajgam, Saijpur-Gopalpur gam, Gyaspur gam, and Kamod gam located within the South Zone Lambha Ward-as well as at other various locations in the ward where the need arises.",
+     "verdict": "right",
+     "reason": "the title says the South Zone Lambha Ward and names Piplaj, which is inside the ward"
+    },
+    {
+     "n": 21,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-46",
+     "ward": "46 LAMBHA",
+     "tender_number": "tender notice no.6/2026-27, tender no.381 [352073]",
+     "title": "Regarding the work of supplying tractors- trolleys, labours, and necessary machinery to fill potholes on roads during the monsoon season in kamod gam, gyaspurgam, and various other areas of the South Zone Lambha Ward",
+     "verdict": "right",
+     "reason": "the title says the South Zone Lambha Ward"
+    },
+    {
+     "n": 22,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-46",
+     "ward": "46 LAMBHA",
+     "tender_number": "tender notice no.6/2026-27, tender no.388 [352069]",
+     "title": "Regarding the work of construction of RCC roads and laying of paver blocks in various localities such as Bharvad Vas, thakorvas, Makvanavas, and Bhoivas in Saijpur-gam of the South Zone Lambha Ward, as well as in various areas of the Lambha Ward.",
+     "verdict": "right",
+     "reason": "the title says Saijpur-gam of the South Zone Lambha Ward; it is Lambha's village and the title is not answered for Saijpur Bogha ward"
+    },
+    {
+     "n": 23,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-46",
+     "ward": "46 LAMBHA",
+     "tender_number": "tender notice no.6/2026-27, tender no.389 [352070]",
+     "title": "Regarding the work of construction of RCC roads and laying of paver blocks in various localities such as Bharvad Vas, thakorvas, Darbarvas in Piplaj gam of the South Zone Lambha Ward, as well as in various areas of the Lambha Ward.",
+     "verdict": "right",
+     "reason": "the title says Piplaj gam of the South Zone Lambha Ward; Piplaj is inside the ward"
+    },
+    {
+     "n": 24,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-46",
+     "ward": "46 LAMBHA",
+     "tender_number": "tender notice no.6/2026-27, tender no.417 [352078]",
+     "title": "Road resurfacing and milling work at various locations in the South Zone Lambha Ward.",
+     "verdict": "right",
+     "reason": "the title says the South Zone Lambha Ward"
+    },
+    {
+     "n": 25,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-46",
+     "ward": "46 LAMBHA",
+     "tender_number": "tender notice no06/2026-27 tender no 412 [351557]",
+     "title": "Regarding the work of supplying wet mix for pothole repairing at various different places as per requirement, and for making the unpaved (kacha) parts of the road motorable in different areas of the ward and behind Gebanshah in the South Zone, Lambha Ward.",
+     "verdict": "right",
+     "reason": "the title ends in the South Zone, Lambha Ward"
+    },
+    {
+     "n": 26,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-46",
+     "ward": "46 LAMBHA",
+     "tender_number": "tender notice no06/2026-27 tender no 413 [351559]",
+     "title": "Regarding the work of supplying wet mix for pothole repairing at various different places as per requirement, and for making the unpaved (kacha) parts of the road motorable in different areas of the ward, including Noornagar area, Alifnagar area, Narol Gamtal area, and Sanabhai Nagar area in the South Zone, Lambha Ward.",
+     "verdict": "right",
+     "reason": "the title ends in the South Zone, Lambha Ward and names Narol Gamtal; Narol is inside the ward"
+    },
+    {
+     "n": 27,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-46",
+     "ward": "46 LAMBHA",
+     "tender_number": "tender notice no06/2026-27 tender no 414 [351561]",
+     "title": "Regarding the work of supplying wet mix for pothole repairing at various different places as per requirement, and for making the unpaved (kacha) parts of the road motorable in different areas of the ward, including Noornagar area, Alifnagar area, Narol Gamtal area, and Sanabhai Nagar area in the South Zone, Lambha Ward.",
+     "verdict": "right",
+     "reason": "the title ends in the South Zone, Lambha Ward and names Narol Gamtal; Narol is inside the ward"
+    },
+    {
+     "n": 28,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-47",
+     "ward": "47 VATVA",
+     "tender_number": "E Tender Notice 06/2026-27 Tender No -441 [350916]",
+     "title": "Work of supplying supervisors, laborers, and tractor-trolleys for pothole filling, protection, and maintenance activities under monsoon preparation during the rainy season in Gamtal as well as different areas as required and on roads in Vatva Ward of the South Zone.",
+     "verdict": "right",
+     "reason": "the title says Vatva Ward of the South Zone"
+    },
+    {
+     "n": 29,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-47",
+     "ward": "47 VATVA",
+     "tender_number": "E Tender Notice 06/2026-27 Tender No-437 [350872]",
+     "title": "Work of supplying supervisors, laborers, and Chhota Hathi (mini commercial vehicles) for pothole filling and maintenance work in different areas of Gamtal and Ghodasar, as well as in narrow streets off the roads, in Vatva Ward of the South Zone. (A.R.C. Tender)",
+     "verdict": "right",
+     "reason": "the title says Vatva Ward of the South Zone"
+    },
+    {
+     "n": 30,
+     "basis": "name",
+     "ward_code": "GJ-ahmedabad-47",
+     "ward": "47 VATVA",
+     "tender_number": "SZ-E-06 T.NO.570 [350393]",
+     "title": "To construct RCC roads and pave block footpaths and repair them as per the requirement in various party plots/urban health centers/municipal stores and other municipal buildings in South Zone Vatwa Ward.(ARC)",
+     "verdict": "right",
+     "reason": "the title says South Zone Vatwa Ward, the portal's spelling of Vatva; the roads are inside municipal premises"
+    }
+   ]
+  },
+  "TN/chennai": {
+   "read_as": "number",
+   "points": 600,
+   "wards_sampled": 200,
+   "wards_with_a_pair": 12,
+   "notices_of_body": 16,
+   "notices_returned": 11,
+   "pairs_returned": 17,
+   "pairs": [
+    {
+     "n": 1,
+     "basis": "number",
+     "ward_code": "TN-chennai-25",
+     "ward": "25",
+     "tender_number": "Z.O.III.C.NO.E1/5150/2026 [2026_CoC_710755_1]",
+     "title": "Restoration of road cut made by CMWSSB at MASILAMANI STREET in Div-25, Unit-7, Zone-3",
+     "verdict": "wrong",
+     "reason": "the file's ward 25 lies 88% in ward 31 of the corporation's 2022 map: Madhavaram zone was renumbered"
+    },
+    {
+     "n": 2,
+     "basis": "number",
+     "ward_code": "TN-chennai-26",
+     "ward": "26",
+     "tender_number": "Z.O.III.C.NO.E1/5157/2026 [2026_CoC_710756_1]",
+     "title": "Restoration of road cut made by CMWSSB at Kamban Street in Div-26, Unit-7, Zone-3",
+     "verdict": "wrong",
+     "reason": "the file's ward 26 lies in wards 30 and 25 of the corporation's 2022 map and nowhere in its ward 26"
+    },
+    {
+     "n": 3,
+     "basis": "number",
+     "ward_code": "TN-chennai-26",
+     "ward": "26",
+     "tender_number": "Z.O.III.C.NO.E1/5171/2026 [2026_CoC_710758_1]",
+     "title": "Restoration of road cut made by CMWSSB at Murugesan garden in Div-26, Unit-7, Zone-3",
+     "verdict": "wrong",
+     "reason": "the file's ward 26 lies in wards 30 and 25 of the corporation's 2022 map and nowhere in its ward 26"
+    },
+    {
+     "n": 4,
+     "basis": "number",
+     "ward_code": "TN-chennai-27",
+     "ward": "27",
+     "tender_number": "Z.O.III.C.NO.E1/4718/2026 [2026_CoC_710722_1]",
+     "title": "RESTORATION OF ROAD CUT CC LAYING WORK MADE BY CMWSSB AT PERIYASEKKADU PERUMAL KOIL STREET IN DN-27, UNIT-7, ZONE-3",
+     "verdict": "wrong",
+     "reason": "the file's ward 27 lies 67% in ward 26 of the corporation's 2022 map and 15% in its ward 27"
+    },
+    {
+     "n": 5,
+     "basis": "number",
+     "ward_code": "TN-chennai-27",
+     "ward": "27",
+     "tender_number": "Z.O.III.C.NO.E1/4719/2026 [2026_CoC_710726_1]",
+     "title": "RESTORATION OF ROAD CUT CC LAYING WORK MADE BY CMWSSB AT KUMARAN MAIN STREET IN DN-27, UNIT-7, ZONE-3",
+     "verdict": "wrong",
+     "reason": "the file's ward 27 lies 67% in ward 26 of the corporation's 2022 map and 15% in its ward 27"
+    },
+    {
+     "n": 6,
+     "basis": "number",
+     "ward_code": "TN-chennai-29",
+     "ward": "29",
+     "tender_number": "Z.O.III.C.NO.E1/5548/2026 [2026_CoC_710737_1]",
+     "title": "Restoration of road cut made by CMWSSB to BT Surface at Govind Street in Div-29, Unit-8, Zone-3",
+     "verdict": "wrong",
+     "reason": "the file's ward 29 lies wholly in ward 22 of the corporation's 2022 map"
+    },
+    {
+     "n": 7,
+     "basis": "number",
+     "ward_code": "TN-chennai-29",
+     "ward": "29",
+     "tender_number": "Z.O.III.C.NO.E1/5549/2026 [2026_CoC_710740_1]",
+     "title": "Restoration of road cut made by CMWSSB to BT Surface at Periya Salai 1st Cross Street in Div-29, Unit-8, Zone-3",
+     "verdict": "wrong",
+     "reason": "the file's ward 29 lies wholly in ward 22 of the corporation's 2022 map"
+    },
+    {
+     "n": 8,
+     "basis": "number",
+     "ward_code": "TN-chennai-45",
+     "ward": "45",
+     "tender_number": "B.R.R.C.No.B4 /2958/2026 [2026_CoC_707086_1]",
+     "title": "Restoration of OFC Road cut at Chithatheripet Kovam bridge road and Egmore commissioner office and Restoration of OFC Road cut at Ganeshpuram main road in Dn 62 and 45 Zone 5 and 4",
+     "verdict": "right",
+     "reason": "45 is one of the title's two divisions; Ganeshpuram subway is 2 m from the ward, and the 2022 map keeps its number over 82% of it"
+    },
+    {
+     "n": 9,
+     "basis": "number",
+     "ward_code": "TN-chennai-62",
+     "ward": "62",
+     "tender_number": "B.R.R.C.No.B4 /2958/2026 [2026_CoC_707086_1]",
+     "title": "Restoration of OFC Road cut at Chithatheripet Kovam bridge road and Egmore commissioner office and Restoration of OFC Road cut at Ganeshpuram main road in Dn 62 and 45 Zone 5 and 4",
+     "verdict": "right",
+     "reason": "62 is one of the title's two divisions; Chintadripet is inside the ward, and the 2022 map draws ward 62 over all of it"
+    },
+    {
+     "n": 10,
+     "basis": "number",
+     "ward_code": "TN-chennai-128",
+     "ward": "128",
+     "tender_number": "B.R.R.C.No. B3 / 3275 /2026 -1 [2026_CoC_708757_1]",
+     "title": "Improvements to BT Road in Arcot Road North Side from Thiruvalluvar Salai to KalliammanKoil Street in Div-128, Zone-10.",
+     "verdict": "right",
+     "reason": "128 is the title's division; Kaliamman Koil Street and Arcot Road are inside the ward"
+    },
+    {
+     "n": 11,
+     "basis": "number",
+     "ward_code": "TN-chennai-128",
+     "ward": "128",
+     "tender_number": "B.R.R.C.No. B3 / 3275 /2026-2 [2026_CoC_708764_1]",
+     "title": "Improvements to BT Road in Arcot Road South Side from ThiruvalluvarSalai to Vanniyar Street in Div-128, Zone-10.",
+     "verdict": "right",
+     "reason": "128 is the title's division; Arcot Road is inside the ward"
+    },
+    {
+     "n": 12,
+     "basis": "number",
+     "ward_code": "TN-chennai-128",
+     "ward": "128",
+     "tender_number": "B.R.R.C.No. B4 / 3321/ 2026 [2026_CoC_709747_1]",
+     "title": "Restoration of OFC road cuts by Bharti Airtel Ltd. at Ramasamy Salai, Arcot Road, P.V. Rajamannar Salai, Ashok Pillar Main Road D128 129 136 137 138 in Z10 and Jio Digital Fibre Pvt. Ltd. at Chettiyar Agaram Main Road (D150, Z11).",
+     "verdict": "right",
+     "reason": "128 is one of the title's divisions; Arcot Road is inside the ward"
+    },
+    {
+     "n": 13,
+     "basis": "number",
+     "ward_code": "TN-chennai-129",
+     "ward": "129",
+     "tender_number": "B.R.R.C.No. B4 / 3321/ 2026 [2026_CoC_709747_1]",
+     "title": "Restoration of OFC road cuts by Bharti Airtel Ltd. at Ramasamy Salai, Arcot Road, P.V. Rajamannar Salai, Ashok Pillar Main Road D128 129 136 137 138 in Z10 and Jio Digital Fibre Pvt. Ltd. at Chettiyar Agaram Main Road (D150, Z11).",
+     "verdict": "right",
+     "reason": "129 is one of the title's divisions; Arcot Road runs through the ward, and the 2022 map keeps its number over 95% of it"
+    },
+    {
+     "n": 14,
+     "basis": "number",
+     "ward_code": "TN-chennai-136",
+     "ward": "136",
+     "tender_number": "B.R.R.C.No. B4 / 3321/ 2026 [2026_CoC_709747_1]",
+     "title": "Restoration of OFC road cuts by Bharti Airtel Ltd. at Ramasamy Salai, Arcot Road, P.V. Rajamannar Salai, Ashok Pillar Main Road D128 129 136 137 138 in Z10 and Jio Digital Fibre Pvt. Ltd. at Chettiyar Agaram Main Road (D150, Z11).",
+     "verdict": "wrong",
+     "reason": "the file's ward 136 lies 92% in ward 133 of the corporation's 2022 map"
+    },
+    {
+     "n": 15,
+     "basis": "number",
+     "ward_code": "TN-chennai-137",
+     "ward": "137",
+     "tender_number": "B.R.R.C.No. B4 / 3321/ 2026 [2026_CoC_709747_1]",
+     "title": "Restoration of OFC road cuts by Bharti Airtel Ltd. at Ramasamy Salai, Arcot Road, P.V. Rajamannar Salai, Ashok Pillar Main Road D128 129 136 137 138 in Z10 and Jio Digital Fibre Pvt. Ltd. at Chettiyar Agaram Main Road (D150, Z11).",
+     "verdict": "right",
+     "reason": "137 is one of the title's divisions; Ramasamy Salai is inside the ward"
+    },
+    {
+     "n": 16,
+     "basis": "number",
+     "ward_code": "TN-chennai-138",
+     "ward": "138",
+     "tender_number": "B.R.R.C.No. B4 / 3321/ 2026 [2026_CoC_709747_1]",
+     "title": "Restoration of OFC road cuts by Bharti Airtel Ltd. at Ramasamy Salai, Arcot Road, P.V. Rajamannar Salai, Ashok Pillar Main Road D128 129 136 137 138 in Z10 and Jio Digital Fibre Pvt. Ltd. at Chettiyar Agaram Main Road (D150, Z11).",
+     "verdict": "right",
+     "reason": "138 is one of the title's divisions; Ashok Pillar is inside the ward"
+    },
+    {
+     "n": 17,
+     "basis": "number",
+     "ward_code": "TN-chennai-150",
+     "ward": "150",
+     "tender_number": "B.R.R.C.No. B4 / 3321/ 2026 [2026_CoC_709747_1]",
+     "title": "Restoration of OFC road cuts by Bharti Airtel Ltd. at Ramasamy Salai, Arcot Road, P.V. Rajamannar Salai, Ashok Pillar Main Road D128 129 136 137 138 in Z10 and Jio Digital Fibre Pvt. Ltd. at Chettiyar Agaram Main Road (D150, Z11).",
+     "verdict": "right",
+     "reason": "150 is the title's division for Chettiyar Agaram Main Road; Chettiyar Agaram is 34 m from the ward"
+    }
+   ]
+  },
+  "OD/bhubaneswar": {
+   "read_as": "number",
+   "points": 201,
+   "wards_sampled": 67,
+   "wards_with_a_pair": 15,
+   "notices_of_body": 11,
+   "notices_returned": 11,
+   "pairs_returned": 15,
+   "pairs": [
+    {
+     "n": 1,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-25",
+     "ward": "25",
+     "tender_number": "BMC-EE-Tender Cell-71/2026-27 dt. 23.09.2026 [2026_ORULB_141585_2]",
+     "title": "Construction of road and drain back side of Gajalaxmi Vending zone, renovation of road at back side of ISKCON temple and Repairing of main road at Behera Basti in Ward No. 25",
+     "verdict": "right",
+     "reason": "25 is the title's ward number; the ISKCON temple is inside the ward"
+    },
+    {
+     "n": 2,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-34",
+     "ward": "34",
+     "tender_number": "BMC-EE-Tender Cell-74/2026-27 dt. 01.10.2026 [2026_ORULB_142306_2]",
+     "title": "Regular repair and maintenance of road and pothole in ward no. 34, 35 and 44",
+     "verdict": "right",
+     "reason": "34 is one of the title's three wards; the file draws 34 and 35 side by side"
+    },
+    {
+     "n": 3,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-35",
+     "ward": "35",
+     "tender_number": "BMC-EE-Tender Cell-74/2026-27 dt. 01.10.2026 [2026_ORULB_142306_2]",
+     "title": "Regular repair and maintenance of road and pothole in ward no. 34, 35 and 44",
+     "verdict": "right",
+     "reason": "35 is one of the title's three wards; the file draws 34 and 35 side by side"
+    },
+    {
+     "n": 4,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-37",
+     "ward": "37",
+     "tender_number": "BMC-EE-Tender Cell-71/2026-27 dt. 23.09.2026 [2026_ORULB_141585_6]",
+     "title": "Construction of road and Drain from NH 16 to Kali Mandira Road and at Nuasahi Raghunath Temple Road in ward no. 37",
+     "verdict": "right",
+     "reason": "37 is the title's ward number; OpenStreetMap's Nuasahi sub-centre is inside the ward"
+    },
+    {
+     "n": 5,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-41",
+     "ward": "41",
+     "tender_number": "BMC-EE-Tender Cell-74/2026-27 dt. 01.10.2026 [2026_ORULB_142306_1]",
+     "title": "Regular repairs and maintenance of roads in ward no. 41 and 42.",
+     "verdict": "right",
+     "reason": "41 is one of the title's two wards; the file draws 41 and 42 side by side"
+    },
+    {
+     "n": 6,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-42",
+     "ward": "42",
+     "tender_number": "BMC-EE-Tender Cell-74/2026-27 dt. 01.10.2026 [2026_ORULB_142306_1]",
+     "title": "Regular repairs and maintenance of roads in ward no. 41 and 42.",
+     "verdict": "right",
+     "reason": "42 is one of the title's two wards; the file draws 41 and 42 side by side"
+    },
+    {
+     "n": 7,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-44",
+     "ward": "44",
+     "tender_number": "BMC-EE-Tender Cell-74/2026-27 dt. 01.10.2026 [2026_ORULB_142306_2]",
+     "title": "Regular repair and maintenance of road and pothole in ward no. 34, 35 and 44",
+     "verdict": "cannot tell",
+     "reason": "44 is one of the title's three wards, but the file draws it 1.2 km from the other two and the title names no place"
+    },
+    {
+     "n": 8,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-45",
+     "ward": "45",
+     "tender_number": "BMC-EE-Tender Cell-74/2026-27 dt. 01.10.2026 [2026_ORULB_142306_3]",
+     "title": "Regular repairs and maintenance of roads in ward no. 45 and 56.",
+     "verdict": "right",
+     "reason": "45 is one of the title's two wards; the file draws 45 and 56 side by side"
+    },
+    {
+     "n": 9,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-48",
+     "ward": "48",
+     "tender_number": "BMC-EE-Tender Cell-71/2026-27 dt. 23.09.2026 [2026_ORULB_141585_3]",
+     "title": "Development of Road Near Delta- U.P.School to Delta C. Colony last Govt. Quarter and Munda Sahi in Ward No. 48",
+     "verdict": "cannot tell",
+     "reason": "48 is the title's ward number; Delta colony and Munda Sahi could not be located"
+    },
+    {
+     "n": 10,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-49",
+     "ward": "49",
+     "tender_number": "BMC-EE-Tender Cell-71/2026-27 dt. 23.09.2026 [2026_ORULB_141585_5]",
+     "title": "Construction of Balance Roads at Sankar Vihar, Baisali Vihar, Mahadev Vihar near Atit Ranjan Choudhury and Sukanta Mallick Residence at Aiginia and Srikhetra Vihar near Baliar Singh Babu Residence Lane-3 in Ward No. 49",
+     "verdict": "right",
+     "reason": "49 is the title's ward number; OpenStreetMap's Aiginia is inside the ward"
+    },
+    {
+     "n": 11,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-51",
+     "ward": "51",
+     "tender_number": "BMC-EE-Tender Cell-71/2026-27 dt. 23.09.2026 [2026_ORULB_141585_7]",
+     "title": "Development of all internal roads of Soubhagya Nagar Phase-I and Phase-II,Construction of Paver Road at Prasanti Vihar, Widening of Road from Siripur Chhak to Jhadeswari Temple Road and Construction of Road at Nilakantheswar Temple in Ward No. 51",
+     "verdict": "right",
+     "reason": "51 is the title's ward number; a house addressed Siripur and four clinics addressed Soubhagya Nagar are inside the ward"
+    },
+    {
+     "n": 12,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-56",
+     "ward": "56",
+     "tender_number": "BMC-EE-Tender Cell-74/2026-27 dt. 01.10.2026 [2026_ORULB_142306_3]",
+     "title": "Regular repairs and maintenance of roads in ward no. 45 and 56.",
+     "verdict": "right",
+     "reason": "56 is one of the title's two wards; the file draws 45 and 56 side by side"
+    },
+    {
+     "n": 13,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-60",
+     "ward": "60",
+     "tender_number": "BMC-EE-Tender Cell-71/2026-27 dt. 23.09.2026 [2026_ORULB_141585_8]",
+     "title": "Construction of Road and Drain from Agnijala Chhaka to Gangua Bandha and Lingaraj Nagar in Ward No. 60",
+     "verdict": "right",
+     "reason": "60 is the title's ward number; a clinic addressed Lingaraj Nagar is inside the ward"
+    },
+    {
+     "n": 14,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-61",
+     "ward": "61",
+     "tender_number": "BMC-EE-Tender Cell-71/2026-27 dt. 23.09.2026 [2026_ORULB_141585_9]",
+     "title": "Improvement of Roads in ward no. 61",
+     "verdict": "cannot tell",
+     "reason": "61 is the title's ward number and the title names no place"
+    },
+    {
+     "n": 15,
+     "basis": "number",
+     "ward_code": "OD-bhubaneswar-62",
+     "ward": "62",
+     "tender_number": "BMC-EE-Tender Cell-71/2026-27 dt. 23.09.2026 [2026_ORULB_141585_4]",
+     "title": "Improvement of road at BDA Colony, Ananta Vihar in Ward No. 62",
+     "verdict": "right",
+     "reason": "62 is the title's ward number; Ananta Vihar Park is inside the ward"
+    }
+   ]
+  },
+  "HR/faridabad": {
+   "read_as": "number",
+   "points": 120,
+   "wards_sampled": 40,
+   "wards_with_a_pair": 5,
+   "notices_of_body": 6,
+   "notices_returned": 5,
+   "pairs_returned": 5,
+   "pairs": [
+    {
+     "n": 1,
+     "basis": "number",
+     "ward_code": "HR-faridabad-10",
+     "ward": "10",
+     "tender_number": "20267FD4FB59 8963 45C2 B68B AAA93650383B284ULB [2026_HRY_550649_1]",
+     "title": "Estimate for Construction of Road by Plain Cement Concrete pavement in M-25 mix design with Raising of drain Type Ist after laying of Water supply line at Opp. Community center Pocket, B-Block, Dabua Colony in ward No.10, NIT Faridabad (Recall)",
+     "verdict": "right",
+     "reason": "10 is the title's ward number; OpenStreetMap's Dabua Colony is inside the ward"
+    },
+    {
+     "n": 2,
+     "basis": "number",
+     "ward_code": "HR-faridabad-19",
+     "ward": "19",
+     "tender_number": "2026DC1E35B0 3879 4212 9045 59C173F83832284ULB [2026_HRY_550550_1]",
+     "title": "Construction of RMC road M-40 Grade and laying of 80mm thick IPB at Bhankri T-Point to Dabua Road in Ward no.19 , Faridabad. (Recall)",
+     "verdict": "wrong",
+     "reason": "the title's road runs from Bhankri to Dabua: Bhankri village is in the file's ward 16 and Dabua in its ward 10, 3 km from its ward 19"
+    },
+    {
+     "n": 3,
+     "basis": "number",
+     "ward_code": "HR-faridabad-22",
+     "ward": "22",
+     "tender_number": "2026145B912B 6023 4382 925B B6D160BFD2F1284ULB [2026_HRY_551303_1]",
+     "title": "Providing and Laying 250mm S.W. sewar line and Repair of road in Bhole Bhagat to Jeetay House of ward 22 Badkhal Constituency(Recall)",
+     "verdict": "cannot tell",
+     "reason": "22 is the title's ward number; Bhole Bhagat's house could not be located, and Badkhal is the constituency"
+    },
+    {
+     "n": 4,
+     "basis": "number",
+     "ward_code": "HR-faridabad-27",
+     "ward": "27",
+     "tender_number": "20267F402D41 C958 431A BD72 5A3B56D2386F284ULB [2026_HRY_550643_1]",
+     "title": "Construction of road gully grating of 350mm dia RCC NP3 pipe in front of H. No. 161 gate 164-172, sports complex to Proston Mall 402, 185, 374, 340, 330, 568 in sector - 31 of ward no. 27 div-5 Faridabad. Recall",
+     "verdict": "right",
+     "reason": "27 is the title's ward number; Sector 31 is inside the ward"
+    },
+    {
+     "n": 5,
+     "basis": "number",
+     "ward_code": "HR-faridabad-35",
+     "ward": "35",
+     "tender_number": "2026297ED8DE B3C7 424C 9A79 FC0070736159284ULB [2026_HRY_550777_1]",
+     "title": "Widening of RMC Road M-25 grade and providing and laying 80mm thick interlocking tiles from DAV Public school road in sector-14 ward no-35 (Recall)",
+     "verdict": "wrong",
+     "reason": "the title's Sector 14 is 3.7 km from the file's ward 35"
+    }
+   ]
+  },
+  "TN/coimbatore": {
+   "read_as": "number",
+   "points": 300,
+   "wards_sampled": 100,
+   "wards_with_a_pair": 2,
+   "notices_of_body": 2,
+   "notices_returned": 2,
+   "pairs_returned": 2,
+   "pairs": [
+    {
+     "n": 1,
+     "basis": "number",
+     "ward_code": "TN-coimbatore-91",
+     "ward": "91",
+     "tender_number": "E4 / South Zone / 2026 [2026_MAWS_706572_30]",
+     "title": "Formation of BT surface road at Kasmo colony cross road in Ward No 91, South Zone.",
+     "verdict": "cannot tell",
+     "reason": "Kasmo colony could not be located; the corporation's later map keeps the number of 55% of the file's ward 91"
+    },
+    {
+     "n": 2,
+     "basis": "number",
+     "ward_code": "TN-coimbatore-99",
+     "ward": "99",
+     "tender_number": "E4 / South Zone / 2026 [2026_MAWS_706572_51]",
+     "title": "Formation of cement concrete Road at Cheran nagar 2nd street,Vellalore road in Ward No 99, South Zone.",
+     "verdict": "cannot tell",
+     "reason": "Vellalore Road runs through the file's wards 63 and 99; the corporation's later map keeps the number of 43% of its ward 99"
+    }
+   ]
+  },
+  "MH/navi-mumbai": {
+   "read_as": "number",
+   "points": 327,
+   "wards_sampled": 109,
+   "wards_with_a_pair": 2,
+   "notices_of_body": 2,
+   "notices_returned": 2,
+   "pairs_returned": 2,
+   "pairs": [
+    {
+     "n": 1,
+     "basis": "number",
+     "ward_code": "MH-navi-mumbai-18",
+     "ward": "18",
+     "tender_number": "B-1/NMMC/DE(Turbhe)/03/2026-27 [2026_NMMC_1341942_2]",
+     "title": "Improvement of Road By Providing and Fixing Informatory Sign Board From Palm Beach Circle to Buddheshwar Temple at Sanpada Under Prabhag Samiti Ward No 18 ( D ) in Turbhe Ward.",
+     "verdict": "wrong",
+     "reason": "the title's Sanpada is 1.4 km from the file's ward 18, in its wards 65 and 76 to 79"
+    },
+    {
+     "n": 2,
+     "basis": "number",
+     "ward_code": "MH-navi-mumbai-28",
+     "ward": "28",
+     "tender_number": "NMMC/DE(B)/2 /2026-2027 [2026_NMMC_1340719_24]",
+     "title": "repairing of foothpath and widening of road from C1 to C7 sector 1A, CBD belapur ward NO.28 (B)",
+     "verdict": "wrong",
+     "reason": "the title's CBD Belapur is 10.9 km from the file's ward 28, in its wards 101 to 107"
+    }
+   ]
+  },
+  "UP/kanpur": {
+   "read_as": "name",
+   "points": 162,
+   "wards_sampled": 54,
+   "wards_with_a_pair": 2,
+   "notices_of_body": 81,
+   "notices_returned": 2,
+   "pairs_returned": 2,
+   "pairs": [
+    {
+     "n": 1,
+     "basis": "name",
+     "ward_code": "UP-kanpur-29",
+     "ward": "29 Safipur",
+     "tender_number": "384/AA-2/26-27 [2026_NNKAN_1192335_1]",
+     "title": "Road improvement work near the Kali Mata Temple in Ghaukheda, under Zone-02, Ward-11, Safipur",
+     "verdict": "right",
+     "reason": "the title says Ward-11, Safipur under Zone-02; a nursing home addressed Safipur is inside the file's Safipur, which it places in zone 2"
+    },
+    {
+     "n": 2,
+     "basis": "name",
+     "ward_code": "UP-kanpur-71",
+     "ward": "71 Gandhigram",
+     "tender_number": "571/AA-2/26-27 [2026_NNKAN_1192215_1]",
+     "title": "Improvement work of road and drain From Durga Temple to Prabhakant Dubey House Gandhi Gram Ward 26 Zone02",
+     "verdict": "right",
+     "reason": "the title says Gandhi Gram Ward 26 Zone02; a dispensary addressed Gandhi Gram is inside the file's Gandhigram, which it places in zone 2"
+    }
+   ]
+  },
+  "TG/hyderabad": {
+   "read_as": "name",
+   "points": 441,
+   "wards_sampled": 147,
+   "wards_with_a_pair": 3,
+   "notices_of_body": 16,
+   "notices_returned": 3,
+   "pairs_returned": 3,
+   "pairs": [
+    {
+     "n": 1,
+     "basis": "name",
+     "ward_code": "TG-hyderabad-3",
+     "ward": "3 Cherlapally",
+     "tender_number": "15/SE(M)/UZ/MMC/131/2026-27 [738170]",
+     "title": "Strengthening and Recarpeting of damaged existing BT Road from Ganesh Kaman to Union Bank and internal lanes at EC Nagar in Ward-17 Cherlapally of Kapra-Circle 07, Uppal Zone, GHMC. (3RD RECALL)",
+     "verdict": "right",
+     "reason": "the title says Ward-17 Cherlapally; EC Nagar Colony is inside the file's Cherlapally, its ward 3 in the older numbering"
+    },
+    {
+     "n": 2,
+     "basis": "name",
+     "ward_code": "TG-hyderabad-10",
+     "ward": "10 Uppal",
+     "tender_number": "15/SE(M)/UZ/MMC/130/2026-27 [738165]",
+     "title": "Attending Road repair works from Pillar No. 810 to Pillar No.820, Providing U-turns on Nagole to Uppal under Road safety Drive in Ward No,10-Uppal. Uppal Circle-2, GHMC (4th call)",
+     "verdict": "right",
+     "reason": "the title says Ward No,10-Uppal; Uppal is inside the file's Uppal ward"
+    },
+    {
+     "n": 3,
+     "basis": "name",
+     "ward_code": "TG-hyderabad-104",
+     "ward": "104 Kondapur",
+     "tender_number": "NIT No. 24/02/SE/KPZ/CMC/2026-27,Dt: 28.09.2026 [738312]",
+     "title": "Recarpeting of BT Road from Rolling Hills to Smondo Apartment in Ramky CEO Lane in Kondapur Ward No.104, SLP Cir-20, SLPZ,GHMC (2nd Call).",
+     "verdict": "right",
+     "reason": "the title says Kondapur Ward No.104; Ramky Towers is inside the file's Kondapur ward"
+    }
+   ]
+  },
+  "UP/lucknow": {
+   "read_as": "name",
+   "points": 336,
+   "wards_sampled": 112,
+   "wards_with_a_pair": 0,
+   "notices_of_body": 1,
+   "notices_returned": 0,
+   "pairs_returned": 0,
+   "pairs": []
+  },
+  "GJ/vadodara": {
+   "read_as": "name",
+   "points": 36,
+   "wards_sampled": 12,
+   "wards_with_a_pair": 0,
+   "notices_of_body": 0,
+   "notices_returned": 0,
+   "pairs_returned": 0,
+   "pairs": []
+  },
+  "DL/delhi-2017": {
+   "read_as": "name",
+   "points": 867,
+   "wards_sampled": 289,
+   "wards_with_a_pair": 0,
+   "notices_of_body": 0,
+   "notices_returned": 0,
+   "pairs_returned": 0,
+   "pairs": []
+  },
+  "MH/mumbai": {
+   "read_as": "name",
+   "points": 72,
+   "wards_sampled": 24,
+   "wards_with_a_pair": 0,
+   "notices_of_body": 1,
+   "notices_returned": 0,
+   "pairs_returned": 0,
+   "pairs": []
+  },
+  "MH/pune-2022": {
+   "read_as": "name",
+   "points": 174,
+   "wards_sampled": 58,
+   "wards_with_a_pair": 0,
+   "notices_of_body": 5,
+   "notices_returned": 0,
+   "pairs_returned": 0,
+   "pairs": []
+  },
+  "KL/kochi": {
+   "read_as": "name",
+   "points": 204,
+   "wards_sampled": 68,
+   "wards_with_a_pair": 0,
+   "notices_of_body": 5,
+   "notices_returned": 0,
+   "pairs_returned": 0,
+   "pairs": []
+  },
+  "SK/gangtok": {
+   "read_as": "name",
+   "points": 45,
+   "wards_sampled": 15,
+   "wards_with_a_pair": 0,
+   "notices_of_body": 0,
+   "notices_returned": 0,
+   "pairs_returned": 0,
+   "pairs": []
+  }
+ }
+}

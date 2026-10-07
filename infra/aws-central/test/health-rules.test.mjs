@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 
 import { createGeolocator } from "../service/geolocation.mjs";
-import { ROAD_LAYER_QUERY, WARD_TENDER_QUERY, judgeRoadLayers, judgeWardSnapshot, judgeWardTenders } from "../tools/health-rules.mjs";
+import {
+  INDIA_WARD_CANARY, INDIA_WARD_QUERY, ROAD_LAYER_QUERY, WARD_TENDER_QUERY, judgeIndiaWardCanary, judgeIndiaWardSnapshots,
+  judgeRoadLayers, judgeWardSnapshot, judgeWardTenders,
+} from "../tools/health-rules.mjs";
 import { loadBodyTenders } from "../tools/ward-tender-vocabulary.mjs";
 import { harness, memoryRepository } from "./support.mjs";
 import { CASES } from "./ward-tender-cases.mjs";
@@ -140,4 +146,147 @@ test("a service packaged without the ownership layers logs local_lookup unavaila
   const answer = await geolocator.resolve({ lat: 12.99657, lng: 77.62034 });
   assert.equal(answer.road_ownership, "unknown");
   assert.equal(answer.lookup.local, "unavailable");
+});
+
+// ----------------------------------------------------------------------------------------
+// Outside Karnataka a ward comes from the snapshots data/wards/runtime.json switches on,
+// and deploy.sh stages that list and those files (tools/stage-india-wards.mjs). A package
+// without one of them cannot name a ward there, and without a rule nobody would know: the
+// lookup still answers, with no ward and no ward tenders.
+
+test("a switched-on ward snapshot missing from the package is said out loud, by name", () => {
+  const missing = judgeIndiaWardSnapshots([
+    { n: "12", ward_lookup: "unavailable", ward_snapshot: "GJ/ahmedabad" },
+    { n: "3", ward_lookup: "resolved", ward_snapshot: "MP/bhopal" },
+    { n: "40", ward_lookup: "out_of_scope" },
+  ]);
+  assert.equal(missing.broken, true);
+  assert.equal(missing.unavailable, 12);
+  assert.match(missing.detail, /12 lookups outside Karnataka/);
+  assert.match(missing.detail, /GJ\/ahmedabad \(12\)/);
+  // No snapshot named: the list itself could not be read.
+  const noList = judgeIndiaWardSnapshots([{ n: "55", ward_lookup: "unavailable" }]);
+  assert.equal(noList.broken, true);
+  assert.match(noList.detail, /data\/wards\/runtime\.json \(55\)/);
+  const whole = judgeIndiaWardSnapshots([
+    { n: "9", ward_lookup: "resolved", ward_snapshot: "GJ/ahmedabad" }, { n: "2", ward_lookup: "resolved_unnamed", ward_snapshot: "MP/bhopal" },
+    { n: "1", ward_lookup: "between_wards", ward_snapshot: "GJ/ahmedabad" }, { n: "300", ward_lookup: "out_of_scope" },
+    // Lines from before this release carry no ward_snapshot and say out_of_scope.
+    { n: "500" },
+  ]);
+  assert.equal(whole.broken, false);
+  assert.match(whole.detail, /11 placed in a ward \(GJ\/ahmedabad 9, MP\/bhopal 2\)/);
+  assert.equal(judgeIndiaWardSnapshots([]).broken, false);
+  for (const field of ["ward_lookup", "ward_snapshot", "road_ownership", "outside_state", "route"]) assert.ok(INDIA_WARD_QUERY.includes(field), field);
+});
+
+test("a service packaged without a switched-on snapshot, or without the list, logs what the rule reads", async () => {
+  const runtime = JSON.parse(readFileSync(new URL("../../../data/wards/runtime.json", import.meta.url)));
+  const withoutAhmedabad = mkdtempSync(path.join(os.tmpdir(), "india-wards-"));
+  writeFileSync(path.join(withoutAhmedabad, "runtime.json"), JSON.stringify(runtime));
+  for (const [dir, snapshot] of [[withoutAhmedabad, "GJ/ahmedabad"], [mkdtempSync(path.join(os.tmpdir(), "india-wards-")), null]]) {
+    const geolocator = createGeolocator({ indiaWardsDir: dir, logger: { error() {}, log() {} },
+      fetchImpl: async () => { throw new Error("no network in this test"); } });
+    const h = await harness({ geolocator });
+    const result = await h.post("/v1/tenders/resolve", { lat: INDIA_WARD_CANARY.lat, lng: INDIA_WARD_CANARY.lng, address_hint: INDIA_WARD_CANARY.hint });
+    assert.equal(result.statusCode, 200, result.body);
+    const body = JSON.parse(result.body);
+    assert.equal(body.jurisdiction.ward_name, null);
+    assert.deepEqual(body.ward_tenders, []);
+    const logged = JSON.parse(h.lines.log.findLast((line) => line.includes('"http_request"')));
+    assert.equal(logged.road_ownership, "outside_state");
+    assert.equal(logged.ward_lookup, "unavailable");
+    assert.equal(logged.ward_snapshot, snapshot);
+    const verdict = judgeIndiaWardSnapshots([{ n: "1", ward_lookup: logged.ward_lookup, ward_snapshot: logged.ward_snapshot || undefined }]);
+    assert.equal(verdict.broken, true);
+    // And the canary says the same about the answer itself.
+    assert.equal(judgeIndiaWardCanary({ status: 200, body }).state, "fail");
+  }
+});
+
+// The canary asks the live service about one real point, 760 m inside Shahibag ward of
+// Ahmedabad. The ward must be answered by name. Its tenders are another matter: notices
+// close every week, so an empty list is a failure only where the caller knows the
+// catalogue it deployed has an open notice for that ward.
+test("the Ahmedabad canary point is deep inside the ward it names, in the committed file", async () => {
+  const geolocator = createGeolocator({ logger: { error() {}, log() {} }, fetchImpl: async () => { throw new Error("no network in this test"); } });
+  const answer = await geolocator.resolve({ lat: INDIA_WARD_CANARY.lat, lng: INDIA_WARD_CANARY.lng });
+  assert.equal(answer.ward_name, INDIA_WARD_CANARY.ward);
+  assert.equal(answer.lookup.ward_snapshot, INDIA_WARD_CANARY.snapshot);
+  // Half a kilometre in every direction is still the ward: a phone's fix cannot leave it.
+  for (const [dLat, dLng] of [[0.0045, 0], [-0.0045, 0], [0, 0.0049], [0, -0.0049]]) {
+    const near = await geolocator.resolve({ lat: INDIA_WARD_CANARY.lat + dLat, lng: INDIA_WARD_CANARY.lng + dLng });
+    assert.equal(near.ward_name, INDIA_WARD_CANARY.ward, `${dLat},${dLng}`);
+  }
+});
+
+test("the canary: the ward by name is required, its tenders only where they are known to exist", () => {
+  const jurisdiction = (patch = {}) => ({
+    road_ownership: "outside_state", ward_name: "SHAHIBAG", ward_no: "16",
+    lookup: { ward: "resolved", ward_snapshot: "GJ/ahmedabad" },
+    urban_body: { name: "Ahmedabad Municipal Corporation", road_notices: 46, road_notices_open: 46 }, ...patch,
+  });
+  const title = "In Shahibaug Ward of Central Zone, Regarding the Road Departments work arrangements are being made for the supply of Wetmix to fill potholes and carry out patchwork repairs.(ARC Tender)";
+  const answered = judgeIndiaWardCanary({ status: 200, body: { jurisdiction: jurisdiction(), ward_tenders: [{ tender_number: "T 149 [346558]", title }] } });
+  assert.equal(answered.state, "ok");
+  assert.match(answered.detail, /SHAHIBAG/);
+  assert.match(answered.detail, /In Shahibaug Ward of Central Zone/, "the first title is printed");
+  // A title that does not say the ward is exactly the wrong tender the rule exists for.
+  const wrong = judgeIndiaWardCanary({ status: 200, body: { jurisdiction: jurisdiction(), ward_tenders: [{ tender_number: "T", title: "Resurfacing of roads in Vatva Ward of the South Zone" }] } });
+  assert.equal(wrong.state, "fail");
+  assert.match(wrong.detail, /does not say/);
+  // No ward, another ward, another snapshot, no answer: all failures.
+  for (const body of [
+    { jurisdiction: jurisdiction({ ward_name: null, lookup: { ward: "out_of_scope" } }), ward_tenders: [] },
+    { jurisdiction: jurisdiction({ ward_name: "SHAHPUR" }), ward_tenders: [] },
+    { jurisdiction: jurisdiction({ lookup: { ward: "unavailable", ward_snapshot: "GJ/ahmedabad" }, ward_name: null }), ward_tenders: [] },
+    { jurisdiction: jurisdiction({ road_ownership: "unknown" }), ward_tenders: [] },
+  ]) assert.equal(judgeIndiaWardCanary({ status: 200, body }).state, "fail", JSON.stringify(body.jurisdiction.lookup));
+  assert.equal(judgeIndiaWardCanary({ status: 503, body: { error: "x" } }).state, "fail");
+  // A service from before this release says nothing of an urban body: not judged.
+  const before = { jurisdiction: { road_ownership: "outside_state", ward_name: null, lookup: { ward: "out_of_scope" } }, ward_tenders: [] };
+  assert.equal(judgeIndiaWardCanary({ status: 200, body: before }).state, "skip");
+  assert.match(judgeIndiaWardCanary({ status: 200, body: before }).detail, /before/);
+  // The ward answered and no tender: skipped with the reason, unless the deployed
+  // catalogue is this checkout's and holds open notices for the ward.
+  const empty = { jurisdiction: jurisdiction(), ward_tenders: [] };
+  const unknown = judgeIndiaWardCanary({ status: 200, body: empty });
+  assert.equal(unknown.state, "skip");
+  assert.match(unknown.detail, /SHAHIBAG.*notices close every week/);
+  const none = judgeIndiaWardCanary({ status: 200, body: empty, expectedOpen: 0 });
+  assert.equal(none.state, "skip");
+  assert.match(none.detail, /no open notice for SHAHIBAG/);
+  const expired = judgeIndiaWardCanary({ status: 200, body: { jurisdiction: jurisdiction({ urban_body: { name: "Ahmedabad Municipal Corporation", road_notices: 0, road_notices_open: 0 } }), ward_tenders: [] }, expectedOpen: 10 });
+  assert.equal(expired.state, "skip");
+  assert.match(expired.detail, /holds no open road notice of Ahmedabad Municipal Corporation/);
+  const lost = judgeIndiaWardCanary({ status: 200, body: empty, expectedOpen: 10 });
+  assert.equal(lost.state, "fail");
+  assert.match(lost.detail, /10 open notices/);
+});
+
+test("the service's own answer for the canary point passes the canary, tenders and all", async () => {
+  const clock = Date.parse("2026-10-07T06:00:00Z");
+  const titles = [
+    "In Shahibaug Ward of Central Zone, Regarding the Road Departments work arrangements are being made for the supply of Wetmix to fill potholes and carry out patchwork repairs.(ARC Tender)",
+    "Repairing of Road Potholes using Cold mix Injection potholes patching repairing machine in civil hospital road, mohan cinema road, badiya limdi road, fsl road, ghoda camp road and other different present main road in shahibaug ward of Central Zone of Ahmedabad Municipal Corporation)",
+    "Repairing of Road Potholes using Cold mix Injection potholes patching repairing machine in Diff. road in Khadia ward of Central Zone of Ahmedabad Municipal Corporation)",
+  ];
+  const notices = titles.map((title, n) => ({
+    award_verified: false, closing_at: "2026-10-16T18:00:00+05:30", dlp_verified: false, lifecycle: "procurement_notice",
+    organisation_chain: "AMC-Central Zone", published_at: null, scope: "road_surface", segment_verified: false,
+    source_id: "portal", tender_id: String(346_558 + n), tender_reference: `Tender No.${149 + n}`, title,
+  }));
+  const catalogue = {
+    async match() { return { tender: null, reason: "no_location_match", catalogue: null }; },
+    async load() { return { pack: { notices, sources: [] }, resource: {} }; },
+  };
+  const geolocator = createGeolocator({ logger: { error() {}, log() {} }, fetchImpl: async () => { throw new Error("no network in this test"); } });
+  const h = await harness({ geolocator, catalogue, now: () => clock });
+  const result = await h.post("/v1/tenders/resolve",
+    { lat: INDIA_WARD_CANARY.lat, lng: INDIA_WARD_CANARY.lng, address_hint: INDIA_WARD_CANARY.hint }, { sentAt: clock });
+  const body = JSON.parse(result.body);
+  assert.equal(body.ward_tenders.length, 2, "Shahibag's two, not Khadia's");
+  const verdict = judgeIndiaWardCanary({ status: result.statusCode, body, expectedOpen: 2 });
+  assert.equal(verdict.state, "ok", verdict.detail);
+  assert.match(verdict.detail, /^SHAHIBAG \(ward 16, GJ\/ahmedabad\); 2 ward tenders, first: /);
 });

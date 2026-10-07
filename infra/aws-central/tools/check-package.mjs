@@ -51,4 +51,15 @@ if (wrong.length) {
   for (const line of errors.slice(0, 5)) console.error(`  logged: ${line.slice(0, 300)}`);
   process.exit(1);
 }
-console.log(`package check ok: ${answer.address}; ward ${answer.ward_name}; no network used`);
+// Wards outside Karnataka: every snapshot the staged list switches on loads from the
+// package, and the canary's Ahmedabad point is in its ward (tools/stage-india-wards.mjs).
+const { checkStagedIndiaWards } = await import("./stage-india-wards.mjs");
+const indiaWards = await checkStagedIndiaWards(packageDirectory);
+if (indiaWards.problems.length) {
+  console.error(`package check FAILED for ${packageDirectory}:`);
+  for (const line of indiaWards.problems) console.error(`  ${line}`);
+  for (const line of (indiaWards.logged || []).slice(0, 5)) console.error(`  logged: ${line.slice(0, 300)}`);
+  process.exit(1);
+}
+console.log(`package check ok: ${answer.address}; ward ${answer.ward_name}; ward snapshots outside Karnataka ${indiaWards.snapshots.join(", ") || "none"}`
+  + `${indiaWards.canary ? ` (${indiaWards.canary} answered)` : ""}; no network used`);

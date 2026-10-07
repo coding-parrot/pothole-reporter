@@ -23,8 +23,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  ROAD_LAYER_QUERY, SHADOW_SCORE_QUERY, SHADOW_SCREEN_QUERY, WARD_TENDER_QUERY, judgeRoadLayers,
-  judgeWardSnapshot, judgeWardTenders, reportShadowScreen, shadowScreenCurve,
+  INDIA_WARD_CANARY, INDIA_WARD_QUERY, ROAD_LAYER_QUERY, SHADOW_SCORE_QUERY, SHADOW_SCREEN_QUERY, WARD_TENDER_QUERY,
+  judgeIndiaWardCanary, judgeIndiaWardSnapshots, judgeRoadLayers, judgeWardSnapshot, judgeWardTenders,
+  reportShadowScreen, shadowScreenCurve,
 } from "./health-rules.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -158,6 +159,12 @@ async function windowRules(hours) {
   const wardTenders = judgeWardTenders(wardRows);
   wardTenders.broken ? fail("wards find their tenders", wardTenders.detail) : ok("wards find their tenders", wardTenders.detail);
 
+  // Outside Karnataka a ward comes from the snapshots the runtime list switches on. A
+  // package without one of them still answers, with no ward, and only the log says why.
+  const indiaWards = judgeIndiaWardSnapshots(await insights(INDIA_WARD_QUERY, hours));
+  indiaWards.broken ? fail("ward snapshots outside Karnataka are in the package", indiaWards.detail)
+    : ok("ward snapshots outside Karnataka are in the package", indiaWards.detail);
+
   const detect = rows.filter((row) => row.route === "/v1/vision/detect" && Number(row.status) === 200);
   const detections = detect.reduce((sum, row) => sum + Number(row.n), 0);
   if (detections >= 20) {
@@ -231,6 +238,23 @@ async function publicGet(route) {
   let body = null;
   try { body = JSON.parse(text); } catch { body = null; }
   return { status: response.status, body };
+}
+
+// How many open notices this checkout's own catalogue holds for the canary's ward today,
+// by the service's own lookup and matcher over the repo's files; null if they cannot be
+// read. Only asked for when the catalogue just deployed is this checkout's.
+async function openNoticesForCanaryWard() {
+  try {
+    const { createIndiaWards } = await import("../service/india-wards.mjs");
+    const { matchIndiaWardTenders } = await import("../service/india-ward-tenders.mjs");
+    const { loadNoticePacks } = await import("./india-ward-runtime.mjs");
+    const found = await createIndiaWards({ logger: { error() {} } }).locate(INDIA_WARD_CANARY.lat, INDIA_WARD_CANARY.lng);
+    const held = found.ward ? loadNoticePacks().packs.get(found.snapshot.state_code) : null;
+    if (!held) return null;
+    return matchIndiaWardTenders({ ward: found.ward, snapshot: found.snapshot, pack: held.pack, now: Date.now(), limit: Infinity }).length;
+  } catch {
+    return null;
+  }
 }
 
 async function canary() {
@@ -323,6 +347,19 @@ async function canary() {
   } else {
     fail("Bengaluru street is classified municipal", `${withHint.status} ${JSON.stringify(withHint.body).slice(0, 300)}`);
   }
+
+  // One real point outside Karnataka, 760 m inside Shahibag ward of Ahmedabad: the ward
+  // must come back by name from the packaged snapshot, and every ward tender must say
+  // that ward in its title. Notices close every week, so an empty list is judged only
+  // where this checkout's catalogue is the one deployed (deploy.sh says so); otherwise it
+  // is printed as skipped, with the reason.
+  const ahmedabad = await signedPost("/v1/tenders/resolve",
+    { lat: INDIA_WARD_CANARY.lat, lng: INDIA_WARD_CANARY.lng, address_hint: INDIA_WARD_CANARY.hint });
+  const expectedOpen = process.env.CANARY_CATALOGUE_IS_THIS_CHECKOUT === "1" ? await openNoticesForCanaryWard() : null;
+  const wardCanary = judgeIndiaWardCanary({ status: ahmedabad.status, body: ahmedabad.body, expectedOpen });
+  if (wardCanary.state === "fail") fail("Ahmedabad point is answered with its ward by name", wardCanary.detail);
+  else if (wardCanary.state === "skip") console.log(`  skip Ahmedabad point is answered with its ward by name: ${wardCanary.detail}`);
+  else ok("Ahmedabad point is answered with its ward by name", `${wardCanary.detail} in ${ahmedabad.took} ms`);
 
   const withoutHint = await signedPost("/v1/tenders/resolve", { lat: CANARY_POINT.lat + 0.0006, lng: CANARY_POINT.lng + 0.0006 });
   const source = withoutHint.body?.jurisdiction?.address_source;

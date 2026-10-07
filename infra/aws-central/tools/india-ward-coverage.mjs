@@ -383,8 +383,17 @@ if (isMain && args.includes("--json")) {
   }
 } else if (isMain) {
   const { render } = await import("./india-ward-coverage-report.mjs");
+  // What the service uses of all this (section 11): the runtime list, the pairs read for
+  // it, and how many notices that makes returnable. Counted with the clock on the day the
+  // notices were retrieved, so the report comes out the same on any day.
+  const { RUNTIME_HANDREAD_PATH, RUNTIME_PATH, coverage } = await import("./india-ward-runtime.mjs");
+  const runtime = fs.existsSync(RUNTIME_PATH) && fs.existsSync(RUNTIME_HANDREAD_PATH) ? {
+    list: JSON.parse(fs.readFileSync(RUNTIME_PATH, "utf8")),
+    read: JSON.parse(fs.readFileSync(RUNTIME_HANDREAD_PATH, "utf8")),
+    coverage: await coverage({ now: null }),
+  } : null;
   const text = render(measureAll({ withUnlicensed: args.includes("--with-unlicensed") }), {
-    handread: fs.existsSync(HANDREAD_PATH) ? JSON.parse(fs.readFileSync(HANDREAD_PATH, "utf8")) : null, samplePairs, sampleGazetteerHits,
+    handread: fs.existsSync(HANDREAD_PATH) ? JSON.parse(fs.readFileSync(HANDREAD_PATH, "utf8")) : null, samplePairs, sampleGazetteerHits, runtime,
   });
   fs.writeFileSync(COVERAGE_PATH, text);
   console.log(`wrote ${path.relative(root, COVERAGE_PATH)} (${Buffer.byteLength(text)} bytes)`);

@@ -15,6 +15,7 @@ import {
   verifyInstallationSignature,
 } from "./auth.mjs";
 import { HttpError, asHttpError } from "./errors.mjs";
+import { matchIndiaWardTenders, urbanBodyAt } from "./india-ward-tenders.mjs";
 import { highwayRefsFromAddress } from "./national-tenders.mjs";
 import { matchTender } from "./tenders.mjs";
 import { matchWardTenders } from "./ward-tenders.mjs";
@@ -640,6 +641,7 @@ export function createService({
     context.kgisLookup = jurisdiction.lookup?.kgis || null;
     context.localLookup = jurisdiction.lookup?.local || null;
     context.wardLookup = jurisdiction.lookup?.ward || null;
+    context.wardSnapshot = jurisdiction.lookup?.ward_snapshot || null;
     context.addressSource = jurisdiction.address_source || null;
     context.geoCache = jurisdiction.lookup?.cache || null;
   }
@@ -680,7 +682,10 @@ export function createService({
   //
   // ward_tenders is a second, weaker answer beside `tender`: up to five road-surface
   // tenders of the town whose title names the point's ward or locality (see
-  // ward-tenders.mjs). It never changes `tender` or `reason`.
+  // ward-tenders.mjs). It never changes `tender` or `reason`. Outside Karnataka it is
+  // the open road notices of the point's urban body whose title says its ward, where a
+  // ward snapshot is switched on for that body (india-ward-tenders.mjs), and the
+  // jurisdiction also says which urban body the point is in (`urban_body`).
   async function routing(jurisdiction, context = {}) {
     // The same place gets the same answer until the tender rows are next refreshed, so
     // the finished answer is kept per 11 m cell and address for those ten minutes.
@@ -690,11 +695,19 @@ export function createService({
       context.answerCache = "hit";
       context.wardTenderCount = held.value.ward_tenders.length;
       if (held.value.catalogue) context.tenderCatalogue = held.value.catalogue;
-      return { ...held.value, jurisdiction };
+      // The caller keeps its own jurisdiction; the body is the remembered answer's.
+      if (!Object.hasOwn(held.value.jurisdiction, "urban_body")) return { ...held.value, jurisdiction };
+      noteUrbanBody(context, held.value.jurisdiction.urban_body);
+      return { ...held.value, jurisdiction: { ...jurisdiction, urban_body: held.value.jurisdiction.urban_body } };
     }
     context.answerCache = key ? "miss" : null;
     const named = [];
-    const routed = await streetRouting(jurisdiction, context, named);
+    let routed = await streetRouting(jurisdiction, context, named);
+    if (jurisdiction.road_ownership === "outside_state") {
+      const urbanBody = await beyondKarnataka(jurisdiction, context, named);
+      noteUrbanBody(context, urbanBody);
+      routed = { ...routed, jurisdiction: { ...routed.jurisdiction, urban_body: urbanBody } };
+    }
     // The street-level tender is not said twice.
     const ward = named.filter((entry) => entry.tender_number !== routed.tender?.tender_number);
     context.wardTenderCount = ward.length;
@@ -727,6 +740,48 @@ export function createService({
         error_message: String(error?.message || error).slice(0, 300),
       }));
       return [];
+    }
+  }
+
+  function noteUrbanBody(context, urbanBody) {
+    context.urbanBody = urbanBody?.name || null;
+    context.urbanBodyNotices = urbanBody ? urbanBody.road_notices : null;
+  }
+
+  // A point outside Karnataka: the open road notices of its State that its own urban body
+  // tendered and whose title says its ward are added to `named`, and the body the point
+  // is in is returned with the count of that body's notices. Both read the State's road
+  // notice pack, the one the street-level match reads. A failure costs both and nothing
+  // else; a catalogue that cannot hand over a pack (none staged, or past its review date)
+  // leaves the list empty.
+  async function beyondKarnataka(jurisdiction, context, named) {
+    try {
+      const snapshotId = jurisdiction.lookup?.ward_snapshot;
+      const snapshot = snapshotId && jurisdiction.ward_code && typeof geolocator.wardSnapshot === "function"
+        ? await geolocator.wardSnapshot(snapshotId) : null;
+      // The snapshot's State is where its polygons are; the geocoder's is its word for it.
+      const stateCode = snapshot?.state_code || jurisdiction.state_code;
+      const loaded = catalogue && typeof catalogue.load === "function" && /^[A-Z]{2}$/.test(String(stateCode || ""))
+        ? await catalogue.load("road_notice", stateCode) : null;
+      if (snapshot && loaded) {
+        named.push(...matchIndiaWardTenders({
+          ward: snapshot.wards.find((ward) => ward.code === jurisdiction.ward_code),
+          snapshot,
+          pack: loaded.pack,
+          now: now(),
+        }));
+      }
+      return urbanBodyAt({
+        snapshot, city: jurisdiction.address_parts?.city, stateCode, pack: loaded?.pack || null, now: now(),
+      });
+    } catch (error) {
+      logger.error(JSON.stringify({
+        event: "india_ward_tender_match_failed",
+        request_id: context.requestId || null,
+        error_type: String(error?.name || "Error").slice(0, 80),
+        error_message: String(error?.message || error).slice(0, 300),
+      }));
+      return null;
     }
   }
 
@@ -1175,9 +1230,17 @@ export function createService({
       local_lookup: context.localLookup || null,
       // resolved, resolved_unnamed, no_ward, unavailable, not_municipal or out_of_scope;
       // null when the route resolved no location. ward_tender_count is the length of
-      // ward_tenders answered.
+      // ward_tenders answered. Outside Karnataka the ward comes from a ward snapshot and
+      // ward_snapshot names it ("GJ/ahmedabad"); there ward_lookup can also be
+      // between_wards, out_of_scope means no switched-on snapshot covers the point, and
+      // unavailable means a snapshot the package should hold could not be read.
       ward_lookup: context.wardLookup || null,
+      ward_snapshot: context.wardSnapshot || null,
       ward_tender_count: context.wardTenderCount ?? null,
+      // Outside Karnataka: the urban body the point is in and how many road notices of
+      // that body the State's pack holds. Null inside Karnataka and where no body is known.
+      urban_body: context.urbanBody || null,
+      urban_body_notices: context.urbanBodyNotices ?? null,
       address_source: context.addressSource || null,
       geo_cache: context.geoCache || null,
       answer_cache: context.answerCache || null,

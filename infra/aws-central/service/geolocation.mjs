@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 import { HttpError } from "./errors.mjs";
+import { INDIA_WARDS_DIR, createIndiaWards } from "./india-wards.mjs";
 import {
   HIGHWAY_LAYERS, OWNERSHIP_BUNDLE_PATH, OWNERSHIP_FORMAT, loadOwnershipBundle, polygonAttributes, polygonsAt,
 } from "./local-ownership.mjs";
@@ -167,6 +168,15 @@ const loadWardGeometry = (path, logger) => loadOnce(path, logger, "ward_geometry
     if (!validWardGeometry(geometry)) throw new Error("not the expected geometry bundle");
     return geometry;
   }));
+
+// Wards outside Karnataka (india-wards.mjs): one reader per directory per process, like
+// the bundles above, so the many geolocators a test run builds share what was read.
+const indiaWardReaders = new Map();
+function indiaWardsAt(dir, logger) {
+  const key = String(dir);
+  if (!indiaWardReaders.has(key)) indiaWardReaders.set(key, createIndiaWards({ dir, logger }));
+  return indiaWardReaders.get(key);
+}
 
 // KGIS names a Bengaluru ward "41 - Munnenkolalu". The number is the current (Greater
 // Bengaluru) numbering and is reported on its own; the name is what people and tender
@@ -374,12 +384,14 @@ export function createGeolocator({
   kgisBreakerMs = 60_000,
   localGeometryPath = LOCAL_GEOMETRY_PATH,
   wardGeometryPath = WARD_GEOMETRY_PATH,
+  indiaWardsDir = INDIA_WARDS_DIR,
   // The packaged street index (local-address.mjs). The handler passes it; without one
   // every street name is asked of the geocoder, as before 7 Oct 2026.
   localAddress = null,
   logger = console,
 } = {}) {
   const cache = new Map();
+  const indiaWards = indiaWardsAt(indiaWardsDir, logger);
   const kgis = liveKgis
     ? createKgisClient({ fetchImpl, timeoutMs: kgisTimeoutMs, breakerMs: kgisBreakerMs }) : null;
   return {
@@ -390,6 +402,11 @@ export function createGeolocator({
       const wards = wardCode ? await loadWardGeometry(wardGeometryPath, logger) : null;
       return wards ? wardRosterOf(wards, wardCode) : [];
     },
+    // Outside Karnataka: the ward snapshot a jurisdiction's lookup.ward_snapshot names,
+    // and a jurisdiction with its ward worked out afresh (geo-cache.mjs asks for that on
+    // every stored answer).
+    wardSnapshot: (id) => indiaWards.snapshot(id),
+    placeWard: (jurisdiction) => indiaWards.place(jurisdiction),
     async resolve({ lat, lng, addressHint = "" }) {
       // Four decimals is about 11 m, well inside a phone's GPS error. At five, that
       // jitter made nearly every report a miss.
@@ -401,14 +418,14 @@ export function createGeolocator({
         // brings their own, or none.
         const geocoded = SERVER_ADDRESS_SOURCES.has(cached.value.address_source);
         const hint = bounded(addressHint, 500) || null;
-        return {
+        return indiaWards.place({
           ...cached.value,
           lat,
           lng,
           address: geocoded ? cached.value.address : hint,
           address_parts: geocoded ? cached.value.address_parts : null,
           address_source: geocoded ? cached.value.address_source : hint ? "client_hint" : "unresolved",
-        };
+        });
       }
       // The street the point is on, read from the packaged index: no call, under 1 ms
       // warm. Only a street within the geocoder's own snapping distance replaces the
@@ -574,7 +591,9 @@ export function createGeolocator({
         cache.set(cacheKey, { value, expiresAt: Date.now() + 300_000 });
         while (cache.size > 256) cache.delete(cache.keys().next().value);
       }
-      return value;
+      // A point outside Karnataka gets its ward here, from the ward snapshots that are
+      // switched on (india-wards.mjs). Every other answer comes back as it is.
+      return indiaWards.place(value);
     },
   };
 }
