@@ -44,3 +44,51 @@ export function judgeWardTenders(rows, { minimum = 30, share = 0.2 } = {}) {
     ? { broken: true, resolved, answered, detail: `${answered} of ${resolved} lookups with a ward (${percent}%) answered a ward tender or a street tender; the rule is ${share * 100}%. Check the packaged ward snapshot, the tender table and ward-tenders.mjs` }
     : { broken: false, resolved, answered, detail: `${answered} of ${resolved} lookups with a ward (${percent}%) answered a ward tender or a street tender` };
 }
+
+// Drive frames judged in openai_with_shadow_screen: gpt-5-mini's verdict (outcome) beside
+// what the fast screen said about the same frame. A line whose screen did not answer
+// carries screen_error and no screen_assessment.
+export const SHADOW_SCREEN_QUERY = 'filter event="http_request" and route="/v1/vision/detect" and status=200'
+  + " and (ispresent(screen_assessment) or ispresent(screen_error))"
+  + " | stats count() as n by outcome, screen_assessment, screen_error";
+
+// A report, never a failure: shadow mode exists to find out how good the screen is, so
+// a poor number here is the finding, not an outage. Live recall is, of the frames
+// gpt-5-mini judged damaged, the share the screen also flagged: the potholes
+// yolo_then_openai would have kept. The cleared share is, of the frames gpt-5-mini judged
+// undamaged, the share the screen cleared: the gpt-5-mini calls that mode would save.
+export function reportShadowScreen(rows) {
+  let damaged = 0;
+  let flagged = 0;
+  let undamaged = 0;
+  let cleared = 0;
+  let unanswered = 0;
+  for (const row of rows) {
+    const n = Number(row.n) || 0;
+    const screen = row.screen_assessment;
+    if (screen !== "damaged" && screen !== "undamaged") {
+      if (row.screen_error) unanswered += n;
+      continue;
+    }
+    if (row.outcome === "damaged") {
+      damaged += n;
+      if (screen === "damaged") flagged += n;
+    } else if (row.outcome === "undamaged") {
+      undamaged += n;
+      if (screen === "undamaged") cleared += n;
+    }
+  }
+  const recall = damaged ? flagged / damaged : null;
+  const clearedShare = undamaged ? cleared / undamaged : null;
+  const percent = (value) => `${(100 * value).toFixed(1)}%`;
+  const detail = damaged + undamaged + unanswered === 0
+    ? "no drive frames were shadow screened in the window"
+    : [
+      damaged ? `the screen flagged ${flagged} of ${damaged} frames gpt-5-mini judged damaged (live recall ${percent(recall)})`
+        : "gpt-5-mini judged no shadow-screened frame damaged",
+      undamaged ? `cleared ${cleared} of ${undamaged} it judged undamaged (${percent(clearedShare)})`
+        : "gpt-5-mini judged no shadow-screened frame undamaged",
+      `${unanswered} frames had no screen answer`,
+    ].join("; ");
+  return { broken: false, damaged, flagged, recall, undamaged, cleared, clearedShare, unanswered, detail };
+}

@@ -44,11 +44,15 @@ Parameters:
   SharedDetectorProvider:
     Type: String
     Default: openai_then_yolo
-    AllowedValues: [openai, yolo, openai_then_yolo, yolo_then_openai]
+    AllowedValues: [openai, yolo, openai_then_yolo, yolo_then_openai, openai_with_shadow_screen]
     Description: >-
       openai_then_yolo is today's order (gpt-5-mini judges every frame, YOLO covers
       exhaustion only). yolo_then_openai screens drive frames with the YOLO Lambda first
       and sends only flagged frames to gpt-5-mini; manual photos stay OpenAI first.
+      openai_with_shadow_screen answers every frame with gpt-5-mini alone and also runs
+      the screen named by YoloFunctionName beside it on drive frames, logging what the
+      screen said (screen_score, screen_assessment, screen_ms, screen_agrees) and never
+      using it.
   YoloFunctionName:
     Type: String
     Default: ''

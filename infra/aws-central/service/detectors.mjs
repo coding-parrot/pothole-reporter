@@ -33,20 +33,40 @@ const LAMBDA_RESPONSE_RESERVE_MS = 3_000;
 const MIN_UPSTREAM_MS = 1_000;
 // openai_then_yolo is the order deployed today: gpt-5-mini judges every frame and the
 // YOLO leg only covers OpenAI exhaustion. yolo_then_openai puts the fast detector first
-// on drive frames and keeps OpenAI first for manual photos.
+// on drive frames and keeps OpenAI first for manual photos. openai_with_shadow_screen is
+// how a new screen earns that place: gpt-5-mini still answers every frame, and the screen
+// runs beside it on drive frames so the request log can say what it would have decided.
 export const PROVIDER_MODES = Object.freeze([
-  "openai", "yolo", "openai_then_yolo", "yolo_then_openai",
+  "openai", "yolo", "openai_then_yolo", "yolo_then_openai", "openai_with_shadow_screen",
 ]);
+const SHADOW_MODE = "openai_with_shadow_screen";
 // A drive frame screened by YOLO still has to reach gpt-5-mini when it is flagged, so
 // the screen may take at most this much of the Lambda's 29 s. A warm ONNX call is well
 // under a second; a cold container is a few seconds; anything longer is not a screen.
 const YOLO_SCREEN_TIMEOUT_MS = 10_000;
+// In shadow mode the screen decides nothing, so it may not cost the phone anything
+// either: once gpt-5-mini has answered, a screen that is still running gets this long
+// to land in the log and is then cancelled.
+const SHADOW_SCREEN_GRACE_MS = 50;
 
-function timeoutSignal(milliseconds) {
+// Aborts after the given time, or as soon as the caller's own signal does.
+function timeoutSignal(milliseconds, outer = null) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), milliseconds);
-  return { signal: controller.signal, cancel: () => clearTimeout(timer) };
+  const abandon = () => controller.abort(outer.reason);
+  if (outer?.aborted) abandon();
+  else outer?.addEventListener("abort", abandon, { once: true });
+  return {
+    signal: controller.signal,
+    cancel: () => {
+      clearTimeout(timer);
+      outer?.removeEventListener("abort", abandon);
+    },
+  };
 }
+
+const flagsDamage = (verdict) => verdict?.image_quality === "acceptable"
+  && verdict?.assessment === "damaged";
 
 function outputFormat() {
   return {
@@ -127,6 +147,7 @@ export function createDetector({
   openaiTimeoutMs = RUNTIME_CONFIG.timeoutsMs.serverOpenAIMax,
   yoloTimeoutMs = RUNTIME_CONFIG.timeoutsMs.serverYoloMax,
   yoloScreenTimeoutMs = YOLO_SCREEN_TIMEOUT_MS,
+  shadowGraceMs = SHADOW_SCREEN_GRACE_MS,
 } = {}) {
   const secrets = secretProvider || (async () => ({}));
 
@@ -258,7 +279,7 @@ export function createDetector({
     };
   }
 
-  async function yolo(input, context, budgetMs = yoloTimeoutMs) {
+  async function yolo(input, context, budgetMs = yoloTimeoutMs, abandonSignal = null) {
     const secret = await readSecret("shared_yolo_not_configured",
       "The shared YOLO detector secret could not be read.");
     if (!secret.yoloApiKey) {
@@ -276,7 +297,7 @@ export function createDetector({
       }
       // The YOLO function's own timeout is longer than this function's remaining time,
       // so an invoke that is not bounded here can outlive the caller.
-      const timeout = timeoutSignal(upstreamBudget(budgetMs, context));
+      const timeout = timeoutSignal(upstreamBudget(budgetMs, context), abandonSignal);
       let invoked;
       try {
         invoked = await lambdaClient.send(new InvokeCommand({
@@ -318,7 +339,7 @@ export function createDetector({
         throw new HttpError(503, "shared_yolo_not_configured",
           "The YOLO HTTPS endpoint is not configured.");
       }
-      const timeout = timeoutSignal(upstreamBudget(budgetMs, context));
+      const timeout = timeoutSignal(upstreamBudget(budgetMs, context), abandonSignal);
       let response;
       try {
         response = await fetchImpl(yoloUrl, {
@@ -360,6 +381,9 @@ export function createDetector({
       verdict: body.verdict || body.result || body,
       provider: "yolo",
       model: String(body.model || yoloModel).slice(0, 80),
+      // The classifier screen reports the raw score its threshold was applied to. The
+      // box detector does not; shadow mode logs whichever it gets.
+      score: Number.isFinite(body.score) ? body.score : null,
     };
   }
 
@@ -397,9 +421,7 @@ export function createDetector({
       const result = await openai(input, context);
       return { ...result, fallbackFrom: "yolo", fallbackReason: error.code };
     }
-    const flagged = screen.verdict?.image_quality === "acceptable"
-      && screen.verdict?.assessment === "damaged";
-    if (!flagged) return screen;
+    if (!flagsDamage(screen.verdict)) return screen;
     context.detectorScreenedBy = "yolo";
     try {
       const confirmed = await openai(input, context);
@@ -415,6 +437,67 @@ export function createDetector({
     }
   }
 
+  // Shadow mode. The phone gets gpt-5-mini's answer, or gpt-5-mini's error, exactly as
+  // in "openai": the screen is unproven, so it is not a fallback either. The screen is
+  // called at the same moment on its own copy of the context and can only ever write
+  // log fields. It is never awaited past the grace, and whatever it throws stops here.
+  async function openaiWithShadowScreen(input, context) {
+    const started = performance.now();
+    const abandon = new AbortController();
+    const screenContext = { requestId: context.requestId, remainingTimeMs: context.remainingTimeMs };
+    const elapsed = () => Math.round(performance.now() - started);
+    const watching = yolo(input, screenContext, yoloScreenTimeoutMs, abandon.signal).then(
+      (screen) => ({ screen, ms: elapsed() }),
+      (error) => ({ error, ms: elapsed() }),
+    );
+    let answer;
+    let failure = null;
+    try {
+      answer = await openai(input, context);
+    } catch (error) {
+      failure = error;
+    }
+    let timer;
+    const settled = await Promise.race([
+      watching,
+      new Promise((resolve) => { timer = setTimeout(resolve, shadowGraceMs, null); }),
+    ]);
+    clearTimeout(timer);
+    if (!settled) abandon.abort();
+    try {
+      recordShadowScreen(context, settled, failure ? null : answer.verdict, elapsed());
+      context.yoloRequestId = screenContext.yoloRequestId || null;
+    } catch {
+      context.screenError = "screen_failed";
+    }
+    if (failure) throw failure;
+    return answer;
+  }
+
+  function recordShadowScreen(context, settled, openaiVerdict, waitedMs) {
+    context.screenMs = settled ? settled.ms : waitedMs;
+    if (!settled) {
+      context.screenError = "screen_timeout";
+      return;
+    }
+    if (settled.error) {
+      context.screenError = settled.error instanceof HttpError ? settled.error.code : "screen_failed";
+      return;
+    }
+    const verdict = settled.screen.verdict;
+    if (!["damaged", "undamaged"].includes(verdict?.assessment)) {
+      context.screenError = "bad_screen_response";
+      return;
+    }
+    const flagged = flagsDamage(verdict);
+    context.screenAssessment = flagged ? "damaged" : "undamaged";
+    context.screenScore = settled.screen.score;
+    context.screenModel = settled.screen.model;
+    // Agreement is about the decision the screen would take over: does this frame go
+    // to gpt-5-mini or not. A frame gpt-5-mini rejects for quality counts as undamaged.
+    if (openaiVerdict) context.screenAgrees = flagged === flagsDamage(openaiVerdict);
+  }
+
   return {
     status() {
       return {
@@ -426,6 +509,9 @@ export function createDetector({
         yolo_mode: yoloMode,
         yolo_model: yoloModel,
         drive_screen_provider: providerMode === "yolo_then_openai" ? "yolo" : null,
+        // In shadow mode the YOLO leg is watched, not used: it neither screens a frame
+        // nor answers when OpenAI cannot.
+        shadow_screen_provider: providerMode === SHADOW_MODE ? "yolo" : null,
       };
     },
     // The presence of a secret ARN says nothing about the secret's contents. Health
@@ -459,6 +545,11 @@ export function createDetector({
         return input.captureMode === "drive"
           ? yoloThenOpenai(input, context)
           : openaiThenYolo(input, context);
+      }
+      if (providerMode === SHADOW_MODE) {
+        return input.captureMode === "drive"
+          ? openaiWithShadowScreen(input, context)
+          : openai(input, context);
       }
       throw new HttpError(503, "shared_vision_not_configured",
         "SHARED_DETECTOR_PROVIDER is invalid.");
