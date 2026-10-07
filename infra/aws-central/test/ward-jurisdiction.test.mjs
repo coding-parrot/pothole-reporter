@@ -24,6 +24,7 @@ test("KGIS up: the ward comes from the local snapshot and KGIS is never asked fo
   const asked = [];
   const answer = kgisTown({ KGISTownName: "GBA - East", LGD_TownCode: 305852, KGISTownCode: "20G3" });
   const geolocator = createGeolocator({
+    liveKgis: true,
     fetchImpl: (url) => { asked.push(url); return answer(url); },
     logger: quiet,
   });
@@ -93,6 +94,7 @@ test("a ward KGIS gives only a number is resolved_unnamed, with its number and c
 test("a missing ward bundle costs the ward and nothing else", async () => {
   const errors = [];
   const geolocator = createGeolocator({
+    liveKgis: true,
     fetchImpl: kgisTown({ KGISTownName: "GBA - East", LGD_TownCode: 305852, KGISTownCode: "20G3" }),
     wardGeometryPath: "/nonexistent/karnataka-ward-geometry.json",
     logger: { error: (line) => errors.push(JSON.parse(line)), log() {} },

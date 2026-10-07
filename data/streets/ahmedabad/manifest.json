@@ -1,0 +1,71 @@
+{
+ "format": "pothole-street-address-region",
+ "version": 1,
+ "region": "ahmedabad",
+ "name": "Ahmedabad",
+ "country": "India",
+ "country_code": "in",
+ "provenance": {
+  "source": "OpenStreetMap contributors, ODbL 1.0",
+  "licence": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "distributor": "Geofabrik GmbH",
+  "extract_url": "https://download.geofabrik.de/asia/india-261006.osm.pbf",
+  "extract_date": "2026-10-06",
+  "extract_md5": "b02c63449ffbeda80757a75496bf7c8f",
+  "rules": "Nominatim 5.3.0",
+  "coverage": [
+   [
+    72.4,
+    22.9,
+    72.75,
+    23.15
+   ]
+  ],
+  "built_by": "infra/aws-central/tools/build-street-index.mjs"
+ },
+ "tile_format": "pothole-street-address-tile",
+ "tile_version": 1,
+ "tile_degrees": 0.25,
+ "cell_degrees": 0.0025,
+ "scale": 200000,
+ "simplify_metres": 2,
+ "snap_limit_degrees": 0.007,
+ "counts": {
+  "streets": 49206,
+  "named_streets": 2860,
+  "street_pieces": 51070,
+  "places": 268,
+  "areas": 458,
+  "address_tuples": 650,
+  "points_before_simplifying": 306879,
+  "points": 214934,
+  "tiles": 4,
+  "bytes": 1060941
+ },
+ "tiles": {
+  "1009_451": {
+   "file": "t_1009_451.bin",
+   "bytes": 51974,
+   "sha256": "5b064a4e1d9b51a8157b4e81a16192445e402c0d8efd4522a7a7a52a72244842",
+   "streets": 2373
+  },
+  "1009_452": {
+   "file": "t_1009_452.bin",
+   "bytes": 118602,
+   "sha256": "fa70521daabf13aa5b933fbf4d43f9aba0b9bbdc3e82bc391b6b0ecbccc2227b",
+   "streets": 5918
+  },
+  "1010_451": {
+   "file": "t_1010_451.bin",
+   "bytes": 253111,
+   "sha256": "492d5fcac6f91d2fc32a2aa5d485e839723f17759df52be283684b65bbb15e3f",
+   "streets": 14292
+  },
+  "1010_452": {
+   "file": "t_1010_452.bin",
+   "bytes": 637254,
+   "sha256": "f41a455efa5697d9e4621ad1d79946e5306e15b748e130a3cee055c070864175",
+   "streets": 35929
+  }
+ }
+}

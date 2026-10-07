@@ -1,0 +1,101 @@
+{
+ "format": "pothole-street-address-region",
+ "version": 1,
+ "region": "hyderabad",
+ "name": "Hyderabad",
+ "country": "India",
+ "country_code": "in",
+ "provenance": {
+  "source": "OpenStreetMap contributors, ODbL 1.0",
+  "licence": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "distributor": "Geofabrik GmbH",
+  "extract_url": "https://download.geofabrik.de/asia/india-261006.osm.pbf",
+  "extract_date": "2026-10-06",
+  "extract_md5": "b02c63449ffbeda80757a75496bf7c8f",
+  "rules": "Nominatim 5.3.0",
+  "coverage": [
+   [
+    78.2,
+    17.2,
+    78.7,
+    17.65
+   ]
+  ],
+  "built_by": "infra/aws-central/tools/build-street-index.mjs"
+ },
+ "tile_format": "pothole-street-address-tile",
+ "tile_version": 1,
+ "tile_degrees": 0.25,
+ "cell_degrees": 0.0025,
+ "scale": 200000,
+ "simplify_metres": 2,
+ "snap_limit_degrees": 0.007,
+ "counts": {
+  "streets": 174621,
+  "named_streets": 11527,
+  "street_pieces": 191211,
+  "places": 3060,
+  "areas": 1193,
+  "address_tuples": 5793,
+  "points_before_simplifying": 928930,
+  "points": 745872,
+  "tiles": 9,
+  "bytes": 3994327
+ },
+ "tiles": {
+  "1032_428": {
+   "file": "t_1032_428.bin",
+   "bytes": 7860,
+   "sha256": "da79c218d811ed19af6ba72b46da438d4502c4117a70eaa8ec7319adc62fffd2",
+   "streets": 100
+  },
+  "1032_429": {
+   "file": "t_1032_429.bin",
+   "bytes": 56848,
+   "sha256": "ea59332d788ec75c363e5ea5d5f006b6b1a607eefe2db1777602dfc9d25dc018",
+   "streets": 2530
+  },
+  "1032_430": {
+   "file": "t_1032_430.bin",
+   "bytes": 54967,
+   "sha256": "7ca65640ab811fd49b4d0c72d6b69756c5545be38711e9f4f9d3723848495633",
+   "streets": 2902
+  },
+  "1033_428": {
+   "file": "t_1033_428.bin",
+   "bytes": 80059,
+   "sha256": "c0455baec2c7e8f092945d06f023ff55b0cdc02e40834904a0b973f530ac938b",
+   "streets": 3565
+  },
+  "1033_429": {
+   "file": "t_1033_429.bin",
+   "bytes": 1547831,
+   "sha256": "3d25a16e728a75c221c49858ebf2bd18800c02032fbfb41133254bb0cac4243c",
+   "streets": 85340
+  },
+  "1033_430": {
+   "file": "t_1033_430.bin",
+   "bytes": 563009,
+   "sha256": "0e7d8e7cf9f1c892c2e9989aaec8053a991ae6283f8b12d231f7a8bd49b13223",
+   "streets": 31889
+  },
+  "1034_428": {
+   "file": "t_1034_428.bin",
+   "bytes": 83304,
+   "sha256": "85cd5ff60d3b4c143ebf4f3436ae2c518c79a79544ea16cc5eee40a0464c4e54",
+   "streets": 4120
+  },
+  "1034_429": {
+   "file": "t_1034_429.bin",
+   "bytes": 1311137,
+   "sha256": "f980c1b525e223c995f2142c12d103a4387b52a306e5801410f9f4422f5c1d51",
+   "streets": 72595
+  },
+  "1034_430": {
+   "file": "t_1034_430.bin",
+   "bytes": 289312,
+   "sha256": "2a452a3eeb8d7981a7cf383ffc381b2f45730e39bcc2cf81302a7cd7622ebbb2",
+   "streets": 16148
+  }
+ }
+}

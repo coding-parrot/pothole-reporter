@@ -1,0 +1,3 @@
+# The OpenStreetMap extract and everything cut from it: rebuilt by
+# infra/aws-central/tools/build-street-index.mjs, never committed.
+.work/

@@ -41,18 +41,33 @@ cp -R infra/aws-central/service "$TMP_DIR/package/infra/aws-central/"
 cp infra/aws-central/package.json "$TMP_DIR/package/infra/aws-central/"
 cp -R infra/aws-central/node_modules "$TMP_DIR/package/infra/aws-central/"
 cp llm/generated/contract.mjs "$TMP_DIR/package/llm/generated/"
-# Karnataka town polygons, state boundary and national highway lines: what the service
-# answers road ownership from when KGIS cannot. Same path relative to the service as in
-# the repo, so geolocation.mjs needs no configuration to find it.
-cp data/karnataka-local-geometry.json "$TMP_DIR/package/data/"
+# Karnataka road ownership, whole: the KGIS town, highway (national, state, district) and
+# gram panchayat polygons and the state boundary, with the grid a lookup walks. The
+# service answers every Karnataka lookup from it and never calls KGIS. Same path relative
+# to the service as in the repo, so geolocation.mjs needs no configuration to find it.
+# About 38 MB, 22 MB zipped.
+cp data/karnataka-ownership.bin "$TMP_DIR/package/data/"
 # Karnataka ward polygons (KGIS Ward New layer, 7,421 wards): what the service names a
 # municipal point's ward from, with no live KGIS call. About 6.4 MB, 2.2 MB zipped.
 cp data/karnataka-ward-geometry.json "$TMP_DIR/package/data/"
+# Street and locality names (OpenStreetMap extract, ODbL): Karnataka and nine cities
+# outside it, one directory of hash-checked tiles per region. local-address.mjs reads a
+# tile on first need, so the geocoder is asked only where no region has a street. The
+# build's working directory (data/streets/.work, 4.4 GB) is never packaged. About 42 MB.
+mkdir -p "$TMP_DIR/package/data/streets"
+# No trailing slash on the source: BSD cp copies a directory's CONTENTS when its name
+# ends in one, which once flattened every region into a single directory.
+for region in data/streets/*; do
+  [[ -d "$region" ]] && cp -R "$region" "$TMP_DIR/package/data/streets/"
+done
 # The national tender catalogues (highway contracts, State/UT road notices, PMGSY
 # agreements): the manifests the shipped phone names, under fixed names, and the pack
 # they pin for every state, hash-checked. national-tenders.mjs reads them lazily per
 # state from this same path relative to the service. About 11 MB, 103 files.
 node infra/aws-central/tools/stage-national-tenders.mjs "$TMP_DIR/package/data/national-tenders"
+# The staged package answers a real point from its own files, network cut, or nothing is
+# uploaded.
+node infra/aws-central/tools/check-package.mjs "$TMP_DIR/package"
 (cd "$TMP_DIR/package" && zip -q -r "$TMP_DIR/central-lambda.zip" infra llm data)
 echo "package: $(du -h "$TMP_DIR/central-lambda.zip" | cut -f1) zipped, $(du -sh "$TMP_DIR/package" | cut -f1) unpacked"
 # A content-addressed key makes CloudFormation see every code change; a fixed key reports

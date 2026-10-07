@@ -32,3 +32,6 @@ ml/classifier/work/
 # The exported screen model is published to S3 (sha256 in MODEL_CARD.md), not committed
 ml/classifier/lambda/model/model.onnx
 ml/classifier/lambda/build/
+
+# KGIS layer downloads in progress (build-karnataka-geometry.mjs --refresh)
+data/.kgis-work/

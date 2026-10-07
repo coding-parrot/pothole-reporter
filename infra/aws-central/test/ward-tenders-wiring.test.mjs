@@ -28,6 +28,7 @@ function cellStore() {
 function liveGeolocator(points) {
   const byPoint = new Map(points.map((point) => [`${point.lat},${point.lng}`, point]));
   return createGeolocator({
+    liveKgis: true,
     geocoderUrl: "https://geocoder.test/reverse",
     logger: quiet,
     fetchImpl: async (input) => {

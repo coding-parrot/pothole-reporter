@@ -23,8 +23,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  SHADOW_SCORE_QUERY, SHADOW_SCREEN_QUERY, WARD_TENDER_QUERY, judgeWardSnapshot, judgeWardTenders,
-  reportShadowScreen, shadowScreenCurve,
+  ROAD_LAYER_QUERY, SHADOW_SCORE_QUERY, SHADOW_SCREEN_QUERY, WARD_TENDER_QUERY, judgeRoadLayers,
+  judgeWardSnapshot, judgeWardTenders, reportShadowScreen, shadowScreenCurve,
 } from "./health-rules.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -146,6 +146,9 @@ async function windowRules(hours) {
     ok("tenders match somewhere in India", `${resolveMatched} matched of ${streetResolved} lookups with a street`);
   }
 
+  const roadLayers = judgeRoadLayers(await insights(ROAD_LAYER_QUERY, hours));
+  roadLayers.broken ? fail("road ownership layers are in the package", roadLayers.detail) : ok("road ownership layers are in the package", roadLayers.detail);
+
   // Most Bengaluru tenders name a ward or a locality, never a street, so since the ward
   // tender release a municipal lookup with a resolved ward should often come back with
   // something a person can read.
@@ -189,6 +192,21 @@ async function windowRules(hours) {
     own90 > 400
       ? fail(`service overhead is small (${row.route})`, `p90 ${own90.toFixed(0)} ms outside the detector and the geolocator over ${row.n} requests; budget 400 ms`)
       : ok(`service overhead is small (${row.route})`, `p90 ${own90.toFixed(0)} ms, database p90 ${Number(row.db90).toFixed(0)} ms over ${row.n} requests`);
+  }
+
+  // A place the service has already answered for is one map read and one metrics write:
+  // 6 ms on 7 Oct 2026, down from 90 to 145. The public map is the same. Anything that
+  // puts a table read or a recomputation back on that path shows up here.
+  const fast = await insights(
+    'filter event="http_request" and status=200 and (route="/v1/map" or (route="/v1/tenders/resolve" and answer_cache="hit")) | stats count() as n, pct(duration_ms, 50) as p50, pct(duration_ms, 90) as p90 by route',
+    hours,
+  );
+  for (const row of fast) {
+    if (Number(row.n) < 20) continue;
+    const p50 = Number(row.p50);
+    p50 > 15
+      ? fail(`known answers are instant (${row.route})`, `p50 ${p50.toFixed(0)} ms, p90 ${Number(row.p90).toFixed(0)} ms over ${row.n} requests; budget p50 15 ms`)
+      : ok(`known answers are instant (${row.route})`, `p50 ${p50.toFixed(0)} ms, p90 ${Number(row.p90).toFixed(0)} ms over ${row.n} requests`);
   }
 
   const lambdaErrors = await insights('filter @message like /Task timed out|Runtime exited|Error: Runtime/ | stats count() as n', hours);
@@ -283,9 +301,14 @@ async function canary() {
   const withHint = await signedPost("/v1/tenders/resolve", { ...CANARY_POINT, address_hint: CANARY_POINT.hint });
   const jurisdiction = withHint.body?.jurisdiction;
   if (withHint.status === 200 && jurisdiction?.road_ownership === "municipal" && jurisdiction?.lgd) {
-    ok("Bengaluru street is classified municipal", `LGD ${jurisdiction.lgd} ${jurisdiction.town} via ${jurisdiction.lookup?.kgis === "available" ? "state GIS" : "local fallback"}; tender ${withHint.body.tender ? withHint.body.tender.tender_number : `none (${withHint.body.reason})`} in ${withHint.took} ms`);
+    ok("Bengaluru street is classified municipal", `LGD ${jurisdiction.lgd} ${jurisdiction.town} via ${{ available: "the live state GIS", snapshot: "the packaged state GIS layers" }[jurisdiction.lookup?.kgis] || "the outage fallback"}; tender ${withHint.body.tender ? withHint.body.tender.tender_number : `none (${withHint.body.reason})`} in ${withHint.took} ms`);
     if (withHint.body.reason === "address_unresolved") fail("hinted address is used for matching", "address_unresolved with a hint present");
     if (withHint.body.reason === "no_tenders_for_jurisdiction") fail("tender table has rows for Bengaluru", "no_tenders_for_jurisdiction; seed the table");
+    // The road class is read from the packaged layers; a request that waits on the state
+    // GIS again is the 20 s stall coming back.
+    jurisdiction.lookup?.kgis === "snapshot" && jurisdiction.lookup?.local === "municipal_polygon"
+      ? ok("road class needs no state GIS call", `lookup.local ${jurisdiction.lookup.local}`)
+      : fail("road class needs no state GIS call", `lookup.kgis ${jurisdiction.lookup?.kgis}, lookup.local ${jurisdiction.lookup?.local}`);
     // The canary point is in KGIS ward 10, Cox Town, whose tenders the index names by the
     // old BBMP ward 108. A service from before the ward release answers no lookup.ward at
     // all and is not judged here.
@@ -303,9 +326,12 @@ async function canary() {
 
   const withoutHint = await signedPost("/v1/tenders/resolve", { lat: CANARY_POINT.lat + 0.0006, lng: CANARY_POINT.lng + 0.0006 });
   const source = withoutHint.body?.jurisdiction?.address_source;
-  withoutHint.status === 200 && source === "operator_geocoder"
-    ? ok("server finds the street itself", `${withoutHint.body.jurisdiction.address}`)
-    : fail("server finds the street itself", `${withoutHint.status} address_source ${source}; reason ${withoutHint.body?.reason || withoutHint.body?.error}`);
+  // Bengaluru is in the packaged street index, so the name must come from it. The public
+  // geocoder answering here means data/streets is missing from the package, and every
+  // first lookup of a place is waiting 200 to 1,050 ms on an outside call again.
+  withoutHint.status === 200 && source === "packaged_streets"
+    ? ok("server finds the street itself, with no geocoder call", `${withoutHint.body.jurisdiction.address} in ${withoutHint.took} ms`)
+    : fail("server finds the street itself, with no geocoder call", `${withoutHint.status} address_source ${source}, lookup.streets ${withoutHint.body?.jurisdiction?.lookup?.streets}; reason ${withoutHint.body?.reason || withoutHint.body?.error}`);
 }
 
 // ---------------------------------------------------------------- main

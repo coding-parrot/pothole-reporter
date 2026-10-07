@@ -1,0 +1,59 @@
+{
+ "format": "pothole-street-address-region",
+ "version": 1,
+ "region": "gandhinagar",
+ "name": "Gandhinagar",
+ "country": "India",
+ "country_code": "in",
+ "provenance": {
+  "source": "OpenStreetMap contributors, ODbL 1.0",
+  "licence": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "distributor": "Geofabrik GmbH",
+  "extract_url": "https://download.geofabrik.de/asia/india-261006.osm.pbf",
+  "extract_date": "2026-10-06",
+  "extract_md5": "b02c63449ffbeda80757a75496bf7c8f",
+  "rules": "Nominatim 5.3.0",
+  "coverage": [
+   [
+    72.55,
+    23.15,
+    72.75,
+    23.3
+   ]
+  ],
+  "built_by": "infra/aws-central/tools/build-street-index.mjs"
+ },
+ "tile_format": "pothole-street-address-tile",
+ "tile_version": 1,
+ "tile_degrees": 0.25,
+ "cell_degrees": 0.0025,
+ "scale": 200000,
+ "simplify_metres": 2,
+ "snap_limit_degrees": 0.007,
+ "counts": {
+  "streets": 10373,
+  "named_streets": 500,
+  "street_pieces": 10453,
+  "places": 273,
+  "areas": 422,
+  "address_tuples": 240,
+  "points_before_simplifying": 96787,
+  "points": 56502,
+  "tiles": 2,
+  "bytes": 253971
+ },
+ "tiles": {
+  "1010_452": {
+   "file": "t_1010_452.bin",
+   "bytes": 187488,
+   "sha256": "371190856fbeb096959886fb7c85a7f3325700aa4fe4e3a015e27b12559e11d8",
+   "streets": 8879
+  },
+  "1010_453": {
+   "file": "t_1010_453.bin",
+   "bytes": 66483,
+   "sha256": "9a3a354b7ed859817aa5220df5e662030834b2c8648085d4cded433404f0dfd2",
+   "streets": 2840
+  }
+ }
+}

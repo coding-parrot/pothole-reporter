@@ -139,3 +139,18 @@ export function shadowScreenCurve(rows, { target = 0.98, minimum = 100 } = {}) {
       + ` and cleared ${cleared} of ${undamagedTotal} undamaged (${clearedShare === null ? "n/a" : `${(100 * clearedShare).toFixed(1)}%`})`,
   };
 }
+
+// Lookups by where the road class came from. local_lookup "unavailable" means the service
+// could not read data/karnataka-ownership.bin: since 7 Oct 2026 the state GIS is never
+// asked in a request, so without that file every Karnataka point is "unknown".
+export const ROAD_LAYER_QUERY = 'filter event="http_request"'
+  + ' and (route="/v1/tenders/resolve" or route="/v1/potholes/report")'
+  + " | stats count() as n by local_lookup";
+
+export function judgeRoadLayers(rows) {
+  const unavailable = rows.filter((row) => row.local_lookup === "unavailable")
+    .reduce((sum, row) => sum + (Number(row.n) || 0), 0);
+  return unavailable
+    ? { broken: true, unavailable, detail: `${unavailable} lookups could not read the road ownership layers; data/karnataka-ownership.bin is missing from the package` }
+    : { broken: false, unavailable, detail: "0 lookups without the road ownership layers" };
+}
