@@ -211,6 +211,8 @@ export function fakeApi(answers = {}) {
 // fetch hands it over: the content-encoding header kept, the body already plain.
 export function fetchFrom(api) {
   return async (url, init = {}) => {
+    // A real request is answered after the caller has gone on, never within the call.
+    await null;
     const target = new URL(url);
     const headers = Object.fromEntries(Object.entries(init.headers || {}).map(([key, value]) => [key.toLowerCase(), value]));
     const made = await api.handle({ method: init.method || "GET", path: target.pathname, headers, body: init.body || "" });

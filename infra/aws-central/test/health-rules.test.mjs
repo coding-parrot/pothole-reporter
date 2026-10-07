@@ -8,7 +8,7 @@ import { createGeolocator } from "../service/geolocation.mjs";
 import {
   INDIA_WARD_CANARY, INDIA_WARD_QUERY, ROAD_LAYER_QUERY, WARD_TENDER_QUERY, judgeIndiaWardCanary, judgeIndiaWardSnapshots,
   judgeRoadLayers, judgeWardSnapshot, judgeWardTenders,
-} from "../tools/health-rules.mjs";
+} from "../service/health/rules.mjs";
 import { loadBodyTenders } from "../tools/ward-tender-vocabulary.mjs";
 import { harness, memoryRepository } from "./support.mjs";
 import { CASES } from "./ward-tender-cases.mjs";

@@ -1,5 +1,5 @@
-// Rules of the production health gate that are worth testing apart from the script that
-// runs them (tools/production-health.mjs judges on import, so it cannot be imported).
+// Rules of the production health gate that read rows or one answer and say what they
+// mean, with no query run and no request made. window.mjs and canary.mjs call them.
 
 // Karnataka municipal lookups, by how the ward lookup went and what they answered. KGIS
 // is Karnataka's register, so road_ownership "municipal" is a Karnataka town. A matched
