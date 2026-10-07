@@ -1,12 +1,17 @@
 name: Production health
 
-# The rules in infra/aws-central/tools/production-health.mjs, judged every six hours
-# against the live service, hourly while the app is being shown. A broken rule fails the run and opens or updates one issue,
-# so a failure users feel is never silent again. The same script gates every deploy.
+# A manual run of infra/aws-central/tools/production-health.mjs: the last six hours of
+# the request log, judged, and the canary against the live service. A broken rule fails
+# the run and opens or updates one issue; a healthy run closes it.
+#
+# This workflow has no schedule. The scheduled check lives in the stack itself: the
+# HealthFunction in infra/aws-central/template.yaml (code in
+# infra/aws-central/service/health) is run by EventBridge every half hour and tells the
+# stack's alert topic through three CloudWatch alarms. It moved there on 7 Oct 2026
+# because GitHub ran this workflow's hourly schedule every 4 to 5 hours. The same rules
+# gate every deploy (infra/aws-central/deploy.sh).
 
 on:
-  schedule:
-    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:

@@ -1,13 +1,25 @@
-// Rules of the production health gate that are worth testing apart from the script that
-// runs them (tools/production-health.mjs judges on import, so it cannot be imported).
+// Rules of the production health gate that read rows or one answer and say what they
+// mean, with no query run and no request made. window.mjs and canary.mjs call them.
 
-// Karnataka municipal lookups, by how the ward lookup went and what they answered. KGIS
-// is Karnataka's register, so road_ownership "municipal" is a Karnataka town. A matched
-// street tender sets tender_catalogue on both routes; the report route's outcome is
-// "created" or "deduplicated" either way.
-export const WARD_TENDER_QUERY = 'filter event="http_request" and road_ownership="municipal"'
+// Every tender lookup and report, counted by where its road class came from, how its
+// ward lookup went and what it answered. Four rules read these rows, each taking the
+// lookups it is about. They were three queries until 7 Oct 2026; Logs Insights charges
+// each query for every byte of the window it scans, whatever its filter keeps, and one
+// query grouped more finely gives the same counts (checked against the three over the
+// same 24 hours and the same 7 days of production: every verdict identical).
+export const LOOKUP_QUERY = 'filter event="http_request"'
   + ' and (route="/v1/tenders/resolve" or route="/v1/potholes/report")'
-  + " | stats count() as n by ward_lookup, ward_tender_count, tender_catalogue";
+  + " | stats count() as n by road_ownership, local_lookup, ward_lookup, ward_snapshot, ward_tender_count, tender_catalogue";
+
+// Karnataka municipal lookups. KGIS is Karnataka's register, so road_ownership
+// "municipal" is a Karnataka town. A matched street tender sets tender_catalogue on both
+// routes; the report route's outcome is "created" or "deduplicated" either way.
+export const municipalLookups = (rows) => rows.filter((row) => row.road_ownership === "municipal");
+
+// Lookups outside Karnataka. There the ward comes from the snapshots
+// data/wards/runtime.json switches on (service/india-wards.mjs), which deploy.sh stages
+// with tools/stage-india-wards.mjs.
+export const outsideStateLookups = (rows) => rows.filter((row) => row.road_ownership === "outside_state");
 
 // ward_lookup "unavailable" means the service could not read its own ward polygons:
 // data/karnataka-ward-geometry.json is missing from the package or is not the bundle.
@@ -46,11 +58,14 @@ export function judgeWardTenders(rows, { minimum = 30, share = 0.2 } = {}) {
 }
 
 // Drive frames judged in openai_with_shadow_screen: gpt-5-mini's verdict (outcome) beside
-// what the fast screen said about the same frame. A line whose screen did not answer
-// carries screen_error and no screen_assessment.
-export const SHADOW_SCREEN_QUERY = 'filter event="http_request" and route="/v1/vision/detect" and status=200'
-  + " and (ispresent(screen_assessment) or ispresent(screen_error))"
-  + " | stats count() as n by outcome, screen_assessment, screen_error";
+// what the fast screen said about the same frame, and the screen's raw score in buckets
+// of 0.02. A line whose screen did not answer carries screen_error, no screen_assessment
+// and no bucket. The report and the curve below read the same rows (two queries until
+// 7 Oct 2026, one now, for the reason given at LOOKUP_QUERY).
+export const SHADOW_QUERY = 'filter event="http_request" and route="/v1/vision/detect" and status=200'
+  + " and (ispresent(screen_assessment) or ispresent(screen_error) or ispresent(screen_score))"
+  + " | fields floor(screen_score * 50) as bucket"
+  + " | stats count() as n by outcome, screen_assessment, screen_error, bucket";
 
 // A report, never a failure: shadow mode exists to find out how good the screen is, so
 // a poor number here is the finding, not an outage. Live recall is, of the frames
@@ -93,13 +108,9 @@ export function reportShadowScreen(rows) {
   return { broken: false, damaged, flagged, recall, undamaged, cleared, clearedShare, unanswered, detail };
 }
 
-// The same frames by the screen's raw score, in buckets of 0.02. screen_assessment is the
+// The same frames by the bucket of the screen's raw score. screen_assessment is the
 // score against the threshold the screen was deployed with; the score itself says what
 // any other threshold would have done, which is what choosing one needs.
-export const SHADOW_SCORE_QUERY = 'filter event="http_request" and route="/v1/vision/detect" and status=200'
-  + " and ispresent(screen_score)"
-  + " | fields floor(screen_score * 50) as bucket | stats count() as n by outcome, bucket";
-
 // Reported, never failed. The highest bucket edge at which the screen would still have
 // flagged `target` of the frames gpt-5-mini judged damaged, and the share of undamaged
 // frames a screen run at that threshold would have cleared.
@@ -140,13 +151,9 @@ export function shadowScreenCurve(rows, { target = 0.98, minimum = 100 } = {}) {
   };
 }
 
-// Lookups by where the road class came from. local_lookup "unavailable" means the service
-// could not read data/karnataka-ownership.bin: since 7 Oct 2026 the state GIS is never
-// asked in a request, so without that file every Karnataka point is "unknown".
-export const ROAD_LAYER_QUERY = 'filter event="http_request"'
-  + ' and (route="/v1/tenders/resolve" or route="/v1/potholes/report")'
-  + " | stats count() as n by local_lookup";
-
+// All lookups, by where the road class came from. local_lookup "unavailable" means the
+// service could not read data/karnataka-ownership.bin: since 7 Oct 2026 the state GIS is
+// never asked in a request, so without that file every Karnataka point is "unknown".
 export function judgeRoadLayers(rows) {
   const unavailable = rows.filter((row) => row.local_lookup === "unavailable")
     .reduce((sum, row) => sum + (Number(row.n) || 0), 0);
@@ -154,13 +161,6 @@ export function judgeRoadLayers(rows) {
     ? { broken: true, unavailable, detail: `${unavailable} lookups could not read the road ownership layers; data/karnataka-ownership.bin is missing from the package` }
     : { broken: false, unavailable, detail: "0 lookups without the road ownership layers" };
 }
-
-// Lookups outside Karnataka, by how the ward lookup went and which ward snapshot
-// answered. There the ward comes from the snapshots data/wards/runtime.json switches on
-// (service/india-wards.mjs), which deploy.sh stages with tools/stage-india-wards.mjs.
-export const INDIA_WARD_QUERY = 'filter event="http_request" and road_ownership="outside_state"'
-  + ' and (route="/v1/tenders/resolve" or route="/v1/potholes/report")'
-  + " | stats count() as n by ward_lookup, ward_snapshot";
 
 // ward_lookup "unavailable" on a lookup outside Karnataka means the service could not
 // read a file it was told is switched on: with a ward_snapshot, that snapshot's file is

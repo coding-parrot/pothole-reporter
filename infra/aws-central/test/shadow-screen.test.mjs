@@ -4,8 +4,11 @@ import test from "node:test";
 
 import { PROVIDER_MODES, createDetector } from "../service/detectors.mjs";
 import {
-  SHADOW_SCORE_QUERY, SHADOW_SCREEN_QUERY, reportShadowScreen, shadowScreenCurve,
-} from "../tools/health-rules.mjs";
+  SHADOW_QUERY, reportShadowScreen, shadowScreenCurve,
+} from "../service/health/rules.mjs";
+import { createReport } from "../service/health/report.mjs";
+import { judgeWindow } from "../service/health/window.mjs";
+import { HEALTHY_WINDOW, scriptedQuery } from "./health-support.mjs";
 import { detectBody, harness, secretFrom, undamaged, upstream } from "./support.mjs";
 
 // openai_with_shadow_screen proves the fast screen on live drive frames before it is
@@ -447,7 +450,7 @@ test("the shadow report never fails a run, even at zero recall or with no shadow
 
 test("the shadow query reads the fields the service logs", async () => {
   for (const field of ["screen_assessment", "screen_error", "outcome", "route", "status"]) {
-    assert.ok(SHADOW_SCREEN_QUERY.includes(field), field);
+    assert.ok(SHADOW_QUERY.includes(field), field);
   }
   const shadow = await detectWith({ screen: screenLambda(screenDamaged, { score: 0.8 }),
     openai: openai(openaiDamaged) });
@@ -460,12 +463,23 @@ test("the shadow query reads the fields the service logs", async () => {
   assert.equal(report.recall, 1);
 });
 
-test("the health script prints the shadow report and cannot fail on it", () => {
-  const script = readFileSync(new URL("../tools/production-health.mjs", import.meta.url), "utf8");
-  assert.match(script, /reportShadowScreen\(await insights\(SHADOW_SCREEN_QUERY, hours\)\)/);
-  const block = script.slice(script.indexOf("reportShadowScreen(await"));
-  const line = block.slice(0, block.indexOf("\n\n"));
-  assert.ok(!/fail\(/.test(line), "the shadow report must only report");
+// A screen that misses every pothole and never answers, over a window with enough
+// traffic for every rule to be judged.
+const blindScreen = HEALTHY_WINDOW.map((entry) => (entry.match === "by outcome, screen_assessment, screen_error, bucket" ? { ...entry, rows: [
+  { n: "400", outcome: "damaged", screen_assessment: "undamaged", bucket: "0" },
+  { n: "90", outcome: "undamaged", screen_error: "screen_timeout" },
+] } : entry));
+
+test("the health window prints the shadow report and cannot fail on it", async () => {
+  const query = scriptedQuery(blindScreen);
+  const report = createReport();
+  await judgeWindow({ query, hours: 6, logGroup: "/aws/lambda/test", report });
+  const result = report.conclude();
+  assert.ok(query.asked.some((asked) => asked.text === SHADOW_QUERY), "the shadow query is asked");
+  const shadow = result.rules.find((rule) => rule.name === "shadow screen (report only)");
+  assert.equal(shadow.state, "ok", "the shadow report must only report");
+  assert.match(shadow.detail, /flagged 0 of 400 frames gpt-5-mini judged damaged \(live recall 0\.0%\); .*90 frames had no screen answer/);
+  assert.equal(result.healthy, true);
 });
 
 test("the score curve reads off the threshold that keeps 98% of damaged frames", () => {
@@ -504,10 +518,15 @@ test("the score curve waits for 100 damaged frames and never fails a run", () =>
   assert.equal(blind.clearedShare, 0);
 });
 
-test("the score query buckets the logged score and the health script prints the curve", () => {
+test("the score query buckets the logged score and the health window prints the curve", async () => {
   for (const field of ["screen_score", "outcome", "route", "status"]) {
-    assert.ok(SHADOW_SCORE_QUERY.includes(field), field);
+    assert.ok(SHADOW_QUERY.includes(field), field);
   }
-  const script = readFileSync(new URL("../tools/production-health.mjs", import.meta.url), "utf8");
-  assert.match(script, /shadowScreenCurve\(await insights\(SHADOW_SCORE_QUERY, hours\)\)/);
+  const query = scriptedQuery(blindScreen);
+  const report = createReport();
+  await judgeWindow({ query, hours: 6, logGroup: "/aws/lambda/test", report });
+  assert.equal(query.asked.filter((asked) => asked.text === SHADOW_QUERY).length, 1, "the report and the curve read one query");
+  const curve = report.conclude().rules.find((rule) => rule.name === "shadow screen threshold for 98% live recall (report only)");
+  assert.equal(curve.state, "ok", "the curve must only report");
+  assert.match(curve.detail, /a threshold of 0\.00 would have flagged 100\.0% of 400 damaged frames and cleared 0 of 0 undamaged \(n\/a\)/);
 });

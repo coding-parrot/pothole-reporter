@@ -71,15 +71,19 @@ node infra/aws-central/tools/stage-national-tenders.mjs "$TMP_DIR/package/data/n
 # service. Each file is checked against the hash the list pins, so a switched-on snapshot
 # that is missing or edited stops the deploy here. About 160 KB, 60 KB zipped.
 node infra/aws-central/tools/stage-india-wards.mjs "$TMP_DIR/package/data/wards"
+# The photograph the scheduled health function's canary sends for detection, at the same
+# path relative to the service as in the repo (service/health/example-image.mjs). 238 KB.
+mkdir -p "$TMP_DIR/package/docs"
+cp docs/example-pothole.jpg "$TMP_DIR/package/docs/"
 # The staged package answers a real point from its own files, network cut, or nothing is
 # uploaded.
 node infra/aws-central/tools/check-package.mjs "$TMP_DIR/package"
-(cd "$TMP_DIR/package" && zip -q -r "$TMP_DIR/central-lambda.zip" infra llm data)
+(cd "$TMP_DIR/package" && zip -q -r "$TMP_DIR/central-lambda.zip" infra llm data docs)
 echo "package: $(du -h "$TMP_DIR/central-lambda.zip" | cut -f1) zipped, $(du -sh "$TMP_DIR/package" | cut -f1) unpacked"
 # A content-addressed key makes CloudFormation see every code change; a fixed key reports
 # "No changes" and leaves the old Lambda code running.
 if [[ -z "$CODE_KEY" ]]; then
-  CODE_SHA="$( (cd "$TMP_DIR/package" && find infra llm data -type f ! -path '*/node_modules/*' -print0 | sort -z | xargs -0 shasum -a 256) | shasum -a 256 | cut -c1-16)"
+  CODE_SHA="$( (cd "$TMP_DIR/package" && find infra llm data docs -type f ! -path '*/node_modules/*' -print0 | sort -z | xargs -0 shasum -a 256) | shasum -a 256 | cut -c1-16)"
   CODE_KEY="releases/central-lambda-${CODE_SHA}.zip"
 fi
 
@@ -129,5 +133,17 @@ echo "previous code key: $(aws cloudformation describe-stacks --stack-name "$STA
 # above, so the canary may hold the Ahmedabad ward to the notices this checkout has for it.
 if ! API_URL="$API_URL" CANARY_CATALOGUE_IS_THIS_CHECKOUT=1 node infra/aws-central/tools/production-health.mjs --canary; then
   echo "Post-deploy canary failed; the stack is live with the new code. Fix forward or redeploy the previous code key." >&2
+  exit 1
+fi
+
+# The scheduled health function shares this package but has its own role, and its AWS
+# SDK is the Lambda runtime's, so only an invocation shows that it loads and may query
+# the log. One run of the log window and the reads canary: it registers no install and
+# pays for no detection. What it finds is printed and left to the alarms; a function
+# that cannot run is what fails here.
+HEALTH_FUNCTION="$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" \
+  --query "Stacks[0].Outputs[?OutputKey=='HealthFunctionName'].OutputValue" --output text)"
+if ! AWS_REGION="$AWS_REGION" node infra/aws-central/tools/prove-health-function.mjs "$HEALTH_FUNCTION"; then
+  echo "The scheduled health function does not work. Production is live and passed its canary, but nothing is checking it on a schedule: fix this now." >&2
   exit 1
 fi

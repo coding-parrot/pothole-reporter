@@ -238,3 +238,77 @@ package should hold could not be read, which breaks a rule in
 carries `urban_body` and `urban_body_notices`. The location store (`geo-cache.mjs`) never
 supplies this ward: it is worked out from the packaged polygons on every lookup, so a
 snapshot switched off by a deploy stops answering with that deploy.
+
+## Scheduled production health
+
+The rules in `service/health` (the log window in `window.mjs`, the canary in
+`canary.mjs`) run three ways on the same code: from a terminal
+(`tools/production-health.mjs --window 6h --canary`), after every deploy (`deploy.sh`
+fails on the canary), and on a schedule inside the stack. The scheduled runner is the
+`HealthFunction` in `template.yaml`: this package under another handler
+(`service/health/handler.mjs`), 256 MB, one run at a time, with a role that can query the
+central function's log group, write its own log and keep one SSM parameter. It reaches
+production through the public API, as a phone does. Until 7 Oct 2026 a GitHub schedule
+ran the script; GitHub fired it every 4 to 5 hours when asked for every hour, and held
+AWS keys. That workflow is now for manual runs only.
+
+Three EventBridge rules each send the event that says what to run:
+
+| Rule | When (UTC) | Event | What it does |
+| --- | --- | --- | --- |
+| `HealthWindowSchedule` | minute 17 of every hour | `{"window": "6h", "canary": "reads"}` | judges the last six hours of the request log (six Logs Insights queries), then the reads canary |
+| `HealthReadsSchedule` | minute 47 of every hour | `{"canary": "reads"}` | health, the map, the impact figures, the map's compression: four GETs |
+| `HealthCanarySchedule` | minute 32 of every third hour | `{"canary": "full"}` | the reads, then an install registration, one real detection and three signed tender lookups |
+
+The full canary is held to every three hours by the window rules, not by its cost. The
+request log does not record which install made a request, so the canary's three lookups
+are judged beside people's, and none of them matches a tender. "tenders match" fails at
+20 unmatched lookups in a window: every three hours is 6 in six hours, every half hour
+would be 36 and an alarm every quiet night. `test/template-health.test.mjs` holds the
+schedule under half the rule.
+
+What it costs a month, at Mumbai prices, from what was measured on 7 Oct 2026:
+
+| | Measured | USD a month |
+| --- | --- | --- |
+| Logs Insights | 720 windows of 13.9 MB (six queries over six hours of log), USD 0.0067 a GB | 0.07 |
+| Detections | 240 at USD 0.0005 | 0.12 |
+| Lambda | 1,680 runs, about 1,300 GB-seconds at 256 MB (window and reads 2.5 s, reads 0.45 s) | 0.02 |
+| Alarms | three alarms on four metrics at USD 0.10 (the account's ten free alarms were taken) | 0.40 |
+| Custom metrics | written only when something is broken: USD 0.0004 for each broken hour | 0.00 |
+| EventBridge rules, the SSM parameter | no charge | 0.00 |
+| | | 0.61 |
+
+Logs Insights grows with traffic: the busiest six hours so far (the evening of 6 Oct,
+about 4.5 MB a query) would be 13 cents a month if every window were like it.
+
+A run returns what it found and does not throw. Its report is one entry in
+`/aws/lambda/pothole-reporter-central-health`, followed by one JSON line
+(`event: "health_run"`, with `broken_rules`, `canary_failed`, `failures`,
+`scanned_bytes`, `duration_ms`) that is a CloudWatch embedded metric line when something
+is broken. Three alarms tell the stack's alert topic:
+
+- `pothole-reporter-central-health-rules-broken`: a log rule was broken on two hourly
+  evaluations.
+- `pothole-reporter-central-health-canary-failed`: one canary failed.
+- `pothole-reporter-central-health-not-running`: the function finished no run in two
+  half hours. No data is the fault here; for the other two it is the healthy state.
+
+The two metrics exist only while something is broken, so those two alarms clear when
+their failures have aged out of the range CloudWatch looks back over (two periods more
+than it evaluates), some hours after production recovers.
+
+The scheduled canary is one install: a P-256 key made on its first full run and kept as
+the SecureString `/pothole-reporter-central/health/canary-key`. In the public figures
+(`/v1/impact`, 30 days) it is 1 active installation, 240 capture checks and 1,200 of the
+requests the app's page counts (it leaves out the 6,720 to health, the map and impact,
+which the API's `requests_total` includes). It sends no report, so it adds no
+observation and nothing to the map. The command-line canary still registers a new
+install on every run, deploys included.
+
+To run it by hand:
+
+```bash
+aws lambda invoke --region ap-south-1 --function-name pothole-reporter-central-health \
+  --cli-binary-format raw-in-base64-out --payload '{"window":"6h","canary":"reads"}' /dev/stdout
+```

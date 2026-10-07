@@ -6,9 +6,9 @@ import test from "node:test";
 
 import { createGeolocator } from "../service/geolocation.mjs";
 import {
-  INDIA_WARD_CANARY, INDIA_WARD_QUERY, ROAD_LAYER_QUERY, WARD_TENDER_QUERY, judgeIndiaWardCanary, judgeIndiaWardSnapshots,
+  INDIA_WARD_CANARY, LOOKUP_QUERY, judgeIndiaWardCanary, judgeIndiaWardSnapshots,
   judgeRoadLayers, judgeWardSnapshot, judgeWardTenders,
-} from "../tools/health-rules.mjs";
+} from "../service/health/rules.mjs";
 import { loadBodyTenders } from "../tools/ward-tender-vocabulary.mjs";
 import { harness, memoryRepository } from "./support.mjs";
 import { CASES } from "./ward-tender-cases.mjs";
@@ -68,7 +68,7 @@ test("a package without the ward snapshot is said out loud", () => {
 
 test("the query reads the fields the service logs, and the rule counts them rightly", async () => {
   for (const field of ["ward_lookup", "ward_tender_count", "tender_catalogue", "road_ownership", "route"]) {
-    assert.ok(WARD_TENDER_QUERY.includes(field), field);
+    assert.ok(LOOKUP_QUERY.includes(field), field);
   }
   const tenders = loadBodyTenders("BLR").rows;
   const agaram = { lat: 12.97298, lng: 77.62247, address: { road: "Artillery Road", neighbourhood: "Gowthamapura", suburb: "Agaram", city: "Bengaluru", state: "Karnataka" } };
@@ -137,7 +137,7 @@ test("a package without the road ownership layers is said out loud", () => {
   const whole = judgeRoadLayers([{ n: "40", local_lookup: "municipal_polygon" }, { n: "3", local_lookup: "out_of_scope" },
     { n: "9" }]);
   assert.equal(whole.broken, false);
-  assert.match(ROAD_LAYER_QUERY, /local_lookup/);
+  assert.match(LOOKUP_QUERY, /local_lookup/);
 });
 
 test("a service packaged without the ownership layers logs local_lookup unavailable", async () => {
@@ -177,7 +177,7 @@ test("a switched-on ward snapshot missing from the package is said out loud, by 
   assert.equal(whole.broken, false);
   assert.match(whole.detail, /11 placed in a ward \(GJ\/ahmedabad 9, MP\/bhopal 2\)/);
   assert.equal(judgeIndiaWardSnapshots([]).broken, false);
-  for (const field of ["ward_lookup", "ward_snapshot", "road_ownership", "outside_state", "route"]) assert.ok(INDIA_WARD_QUERY.includes(field), field);
+  for (const field of ["ward_lookup", "ward_snapshot", "road_ownership", "route"]) assert.ok(LOOKUP_QUERY.includes(field), field);
 });
 
 test("a service packaged without a switched-on snapshot, or without the list, logs what the rule reads", async () => {

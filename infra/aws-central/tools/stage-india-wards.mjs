@@ -16,7 +16,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { INDIA_WARD_RUNTIME_FILE, INDIA_WARD_RUNTIME_FORMAT } from "../service/india-wards.mjs";
-import { INDIA_WARD_CANARY } from "./health-rules.mjs";
+import { INDIA_WARD_CANARY } from "../service/health/rules.mjs";
 
 export function stageIndiaWards(root, outDir) {
   const wardsDir = path.join(root, "data/wards");
