@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 
 // The window and the reads canary: Logs Insights and the public API, and nothing a
 // person would notice. No install is registered and no detection is paid for. (The first
-// full canary, within three hours, is what first reads and writes the key store.)
+// full canary, within half an hour, is what first reads and writes the key store.)
 export const PROOF_EVENT = { window: "1h", canary: "reads" };
 
 export function judgeProof({ functionError = null, payload }) {
