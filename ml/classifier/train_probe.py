@@ -13,7 +13,7 @@ import json
 import numpy as np
 import torch
 
-from common import EMBEDDINGS, WORK, write_json
+from common import EMBEDDINGS, WORK, soft_target, write_json
 from metrics import at_threshold, report, threshold_for_recall
 from models import Head
 
@@ -72,7 +72,10 @@ def main():
     train = split == "train"
     validation = split == "validation"
     test = split == "test"
-    y_train = torch.from_numpy(labels[train].astype(np.float32))
+    # Training targets are soft where the teacher answered twice; every metric below is
+    # against the first answer alone, which is what production would have returned.
+    soft = np.array([soft_target(row) for row in rows], dtype=np.float32)
+    y_train = torch.from_numpy(soft[train])
 
     results = {"encoder": args.encoder, "size": args.size, "feature_width": features.shape[1],
                "heads": {}}

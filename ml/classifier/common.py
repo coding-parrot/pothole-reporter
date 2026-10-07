@@ -58,6 +58,14 @@ def is_damaged(verdict):
             and verdict.get("assessment") == "damaged")
 
 
+def soft_target(row):
+    """The share of teacher answers that said damaged: 0, 0.5 or 1 with two answers.
+    About one damaged verdict in ten is not repeated, and a hard 1 for those frames
+    teaches a model to flag frames the teacher itself usually clears."""
+    answers = [row["damaged"]] + ([row["damaged_again"]] if "damaged_again" in row else [])
+    return sum(answers) / len(answers)
+
+
 def read_json(path):
     return json.loads(Path(path).read_text())
 

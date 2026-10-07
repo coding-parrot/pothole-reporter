@@ -65,6 +65,12 @@ def main():
         row["teacher"] = {key: verdict[key] for key in
                           ("image_quality", "assessment", "damage_type", "size")}
         row["damaged"] = is_damaged(verdict)
+        # A second, independent teacher answer where one was bought (--trial 1). The
+        # label stays the first answer, as in production; the second one measures how
+        # repeatable the teacher is and softens the training target.
+        repeat = TEACHER / CONTRACT_KEY / f"{row['sha256']}.t1.json"
+        if repeat.exists():
+            row["damaged_again"] = is_damaged(json.loads(repeat.read_text())["verdict"])
         if row["domain"] == "rdd2022_india":
             row["rdd_classes"] = rdd_classes(row)
         interval = OWNER_EVENTS.get(row["source"])
@@ -85,10 +91,14 @@ def main():
             types = Counter(row["teacher"]["damage_type"] for row in chosen if row["damaged"])
             sources = len({row["source"] if domain == "drive_video"
                            else row["rdd_index"] // RDD_BLOCK for row in chosen})
+            twice = [row for row in chosen if "damaged_again" in row]
+            first = [row for row in twice if row["damaged"]]
+            repeatable = (f"; teacher repeats {sum(row['damaged_again'] for row in first)}/{len(first)} "
+                          f"of its damaged verdicts" if first else "")
             print(f"  {split:10s} {len(chosen):5d} frames from {sources:2d} sources: "
                   f"{damaged:4d} damaged ({100 * damaged / max(1, len(chosen)):.1f}%), "
                   f"{len(chosen) - damaged:5d} undamaged, of which {rejected} rejected for "
-                  f"quality; types {dict(types.most_common())}")
+                  f"quality; types {dict(types.most_common())}{repeatable}")
 
 
 if __name__ == "__main__":
