@@ -6615,6 +6615,38 @@
 
   const TENDER_RETRY_DELAY_MS = 1500;
 
+  // The resolver's second, weaker answer beside `tender`: road works tendered for the
+  // ward the point is in, not the contract for this road. The report card lists them and
+  // no complaint ever names one. Only what the card prints is kept, and an entry that is
+  // not a numbered, titled tender is dropped instead of being shown half empty.
+  const WARD_TENDER_LIMITS = Object.freeze({
+    count: 5, tenderNumber: 120, title: 240, published: 40, wardName: 120,
+  });
+  function sanitiseWardTenders(value) {
+    if (!Array.isArray(value)) return [];
+    const clip = (text, limit) => text.trim().slice(0, limit).trim();
+    const kept = [];
+    for (const entry of value) {
+      if (kept.length >= WARD_TENDER_LIMITS.count) break;
+      if (!entry || typeof entry !== "object") continue;
+      if (typeof entry.tender_number !== "string" || typeof entry.title !== "string") continue;
+      if (entry.published != null && typeof entry.published !== "string") continue;
+      const tenderNumber = clip(entry.tender_number, WARD_TENDER_LIMITS.tenderNumber);
+      const title = clip(entry.title, WARD_TENDER_LIMITS.title);
+      if (!tenderNumber || !title) continue;
+      kept.push({ tender_number: tenderNumber, title,
+        published: clip(entry.published || "", WARD_TENDER_LIMITS.published) || null });
+    }
+    return kept;
+  }
+  // The ward the resolver placed the point in, as KGIS names it. Many towns have wards
+  // with a number and no name, and a point outside a town has no ward at all.
+  function wardNameOf(jurisdiction) {
+    const name = jurisdiction && typeof jurisdiction.ward_name === "string"
+      ? jurisdiction.ward_name.trim().slice(0, WARD_TENDER_LIMITS.wardName).trim() : "";
+    return name || null;
+  }
+
   async function tenderFromService(lat, lng, address, lgd, clientObservationId) {
     if (!finiteCoord(lat) || !finiteCoord(lng)) return { reached: false, tender: null };
     try {
@@ -6644,6 +6676,10 @@
         jurisdiction: result.jurisdiction || null,
         request_id: result.request_id || null,
         reason: result.reason || null,
+        // On every answer, street tender or none: for most Bengaluru points the ward
+        // list is the only tender information there is.
+        ward_tenders: sanitiseWardTenders(result.ward_tenders),
+        ward_name: wardNameOf(result.jurisdiction),
       };
       // The service matches the same four catalogues this file does, under the same
       // evidence rules (parity-tested byte for byte on the server), for any point in
@@ -7868,6 +7904,7 @@
                 "tender_number", "contractor", "tender_note", "tender_title",
                 "tender_published", "tender_resolution_reason",
                 "tender_resolution_checked_at", "unrouted_reason", "unrouted_body",
+                "ward_tenders", "ward_name",
               ]) rec[field] = null;
               rec.status = "draft";
               cursor.update(rec);
@@ -8092,11 +8129,11 @@
   }
 
   // The fields a list never renders: the photo, the evidence copy and the repair photo
-  // (Blobs, or megabytes of bytes on WebKit), and the three complaint texts that are
-  // only read on the detail screen, which loads its row by id.
+  // (Blobs, or megabytes of bytes on WebKit), and the complaint texts and ward tender
+  // list that are only read on the detail screen, which loads its row by id.
   const REPORT_BINARY_FIELDS = ["photo", "photo_full", "repair_photo", "thumb"];
   const REPORT_DETAIL_ONLY_FIELDS = ["email_body", "whatsapp_text", "portal_copy_text",
-                                     "portal_fields"];
+                                     "portal_fields", "ward_tenders"];
   function reportSummary(rec) {
     const row = {};
     for (const key of Object.keys(rec)) {
@@ -9569,6 +9606,11 @@
         ? centralResolution.reason : null,
       tender_resolution_checked_at: centralResolution && centralResolution.reached
         ? Date.now() / 1000 : null,
+      // Shown on the report card only. No complaint text is built from these.
+      ward_tenders: centralResolution && centralResolution.reached
+        ? centralResolution.ward_tenders : [],
+      ward_name: centralResolution && centralResolution.reached
+        ? centralResolution.ward_name : null,
       road_ownership: centralJurisdiction && centralJurisdiction.road_ownership || null,
       road_ownership_source: centralJurisdiction ? "central_v1" : null,
       body_lgd: centralJurisdiction && centralJurisdiction.road_ownership === "municipal"
@@ -9740,6 +9782,9 @@
         rural_body: rec && rec.unrouted_body || null,
       } || null;
     let ownershipSource = hasCentralOwnershipProof(rec) ? CENTRAL_OWNERSHIP_SOURCE : null;
+    // The ward list this call's resolver answer carried. Null means the resolver was not
+    // asked or not reached, and the caller keeps whatever the record already holds.
+    let wardTenders = null, wardName = null;
     let tender = null;
     if (rec && rec.tender_number) {
       tender = {
@@ -9767,6 +9812,10 @@
       // Revalidation owns the answer. In particular, do not retain a legacy contractor
       // when the authoritative response says no tender or says this is a highway.
       tender = central && central.reached ? central.tender : null;
+      if (central && central.reached) {
+        wardTenders = central.ward_tenders;
+        wardName = central.ward_name;
+      }
       authoritativeJurisdiction = central && central.reached && central.jurisdiction
         || { road_ownership: "unknown" };
       ownershipSource = central && central.reached ? CENTRAL_OWNERSHIP_SOURCE : null;
@@ -9821,6 +9870,7 @@
           : rec && rec.body_name || jurisdiction && jurisdiction.name || null,
         centralOutsideState: !!authoritativeJurisdiction
           && authoritativeJurisdiction.road_ownership === "outside_state",
+        wardTenders, wardName,
       });
     }
 
@@ -9844,7 +9894,8 @@
       body_name: authoritativeJurisdiction
         ? authoritativeMunicipal && authoritativeJurisdiction.town || null
         : rec.body_name || jurisdiction && jurisdiction.name || null,
-      tender, tender_number: tender && tender.tender_number || null };
+      tender, tender_number: tender && tender.tender_number || null,
+      ward_tenders: wardTenders, ward_name: wardName };
   }
 
   async function openEmailDraft(rec) {
@@ -9893,6 +9944,10 @@
         rec.officer_email = null;
         rec.email_subject = null;
         rec.email_body = null;
+        if (Array.isArray(error.wardTenders)) {
+          rec.ward_tenders = error.wardTenders;
+          rec.ward_name = error.wardName || null;
+        }
         await putReport(rec);
         error.report = toDict(rec);
       }
@@ -9926,6 +9981,12 @@
       rec.tender_published = null;
       rec.tender_confidence = null;
       rec.tender_match_method = null;
+    }
+    // A resolver answer replaces the stored ward list, even with an empty one. A draft
+    // opened from its saved text asked nothing, so its list stays as it was.
+    if (Array.isArray(prepared.ward_tenders)) {
+      rec.ward_tenders = prepared.ward_tenders;
+      rec.ward_name = prepared.ward_name || null;
     }
     progress(pmsg("email"));
     if (NATIVE) {
@@ -11136,6 +11197,11 @@
       rec.tender_request_id = central.request_id;
       rec.tender_resolution_reason = central.reason;
       rec.tender_resolution_checked_at = Date.now() / 1000;
+    }
+    // Before the early return below: a report that stays unrouted keeps the answer too.
+    if (central && central.reached) {
+      rec.ward_tenders = central.ward_tenders;
+      rec.ward_name = central.ward_name;
     }
 
     if (!route.routed) {
@@ -12788,7 +12854,7 @@
                    TOP50_AUTHORITY_BY_STATE, TOP50_MAJOR_CITY_RANKS,
                    UTTAR_PRADESH_ROUTING_ENVELOPE, UTTAR_PRADESH_STATE_AUTHORITY,
                    UTTAR_PRADESH_STATE_GEOMETRY_SHA256, VERIFIED_HANDOFF_FIELDS,
-                   WEST_BENGAL_ROUTING_ENVELOPE, WEST_BENGAL_STATES,
+                   WARD_TENDER_LIMITS, WEST_BENGAL_ROUTING_ENVELOPE, WEST_BENGAL_STATES,
                    WEST_BENGAL_STATE_AUTHORITY, WEST_BENGAL_STATE_GEOMETRY_SHA256,
                    _contractPackMemory, _contractPackPromises, _highwayTileMemory,
                    _highwayTilePromises, _newStateCoverage, _newStateCoveragePromises,
@@ -12898,7 +12964,7 @@
                    roadNoticeAddressParts, roadNoticeCandidates, roadNoticePackProvenance,
                    roadsideVegetationRe, routeForIssue, routeOfficer, routeWhereFromCentral,
                    routingPackForAuthority, sameMunicipalAliases, sameMunicipalEnvelope,
-                   sameRoadEvent, sameSet, savedBoundaryLocationMatches,
+                   sameRoadEvent, sameSet, sanitiseWardTenders, savedBoundaryLocationMatches,
                    savedMajorCityLocationMatches, savedMunicipalLocationMatches,
                    savedNonMunicipalLocationMatches, savedOfficialRouteBinding, scanReports,
                    scheduleCentralRetry, schedulePendingDetectionRetry, schemaStrings,
@@ -12936,9 +13002,9 @@
                    validateTamilNaduPayload, validateTelanganaPayload, validateTenderPack,
                    validateUttarPradeshPayload, verifiedBdaResponsibility,
                    verifiedContractForComplaint, vodBurstTimes, vodSampleTimes,
-                   waitForFreedSpace, waitForNominatimSlot, warrantyFor, westBengalCoverage,
-                   withDriveImagePreparation, withPackRetries, withSpeedDefaults,
-                   writeFeedbackQueue, zip, matchTenderFor: matchTender,
+                   waitForFreedSpace, waitForNominatimSlot, wardNameOf, warrantyFor,
+                   westBengalCoverage, withDriveImagePreparation, withPackRetries,
+                   withSpeedDefaults, writeFeedbackQueue, zip, matchTenderFor: matchTender,
                  };
 
   window.StandaloneAPI = { __pure, handle, prewarm, prepareComplaint, sharedChecksToday };

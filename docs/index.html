@@ -80,6 +80,15 @@
   .chip.synced { background:#12331d; color:#7ce8a2; }
   .chip.failed { background:#331516; color:#ff9d9d; }
   .meta { color:var(--mut); font-size:14px; line-height:1.4; margin-top:2px; }
+  /* Ward tenders on a report card: one folded .meta line. The summary is a full-width
+     44 px target, and a tender title or number with no spaces wraps inside the card. */
+  .ward-tenders summary { min-height:44px; display:flex; align-items:center; gap:6px; cursor:pointer; list-style:none; }
+  .ward-tenders summary::-webkit-details-marker { display:none; }
+  .ward-tenders summary::before { content:"\25B8"; flex:none; transition:transform .15s; }
+  .ward-tenders[open] summary::before { transform:rotate(90deg); }
+  .ward-tenders ul { list-style:none; padding:0; margin:6px 0 4px; }
+  .ward-tenders li { margin-top:8px; overflow-wrap:anywhere; }
+  .ward-tender-ref { font-size:13px; }
   label { display:block; font-size:14px; color:var(--mut); margin:10px 0 4px; }
   input[type=text], input[type=password], select, textarea { width:100%; background:#131417; color:#f2f2f4; border:1px solid var(--line); border-radius:10px; padding:12px; min-height:48px; font:inherit; font-size:14px; }
   ::placeholder { color:#8b8c92; opacity:1; }
@@ -576,6 +585,9 @@ const I18N = {
     sync_retry_failed: "The shared map still could not be reached. The app keeps trying on its own, and Email appears once it confirms.",
     seen_count: "{n} sightings across devices",
     map_known: "Already on the shared map",
+    ward_tenders_summary: "Road works tendered in this ward: {n}",
+    ward_tenders_note: "From public tender notices. Not confirmed for this exact road.",
+    ward_tenders_published: "Published {date}",
     no_location: "The location could not be determined.",
     location_uncertain: "GPS is not accurate enough to choose an authority.",
     location_uncertain_help: "Road damage was confirmed, but the photo's location is not accurate enough to choose a recipient. Retake it in the open with location on. This report was saved without a recipient.",
@@ -885,6 +897,9 @@ const I18N = {
     sync_retry_failed: "ಹಂಚಿದ ನಕ್ಷೆಯನ್ನು ಇನ್ನೂ ತಲುಪಲಾಗಲಿಲ್ಲ. ಆ್ಯಪ್ ತಾನಾಗಿಯೇ ಪ್ರಯತ್ನಿಸುತ್ತಲೇ ಇರುತ್ತದೆ, ದೃಢಪಟ್ಟ ನಂತರ ಇಮೇಲ್ ಕಾಣಿಸುತ್ತದೆ.",
     seen_count: "ಸಾಧನಗಳಾದ್ಯಂತ {n} ವೀಕ್ಷಣೆಗಳು",
     map_known: "ಹಂಚಿದ ನಕ್ಷೆಯಲ್ಲಿ ಈಗಾಗಲೇ ಇದೆ",
+    ward_tenders_summary: "ಈ ವಾರ್ಡ್‌ನಲ್ಲಿ ಟೆಂಡರ್ ಕರೆದ ರಸ್ತೆ ಕಾಮಗಾರಿಗಳು: {n}",
+    ward_tenders_note: "ಸಾರ್ವಜನಿಕ ಟೆಂಡರ್ ಪ್ರಕಟಣೆಗಳಿಂದ. ಇದೇ ರಸ್ತೆಗೆ ಎಂದು ದೃಢಪಟ್ಟಿಲ್ಲ.",
+    ward_tenders_published: "ಪ್ರಕಟಣೆ: {date}",
     no_location: "ಸ್ಥಳ ಪತ್ತೆಯಾಗಲಿಲ್ಲ.",
     location_uncertain: "ಅಧಿಕಾರಿಯನ್ನು ಆಯ್ಕೆ ಮಾಡಲು GPS ಸಾಕಷ್ಟು ನಿಖರವಾಗಿಲ್ಲ.",
     location_uncertain_help: "ರಸ್ತೆ ಹಾನಿ ದೃಢಪಟ್ಟಿದೆ, ಆದರೆ ಸ್ವೀಕರಿಸುವವರನ್ನು ಆಯ್ಕೆ ಮಾಡಲು ಫೋಟೋದ ಸ್ಥಳ ಸಾಕಷ್ಟು ನಿಖರವಾಗಿಲ್ಲ. ಲೊಕೇಶನ್ ಆನ್ ಇಟ್ಟು ತೆರೆದ ಜಾಗದಲ್ಲಿ ಮತ್ತೆ ಫೋಟೋ ತೆಗೆಯಿರಿ. ಈ ವರದಿ ಸ್ವೀಕರಿಸುವವರಿಲ್ಲದೆ ಉಳಿಸಲಾಗಿದೆ.",
@@ -1355,6 +1370,9 @@ const I18N = {
     public_map_unavailable: "सार्वजनिक नकाशा तात्पुरता उपलब्ध नाही. त्याऐवजी कोणतीही स्थानिक किंवा खाजगी माहिती दाखवली जात नाही.",
     seen_count: "वेगवेगळ्या साधनांवरून {n} निरीक्षणे",
     map_known: "सामायिक नकाशावर आधीपासून आहे",
+    ward_tenders_summary: "या प्रभागात निविदा काढलेली रस्त्यांची कामे: {n}",
+    ward_tenders_note: "सार्वजनिक निविदा सूचनांवरून. याच रस्त्यासाठी असल्याची खात्री नाही.",
+    ward_tenders_published: "प्रकाशित: {date}",
     shared_unavailable: "सामायिक खड्डा तपासणी सध्या उपलब्ध नाही. प्रकल्प सर्व्हर सुरू झाल्यावर पुन्हा प्रयत्न करा, किंवा सेटिंग्जमध्ये तुमची स्वतःची OpenAI API की वापरा. कोणतेही चित्र किंवा व्हिडिओ पाठवला गेला नाही.",
     starting_camera: "कॅमेरा सुरू होत आहे…",
     stat_installations: "अॅप वापरणारे फोन",
@@ -1676,6 +1694,9 @@ const I18N = {
     public_map_unavailable: "সর্বজনীন মানচিত্র সাময়িকভাবে পাওয়া যাচ্ছে না। এর বদলে কোনও স্থানীয় বা ব্যক্তিগত তথ্য দেখানো হচ্ছে না।",
     seen_count: "বিভিন্ন ডিভাইস মিলিয়ে {n}টি পর্যবেক্ষণ",
     map_known: "শেয়ার-করা মানচিত্রে আগে থেকেই আছে",
+    ward_tenders_summary: "এই ওয়ার্ডে দরপত্র ডাকা রাস্তার কাজ: {n}",
+    ward_tenders_note: "প্রকাশিত দরপত্র বিজ্ঞপ্তি থেকে নেওয়া। ঠিক এই রাস্তার জন্য বলে নিশ্চিত নয়।",
+    ward_tenders_published: "প্রকাশিত: {date}",
     shared_unavailable: "শেয়ার-করা গর্ত যাচাই এখন পাওয়া যাচ্ছে না। প্রকল্প সার্ভার চালু হলে আবার চেষ্টা করুন, অথবা সেটিংসে নিজের OpenAI API key ব্যবহার করুন। কোনও ছবি বা ভিডিও পাঠানো হয়নি।",
     starting_camera: "ক্যামেরা চালু হচ্ছে…",
     stat_installations: "অ্যাপ ব্যবহারকারী ফোন",
@@ -3415,6 +3436,23 @@ const emailReopens = (r) => ["queued", "sent"].includes(emailStatusOf(r));
 const emailActionHtml = (r) => emailReopens(r)
   ? escapeHtml(t("email_reopen_btn")) : `${escapeHtml(sendLabel())} &#9993;`;
 
+// Road works tendered for the report's ward, from the central resolver. A weaker claim
+// than tender_note, so it stays folded until asked for and says what it is not. The
+// stored list is sanitised again here: a row may predate the field or hold a wiped one.
+function wardTendersHtml(r) {
+  const tenders = StandaloneAPI.__pure.sanitiseWardTenders(r && r.ward_tenders);
+  if (!tenders.length) return "";
+  return `<details class="meta ward-tenders">
+    <summary>${escapeHtml(t("ward_tenders_summary", { n: tenders.length }))}</summary>
+    <div class="ward-tenders-note">${escapeHtml(t("ward_tenders_note"))}</div>
+    <ul>${tenders.map((tender) => `<li>
+      <div class="ward-tender-title">${escapeHtml(tender.title)}</div>
+      <div class="ward-tender-ref">${escapeHtml(tender.tender_number)}${tender.published
+        ? ` · ${escapeHtml(t("ward_tenders_published", { date: tender.published }))}` : ""}</div>
+    </li>`).join("")}</ul>
+  </details>`;
+}
+
 function openDetail(r, list) {
   // A list row handed straight here has no photo or complaint text yet. Draw what is
   // known now and again once the full row has loaded, if it is still the one shown.
@@ -3507,6 +3545,7 @@ function openDetail(r, list) {
         ${r.address ? `<div class="meta">&#128205; ${escapeHtml(r.address)}</div>` : ""}
         ${showCivicAttribution && r.body_name ? `<div class="meta">${escapeHtml(r.body_name)}</div>` : ""}
         ${showCivicAttribution && r.tender_note ? `<div class="meta">&#128209; ${escapeHtml(r.tender_note)}</div>` : ""}
+        ${showCivicAttribution ? wardTendersHtml(r) : ""}
         <div>${chip(r.status, r)} ${conditionChip(r)}</div>
         ${emailStatusOf(r) === "queued" ? `<div class="meta">${escapeHtml(t("verdict_queued"))}</div>` : ""}
         <div class="meta">${escapeHtml(r.description || "")}</div>
@@ -3544,6 +3583,7 @@ function openDetail(r, list) {
         ${r.address ? `<div class="meta">&#128205; ${escapeHtml(r.address)}</div>` : ""}
         ${showCivicAttribution && r.officer_name ? `<div class="meta">&#128231; ${escapeHtml(t("routes_to"))} ${escapeHtml(r.officer_name)}</div>` : ""}
         ${showCivicAttribution && r.tender_note ? `<div class="meta">&#128209; ${escapeHtml(r.tender_note)}</div>` : ""}
+        ${showCivicAttribution ? wardTendersHtml(r) : ""}
         ${r.server_duplicate ? `<div class="meta" style="color:#b9c2ff">${escapeHtml(t("map_known"))}${
           r.seen_count > 1 ? ` · ${escapeHtml(t("seen_count", { n: r.seen_count }))}` : ""}</div>` : ""}
         ${!browserConfirmed ? `<div class="meta">${escapeHtml(t("email_waiting_dedupe"))}</div>` : ""}
@@ -3747,6 +3787,12 @@ async function sendReport(r) {
       r.tender_note = persisted.tender_note || null;
       r.tender_title = staged.tender_title;
       r.tender_published = staged.tender_published;
+      // Room has no column for the ward list, so a Drive Mode row shows the one a fresh
+      // resolver answer carried only until the list is next read from the bridge.
+      if (Array.isArray(complaint.ward_tenders)) {
+        r.ward_tenders = complaint.ward_tenders;
+        r.ward_name = complaint.ward_name || null;
+      }
       r.server_pothole_id = persisted.server_pothole_id;
       r.server_duplicate = !!persisted.server_duplicate;
       r._nativeStoredStatus = persisted.status;
