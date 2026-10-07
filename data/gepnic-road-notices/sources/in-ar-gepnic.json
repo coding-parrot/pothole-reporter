@@ -16,7 +16,7 @@
         "DIV- Seppa - PWDAP"
       ],
       "published_at": "2026-09-18T10:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Arunachal Pradesh e-Procurement Portal",
       "source_url": "https://arunachaltenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SV6cS5w2KNLeTY7nOhoy5Tg%3D%3D",
@@ -29,13 +29,12 @@
   "organisations": [
     "ARUNACHAL PRADESH POLICE (APP)",
     "Public Works Department",
-    "RURAL DEVELOPMENT DEPARTMENT",
-    "Town Planning and Urban Local Bodies",
-    "Urban Development and Housing"
+    "RURAL WORKS DEPARTMENT ARUNACHAL PRADESH",
+    "Town Planning and Urban Local Bodies"
   ],
-  "retrieved_at": "2026-10-05T05:42:16Z",
-  "rows_excluded_by_scope": 9,
-  "rows_scanned": 10,
+  "retrieved_at": "2026-10-07T04:59:04Z",
+  "rows_excluded_by_scope": 5,
+  "rows_scanned": 6,
   "schema_version": 1,
   "source_id": "in-ar-gepnic",
   "source_name": "Arunachal Pradesh e-Procurement Portal",

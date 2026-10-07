@@ -3,67 +3,67 @@
   "lifecycle": "procurement_notice",
   "notices": [
     {
-      "closing_at": "2026-10-09T14:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnTS9M5xWIvSphOHF4mW3Sw%3D%3D",
+      "closing_at": "2026-10-13T15:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SD0T3gipoXPJzuPtTg647nQ%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
+      "opening_at": "2026-10-13T15:30:00+05:30",
       "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
       "organisation_path": [
         "Corporation of Chennai",
         "Head Quarters,CoC"
       ],
-      "published_at": "2026-10-03T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "published_at": "2026-10-06T09:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnTS9M5xWIvSphOHF4mW3Sw%3D%3D",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SD0T3gipoXPJzuPtTg647nQ%3D%3D",
       "state_code": "TN",
-      "tender_id": "2026_CoC_710756_1",
-      "tender_reference": "Z.O.III.C.NO.E1/5157/2026",
-      "title": "Restoration of road cut made by CMWSSB at Kamban Street in Div-26, Unit-7, Zone-3"
+      "tender_id": "2026_CoC_711075_1",
+      "tender_reference": "B.R.R.C.No. B3 / 2977-1 / 2026 -2",
+      "title": "Repairing of Road Potholes Patches using Cold mix Injection Pothole Patching Repairing Machine in Bus Route Roads of Zone 4 5"
     },
     {
-      "closing_at": "2026-10-09T14:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S1bT0HetuMnuYvvNHhgh1Ow%3D%3D",
+      "closing_at": "2026-10-13T15:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXyeZx7ROsLexPkLrQCA2mQ%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
+      "opening_at": "2026-10-13T15:30:00+05:30",
       "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
       "organisation_path": [
         "Corporation of Chennai",
         "Head Quarters,CoC"
       ],
-      "published_at": "2026-10-03T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "published_at": "2026-10-06T09:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S1bT0HetuMnuYvvNHhgh1Ow%3D%3D",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXyeZx7ROsLexPkLrQCA2mQ%3D%3D",
       "state_code": "TN",
-      "tender_id": "2026_CoC_710755_1",
-      "tender_reference": "Z.O.III.C.NO.E1/5150/2026",
-      "title": "Restoration of road cut made by CMWSSB at MASILAMANI STREET in Div-25, Unit-7, Zone-3"
+      "tender_id": "2026_CoC_711084_1",
+      "tender_reference": "B.R.R.C.No. B3 / 2977-1 / 2026 -3",
+      "title": "Repairing of Road Potholes Patches using Cold mix Injection Pothole Patching Repairing Machine in Bus Route Roads of Zone 6 7 8"
     },
     {
-      "closing_at": "2026-10-09T14:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SqlAEBAE4YRMm8SSZNbanOQ%3D%3D",
+      "closing_at": "2026-10-13T15:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SeBisaa7l0QJ09g5gR3KkJQ%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
+      "opening_at": "2026-10-13T15:30:00+05:30",
       "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
       "organisation_path": [
         "Corporation of Chennai",
         "Head Quarters,CoC"
       ],
-      "published_at": "2026-10-03T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "published_at": "2026-10-05T18:55:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SqlAEBAE4YRMm8SSZNbanOQ%3D%3D",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SeBisaa7l0QJ09g5gR3KkJQ%3D%3D",
       "state_code": "TN",
-      "tender_id": "2026_CoC_710726_1",
-      "tender_reference": "Z.O.III.C.NO.E1/4719/2026",
-      "title": "RESTORATION OF ROAD CUT CC LAYING WORK MADE BY CMWSSB AT KUMARAN MAIN STREET IN DN-27, UNIT-7, ZONE-3"
+      "tender_id": "2026_CoC_711066_1",
+      "tender_reference": "B.R.R.C.No. B3 / 2977-1 / 2026 -1",
+      "title": "Repairing of Road Potholes Patches using Cold mix Injection Pothole Patching Repairing Machine in Bus Route Roads of Zone 1 2 3"
     },
     {
       "closing_at": "2026-10-09T14:00:00+05:30",
@@ -77,7 +77,7 @@
         "Head Quarters,CoC"
       ],
       "published_at": "2026-10-03T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Syi0GpDtqJqzGbs2%2FtyBfhA%3D%3D",
@@ -98,7 +98,7 @@
         "Head Quarters,CoC"
       ],
       "published_at": "2026-10-03T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SgJzNnSFivjnnYwYNm8EjPg%3D%3D",
@@ -106,27 +106,6 @@
       "tender_id": "2026_CoC_710758_1",
       "tender_reference": "Z.O.III.C.NO.E1/5171/2026",
       "title": "Restoration of road cut made by CMWSSB at Murugesan garden in Div-26, Unit-7, Zone-3"
-    },
-    {
-      "closing_at": "2026-10-09T14:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SMeVM76qvg8hhkccgNwMvOQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
-      "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
-      "organisation_path": [
-        "Corporation of Chennai",
-        "Head Quarters,CoC"
-      ],
-      "published_at": "2026-10-03T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SMeVM76qvg8hhkccgNwMvOQ%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_CoC_710722_1",
-      "tender_reference": "Z.O.III.C.NO.E1/4718/2026",
-      "title": "RESTORATION OF ROAD CUT CC LAYING WORK MADE BY CMWSSB AT PERIYASEKKADU PERUMAL KOIL STREET IN DN-27, UNIT-7, ZONE-3"
     },
     {
       "closing_at": "2026-10-09T14:00:00+05:30",
@@ -140,7 +119,7 @@
         "Head Quarters,CoC"
       ],
       "published_at": "2026-10-03T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SaEMFOPdY3GeRliWM%2BntblA%3D%3D",
@@ -148,6 +127,90 @@
       "tender_id": "2026_CoC_710737_1",
       "tender_reference": "Z.O.III.C.NO.E1/5548/2026",
       "title": "Restoration of road cut made by CMWSSB to BT Surface at Govind Street in Div-29, Unit-8, Zone-3"
+    },
+    {
+      "closing_at": "2026-10-09T14:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S1bT0HetuMnuYvvNHhgh1Ow%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
+      "opening_at": "2026-10-09T15:00:00+05:30",
+      "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
+      "organisation_path": [
+        "Corporation of Chennai",
+        "Head Quarters,CoC"
+      ],
+      "published_at": "2026-10-03T18:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Tamil Nadu e-Procurement Portal",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S1bT0HetuMnuYvvNHhgh1Ow%3D%3D",
+      "state_code": "TN",
+      "tender_id": "2026_CoC_710755_1",
+      "tender_reference": "Z.O.III.C.NO.E1/5150/2026",
+      "title": "Restoration of road cut made by CMWSSB at MASILAMANI STREET in Div-25, Unit-7, Zone-3"
+    },
+    {
+      "closing_at": "2026-10-09T14:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnTS9M5xWIvSphOHF4mW3Sw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
+      "opening_at": "2026-10-09T15:00:00+05:30",
+      "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
+      "organisation_path": [
+        "Corporation of Chennai",
+        "Head Quarters,CoC"
+      ],
+      "published_at": "2026-10-03T18:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Tamil Nadu e-Procurement Portal",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnTS9M5xWIvSphOHF4mW3Sw%3D%3D",
+      "state_code": "TN",
+      "tender_id": "2026_CoC_710756_1",
+      "tender_reference": "Z.O.III.C.NO.E1/5157/2026",
+      "title": "Restoration of road cut made by CMWSSB at Kamban Street in Div-26, Unit-7, Zone-3"
+    },
+    {
+      "closing_at": "2026-10-09T14:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SqlAEBAE4YRMm8SSZNbanOQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
+      "opening_at": "2026-10-09T15:00:00+05:30",
+      "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
+      "organisation_path": [
+        "Corporation of Chennai",
+        "Head Quarters,CoC"
+      ],
+      "published_at": "2026-10-03T18:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Tamil Nadu e-Procurement Portal",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SqlAEBAE4YRMm8SSZNbanOQ%3D%3D",
+      "state_code": "TN",
+      "tender_id": "2026_CoC_710726_1",
+      "tender_reference": "Z.O.III.C.NO.E1/4719/2026",
+      "title": "RESTORATION OF ROAD CUT CC LAYING WORK MADE BY CMWSSB AT KUMARAN MAIN STREET IN DN-27, UNIT-7, ZONE-3"
+    },
+    {
+      "closing_at": "2026-10-09T14:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SMeVM76qvg8hhkccgNwMvOQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
+      "opening_at": "2026-10-09T15:00:00+05:30",
+      "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
+      "organisation_path": [
+        "Corporation of Chennai",
+        "Head Quarters,CoC"
+      ],
+      "published_at": "2026-10-03T18:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Tamil Nadu e-Procurement Portal",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SMeVM76qvg8hhkccgNwMvOQ%3D%3D",
+      "state_code": "TN",
+      "tender_id": "2026_CoC_710722_1",
+      "tender_reference": "Z.O.III.C.NO.E1/4718/2026",
+      "title": "RESTORATION OF ROAD CUT CC LAYING WORK MADE BY CMWSSB AT PERIYASEKKADU PERUMAL KOIL STREET IN DN-27, UNIT-7, ZONE-3"
     },
     {
       "closing_at": "2026-10-16T15:00:00+05:30",
@@ -161,7 +224,7 @@
         "Head Quarters,CoC"
       ],
       "published_at": "2026-10-01T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=St1fXb%2BSD9beVy81aazeTGQ%3D%3D",
@@ -169,153 +232,6 @@
       "tender_id": "2026_CoC_709747_1",
       "tender_reference": "B.R.R.C.No. B4 / 3321/ 2026",
       "title": "Restoration of OFC road cuts by Bharti Airtel Ltd. at Ramasamy Salai, Arcot Road, P.V. Rajamannar Salai, Ashok Pillar Main Road D128 129 136 137 138 in Z10 and Jio Digital Fibre Pvt. Ltd. at Chettiyar Agaram Main Road (D150, Z11)."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STsdmlDGQKqKnaF4MwnL0ig%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
-      "opening_at": "2026-10-05T15:30:00+05:30",
-      "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
-      "organisation_path": [
-        "Corporation of Chennai",
-        "Head Quarters,CoC"
-      ],
-      "published_at": "2026-09-29T17:20:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STsdmlDGQKqKnaF4MwnL0ig%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_CoC_707349_1",
-      "tender_reference": "B.R.R.C.No. B3 / 2977-1 / 2026 -1",
-      "title": "Repairing of Road Potholes Patches using Cold mix Injection Pothole Patching Repairing Machine in Bus Route Roads of Zone 1, 2 3."
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SpKV9ZsjB1HozVJ6CcJfOpg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
-      "opening_at": "2026-10-06T15:30:00+05:30",
-      "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
-      "organisation_path": [
-        "Corporation of Chennai",
-        "Head Quarters,CoC"
-      ],
-      "published_at": "2026-09-28T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SpKV9ZsjB1HozVJ6CcJfOpg%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_CoC_708764_1",
-      "tender_reference": "B.R.R.C.No. B3 / 3275 /2026-2",
-      "title": "Improvements to BT Road in Arcot Road South Side from ThiruvalluvarSalai to Vanniyar Street in Div-128, Zone-10."
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SitferVxnLhPmtlV5by7M6Q%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
-      "opening_at": "2026-10-06T15:30:00+05:30",
-      "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
-      "organisation_path": [
-        "Corporation of Chennai",
-        "Head Quarters,CoC"
-      ],
-      "published_at": "2026-09-28T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SitferVxnLhPmtlV5by7M6Q%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_CoC_708757_1",
-      "tender_reference": "B.R.R.C.No. B3 / 3275 /2026 -1",
-      "title": "Improvements to BT Road in Arcot Road North Side from Thiruvalluvar Salai to KalliammanKoil Street in Div-128, Zone-10."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDGPS29hbWhXHHivV9SYeSg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
-      "opening_at": "2026-10-05T15:30:00+05:30",
-      "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
-      "organisation_path": [
-        "Corporation of Chennai",
-        "Head Quarters,CoC"
-      ],
-      "published_at": "2026-09-24T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDGPS29hbWhXHHivV9SYeSg%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_CoC_707382_1",
-      "tender_reference": "B.R.R.C.No. B3 / 2977-1 / 2026 -4",
-      "title": "Repairing of Road Potholes Patches using Cold mix Injection Pothole Patching Repairing Machine in Bus Route Roads of Zone 9 and 10"
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SaOjw2RBsSE6E0XOYjLnC%2FA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
-      "opening_at": "2026-10-05T15:30:00+05:30",
-      "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
-      "organisation_path": [
-        "Corporation of Chennai",
-        "Head Quarters,CoC"
-      ],
-      "published_at": "2026-09-24T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SaOjw2RBsSE6E0XOYjLnC%2FA%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_CoC_707391_1",
-      "tender_reference": "B.R.R.C.No. B3 / 2977-1 / 2026 -5",
-      "title": "Repairing of Road Potholes Patches using Cold mix Injection Pothole Patching Repairing Machine in Bus Route Roads of Zone 11, 12, 13, 14 15."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDG0c4HjgkjeUAjutzjlYfA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
-      "opening_at": "2026-10-05T15:30:00+05:30",
-      "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
-      "organisation_path": [
-        "Corporation of Chennai",
-        "Head Quarters,CoC"
-      ],
-      "published_at": "2026-09-24T17:15:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDG0c4HjgkjeUAjutzjlYfA%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_CoC_707377_1",
-      "tender_reference": "B.R.R.C.No. B3 / 2977-1 / 2026 -3",
-      "title": "Repairing of Road Potholes Patches using Cold mix Injection Pothole Patching Repairing Machine in Bus Route Roads of Zone 6, 7 8."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvqbWcN0jP1Y29xqqeZi7cg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S9nWAOBAD2MB2mhgCDg9jAQ%3D%3D",
-      "opening_at": "2026-10-05T15:30:00+05:30",
-      "organisation_chain": "Corporation of Chennai||Head Quarters,CoC",
-      "organisation_path": [
-        "Corporation of Chennai",
-        "Head Quarters,CoC"
-      ],
-      "published_at": "2026-09-24T17:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvqbWcN0jP1Y29xqqeZi7cg%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_CoC_707369_1",
-      "tender_reference": "B.R.R.C.No. B3 / 2977-1 / 2026 -2",
-      "title": "Repairing of Road Potholes Patches using Cold mix Injection Pothole Patching Repairing Machine in Bus Route Roads of Zone 4 and 5"
     },
     {
       "closing_at": "2026-10-08T15:00:00+05:30",
@@ -329,7 +245,7 @@
         "Head Quarters,CoC"
       ],
       "published_at": "2026-09-23T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S0WQKzriLITtxvj5%2BXYPCPw%3D%3D",
@@ -351,7 +267,7 @@
         "Thiruvithancode Town Panchayat"
       ],
       "published_at": "2026-09-22T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDqnd9Vk%2BTTRSzUL%2B%2BroSng%3D%3D",
@@ -373,7 +289,7 @@
         "Thiruvithancode Town Panchayat"
       ],
       "published_at": "2026-09-22T13:30:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SYHwNTO4HpAMNK9LN1ZmUXg%3D%3D",
@@ -395,7 +311,7 @@
         "Thiruvithancode Town Panchayat"
       ],
       "published_at": "2026-09-22T13:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SseKTSQqaqXzLD0LSft404A%3D%3D",
@@ -418,7 +334,7 @@
         "Nagercoil Division"
       ],
       "published_at": "2026-09-29T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2B0e01n5kxzSrqsasNJUGaA%3D%3D",
@@ -441,7 +357,7 @@
         "Vridhachalam DVN"
       ],
       "published_at": "2026-09-24T16:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SclmRjHXlQlZwKRemZh66XA%3D%3D",
@@ -464,7 +380,7 @@
         "Vridhachalam DVN"
       ],
       "published_at": "2026-09-24T16:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sdvs85WVm0RgSSJJF3jU2Ww%3D%3D",
@@ -487,7 +403,7 @@
         "Vridhachalam DVN"
       ],
       "published_at": "2026-09-22T17:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SkLonHX5IUzGAMNpiWflshQ%3D%3D",
@@ -510,7 +426,7 @@
         "Vridhachalam DVN"
       ],
       "published_at": "2026-09-22T17:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SfF1b%2BIu4LdDjoYnKbozfJw%3D%3D",
@@ -531,7 +447,7 @@
         "Nagercoil Municipality"
       ],
       "published_at": "2026-09-30T17:45:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Ssv2n%2Fo8CEWQ89WX0302L4g%3D%3D",
@@ -552,7 +468,7 @@
         "Nagercoil Municipality"
       ],
       "published_at": "2026-09-30T17:10:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SmaN9a%2BmHkpELY3xKRRlYhg%3D%3D",
@@ -573,7 +489,7 @@
         "Erode Municipal Corporation"
       ],
       "published_at": "2026-09-29T10:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SRS6mArHKQV5d6nwZuRwW%2BQ%3D%3D",
@@ -594,7 +510,7 @@
         "Vaniyambadi Municipality"
       ],
       "published_at": "2026-09-28T11:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STpW6BZrTyjyFYltSeNagAw%3D%3D",
@@ -615,7 +531,7 @@
         "Adirampattinam Municipality"
       ],
       "published_at": "2026-09-25T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SUWeJ413fnY1HVWFum0OyvA%3D%3D",
@@ -636,7 +552,7 @@
         "Kollankodu Municipality"
       ],
       "published_at": "2026-09-23T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SLfW0sgwWR9WRC6YVO7LXRQ%3D%3D",
@@ -657,7 +573,7 @@
         "Coimbatore City Municipal Corporation"
       ],
       "published_at": "2026-09-22T12:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Srd3VaAS%2F%2Ba8g%2FxQvObLUiA%3D%3D",
@@ -678,7 +594,7 @@
         "Coimbatore City Municipal Corporation"
       ],
       "published_at": "2026-09-22T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SuR7CbPY8C57oIxYSTyaDCA%3D%3D",
@@ -699,7 +615,7 @@
         "Colachal Municipality"
       ],
       "published_at": "2026-09-21T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SqoSLohZdF2MAsSbYUN44IQ%3D%3D",
@@ -707,90 +623,6 @@
       "tender_id": "2026_MAWS_706252_1",
       "tender_reference": "749/2026/E1",
       "title": "Repair and Maintenance Municipal paver block roads in Colachel Municipality"
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SirnDcWqrXpbmGZIBRnr%2BEA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-05T15:30:00+05:30",
-      "organisation_chain": "MAWS||Manaparai Municipality",
-      "organisation_path": [
-        "MAWS",
-        "Manaparai Municipality"
-      ],
-      "published_at": "2026-09-17T10:30:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SirnDcWqrXpbmGZIBRnr%2BEA%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_MAWS_705206_1",
-      "tender_reference": "269-3/2026/E1",
-      "title": "Restoration of BT road and storm water drain at 0850009R134- sebashthiyar church road in Manapparai"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SSPpCrVvY869qznSHqkiM7w%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-06T15:30:00+05:30",
-      "organisation_chain": "MAWS||Tiruvallur Municipality",
-      "organisation_path": [
-        "MAWS",
-        "Tiruvallur Municipality"
-      ],
-      "published_at": "2026-09-16T10:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SSPpCrVvY869qznSHqkiM7w%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_MAWS_704882_1",
-      "tender_reference": "3971/2025/E1",
-      "title": "Providing Cement Concrete Pavement to Tollgate Lane andJJ Nagar at ward no 1 in Tiruvallur Muncipality"
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sybbx2kj5vBPqr1smNSMrCQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-05T15:30:00+05:30",
-      "organisation_chain": "MAWS||Thiruverkadu Municipality",
-      "organisation_path": [
-        "MAWS",
-        "Thiruverkadu Municipality"
-      ],
-      "published_at": "2026-09-08T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sybbx2kj5vBPqr1smNSMrCQ%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_MAWS_702413_11",
-      "tender_reference": "967/2026/E1",
-      "title": "Restoration to Flood Damaged Roads to Ward No 10 -18 in Thiruverkadu Municipal Areas."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S0GHnsIXVA5LlJhQxOSWqZQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-05T15:30:00+05:30",
-      "organisation_chain": "MAWS||Thiruverkadu Municipality",
-      "organisation_path": [
-        "MAWS",
-        "Thiruverkadu Municipality"
-      ],
-      "published_at": "2026-09-08T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S0GHnsIXVA5LlJhQxOSWqZQ%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_MAWS_702413_10",
-      "tender_reference": "967/2026/E1",
-      "title": "Restoration to Flood Damaged Roads to Ward No 1 -9 in Thiruverkadu Municipal Areas."
     },
     {
       "closing_at": "2026-10-16T15:00:00+05:30",
@@ -807,7 +639,7 @@
         "Buildings (C and M) Division, Nagercoil"
       ],
       "published_at": "2026-10-01T12:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SfeeymA4RdQa6weDSzOODZQ%3D%3D",
@@ -815,6 +647,50 @@
       "tender_id": "2026_PWD_709678_2",
       "tender_reference": "e-Tender Notice No 11 / C.8-1 / 362M / 2026-27 Dt 30.09.2026",
       "title": "Special Repairs to Approach Road for Patient shifting from Payward to Other blocks in Kanniyakumari Government Medical College and Hospital at Asaripallam in Kanniyakumari District."
+    },
+    {
+      "closing_at": "2026-10-22T15:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SjBGXnnrFLxMrf13LMSkEPw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
+      "opening_at": "2026-10-22T16:00:00+05:30",
+      "organisation_chain": "Rural Development and Panchayat Raj Department||Erode,RD,TN||TALAVADI, ERODE,RD,TN",
+      "organisation_path": [
+        "Rural Development and Panchayat Raj Department",
+        "Erode,RD,TN",
+        "TALAVADI, ERODE,RD,TN"
+      ],
+      "published_at": "2026-10-07T10:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Tamil Nadu e-Procurement Portal",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SjBGXnnrFLxMrf13LMSkEPw%3D%3D",
+      "state_code": "TN",
+      "tender_id": "2026_RDTN_711159_1",
+      "tender_reference": "1509/2026/A2 Dt 06.10.2026",
+      "title": "Providing Cement Concrete Pavement at infront of Public health building Gumtapuram H/O Thalavadi. Thalavadi Panchayat Union of Erode District, under PUGF - 2026-27"
+    },
+    {
+      "closing_at": "2026-10-23T15:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SJMZOn8wZatwb1cl2Pu5F5Q%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
+      "opening_at": "2026-10-23T16:00:00+05:30",
+      "organisation_chain": "Rural Development and Panchayat Raj Department||Karur,RD,TN||KADAVUR, KARUR,RD,TN",
+      "organisation_path": [
+        "Rural Development and Panchayat Raj Department",
+        "Karur,RD,TN",
+        "KADAVUR, KARUR,RD,TN"
+      ],
+      "published_at": "2026-10-06T18:40:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Tamil Nadu e-Procurement Portal",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SJMZOn8wZatwb1cl2Pu5F5Q%3D%3D",
+      "state_code": "TN",
+      "tender_id": "2026_RDTN_711416_1",
+      "tender_reference": "Upgradation The Road From Kurunikulathupatty to Kalathupatty Road R 258 Km 1/0-1/1",
+      "title": "Upgradation The Road From Kurunikulathupatty to Kalathupatty Road R 258 Km 1/0-1/1"
     },
     {
       "closing_at": "2026-10-15T15:00:00+05:30",
@@ -829,7 +705,7 @@
         "GUDIYATHAM - VP, VELLORE,RD,TN"
       ],
       "published_at": "2026-10-01T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SV2YUmP%2FfqaMFXmjkx4y7Vg%3D%3D",
@@ -837,50 +713,6 @@
       "tender_id": "2026_RDTN_710158_1",
       "tender_reference": "B1 / 01 / 2026",
       "title": "Providing Cement Concrete Pavement at Kaithemillath Nagar, Anganwadi Street in Mukkundram Panchayat of Gudiyatham Block. Package No.1"
-    },
-    {
-      "closing_at": "2026-10-15T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SY8sFvH3r031jfvziRgyMZg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-15T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Vellore,RD,TN||GUDIYATHAM - VP, VELLORE,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Vellore,RD,TN",
-        "GUDIYATHAM - VP, VELLORE,RD,TN"
-      ],
-      "published_at": "2026-10-01T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SY8sFvH3r031jfvziRgyMZg%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_710198_1",
-      "tender_reference": "B1/01/2026",
-      "title": "Providing Cement Concrete Pavement at Kaithemillath Nagar, Babu Bai Street in Mukkundram Panchayat of Gudiyatham Block.. Package No.2"
-    },
-    {
-      "closing_at": "2026-10-15T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=ST9tdpJc%2BuDU8creuSYt5Bg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-15T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Vellore,RD,TN||GUDIYATHAM - VP, VELLORE,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Vellore,RD,TN",
-        "GUDIYATHAM - VP, VELLORE,RD,TN"
-      ],
-      "published_at": "2026-10-01T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=ST9tdpJc%2BuDU8creuSYt5Bg%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_710224_1",
-      "tender_reference": "B1 / 01 / 2026",
-      "title": "Providing Cement Concrete Pavement at Kaithemillath Nagar, Nawab Bai Street in Mukkundram Panchayat of Gudiyatham Block. Package No.3"
     },
     {
       "closing_at": "2026-10-13T15:00:00+05:30",
@@ -895,7 +727,7 @@
         "Sankarankoil Tenkasi RD TN"
       ],
       "published_at": "2026-10-01T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S92T01z%2Bk6O1%2FeFognAvDiw%3D%3D",
@@ -903,6 +735,50 @@
       "tender_id": "2026_RDTN_710398_1",
       "tender_reference": "COLRDR/3291/2022-A2",
       "title": "Providing Cement concrete pavement at Dr chandran house Street in Ariyanayagipuram villagee and panchayat"
+    },
+    {
+      "closing_at": "2026-10-15T15:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=ST9tdpJc%2BuDU8creuSYt5Bg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
+      "opening_at": "2026-10-15T16:00:00+05:30",
+      "organisation_chain": "Rural Development and Panchayat Raj Department||Vellore,RD,TN||GUDIYATHAM - VP, VELLORE,RD,TN",
+      "organisation_path": [
+        "Rural Development and Panchayat Raj Department",
+        "Vellore,RD,TN",
+        "GUDIYATHAM - VP, VELLORE,RD,TN"
+      ],
+      "published_at": "2026-10-01T18:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Tamil Nadu e-Procurement Portal",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=ST9tdpJc%2BuDU8creuSYt5Bg%3D%3D",
+      "state_code": "TN",
+      "tender_id": "2026_RDTN_710224_1",
+      "tender_reference": "B1 / 01 / 2026",
+      "title": "Providing Cement Concrete Pavement at Kaithemillath Nagar, Nawab Bai Street in Mukkundram Panchayat of Gudiyatham Block. Package No.3"
+    },
+    {
+      "closing_at": "2026-10-15T15:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SY8sFvH3r031jfvziRgyMZg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
+      "opening_at": "2026-10-15T16:00:00+05:30",
+      "organisation_chain": "Rural Development and Panchayat Raj Department||Vellore,RD,TN||GUDIYATHAM - VP, VELLORE,RD,TN",
+      "organisation_path": [
+        "Rural Development and Panchayat Raj Department",
+        "Vellore,RD,TN",
+        "GUDIYATHAM - VP, VELLORE,RD,TN"
+      ],
+      "published_at": "2026-10-01T18:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Tamil Nadu e-Procurement Portal",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SY8sFvH3r031jfvziRgyMZg%3D%3D",
+      "state_code": "TN",
+      "tender_id": "2026_RDTN_710198_1",
+      "tender_reference": "B1/01/2026",
+      "title": "Providing Cement Concrete Pavement at Kaithemillath Nagar, Babu Bai Street in Mukkundram Panchayat of Gudiyatham Block.. Package No.2"
     },
     {
       "closing_at": "2026-10-15T15:00:00+05:30",
@@ -917,7 +793,7 @@
         "GUDIYATHAM - VP, VELLORE,RD,TN"
       ],
       "published_at": "2026-10-01T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Su%2BrXubYEsSOZxdQMdjBJUg%3D%3D",
@@ -939,7 +815,7 @@
         "KOTTUR, TIRUVARUR,RD,TN"
       ],
       "published_at": "2026-10-01T13:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SIGSCg7y6ao%2F4pUdaywF2eA%3D%3D",
@@ -947,6 +823,28 @@
       "tender_id": "2026_RDTN_709969_1",
       "tender_reference": "RC No 914 2025 a2 date 01 10 2026 Iruneeki Panchayat Kottur block P1",
       "title": "1 Black Topping to Approch road at Irulneeki road Habitation in Irulneeki Panchayat General Fund 2026 27 Kottur Block Tiruvarur Dist"
+    },
+    {
+      "closing_at": "2026-10-15T15:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SEz4ssvDHiD3tSyYmc8bapg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
+      "opening_at": "2026-10-15T16:00:00+05:30",
+      "organisation_chain": "Rural Development and Panchayat Raj Department||Kancheepuram,RD,TN||KUNRATHUR, KANCHEEPURAM,RD,TN",
+      "organisation_path": [
+        "Rural Development and Panchayat Raj Department",
+        "Kancheepuram,RD,TN",
+        "KUNRATHUR, KANCHEEPURAM,RD,TN"
+      ],
+      "published_at": "2026-10-01T09:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Tamil Nadu e-Procurement Portal",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SEz4ssvDHiD3tSyYmc8bapg%3D%3D",
+      "state_code": "TN",
+      "tender_id": "2026_RDTN_709819_1",
+      "tender_reference": "2247 / 2026 / A2 / KNR 15 / Dated 29.09.2026",
+      "title": "Providing Cement Concrete Pavement to KK Nagar Cross Street at Moulivakkam Panchayat Under Panchayat Union General Funds Scheme of the Year 2026-27"
     },
     {
       "closing_at": "2026-10-15T15:00:00+05:30",
@@ -961,7 +859,7 @@
         "KUNRATHUR, KANCHEEPURAM,RD,TN"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SIKgN0X5dcTxpoO8PJ5l9WQ%3D%3D",
@@ -983,7 +881,7 @@
         "KUNRATHUR, KANCHEEPURAM,RD,TN"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SpsKc1fuxdQpjtnQARLBQZQ%3D%3D",
@@ -1005,7 +903,7 @@
         "KUNRATHUR, KANCHEEPURAM,RD,TN"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SrvPLpghPB8bTWMGpDfk3JQ%3D%3D",
@@ -1027,7 +925,7 @@
         "KUNRATHUR, KANCHEEPURAM,RD,TN"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SN0MPDSMLa8SySPx6Nb4rTg%3D%3D",
@@ -1049,7 +947,7 @@
         "KUNRATHUR, KANCHEEPURAM,RD,TN"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S8Q7ZtNYAVArPxH1zwvo5BA%3D%3D",
@@ -1071,7 +969,7 @@
         "KUNRATHUR, KANCHEEPURAM,RD,TN"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S4rwI6QBy25Nwe4XQDjAtQg%3D%3D",
@@ -1093,7 +991,7 @@
         "KUNRATHUR, KANCHEEPURAM,RD,TN"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SWj%2BZ6iiWcqfPdXaWma%2BzJg%3D%3D",
@@ -1115,7 +1013,7 @@
         "KUNRATHUR, KANCHEEPURAM,RD,TN"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SoXjMUT8bY2Yw9tyWttSbhw%3D%3D",
@@ -1123,28 +1021,6 @@
       "tender_id": "2026_RDTN_709822_1",
       "tender_reference": "2247 / 2026 / A2 / KNR 17 / Dated 29.09.2026",
       "title": "Providing Cement Concrete Pavement to Nehru Street at Madambakkam Panchayat Under Panchayat Union General Funds Scheme of the Year 2026-27."
-    },
-    {
-      "closing_at": "2026-10-15T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SEz4ssvDHiD3tSyYmc8bapg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-15T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Kancheepuram,RD,TN||KUNRATHUR, KANCHEEPURAM,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Kancheepuram,RD,TN",
-        "KUNRATHUR, KANCHEEPURAM,RD,TN"
-      ],
-      "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SEz4ssvDHiD3tSyYmc8bapg%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_709819_1",
-      "tender_reference": "2247 / 2026 / A2 / KNR 15 / Dated 29.09.2026",
-      "title": "Providing Cement Concrete Pavement to KK Nagar Cross Street at Moulivakkam Panchayat Under Panchayat Union General Funds Scheme of the Year 2026-27"
     },
     {
       "closing_at": "2026-10-15T15:00:00+05:30",
@@ -1159,7 +1035,7 @@
         "KUNRATHUR, KANCHEEPURAM,RD,TN"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SNwX4efO%2FRhaC2nomdWiC5w%3D%3D",
@@ -1181,7 +1057,7 @@
         "KUNRATHUR, KANCHEEPURAM,RD,TN"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXOLO9%2BIEhIdo6r61kuYZKw%3D%3D",
@@ -1203,7 +1079,7 @@
         "KUNRATHUR, KANCHEEPURAM,RD,TN"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SdYFmlNBZqctjsNkzyHihJA%3D%3D",
@@ -1225,7 +1101,7 @@
         "KUNRATHUR, KANCHEEPURAM,RD,TN"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2FlBAzbhJjlbW7ropHFml6Q%3D%3D",
@@ -1247,7 +1123,7 @@
         "KALAKADU - VP, TIRUNELVELI,RD,TN"
       ],
       "published_at": "2026-09-30T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sd6%2F04c49T005wvqyLZd2HQ%3D%3D",
@@ -1269,7 +1145,7 @@
         "Timiri Ranipet RD TN"
       ],
       "published_at": "2026-09-30T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S12ALlKEpvgd5cC3Mx7OHhQ%3D%3D",
@@ -1291,7 +1167,7 @@
         "MADUKKUR, THANJAVUR,RD,TN"
       ],
       "published_at": "2026-09-30T10:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SCc4nPcAcL59ihvRzFcnyxQ%3D%3D",
@@ -1313,7 +1189,7 @@
         "KOLATHUR, SALEM,RD,TN"
       ],
       "published_at": "2026-09-29T14:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S7hwwWSGowMd9Lnl6mAeLBA%3D%3D",
@@ -1335,7 +1211,7 @@
         "PAPPIREDDIPATTI, DHARMAPURI,RD,TN"
       ],
       "published_at": "2026-09-29T12:30:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQm%2B9%2B14VX3lj2kmdfx%2BVQw%3D%3D",
@@ -1357,7 +1233,7 @@
         "PAPPIREDDIPATTI, DHARMAPURI,RD,TN"
       ],
       "published_at": "2026-09-29T12:30:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SM24OG3Eb9sX7cLDx0sI5fw%3D%3D",
@@ -1378,7 +1254,7 @@
         "Ramnad,RD,TN"
       ],
       "published_at": "2026-09-26T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sc0B12fBP3RG9xdvPL6ii4Q%3D%3D",
@@ -1400,7 +1276,7 @@
         "Arcot - VP Ranipet RD TN"
       ],
       "published_at": "2026-09-26T14:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sql9XuUZVFNJ0d6jvVphnAQ%3D%3D",
@@ -1422,7 +1298,7 @@
         "P.N.PALAYAM - VP, COIMBATORE,RD,TN"
       ],
       "published_at": "2026-09-26T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SPMvycq1MPAZBd%2B%2BTXgNINQ%3D%3D",
@@ -1444,7 +1320,7 @@
         "P.N.PALAYAM - VP, COIMBATORE,RD,TN"
       ],
       "published_at": "2026-09-25T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=ScA3h9a3D55xKaqs%2BTr6tpA%3D%3D",
@@ -1466,7 +1342,7 @@
         "IDAPADDY, SALEM,RD,TN"
       ],
       "published_at": "2026-09-24T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SWtR4gahoSiOCNb1WA6KNmQ%3D%3D",
@@ -1488,7 +1364,7 @@
         "Tirupathur - VP Tirupathur RD TN"
       ],
       "published_at": "2026-09-24T14:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S1Mm8zwB66yWNolTPIZtVOA%3D%3D",
@@ -1496,72 +1372,6 @@
       "tender_id": "2026_RDTN_707620_1",
       "tender_reference": "B1/1585/2026",
       "title": "Tirupathur District Village Panchayat General Fund - 2026-2027 Providing Cement Concrete Pavement from Pomodi House to Radha House at Valasai in Nellivasalnadu Panchayat Package No.02"
-    },
-    {
-      "closing_at": "2026-10-08T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sp9rhKZSqohRxtJ9hyRJEgw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-08T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Villupuram,RD,TN||MARAKKANAM, VILLUPURAM,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Villupuram,RD,TN",
-        "MARAKKANAM, VILLUPURAM,RD,TN"
-      ],
-      "published_at": "2026-09-22T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sp9rhKZSqohRxtJ9hyRJEgw%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_706846_2",
-      "tender_reference": "Marakkanam/GF-Work-2026-27",
-      "title": "Construction Cement Road at Muthalamman Kovil Street in Alapakkam"
-    },
-    {
-      "closing_at": "2026-10-08T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvAhfikUUozuxtOQUFLxhJg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-08T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Villupuram,RD,TN||MARAKKANAM, VILLUPURAM,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Villupuram,RD,TN",
-        "MARAKKANAM, VILLUPURAM,RD,TN"
-      ],
-      "published_at": "2026-09-22T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvAhfikUUozuxtOQUFLxhJg%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_706846_1",
-      "tender_reference": "Marakkanam/GF-Work-2026-27",
-      "title": "Construction Cement Road at Gramani Street in Alapakkam"
-    },
-    {
-      "closing_at": "2026-10-08T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SO5a8p2m89f7ofVatzWFFAw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-08T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Villupuram,RD,TN||MARAKKANAM, VILLUPURAM,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Villupuram,RD,TN",
-        "MARAKKANAM, VILLUPURAM,RD,TN"
-      ],
-      "published_at": "2026-09-22T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SO5a8p2m89f7ofVatzWFFAw%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_706846_3",
-      "tender_reference": "Marakkanam/GF-Work-2026-27",
-      "title": "Construction WMM Road at Angalamman Kovil Street in Alapakkam Panchayat"
     },
     {
       "closing_at": "2026-10-08T15:00:00+05:30",
@@ -1576,7 +1386,7 @@
         "MARAKKANAM, VILLUPURAM,RD,TN"
       ],
       "published_at": "2026-09-22T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Ss33T9taNeXKVxsKjN33T1g%3D%3D",
@@ -1598,7 +1408,7 @@
         "MARAKKANAM, VILLUPURAM,RD,TN"
       ],
       "published_at": "2026-09-22T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SOxE63%2FNXANmhpEtF3440wg%3D%3D",
@@ -1620,7 +1430,7 @@
         "MARAKKANAM, VILLUPURAM,RD,TN"
       ],
       "published_at": "2026-09-22T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2FWcb2TI%2FaSfjWumsmXXVFw%3D%3D",
@@ -1642,7 +1452,7 @@
         "MARAKKANAM, VILLUPURAM,RD,TN"
       ],
       "published_at": "2026-09-22T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SP%2BngjnvdIxGs3uxrMFRBNg%3D%3D",
@@ -1664,7 +1474,7 @@
         "MARAKKANAM, VILLUPURAM,RD,TN"
       ],
       "published_at": "2026-09-22T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Skt9IKRmWtIZcEwC7G6p2xQ%3D%3D",
@@ -1686,7 +1496,7 @@
         "MARAKKANAM, VILLUPURAM,RD,TN"
       ],
       "published_at": "2026-09-22T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SHMu7BV0ZoWHFVs7fToOnYQ%3D%3D",
@@ -1696,202 +1506,70 @@
       "title": "Construction Cement Road at Ambedkar Nagar in Vanniper Panchayat"
     },
     {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SrNnyYBHctPvXXPJDUiHsIw%3D%3D",
+      "closing_at": "2026-10-08T15:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SO5a8p2m89f7ofVatzWFFAw%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Erode,RD,TN||GOBICHETTIPALAYAM, ERODE,RD,TN",
+      "opening_at": "2026-10-08T16:00:00+05:30",
+      "organisation_chain": "Rural Development and Panchayat Raj Department||Villupuram,RD,TN||MARAKKANAM, VILLUPURAM,RD,TN",
       "organisation_path": [
         "Rural Development and Panchayat Raj Department",
-        "Erode,RD,TN",
-        "GOBICHETTIPALAYAM, ERODE,RD,TN"
+        "Villupuram,RD,TN",
+        "MARAKKANAM, VILLUPURAM,RD,TN"
       ],
-      "published_at": "2026-09-22T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "published_at": "2026-09-22T18:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SrNnyYBHctPvXXPJDUiHsIw%3D%3D",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SO5a8p2m89f7ofVatzWFFAw%3D%3D",
       "state_code": "TN",
-      "tender_id": "2026_RDTN_706685_1",
-      "tender_reference": "Roc No 1850/2026/A2 Date18.09.2026",
-      "title": "Strengthening the Road from Bajanai Kovil Street Pirakasam House to Amman Nagar Anganwadi H/o Pariyur"
+      "tender_id": "2026_RDTN_706846_3",
+      "tender_reference": "Marakkanam/GF-Work-2026-27",
+      "title": "Construction WMM Road at Angalamman Kovil Street in Alapakkam Panchayat"
     },
     {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SS5gdGMLDLnDUsf0lX680Wg%3D%3D",
+      "closing_at": "2026-10-08T15:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sp9rhKZSqohRxtJ9hyRJEgw%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Erode,RD,TN||GOBICHETTIPALAYAM, ERODE,RD,TN",
+      "opening_at": "2026-10-08T16:00:00+05:30",
+      "organisation_chain": "Rural Development and Panchayat Raj Department||Villupuram,RD,TN||MARAKKANAM, VILLUPURAM,RD,TN",
       "organisation_path": [
         "Rural Development and Panchayat Raj Department",
-        "Erode,RD,TN",
-        "GOBICHETTIPALAYAM, ERODE,RD,TN"
+        "Villupuram,RD,TN",
+        "MARAKKANAM, VILLUPURAM,RD,TN"
       ],
-      "published_at": "2026-09-22T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "published_at": "2026-09-22T18:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SS5gdGMLDLnDUsf0lX680Wg%3D%3D",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sp9rhKZSqohRxtJ9hyRJEgw%3D%3D",
       "state_code": "TN",
-      "tender_id": "2026_RDTN_706684_1",
-      "tender_reference": "Roc No 1850/2026/A2 Date18.09.2026",
-      "title": "Strengthening the B.T. Road and Providing CC drainage at S.P. Nagar Tank Street (KM 0-0-0/133)"
+      "tender_id": "2026_RDTN_706846_2",
+      "tender_reference": "Marakkanam/GF-Work-2026-27",
+      "title": "Construction Cement Road at Muthalamman Kovil Street in Alapakkam"
     },
     {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SiYOpDHn6CFfpWALs4eL%2FSA%3D%3D",
+      "closing_at": "2026-10-08T15:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvAhfikUUozuxtOQUFLxhJg%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Coimbatore,RD,TN||SARKARSAMAKULAM, COIMBATORE,RD,TN",
+      "opening_at": "2026-10-08T16:00:00+05:30",
+      "organisation_chain": "Rural Development and Panchayat Raj Department||Villupuram,RD,TN||MARAKKANAM, VILLUPURAM,RD,TN",
       "organisation_path": [
         "Rural Development and Panchayat Raj Department",
-        "Coimbatore,RD,TN",
-        "SARKARSAMAKULAM, COIMBATORE,RD,TN"
+        "Villupuram,RD,TN",
+        "MARAKKANAM, VILLUPURAM,RD,TN"
       ],
-      "published_at": "2026-09-21T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "published_at": "2026-09-22T18:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SiYOpDHn6CFfpWALs4eL%2FSA%3D%3D",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvAhfikUUozuxtOQUFLxhJg%3D%3D",
       "state_code": "TN",
-      "tender_id": "2026_RDTN_706581_1",
-      "tender_reference": "20/2023",
-      "title": "Upgradation to the road from Keeranatham Kumari Nagar Main Road to RS Industries Cut Streets and Kumari Nagar Main Road to Antony House H/O Keeranatham Panchayat"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SJpqpOpHdS%2Fsv%2Bw1phMyhmw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Coimbatore,RD,TN||SARKARSAMAKULAM, COIMBATORE,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Coimbatore,RD,TN",
-        "SARKARSAMAKULAM, COIMBATORE,RD,TN"
-      ],
-      "published_at": "2026-09-21T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SJpqpOpHdS%2Fsv%2Bw1phMyhmw%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_706588_1",
-      "tender_reference": "20/2023",
-      "title": "Upgradation to the road from Keeranatham Lakshmipuram Extension Poongodi House to Kaliyaperumal House H/O Keeranatham Panchayat"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SBO91pb%2BsEUzeyHSSiRjLIQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Coimbatore,RD,TN||SARKARSAMAKULAM, COIMBATORE,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Coimbatore,RD,TN",
-        "SARKARSAMAKULAM, COIMBATORE,RD,TN"
-      ],
-      "published_at": "2026-09-21T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SBO91pb%2BsEUzeyHSSiRjLIQ%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_706573_1",
-      "tender_reference": "20/2023",
-      "title": "Upgradation to the road from Keeranatham Saravanampatti Main Road to Vishnu Nagar Cut Street H/O Keeranatham Panchayat"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SxRK%2Bmd2fXkgz%2FpZ45F7qqg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Coimbatore,RD,TN||SARKARSAMAKULAM, COIMBATORE,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Coimbatore,RD,TN",
-        "SARKARSAMAKULAM, COIMBATORE,RD,TN"
-      ],
-      "published_at": "2026-09-21T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SxRK%2Bmd2fXkgz%2FpZ45F7qqg%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_706566_1",
-      "tender_reference": "20/2023",
-      "title": "Upgradation to the road from Keeranatham Saravanampatti Main Road to Vishnu Nagar Main Street Mohan House H/O Keeranatham Panchayat"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SqMLv5PrqfyP3q7SVLc5A%2FA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Coimbatore,RD,TN||SARKARSAMAKULAM, COIMBATORE,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Coimbatore,RD,TN",
-        "SARKARSAMAKULAM, COIMBATORE,RD,TN"
-      ],
-      "published_at": "2026-09-21T17:30:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SqMLv5PrqfyP3q7SVLc5A%2FA%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_706564_1",
-      "tender_reference": "20/2023",
-      "title": "Upgradation to the road from Keeranatham Puela Avenue Main Road to Shree Senthur Shiira Apartment H/O Keeranatham Panchayat"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SSFDamT6xtaDXZh3oaKIeyw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Coimbatore,RD,TN||SARKARSAMAKULAM, COIMBATORE,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Coimbatore,RD,TN",
-        "SARKARSAMAKULAM, COIMBATORE,RD,TN"
-      ],
-      "published_at": "2026-09-21T17:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SSFDamT6xtaDXZh3oaKIeyw%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_706546_1",
-      "tender_reference": "20/2023",
-      "title": "Upgradation to the road from Keeranatham Krishnasamy Nagar Phase III 2nd cut streets H/O Keeranatham Panchayat"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXJ7SioaFXBM9iIPlV1QEIQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Coimbatore,RD,TN||SARKARSAMAKULAM, COIMBATORE,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Coimbatore,RD,TN",
-        "SARKARSAMAKULAM, COIMBATORE,RD,TN"
-      ],
-      "published_at": "2026-09-21T17:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXJ7SioaFXBM9iIPlV1QEIQ%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_706553_1",
-      "tender_reference": "20/2023",
-      "title": "Upgradation to the road from Keeranatham Puela Avenue to Sivas Nest H/O Keeranatham Panchayat"
+      "tender_id": "2026_RDTN_706846_1",
+      "tender_reference": "Marakkanam/GF-Work-2026-27",
+      "title": "Construction Cement Road at Gramani Street in Alapakkam"
     },
     {
       "closing_at": "2026-10-08T15:00:00+05:30",
@@ -1906,7 +1584,7 @@
         "MAILAM, VILLUPURAM,RD,TN"
       ],
       "published_at": "2026-09-21T17:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SCwT3bi0DOvY0YNWA5r4thw%3D%3D",
@@ -1928,7 +1606,7 @@
         "HOSUR, KRISHNAGIRI,RD,TN"
       ],
       "published_at": "2026-09-21T16:45:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SzkjuOpGl2KXx30ppmtFZPA%3D%3D",
@@ -1950,7 +1628,7 @@
         "HOSUR, KRISHNAGIRI,RD,TN"
       ],
       "published_at": "2026-09-21T16:30:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S4a6%2B2%2Bj7p5Ab9NT3BmsxHg%3D%3D",
@@ -1958,50 +1636,6 @@
       "tender_id": "2026_RDTN_706517_1",
       "tender_reference": "665_2026_A3_12_03_2026",
       "title": "Krishnagiri Dist Hosur Union Restoration Grand UGF Strengthening of Road from Hosur Muthali road Thattiganapalli HSR07"
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFQh8v6sNDa5%2BCdkEx8lfBg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-05T16:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Kanniyakumari,RD,TN||THOVALAI - VP, KANNIYAKUMARI,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Kanniyakumari,RD,TN",
-        "THOVALAI - VP, KANNIYAKUMARI,RD,TN"
-      ],
-      "published_at": "2026-09-18T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFQh8v6sNDa5%2BCdkEx8lfBg%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705784_1",
-      "tender_reference": "A8/4224/2025-2",
-      "title": "Providing Cement Concrete Pavement at Pudhunager in Thadikarankonam Village Panchayat"
-    },
-    {
-      "closing_at": "2026-10-09T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SigCx8OF8t2nPLQMhKgzwdA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-09T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Pudhukottai,RD,TN||THIRUMAYAM - VP, PUDUKKOTTAI,RD,TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Pudhukottai,RD,TN",
-        "THIRUMAYAM - VP, PUDUKKOTTAI,RD,TN"
-      ],
-      "published_at": "2026-09-18T10:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SigCx8OF8t2nPLQMhKgzwdA%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705154_1",
-      "tender_reference": "T3/594/2026/Tym/Work-1",
-      "title": "Improvement to the Pappavayal to MLA Office road in Thirumayam Panchayat"
     },
     {
       "closing_at": "2026-10-09T15:00:00+05:30",
@@ -2016,7 +1650,7 @@
         "THIRUMAYAM - VP, PUDUKKOTTAI,RD,TN"
       ],
       "published_at": "2026-09-18T10:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SOgAgs7q%2FqqIu6wfI%2Ft1V%2Bg%3D%3D",
@@ -2024,6 +1658,28 @@
       "tender_id": "2026_RDTN_705195_1",
       "tender_reference": "T3/143/2026/Lem/Work-1",
       "title": "Strengthening to the Lembalakkudi Ammankoil Backside road Km 0/0 - 0/320 in Lembalakkudi Panchayat"
+    },
+    {
+      "closing_at": "2026-10-09T15:00:00+05:30",
+      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SigCx8OF8t2nPLQMhKgzwdA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
+      "opening_at": "2026-10-09T17:00:00+05:30",
+      "organisation_chain": "Rural Development and Panchayat Raj Department||Pudhukottai,RD,TN||THIRUMAYAM - VP, PUDUKKOTTAI,RD,TN",
+      "organisation_path": [
+        "Rural Development and Panchayat Raj Department",
+        "Pudhukottai,RD,TN",
+        "THIRUMAYAM - VP, PUDUKKOTTAI,RD,TN"
+      ],
+      "published_at": "2026-09-18T10:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Tamil Nadu e-Procurement Portal",
+      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SigCx8OF8t2nPLQMhKgzwdA%3D%3D",
+      "state_code": "TN",
+      "tender_id": "2026_RDTN_705154_1",
+      "tender_reference": "T3/594/2026/Tym/Work-1",
+      "title": "Improvement to the Pappavayal to MLA Office road in Thirumayam Panchayat"
     },
     {
       "closing_at": "2026-10-09T15:00:00+05:30",
@@ -2038,7 +1694,7 @@
         "THIRUMAYAM - VP, PUDUKKOTTAI,RD,TN"
       ],
       "published_at": "2026-09-18T10:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SNMtJuaEH%2BSZQlf2laFEttQ%3D%3D",
@@ -2060,7 +1716,7 @@
         "THIRUMAYAM - VP, PUDUKKOTTAI,RD,TN"
       ],
       "published_at": "2026-09-18T10:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SPtvKr%2B0K5P6dj6%2F580qkQw%3D%3D",
@@ -2068,402 +1724,6 @@
       "tender_id": "2026_RDTN_705274_1",
       "tender_reference": "T3/509/2026/Tym/Work-8",
       "title": "Strengthening of Thirumayam Padithurai Thirunagar Road Km 0/0 - 0/260 in Thirumayam Panchayat"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S4pFbm2kDDi7Nh6OcMVOtAg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T16:30:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S4pFbm2kDDi7Nh6OcMVOtAg%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_21",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT SCHOOL STREET AND NEW GATE AT PUPS IN MADATHUPATTI VILLAGE AND PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SPcpJjkdZB6yAVaftWc11dw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SPcpJjkdZB6yAVaftWc11dw%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_20",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT ANAITHALAIVEERAR KOVIL STREET ARUMUGASAMY HOUSE TO VANAKANMUDI HOUSE IN MANGUDI VILLAGE AND PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S75R3HOLh8FZchJ%2BCrD9NCQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S75R3HOLh8FZchJ%2BCrD9NCQ%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_19",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT SCHOOL EAST SIDE STREET IN VEERIRUPU VILLAGE AND PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S7BPDcz%2BO1jOo2NPVia9lLQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S7BPDcz%2BO1jOo2NPVia9lLQ%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_18",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT CSI CHURCH STREET IN MANGUDI VILLAGE AND PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SugdBH%2FcRSq7PXEc0dI9RJA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SugdBH%2FcRSq7PXEc0dI9RJA%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_2",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT COLONY STREET IN KALAPPAKULAM VILLAGE AND PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SyRwty%2Fvu7Z8MIzYXyro7ag%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SyRwty%2Fvu7Z8MIzYXyro7ag%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_6",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT SENKULAM STREET IN VEERASIGAMANAI VILLAGE AND PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sgiy25UHAwchxAfY0DeJw1Q%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sgiy25UHAwchxAfY0DeJw1Q%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_9",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT WITH DRAINAGE IN PERUMALKOVIL BACKSIDE NORTH EAST STREET IN KARIVALAMVANTHANALLUR VILLAGE AND PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGWbjEr6vfr7ZyZfzl2M2Uw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGWbjEr6vfr7ZyZfzl2M2Uw%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_5",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT PONMADASAMY KOVIL NORTH STREET IN ARUNACHALAPURAM VILLAGE IN ARIYANAYAGIPURAM PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZKCoTJ08z9dL7qkJWQP%2Blw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZKCoTJ08z9dL7qkJWQP%2Blw%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_1",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT POTTALPATTI KOVIL EAST STREET IN SEVALPATTI VILLAGE IN KARIVALAMVANTHANALLUR VILLAGE PANCJAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sjmg599N%2BO2qDDOHbaJkMUw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sjmg599N%2BO2qDDOHbaJkMUw%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_11",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT FIFTH WARD IN SOUTH STREET IN KARIVALAMVANTHANALLUR VILLAGE AND PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SyFoJsWyvUC%2FuX9U05pXJQQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SyFoJsWyvUC%2FuX9U05pXJQQ%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_10",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT SOUTH STREET IN ETTICHERI VILLAGE IN PARUVAKUDI PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SiB1WeDS%2FbJZHHJVm0LGMPA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SiB1WeDS%2FbJZHHJVm0LGMPA%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_7",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT MIDDLE STREET IN PANDAPULI VILLAGE AND PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SD9U3Lo2RitL875RJG2xrNg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SD9U3Lo2RitL875RJG2xrNg%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_13",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT NADAR STREET IN PANAIYOOR VILLAGE AND PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=So1KfP%2F%2F1%2FAGsJCbSMygIxw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=So1KfP%2F%2F1%2FAGsJCbSMygIxw%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_8",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT SOUTH STREET IN NOCHIKULAM VILLAGE AND PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SiFOn%2F8KWeXIhDLNMggwopA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SiFOn%2F8KWeXIhDLNMggwopA%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_12",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT KOPILIYAN KOOTAN STREET IN SENTHATTI VILLAGE IN T SANKARANKOVIL PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S4p6ikwiduVluFSvuZzYWLA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S4p6ikwiduVluFSvuZzYWLA%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_14",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT SOUTH STREET IN KALYANI HOUSE TO ARUMUGAM HOUSE IN PERUMPATHUR VILLAGE AND PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SAnkUoWtN8NO%2Fg%2BCnMnNWDw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SAnkUoWtN8NO%2Fg%2BCnMnNWDw%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_16",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT AT COLONY STREET IN SENTHATTI VILLAGE IN T SANKARANKOVIL PANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SYEkNQA%2BbAnZPsFGE1J9Kvw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
-      "opening_at": "2026-10-06T17:00:00+05:30",
-      "organisation_chain": "Rural Development and Panchayat Raj Department||Tenkasi RD TN||Sankarankoil Tenkasi RD TN",
-      "organisation_path": [
-        "Rural Development and Panchayat Raj Department",
-        "Tenkasi RD TN",
-        "Sankarankoil Tenkasi RD TN"
-      ],
-      "published_at": "2026-09-17T15:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Tamil Nadu e-Procurement Portal",
-      "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SYEkNQA%2BbAnZPsFGE1J9Kvw%3D%3D",
-      "state_code": "TN",
-      "tender_id": "2026_RDTN_705364_15",
-      "tender_reference": "BDOSKL/288/2026-a2",
-      "title": "PROVIDING CEMENT CONCRETE PAVEMENT WITH DRAINAGE IN OHT NORTH SIDE IN PULIYAMPATTI VILLAGE IN KALAPPAKULAM PANCHAYAT"
     },
     {
       "closing_at": "2026-10-08T15:00:00+05:30",
@@ -2478,7 +1738,7 @@
         "PALAYAMKOTTAI, TIRUNELVELI,RD,TN"
       ],
       "published_at": "2026-09-16T18:50:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S0x1cC%2Bpvnx4RUwE6gYiK%2Fw%3D%3D",
@@ -2500,7 +1760,7 @@
         "MANACHANALLUR - VP, THIRUCHIRAPALLI,RD,TN"
       ],
       "published_at": "2026-09-16T17:20:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SfGT3pcsaULy9KuZLLfuG9A%3D%3D",
@@ -2521,7 +1781,7 @@
         "Vellore,RD,TN"
       ],
       "published_at": "2026-09-16T10:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGJxzrbzmQL8nosk9nLEWtA%3D%3D",
@@ -2544,7 +1804,7 @@
         "SE-Civil Maintenance-NCTPS-II - TANGEDCO"
       ],
       "published_at": "2026-09-28T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Tamil Nadu e-Procurement Portal",
       "source_url": "https://tntenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SAp2lKKmrNn1iW2xESvMezw%3D%3D",
@@ -2559,16 +1819,15 @@
     "Chennai Unified Metropolitan Transport Authority",
     "CMWSS Board",
     "Commissionerate of Agriculture",
-    "Commissionerate of Handlooms",
     "Corporation of Chennai",
     "Department of Employment and Training (Training Wing)",
     "Department of Horticulture and Plantation Crops",
+    "Department of Information Technology",
     "Department of Sugar",
     "Director of Medical and Rural Health Services",
     "Directorate of Backward Classes Welfare",
     "Directorate of Medical Education",
     "Directorate Of Medical Education and Research(DMER)",
-    "Directorate Of Municipal Administration",
     "Directorate of Seed certification and Organic Certification",
     "Directorate of Stationery and Printing",
     "Directorate of Technical Education",
@@ -2579,7 +1838,6 @@
     "Higher Education",
     "Highways",
     "Hindu Religious and Charitable Endowments",
-    "Inspector General of Registration",
     "MAWS",
     "Metropolitan Transport Corporation(Chennai) Ltd.",
     "National Health Mission TamilNadu",
@@ -2590,18 +1848,15 @@
     "Registrar of Cooperative Societies",
     "Registrar of Housing Cooperative Societies",
     "Rural Development and Panchayat Raj Department",
-    "Social Welfare and Women Empowerment Department",
     "State Express Transport Corporation Tamilnadu Limited",
     "State Industries Promotion Corporation Of TamilNadu",
     "Tamil Nadu Civil Supplies Corporation",
-    "Tamil Nadu Coastal Restoration Mission",
     "Tamil Nadu Fisheries Development Corporation Ltd",
     "Tamil Nadu Housing Board",
     "Tamil Nadu Industrial Development Corporation Ltd",
     "Tamil Nadu Livestock Development Agency (TNLDA)",
     "Tamil Nadu Minerals Limited",
     "Tamil Nadu Police Housing Corporation",
-    "Tamil Nadu Pollution Control Board",
     "Tamil Nadu Salt Corporation Ltd",
     "Tamil Nadu State Health Transport Department",
     "Tamil Nadu State Marketing Corporation Ltd (TASMAC)",
@@ -2612,11 +1867,10 @@
     "Tamilnadu Forest Department",
     "Tamilnadu Medical Services Corporation",
     "Tamilnadu Newsprint and Papers Limited",
-    "Tamilnadu State Agricultural Marketing Board Chennai",
+    "TamilNadu Science And Technology Centre",
     "Tamilnadu State Transport Corporation",
     "Tamilnadu Tea Plantation Corporation Limited",
     "Tamilnadu Warehousing Corporation",
-    "TAMPCOL",
     "THE INDCOSERVE",
     "The Institute of Road Transport",
     "Ticel Bio Park Ltd",
@@ -2625,9 +1879,9 @@
     "TWAD",
     "Water Resources Department"
   ],
-  "retrieved_at": "2026-10-05T05:42:16Z",
-  "rows_excluded_by_scope": 5675,
-  "rows_scanned": 5792,
+  "retrieved_at": "2026-10-07T04:59:04Z",
+  "rows_excluded_by_scope": 5367,
+  "rows_scanned": 5450,
   "schema_version": 1,
   "source_id": "in-tn-gepnic",
   "source_name": "Tamil Nadu e-Procurement Portal",

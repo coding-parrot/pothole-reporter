@@ -13,7 +13,7 @@
         "Delhi Transco Limited"
       ],
       "published_at": "2026-09-23T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=StC5tKnv2FPQCXcM6bXcTSA%3D%3D",
@@ -36,7 +36,7 @@
         "Civil Division-V"
       ],
       "published_at": "2026-10-02T13:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXWajXs4EtnGh44oFqZfa6g%3D%3D",
@@ -44,29 +44,6 @@
       "tender_id": "2026_IFC_299374_1",
       "tender_reference": "NIT-46/2026-27/EECD-V/IFCD",
       "title": "Improvement of Road from M.B. Road to G-Block in sangam vihar constituency AC 49"
-    },
-    {
-      "closing_at": "2026-10-09T15:00:00+05:30",
-      "detail_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SwdaR8HPMjXixJUXEPjvZhQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SHXzAeTkot7P4JDf%2FRD8GIA%3D%3D",
-      "opening_at": "2026-10-09T15:05:00+05:30",
-      "organisation_chain": "Irrigation and Flood Control||ZONE-I||Flood Circle-IV||Civil Division-XIX",
-      "organisation_path": [
-        "Irrigation and Flood Control",
-        "ZONE-I",
-        "Flood Circle-IV",
-        "Civil Division-XIX"
-      ],
-      "published_at": "2026-10-01T16:20:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "National Capital Territory of Delhi e-Procurement Portal",
-      "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SwdaR8HPMjXixJUXEPjvZhQ%3D%3D",
-      "state_code": "DL",
-      "tender_id": "2026_IFC_299332_1",
-      "tender_reference": "EE/CD-I/DB/2023-24/62",
-      "title": "Construction of agriculture road bearing Rasta No. 111 at village Ghummanhera in Matiala Assembly Constituency-34."
     },
     {
       "closing_at": "2026-10-09T15:00:00+05:30",
@@ -82,7 +59,7 @@
         "Civil Division-XIX"
       ],
       "published_at": "2026-10-01T16:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SquTDzJbFLxDVo7yMFvizOA%3D%3D",
@@ -105,7 +82,7 @@
         "Civil Division-XVIII"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2F9Wa%2Bi24lHIOLAzlgeALAw%3D%3D",
@@ -128,7 +105,7 @@
         "Civil Division-XVIII"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sd2y5QKk88UY9lvnUN1KMHA%3D%3D",
@@ -151,7 +128,7 @@
         "Civil Division-XVIII"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SA9u1dsAGipCjmj99TBxC6Q%3D%3D",
@@ -159,6 +136,72 @@
       "tender_id": "2026_IFC_299260_1",
       "tender_reference": "EECDXVIII/AB/2026-27/NIT/36 (2nd Call)",
       "title": "Improvement of C.C roads and side drains at HARIJAN BASTIE (D1 and E Block), Part-5 (Regn. No. 1568) in Rohtash Nagar Constituency (AC-64) including maintenance for 5 years for the year 2026-27"
+    },
+    {
+      "closing_at": "2026-10-13T15:00:00+05:30",
+      "detail_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STAsrcaUnrOi2fdiwdmLbLg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SlSWDFjp48I0HvjstGkSyOA%3D%3D",
+      "opening_at": "2026-10-13T15:30:00+05:30",
+      "organisation_chain": "Public Works Department||CE/SE/M4-M44||EE/M442",
+      "organisation_path": [
+        "Public Works Department",
+        "CE/SE/M4-M44",
+        "EE/M442"
+      ],
+      "published_at": "2026-10-06T14:50:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "National Capital Territory of Delhi e-Procurement Portal",
+      "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STAsrcaUnrOi2fdiwdmLbLg%3D%3D",
+      "state_code": "DL",
+      "tender_id": "2026_PWD_298622_2",
+      "tender_reference": "70/EE/SER-II/PWD/2026-27",
+      "title": "Comprehensive maintenance of various roads under SER-2/21 during 2026-27 (SH- Interconnection of drain near C-Lal wine shop (MCD Dumping Ground) to mitigate water stagnation on SA Road under jurisdiction of Sub Division SER-2/21)."
+    },
+    {
+      "closing_at": "2026-10-13T15:00:00+05:30",
+      "detail_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SfWvPSUhMhlgZwVYTGQfbmg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SlSWDFjp48I0HvjstGkSyOA%3D%3D",
+      "opening_at": "2026-10-13T15:30:00+05:30",
+      "organisation_chain": "Public Works Department||CE/SE/M1-M11||EE/M112(N)",
+      "organisation_path": [
+        "Public Works Department",
+        "CE/SE/M1-M11",
+        "EE/M112(N)"
+      ],
+      "published_at": "2026-10-06T09:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "National Capital Territory of Delhi e-Procurement Portal",
+      "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SfWvPSUhMhlgZwVYTGQfbmg%3D%3D",
+      "state_code": "DL",
+      "tender_id": "2026_PWD_299489_1",
+      "tender_reference": "26/EE/PWD M-112N/2026-27 (Revised)",
+      "title": "A/R and M/O to various roads under Division WR-2 during 2026-27. (SH Patch repair of various roads under all Sub-Division under Division WR-2)."
+    },
+    {
+      "closing_at": "2026-10-12T15:00:00+05:30",
+      "detail_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFNIY4NOQgajugl9dUcd6qQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SlSWDFjp48I0HvjstGkSyOA%3D%3D",
+      "opening_at": "2026-10-12T15:30:00+05:30",
+      "organisation_chain": "Public Works Department||CE/SE/M4-M44||EE/M442",
+      "organisation_path": [
+        "Public Works Department",
+        "CE/SE/M4-M44",
+        "EE/M442"
+      ],
+      "published_at": "2026-10-05T18:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "National Capital Territory of Delhi e-Procurement Portal",
+      "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFNIY4NOQgajugl9dUcd6qQ%3D%3D",
+      "state_code": "DL",
+      "tender_id": "2026_PWD_299458_1",
+      "tender_reference": "77/EE/SER-II/PWD/2026-27",
+      "title": "Comprehensive repair and maintenance of various roads under PWD Division South East Road-2 during 2026-27 (SH-Providing service of maintenance vans for day to day repair work in Sub Division SER-21 and SER-22)."
     },
     {
       "closing_at": "2026-10-08T18:10:00+05:30",
@@ -173,7 +216,7 @@
         "EE/M241"
       ],
       "published_at": "2026-10-03T18:05:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SydsLEtuGd%2FitMGfLnGs3Fg%3D%3D",
@@ -195,7 +238,7 @@
         "EE/M241"
       ],
       "published_at": "2026-10-03T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S9m0LjutNO2x%2BvkwACcOM4w%3D%3D",
@@ -217,7 +260,7 @@
         "EE/M413"
       ],
       "published_at": "2026-10-03T14:40:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S38LzK8%2BfeYk4mFIr5dVSkg%3D%3D",
@@ -225,28 +268,6 @@
       "tender_id": "2026_PWD_299333_1",
       "tender_reference": "36/SE/C and ND/PWD/2026-27",
       "title": "Strengthening of Sangam Vihar Road (Jagatpur Road) from CH 0.00 to CH 1231 under Sub Division-01, Division C and ND-R New Delhi. (Balance Work)"
-    },
-    {
-      "closing_at": "2026-10-09T15:00:00+05:30",
-      "detail_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SIPNVWTWvB0tdctfbLZcLsA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SlSWDFjp48I0HvjstGkSyOA%3D%3D",
-      "opening_at": "2026-10-09T15:30:00+05:30",
-      "organisation_chain": "Public Works Department||CE/SE/M1-M11||EE/M112(N)",
-      "organisation_path": [
-        "Public Works Department",
-        "CE/SE/M1-M11",
-        "EE/M112(N)"
-      ],
-      "published_at": "2026-10-02T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "National Capital Territory of Delhi e-Procurement Portal",
-      "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SIPNVWTWvB0tdctfbLZcLsA%3D%3D",
-      "state_code": "DL",
-      "tender_id": "2026_PWD_299371_1",
-      "tender_reference": "26/EE/PWD M-112N/2026-27",
-      "title": "A/R and M/O to various roads under Division WR-2 during 2026-27. (SH Patch repair of various roads under all Sub-Division under Division WR-2)"
     },
     {
       "closing_at": "2026-10-08T15:00:00+05:30",
@@ -261,7 +282,7 @@
         "EE/M233"
       ],
       "published_at": "2026-10-01T13:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SKvbDuogv1lITCT9djDkOwQ%3D%3D",
@@ -283,7 +304,7 @@
         "EE/M442"
       ],
       "published_at": "2026-10-01T12:45:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sdcpzf%2BrrNlz3WJz3%2Bsfyrg%3D%3D",
@@ -305,7 +326,7 @@
         "EE/M442"
       ],
       "published_at": "2026-10-01T12:35:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SP%2BUdcIL0Ua5Hy35JvyPD3A%3D%3D",
@@ -327,7 +348,7 @@
         "EE/M111"
       ],
       "published_at": "2026-09-30T18:40:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDmj3ZcUV4%2Bg5Nwt%2Bt7Maiw%3D%3D",
@@ -349,7 +370,7 @@
         "EE/M313"
       ],
       "published_at": "2026-09-30T17:35:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnNcGqv8gVdlaK5qjh7E4ZA%3D%3D",
@@ -371,7 +392,7 @@
         "EE/M413"
       ],
       "published_at": "2026-09-30T16:40:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SbQ1xHU1xn5SK3KpYPdsjLA%3D%3D",
@@ -393,7 +414,7 @@
         "EE/M442"
       ],
       "published_at": "2026-09-30T14:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQTs%2BT5P1WEnSgFLgmZgfIw%3D%3D",
@@ -415,7 +436,7 @@
         "EE/M112(N)"
       ],
       "published_at": "2026-09-26T16:30:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "National Capital Territory of Delhi e-Procurement Portal",
       "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S4IAMATJja7CqwAy9sAg%2FxQ%3D%3D",
@@ -423,50 +444,6 @@
       "tender_id": "2026_PWD_299062_1",
       "tender_reference": "32/SE/WMC/PWD/2026-27 (24/EE/PWD/M-112N/WR-2/26-27)",
       "title": "Strengthening/Reconstruction and raising of the road stretch in-front of Ghevra Village under PWD, Maintenance Division West Road-2/Sub Division WR-22, New Delhi during 2026-27"
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SlxgWBR727mQF5a%2FLRFp80A%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SlSWDFjp48I0HvjstGkSyOA%3D%3D",
-      "opening_at": "2026-10-06T15:30:00+05:30",
-      "organisation_chain": "Public Works Department||CE/SE/M3-M31||EE/M312",
-      "organisation_path": [
-        "Public Works Department",
-        "CE/SE/M3-M31",
-        "EE/M312"
-      ],
-      "published_at": "2026-09-26T13:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "National Capital Territory of Delhi e-Procurement Portal",
-      "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SlxgWBR727mQF5a%2FLRFp80A%3D%3D",
-      "state_code": "DL",
-      "tender_id": "2026_PWD_299036_1",
-      "tender_reference": "32/EE/NWR-2/PWD/2026-27",
-      "title": "Widening of existing bituminous roads in Sector 7 and 8, Rohini to make end to end pavement under PWD Division NWR-2, Sub Division NWR-25 during 2026-27)."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGelLwGhXVDKLuX1AX0Widg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SlSWDFjp48I0HvjstGkSyOA%3D%3D",
-      "opening_at": "2026-10-05T15:30:00+05:30",
-      "organisation_chain": "Public Works Department||CE/SE/M3-M31||EE/M312",
-      "organisation_path": [
-        "Public Works Department",
-        "CE/SE/M3-M31",
-        "EE/M312"
-      ],
-      "published_at": "2026-09-24T18:50:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "National Capital Territory of Delhi e-Procurement Portal",
-      "source_url": "https://govtprocurement.delhi.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGelLwGhXVDKLuX1AX0Widg%3D%3D",
-      "state_code": "DL",
-      "tender_id": "2026_PWD_298944_1",
-      "tender_reference": "31/EE/NWR-2/PWD/2026-27",
-      "title": "Widening of various existing roads in Sector-16 and 17, Rohini under Sub Division NWR-22, Division NWR-2, during 2026-27."
     }
   ],
   "organisations": [
@@ -488,9 +465,9 @@
     "NSIT",
     "Public Works Department"
   ],
-  "retrieved_at": "2026-10-05T05:42:16Z",
-  "rows_excluded_by_scope": 681,
-  "rows_scanned": 702,
+  "retrieved_at": "2026-10-07T04:59:04Z",
+  "rows_excluded_by_scope": 596,
+  "rows_scanned": 616,
   "schema_version": 1,
   "source_id": "in-dl-gepnic",
   "source_name": "National Capital Territory of Delhi e-Procurement Portal",
