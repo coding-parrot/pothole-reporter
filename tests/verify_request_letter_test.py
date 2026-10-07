@@ -261,8 +261,15 @@ async (oldBody) => {
   await sendReport(row);
   const first = window.__composerCalls.slice(-1)[0] || null;
   await sendReport(row);
-  return { saved: saved.map((call) => call.emailBody), first,
-           second: window.__composerCalls.slice(-1)[0] || null };
+  const second = window.__composerCalls.slice(-1)[0] || null;
+  // The person confirmed this one as sent. Room has no field for that; the app keeps it.
+  const sentRow = { ...row, id: "native_78", _nativeId: 78, email_body: oldBody };
+  delete sentRow._preparedComplaint;
+  setNativeEmailState(sentRow, { opened_at: 1791344800, sent_at: 1791344900 });
+  openDetail(sentRow, [sentRow]);
+  await sendReport(sentRow);
+  return { saved: saved.map((call) => call.emailBody), first, second,
+           sent: window.__composerCalls.slice(-1)[0] || null };
 }
 """
 SEND = ("(id) => StandaloneAPI.handle(`/api/reports/${id}/send`, { method: 'POST' })"
@@ -455,6 +462,15 @@ with sync_playwright() as playwright:
               "an edited draft was rewritten in storage")
         check(page.evaluate(ROW, ids["sent"])["body"] == OLD_BODY,
               "a sent complaint was rewritten in storage")
+        # Opening a sent complaint again sends what was sent. The route marks it unsent as
+        # it opens the composer, and that must not make its text fair game on the same tap.
+        reopened = page.evaluate(SEND, ids["sent"])
+        composed = page.evaluate("() => window.__composerCalls.slice(-1)[0] || null")
+        check(reopened.get("ok") and composed and composed["body"] == OLD_BODY,
+              f"reopening a sent complaint rewrote its letter: {reopened} "
+              f"{(composed or {}).get('body', '')[:80]!r}")
+        check(page.evaluate(ROW, ids["sent"])["body"] == OLD_BODY,
+              "reopening a sent complaint rewrote it in storage")
         civic = page.evaluate("(id) => StandaloneAPI.handle(`/api/reports/${id}`)", ids["civic"])
         check("accumulated or uncollected garbage" in civic["email_body"]
               and civic["email_body"].endswith("civic jurisdiction, and complaint category."),
@@ -472,6 +488,9 @@ with sync_playwright() as playwright:
               "the rewritten Drive Mode letter was not handed back to Room")
         check((native["second"] or {}).get("body") == plain_expected,
               "a second Email tap on the Drive Mode report sent a different letter")
+        check((native["sent"] or {}).get("body") == OLD_BODY,
+              "reopening a Drive Mode complaint the person marked sent rewrote its letter: "
+              f"{(native['sent'] or {}).get('body', '')[:80]!r}")
 
         fails += fh.error_failures(errors, "verify request letter")
     finally:

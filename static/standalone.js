@@ -10002,7 +10002,7 @@
       ward_tenders: wardTenders, ward_name: wardName };
   }
 
-  async function openEmailDraft(rec) {
+  async function openEmailDraft(rec, options = {}) {
     // Always the routed officer. The app never sends; the user does, in their email app.
     // No fallback recipient: an unrouted report must not borrow Bengaluru's address.
     if (!centralReportIsConfirmed(rec)) {
@@ -10015,7 +10015,7 @@
     }
     // The saved text is what the composer receives, so an untouched draft from an older
     // template is brought up to date here, exactly as mutateReportAtomically does.
-    const migrated = migrateLegacyComplaintRecord(rec);
+    const migrated = options.keepLetter ? rec : migrateLegacyComplaintRecord(rec);
     if (migrated !== rec) {
       for (const field of ["email_body", "whatsapp_text", "portal_fields",
         "portal_copy_text", "complaint_template_version"]) {
@@ -10647,9 +10647,11 @@
         throw new Error("The shared map has not confirmed this report yet, so the email cannot be opened.");
       }
       // "queued" stays reopenable: canceling the email composer must not strand the report.
-      if (rec.status === "sent") rec.status = "queued";
+      // A complaint the person marked sent goes out again exactly as it was sent.
+      const sentBefore = rec.status === "sent";
+      if (sentBefore) rec.status = "queued";
       if (rec.status !== "draft" && rec.status !== "queued") throw new Error("This report is not a sendable draft.");
-      return openEmailDraft(rec);
+      return openEmailDraft(rec, { keepLetter: sentBefore });
     }
     if ((m = path.match(/^\/api\/reports\/(\d+)$/))) {
       const rec = await getReport(m[1]);
