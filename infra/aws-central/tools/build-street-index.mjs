@@ -1465,10 +1465,6 @@ async function prepare(regions) {
   if (!fs.existsSync(source)) throw new Error(`${source} is missing: run "fetch" first`);
   const streetSource = path.join(WORK, "india-streets-src.osm.pbf");
   const postcodeSource = path.join(WORK, "india-postcode-src.osm.pbf");
-  if (!fs.existsSync(streetSource)) {
-    run("osmium", ["tags-filter", source, "w/highway", "nwr/place", "wr/boundary=administrative,postal_code",
-      "wr/landuse=residential,commercial,industrial,retail,farm,farmyard,allotments", "-o", streetSource]);
-  }
   if (!fs.existsSync(postcodeSource)) {
     run("osmium", ["tags-filter", source, "nwr/addr:postcode", "nwr/postal_code", "nwr/postcode", "-o", postcodeSource]);
   }
@@ -1476,7 +1472,13 @@ async function prepare(regions) {
   // for every cut, which was several gigabytes for ten cuts at once. With the nodes
   // renumbered 1..N (way and relation ids are kept) the same cut needs a few megabytes.
   const denseSource = path.join(WORK, "india-streets-dense.osm.pbf");
-  if (!fs.existsSync(denseSource)) run("osmium", ["renumber", "-t", "node", streetSource, "-o", denseSource]);
+  if (!fs.existsSync(denseSource)) {
+    run("osmium", ["tags-filter", source, "w/highway", "nwr/place", "wr/boundary=administrative,postal_code",
+      "wr/landuse=residential,commercial,industrial,retail,farm,farmyard,allotments", "-o", streetSource, "--overwrite"]);
+    run("osmium", ["renumber", "-t", "node", streetSource, "-o", denseSource]);
+    // The renumbered copy is the one every later step reads.
+    fs.rmSync(streetSource);
+  }
   const exportConfig = path.join(WORK, "export-config.json");
   fs.writeFileSync(exportConfig, JSON.stringify({
     attributes: { type: true, id: true }, linear_tags: ["highway"], area_tags: ["place", "boundary", "landuse"],
