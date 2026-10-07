@@ -56,7 +56,7 @@ Do not classify an intact footpath, kerb, drain, manhole, speed breaker, shadow,
       },
       description: {
         type: "string",
-        description: "At most eight words naming the defect and where it is, or the decisive non-damage cue.",
+        description: "At most eight words naming the defect and where it is, or the decisive non-damage cue. Example: Open cavity at the left road edge.",
       },
     },
   }),

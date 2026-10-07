@@ -1,5 +1,5 @@
 {
-  "sourceHash": "1ef23853e0d46d0163bb72c38bbacb6d974f88b0e772ec83680cc3fb51317da6",
+  "sourceHash": "5459368fce8377858225bba9961a9e146884189e8a48a3cd83c25665f57f2061",
   "contractVersion": 2,
   "prompts": {
     "detection": {
@@ -76,7 +76,7 @@
           },
           "description": {
             "type": "string",
-            "description": "At most eight words naming the defect and where it is, or the decisive non-damage cue."
+            "description": "At most eight words naming the defect and where it is, or the decisive non-damage cue. Example: Open cavity at the left road edge."
           }
         }
       }
