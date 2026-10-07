@@ -633,7 +633,9 @@ export function createDynamoRepository({
       }));
     },
 
-    async impact({ from, to }) {
+    // `excludeInstall` is the health canary's install: days it was counted on before the
+    // service knew it must not make it an active installation now.
+    async impact({ from, to, excludeInstall = null }) {
       // A day holds a row per install, route and outcome, which passes 1 MB well before
       // it passes anything else, so every day is read to its last page.
       const rows = await Promise.all(dates(from, to).map((date) => queryPages({
@@ -648,7 +650,9 @@ export function createDynamoRepository({
       const active = new Set();
       const summary = { new_potholes: 0, observations: 0, server_verified_shared: 0, client_attested: 0 };
       for (const item of items) {
-        if (item.metric.startsWith("active#")) active.add(item.metric.slice(7));
+        if (item.metric.startsWith("active#")) {
+          if (item.metric.slice(7) !== excludeInstall) active.add(item.metric.slice(7));
+        }
         else if (item.metric.startsWith("request#")) {
           const [, route, outcome, visionMode] = item.metric.split("#");
           const key = `${route}#${outcome}#${visionMode}`;
