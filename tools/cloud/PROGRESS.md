@@ -27,3 +27,15 @@
   pothole-reporter-ci (MEDIUM, standard:7.0, no webhook) created. Seed photo uploaded to
   ci/fixtures/eval/images/seed/IMG20260720144404.jpg (needed by gis_failure_test.py and
   routing_test.py only). ci.sh/ci.py/cb.py written. Next: push branch, run ci.sh.
+- CI build 1 started on feat/cloud-testing c2d52e6: pothole-reporter-ci:0dccbac8-1b67-47be-bd6a-f2246ef2973d (poll: tools/cloud/ci.sh --status <id>, then --collect <id>)
+- Full phone run 2 result (7.86 device minutes): Galaxy A15 and Redmi Note 13 PASS;
+  Pixel 8a (Android 17) and Galaxy A13 5G (Android 11) FAIL on "Camera paused" in both
+  drives. Pattern: whenever the first GPS fix takes longer than about 8 s the HUD says
+  Camera paused and the app reopens the camera (Pixel: 5 opens in 45 s) although the OS
+  shows the camera streaming to the app throughout. Desktop Chromium does not reproduce
+  (probe with silent GPS for 18 s). Root cause needs page state: the test now records
+  video/track/watchdog fields when a debuggable build exposes a WebView context.
+- CI build 1 result: harness 238/247, the 8 known failures plus one new: central service
+  unit tests (3 of 712 fail in health-cli.test.mjs: gzip size 408 on x86-64 Node 22 vs
+  410 pinned from the Mac). Fixed in the test (size blanked). 9 billed minutes MEDIUM.
+- eval/prompt_eval.mjs written and self-tested; buildspec-eval.yml and launcher still to do.

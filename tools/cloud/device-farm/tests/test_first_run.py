@@ -215,6 +215,64 @@ def remember_pid():
     return current
 
 
+# ---------- the page itself, when the build allows it ----------
+# A debuggable build (never the release) exposes its WebView to chromedriver. The test
+# does not need it, but when it is there each drive sample also records what the page
+# sees: the video element, the camera track and the drive's own watchdog fields. That is
+# the evidence a release build cannot give.
+
+DRIVE_PROBE = """
+const v = document.getElementById('driveVideo');
+const tr = v && v.srcObject && v.srcObject.getVideoTracks()[0];
+const d = (typeof drive !== 'undefined' && drive) ? drive : null;
+return {
+  now: Date.now(), hud: (document.getElementById('driveStatus') || {}).textContent,
+  video: v ? {currentTime: v.currentTime, readyState: v.readyState, paused: v.paused,
+              width: v.videoWidth, ended: v.ended} : null,
+  track: tr ? {muted: tr.muted, readyState: tr.readyState, enabled: tr.enabled} : null,
+  hidden: document.hidden,
+  drive: d ? {hasPos: !!d.pos, posAgeMs: d.posAt ? Date.now() - d.posAt : null,
+              sinceProgressMs: d.videoProgressAt ? Date.now() - d.videoProgressAt : null,
+              badForMs: d.cameraBadAt ? Date.now() - d.cameraBadAt : 0,
+              camBad: d.camBad || 0, capBad: d.capBad || 0, recovering: !!d.cameraRecovering,
+              captured: d.tally && d.tally.captured, checked: d.tally && d.tally.checked} : null,
+};
+"""
+
+
+def find_webview():
+    try:
+        contexts = call("GET", session("/contexts"), timeout=60) or []
+    except Exception as error:
+        note("could not list contexts: %s" % str(error)[:160])
+        return None
+    names = [name if isinstance(name, str) else name.get("id", "") for name in contexts]
+    result["contexts"] = names
+    for name in names:
+        if name.startswith("WEBVIEW") and PACKAGE in name:
+            return name
+    return None
+
+
+def page_eval(script):
+    """Run script in the page when the build is debuggable; None otherwise."""
+    name = state.get("webview")
+    if not name:
+        return None
+    try:
+        call("POST", session("/context"), {"name": name}, timeout=90)
+        return call("POST", session("/execute/sync"), {"script": script, "args": []}, timeout=30)
+    except Exception as error:
+        note("the WebView context stopped answering: %s" % str(error)[:200])
+        state["webview"] = None
+        return None
+    finally:
+        try:
+            call("POST", session("/context"), {"name": "NATIVE_APP"}, timeout=60)
+        except Exception:
+            pass
+
+
 # ---------- things that get in front of the app ----------
 
 def grant_button(xml):
@@ -350,6 +408,9 @@ def launch():
         # The live camera preview never lets the UI go idle; do not wait for it.
         "appium:settings[waitForIdleTimeout]": 0,
     }
+    drivers = os.environ.get("DEVICEFARM_CHROMEDRIVER_EXECUTABLE_DIR", "")
+    if drivers and os.path.isdir(drivers):
+        capabilities["appium:chromedriverExecutableDir"] = drivers
     value = call("POST", "/session",
                  {"capabilities": {"alwaysMatch": capabilities, "firstMatch": [{}]}},
                  timeout=300)
@@ -383,6 +444,13 @@ def launch():
 def home():
     _, nodes, xml = wait_for("Home (Drive and Photo buttons)", is_home, 45)
     capture("home", xml)
+    state["webview"] = find_webview()
+    if state["webview"]:
+        agent = page_eval("return navigator.userAgent")
+        result["webview_context"] = state["webview"] if agent else None
+        print("  debuggable build: WebView context %s, %s" % (state["webview"], agent), flush=True)
+    else:
+        result["webview_context"] = None
     return visible_text(app_nodes(nodes))[:200]
 
 
@@ -468,6 +536,12 @@ def watch_drive(seconds, label):
         else:
             samples.append({"drive": label, "t": at, "until": at, "stop_visible": stop_visible, "hud": hud})
             print("  drive sample:", samples[-1], flush=True)
+        inside = page_eval(DRIVE_PROBE)
+        if inside:
+            inside["t"] = at
+            inside["drive_label"] = label
+            result.setdefault("drive_page_state", []).append(inside)
+            print("  page:", json.dumps(inside), flush=True)
         if "camera paused" in hud.lower() and not any("Camera paused" in p for p in problems):
             problems.append("'Camera paused' on the HUD %ss into the watch" % at)
         if not stop_visible and not any("no Stop" in p for p in problems):
