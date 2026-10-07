@@ -139,6 +139,17 @@ test("a broken window prints every broken rule and exits 1", async () => {
   assert.equal(result.asked[0].seconds, 24 * 3600);
 });
 
+// Logs Insights charges by the bytes a query scans, and only a query's last answer says
+// how many. A week is the window the readiness report wants, so the run says what its
+// six queries cost. (The stand-in aws reports no statistics unless told to, which is why
+// the lines above end without it.)
+test("a window says how much log its queries scanned, and takes days", async () => {
+  const result = await run(["--window", "7d"], { window: HEALTHY_WINDOW.map((entry) => ({ ...entry, scanned: 1_250_000 })) });
+  assert.equal(result.lines.at(-2), "HEALTHY (771 requests in 168 h; 7.5 MB of log scanned by 6 queries)");
+  assert.equal(result.code, 0);
+  assert.ok(result.asked.every((query) => query.seconds === 7 * 24 * 3600));
+});
+
 test("an install that cannot register ends the canary there and exits 1", async () => {
   const result = await run(["--canary"], { api: fakeApi({ "POST /v1/installations": { status: 503, body: { message: "Service Unavailable" } } }) });
   assert.deepEqual(result.lines, [

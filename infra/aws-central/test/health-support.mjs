@@ -258,6 +258,7 @@ if (args[0] === "logs" && args[1] === "start-query") {
   const entry = script[Number(option("--query-id"))];
   if (!entry) { console.error("no scripted answer"); process.exit(254); }
   console.log(JSON.stringify({ status: entry.status || "Complete",
+    ...(entry.scanned ? { statistics: { bytesScanned: entry.scanned } } : {}),
     results: entry.rows.map((row) => Object.entries(row).map(([field, value]) => ({ field, value }))) }));
 } else if (args[0] === "ssm" && args[1] === "get-parameter") {
   const { key } = JSON.parse(readFileSync(${JSON.stringify(path.join(directory, "key.json"))}, "utf8"));
