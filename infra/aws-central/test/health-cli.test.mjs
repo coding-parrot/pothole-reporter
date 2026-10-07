@@ -8,8 +8,9 @@ import { BROKEN_WINDOW, HEALTHY_WINDOW, fakeApi, fakeAwsCli, serve } from "./hea
 // tools/production-health.mjs run as the process deploy.sh and the workflow run, on a
 // fixed input: a stand-in `aws` on PATH answers its Logs Insights queries and a local
 // server answers the canary. The lines and exit codes below were recorded from the
-// script as it stood on 7 Oct 2026, before its rules moved into service/health, and
-// must not change: deploy.sh fails a deploy on the exit code and people read the lines.
+// script as it stood on 7 Oct 2026, before its rules moved into service/health and five
+// of its nine queries became two, and must not change: deploy.sh fails a deploy on the
+// exit code and people read the lines.
 
 const SCRIPT = fileURLToPath(new URL("../tools/production-health.mjs", import.meta.url));
 
@@ -106,8 +107,9 @@ test("a healthy window and canary print every rule as ok and exit 0", async () =
   assert.deepEqual(result.lines, [...HEALTHY_WINDOW_LINES, ...HEALTHY_CANARY_LINES, "", "HEALTHY (771 requests in 6 h)", ""]);
   assert.equal(result.code, 0);
   assert.equal(result.stderr, "");
-  // Every query is asked of the function's log group, over the window given.
-  assert.ok(result.asked.length > 0);
+  // Every query is asked of the function's log group, over the window given. Six of
+  // them: each one is charged for every byte of the window.
+  assert.equal(result.asked.length, 6);
   for (const query of result.asked) {
     assert.deepEqual([query.group, query.seconds, query.region], ["/aws/lambda/pothole-reporter-central", 6 * 3600, "ap-south-1"]);
   }
@@ -143,7 +145,7 @@ test("an install that cannot register ends the canary there and exits 1", async 
 });
 
 test("a query Logs Insights fails is one broken rule, and the canary is not run", async () => {
-  const failed = HEALTHY_WINDOW.map((entry) => (entry.match === "by local_lookup" ? { ...entry, status: "Failed" } : entry));
+  const failed = HEALTHY_WINDOW.map((entry) => (entry.match === "by road_ownership, local_lookup" ? { ...entry, status: "Failed" } : entry));
   const result = await run(["--window", "6h", "--canary"], { window: failed });
   assert.deepEqual(result.lines, [
     ...HEALTHY_WINDOW_LINES.slice(0, 13),

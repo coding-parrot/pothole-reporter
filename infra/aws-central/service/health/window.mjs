@@ -11,8 +11,8 @@
 // rows. Nothing here knows whether it is the aws CLI or the SDK that answers.
 
 import {
-  INDIA_WARD_QUERY, ROAD_LAYER_QUERY, SHADOW_SCORE_QUERY, SHADOW_SCREEN_QUERY, WARD_TENDER_QUERY,
-  judgeIndiaWardSnapshots, judgeRoadLayers, judgeWardSnapshot, judgeWardTenders, reportShadowScreen, shadowScreenCurve,
+  LOOKUP_QUERY, SHADOW_QUERY, judgeIndiaWardSnapshots, judgeRoadLayers, judgeWardSnapshot, judgeWardTenders,
+  municipalLookups, outsideStateLookups, reportShadowScreen, shadowScreenCurve,
 } from "./rules.mjs";
 
 export const REQUEST_QUERY = 'filter event="http_request" | stats count() as n, pct(duration_ms, 50) as p50, pct(duration_ms, 90) as p90 by route, outcome, status';
@@ -47,21 +47,18 @@ export async function judgeWindow({ query, hours, logGroup, report }) {
     ok("traffic", "no requests in the window; nothing to judge");
     return;
   }
-  // The other eight are independent of each other, so they are all asked now and read
-  // below in the order their rules print. One after another they took 18 s for a one
-  // hour window on 7 Oct 2026, nearly all of it waiting, and the scheduled function pays
-  // for every second it waits. A query that fails is reported where its rule is.
+  // The other five are independent of each other, so they are all asked now and read
+  // below in the order their rules print. One after another the queries took 18 s for a
+  // one hour window on 7 Oct 2026, nearly all of it waiting, and the scheduled function
+  // pays for every second it waits. A query that fails is reported where its rule is.
   const ask = (text) => {
     const answer = Promise.resolve().then(() => query(text, hours));
     answer.catch(() => {});
     return answer;
   };
   const asked = {
-    roadLayers: ask(ROAD_LAYER_QUERY),
-    wards: ask(WARD_TENDER_QUERY),
-    indiaWards: ask(INDIA_WARD_QUERY),
-    shadowScreen: ask(SHADOW_SCREEN_QUERY),
-    shadowScores: ask(SHADOW_SCORE_QUERY),
+    lookups: ask(LOOKUP_QUERY),
+    shadow: ask(SHADOW_QUERY),
     ownTime: ask(OWN_TIME_QUERY),
     knownAnswers: ask(KNOWN_ANSWER_QUERY),
     crashes: ask(CRASH_QUERY),
@@ -124,13 +121,14 @@ export async function judgeWindow({ query, hours, logGroup, report }) {
     ok("tenders match somewhere in India", `${resolveMatched} matched of ${streetResolved} lookups with a street`);
   }
 
-  const roadLayers = judgeRoadLayers(await asked.roadLayers);
+  const lookupRows = await asked.lookups;
+  const roadLayers = judgeRoadLayers(lookupRows);
   roadLayers.broken ? fail("road ownership layers are in the package", roadLayers.detail) : ok("road ownership layers are in the package", roadLayers.detail);
 
   // Most Bengaluru tenders name a ward or a locality, never a street, so since the ward
   // tender release a municipal lookup with a resolved ward should often come back with
   // something a person can read.
-  const wardRows = await asked.wards;
+  const wardRows = municipalLookups(lookupRows);
   const wardSnapshot = judgeWardSnapshot(wardRows);
   wardSnapshot.broken ? fail("ward snapshot is in the package", wardSnapshot.detail) : ok("ward snapshot is in the package", wardSnapshot.detail);
   const wardTenders = judgeWardTenders(wardRows);
@@ -138,7 +136,7 @@ export async function judgeWindow({ query, hours, logGroup, report }) {
 
   // Outside Karnataka a ward comes from the snapshots the runtime list switches on. A
   // package without one of them still answers, with no ward, and only the log says why.
-  const indiaWards = judgeIndiaWardSnapshots(await asked.indiaWards);
+  const indiaWards = judgeIndiaWardSnapshots(outsideStateLookups(lookupRows));
   indiaWards.broken ? fail("ward snapshots outside Karnataka are in the package", indiaWards.detail)
     : ok("ward snapshots outside Karnataka are in the package", indiaWards.detail);
 
@@ -159,8 +157,9 @@ export async function judgeWindow({ query, hours, logGroup, report }) {
   // Reported, never failed: in openai_with_shadow_screen this is the evidence for (or
   // against) letting the fast screen answer drive frames. See ml/classifier/MODEL_CARD.md
   // for the numbers that justify the flip to yolo_then_openai.
-  ok("shadow screen (report only)", reportShadowScreen(await asked.shadowScreen).detail);
-  ok("shadow screen threshold for 98% live recall (report only)", shadowScreenCurve(await asked.shadowScores).detail);
+  const shadowRows = await asked.shadow;
+  ok("shadow screen (report only)", reportShadowScreen(shadowRows).detail);
+  ok("shadow screen threshold for 98% live recall (report only)", shadowScreenCurve(shadowRows).detail);
 
   for (const row of await asked.ownTime) {
     if (Number(row.n) < 20) continue;

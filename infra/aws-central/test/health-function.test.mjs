@@ -87,11 +87,11 @@ test("a healthy window and full canary return healthy and write the report and o
   assert.ok(!(BROKEN_RULES_METRIC in summary) && !(CANARY_FAILED_METRIC in summary));
   assert.deepEqual({ ...summary, duration_ms: null, canary_install_id: null }, {
     event: "health_run", healthy: true, window: "6h", canary: "full", broken_rules: 0, canary_failed: 0, failures: [],
-    scanned_bytes: 9000, duration_ms: null, canary_install_id: null,
+    scanned_bytes: 6000, duration_ms: null, canary_install_id: null,
   });
   assert.ok(summary.duration_ms > 0);
   assert.match(summary.canary_install_id, /^[a-f0-9]{32}$/);
-  assert.equal(logs.calls.filter(([name]) => name === "startQuery").length, 9);
+  assert.equal(logs.calls.filter(([name]) => name === "startQuery").length, 6);
   assert.ok(logs.calls.every(([, input]) => !input.logGroupName || input.logGroupName === "/aws/lambda/pothole-reporter-central"));
 });
 

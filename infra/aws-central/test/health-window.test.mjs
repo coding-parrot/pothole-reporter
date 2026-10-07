@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { createInsights } from "../service/health/insights.mjs";
 import { createReport } from "../service/health/report.mjs";
+import { LOOKUP_QUERY, SHADOW_QUERY } from "../service/health/rules.mjs";
 import { CRASH_QUERY, KNOWN_ANSWER_QUERY, OWN_TIME_QUERY, REQUEST_QUERY, judgeWindow, parseWindow } from "../service/health/window.mjs";
 import { BROKEN_WINDOW, HEALTHY_WINDOW, QUIET_WINDOW, scriptedQuery } from "./health-support.mjs";
 
@@ -87,18 +88,18 @@ test("every rule that can break is reported broken, with the number that broke i
 });
 
 // One change to a healthy window breaks one rule and no other.
+const LOOKUPS = "by road_ownership, local_lookup";
 const ONE_AT_A_TIME = [
   ["no internal errors", requestRows((rows) => [...rows, group("/v1/impact", "internal_error", 500, 1)])],
   ["reports never rejected on their receipt", requestRows((rows) => [...rows, group("/v1/potholes/report", "invalid_detection_receipt", 400, 1)])],
   ["cap never reached (daily_vision_limit)", requestRows((rows) => [...rows, group("/v1/vision/detect", "daily_vision_limit", 503, 1)])],
   ["reports land", requestRows((rows) => [...rows, group("/v1/potholes/report", "location_dedupe_in_progress", 409, 3)])],
-  ["road ownership layers are in the package", withRows("by local_lookup", [{ local_lookup: "unavailable", n: "1" }])],
-  ["ward snapshot is in the package", withRows("by ward_lookup, ward_tender_count, tender_catalogue",
-    [{ ward_lookup: "unavailable", n: "1" }, { ward_lookup: "resolved", ward_tender_count: "5", n: "40" }])],
-  ["wards find their tenders", withRows("by ward_lookup, ward_tender_count, tender_catalogue",
-    [{ ward_lookup: "resolved", ward_tender_count: "0", n: "30" }])],
-  ["ward snapshots outside Karnataka are in the package", withRows("by ward_lookup, ward_snapshot",
-    [{ ward_lookup: "unavailable", ward_snapshot: "MP/bhopal", n: "1" }])],
+  ["road ownership layers are in the package", withRows(LOOKUPS, [{ local_lookup: "unavailable", n: "1" }])],
+  ["ward snapshot is in the package", withRows(LOOKUPS,
+    [{ road_ownership: "municipal", ward_lookup: "unavailable", n: "1" }, { road_ownership: "municipal", ward_lookup: "resolved", ward_tender_count: "5", n: "40" }])],
+  ["wards find their tenders", withRows(LOOKUPS, [{ road_ownership: "municipal", ward_lookup: "resolved", ward_tender_count: "0", n: "30" }])],
+  ["ward snapshots outside Karnataka are in the package", withRows(LOOKUPS,
+    [{ road_ownership: "outside_state", ward_lookup: "unavailable", ward_snapshot: "MP/bhopal", n: "1" }])],
   ["service overhead is small (/v1/potholes/report)", withRows("pct(db_ms, 90)",
     [{ route: "/v1/potholes/report", n: "20", db90: "30", own90: "401" }])],
   ["known answers are instant (/v1/tenders/resolve)", withRows('answer_cache="hit"',
@@ -155,10 +156,10 @@ test("a window with no requests asks one query and judges nothing", async () => 
   assert.equal(result.lines.at(-1), "\nHEALTHY (0 requests in 6 h)");
 });
 
-// One after another the nine queries took 18 s for a one hour window on 7 Oct 2026. The
+// One after another the queries took 18 s for a one hour window on 7 Oct 2026. The
 // scheduled function is billed for the wait, so after the first (which decides whether
-// there is anything to judge) the other eight run together.
-test("after the request counts, the other eight queries are in flight together", async () => {
+// there is anything to judge) the other five run together.
+test("after the request counts, the other five queries are in flight together", async () => {
   let inFlight = 0;
   let most = 0;
   const scripted = scriptedQuery(HEALTHY_WINDOW);
@@ -171,10 +172,11 @@ test("after the request counts, the other eight queries are in flight together",
   };
   const report = createReport();
   await judgeWindow({ query, hours: 6, logGroup: "g", report });
-  assert.equal(scripted.asked.length, 9);
   assert.equal(scripted.asked[0].text, REQUEST_QUERY);
-  assert.equal(most, 8);
-  for (const text of [OWN_TIME_QUERY, KNOWN_ANSWER_QUERY, CRASH_QUERY]) assert.ok(scripted.asked.some((asked) => asked.text === text));
+  assert.equal(most, 5);
+  // Six in all, each asked once: Logs Insights charges every query for the whole window.
+  assert.deepEqual(scripted.asked.map((asked) => asked.text).sort(),
+    [REQUEST_QUERY, LOOKUP_QUERY, SHADOW_QUERY, OWN_TIME_QUERY, KNOWN_ANSWER_QUERY, CRASH_QUERY].sort());
   assert.ok(scripted.asked.every((asked) => asked.hours === 6));
   assert.equal(report.conclude().healthy, true);
 });
@@ -184,7 +186,7 @@ test("a query that fails stops the window at its rule, after the rules before it
   const note = (reason) => unhandled.push(reason);
   process.on("unhandledRejection", note);
   // Two fail: the one read first is reported, the other must not surface on its own.
-  const script = HEALTHY_WINDOW.map((entry) => (["by ward_lookup, ward_snapshot", "Task timed out"].includes(entry.match)
+  const script = HEALTHY_WINDOW.map((entry) => (["by outcome, screen_assessment", "Task timed out"].some((piece) => entry.match.startsWith(piece))
     ? { ...entry, error: "Logs Insights Timeout" } : entry));
   const report = createReport();
   await assert.rejects(judgeWindow({ query: scriptedQuery(script), hours: 6, logGroup: "g", report }), /Logs Insights Timeout/);
@@ -192,7 +194,7 @@ test("a query that fails stops the window at its rule, after the rules before it
   process.off("unhandledRejection", note);
   assert.deepEqual(unhandled, []);
   const result = report.conclude();
-  assert.equal(result.rules.at(-1).name, "wards find their tenders", "every rule before the failed query was judged");
+  assert.equal(result.rules.at(-1).name, "detection is fast", "every rule before the failed query was judged");
   assert.equal(result.healthy, true, "the caller says the window crashed; the rules judged so far are not failures");
 });
 

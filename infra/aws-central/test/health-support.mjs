@@ -33,26 +33,21 @@ export const HEALTHY_WINDOW = [
     ["/v1/potholes/report", "created", 201, 12],
     ["/v1/potholes/report", "deduplicated", 200, 8],
   ) },
-  { match: "by local_lookup", rows: [row({ local_lookup: "municipal_polygon", n: 190 }), row({ n: 13 })] },
-  { match: "by ward_lookup, ward_tender_count, tender_catalogue", rows: [
-    row({ ward_lookup: "resolved", ward_tender_count: 5, n: 150 }),
-    row({ ward_lookup: "resolved", ward_tender_count: 0, tender_catalogue: "ka_index", n: 22 }),
-    row({ ward_lookup: "resolved", ward_tender_count: 0, n: 3 }),
-    row({ ward_lookup: "no_ward", ward_tender_count: 0, n: 9 }),
+  { match: "by road_ownership, local_lookup", rows: [
+    row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "resolved", ward_tender_count: 5, n: 150 }),
+    row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "resolved", ward_tender_count: 0, tender_catalogue: "ka_index", n: 22 }),
+    row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "resolved", ward_tender_count: 0, n: 3 }),
+    row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "no_ward", ward_tender_count: 0, n: 9 }),
+    row({ road_ownership: "outside_state", local_lookup: "out_of_scope", ward_lookup: "resolved", ward_snapshot: "GJ/ahmedabad", ward_tender_count: 5, n: 1 }),
+    row({ road_ownership: "outside_state", local_lookup: "out_of_scope", ward_lookup: "out_of_scope", n: 6 }),
+    // Lines from before these fields were logged.
+    row({ n: 13 }),
   ] },
-  { match: "by ward_lookup, ward_snapshot", rows: [
-    row({ ward_lookup: "resolved", ward_snapshot: "GJ/ahmedabad", n: 1 }),
-    row({ ward_lookup: "out_of_scope", n: 6 }),
-  ] },
-  { match: "by outcome, screen_assessment, screen_error", rows: [
-    row({ outcome: "damaged", screen_assessment: "damaged", n: 9 }),
-    row({ outcome: "undamaged", screen_assessment: "undamaged", n: 5 }),
-    row({ outcome: "undamaged", screen_assessment: "damaged", n: 11 }),
+  { match: "by outcome, screen_assessment, screen_error, bucket", rows: [
+    row({ outcome: "damaged", screen_assessment: "damaged", bucket: 40, n: 9 }),
+    row({ outcome: "undamaged", screen_assessment: "undamaged", bucket: 3, n: 5 }),
+    row({ outcome: "undamaged", screen_assessment: "damaged", bucket: 3, n: 11 }),
     row({ outcome: "undamaged", screen_error: "screen_timeout", n: 3 }),
-  ] },
-  { match: "by outcome, bucket", rows: [
-    row({ outcome: "damaged", bucket: 40, n: 9 }),
-    row({ outcome: "undamaged", bucket: 3, n: 16 }),
   ] },
   { match: "pct(db_ms, 90)", rows: [
     row({ route: "/v1/vision/detect", n: 68, db90: 149, own90: 158 }),
@@ -82,18 +77,15 @@ export const BROKEN_WINDOW = [
     ["/v1/potholes/report", "location_dedupe_in_progress", 409, 7],
     ["/v1/potholes/report", "created", 201, 3],
   ) },
-  { match: "by local_lookup", rows: [row({ local_lookup: "unavailable", n: 26 }), row({ local_lookup: "municipal_polygon", n: 60 })] },
-  { match: "by ward_lookup, ward_tender_count, tender_catalogue", rows: [
-    row({ ward_lookup: "unavailable", n: 5 }),
-    row({ ward_lookup: "resolved", ward_tender_count: 0, n: 50 }),
-    row({ ward_lookup: "resolved", ward_tender_count: 2, n: 5 }),
+  { match: "by road_ownership, local_lookup", rows: [
+    row({ local_lookup: "unavailable", n: 26 }),
+    row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "unavailable", n: 5 }),
+    row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "resolved", ward_tender_count: 0, n: 50 }),
+    row({ road_ownership: "municipal", local_lookup: "municipal_polygon", ward_lookup: "resolved", ward_tender_count: 2, n: 5 }),
+    row({ road_ownership: "outside_state", local_lookup: "out_of_scope", ward_lookup: "unavailable", ward_snapshot: "GJ/ahmedabad", n: 4 }),
+    row({ road_ownership: "outside_state", local_lookup: "out_of_scope", ward_lookup: "unavailable", n: 2 }),
   ] },
-  { match: "by ward_lookup, ward_snapshot", rows: [
-    row({ ward_lookup: "unavailable", ward_snapshot: "GJ/ahmedabad", n: 4 }),
-    row({ ward_lookup: "unavailable", n: 2 }),
-  ] },
-  { match: "by outcome, screen_assessment, screen_error", rows: [] },
-  { match: "by outcome, bucket", rows: [] },
+  { match: "by outcome, screen_assessment, screen_error, bucket", rows: [] },
   { match: "pct(db_ms, 90)", rows: [row({ route: "/v1/tenders/resolve", n: 110, db90: 300, own90: 401 })] },
   { match: 'answer_cache="hit"', rows: [row({ route: "/v1/map", n: 40, p50: 60, p90: 140 })] },
   { match: "Task timed out", rows: [row({ n: 2 })] },
