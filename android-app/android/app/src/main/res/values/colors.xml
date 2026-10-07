@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The page's own background (static/index.html, the css variable bg). The window
+         behind the WebView and the system bars use it, so a light phone theme never shows
+         white or light grey around the dark app. tests/system_bars_style_test.py keeps the
+         two equal. -->
+    <color name="appBackground">#111214</color>
+</resources>
