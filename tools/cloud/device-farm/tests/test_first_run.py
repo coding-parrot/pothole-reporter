@@ -240,6 +240,83 @@ return {
 """
 
 
+# Debuggable builds only: start a drive from inside the page and record, every half
+# second for 16 s, what the watchdog sees, together with every drawImage(video) and
+# canvas.toBlob the app makes (when it was called, when its callback came, what it gave),
+# and whether the page is getting animation frames and idle time.
+INSTRUMENTED_DRIVE = """
+const done = arguments[arguments.length - 1];
+const t0 = performance.now();
+const at = () => Math.round(performance.now() - t0);
+const log = [], samples = [], idle = [];
+const canvasProto = HTMLCanvasElement.prototype, realToBlob = canvasProto.toBlob;
+let calls = 0;
+canvasProto.toBlob = function (callback, type, quality) {
+  const id = ++calls, started = at();
+  log.push({e: 'toBlob', id, t: started, w: this.width, h: this.height});
+  return realToBlob.call(this, (blob) => {
+    log.push({e: 'blob', id, t: at(), ms: at() - started, size: blob ? blob.size : null});
+    callback(blob);
+  }, type, quality);
+};
+const contextProto = CanvasRenderingContext2D.prototype, realDraw = contextProto.drawImage;
+contextProto.drawImage = function (source, ...rest) {
+  const started = performance.now();
+  try { return realDraw.call(this, source, ...rest); }
+  finally {
+    if (source && source.tagName === 'VIDEO') {
+      log.push({e: 'draw', t: at(), ms: +(performance.now() - started).toFixed(1),
+                vw: source.videoWidth, rs: source.readyState});
+    }
+  }
+};
+let frames = 0, running = true;
+const onFrame = () => { frames += 1; if (running) requestAnimationFrame(onFrame); };
+requestAnimationFrame(onFrame);
+const askIdle = () => {
+  const asked = at();
+  requestIdleCallback(() => { idle.push([asked, at() - asked]); if (running) setTimeout(askIdle, 300); });
+};
+askIdle();
+document.getElementById('driveBtn').click();
+const timer = setInterval(() => {
+  const v = document.getElementById('driveVideo');
+  const tr = v && v.srcObject && v.srcObject.getVideoTracks()[0];
+  const d = (typeof drive !== 'undefined' && drive) ? drive : null;
+  samples.push({
+    t: at(), hud: (document.getElementById('driveStatus').textContent || '').slice(0, 60),
+    ct: v ? +v.currentTime.toFixed(2) : null, rs: v ? v.readyState : null, vw: v ? v.videoWidth : null,
+    muted: tr ? tr.muted : null, track: tr ? tr.readyState : null, frames, hidden: document.hidden,
+    d: d ? {pos: !!d.pos, posAge: d.posAt ? Date.now() - d.posAt : null,
+            prog: d.videoProgressAt ? Date.now() - d.videoProgressAt : null,
+            bad: d.cameraBadAt ? Date.now() - d.cameraBadAt : 0, camBad: d.camBad || 0,
+            capBad: d.capBad || 0, busy: !!d.stillBusy, rec: !!d.cameraRecovering,
+            cap: d.tally ? d.tally.captured : null} : null,
+  });
+}, 500);
+setTimeout(() => {
+  running = false;
+  clearInterval(timer);
+  canvasProto.toBlob = realToBlob;
+  contextProto.drawImage = realDraw;
+  done({samples, log, idle});
+}, 16000);
+"""
+
+
+def instrumented_drive():
+    name = state["webview"]
+    try:
+        call("POST", session("/context"), {"name": name}, timeout=90)
+        call("POST", session("/timeouts"), {"script": 40000}, timeout=30)
+        return call("POST", session("/execute/async"), {"script": INSTRUMENTED_DRIVE, "args": []}, timeout=60)
+    finally:
+        try:
+            call("POST", session("/context"), {"name": "NATIVE_APP"}, timeout=60)
+        except Exception:
+            pass
+
+
 def find_webview():
     try:
         contexts = call("GET", session("/contexts"), timeout=60) or []
@@ -580,6 +657,20 @@ def second_drive():
     # The control for the first drive: no notice and no permission sheet this time, so
     # anything wrong here is not about first-run prompts.
     sheets = len(result["permissions"])
+    if state.get("webview"):
+        # A debuggable build: let the page record its own watchdog and capture calls.
+        recorded = instrumented_drive()
+        result["instrumented_drive"] = recorded
+        huds = [sample["hud"] for sample in recorded["samples"]]
+        print("  instrumented drive:", json.dumps(recorded)[:6000], flush=True)
+        nodes, _ = tree()
+        stop = find(nodes, "stop")
+        if stop:
+            tap(*stop.centre)
+        wait_for("Home after the instrumented drive", is_home, 45)
+        if any("camera paused" in hud.lower() for hud in huds):
+            raise AssertionError("'Camera paused' on the HUD during the instrumented drive")
+        return "instrumented: %s" % huds[-1]
     nodes, _ = tree()
     button = find(nodes, "drive")
     if not button:
