@@ -11,7 +11,8 @@
 # and exits non-zero on a regression against tools/harness/baseline.json.
 # Results and logs: s3://pothole-reporter-ml-695656921622-ap-south-1/ci/<ref>/<build id>/
 #
-# Cost: one build on a 4 vCPU instance at about USD 0.01 a minute.
+# Cost: one build of about 10 minutes on the smallest instance (2 vCPU) at USD 0.005 a
+# minute: about USD 0.05.
 #
 # Other forms:
 #   ci.sh [ref] --no-wait        start and return; prints the build id
