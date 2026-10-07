@@ -144,5 +144,9 @@
   "drive_recent_fix_test.py": true,
   "central_report_busy_retry_test.py": true,
   "drive_capture_latency_test.py": true,
-  "native_hosted_catalog_manifest_test.py": true
+  "native_hosted_catalog_manifest_test.py": true,
+  "ward_tenders_test.py": true,
+  "verify_request_letter_test.py": true,
+  "ward_tenders_on_demand_test.py": true,
+  "pull_or_keep_test.py": true
 }
