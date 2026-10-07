@@ -208,7 +208,8 @@ def markdown(report):
              "called damaged; cleared is the share of undamaged frames the screen would answer itself.", ""]
     names = list(report["variants"])
     slices = list(report["variants"][names[0]]["val98"]["slices"])
-    for label, title in (("val98", "At the validation-98% threshold"), ("val99", "At the validation-99% threshold")):
+    for label, title in (("val98", "At the validation-98% threshold"), ("val99", "At the validation-99% threshold"),
+                         ("val98_every_source", "At the threshold that keeps 98% recall on every validation source")):
         lines += [f"## {title}", "", "| Variant | " + " | ".join(slices) + " |",
                   "|---|" + "---|" * len(slices)]
         for name in names:
@@ -226,6 +227,16 @@ def markdown(report):
                 cells.append(f"{percent(p['recall'])} ({p['caught']}/{p['damaged']}), {percent(p['cleared_share'])}")
             lines.append(f"| {name} | " + " | ".join(cells) + " |")
         lines.append("")
+    lines += ["## Validation, by source, at the validation-98% threshold", ""]
+    sources = list(report["variants"][names[0]]["val98"]["validation_by_domain"])
+    lines += ["| Variant | " + " | ".join(sources) + " |", "|---|" + "---|" * len(sources)]
+    for name in names:
+        cells = []
+        for item in sources:
+            p = report["variants"][name]["val98"]["validation_by_domain"][item]
+            cells.append(f"{percent(p['recall'])} ({p['caught']}/{p['damaged']}), {percent(p['cleared_share'])}")
+        lines.append(f"| {name} | " + " | ".join(cells) + " |")
+    lines.append("")
     lines += ["## Annotated potholes, owner labels (validation-98% threshold)", "",
               "| Variant | Annotated-pothole frames flagged, per slice | Owner potholes flagged | Owner not_pothole cleared | Owner video events flagged |",
               "|---|---|---|---|---|"]
@@ -273,6 +284,7 @@ def main():
     owner_paths = [row["path"] for row in owner_rows]
     labels = np.array([row["damaged"] for row in rows])
     validation = np.array([row["split"] == "validation" for row in rows])
+    domains = np.array([row["domain"] for row in rows])
 
     report = {"run_id": args.run_id, "frames": len(rows), "variants": {}, "comparisons": {},
               "teacher_ceiling": teacher_ceiling(rows), "baseline": args.baseline}
@@ -282,6 +294,13 @@ def main():
         owner_scores = load_scores(stem, owner_paths) if owner_paths else np.zeros(0)
         thresholds = {f"val{round(100 * t)}": threshold_for_recall(scores[validation], labels[validation], t)
                       for t in TARGETS}
+        # A stricter rule, reported beside the pooled one: every validation source with at
+        # least 50 damaged frames keeps 98% recall on its own. The pooled threshold lets
+        # an easy source pay for a hard one.
+        thresholds["val98_every_source"] = min(
+            threshold_for_recall(scores[validation & (domains == name)], labels[validation & (domains == name)], 0.98)
+            for name in sorted(set(domains[validation]))
+            if labels[validation & (domains == name)].sum() >= 50)
         if stem == args.baseline:
             thresholds["v1_as_deployed"] = V1_DEPLOYED_RAW
         report["variants"][stem] = judge(scores, rows, owner_rows, owner_scores, thresholds)
