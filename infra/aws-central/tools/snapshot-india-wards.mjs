@@ -36,8 +36,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { pointInRings } from "../service/spatial.mjs";
-
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 export const WARDS_DIR = path.join(root, "data/wards");
 export const WORK_DIR = path.join(WARDS_DIR, ".work");
@@ -138,6 +136,7 @@ const opencity = (dataset, resource, file) => ({
   kind: "kml",
   url: `https://data.opencity.in/dataset/${dataset}/resource/${resource}/download/${file}`,
   publisher: "OpenCity (Oorvani Foundation), data.opencity.in",
+  last_edited_api: `https://data.opencity.in/api/3/action/resource_show?id=${resource}`,
 });
 
 // "dm" builds a DataMeet entry: folder, file, licence, then what differs.
@@ -164,11 +163,20 @@ export const SOURCES = [
     read: (p) => ({ no: number(p["Ward No"]), name: text(p["Ward Name"]), zone: text(p["Zone No"]) }),
     source_fields: "Ward No,Ward Name,Zone No",
     upstream: "No source note in the folder (the readme is a title only), so the repository's default licence applies; the folder also holds a scanned Kanpur Nagar Nigam map.",
-    vintage: "Undated. The file draws 58 polygons; Kanpur Nagar Nigam has 110 wards.",
+    vintage: "Undated, and older than the numbering 2026 tenders use. The file draws 58 polygons; Kanpur Nagar Nigam has 110 wards.",
     caveats: [
       "Covers about half of the corporation: 58 polygons for 110 wards.",
       "Coordinates are Web Mercator with no CRS declared; converted to WGS84 by this tool.",
+      "The ward numbers are an older delimitation's: tenders of 2026 give other names to the same numbers (Ward 43 is Nawabganj, here Ashok Nagar). Match by name only.",
+      "Chakeri (31.8 sq km) and Sanigawan (24.2 sq km) are 25 to 33 times the median ward and were not checked.",
     ],
+    // Zones 5 and 6 are each drawn as one polygon carrying one ward's name. OpenStreetMap
+    // (extract of 6 Oct 2026) puts Vijay Nagar, Nawabganj, Shastri Nagar, Kalyanpur and
+    // Rawatpur, each a ward of its own, inside the "Naramau" polygon.
+    leave_out: {
+      20: "Naramau is drawn as the whole of zone 6 (46.6 sq km against a median ward of 0.95): it holds Vijay Nagar, Nawabganj, Shastri Nagar, Kalyanpur and Rawatpur, which are wards of their own",
+      33: "Panki is drawn as the whole of zone 5 (45.3 sq km against a median ward of 0.95), the only polygon of its zone",
+    },
     notices: { state: "UP", city: "Kanpur", names: /\bkanpur\b(?!\s+dehat)/i },
   }),
   dm("UP/lucknow", "Lucknow Municipal Corporation", "Lucknow", "Lucknow_ward_boundary.geojson", CC_BY_4, {
@@ -390,6 +398,35 @@ export const SOURCES = [
     notices: { state: "SK", city: "Gangtok", names: /\bgangtok\b/i },
   }),
   // ------------------------------------------------------------------------------------
+  // Open licence, file not opened. The Open Government Data catalogue lists these under
+  // the Government Open Data License - India, but its file host (www.data.gov.in)
+  // answered HTTP 403 to this tool on 7 Oct 2026, so the fields below are unread guesses.
+  // A person who downloads the file in a browser can build the snapshot with --raw.
+  // ------------------------------------------------------------------------------------
+  ...[
+    ["MP/jabalpur", "Jabalpur Municipal Corporation", "Jabalpur", "Wardboundary.kml", "covid19-jabalpur-ward-boundary", "Covid_19 : Jabalpur Ward boundary", "2020-07-08", /\bjabalpur\b/i],
+    ["UP/agra", "Agra Municipal Corporation", "Agra", "Ward_Boundary.kml", "ward-boundaries-agra", "Ward Boundaries- Agra", "2020-07-08", /\bagra\b/i],
+    ["UK/dehradun", "Dehradun Municipal Corporation", "Dehradun", "boundaryward.kml", "boundarywarddehradun", "boundarywarddehradun", "2020-07-20", /\bdehradun\b/i],
+    ["TN/thanjavur", "Thanjavur City Municipal Corporation", "Thanjavur", "Corporation_Wards_Thanjavur_30-06-2020.kml", "corporation_wards_thanjavur_30-06-2020", "Corporation_Wards_Thanjavur_30-06-2020", "2020-07-18", /\bthanjavur\b/i],
+  ].map(([id, body, city, file, slug, title, published, names]) => ({
+    id, state: id.split("/")[0], city: id.split("/")[1], body,
+    kind: "kml", url: `https://www.data.gov.in/files/ogdpv2dms/s3fs-public/datafile/${file}`,
+    page: `https://smartcities.data.gov.in/resources/${slug}`,
+    publisher: `${city} Smart City, on the Open Government Data Platform India (Smart Cities Mission data portal)`, ...GODL,
+    attribution: `"${title}", ${city} Smart City, published under the Government Open Data License - India (data.gov.in)`,
+    unopened: "www.data.gov.in answered HTTP 403 (Access Denied) to this tool on 7 Oct 2026",
+    read: (p) => {
+      const label = p.WARD_NO ?? p.Ward_No ?? p.ward_no ?? p.WARD ?? p.Ward ?? p.ward ?? p.Name ?? p.name;
+      const name = text(p.WARD_NAME ?? p.Ward_Name ?? p.ward_name ?? null);
+      return /\d/.test(String(label ?? "")) ? { no: number(label), name } : { no: null, name: name ?? text(label) };
+    },
+    source_fields: "(unread)",
+    upstream: `Catalogue record "${title}", published ${published} by the city's Smart City company.`,
+    vintage: `Published ${published}; not opened.`,
+    caveats: ["The file was not opened: the ward count and its fields are unknown."],
+    notices: { state: id.split("/")[0], city, names },
+  })),
+  // ------------------------------------------------------------------------------------
   // Opened and counted, never committed: no reuse licence, or a proprietary one.
   // ------------------------------------------------------------------------------------
   {
@@ -426,7 +463,7 @@ export const SOURCES = [
     page: "https://tgrac.telangana.gov.in/arcgis/rest/services/TCUR_Folder/TCUR_Telangana_Core_Urban_Region_V2/MapServer",
     publisher: "Telangana Remote Sensing Applications Centre (TGRAC), Government of Telangana", ...NO_LICENCE,
     attribution: "Telangana Remote Sensing Applications Centre (TGRAC), Government of Telangana",
-    arcgis_fields: "Name,Ward_No,ULB_Name,Category", insecure_tls: true,
+    arcgis_fields: "Name,Ward_No,ULB_Name,Category", insecure_tls: true, counted: 885,
     read: (p) => ({ no: number(p.Ward_No), name: null, zone: text(p.ULB_Name) }),
     source_fields: "Ward_No,ULB_Name,Category",
     upstream: "Official service.",
@@ -465,6 +502,42 @@ export const SOURCES = [
     notices: null,
   },
 ];
+
+// What a ward of each committed snapshot can be matched by, and how that is known. Read
+// off data/wards/COVERAGE.md (7 Oct 2026): "tested" means notices of the body were
+// matched and read by a person; "untested" means the body has too few notices in the
+// packs to say, and the vintage is the only guide.
+const USE = {
+  "UP/kanpur": { by: "name", numbers: "wrong", evidence: "tested: every title that gives a name beside a number the file draws gives another name than the file's (17 of 17); 20 of 23 number pairs read were wrong" },
+  "UP/lucknow": { by: "name", numbers: "untested", evidence: "untested: one notice of the body in the packs" },
+  "MP/bhopal": { by: "number", numbers: "current", evidence: "tested: the places seven titles name lie in or within 100 m of the ward of the title's number; names are in Devanagari and cannot be matched to Latin-letter titles" },
+  "GJ/ahmedabad": { by: "name", numbers: "untested", evidence: "tested by name: 30 of 30 pairs read were right; the titles carry no ward numbers" },
+  "GJ/vadodara": { by: "name", numbers: "untested", evidence: "untested: no notice of the body in the packs" },
+  "DL/delhi-2017": { by: "name", numbers: "wrong", evidence: "numbers are the 2017 delimitation's, replaced in 2022; by name 1 of 15 pairs read was right, 10 were one sub-city name spread over five wards" },
+  "TG/hyderabad": { by: "name", numbers: "wrong", evidence: "tested: titles of 2026 use a new numbering (ward 17 is Cherlapally, here ward 3); a name on the title's own ward marker was right in 5 of 5 pairs read" },
+  "TN/chennai": { by: "number", numbers: "untested", evidence: "untested: the titles write \"Div-128\" and \"Dn 62\", which the service's parser does not read as ward numbers" },
+  "TN/coimbatore": { by: "number", numbers: "untested", evidence: "untested: two notices of the body in the packs" },
+  "TN/tiruchirappalli": { by: "number", numbers: "untested", evidence: "untested: no notice of the body in the packs" },
+  "OD/bhubaneswar": { by: "number", numbers: "untested", evidence: "11 of the body's 12 notices give a ward number the file draws; no place in them could be located to check" },
+  "CH/chandigarh-2016": { by: "nothing", numbers: "wrong", evidence: "the 26-ward numbering was replaced by 35 wards in 2021 and the file has no names" },
+  "HR/faridabad": { by: "number", numbers: "untested", evidence: "untested: 40 wards as drawn, not checked against the later re-delimitation" },
+  "RJ/jaipur-2009": { by: "nothing", numbers: "wrong", evidence: "tested: 14 of 15 number pairs read were wrong (the title's ward 57 is Chitrakoot, 9.4 km from this file's ward 57) and the file has no names" },
+  "RJ/kishangarh": { by: "number", numbers: "untested", evidence: "untested: no notice of the body in the packs" },
+  "WB/kolkata": { by: "number", numbers: "untested", evidence: "untested: no notice of the body in the packs" },
+  "MH/mumbai": { by: "name", numbers: "none", evidence: "untested: lettered administrative wards; three notices of the body in the packs" },
+  "MH/mumbai-electoral-2017": { by: "number", numbers: "untested", evidence: "untested: three notices of the body in the packs" },
+  "MH/pune": { by: "number", numbers: "untested", evidence: "untested: none of the body's five notices gives a prabhag number" },
+  "MH/pune-2022": { by: "name", numbers: "wrong", evidence: "numbers are the 2022 delimitation's, replaced in 2025; names untested" },
+  "MH/navi-mumbai": { by: "number", numbers: "untested", evidence: "untested: two notices of the body in the packs; wards of 2015" },
+  "MH/pimpri-chinchwad": { by: "number", numbers: "untested", evidence: "untested: no notice of the body in the packs; undated and likely superseded" },
+  "KL/kochi": { by: "name", numbers: "wrong", evidence: "divisions of 2022, replaced in 2025; names untested (five notices of the body)" },
+  "AP/vijayawada": { by: "number", numbers: "untested", evidence: "untested: the app ships no Andhra Pradesh notices" },
+  "BR/katihar": { by: "number", numbers: "untested", evidence: "untested: no notice of the body in the packs" },
+  "BR/purnia": { by: "number", numbers: "untested", evidence: "untested: no notice of the body in the packs" },
+  "BR/bodh-gaya": { by: "number", numbers: "untested", evidence: "untested: no notice of the body in the packs" },
+  "SK/gangtok": { by: "name", numbers: "untested", evidence: "untested: the app ships no Sikkim notices" },
+};
+for (const source of SOURCES) source.use = USE[source.id] || null;
 
 export const sourceById = (id) => SOURCES.find((source) => source.id.toLowerCase() === String(id).toLowerCase());
 export const committable = (source) => source.licence_status === "open";
@@ -543,8 +616,10 @@ async function download(source) {
 async function lastEdited(source) {
   if (!source.last_edited_api) return null;
   try {
-    const commits = await (await politeFetch(source.last_edited_api)).json();
-    return String(commits?.[0]?.commit?.committer?.date || "").slice(0, 10) || null;
+    const answer = await (await politeFetch(source.last_edited_api)).json();
+    // GitHub: the file's newest commit. CKAN (OpenCity): the resource's last change.
+    const date = Array.isArray(answer) ? answer[0]?.commit?.committer?.date : answer?.result?.last_modified || answer?.result?.created;
+    return String(date || "").slice(0, 10) || null;
   } catch {
     return null;
   }
@@ -760,6 +835,39 @@ export const STATE_BOX_PAD = 0.003;
 // second ward also holds is that pair's overlap. Returns [{ a, b, share }], largest
 // first, `a` being the ward measured. Deterministic: the grid is fixed.
 export const OVERLAP_GRID = 24;
+// The service's pointInRings decodes a ring on every call. Here each ward is asked about
+// hundreds of points, so its rings are decoded once; the rule (even-odd over every ring)
+// is the same, and the test suite checks the two agree.
+const decoded = new WeakMap();
+export function wardHolds(ward, x, y) {
+  let rings = decoded.get(ward);
+  if (!rings) {
+    rings = ward.rings.map((run) => {
+      const flat = new Array(run.length);
+      let px = run[0];
+      let py = run[1];
+      flat[0] = px;
+      flat[1] = py;
+      for (let index = 2; index < run.length; index += 2) {
+        px += run[index];
+        py += run[index + 1];
+        flat[index] = px;
+        flat[index + 1] = py;
+      }
+      return flat;
+    });
+    decoded.set(ward, rings);
+  }
+  let inside = false;
+  for (const ring of rings) {
+    for (let i = 0, j = ring.length - 2; i < ring.length; j = i, i += 2) {
+      const yi = ring[i + 1];
+      const yj = ring[j + 1];
+      if ((yi > y) !== (yj > y) && x < ring[i] + ((y - yi) * (ring[j] - ring[i])) / (yj - yi)) inside = !inside;
+    }
+  }
+  return inside;
+}
 export function overlapPairs(wards) {
   const pairs = [];
   for (const ward of wards) {
@@ -768,14 +876,14 @@ export function overlapPairs(wards) {
       for (let j = 0; j < OVERLAP_GRID; j += 1) {
         const x = ward.bbox[0] + ((i + 0.5) / OVERLAP_GRID) * (ward.bbox[2] - ward.bbox[0]);
         const y = ward.bbox[1] + ((j + 0.5) / OVERLAP_GRID) * (ward.bbox[3] - ward.bbox[1]);
-        if (pointInRings(x, y, ward.rings)) inside.push([x, y]);
+        if (wardHolds(ward, x, y)) inside.push([x, y]);
       }
     }
     if (!inside.length) continue;
     for (const other of wards) {
       if (other === ward || other.bbox[0] > ward.bbox[2] || other.bbox[2] < ward.bbox[0]
           || other.bbox[1] > ward.bbox[3] || other.bbox[3] < ward.bbox[1]) continue;
-      const shared = inside.filter(([x, y]) => pointInRings(x, y, other.rings)).length;
+      const shared = inside.filter(([x, y]) => wardHolds(other, x, y)).length;
       if (shared) pairs.push({ a: ward.code, b: other.code, share: shared / inside.length });
     }
   }
@@ -851,8 +959,11 @@ export function buildSnapshot(source, rawBytes, { retrievedAt = today(), sourceL
     entry.rings = ward.rings;
     return entry;
   });
-  const contained = new Set(overlapPairs(drawn).filter((pair) => pair.share > CONTAINED_SHARE).flatMap((pair) => [pair.a, pair.b]));
-  const wards = drawn.filter((ward) => !contained.has(ward.code));
+  // Polygons the registry names as not a ward, with the evidence.
+  const refused = drawn.filter((ward) => source.leave_out?.[ward.no]);
+  const sound = drawn.filter((ward) => !source.leave_out?.[ward.no]);
+  const contained = new Set(overlapPairs(sound).filter((pair) => pair.share > CONTAINED_SHARE).flatMap((pair) => [pair.a, pair.b]));
+  const wards = sound.filter((ward) => !contained.has(ward.code));
   const overlaps = overlapPairs(wards);
   return {
     _comment: `Ward polygons of ${source.body}, copied from the source named in provenance. Same shape as `
@@ -897,7 +1008,8 @@ export function buildSnapshot(source, rawBytes, { retrievedAt = today(), sourceL
       rings_dropped_under_four_points: counters.dropped,
       rings_dropped_enclosing_nothing: counters.degenerate,
       wards_left_out_no_usable_ring: counters.emptied,
-      wards_left_out_inside_another_ward: drawn.filter((ward) => contained.has(ward.code)).map((ward) => [ward.no, ward.name].filter(Boolean).join(" ")),
+      wards_left_out_inside_another_ward: sound.filter((ward) => contained.has(ward.code)).map((ward) => [ward.no, ward.name].filter(Boolean).join(" ")),
+      wards_left_out_not_a_ward: refused.map((ward) => ({ ward: [ward.no, ward.name].filter(Boolean).join(" "), reason: source.leave_out[ward.no] })),
       overlap: {
         method: `share of a ward's ${OVERLAP_GRID}x${OVERLAP_GRID} grid samples that a second ward of the body also holds`,
         worst_pair_share: overlaps.length ? Number(overlaps[0].share.toFixed(4)) : 0,
@@ -906,6 +1018,7 @@ export function buildSnapshot(source, rawBytes, { retrievedAt = today(), sourceL
       },
       ...(parsed.broken?.length ? { relations_left_out_boundary_not_closed: parsed.broken } : {}),
     },
+    use: source.use,
     count: wards.length,
     named: wards.filter((ward) => ward.name).length,
     numbered: wards.filter((ward) => ward.no).length,
@@ -947,7 +1060,7 @@ async function snapshotOne(source, { offline, rawFile, allowUnlicensed }) {
     if (rawFile) rawFrom = `${source.url} (downloaded by hand)`;
     if (previous?.provenance?.raw_sha256 === sha256(bytes)) {
       retrievedAt = previous.retrieved_at;
-      edited = previous.source_last_edited;
+      edited = previous.source_last_edited ?? await lastEdited(source);
     } else {
       retrievedAt = fs.statSync(held).mtime.toISOString().slice(0, 10);
       edited = offline ? await lastEdited(source) : null;
@@ -992,6 +1105,7 @@ export function buildIndex() {
       retrieved_at: snapshot.retrieved_at,
       source_last_edited: snapshot.source_last_edited,
       vintage: snapshot.provenance.vintage,
+      use: snapshot.use,
     });
   }
   let localities = null;
@@ -1055,7 +1169,7 @@ async function main() {
   const options = { offline: flag("--offline"), rawFile: value("--raw"), allowUnlicensed: flag("--allow-unlicensed") };
   if (flag("--list")) {
     for (const source of SOURCES) {
-      console.log(`${source.id.padEnd(30)} ${committable(source) ? "commit " : "skip   "} ${source.licence_status.padEnd(11)} ${source.kind.padEnd(11)} ${source.publisher}`);
+      console.log(`${source.id.padEnd(30)} ${source.unopened ? "unread " : committable(source) ? "commit " : "skip   "} ${source.licence_status.padEnd(11)} ${source.kind.padEnd(11)} ${source.publisher}`);
     }
     return;
   }
@@ -1065,7 +1179,7 @@ async function main() {
     if (!source) throw new Error(`No source ${value("--city")}; see --list`);
     await snapshotOne(source, options);
   } else if (flag("--all")) {
-    for (const source of SOURCES.filter(committable)) await snapshotOne(source, options);
+    for (const source of SOURCES.filter((entry) => committable(entry) && !entry.unopened)) await snapshotOne(source, options);
   } else if (!flag("--index")) {
     throw new Error("Nothing to do: pass --list, --verify, --city <STATE/city>, --all or --index");
   }

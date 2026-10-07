@@ -8,7 +8,7 @@ import { decodeRun, pointInRings } from "../service/spatial.mjs";
 import {
   CONTAINED_SHARE, INDEX_FORMAT, INDEX_PATH, MIN_RING_AREA, SCALE, SLIVER_SHARE, SNAPSHOT_FORMAT, SOURCES, STATE_BOX_PAD,
   WARDS_DIR, WORK_DIR, assembleRings, boxOfRings, buildIndex, buildSnapshot, committable, encodeRing, overlapPairs, parseKml,
-  root, sourceById, stateBox,
+  root, sourceById, stateBox, wardHolds,
 } from "../tools/snapshot-india-wards.mjs";
 
 // data/wards/<STATE>/<city>.json are ward polygons copied from open sources for cities
@@ -154,16 +154,21 @@ test("no two wards of one body overlap by more than a sliver", () => {
       `${entry.id}: ${(worst.share * 100).toFixed(1)}% of ${worst.a} also lies in ${worst.b}`);
     assert.equal(snapshot.provenance.overlap.worst_pair_share, Number(worst.share.toFixed(4)), `${entry.id}: recorded overlap`);
     assert.equal(snapshot.provenance.overlap.pairs_over_1_percent, pairs.filter((pair) => pair.share > 0.01).length, entry.id);
-    // Every ward can be found: some point of its box is in it.
+    // Every ward can be found: some point of its box is in it, and the service's own
+    // point test says so too.
     for (const ward of snapshot.wards) {
       const [x0, y0, x1, y1] = ward.bbox;
-      let found = false;
+      let found = null;
       for (let i = 0; i < 40 && !found; i += 1) {
         for (let j = 0; j < 40 && !found; j += 1) {
-          found = pointInRings(x0 + ((i + 0.5) / 40) * (x1 - x0), y0 + ((j + 0.5) / 40) * (y1 - y0), ward.rings);
+          const x = x0 + ((i + 0.5) / 40) * (x1 - x0);
+          const y = y0 + ((j + 0.5) / 40) * (y1 - y0);
+          if (wardHolds(ward, x, y)) found = [x, y];
         }
       }
       assert.ok(found, `${ward.code} holds no point of its own box`);
+      assert.equal(pointInRings(found[0], found[1], ward.rings), true, `${ward.code}: the tool and the service disagree`);
+      assert.equal(pointInRings(x0 - 5, y0 - 5, ward.rings), wardHolds(ward, x0 - 5, y0 - 5));
     }
   }
 });
@@ -181,7 +186,11 @@ test("named wards sit where their city has them", () => {
   };
   // Kanpur's file is Web Mercator with no CRS declared: this one misses by kilometres if
   // the conversion is wrong.
-  assert.deepEqual(wardAt("UP/kanpur", 26.4659, 80.2456), ["Panki"]);
+  assert.deepEqual(wardAt("UP/kanpur", 26.4066, 80.3240), ["Naubasta East"], "the place node called Naubasta");
+  // The file draws zones 5 and 6 as one polygon each, named Panki and Naramau. They are
+  // left out: Vijay Nagar and the place called Panki are in no ward, not in a wrong one.
+  assert.deepEqual(wardAt("UP/kanpur", 26.4623, 80.2940), [], "Vijay Nagar");
+  assert.deepEqual(wardAt("UP/kanpur", 26.4659, 80.2456), [], "Panki");
   assert.deepEqual(wardAt("UP/lucknow", 26.8676, 80.9550), ["Nishat Ganj"]);
   assert.deepEqual(wardAt("GJ/ahmedabad", 23.0360, 72.5643), ["NAVRANGPURA"]);
   assert.deepEqual(wardAt("GJ/vadodara", 22.2826, 73.2147), ["Pratap Nagar"]);

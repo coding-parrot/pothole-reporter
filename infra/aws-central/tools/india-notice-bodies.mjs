@@ -90,6 +90,9 @@ function body(kind, raw, how) {
   const name = tidy(raw);
   if (!name) return null;
   const city = CITY.get(name.toLowerCase()) || name;
+  if (city === "Hyderabad" && kind === "Municipal Corporation") {
+    return { kind, city, label: "Hyderabad (Greater Hyderabad, Cyberabad and Malkajgiri corporations)", how };
+  }
   return { kind, city, label: `${city} ${kind}`, how };
 }
 
