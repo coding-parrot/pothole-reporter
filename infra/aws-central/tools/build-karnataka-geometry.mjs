@@ -41,7 +41,7 @@ import { fileURLToPath } from "node:url";
 
 import { loadOwnershipBundle, polygonRings } from "../service/local-ownership.mjs";
 import { decodeRun } from "../service/spatial.mjs";
-import { KGIS_LAYERS, downloadLayer } from "./kgis-layers.mjs";
+import { KGIS_LAYERS, downloadLayer, politeJson } from "./kgis-layers.mjs";
 import { createOwnershipWriter } from "./ownership-bundle-writer.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -119,34 +119,22 @@ function boxOfRuns(runs) {
   return box;
 }
 
-// KGIS stalls on its query endpoints for minutes at a time, so a page is asked for up to
-// three times before the snapshot gives up. A page that answers is never re-read.
+// The town and ward layers are small enough to hold in memory, so they are read straight
+// into their snapshots, through the same polite client as the large layers: one request
+// at a time, a pause after each, retries with backoff.
 async function fetchPage(layer, fields, offset, size) {
-  const url = `${layer}/query?where=1%3D1&outFields=${encodeURIComponent(fields)}`
+  const page = await politeJson(`${layer}/query?where=1%3D1&outFields=${encodeURIComponent(fields)}`
     + "&returnGeometry=true&outSR=4326&geometryPrecision=6&orderByFields=OBJECTID"
-    + `&resultOffset=${offset}&resultRecordCount=${size}&f=json`;
-  let failure = null;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(120_000) });
-      if (!response.ok) throw new Error(`KGIS answered ${response.status} at offset ${offset}`);
-      const page = await response.json();
-      if (!Array.isArray(page.features)) {
-        throw new Error(`KGIS answered without features at offset ${offset}: ${JSON.stringify(page).slice(0, 200)}`);
-      }
-      if (page.spatialReference?.wkid !== 4326) throw new Error("KGIS did not answer in WGS84");
-      return page;
-    } catch (error) {
-      failure = error;
-    }
+    + `&resultOffset=${offset}&resultRecordCount=${size}&f=json`, { timeoutMs: 120_000, attempts: 4 });
+  if (!Array.isArray(page.features)) {
+    throw new Error(`KGIS answered without features at offset ${offset}: ${JSON.stringify(page).slice(0, 200)}`);
   }
-  throw failure;
+  if (page.spatialReference?.wkid !== 4326) throw new Error("KGIS did not answer in WGS84");
+  return page;
 }
 
 async function fetchLayer(layer, fields, pageSize, minimum) {
-  const countResponse = await fetch(`${layer}/query?where=1%3D1&returnCountOnly=true&f=json`,
-    { signal: AbortSignal.timeout(30_000) });
-  const expected = (await countResponse.json()).count;
+  const expected = (await politeJson(`${layer}/query?where=1%3D1&returnCountOnly=true&f=json`, { timeoutMs: 30_000 })).count;
   if (!Number.isInteger(expected) || expected < minimum) throw new Error(`${layer} count is ${expected}`);
   const features = [];
   for (let offset = 0; offset < expected;) {
