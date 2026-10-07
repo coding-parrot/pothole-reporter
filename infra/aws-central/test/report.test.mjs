@@ -305,11 +305,30 @@ test("a lock that stays held is still a retryable 425", async () => {
   const repository = reportRepository();
   let attempts = 0;
   repository.acquireLocationLocks = async () => { attempts += 1; return false; };
-  const h = await harness({ repository, geolocator, lockWaitMs: 0 });
+  const sleeps = [];
+  const h = await harness({ repository, geolocator, sleep: async (ms) => { sleeps.push(ms); } });
   const result = await h.post("/v1/potholes/report", reportBody(Date.now()));
   assert.equal(result.statusCode, 425);
   assert.equal(JSON.parse(result.body).error, "location_dedupe_in_progress");
-  assert.equal(attempts, 4);
+  // The same 1.5 s in all as the old 250, 500, 750 ms schedule, asked every 75 ms.
+  assert.equal(sleeps.reduce((sum, ms) => sum + ms, 0), 1500);
+  assert.equal(attempts, sleeps.length + 1);
+});
+
+// The wait used to be 250 ms, then 500, then 750. A lock is held for the 300 to 400 ms a
+// consolidation takes, so a report arriving just behind another slept 250 ms, missed,
+// slept 500 more and took the lock up to half a second after it was free: reports from
+// one drive measured 0.8 to 2.0 s on 7 Oct 2026, most of it asleep. It now asks every
+// 75 ms and takes the lock within one step of its release.
+test("a waiting report asks for the lock every 75 ms, not on a lengthening schedule", async () => {
+  const repository = reportRepository();
+  let attempts = 0;
+  repository.acquireLocationLocks = async () => { attempts += 1; return attempts >= 6; };
+  const sleeps = [];
+  const h = await harness({ repository, geolocator, sleep: async (ms) => { sleeps.push(ms); } });
+  const result = await h.post("/v1/potholes/report", reportBody(Date.now()));
+  assert.equal(result.statusCode, 200, result.body);
+  assert.deepEqual(sleeps, [75, 75, 75, 75, 75]);
 });
 
 // From 6 Oct 2026 the geolocator answers from its own snapshot of the KGIS polygons when

@@ -85,14 +85,15 @@ export function upstream(status, body) {
 }
 
 export async function harness({ repository = memoryRepository(), detector = {},
-  geolocator = {}, catalogue = null, lockWaitMs = 1, now = Date.now } = {}) {
+  geolocator = {}, catalogue = null, lockWaitMs = 1, now = Date.now, sleep } = {}) {
   const lines = { log: [], error: [] };
   const handle = createService({
     repository,
     detector,
     geolocator,
     catalogue,
-    lockWaitMs,
+    lockWaitMs: sleep ? undefined : lockWaitMs,
+    sleep,
     now,
     logger: {
       log: (line) => lines.log.push(line),

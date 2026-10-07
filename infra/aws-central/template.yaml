@@ -311,12 +311,15 @@ Resources:
   # Keeps one function instance started, with the ownership layers, ward polygons and a
   # street tile already read (service/warm.mjs). Without it the first person after a quiet
   # spell waited 580 to 664 ms more. The event reaches no route and is not counted as a
-  # request. About 10,800 invocations a month of a few milliseconds each.
+  # request. Every minute it also re-reads the map rows, the impact period and
+  # Bengaluru's tender index into memory (the map's rows are served for two minutes at
+  # most, so a slower beat left the map's first visitor after a quiet spell waiting on
+  # the table). About 43,200 invocations a month of under 100 ms each.
   WarmSchedule:
     Type: AWS::Events::Rule
     Properties:
       Description: Keeps one central function instance started.
-      ScheduleExpression: rate(4 minutes)
+      ScheduleExpression: rate(1 minute)
       State: ENABLED
       Targets:
         - Id: central-warm

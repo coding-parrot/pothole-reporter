@@ -39,7 +39,9 @@ const CAPTURE_SOURCES = new Set(["manual", "drive_live", "drive_vod", "imported_
 const FEEDBACK_TEST_MODES = new Set(["bike", "car", "walk", "other"]);
 const FEEDBACK_TEXT_MAX = 2_000;
 const OBSERVED_AHEAD_MS = 10 * 60_000;
-const LOCK_ATTEMPTS = 4;
+// A report waits this long in all for a nearby report's location lock (the old 250, 500,
+// 750 ms schedule added up to the same), asking every lockWaitMs.
+const LOCK_WAIT_BUDGET_MS = 1500;
 const READ_ONLY_ROUTES = new Set(["/v1/tenders/resolve"]);
 // A municipal body may be named by the live KGIS register or, when KGIS cannot answer,
 // by the service's snapshot of the same register's polygons. Either carries an LGD code
@@ -241,7 +243,7 @@ function freshFor(ttlMs, { maximum = 64, now = Date.now } = {}) {
     while (entries.size > maximum) entries.delete(entries.keys().next().value);
     return pending;
   };
-  return (key, loader) => {
+  const read = (key, loader) => {
     const entry = entries.get(key);
     if (!entry || !entry.has) return entry?.pending || load(key, loader);
     const age = now() - entry.at;
@@ -250,6 +252,10 @@ function freshFor(ttlMs, { maximum = 64, now = Date.now } = {}) {
     if (!entry.pending) load(key, loader).catch(() => {});
     return Promise.resolve(entry.value);
   };
+  // Reads again whatever is held and waits for it: the scheduled warm-up's way of keeping
+  // a value in memory, so that no caller ever meets one four lifetimes old.
+  read.refresh = (key, loader) => load(key, loader);
+  return read;
 }
 
 // Where a request's time goes. Every call into the database, the detector, the
@@ -300,7 +306,8 @@ const newTimings = () => ({
 
 export function createService({
   repository: rawRepository, detector: rawDetector, geolocator: rawGeolocator,
-  catalogue: rawCatalogue = null, logger = console, lockWaitMs = 250, now = Date.now,
+  catalogue: rawCatalogue = null, logger = console, lockWaitMs = 75, now = Date.now,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 } = {}) {
   if (!rawRepository || !rawDetector || !rawGeolocator) throw new Error("Service dependencies are required.");
   const repository = timed(rawRepository, "db");
@@ -898,10 +905,12 @@ export function createService({
     const cells = nearbyCells(lat, lng, repository.dedupeRadiusMetres);
     // Consolidating a nearby report holds the lock for a few hundred milliseconds, and
     // a drive sends frames from the same spot seconds apart. Wait that long here rather
-    // than hand the phone a 425 to retry; a lock that stays held is still refused.
-    let locked = false;
-    for (let attempt = 0; attempt < LOCK_ATTEMPTS && !locked; attempt += 1) {
-      if (attempt) await new Promise((resolve) => setTimeout(resolve, lockWaitMs * attempt));
+    // than hand the phone a 425 to retry; a lock that stays held is still refused. The
+    // lock is asked for every lockWaitMs, so it is taken within one step of its release
+    // (a lengthening wait slept through up to half a second of a free lock).
+    let locked = await repository.acquireLocationLocks(cells, context.requestId);
+    for (let waited = 0; !locked && waited + lockWaitMs <= LOCK_WAIT_BUDGET_MS && lockWaitMs > 0; waited += lockWaitMs) {
+      await sleep(lockWaitMs);
       locked = await repository.acquireLocationLocks(cells, context.requestId);
     }
     if (!locked) {
@@ -1003,6 +1012,32 @@ export function createService({
     });
   }
 
+  const mapKey = (since, bbox, limit) => `${since ?? ""}|${bbox ?? ""}|${limit}`;
+  const impactKey = (from, to) => `${from}|${to}`;
+  // The two map requests that are actually made: the plain one, and the app's with the
+  // service maximum.
+  const WARM_MAP_LIMITS = [1_000, 2_000];
+
+  // What the scheduled warm-up keeps in memory so that no person pays for it (see
+  // warm.mjs): the map rows and the impact period as the routes read them by default,
+  // and, for the given point, everything a lookup there builds on its first use on an
+  // instance (the town's tender rows and the ward tender index made from them). It is
+  // not a request: nothing is logged, counted or returned.
+  async function keepWarm({ lat, lng } = {}) {
+    const from = today(Date.now() - 29 * 86_400_000);
+    const to = today();
+    const jobs = [
+      ...WARM_MAP_LIMITS.map((limit) => mapRows.refresh(mapKey(undefined, undefined, limit),
+        () => rawRepository.listPotholes({ since: Date.now() - 180 * 86_400_000, bbox: null, limit }))),
+      impactRows.refresh(impactKey(from, to), () => rawRepository.impact({ from, to })),
+    ];
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      jobs.push(Promise.resolve(rawGeolocator.resolve({ lat, lng })).then((jurisdiction) => routing(jurisdiction, {})));
+    }
+    const failed = (await Promise.allSettled(jobs)).find((job) => job.status === "rejected");
+    if (failed) throw failed.reason;
+  }
+
   async function publicMap(event, context) {
     const params = query(event);
     const since = params.since == null ? Date.now() - 180 * 86_400_000 : Number(params.since);
@@ -1019,7 +1054,7 @@ export function createService({
         throw new HttpError(400, "bad_bbox", "bbox must be west,south,east,north.");
       }
     }
-    const potholes = await mapRows(`${params.since ?? ""}|${params.bbox ?? ""}|${limit}`,
+    const potholes = await mapRows(mapKey(params.since, params.bbox, limit),
       () => repository.listPotholes({ since, bbox, limit }));
     context.outcome = "map_read";
     return response(200, {
@@ -1045,7 +1080,7 @@ export function createService({
         || Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`) > 90 * 86_400_000) {
       throw new HttpError(400, "bad_period", "Use a valid period of at most 90 days.");
     }
-    const data = await impactRows(`${from}|${to}`, () => repository.impact({ from, to }));
+    const data = await impactRows(impactKey(from, to), () => repository.impact({ from, to }));
     const requestsTotal = data.requests.reduce((sum, item) => sum + item.count, 0);
     const captureTotal = data.captures.reduce((sum, item) => sum + item.count, 0);
     context.outcome = "impact_read";
@@ -1251,9 +1286,11 @@ export function createService({
     return result;
   }
 
-  return function handle(event, awsContext = {}) {
+  function handle(event, awsContext = {}) {
     const timings = newTimings();
     return profile.run(timings, async () => compressed(
       await handleProfiled(event, awsContext, timings), event));
-  };
+  }
+  handle.keepWarm = keepWarm;
+  return handle;
 }

@@ -65,4 +65,6 @@ export const handler = createWarmHandler({
     geolocator.resolve(WARM_POINT),
     secretProvider(),
   ]),
+  // Every minute: the map rows, the impact period and Bengaluru's tender index.
+  tick: () => service.keepWarm(WARM_POINT),
 });

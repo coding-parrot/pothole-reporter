@@ -8,15 +8,21 @@
 // WarmSchedule rule exists only to make an instance do it before a person arrives. That
 // event is not a request: it reaches no route, writes no request log line and counts in
 // no metric.
-export function createWarmHandler({ service, warm, logger = console }) {
-  const warmed = Promise.resolve().then(warm).catch((error) => {
-    logger.error(JSON.stringify({
-      event: "warm_failed", error_message: String(error?.message || error).slice(0, 300),
-    }));
-  });
+//
+// `tick` runs on every warm event and never on a request: it re-reads what the service
+// keeps in memory for a short while (the map rows, the impact period, a town's tender
+// index), so a person arriving after a quiet spell is answered from memory.
+export function createWarmHandler({ service, warm, tick = null, logger = console }) {
+  const failed = (event) => (error) => {
+    logger.error(JSON.stringify({ event, error_message: String(error?.message || error).slice(0, 300) }));
+  };
+  const warmed = Promise.resolve().then(warm).catch(failed("warm_failed"));
   return async (event, context) => {
     await warmed;
-    if (event && event.warm === true) return { warmed: true };
+    if (event && event.warm === true) {
+      if (tick) await Promise.resolve().then(tick).catch(failed("warm_tick_failed"));
+      return { warmed: true };
+    }
     return service(event, context);
   };
 }
