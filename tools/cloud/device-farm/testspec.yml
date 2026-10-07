@@ -40,6 +40,8 @@ phases:
   test:
     commands:
       - cd $DEVICEFARM_TEST_PACKAGE_PATH
+      # phone-test.sh --extra-drives turns this 0 into a 1.
+      - export POTHOLE_EXTRA_DRIVES=0
       - python tests/test_first_run.py
 
   post_test:

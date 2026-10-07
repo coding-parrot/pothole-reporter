@@ -2,27 +2,38 @@
 """First run of the signed release on a real phone, driven through Appium.
 
 Runs on the AWS Device Farm test host (see ../testspec.yml). It does what
-tools/harness/emulator-smoke.sh does on the emulator, and a little more:
+tools/harness/emulator-smoke.sh does on the emulator, and more:
 
   fresh install, launch, Home, Drive, Continue on the camera and location notice, both
-  system permission sheets, the live drive for 20 s with the camera running, Stop,
-  Settings and back, the app's own record of JavaScript errors, then the logcat scan.
+  system permission sheets, the live drive left alone for 20 s, Stop, Settings and back,
+  the app's own record of JavaScript errors; then, with Appium closed, one more drive in
+  a fresh process started by two adb taps; then the logcat scan.
+
+A drive passes when the HUD does not say "Camera paused" and the app opened the camera
+exactly once for it (counted in logcat). The drive after Appium is closed is the app as a
+driver has it: no UiAutomator, no accessibility client. It exists because reading the
+screen changes what a WebView does, and a failure seen only while the test was looking
+would prove nothing. POTHOLE_EXTRA_DRIVES=1 (phone-test.sh --extra-drives) adds a second
+untouched drive and one whose HUD is read every second.
 
 The release build is not debuggable, so there is no WebView context to attach to. The
 page is read through the accessibility tree instead (Appium's native context): a
 Chromium WebView publishes its buttons and text there once an accessibility client is
 connected, which UiAutomator2 is. System permission sheets are found with the same rules
-the emulator smoke uses (permission-button.py, copied in next to this file).
+the emulator smoke uses (permission-button.py, copied in next to this file). On a
+debuggable build the WebView context is there, and the test also records what the page
+itself sees (video element, camera track, watchdog fields, every canvas.toBlob).
 
 Only the Python standard library is used: the client speaks WebDriver to the Appium
 server the test spec starts, so the test host installs nothing.
 
 Output, all under $DEVICEFARM_LOG_DIR/pothole (collected as customer artifacts):
-  result.json            one verdict per step, dialogs seen, drive samples, findings
+  result.json            one verdict per step, per-drive camera opens, dialogs, findings
   NN-<step>.png / .xml   screenshot and accessibility tree at each step
   logcat.txt.gz          the whole device log for the run
   logcat-findings.txt    the lines that failed the scan, with context
-Exit status 1 when a step failed or the scan found a crash, an ANR or a JS error.
+Exit status 1 when a step failed, a drive reopened the camera, or the scan found a
+crash, an ANR or a JS error.
 """
 import base64
 import gzip
@@ -47,6 +58,7 @@ STARTED = time.time()
 # the artifacts are always written.
 BUDGET_SECONDS = float(os.environ.get("POTHOLE_TEST_BUDGET_SECONDS", "440"))
 DRIVE_SECONDS = 20
+EXTRA_DRIVES = os.environ.get("POTHOLE_EXTRA_DRIVES", "0") == "1"
 
 # The same patterns tools/harness/emulator-smoke.sh greps, plus the two ways Android
 # itself reports a dead or hung process.
@@ -898,11 +910,16 @@ def scan_logcat():
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    steps = [launch, home, drive_notice, permissions, live_drive, stop_drive, second_drive,
-             watched_drive, settings, recorded_errors]
+    # The first drive and the unattended one (after Appium is closed) decide the verdict.
+    # --extra-drives adds two more for when a drive misbehaves and the HUD is wanted
+    # second by second; a debuggable build always gets them, for the page's own record.
+    steps = [launch, home, drive_notice, permissions, live_drive, stop_drive]
+    steps += [settings, recorded_errors]
     try:
         if launch():
-            for run in steps[1:]:
+            if home() and (EXTRA_DRIVES or state.get("webview")):
+                steps[6:6] = [second_drive, watched_drive]
+            for run in steps[2:]:
                 state["on_home"] = False
                 if run() and run in (recorded_errors, settings, watched_drive, second_drive, stop_drive):
                     state["on_home"] = True

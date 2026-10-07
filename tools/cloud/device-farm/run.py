@@ -112,7 +112,7 @@ def device_pool(project):
     return pool["arn"]
 
 
-def schedule(apk, only, name):
+def schedule(apk, only, name, extra_drives=False):
     if not apk.endswith(".apk") or not os.path.isfile(apk):
         sys.exit("give the path to a signed .apk (got %s)" % apk)
     project = project_arn()
@@ -126,8 +126,15 @@ def schedule(apk, only, name):
     with tempfile.TemporaryDirectory() as folder:
         package = build_test_package(folder)
         tests = upload(project, package, "first-run-%s.zip" % sha12(package), "APPIUM_PYTHON_TEST_PACKAGE")
-    spec_path = os.path.join(HERE, "testspec.yml")
-    spec = upload(project, spec_path, "first-run-%s.yml" % sha12(spec_path), "APPIUM_PYTHON_TEST_SPEC")
+    with tempfile.TemporaryDirectory() as folder:
+        text = open(os.path.join(HERE, "testspec.yml")).read()
+        if extra_drives:
+            if "POTHOLE_EXTRA_DRIVES=0" not in text:
+                sys.exit("testspec.yml no longer has the POTHOLE_EXTRA_DRIVES=0 line --extra-drives edits")
+            text = text.replace("POTHOLE_EXTRA_DRIVES=0", "POTHOLE_EXTRA_DRIVES=1")
+        spec_path = os.path.join(folder, "testspec.yml")
+        open(spec_path, "w").write(text)
+        spec = upload(project, spec_path, "first-run-%s.yml" % sha12(spec_path), "APPIUM_PYTHON_TEST_SPEC")
 
     print("2/4 scheduling the run")
     arguments = ["schedule-run", "--project-arn", project, "--app-arn", app["arn"],
@@ -286,6 +293,8 @@ def main():
     parser.add_argument("apk", nargs="?", help="path to the signed release APK")
     parser.add_argument("--only", help="run on the devices whose name contains this (a cheaper trial run)")
     parser.add_argument("--name", help="run name shown in the Device Farm console")
+    parser.add_argument("--extra-drives", action="store_true",
+                        help="two more drives per phone, one with the HUD read every second")
     parser.add_argument("--wait-minutes", type=int, default=45, help="give up and stop the run after this long")
     parser.add_argument("--no-wait", action="store_true", help="schedule, print the run ARN and return")
     parser.add_argument("--status", metavar="RUN_ARN", help="print one status line for a run")
@@ -301,7 +310,7 @@ def main():
         return 0 if collect(options.collect) else 1
     if not options.apk:
         parser.error("give the path to the signed APK")
-    run_arn, folder = schedule(options.apk, options.only, options.name)
+    run_arn, folder = schedule(options.apk, options.only, options.name, options.extra_drives)
     if options.no_wait:
         return 0
     wait(run_arn, options.wait_minutes)
