@@ -262,10 +262,26 @@ def markdown(report):
             cells.append("n/a" if p["auc"] is None else
                          f"{p['auc']:.3f}, {percent(p['cleared_share_at_own_98_recall'])}")
         lines.append(f"| {name} | " + " | ".join(cells) + " |")
-    lines += ["", "## v2 against v1", ""]
+    lines += ["", "## v2 against v1", "",
+              "Both at the validation-98% threshold of the same validation split (the gate), then "
+              "against v1 as deployed today. A slice is a win only when recall and cleared share are "
+              "both not lower. The matched column moves v1's threshold until it has v2's recall on "
+              "that slice, to show which model clears more at equal recall.", ""]
     for name, verdict in report["comparisons"].items():
-        lines.append(f"- {name}: beats v1 on every slice: **{verdict['v2_beats_v1_on_every_slice']}**. "
-                     + "; ".join(f"{k} {v['verdict']}" for k, v in verdict["by_slice"].items()))
+        for title, block in (("gate: v1 calibrated on the same validation", verdict),
+                             ("v1 as deployed", verdict["against_v1_as_deployed"])):
+            lines += [f"### {name}, {title}: beats v1 on every slice: {block['v2_beats_v1_on_every_slice']}", "",
+                      "| Slice | v2 recall, cleared | v1 recall, cleared | v1 cleared at v2's recall | Verdict |",
+                      "|---|---|---|---|---|"]
+            for key, entry in block["by_slice"].items():
+                if "v2_recall" in entry:
+                    new = f"{percent(entry['v2_recall'])}, {percent(entry.get('v2_cleared'))}"
+                    old = f"{percent(entry['v1_recall'])}, {percent(entry.get('v1_cleared'))}"
+                else:
+                    new, old = str(entry["v2"]), str(entry["v1"])
+                matched = percent(entry["v1_cleared_at_v2_recall"]) if "v1_cleared_at_v2_recall" in entry else ""
+                lines.append(f"| {key} | {new} | {old} | {matched} | {entry['verdict']} |")
+            lines.append("")
     return "\n".join(lines) + "\n"
 
 
@@ -309,9 +325,14 @@ def main():
     for stem in args.variants:
         if stem == args.baseline:
             continue
+        # The gate: v1 given its threshold by the same validation split and rule.
         report["comparisons"][stem] = compare(
             report["variants"][stem]["val98"], report["variants"][args.baseline]["val98"],
             kept[stem], kept[args.baseline], rows, report["variants"][args.baseline]["val98"]["threshold"])
+        # For the reader: v1 exactly as it is deployed today (its released threshold).
+        report["comparisons"][stem]["against_v1_as_deployed"] = compare(
+            report["variants"][stem]["val98"], report["variants"][args.baseline]["v1_as_deployed"],
+            kept[stem], kept[args.baseline], rows, V1_DEPLOYED_RAW)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     # Counts made from numpy comparisons are numpy integers; JSON wants plain ones.
