@@ -125,75 +125,81 @@ function signed() {
   return (raw >>> 1) ^ -(raw & 1);
 }
 
-// One pass to count the grid cells each street touches and one to fill them. A street is
-// filed under every cell a segment's box overlaps; anything past the grid's edge is
-// filed under the edge cell.
+// One pass over the streets notes every (cell, street) pair; the pairs are then counted
+// and dealt into one list per cell. A street is filed under every cell a segment's box
+// overlaps; anything past the grid's edge is filed under the edge cell.
 function indexStreets(tile) {
   const { header, cols, rows, cell, margin } = tile;
   const limit = SNAP_LIMIT_DEGREES * tile.scale;
   const end = header.sections.streets[0] + header.sections.streets[1];
-  const lastStreet = new Int32Array(cols * rows);
+  const lastStreet = new Int32Array(cols * rows).fill(-1);
   const counts = new Uint32Array(cols * rows);
-  const column = (value) => Math.max(0, Math.min(cols - 1, Math.floor(value / cell) + margin));
-  const row = (value) => Math.max(0, Math.min(rows - 1, Math.floor(value / cell) + margin));
-  let fill = null;
-  for (let pass = 0; pass < 2; pass += 1) {
-    source = tile.bytes;
-    cursor = header.sections.streets[0];
-    lastStreet.fill(-1);
-    for (let street = 0; street < header.counts.streets; street += 1) {
-      if (cursor >= end) throw new Error("street tile streets are short");
-      if (pass === 0) tile.streetOffset[street] = cursor;
-      const flags = unsigned();
-      if (flags & FLAG_NAME) unsigned();
-      if (flags & FLAG_REF) unsigned();
-      unsigned();
-      const closed = (flags & FLAG_CLOSED) !== 0;
-      const centreX = closed ? signed() : 0;
-      const centreY = closed ? signed() : 0;
-      const points = unsigned();
-      let x = signed();
-      let y = signed();
-      let minX = x; let maxX = x; let minY = y; let maxY = y;
-      const file = (x0, x1, y0, y1) => {
-        for (let cy = y0; cy <= y1; cy += 1) {
-          for (let cx = x0; cx <= x1; cx += 1) {
-            const index = cy * cols + cx;
-            if (lastStreet[index] === street) continue;
-            lastStreet[index] = street;
-            if (pass === 0) counts[index] += 1;
-            else { tile.cellItems[fill[index]] = street; fill[index] += 1; }
-          }
-        }
-      };
-      if (points === 1) file(column(x), column(x), row(y), row(y));
-      for (let point = 1; point < points; point += 1) {
-        const nx = x + signed();
-        const ny = y + signed();
-        file(column(Math.min(x, nx)), column(Math.max(x, nx)), row(Math.min(y, ny)), row(Math.max(y, ny)));
-        x = nx; y = ny;
-        if (x < minX) minX = x; else if (x > maxX) maxX = x;
-        if (y < minY) minY = y; else if (y > maxY) maxY = y;
-      }
-      // A closed way is a polygon: a point inside it is at distance zero, wherever its
-      // edges are. It counts only within the snap limit of its centre, so it is also
-      // filed under the cells of its box that are that near the centre.
-      if (closed && Math.max(minX, centreX - limit) <= Math.min(maxX, centreX + limit)
-          && Math.max(minY, centreY - limit) <= Math.min(maxY, centreY + limit)) {
-        file(column(Math.max(minX, centreX - limit)), column(Math.min(maxX, centreX + limit)),
-          row(Math.max(minY, centreY - limit)), row(Math.min(maxY, centreY + limit)));
+  const maxCol = cols - 1;
+  const maxRow = rows - 1;
+  let pairs = new Uint32Array(Math.max(1_024, header.counts.streets * 4));
+  let used = 0;
+  let street = 0;
+  // File the current street under every cell of a box given in tile units.
+  const file = (minX, maxX, minY, maxY) => {
+    let x0 = Math.floor(minX / cell) + margin; if (x0 < 0) x0 = 0; else if (x0 > maxCol) x0 = maxCol;
+    let x1 = Math.floor(maxX / cell) + margin; if (x1 < 0) x1 = 0; else if (x1 > maxCol) x1 = maxCol;
+    let y0 = Math.floor(minY / cell) + margin; if (y0 < 0) y0 = 0; else if (y0 > maxRow) y0 = maxRow;
+    let y1 = Math.floor(maxY / cell) + margin; if (y1 < 0) y1 = 0; else if (y1 > maxRow) y1 = maxRow;
+    for (let cy = y0; cy <= y1; cy += 1) {
+      for (let cx = x0; cx <= x1; cx += 1) {
+        const index = cy * cols + cx;
+        if (lastStreet[index] === street) continue;
+        lastStreet[index] = street;
+        counts[index] += 1;
+        if (used + 2 > pairs.length) { const grown = new Uint32Array(pairs.length * 2); grown.set(pairs); pairs = grown; }
+        pairs[used] = index;
+        pairs[used + 1] = street;
+        used += 2;
       }
     }
-    if (cursor !== end) throw new Error("street tile streets do not end where the header says");
-    if (pass === 0) {
-      let total = 0;
-      for (let index = 0; index < counts.length; index += 1) { tile.cellStart[index] = total; total += counts[index]; }
-      tile.cellStart[counts.length] = total;
-      tile.cellItems = new Uint32Array(total);
-      fill = tile.cellStart.slice(0, counts.length);
+  };
+  source = tile.bytes;
+  cursor = header.sections.streets[0];
+  for (street = 0; street < header.counts.streets; street += 1) {
+    if (cursor >= end) throw new Error("street tile streets are short");
+    tile.streetOffset[street] = cursor;
+    const flags = unsigned();
+    if (flags & FLAG_NAME) unsigned();
+    if (flags & FLAG_REF) unsigned();
+    unsigned();
+    const closed = (flags & FLAG_CLOSED) !== 0;
+    const centreX = closed ? signed() : 0;
+    const centreY = closed ? signed() : 0;
+    const points = unsigned();
+    let x = signed();
+    let y = signed();
+    let minX = x; let maxX = x; let minY = y; let maxY = y;
+    if (points === 1) file(x, x, y, y);
+    for (let point = 1; point < points; point += 1) {
+      const nx = x + signed();
+      const ny = y + signed();
+      file(x < nx ? x : nx, x < nx ? nx : x, y < ny ? y : ny, y < ny ? ny : y);
+      x = nx; y = ny;
+      if (x < minX) minX = x; else if (x > maxX) maxX = x;
+      if (y < minY) minY = y; else if (y > maxY) maxY = y;
+    }
+    // A closed way is a polygon: a point inside it is at distance zero, wherever its
+    // edges are. It counts only within the snap limit of its centre, so it is also
+    // filed under the cells of its box that are that near the centre.
+    if (closed && Math.max(minX, centreX - limit) <= Math.min(maxX, centreX + limit)
+        && Math.max(minY, centreY - limit) <= Math.min(maxY, centreY + limit)) {
+      file(Math.max(minX, centreX - limit), Math.min(maxX, centreX + limit),
+        Math.max(minY, centreY - limit), Math.min(maxY, centreY + limit));
     }
   }
   source = null;
+  if (cursor !== end) throw new Error("street tile streets do not end where the header says");
+  let total = 0;
+  for (let index = 0; index < counts.length; index += 1) { tile.cellStart[index] = total; total += counts[index]; }
+  tile.cellStart[counts.length] = total;
+  tile.cellItems = new Uint32Array(total);
+  const fill = tile.cellStart.slice(0, counts.length);
+  for (let at = 0; at < used; at += 2) { tile.cellItems[fill[pairs[at]]] = pairs[at + 1]; fill[pairs[at]] += 1; }
 }
 
 function covered(tile, lat, lng) {
