@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 
 import { INDIA_WARDS_DIR, createIndiaWards } from "../service/india-wards.mjs";
 import { RUNTIME_PATH } from "../tools/india-ward-runtime.mjs";
@@ -37,6 +38,26 @@ test("the staged copy holds only what is switched on, and the service answers fr
   const wards = createIndiaWards({ dir: out, logger: { error(line) { throw new Error(line); } } });
   assert.equal((await wards.locate(22.95558, 72.53967)).ward.name, "LAMBHA");
   assert.equal((await wards.locate(23.21383, 77.42127)).ward.no, "47");
+});
+
+// The package as deploy.sh lays it out: infra/aws-central/service beside data/. The
+// service finds the ward files by a path relative to itself, so a copy of the service in
+// that layout has to answer from the staged files with nothing else of the repo present.
+test("a copy of the service in the package layout names the ward from the staged files", async () => {
+  const pkg = mkdtempSync(path.join(os.tmpdir(), "package-"));
+  cpSync(path.join(root, "infra/aws-central/service"), path.join(pkg, "infra/aws-central/service"), { recursive: true });
+  stageIndiaWards(root, path.join(pkg, "data/wards"));
+  const { createGeolocator } = await import(pathToFileURL(path.join(pkg, "infra/aws-central/service/geolocation.mjs")).href);
+  const errors = [];
+  const geolocator = createGeolocator({ logger: { error: (line) => errors.push(line), log() {} },
+    fetchImpl: async () => { throw new Error("no network in this test"); } });
+  const lambha = await geolocator.resolve({ lat: 22.95558, lng: 72.53967 });
+  assert.deepEqual([lambha.ward_name, lambha.lookup.ward, lambha.lookup.ward_snapshot], ["LAMBHA", "resolved", "GJ/ahmedabad"]);
+  const bhopal = await geolocator.resolve({ lat: 23.21383, lng: 77.42127 });
+  assert.deepEqual([bhopal.ward_no, bhopal.lookup.ward_snapshot], ["47", "MP/bhopal"]);
+  // Jaipur's file is committed and not switched on: it is not in the package, and is not missed.
+  assert.equal((await geolocator.resolve({ lat: 26.9239, lng: 75.8267 })).lookup.ward, "out_of_scope");
+  assert.deepEqual(errors, []);
 });
 
 test("staging refuses a snapshot that is missing or is not the file the list pinned", () => {

@@ -47,10 +47,8 @@ const UNITS = new Set(["zone", "zon", "zonal", "circle", "cir", "division", "div
 const JOINING = new Set(["the", "of", "at", "in", "from", "to", "and", "near", "for", "on", "by",
   "with", "under", "as", "per", "via", "upto", "up", "its", "all", "within", "including",
   "other", "others", "different", "various", "diff", "each", "every", "any", "said", "same", "this"]);
-// A word after a name that makes it another place (Shastri Nagar is not Shastri) or a
-// road ("Ward 5 Station Road").
-const NAME_FORMING = new Set(["nagar", "nagara", "pura", "puram", "pur", "palya", "colony", "town",
-  "layout", "block", "vihar", "enclave", "garden", "gam", "gaon", "village", "area"]);
+// A run of words that ends in one of these, or runs into one, is a road's name and not a
+// ward's: "Ward 5 Station Road".
 const ROAD_WORDS = new Set(["road", "rd", "marg", "street", "st", "lane", "gali", "salai", "path",
   "highway", "bypass", "chowk", "chauraha", "junction", "flyover", "bridge", "main", "cross"]);
 
@@ -81,7 +79,6 @@ const insideList = (gap) => /^[\s,&]*$/.test(gap) && gap.length <= 3;
 
 const lettersIn = (text) => text.replace(/[^a-z]/g, "").length;
 
-const markerCache = new Map();
 // What a title says on its ward markers.
 //   numbers  every ward number, in the order written
 //   names    for each marker that carries a name, the runs of words that may be it, the
@@ -93,10 +90,6 @@ const markerCache = new Map();
 // number or to a separator ("W06", "W-64", "D150"), and `words` its other markers ("div",
 // "dn" in Chennai, where a division is a ward). Elsewhere "div-5" is a works division.
 export function wardMarkersIn(title, { letters = [], words = [] } = {}) {
-  const cacheKey = `${letters.join("")}|${words.join(",")}|${title}`;
-  const held = markerCache.get(cacheKey);
-  if (held) return held;
-  if (markerCache.size >= 8_000) markerCache.clear();
   const tokens = tokensOf(title);
   const numbers = [];
   const names = [];
@@ -154,15 +147,16 @@ export function wardMarkersIn(title, { letters = [], words = [] } = {}) {
     if (end > at && end - at <= 3 && !runsOn && !ROAD_WORDS.has(last.text) && lettersIn(run) >= 3
         && !(next?.number && next.gap === "")) names.push([run]);
   }
-  const markers = { numbers: [...new Set(numbers)], names };
-  markerCache.set(cacheKey, markers);
-  return markers;
+  return { numbers: [...new Set(numbers)], names };
 }
 
 // The wards of a roster a title's markers name. For each marker the longest run that is
 // a ward's name decides ("New Wadaj ward" is New Wadaj, never a Wadaj). A run that fits
-// more than one ward names none: "Yashoda Nagar" fits Yashoda Nagar East and Yashoda Nagar
-// West, and a title that does not say which is answered for neither.
+// more than one ward names none: Lucknow's "Janakipuram Ward II" fits Jankipuram 1st and
+// Jankipuram 2nd. And a ward that is one side of a place (Kanpur's Yashoda Nagar East and
+// Yashoda Nagar West) is named only by a title that says the side; "Ward 66 Yashoda
+// Nagar" is answered for neither. The spellings are compared as ward-tenders.mjs
+// compares them ("Shahibaug" is SHAHIBAG, "Vatwa" is VATVA).
 function namedWards(names, roster) {
   const found = new Set();
   for (const runs of names) {
@@ -191,15 +185,16 @@ function rosterOf(snapshot) {
   return rosters.get(snapshot);
 }
 
-// The notices of one body in a State's pack that could be shown at all, each with what
-// its ward markers say. Worked out once per pack per body: a pack is read once per
-// process and Uttar Pradesh's holds 1,664 notices. The admission rules are those of
-// roadNoticeCandidates in national-tenders.mjs, less the closing date, which moves.
+// The notices of one body in a State's pack, each with whether it could be shown at all
+// and what its ward markers say. Worked out once per pack per loaded snapshot: both are
+// read once per process, and Uttar Pradesh's pack holds 1,664 notices. The admission
+// rules are those of roadNoticeCandidates in national-tenders.mjs, less the closing date,
+// which moves.
 const bodyNotices = new WeakMap();
 export function noticesOfBody(pack, snapshot) {
-  if (!bodyNotices.has(pack)) bodyNotices.set(pack, new Map());
+  if (!bodyNotices.has(pack)) bodyNotices.set(pack, new WeakMap());
   const held = bodyNotices.get(pack);
-  if (!held.has(snapshot.id)) {
+  if (!held.has(snapshot)) {
     const roster = rosterOf(snapshot);
     const rows = [];
     for (const record of Array.isArray(pack?.notices) ? pack.notices : []) {
@@ -214,14 +209,14 @@ export function noticesOfBody(pack, snapshot) {
         && tenderCoversCarriageway(record.title, record.tender_reference);
       const markers = wardMarkersIn(record.title, snapshot.markers);
       rows.push({
-        record, closes, shown, body: body.label,
+        record, closes, shown,
         numbers: markers.numbers,
         named: snapshot.by === "name" ? namedWards(markers.names, roster) : null,
       });
     }
-    held.set(snapshot.id, rows);
+    held.set(snapshot, rows);
   }
-  return held.get(snapshot.id);
+  return held.get(snapshot);
 }
 
 const dayOrder = (value) => {

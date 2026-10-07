@@ -14,7 +14,9 @@
 // up to a week. v2: the ward (ward_name, ward_no, ward_code, lookup.ward) and
 // address_parts.localities, which ward tender matching reads. v3: the road class comes
 // from the packaged layers, and a point inside Karnataka with no named panchayat is
-// rural where the live lookup had stored outside_state.
+// rural where the live lookup had stored outside_state. Not raised on 7 Oct 2026 for the
+// ward of a point outside Karnataka: that ward is never read from a stored answer (see
+// the hit below), so no cell had to be asked again.
 const VERSION = "v3";
 const WEEK_MS = 7 * 86_400_000;
 const MEMORY_CELLS = 5_000;

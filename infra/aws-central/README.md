@@ -175,3 +175,49 @@ and refuses one past its manifest `review_after`, as the phone does. Road notice
 reviewed weekly: a refresh that is merged but not deployed stops notice matching on that
 date, which the "tenders match somewhere in India" rule in `tools/production-health.mjs`
 reports.
+
+## Wards and ward tenders outside Karnataka
+
+Inside Karnataka a point's ward comes from the KGIS ward layer and `ward_tenders` from the
+town's tender index (`service/ward-tenders.mjs`). Outside it, since 7 Oct 2026, a ward
+comes from ward polygons copied from open sources (`data/wards/<STATE>/<city>.json`), and
+`ward_tenders` holds the open road notices of that ward's own urban body whose title says
+the ward (`service/india-wards.mjs`, `service/india-ward-tenders.mjs`). The item shape is
+the Karnataka one; `match_basis` is `ward name LAMBHA` or `ward number 47`.
+
+Only snapshots that `data/wards/runtime.json` switches on are used: two of 28 on
+7 Oct 2026, Bhopal by ward number and Ahmedabad by ward name. The list is written by a
+tool from a reading, never by hand:
+
+```bash
+node infra/aws-central/tools/india-ward-runtime.mjs --pairs OD/bhubaneswar   # every pair the service would return, to read
+# record each pair's verdict in data/wards/runtime-handread.json, and what the reading
+# shows of the numbering in USE in tools/snapshot-india-wards.mjs (then --city <id> --offline)
+node infra/aws-central/tools/india-ward-runtime.mjs --write                  # the list: no pair wrong, at most 1 in 10 undecided, 10 read
+node infra/aws-central/tools/india-ward-coverage.mjs                         # data/wards/COVERAGE.md, section 11
+(cd infra/aws-central && npm test)
+```
+
+A title's ward number is read by a reader of its own, not the Karnataka one: only from a
+ward marker ("WARD 47 ZONE 06" is ward 47; a zone, circle, unit or ward office gives no
+ward), with "W06", "Div-128" and "Dn 62" read only for the bodies whose titles write wards
+that way (`TITLE_MARKERS`). A ward's name is read only off the marker itself ("Vatva Ward
+of the South Zone"). A match by number needs the file's numbering shown to be the
+tenders': Chennai's file passed on zones and was wrong for 8 of 17 pairs, its wards having
+been renumbered inside their zones.
+
+For any point outside Karnataka the answer also says which urban body the point is in,
+`jurisdiction.urban_body` (`name`, `basis` `ward_snapshot` or `geocoder_city`,
+`road_notices`, `road_notices_open`). That is a fact for the log and for a later decision:
+no notice goes into `ward_tenders` because its body matches.
+
+`deploy.sh` stages `runtime.json` and the switched-on files only
+(`tools/stage-india-wards.mjs`, about 160 KB), each checked against the hash the list
+pins. In `jurisdiction.lookup` and the `http_request` log line: `ward` / `ward_lookup` is
+`resolved`, `resolved_unnamed`, `between_wards` (two drawings overlap there), `no_ward`,
+`out_of_scope` (no switched-on snapshot covers the point) or `unavailable` (a file the
+package should hold could not be read, which breaks a rule in
+`tools/production-health.mjs`); `ward_snapshot` names the snapshot, and the log line also
+carries `urban_body` and `urban_body_notices`. The location store (`geo-cache.mjs`) never
+supplies this ward: it is worked out from the packaged polygons on every lookup, so a
+snapshot switched off by a deploy stops answering with that deploy.
