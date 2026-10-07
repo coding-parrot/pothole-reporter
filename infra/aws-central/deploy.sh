@@ -55,6 +55,12 @@ cp data/karnataka-ward-geometry.json "$TMP_DIR/package/data/"
 # they pin for every state, hash-checked. national-tenders.mjs reads them lazily per
 # state from this same path relative to the service. About 11 MB, 103 files.
 node infra/aws-central/tools/stage-national-tenders.mjs "$TMP_DIR/package/data/national-tenders"
+# Ward polygons outside Karnataka: data/wards/runtime.json and only the snapshots it
+# switches on (Bhopal and Ahmedabad on 7 Oct 2026; the other 26 files and the 9 MB
+# gazetteer stay out). india-wards.mjs reads them from this same path relative to the
+# service. Each file is checked against the hash the list pins, so a switched-on snapshot
+# that is missing or edited stops the deploy here. About 160 KB, 60 KB zipped.
+node infra/aws-central/tools/stage-india-wards.mjs "$TMP_DIR/package/data/wards"
 (cd "$TMP_DIR/package" && zip -q -r "$TMP_DIR/central-lambda.zip" infra llm data)
 echo "package: $(du -h "$TMP_DIR/central-lambda.zip" | cut -f1) zipped, $(du -sh "$TMP_DIR/package" | cut -f1) unpacked"
 # A content-addressed key makes CloudFormation see every code change; a fixed key reports
@@ -106,7 +112,9 @@ fi
 # passes; the previous code key is printed so a rollback is one command away.
 echo "previous code key: $(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" \
   --query "Stacks[0].Parameters[?ParameterKey=='CodeS3Key'].ParameterValue" --output text 2>/dev/null || true)"
-if ! API_URL="$API_URL" node infra/aws-central/tools/production-health.mjs --canary; then
+# CANARY_CATALOGUE_IS_THIS_CHECKOUT: the notices production now serves are the ones staged
+# above, so the canary may hold the Ahmedabad ward to the notices this checkout has for it.
+if ! API_URL="$API_URL" CANARY_CATALOGUE_IS_THIS_CHECKOUT=1 node infra/aws-central/tools/production-health.mjs --canary; then
   echo "Post-deploy canary failed; the stack is live with the new code. Fix forward or redeploy the previous code key." >&2
   exit 1
 fi

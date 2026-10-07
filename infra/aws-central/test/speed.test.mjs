@@ -3,6 +3,7 @@ import test from "node:test";
 import { gunzipSync } from "node:zlib";
 
 import { createCachedGeolocator } from "../service/geo-cache.mjs";
+import { createGeolocator } from "../service/geolocation.mjs";
 import { harness, memoryRepository } from "./support.mjs";
 
 // The public map is 52.8 KB of JSON and went over the air uncompressed: the HTTP API
@@ -309,4 +310,56 @@ test("a different address in the same cell is not given the first caller's answe
   await h.post("/v1/tenders/resolve", { lat: 18.52, lng: 73.86, address_hint: "FC Road, Pune" });
   await h.post("/v1/tenders/resolve", { lat: 18.52, lng: 73.86, address_hint: "JM Road, Pune" });
   assert.equal(matches, 2);
+});
+
+// Outside Karnataka a lookup now also places the point in a ward and reads the State's
+// road notices for that ward's body. Measured on 7 Oct 2026 with Gujarat's real pack (307
+// notices): the first Ahmedabad lookup of a process took 33 ms (it reads the ward file and
+// files every notice under its body), and each later one in a new place about 0.3 ms more
+// than the 7 ms the street matcher already took. The work that could repeat does not:
+// the ward file is read once, and a pack's notices are filed under their bodies once.
+test("outside Karnataka the ward file and the notices' bodies are worked out once, and a lookup stays cheap", async () => {
+  const clock = Date.parse("2026-10-07T06:00:00Z");
+  let chainsRead = 0;
+  const notices = Array.from({ length: 300 }, (_, n) => ({
+    award_verified: false, closing_at: "2026-10-16T18:00:00+05:30", dlp_verified: false, lifecycle: "procurement_notice",
+    get organisation_chain() { chainsRead += 1; return n % 2 ? "AMC-Engineering Department - South Zone" : "R&B-Division Office - Ahmedabad"; },
+    published_at: null, scope: "road_surface", segment_verified: false, source_id: "portal", tender_id: String(n),
+    tender_reference: `ref ${n}`, title: `Road resurfacing and milling work at location ${n} in the South Zone Lambha Ward.`,
+  }));
+  const pack = { notices, sources: [] };
+  let loads = 0;
+  const catalogue = {
+    async match() { return { tender: null, reason: "no_location_match", catalogue: null }; },
+    async load() { loads += 1; return { pack, resource: {} }; },
+  };
+  const geolocator = createGeolocator({ geocoderUrl: "https://geocoder.test/reverse", logger: { error() {}, log() {} },
+    fetchImpl: async () => new Response(JSON.stringify({ address: { road: "Narol Road", city: "Ahmedabad", state: "Gujarat", country_code: "in" } })) });
+  const h = await harness({ geolocator, catalogue, now: () => clock });
+  // Three real points inside Lambha ward, and others stepped 22 m apart from the first.
+  const resolve = async (lat, lng) => {
+    const started = performance.now();
+    const result = await h.post("/v1/tenders/resolve", { lat, lng }, { sentAt: clock });
+    assert.equal(result.statusCode, 200, result.body);
+    return { ms: performance.now() - started, body: JSON.parse(result.body) };
+  };
+  const first = await resolve(22.95558, 72.53967);
+  assert.equal(first.body.jurisdiction.ward_name, "LAMBHA");
+  assert.equal(first.body.ward_tenders.length, 5);
+  assert.equal(first.body.jurisdiction.urban_body.road_notices, 150);
+  assert.ok(first.ms < 150, `the first lookup took ${first.ms.toFixed(1)} ms`);
+  const filedOnce = chainsRead;
+  let total = 0;
+  for (let n = 1; n <= 40; n += 1) {
+    const next = await resolve(22.95558 + n * 0.0002, 72.53967 + n * 0.0001);
+    assert.equal(next.body.jurisdiction.ward_name, "LAMBHA");
+    assert.equal(next.body.ward_tenders.length, 5);
+    total += next.ms;
+  }
+  assert.equal(loads, 41, "each new place asks the catalogue for the pack, which the catalogue keeps");
+  assert.equal(chainsRead - filedOnce, 40 * 5, "only the five notices answered are read again, for their `location`");
+  assert.ok(total / 40 < 5, `a later lookup took ${(total / 40).toFixed(2)} ms on average`);
+  const again = await resolve(22.95558, 72.53967);
+  assert.equal(loads, 41, "the same place again is answered from memory: no pack, no match");
+  assert.deepEqual(again.body.ward_tenders, first.body.ward_tenders);
 });
