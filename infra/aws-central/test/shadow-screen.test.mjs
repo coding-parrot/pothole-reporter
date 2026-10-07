@@ -359,8 +359,9 @@ test("a screen without a score (the YOLO contract) still records its assessment"
   assert.equal(shadow.log.screen_agrees, true);
 });
 
-test("the other orders log no shadow fields", async () => {
-  for (const mode of ["openai", "openai_then_yolo", "yolo_then_openai"]) {
+// yolo_then_openai logs the same fields about the frames it screens: screen-audit.test.mjs.
+test("the orders with no screen log no screen fields", async () => {
+  for (const mode of ["openai", "openai_then_yolo"]) {
     const result = await detectWith({ mode, screen: screenLambda(screenDamaged, { score: 0.9 }),
       openai: openai(openaiDamaged) });
     assert.equal(result.status, 200, mode);

@@ -274,3 +274,96 @@ test("a routine deploy does not choose the detection order or the screen functio
   assert.ok(!names.includes("SharedDetectorProvider"));
   assert.ok(!names.includes("YoloFunctionName"));
 });
+
+// ------------------------------------------------------------------ the request line
+// One query has to serve shadow mode and this one, so the screen's fields keep their
+// shadow names and meanings: screen_assessment, screen_score, screen_ms, screen_model,
+// screen_error, and screen_agrees wherever gpt-5-mini also judged the frame. Added here:
+// screen_audit_rate on every drive frame of this mode (it is what tells a live line from
+// a shadow one), screen_audited on a cleared frame drawn for audit, screen_audit_error
+// when that audit could not be made. gpt-5-mini's verdict needs no new field: outcome is
+// its verdict exactly when detector_provider is "openai".
+const openaiRejected = { image_quality: "rejected", assessment: "undamaged", damage_type: null, size: null, description: "Too dark to judge." };
+const screenFields = (log) => Object.fromEntries(["outcome", "detector_provider", "screen_assessment", "screen_score", "screen_error",
+  "screen_agrees", "screen_audited", "screen_audit_error", "screen_audit_rate"].map((field) => [field, log[field]]));
+
+for (const [label, options, expected] of [
+  ["a cleared frame nobody audited logs the screen and no gpt-5-mini verdict",
+    { screen: screenLambda(screenUndamaged, { score: 0.02 }), openai: openai(openaiDamaged), auditDraw: NO_AUDIT },
+    { outcome: "undamaged", detector_provider: "yolo", screen_assessment: "undamaged", screen_score: 0.02, screen_error: null,
+      screen_agrees: null, screen_audited: null, screen_audit_error: null, screen_audit_rate: 0.1 }],
+  ["an audited frame gpt-5-mini also calls undamaged",
+    { screen: screenLambda(screenUndamaged, { score: 0.03 }), openai: openai(undamaged), auditDraw: AUDIT },
+    { outcome: "undamaged", detector_provider: "openai", screen_assessment: "undamaged", screen_score: 0.03, screen_error: null,
+      screen_agrees: true, screen_audited: true, screen_audit_error: null, screen_audit_rate: 0.1 }],
+  ["an audited frame gpt-5-mini rejects for quality counts as agreed, as in shadow mode",
+    { screen: screenLambda(screenUndamaged, { score: 0.03 }), openai: openai(openaiRejected), auditDraw: AUDIT },
+    { outcome: "undamaged", detector_provider: "openai", screen_assessment: "undamaged", screen_score: 0.03, screen_error: null,
+      screen_agrees: true, screen_audited: true, screen_audit_error: null, screen_audit_rate: 0.1 }],
+  ["an audited frame gpt-5-mini calls damaged is a miss the audit caught",
+    { screen: screenLambda(screenUndamaged, { score: 0.04 }), openai: openai(openaiDamaged), auditDraw: AUDIT, screenAuditRate: 0.25 },
+    { outcome: "damaged", detector_provider: "openai", screen_assessment: "undamaged", screen_score: 0.04, screen_error: null,
+      screen_agrees: false, screen_audited: true, screen_audit_error: null, screen_audit_rate: 0.25 }],
+  ["a flagged frame gpt-5-mini confirms",
+    { screen: screenLambda(screenDamaged, { score: 0.91 }), openai: openai(openaiDamaged), auditDraw: AUDIT },
+    { outcome: "damaged", detector_provider: "openai", screen_assessment: "damaged", screen_score: 0.91, screen_error: null,
+      screen_agrees: true, screen_audited: null, screen_audit_error: null, screen_audit_rate: 0.1 }],
+  ["a flagged frame gpt-5-mini overrules",
+    { screen: screenLambda(screenDamaged, { score: 0.61 }), openai: openai(undamaged), auditDraw: AUDIT },
+    { outcome: "undamaged", detector_provider: "openai", screen_assessment: "damaged", screen_score: 0.61, screen_error: null,
+      screen_agrees: false, screen_audited: null, screen_audit_error: null, screen_audit_rate: 0.1 }],
+  ["a flagged frame left standing by exhausted credit has no gpt-5-mini verdict",
+    { screen: screenLambda(screenDamaged, { score: 0.61 }), openai: openai({ error: { code: "insufficient_quota" } }, 429), auditDraw: AUDIT },
+    { outcome: "damaged", detector_provider: "yolo", screen_assessment: "damaged", screen_score: 0.61, screen_error: null,
+      screen_agrees: null, screen_audited: null, screen_audit_error: null, screen_audit_rate: 0.1 }],
+  ["a screen that fails says why, and gpt-5-mini answers",
+    { screen: screenLambda(screenUndamaged, { functionError: "Unhandled" }), openai: openai(openaiDamaged), auditDraw: AUDIT },
+    { outcome: "damaged", detector_provider: "openai", screen_assessment: null, screen_score: null, screen_error: "shared_vision_unavailable",
+      screen_agrees: null, screen_audited: null, screen_audit_error: null, screen_audit_rate: 0.1 }],
+  ["an audit that could not be made says so and logs no agreement",
+    { screen: screenLambda(screenUndamaged, { score: 0.02 }), openai: openai({ error: { type: "server_error" } }, 500), auditDraw: AUDIT },
+    { outcome: "undamaged", detector_provider: "yolo", screen_assessment: "undamaged", screen_score: 0.02, screen_error: null,
+      screen_agrees: null, screen_audited: true, screen_audit_error: "shared_vision_unavailable", screen_audit_rate: 0.1 }],
+]) {
+  test(`the request line: ${label}`, async () => {
+    const result = await detectWith(options);
+    assert.equal(result.status, 200, JSON.stringify(result.body));
+    assert.deepEqual(screenFields(result.log), expected);
+    assert.equal(typeof result.log.screen_ms, "number");
+    assert.ok(result.log.screen_ms >= 0);
+    if (expected.screen_assessment) assert.equal(result.log.screen_model, "road-screen-v2");
+    // Never a line that shows a gpt-5-mini verdict the screen's answer could be taken for.
+    assert.equal(result.log.screen_agrees !== null, expected.detector_provider === "openai" && expected.screen_assessment !== null);
+  });
+}
+
+// Before this, a screen answer with no assessment in it was passed on as the answer and
+// refused by the service as a 502: the one way a broken screen could fail a drive frame,
+// and (not being a 200) a failure the screen's own error count never saw.
+test("a screen answer with no assessment in it is a screen error: gpt-5-mini answers and the line says why", async () => {
+  const ai = openai(openaiDamaged);
+  const result = await detectWith({ screen: screenLambda({ message: "ok" }), openai: ai, auditDraw: NO_AUDIT });
+  assert.equal(result.status, 200, JSON.stringify(result.body));
+  assert.equal(ai.calls.length, 1);
+  assert.equal(result.body.assessment, "damaged");
+  assert.equal(result.body.detector.fallback_from, "yolo");
+  assert.equal(result.body.detector.fallback_reason, "bad_screen_response");
+  assert.equal(result.log.screen_error, "bad_screen_response");
+  assert.equal(result.log.screen_assessment, null);
+  assert.equal(result.calls.refund, 0);
+});
+
+test("a manual photo in this mode is not a screened frame and logs none of it", async () => {
+  const result = await detectWith({ screen: screenLambda(screenUndamaged), openai: openai(undamaged), auditDraw: AUDIT, body: detectBody });
+  for (const field of ["screen_assessment", "screen_score", "screen_ms", "screen_error", "screen_agrees", "screen_audited", "screen_audit_rate"]) {
+    assert.equal(result.log[field], null, field);
+  }
+});
+
+test("shadow mode logs no audit rate: that is how a query tells a shadow line from a live one", async () => {
+  const shadow = await detectWith({ mode: "openai_with_shadow_screen", screen: screenLambda(screenUndamaged), openai: openai(undamaged), auditDraw: AUDIT });
+  assert.equal(shadow.log.screen_assessment, "undamaged");
+  assert.equal(shadow.log.screen_agrees, true);
+  assert.equal(shadow.log.screen_audit_rate, null);
+  assert.equal(shadow.log.screen_audited, null);
+});

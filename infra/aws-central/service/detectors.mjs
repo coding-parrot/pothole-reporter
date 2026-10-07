@@ -100,6 +100,19 @@ const screenRequestId = (requestId) => {
 const flagsDamage = (verdict) => verdict?.image_quality === "acceptable"
   && verdict?.assessment === "damaged";
 
+const hasAssessment = (verdict) => ["damaged", "undamaged"].includes(verdict?.assessment);
+
+// What the screen said about a drive frame, for the request log: the same three fields
+// whether the screen is being watched (shadow) or is deciding (yolo_then_openai). Says
+// whether it flagged the frame.
+function recordScreenVerdict(context, screen) {
+  const flagged = flagsDamage(screen.verdict);
+  context.screenAssessment = flagged ? "damaged" : "undamaged";
+  context.screenScore = screen.score;
+  context.screenModel = screen.model;
+  return flagged;
+}
+
 function outputFormat() {
   return {
     format: {
@@ -447,20 +460,33 @@ export function createDetector({
   // capped, slow or broken falls through to OpenAI alone, so flipping the mode can never
   // make a drive worse than today's order; it is only ever faster.
   async function yoloThenOpenai(input, context) {
+    const started = performance.now();
+    // On every drive frame of this mode, whatever the screen then does: it is what tells
+    // a live line from a shadow one in the request log.
+    context.screenAuditRate = auditShare;
     let screen;
     try {
       screen = await yolo(input, context, yoloScreenTimeoutMs);
+      // An answer with no assessment in it is a broken screen like any other. Passed on,
+      // it was refused by the service as a 502 and the drive frame failed.
+      if (!hasAssessment(screen.verdict)) {
+        throw new HttpError(502, "bad_screen_response", "The screen returned no assessment.");
+      }
     } catch (error) {
       if (!(error instanceof HttpError)) throw error;
+      context.screenMs = Math.round(performance.now() - started);
+      context.screenError = error.code;
       context.detectorFallbackReason = error.code;
       const result = await openai(input, context);
       return { ...result, fallbackFrom: "yolo", fallbackReason: error.code };
     }
-    if (!flagsDamage(screen.verdict)) return auditCleared(input, context, screen);
+    context.screenMs = Math.round(performance.now() - started);
+    if (!recordScreenVerdict(context, screen)) return auditCleared(input, context, screen);
     context.detectorScreenedBy = "yolo";
     try {
       const confirmed = await openai(input, context);
       context.detectorScreenConfirmed = confirmed.verdict?.assessment === "damaged";
+      context.screenAgrees = flagsDamage(confirmed.verdict);
       return { ...confirmed, screenedBy: "yolo", screenModel: screen.model };
     } catch (error) {
       // The same rule as openai_then_yolo: a missing or exhausted OpenAI credential
@@ -483,6 +509,8 @@ export function createDetector({
     context.screenAudited = true;
     try {
       const judged = await openai(input, context);
+      // A frame gpt-5-mini rejects for quality counts as undamaged, as in shadow mode.
+      context.screenAgrees = !flagsDamage(judged.verdict);
       return { ...judged, screenedBy: "yolo", screenModel: screen.model };
     } catch (error) {
       if (!(error instanceof HttpError)) throw error;
@@ -538,15 +566,11 @@ export function createDetector({
       context.screenError = settled.error instanceof HttpError ? settled.error.code : "screen_failed";
       return;
     }
-    const verdict = settled.screen.verdict;
-    if (!["damaged", "undamaged"].includes(verdict?.assessment)) {
+    if (!hasAssessment(settled.screen.verdict)) {
       context.screenError = "bad_screen_response";
       return;
     }
-    const flagged = flagsDamage(verdict);
-    context.screenAssessment = flagged ? "damaged" : "undamaged";
-    context.screenScore = settled.screen.score;
-    context.screenModel = settled.screen.model;
+    const flagged = recordScreenVerdict(context, settled.screen);
     // Agreement is about the decision the screen would take over: does this frame go
     // to gpt-5-mini or not. A frame gpt-5-mini rejects for quality counts as undamaged.
     if (openaiVerdict) context.screenAgrees = flagged === flagsDamage(openaiVerdict);
