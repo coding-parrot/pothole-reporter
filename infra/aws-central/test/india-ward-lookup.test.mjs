@@ -56,6 +56,17 @@ test("a snapshot is on only if a person read its pairs: none wrong, at most one 
   assert.deepEqual(runtime.snapshots.map((entry) => entry.id).filter((id) => ["GJ/ahmedabad", "MP/bhopal"].includes(id)), ["MP/bhopal", "GJ/ahmedabad"]);
 });
 
+test("the coverage report says what the runtime list says", () => {
+  const report = readFileSync(path.join(WARDS_DIR, "COVERAGE.md"), "utf8");
+  const stale = "re-render: node infra/aws-central/tools/india-ward-coverage.mjs";
+  assert.ok(report.includes(`**Switched on: ${runtime.snapshots.length} of ${index.count}.**`), stale);
+  for (const entry of runtime.snapshots) {
+    assert.ok(report.includes(`| ${entry.id} | ${entry.body} | ${entry.by} |`), `${entry.id}: ${stale}`);
+    assert.ok(report.includes(`| ${entry.read.read} | ${entry.read.right} | 0 | ${entry.read.cannot_tell} |`), `${entry.id}: ${stale}`);
+  }
+  for (const entry of index.snapshots) assert.ok(report.includes(entry.use.evidence), `${entry.id}: its evidence changed; ${stale}`);
+});
+
 test("the gate itself: what keeps a snapshot off", () => {
   const entry = (use) => ({ id: "XX/town", use: { evidence: "e", ...use } });
   const read = (right, wrong = 0, undecided = 0) => ({ read: right + wrong + undecided, right, wrong, cannot_tell: undecided });

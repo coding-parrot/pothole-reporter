@@ -233,9 +233,10 @@ export async function returnedPairs(id, { perWard = 3, assume = null, packs = lo
   };
 }
 
-// How many of the shipped notices the service can return for some point: by State, and
-// for each switched-on body. `as_retrieved` sets the clock to the day the pack was read;
-// `today` uses the given clock, and falls every day as bids close.
+// How many of the shipped notices the service can return for some point, by State and for
+// each switched-on body. `returnable` sets the clock to the day the pack was retrieved, so
+// it is the same on any day; `returnable_on_clock` uses the clock given (today, from the
+// command line) and falls every day as bids close. Pass `now: null` to leave it out.
 export async function coverage({ runtime = readJson(RUNTIME_PATH), now = Date.now(), loaded = loadNoticePacks() } = {}) {
   const wards = await wardsFor(runtime.snapshots);
   const states = [];
@@ -244,37 +245,39 @@ export async function coverage({ runtime = readJson(RUNTIME_PATH), now = Date.no
     const retrieved = Date.parse(`${resource.source_retrieved_at}T00:00:00+05:30`);
     let urban = 0;
     for (const record of pack.notices) if (urbanBodyOf(noticeForBody(stateCode, record))) urban += 1;
-    const row = { state: stateCode, notices: pack.notices.length, from_urban_bodies: urban, returnable: 0, returnable_today: 0, bodies_on: 0 };
+    const row = { state: stateCode, notices: pack.notices.length, from_urban_bodies: urban, bodies_on: 0, returnable: 0, returnable_on_clock: 0 };
     for (const entry of runtime.snapshots.filter((item) => item.state_code === stateCode)) {
       const snapshot = await wards.snapshot(entry.id);
-      const rows = noticesOfBody(pack, snapshot);
-      const returned = new Set();
-      const returnedToday = new Set();
-      const wardsWith = new Set();
-      for (const ward of snapshot.wards) {
-        for (const [clock, into] of [[retrieved, returned], [now, returnedToday]]) {
+      const count = (clock) => {
+        const tenders = new Set();
+        const wardsWith = new Set();
+        for (const ward of snapshot.wards) {
           for (const tender of matchIndiaWardTenders({ ward, snapshot, pack, now: clock, limit: Infinity })) {
-            into.add(tender.tender_number);
-            if (into === returned) wardsWith.add(ward.code);
+            tenders.add(tender.tender_number);
+            wardsWith.add(ward.code);
           }
         }
-      }
+        return { tenders: tenders.size, wards: wardsWith.size };
+      };
+      const asRetrieved = count(retrieved);
+      const onClock = now === null ? null : count(now);
       bodies.push({
         id: entry.id, state: stateCode, body: entry.body, by: entry.by, wards: snapshot.wards.length,
-        notices_of_body: rows.length, returnable: returned.size, returnable_today: returnedToday.size,
-        wards_with_a_notice: wardsWith.size,
+        notices_of_body: noticesOfBody(pack, snapshot).length,
+        returnable: asRetrieved.tenders, wards_with_a_notice: asRetrieved.wards,
+        returnable_on_clock: onClock?.tenders ?? null, wards_with_a_notice_on_clock: onClock?.wards ?? null,
       });
-      row.returnable += returned.size;
-      row.returnable_today += returnedToday.size;
       row.bodies_on += 1;
+      row.returnable += asRetrieved.tenders;
+      row.returnable_on_clock += onClock?.tenders ?? 0;
     }
     states.push(row);
   }
   const sum = (key) => states.reduce((total, row) => total + row[key], 0);
   return {
-    manifest: loaded.manifest, as_of: new Date(now).toISOString().slice(0, 10),
-    notices: sum("notices"), from_urban_bodies: sum("from_urban_bodies"),
-    returnable: sum("returnable"), returnable_today: sum("returnable_today"), bodies_on: bodies.length,
+    manifest: loaded.manifest, clock: now === null ? null : new Date(now).toISOString(),
+    notices: sum("notices"), from_urban_bodies: sum("from_urban_bodies"), bodies_on: bodies.length,
+    returnable: sum("returnable"), returnable_on_clock: now === null ? null : sum("returnable_on_clock"),
     states, bodies,
   };
 }
