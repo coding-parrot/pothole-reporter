@@ -40,7 +40,7 @@ phases:
   test:
     commands:
       - cd $DEVICEFARM_TEST_PACKAGE_PATH
-      - python tests/first_run.py
+      - python tests/test_first_run.py
 
   post_test:
     commands:

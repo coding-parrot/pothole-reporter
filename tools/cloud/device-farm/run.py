@@ -74,16 +74,16 @@ def upload(project, path, name, kind, limit_seconds=300):
             print("  uploaded %s" % name)
             return current
         if current["status"] == "FAILED":
-            sys.exit("Device Farm rejected %s: %s" % (name, current.get("message", "")[:400]))
+            sys.exit("Device Farm rejected %s: %s" % (name, (current.get("message") or current.get("metadata") or "")[:600]))
         time.sleep(4)
     sys.exit("upload %s did not validate within %ss" % (name, limit_seconds))
 
 
 def build_test_package(folder):
-    """tests/first_run.py, the permission rules the emulator smoke uses, requirements.txt."""
+    """tests/test_first_run.py, the permission rules the emulator smoke uses, requirements.txt."""
     target = os.path.join(folder, "first-run.zip")
     members = [
-        (os.path.join(HERE, "tests", "first_run.py"), "tests/first_run.py"),
+        (os.path.join(HERE, "tests", "test_first_run.py"), "tests/test_first_run.py"),
         (os.path.join(REPO, "tools", "harness", "permission-button.py"), "tests/permission-button.py"),
         (os.path.join(HERE, "requirements.txt"), "requirements.txt"),
     ]
