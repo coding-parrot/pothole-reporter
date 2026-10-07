@@ -26,7 +26,7 @@ from pathlib import Path
 
 import numpy as np
 
-from common import FRAMES, WORK, write_json
+from common import FRAMES, WORK
 from metrics import at_threshold, auc, threshold_for_recall
 
 TARGETS = (0.99, 0.98, 0.95)
@@ -314,7 +314,10 @@ def main():
             kept[stem], kept[args.baseline], rows, report["variants"][args.baseline]["val98"]["threshold"])
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    write_json(out / "report.json", report)
+    # Counts made from numpy comparisons are numpy integers; JSON wants plain ones.
+    (out / "report.json").write_text(json.dumps(
+        report, indent=1, sort_keys=True,
+        default=lambda value: value.item() if isinstance(value, np.generic) else str(value)) + "\n")
     (out / "report.md").write_text(markdown(report))
     print(markdown(report))
 
