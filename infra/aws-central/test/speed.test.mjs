@@ -252,3 +252,44 @@ test("a location answered once is remembered in the function, without asking the
   assert.equal(second.lookup.cache, "hit");
   assert.equal(third.lgd, "305851");
 });
+
+// Matching a location's tenders is the same work every time for the same place. The
+// finished answer is kept for ten minutes per 11 m cell, so a repeat lookup is one map
+// read: no tender scan, no catalogue match, no ward match.
+test("the finished answer for a place is computed once and repeated from memory", async () => {
+  const repository = memoryRepository();
+  repository.queryTenders = async () => [{ tender_number: "T/1", title: "Resurfacing of Rose Road in T", location: "T" }];
+  let matches = 0;
+  const catalogue = { async match() { matches += 1; return { tender: null, reason: "no_location_match", catalogue: null }; } };
+  const where = { async resolve({ lat, lng }) {
+    return { lat, lng, road_ownership: "municipal", source: "kgis", lgd: "1", town: "T", state_code: "KA",
+      address: "Lily Lane, T", address_source: "operator_geocoder", lookup: { kgis: "available" } };
+  } };
+  const h = await harness({ repository, geolocator: where, catalogue });
+  const first = JSON.parse((await h.post("/v1/tenders/resolve", { lat: 12.90001, lng: 77.60001 })).body);
+  const second = JSON.parse((await h.post("/v1/tenders/resolve", { lat: 12.90002, lng: 77.60002 })).body);
+  assert.equal(matches, 1);
+  assert.equal(second.reason, first.reason);
+  assert.equal(second.jurisdiction.lat, 12.90002, "the caller keeps its own coordinates");
+  const elsewhere = JSON.parse((await h.post("/v1/tenders/resolve", { lat: 12.95, lng: 77.65 })).body);
+  assert.equal(matches, 2, "another place is matched afresh");
+  assert.equal(elsewhere.jurisdiction.lat, 12.95);
+  const lines = h.lines.log.map((entry) => JSON.parse(entry)).filter((entry) => entry.route === "/v1/tenders/resolve");
+  assert.equal(lines[1].answer_cache, "hit");
+  assert.equal(lines[0].answer_cache, "miss");
+});
+
+test("a different address in the same cell is not given the first caller's answer", async () => {
+  const repository = memoryRepository();
+  repository.queryTenders = async () => [];
+  let matches = 0;
+  const catalogue = { async match() { matches += 1; return { tender: null, reason: "no_location_match", catalogue: null }; } };
+  const hinted = { async resolve({ lat, lng, addressHint }) {
+    return { lat, lng, road_ownership: "outside_state", source: "unresolved", state_code: "MH",
+      address: addressHint, address_source: "client_hint", lookup: { kgis: "out_of_scope" } };
+  } };
+  const h = await harness({ repository, geolocator: hinted, catalogue });
+  await h.post("/v1/tenders/resolve", { lat: 18.52, lng: 73.86, address_hint: "FC Road, Pune" });
+  await h.post("/v1/tenders/resolve", { lat: 18.52, lng: 73.86, address_hint: "JM Road, Pune" });
+  assert.equal(matches, 2);
+});

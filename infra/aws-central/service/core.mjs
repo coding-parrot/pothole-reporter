@@ -312,6 +312,12 @@ export function createService({
   const mapRows = freshFor(30_000, { now });
   const impactRows = freshFor(60_000, { now });
   const tenderRows = freshFor(600_000, { now });
+  const answers = new Map();
+  const answerKey = (jurisdiction) => (Number.isFinite(jurisdiction?.lat) && Number.isFinite(jurisdiction?.lng)
+    ? [jurisdiction.lat.toFixed(4), jurisdiction.lng.toFixed(4), jurisdiction.road_ownership,
+      jurisdiction.lgd || "", jurisdiction.ward_code || "", jurisdiction.state_code || "",
+      jurisdiction.highway_name || "", jurisdiction.address || ""].join("|")
+    : null);
   // An install's public key never changes, and it was read from the table on every
   // signed request. It is remembered for five minutes, which is also how long a
   // revocation takes to bite; an unknown install is never remembered as unknown.
@@ -676,12 +682,28 @@ export function createService({
   // tenders of the town whose title names the point's ward or locality (see
   // ward-tenders.mjs). It never changes `tender` or `reason`.
   async function routing(jurisdiction, context = {}) {
+    // The same place gets the same answer until the tender rows are next refreshed, so
+    // the finished answer is kept per 11 m cell and address for those ten minutes.
+    const key = answerKey(jurisdiction);
+    const held = key ? answers.get(key) : null;
+    if (held && held.until > now()) {
+      context.answerCache = "hit";
+      context.wardTenderCount = held.value.ward_tenders.length;
+      if (held.value.catalogue) context.tenderCatalogue = held.value.catalogue;
+      return { ...held.value, jurisdiction };
+    }
+    context.answerCache = key ? "miss" : null;
     const named = [];
     const routed = await streetRouting(jurisdiction, context, named);
     // The street-level tender is not said twice.
     const ward = named.filter((entry) => entry.tender_number !== routed.tender?.tender_number);
     context.wardTenderCount = ward.length;
-    return { ...routed, ward_tenders: ward };
+    const value = { ...routed, ward_tenders: ward };
+    if (key) {
+      answers.set(key, { value, until: now() + 600_000 });
+      while (answers.size > 5_000) answers.delete(answers.keys().next().value);
+    }
+    return value;
   }
 
   // The tenders that name the ward or locality of a municipal point. A failure here costs
@@ -1146,6 +1168,7 @@ export function createService({
       ward_tender_count: context.wardTenderCount ?? null,
       address_source: context.addressSource || null,
       geo_cache: context.geoCache || null,
+      answer_cache: context.answerCache || null,
       // Which catalogue answered a tender_matched: ka_index, nh_contract, road_notice or
       // road_agreement. Null when nothing matched.
       tender_catalogue: context.tenderCatalogue || null,

@@ -231,7 +231,9 @@ Resources:
       Runtime: nodejs22.x
       Handler: infra/aws-central/service/handler.handler
       Role: !GetAtt LambdaRole.Arn
-      MemorySize: 1024
+      # 2048 MB is a little over one full vCPU; at 1024 the function had about half of
+      # one and every signature check, match and gzip took twice as long.
+      MemorySize: 2048
       Timeout: 29
       ReservedConcurrentExecutions: !Ref ReservedConcurrency
       Architectures: [arm64]
