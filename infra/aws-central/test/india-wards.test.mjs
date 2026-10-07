@@ -50,7 +50,9 @@ test("every snapshot is the file the index hashed, and nothing else sits beside 
 });
 
 test("the committed data stays under 60 MB", () => {
-  assert.ok(index.bytes < 60_000_000, `${index.bytes} bytes of ward snapshots`);
+  const snapshotBytes = index.snapshots.reduce((sum, entry) => sum + entry.bytes, 0);
+  assert.equal(index.bytes, snapshotBytes + (index.localities?.bytes || 0));
+  assert.ok(index.bytes < 60_000_000, `${index.bytes} bytes of ward snapshots and localities`);
 });
 
 test("where the raw download is still on this machine, its hash is the one recorded", { skip: !existsSync(path.join(WORK_DIR, "raw")) }, () => {
