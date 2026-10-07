@@ -128,12 +128,32 @@ jobs:
             --as-of "$catalog_retrieved_at" \
             --timeout 120
 
+          # The PMGSY endpoint answered 401 to this runner on 7 Oct 2026 while answering
+          # other networks. When the pull fails, the committed sources are kept as long as
+          # they are inside the 30-day review window the pack builder gives them, so the
+          # other catalogues still publish.
           find data/pmgsy-road-agreements/sources -type f -name '*.json.gz' -delete
-          python3 tools/pull-pmgsy-road-agreements.py \
+          if ! python3 tools/pull-pmgsy-road-agreements.py \
             --all-states \
             --output-dir data/pmgsy-road-agreements/sources \
             --as-of "$catalog_retrieved_at" \
-            --timeout 120
+            --timeout 120; then
+            git clean -fdq -- data/pmgsy-road-agreements/sources
+            git checkout HEAD -- data/pmgsy-road-agreements/sources
+            python3 - <<'PY'
+          import gzip, json, pathlib, sys
+          from datetime import datetime, timezone
+          oldest = min(
+              str(json.loads(gzip.decompress(path.read_bytes()))["retrieved_at"])[:10]
+              for path in pathlib.Path("data/pmgsy-road-agreements/sources").glob("*.json.gz")
+          )
+          age = (datetime.now(timezone.utc).date() - datetime.strptime(oldest, "%Y-%m-%d").date()).days
+          if age > 30:
+              print(f"::error::PMGSY pull failed and the kept sources are {age} days old, past the review window")
+              sys.exit(1)
+          print(f"::warning::PMGSY pull failed, kept the committed sources from {age} day(s) ago")
+          PY
+          fi
 
       - name: Rebuild immutable runtime packs and manifests
         run: |
