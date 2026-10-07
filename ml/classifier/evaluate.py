@@ -115,10 +115,10 @@ def judge(scores, rows, owner_rows, owner_scores, thresholds):
         verified = [(row, value) for row, value in zip(owner_rows, owner_scores) if row["owner_labelled"]]
         entry["owner_images"] = {
             "potholes": sum(row["owner_label"] in POSITIVE_OWNER_LABELS for row, _ in verified),
-            "potholes_flagged": sum(value >= threshold for row, value in verified
+            "potholes_flagged": sum(bool(value >= threshold) for row, value in verified
                                     if row["owner_label"] in POSITIVE_OWNER_LABELS),
             "not_potholes": sum(row["owner_label"] in NEGATIVE_OWNER_LABELS for row, _ in verified),
-            "not_potholes_cleared": sum(value < threshold for row, value in verified
+            "not_potholes_cleared": sum(bool(value < threshold) for row, value in verified
                                         if row["owner_label"] in NEGATIVE_OWNER_LABELS),
             "scores": {row["path"]: round(float(value), 5) for row, value in verified}}
         out[label] = entry
