@@ -41,10 +41,12 @@ cp -R infra/aws-central/service "$TMP_DIR/package/infra/aws-central/"
 cp infra/aws-central/package.json "$TMP_DIR/package/infra/aws-central/"
 cp -R infra/aws-central/node_modules "$TMP_DIR/package/infra/aws-central/"
 cp llm/generated/contract.mjs "$TMP_DIR/package/llm/generated/"
-# Karnataka town polygons, state boundary and national highway lines: what the service
-# answers road ownership from when KGIS cannot. Same path relative to the service as in
-# the repo, so geolocation.mjs needs no configuration to find it.
-cp data/karnataka-local-geometry.json "$TMP_DIR/package/data/"
+# Karnataka road ownership, whole: the KGIS town, highway (national, state, district) and
+# gram panchayat polygons and the state boundary, with the grid a lookup walks. The
+# service answers every Karnataka lookup from it and never calls KGIS. Same path relative
+# to the service as in the repo, so geolocation.mjs needs no configuration to find it.
+# About 38 MB, 22 MB zipped.
+cp data/karnataka-ownership.bin "$TMP_DIR/package/data/"
 # Karnataka ward polygons (KGIS Ward New layer, 7,421 wards): what the service names a
 # municipal point's ward from, with no live KGIS call. About 6.4 MB, 2.2 MB zipped.
 cp data/karnataka-ward-geometry.json "$TMP_DIR/package/data/"

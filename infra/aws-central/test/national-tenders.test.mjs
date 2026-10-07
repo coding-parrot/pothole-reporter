@@ -387,6 +387,8 @@ const GEOCODES = {
 
 async function service({ kgis, repository = memoryRepository(), catalogue = catalogueFor() } = {}) {
   const geolocator = createGeolocator({
+    // These cases script KGIS's answers; the default configuration never asks it.
+    liveKgis: true,
     fetchImpl: geocoderStub(GEOCODES, kgis),
     geocoderUrl: "https://geocoder.test/reverse",
     localGeometryPath: NO_LOCAL_GEOMETRY,

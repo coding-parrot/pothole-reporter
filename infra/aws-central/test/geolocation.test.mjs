@@ -5,27 +5,197 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 import { createGeolocator } from "../service/geolocation.mjs";
 
-// KGIS sometimes stalls on its query endpoints while its root still answers. Each
-// report then waited out every lookup in turn. After one timeout the geolocator stops
-// asking for a while and answers from its own snapshot of the KGIS polygons at once.
+// Since 7 Oct 2026 a Karnataka lookup is answered from the packaged copy of the KGIS
+// layers (data/karnataka-ownership.bin) and the request path never calls KGIS. The live
+// lookup survives behind `liveKgis: true` for tools/verify-local-ownership.mjs, which
+// compares the two. The first half of this file is the default; the second half keeps
+// the live path honest.
 
 const hanging = (url, { signal }) => new Promise((resolve, reject) => {
   signal.addEventListener("abort", () => reject(signal.reason));
 });
 
 const quiet = { error() {}, log() {} };
-const NO_LOCAL_GEOMETRY = "/nonexistent/karnataka-local-geometry.json";
-// A geolocator with no snapshot at all: what production was before 6 Oct 2026.
-const withoutSnapshot = (options) => createGeolocator({
+const NO_LOCAL_GEOMETRY = "/nonexistent/karnataka-ownership.bin";
+const live = (options) => createGeolocator({ liveKgis: true, ...options });
+// The live lookup with no local bundle at all: what production was before 6 Oct 2026.
+const withoutSnapshot = (options) => live({
   ...options, localGeometryPath: NO_LOCAL_GEOMETRY, logger: quiet,
 });
 
 const BODIES = JSON.parse(readFileSync(
   new URL("../../../data/karnataka-bodies.json", import.meta.url), "utf8")).bodies;
 
+// A geolocator in the default configuration that counts what it would have sent to KGIS.
+function counted(options = {}) {
+  const calls = { kgis: 0 };
+  const geolocator = createGeolocator({
+    fetchImpl: async (url) => {
+      if (String(url).includes("kgis.ksrsac.in")) calls.kgis += 1;
+      throw new Error("no network in this test");
+    },
+    ...options,
+  });
+  return { geolocator, calls };
+}
+
+// Every answer below was put to KGIS itself on 7 Oct 2026 (town layer 1, highway layers
+// 289, 290 and 291 with a 5 m buffer, panchayat layer) and is what KGIS said.
+
+test("a state highway inside a town is a state highway, answered locally", async () => {
+  const { geolocator, calls } = counted();
+  // Munavalli Bailhongal Road where it runs through Bailahongal (CMC, LGD 251827). The
+  // town polygon contains this point; calling it municipal would send the complaint to
+  // the wrong authority.
+  const result = await geolocator.resolve({ lat: 15.81887, lng: 74.8627 });
+  assert.equal(result.road_ownership, "state_highway");
+  assert.equal(result.highway_name, "Munavalli Bailhongal Road");
+  assert.equal(result.lgd, null);
+  assert.equal(result.town, null);
+  assert.equal(result.source, "unresolved");
+  assert.equal(result.lookup.kgis, "snapshot");
+  assert.equal(result.lookup.local, "state_highway_polygon");
+  assert.equal(calls.kgis, 0);
+});
+
+test("a district highway is a district highway, in a town or out of one", async () => {
+  const { geolocator, calls } = counted();
+  const inTown = await geolocator.resolve({ lat: 14.44149, lng: 75.47875 });
+  assert.equal(inTown.road_ownership, "district_highway", "inside Rattihalli (TP)");
+  assert.equal(inTown.highway_name, "Tavaragi - Tumminakatti Road");
+  assert.equal(inTown.lgd, null);
+  assert.equal(inTown.lookup.local, "district_highway_polygon");
+  const country = await geolocator.resolve({ lat: 12.77097, lng: 77.33556 });
+  assert.equal(country.road_ownership, "district_highway");
+  assert.equal(country.highway_name, "Mayaganahalli to Sugganahalli via Dharapura");
+  assert.equal(country.rural_body, null, "KGIS is not asked for the panchayat of a highway");
+  // KGIS publishes most of its highway polygons with no name, or a blank one.
+  const unnamed = await geolocator.resolve({ lat: 12.84257, lng: 75.91024 });
+  assert.equal(unnamed.road_ownership, "state_highway");
+  assert.equal(unnamed.highway_name, null);
+  assert.equal(calls.kgis, 0);
+});
+
+test("the recorded city cases: MG Road is municipal, Bellary Road is a national highway", async () => {
+  const { geolocator, calls } = counted();
+  // The NH layer holds Bengaluru's MG Road (OBJECTID 3059), 20 m from this point. At
+  // the 5 m buffer the live lookup uses it does not match, and it must not here.
+  const mgRoad = await geolocator.resolve({ lat: 12.9756, lng: 77.605 });
+  assert.equal(mgRoad.road_ownership, "municipal");
+  assert.equal(mgRoad.town, "GBA - Central");
+  assert.equal(mgRoad.lgd, "305851");
+  assert.equal(mgRoad.source, "kgis_snapshot");
+  assert.equal(mgRoad.lookup.local, "municipal_polygon");
+  // The land-cover polygon stops short of this point on the carriageway; 5 m reaches it.
+  const bellary = await geolocator.resolve({ lat: 13.00271, lng: 77.58406 });
+  assert.equal(bellary.road_ownership, "national_highway");
+  assert.equal(bellary.highway_name, "BELLARY ROAD NH 7");
+  assert.equal(bellary.lgd, null);
+  assert.equal(bellary.lookup.local, "national_highway_polygon");
+  // Central Hubballi: a state highway polygon 10 m away, so still the corporation's.
+  const hubballi = await geolocator.resolve({ lat: 15.3647, lng: 75.124 });
+  assert.equal(hubballi.road_ownership, "municipal");
+  assert.equal(hubballi.town, "HUBLI DHARWAD");
+  assert.equal(calls.kgis, 0);
+});
+
+test("a point in no town is rural with its panchayat, and a point in no polygon is outside", async () => {
+  const { geolocator, calls } = counted();
+  // Fields in Tumakuru district.
+  const country = await geolocator.resolve({ lat: 13.45, lng: 77.05 });
+  assert.equal(country.road_ownership, "rural");
+  assert.equal(country.rural_body, "THIMMARAJANAHALLI");
+  assert.equal(country.lgd, null);
+  assert.equal(country.source, "unresolved");
+  assert.equal(country.lookup.local, "gp_polygon");
+  // Hosur, Tamil Nadu, 6 km over the line: inside the envelope, in no KGIS polygon and
+  // outside the state boundary.
+  const hosur = await geolocator.resolve({ lat: 12.7409, lng: 77.8253 });
+  assert.equal(hosur.road_ownership, "outside_state");
+  assert.equal(hosur.lookup.kgis, "snapshot");
+  assert.equal(hosur.lookup.local, "outside_state_polygon");
+  // Electronic City's industrial township is in the town layer with no LGD code, and
+  // KGIS itself answers unknown for it. The snapshot says no more than the register.
+  const elcita = await geolocator.resolve({ lat: 12.8452, lng: 77.6602 });
+  assert.equal(elcita.road_ownership, "unknown");
+  assert.equal(elcita.lookup.local, "town_without_lgd");
+  assert.equal(calls.kgis, 0);
+});
+
+test("in the default configuration nothing in Karnataka is ever put to KGIS", async () => {
+  const { geolocator, calls } = counted();
+  const points = {
+    "Bengaluru": [12.9716, 77.5946, "305851"],
+    "Hubballi": [15.3647, 75.1240, "251893"],
+    "Mangaluru": [12.87, 74.88, "252021"],
+    "Kalaburagi": [17.3297, 76.8343, "248127"],
+    "Mysuru": [12.2958, 76.6394, "252045"],
+  };
+  for (const [place, [lat, lng, lgd]] of Object.entries(points)) {
+    const result = await geolocator.resolve({ lat, lng });
+    assert.equal(result.road_ownership, "municipal", place);
+    assert.equal(result.lgd, lgd, place);
+    assert.equal(result.source, "kgis_snapshot", place);
+    assert.deepEqual(
+      [result.lookup.kgis, result.lookup.kgis_town, result.lookup.kgis_highway, result.lookup.kgis_gp],
+      ["snapshot", "snapshot", "snapshot", "snapshot"], place);
+    assert.ok(BODIES[lgd]?.email, `${place}: the body the snapshot named is one the app can write to`);
+  }
+  // A grid across the whole envelope, towns, highways, country, sea and neighbours alike.
+  for (let lat = 11.2; lat < 18.9; lat += 0.37) {
+    for (let lng = 73.6; lng < 79.0; lng += 0.41) {
+      const result = await geolocator.resolve({ lat, lng });
+      assert.equal(result.lookup.kgis, "snapshot");
+      assert.notEqual(result.road_ownership, "unknown", `${lat},${lng}`);
+    }
+  }
+  assert.equal(calls.kgis, 0, "the request path made a KGIS request");
+});
+
+test("a package without the bundle fails closed, and still does not ask KGIS", async () => {
+  const errors = [];
+  const { geolocator, calls } = counted({
+    localGeometryPath: NO_LOCAL_GEOMETRY,
+    logger: { error: (line) => errors.push(JSON.parse(line)), log() {} },
+  });
+  for (const [lat, lng] of [[12.9716, 77.5946], [15.3647, 75.124]]) {
+    const result = await geolocator.resolve({ lat, lng });
+    assert.equal(result.road_ownership, "unknown");
+    assert.equal(result.lookup.kgis, "snapshot");
+    assert.equal(result.lookup.local, "unavailable");
+  }
+  assert.deepEqual(errors.map((line) => line.event), ["local_geometry_unavailable"], "logged once");
+  assert.equal(calls.kgis, 0);
+});
+
+test("a file that is not the bundle is treated as absent", async () => {
+  const { geolocator } = counted({
+    localGeometryPath: new URL("../../../data/karnataka-towns.json", import.meta.url),
+    logger: quiet,
+  });
+  const bengaluru = await geolocator.resolve({ lat: 12.9716, lng: 77.5946 });
+  assert.equal(bengaluru.road_ownership, "unknown");
+  assert.equal(bengaluru.lookup.local, "unavailable");
+});
+
+test("nearby points share a cache entry but keep their own coordinates", async () => {
+  const { geolocator } = counted();
+  const first = await geolocator.resolve({ lat: 12.97161, lng: 77.59461, addressHint: "MG Road" });
+  const near = await geolocator.resolve({ lat: 12.97164, lng: 77.59463, addressHint: "MG Road" });
+  assert.equal(first.road_ownership, "municipal");
+  assert.equal(near.road_ownership, "municipal");
+  assert.equal(near.lat, 12.97164);
+  assert.equal(near.lng, 77.59463);
+});
+
+// ---------------------------------------------------------------------------------
+// The live lookup, behind `liveKgis: true`. KGIS sometimes stalls on its query endpoints
+// while its root still answers; after one timeout the live geolocator stops asking for a
+// while and answers from the same local bundle at once.
+
 test("a KGIS timeout opens a breaker so the next lookup does not wait", async () => {
   let calls = 0;
-  const geolocator = createGeolocator({
+  const geolocator = live({
     fetchImpl: (...args) => { calls += 1; return hanging(...args); },
     kgisTimeoutMs: 50,
   });
@@ -53,7 +223,7 @@ test("the default KGIS timeout is 3 s and the breaker stays open for a minute", 
 test("after the breaker closes the next lookup asks KGIS again", async () => {
   let calls = 0;
   let stalled = true;
-  const geolocator = createGeolocator({
+  const geolocator = live({
     fetchImpl: (url, options) => {
       calls += 1;
       if (stalled) return hanging(url, options);
@@ -90,7 +260,7 @@ test('malformed GIS JSON never proves outside-state or municipal ownership', asy
     assert.equal(blind.road_ownership,'unknown');
     assert.equal(blind.lookup.kgis,'unavailable');
     assert.equal(blind.lookup.local,'unavailable');
-    const result=await createGeolocator({fetchImpl}).resolve({lat:12.9716,lng:77.5946});
+    const result=await live({fetchImpl}).resolve({lat:12.9716,lng:77.5946});
     assert.equal(result.lookup.kgis,'unavailable');
     assert.equal(result.lookup.local,'municipal_polygon');
     assert.equal(result.source,'kgis_snapshot', 'the answer is the snapshot, never the malformed body');
@@ -100,7 +270,7 @@ test('malformed GIS JSON never proves outside-state or municipal ownership', asy
 
 test('a malformed GIS answer cannot change the verdict outside Karnataka', async()=>{
   for (const payload of [{}, {status:'temporarily unavailable'}, {features:{}}, {features:[{}]}]) {
-    const locator=createGeolocator({fetchImpl:async()=>new Response(JSON.stringify(payload))});
+    const locator=live({fetchImpl:async()=>new Response(JSON.stringify(payload))});
     const result=await locator.resolve({lat:23.181854,lng:72.652801});
     assert.equal(result.road_ownership,'outside_state');
     assert.equal(result.lookup.kgis,'out_of_scope');
@@ -122,9 +292,9 @@ test('malformed GIS failure is not cached across a successful retry', async()=>{
 // lookups in the previous 30 days were 503 road_ownership_unavailable, every one a
 // Karnataka point KGIS could not answer for in time.
 
-test("KGIS down: a Bengaluru point is municipal from the snapshot, with its LGD", async () => {
+test("live KGIS down: a Bengaluru point is municipal from the snapshot, with its LGD", async () => {
   let kgisCalls = 0;
-  const geolocator = createGeolocator({
+  const geolocator = live({
     fetchImpl: async (url) => {
       if (url.includes("kgis.ksrsac.in")) kgisCalls += 1;
       throw new Error("KGIS is down");
@@ -143,43 +313,37 @@ test("KGIS down: a Bengaluru point is municipal from the snapshot, with its LGD"
   assert.ok(BODIES["305851"]?.email, "the body the snapshot named is one the app can write to");
 });
 
-test("KGIS down: a point on Bellary Road is a national highway from the OSM lines", async () => {
-  const geolocator = createGeolocator({ fetchImpl: async () => { throw new Error("down"); } });
+test("live KGIS down: highways, country and the border are answered from the same bundle", async () => {
+  const geolocator = live({ fetchImpl: async () => { throw new Error("down"); } });
   const bellary = await geolocator.resolve({ lat: 13.00271, lng: 77.58406 });
   assert.equal(bellary.road_ownership, "national_highway");
-  // OpenStreetMap carries the current number; KGIS names it "BELLARY ROAD NH 7".
-  assert.equal(bellary.highway_name, "NH-44");
-  assert.equal(bellary.lookup.local, "national_highway_geometry");
+  assert.equal(bellary.highway_name, "BELLARY ROAD NH 7", "the name KGIS would have given");
+  assert.equal(bellary.lookup.kgis, "unavailable");
+  assert.equal(bellary.lookup.local, "national_highway_polygon");
   assert.equal(bellary.lgd, null);
-  // MG Road is a city arterial. The KGIS land-cover layer misfiles it as a National
-  // Highway at 20 m; the OSM centre lines do not carry that mistake.
   const mgRoad = await geolocator.resolve({ lat: 12.9756, lng: 77.605 });
   assert.equal(mgRoad.road_ownership, "municipal");
   assert.equal(mgRoad.town, "GBA - Central");
-});
-
-test("KGIS down: open country inside Karnataka is rural, never municipal", async () => {
-  const geolocator = createGeolocator({ fetchImpl: async () => { throw new Error("down"); } });
-  // Fields in Tumakuru district, in no urban local body.
+  // The case the 6 Oct 2026 fallback could not answer: it held no state highways, so it
+  // called this stretch of one municipal.
+  const stateHighway = await geolocator.resolve({ lat: 15.81887, lng: 74.8627 });
+  assert.equal(stateHighway.road_ownership, "state_highway");
+  assert.equal(stateHighway.lookup.local, "state_highway_polygon");
   const country = await geolocator.resolve({ lat: 13.45, lng: 77.05 });
   assert.equal(country.road_ownership, "rural");
-  assert.equal(country.rural_body, null, "the snapshot holds no panchayat polygons");
-  assert.equal(country.lgd, null);
+  assert.equal(country.rural_body, "THIMMARAJANAHALLI");
   assert.equal(country.source, "unresolved");
-  assert.equal(country.lookup.local, "state_polygon");
-  // Hosur, Tamil Nadu, 6 km over the line: inside the envelope, outside the state polygon.
+  assert.equal(country.lookup.local, "gp_polygon");
   const hosur = await geolocator.resolve({ lat: 12.7409, lng: 77.8253 });
   assert.equal(hosur.road_ownership, "outside_state");
   assert.equal(hosur.lookup.local, "outside_state_polygon");
-  // Electronic City's industrial township is in the KGIS layer with no LGD code, and
-  // KGIS itself answers unknown for it. The snapshot says no more than the register.
   const elcita = await geolocator.resolve({ lat: 12.8452, lng: 77.6602 });
   assert.equal(elcita.road_ownership, "unknown");
   assert.equal(elcita.lookup.local, "town_without_lgd");
 });
 
-test("KGIS up: its answer wins and the snapshot is not consulted", async () => {
-  const geolocator = createGeolocator({
+test("live KGIS up: its answer wins and the snapshot is not consulted", async () => {
+  const geolocator = live({
     fetchImpl: async (url) => new Response(JSON.stringify({ features:
       url.includes("Admin_Dynamic_New")
         ? [{ attributes: { KGISTownName: "Live town", LGD_TownCode: 424242 } }] : [] })),
@@ -194,8 +358,8 @@ test("KGIS up: its answer wins and the snapshot is not consulted", async () => {
 
 // KGIS's town and highway layers answered but the panchayat layer did not: before
 // 6 Oct 2026 that was a 503 too.
-test("a panchayat layer outage is answered by the state boundary", async () => {
-  const geolocator = createGeolocator({
+test("a live panchayat layer outage is answered by the packaged panchayat polygons", async () => {
+  const geolocator = live({
     fetchImpl: async (url) => {
       if (url.includes("GP_Boundary")) throw new Error("GP layer down");
       return new Response(JSON.stringify({ features: [] }));
@@ -205,12 +369,13 @@ test("a panchayat layer outage is answered by the state boundary", async () => {
   assert.equal(result.lookup.kgis, "available");
   assert.equal(result.lookup.kgis_gp, "not_needed_or_unavailable");
   assert.equal(result.road_ownership, "rural");
-  assert.equal(result.lookup.local, "state_polygon");
+  assert.equal(result.rural_body, "THIMMARAJANAHALLI");
+  assert.equal(result.lookup.local, "gp_polygon");
 });
 
-test("nearby points share a cache entry but keep their own coordinates", async () => {
+test("live: nearby points share a cache entry and one round of KGIS calls", async () => {
   let calls = 0;
-  const geolocator = createGeolocator({
+  const geolocator = live({
     fetchImpl: async (url) => {
       calls += 1;
       const features = url.includes("Admin_Dynamic_New")
@@ -231,11 +396,7 @@ test("nearby points share a cache entry but keep their own coordinates", async (
 // minutes and the second got the first one's address, and so the first one's tender
 // match. A hint typed by one phone is that phone's claim, not a fact about the place.
 test("one caller's address hint is never served to the next caller in the cell", async () => {
-  const geolocator = createGeolocator({
-    fetchImpl: async (url) => new Response(JSON.stringify({ features:
-      url.includes("Admin_Dynamic_New")
-        ? [{ attributes: { KGISTownName: "Mysuru", LGD_TownCode: 252045 } }] : [] })),
-  });
+  const { geolocator } = counted();
   const first = await geolocator.resolve({ lat: 12.3051, lng: 76.6551, addressHint: "Nirvikalpa Road" });
   assert.equal(first.address, "Nirvikalpa Road");
   const second = await geolocator.resolve({ lat: 12.30512, lng: 76.65512, addressHint: "Some Other Lane" });
@@ -278,7 +439,7 @@ function recordedKgis(url) {
 }
 
 test("city arterials are not highways, and a national highway still is", async () => {
-  const geolocator = createGeolocator({ fetchImpl: recordedKgis });
+  const geolocator = live({ fetchImpl: recordedKgis });
   const at = (lat, lng) => geolocator.resolve({ lat, lng, addressHint: "hint" });
   const mgRoad = await at(12.9756, 77.605);
   assert.equal(mgRoad.road_ownership, "municipal");
@@ -318,8 +479,8 @@ test("a KGIS outage without the snapshot still refuses to guess ownership inside
   assert.equal(bengaluru.lookup.local, "unavailable");
 });
 
-test("a snapshot that is not the expected bundle is treated as absent", async () => {
-  const geolocator = createGeolocator({
+test("live: a snapshot that is not the expected bundle is treated as absent", async () => {
+  const geolocator = live({
     fetchImpl: async () => { throw new Error("down"); },
     localGeometryPath: new URL("../../../data/karnataka-towns.json", import.meta.url),
     logger: quiet,
@@ -380,13 +541,13 @@ test("outside Karnataka the verdict never depends on KGIS, anywhere in India", a
   }
 });
 
-test("inside Karnataka KGIS is still asked first, and without the snapshot the verdict fails closed", async () => {
+test("live: inside Karnataka KGIS is asked first, and without the snapshot the verdict fails closed", async () => {
   // The other half of the property. If this ever passes by short-circuiting, the envelope
   // has grown over the state it was meant to exclude nothing from.
   for (const [place, [lat, lng, lgd]] of Object.entries({
     "Bengaluru": [12.9716, 77.5946, "305851"],
     "Hubballi": [15.3647, 75.1240, "251893"],
-    "Mangaluru": [12.9141, 74.8560, "252021"],
+    "Mangaluru": [12.87, 74.88, "252021"],
     "Kalaburagi": [17.3297, 76.8343, "248127"],
   })) {
     for (const [name, behaviour] of Object.entries(BEHAVIOURS)) {
@@ -401,7 +562,7 @@ test("inside Karnataka KGIS is still asked first, and without the snapshot the v
         assert.equal(blind.road_ownership, "unknown",
           `${place} claimed an answer from a KGIS that was ${name}`);
       }
-      const result = await createGeolocator({ fetchImpl }).resolve({ lat, lng });
+      const result = await live({ fetchImpl }).resolve({ lat, lng });
       if (name !== "empty") {
         assert.equal(result.lookup.kgis, "unavailable", `${place} with KGIS ${name}`);
         assert.equal(result.source, "kgis_snapshot", `${place} with KGIS ${name}`);
@@ -411,9 +572,9 @@ test("inside Karnataka KGIS is still asked first, and without the snapshot the v
   }
 });
 
-test("a coordinate just outside the Karnataka border is still put to KGIS", async () => {
+test("live: a coordinate just outside the Karnataka border is still put to KGIS", async () => {
   let kgisCalls = 0;
-  const geolocator = createGeolocator({
+  const geolocator = live({
     fetchImpl: async (url) => {
       if (url.includes("kgis.ksrsac.in")) kgisCalls += 1;
       return new Response(JSON.stringify({ features: [] }));

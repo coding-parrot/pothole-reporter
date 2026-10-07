@@ -60,6 +60,7 @@ async function main() {
   // with --live-kgis, given 20 s where the service gives it 3).
   const geolocator = createGeolocator({
     geocoderUrl: GEOCODER,
+    liveKgis,
     kgisTimeoutMs: 20_000,
     logger: { error() {}, log() {} },
     fetchImpl: async (input, options) => {
