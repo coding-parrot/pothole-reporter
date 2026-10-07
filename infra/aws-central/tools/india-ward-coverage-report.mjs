@@ -293,7 +293,7 @@ export function render(all, { handread, samplePairs, sampleGazetteerHits }) {
     }
     for (const source of refusedFor(state, city)) {
       const measured = refused.find((item) => item.source.id === source.id);
-      lines.push([`${source.id} (refused)`, source.page, source.publisher, source.licence, source.vintage, measured ? `${measured.snapshot.provenance.features_in_source}` : source.counted ?? "see registry", source.source_fields, `refused: ${source.licence_status} licence`]);
+      lines.push([`${source.id} (refused)`, source.page, source.publisher, source.licence, source.vintage, source.counted ?? (measured ? measured.snapshot.provenance.features_in_source : "see registry"), source.source_fields, `refused: ${source.licence_status} licence`]);
     }
     for (const extra of EXTRA[`${state}/${city}`] || []) {
       lines.push([extra.name, extra.url, extra.publisher, extra.licence, extra.date, extra.count, extra.field, extra.decision]);
@@ -364,7 +364,10 @@ export function render(all, { handread, samplePairs, sampleGazetteerHits }) {
         measure.by_number.notices_where_a_zone_or_circle_number_is_read_as_a_ward,
       ])),
     "",
-    `Snapshots of bodies with no notice in the packs are left out of the table: ${snapshots.filter(({ measure }) => measure.notices === 0).map(({ entry }) => entry.id).join(", ")}.`);
+    `Snapshots of bodies with no notice in the packs are left out of the table: ${snapshots.filter(({ measure }) => measure.notices === 0).map(({ entry }) => entry.id).join(", ")}.`,
+    "",
+    "The three refused official layers were snapshotted outside the repo on 7 Oct 2026 and measured the same way against the same notices, to show what a licence would buy. Delhi's 250 wards of 2022: 5 wards named by 5 of 21 notices (the 2017 file: 10 wards, 6 notices, most of it \"Rohini\"). TGRAC's 155 Hyderabad wards: 8 wards named by 6 of 18 notices, and the same new-numbering mismatch as the OpenStreetMap wards. Pune's 72 prabhags: 1 named by 1 of 10 notices. "
+    + "In the tenders the app holds today, current official polygons would change little: the limit is what the titles say, not the map. `--with-unlicensed` repeats the measurement on a machine that has fetched them.");
 
   const numbering = measured.filter(({ measure }) => measure.numbering.agree + measure.numbering.disagree > 0);
   say("### Is the file's numbering the tenders' numbering?",

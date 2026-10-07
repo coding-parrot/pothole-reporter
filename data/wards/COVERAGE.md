@@ -275,10 +275,8 @@ For each snapshot, the notices of its State that the body tendered, plus notices
 | MP/bhopal | 55 (50 + 5) | 85 | 0 | 0 | 32 | 32 | 30 | 41 | 28 |
 | GJ/ahmedabad | 46 (46 + 0) | 48 | 8 | 30 | 0 | 0 | 0 | 0 | 0 |
 | DL/delhi-2017 | 21 (21 + 0) | 289 | 10 | 6 | 0 | 0 | 0 | 6 | 0 |
-| DL/delhi-mcd-2022 (refused) | 21 (21 + 0) | 250 | 5 | 5 | 0 | 0 | 0 | 6 | 0 |
 | TG/hyderabad | 18 (18 + 0) | 147 | 7 | 5 | 14 | 13 | 12 | 13 | 10 |
 | RJ/jaipur-2009 | 28 (18 + 10) | 77 | 0 | 0 | 11 | 9 | 11 | 11 | 0 |
-| TG/hyderabad-tgrac (refused) | 18 (18 + 0) | 155 | 8 | 6 | 14 | 13 | 12 | 13 | 10 |
 | TN/chennai | 16 (16 + 0) | 200 | 0 | 0 | 0 | 0 | 0 | 11 | 0 |
 | CH/chandigarh-2016 | 16 (16 + 0) | 27 | 0 | 0 | 2 | 2 | 3 | 5 | 0 |
 | OD/bhubaneswar | 12 (12 + 0) | 67 | 0 | 0 | 11 | 11 | 15 | 11 | 0 |
@@ -286,7 +284,6 @@ For each snapshot, the notices of its State that the body tendered, plus notices
 | MH/pune | 10 (5 + 5) | 41 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | MH/pune-2022 | 10 (5 + 5) | 58 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | KL/kochi | 7 (5 + 2) | 68 | 0 | 0 | 0 | 0 | 0 | 5 | 0 |
-| MH/pune-pmc-wfs (refused) | 10 (5 + 5) | 71 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
 | MH/mumbai | 4 (3 + 1) | 24 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | MH/mumbai-electoral-2017 | 4 (3 + 1) | 227 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | TN/coimbatore | 11 (2 + 9) | 100 | 0 | 0 | 2 | 2 | 2 | 2 | 0 |
@@ -297,6 +294,8 @@ For each snapshot, the notices of its State that the body tendered, plus notices
 
 Snapshots of bodies with no notice in the packs are left out of the table: RJ/kishangarh, WB/kolkata, MH/pimpri-chinchwad, AP/vijayawada, BR/katihar, BR/purnia, BR/bodh-gaya, SK/gangtok.
 
+The three refused official layers were snapshotted outside the repo on 7 Oct 2026 and measured the same way against the same notices, to show what a licence would buy. Delhi's 250 wards of 2022: 5 wards named by 5 of 21 notices (the 2017 file: 10 wards, 6 notices, most of it "Rohini"). TGRAC's 155 Hyderabad wards: 8 wards named by 6 of 18 notices, and the same new-numbering mismatch as the OpenStreetMap wards. Pune's 72 prabhags: 1 named by 1 of 10 notices. In the tenders the app holds today, current official polygons would change little: the limit is what the titles say, not the map. `--with-unlicensed` repeats the measurement on a machine that has fetched them.
+
 ### Is the file's numbering the tenders' numbering?
 
 Where a title gives a name beside its one ward number ("Ward 30 Ambedkar Nagar") and the file has a Latin-letter name for that number, the two can be compared:
@@ -305,7 +304,6 @@ Where a title gives a name beside its one ward number ("Ward 30 Ambedkar Nagar")
 | --- | --- | --- | --- | --- |
 | UP/kanpur | 17 | 0 | 17 | ward 91 is "Yashoda Nagar West" in the snapshot; the title says "Improvement work of road and drain of Mohalla Peeli Building under Zone 06 Ward 91 Shastri Nagar." |
 | TG/hyderabad | 3 | 0 | 3 | ward 42 is "Barkas" in the snapshot; the title says "Restoration of badly damaged road with CC from Plot No321/5-7-257 to 5-7-331, B.N Reddy Nagar Colony in B.N Re" |
-| TG/hyderabad-tgrac | 3 | 0 | 3 | ward 42 is "BARKAS" in the snapshot; the title says "Restoration of badly damaged road with CC from Plot No321/5-7-257 to 5-7-331, B.N Reddy Nagar Colony in B.N Re" |
 
 Bhopal's names are in Devanagari and cannot be compared this way; its numbering was checked by geography in the hand-read below (the places seven titles name lie in or within 100 m of the ward of the title's number). For Chennai, Coimbatore, Bhubaneswar, Faridabad, Kolkata and the other number-only files nothing in the repo can test the numbering: the vintage in each provenance block is the guide.
 

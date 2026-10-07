@@ -130,7 +130,8 @@ const numberThenName = (value) => {
 
 // ---------------------------------------------------------------------------------------
 // The registry. One entry per source that was opened and read on 7 Oct 2026. `notices`
-// says which road notices belong to the body (the coverage tool reads it).
+// says which road notices belong to the body (the coverage tool reads it). `counted` on a
+// refused source is the number of polygons the service returned that day.
 // ---------------------------------------------------------------------------------------
 const opencity = (dataset, resource, file) => ({
   kind: "kml",
@@ -435,7 +436,7 @@ export const SOURCES = [
     page: "https://gsdl.org.in/arcgis/rest/services/MCD/MCD_Ward_Zone_2022/MapServer",
     publisher: "Geospatial Delhi Limited (Government of NCT of Delhi)", ...NO_LICENCE,
     attribution: "Geospatial Delhi Limited, Government of NCT of Delhi",
-    arcgis_fields: "Ward_No,WardName,AC_No,AC_Name", insecure_tls: true,
+    arcgis_fields: "Ward_No,WardName,AC_No,AC_Name", insecure_tls: true, counted: 251,
     read: (p) => ({ no: number(p.Ward_No), name: text(p.WardName) }),
     source_fields: "Ward_No,WardName",
     upstream: "Official service of the Delhi government's GIS company.",
@@ -449,7 +450,7 @@ export const SOURCES = [
     page: "https://tgrac.telangana.gov.in/arcgis/rest/services/TCUR_Folder/TCUR_Telangana_Core_Urban_Region_V2/MapServer",
     publisher: "Telangana Remote Sensing Applications Centre (TGRAC), Government of Telangana", ...NO_LICENCE,
     attribution: "Telangana Remote Sensing Applications Centre (TGRAC), Government of Telangana",
-    arcgis_fields: "ward,CIRCLE,ZONE", insecure_tls: true,
+    arcgis_fields: "ward,CIRCLE,ZONE", insecure_tls: true, counted: 155,
     read: (p) => ({ ...numberThenName(p.ward), zone: text(p.CIRCLE) }),
     source_fields: "ward,CIRCLE,ZONE",
     upstream: "Official service; the app already asks it one point at a time (in-tg-routing) and redistributes nothing from it. OpenCity's \"Greater Hyderabad Wards Map 2022\" is a copy of this layer (155 features, the same fields).",
@@ -476,7 +477,7 @@ export const SOURCES = [
     kind: "geojson",
     url: "https://iwmsgis.pmc.gov.in/geoserver/pmc/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=pmc:Prabhag_Boundary&outputFormat=application%2Fjson&srsName=EPSG%3A4326",
     page: "https://iwmsgis.pmc.gov.in/geoserver/pmc/ows?service=WFS&version=1.0.0&request=GetCapabilities",
-    publisher: "Pune Municipal Corporation (IWMS GIS)", ...NO_LICENCE,
+    publisher: "Pune Municipal Corporation (IWMS GIS)", ...NO_LICENCE, counted: 72,
     licence: "No reuse licence. The WFS capabilities read Fees NONE and AccessConstraints NONE, which are GeoServer's defaults, not a grant.",
     attribution: "Pune Municipal Corporation",
     read: (p) => ({ no: number(p.prabhag_id), name: text(p.prabhag), zone: text(p.ward) }),

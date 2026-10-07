@@ -4,6 +4,8 @@
 // the repo. Offline tool: the service does not import it.
 //
 //   node infra/aws-central/tools/india-ward-coverage.mjs            writes COVERAGE.md
+//     --with-unlicensed adds rows for refused sources snapshotted under data/wards/.work/
+//     (snapshot-india-wards.mjs --allow-unlicensed); never commit a report made that way
 //   node infra/aws-central/tools/india-ward-coverage.mjs --json     prints the measurements
 //   node infra/aws-central/tools/india-ward-coverage.mjs --pairs UP/kanpur [--seed 1]
 //     prints the 30 ward and notice pairs a person is to read for that city
@@ -337,7 +339,7 @@ export function sampleGazetteerHits(states, seed = 1, size = 30) {
   return shuffled(hits, seed).slice(0, size);
 }
 
-export function measureAll() {
+export function measureAll({ withUnlicensed = false } = {}) {
   const loaded = loadRoadNotices();
   const localities = loadLocalities();
   const index = JSON.parse(fs.readFileSync(INDEX_PATH, "utf8"));
@@ -346,8 +348,9 @@ export function measureAll() {
     const snapshot = JSON.parse(fs.readFileSync(path.join(root, entry.path), "utf8"));
     return { entry, source, snapshot, measure: measureSnapshot(source, snapshot, loaded.notices, localities) };
   });
-  // Refused sources that were snapshotted under .work for measuring, where present.
-  const refused = SOURCES.filter((source) => !committable(source) && fs.existsSync(snapshotPath(source))).map((source) => {
+  // Refused sources snapshotted under data/wards/.work/ for measuring. Only on request:
+  // the report has to come out the same on a machine that never fetched them.
+  const refused = SOURCES.filter((source) => withUnlicensed && !committable(source) && fs.existsSync(snapshotPath(source))).map((source) => {
     const snapshot = JSON.parse(fs.readFileSync(snapshotPath(source), "utf8"));
     return { source, snapshot, measure: measureSnapshot(source, snapshot, loaded.notices, localities) };
   });
@@ -357,7 +360,7 @@ export function measureAll() {
 const args = process.argv.slice(2);
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain && args.includes("--json")) {
-  const all = measureAll();
+  const all = measureAll({ withUnlicensed: args.includes("--with-unlicensed") });
   const lean = (measure) => ({ ...measure, pairs: measure.pairs.length });
   console.log(JSON.stringify({
     snapshots: all.snapshots.map(({ measure }) => lean(measure)),
@@ -372,7 +375,7 @@ if (isMain && args.includes("--json")) {
 } else if (isMain && args.includes("--pairs")) {
   const id = args[args.indexOf("--pairs") + 1];
   const seed = args.includes("--seed") ? Number(args[args.indexOf("--seed") + 1]) : 1;
-  const all = measureAll();
+  const all = measureAll({ withUnlicensed: true });
   const found = [...all.snapshots, ...all.refused].find(({ source }) => source.id.toLowerCase() === String(id).toLowerCase());
   if (!found) throw new Error(`No snapshot ${id}`);
   for (const [at, pair] of samplePairs(found.measure, seed).entries()) {
@@ -380,7 +383,7 @@ if (isMain && args.includes("--json")) {
   }
 } else if (isMain) {
   const { render } = await import("./india-ward-coverage-report.mjs");
-  const text = render(measureAll(), {
+  const text = render(measureAll({ withUnlicensed: args.includes("--with-unlicensed") }), {
     handread: fs.existsSync(HANDREAD_PATH) ? JSON.parse(fs.readFileSync(HANDREAD_PATH, "utf8")) : null, samplePairs, sampleGazetteerHits,
   });
   fs.writeFileSync(COVERAGE_PATH, text);
