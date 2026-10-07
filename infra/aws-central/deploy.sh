@@ -24,11 +24,15 @@ node infra/aws-central/tools/production-health.mjs --window 24h || true
 # Caps and the geocoder are decided in template.yaml. CloudFormation keeps a stack's old
 # parameter values unless they are passed again, which is how the template said 500 a day
 # while the stack still ran 50. Pass every such parameter explicitly from the template.
+# The detection order (SharedDetectorProvider) and the screen function are deliberately
+# not in this list: the template's default order is not the one production runs, and a
+# routine deploy must not change which model answers users. They change only through
+# EXTRA_PARAMETER_OVERRIDES, which is passed last and so also overrides this list.
 template_default() {
   sed -n "/^  $1:\$/,/Default:/p" infra/aws-central/template.yaml | sed -n 's/^    Default: //p' | head -1
 }
 TEMPLATE_PARAMETERS=""
-for name in DailyVisionCap GlobalVisionMinuteCap GlobalVisionDailyCap MonthlyVisionCap ReservedConcurrency GeocoderReverseUrl AlertEmail; do
+for name in DailyVisionCap GlobalVisionMinuteCap GlobalVisionDailyCap MonthlyVisionCap ReservedConcurrency GeocoderReverseUrl AlertEmail ScreenAuditRate; do
   default_value="$(template_default "$name")"
   [[ -n "$default_value" ]] || { echo "template.yaml declares no default for $name" >&2; exit 1; }
   TEMPLATE_PARAMETERS="$TEMPLATE_PARAMETERS $name=$default_value"

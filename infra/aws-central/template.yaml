@@ -60,6 +60,17 @@ Parameters:
     Description: >-
       Name of the YOLO detector Lambda in this account and region (YOLO_MODE lambda).
       Blank leaves the YOLO leg unconfigured and grants no invoke permission.
+  ScreenAuditRate:
+    Type: Number
+    Default: 0.1
+    MinValue: 0
+    MaxValue: 1
+    Description: >-
+      yolo_then_openai only. The share of the drive frames the screen clears that is
+      still sent to gpt-5-mini, whose answer the phone then gets. Those frames are how
+      the request log goes on measuring what the screen misses (screen_audited,
+      screen_agrees) once cleared frames no longer reach gpt-5-mini. 0 switches the
+      measuring off; the health rules then cannot estimate the screen's recall.
 
 Conditions:
   HasYoloFunction: !Not [!Equals [!Ref YoloFunctionName, '']]
@@ -266,6 +277,7 @@ Resources:
           SHARED_DETECTOR_PROVIDER: !Ref SharedDetectorProvider
           YOLO_MODE: lambda
           YOLO_FUNCTION_NAME: !If [HasYoloFunction, !Ref YoloFunctionName, !Ref AWS::NoValue]
+          SCREEN_AUDIT_RATE: !Ref ScreenAuditRate
           DEDUPE_RADIUS_METRES: !Ref DedupeRadiusMetres
           DAILY_VISION_CAP: !Ref DailyVisionCap
           GLOBAL_VISION_MINUTE_CAP: !Ref GlobalVisionMinuteCap

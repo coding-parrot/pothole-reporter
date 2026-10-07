@@ -1,3 +1,5 @@
+import { randomInt } from "node:crypto";
+
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
 import { GetSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 
@@ -48,6 +50,28 @@ const YOLO_SCREEN_TIMEOUT_MS = 10_000;
 // either: once gpt-5-mini has answered, a screen that is still running gets this long
 // to land in the log and is then cancelled.
 const SHADOW_SCREEN_GRACE_MS = 50;
+// yolo_then_openai never shows gpt-5-mini a frame the screen clears, so a pothole the
+// screen misses is missed by everyone and counted by no one. The first screen flagged 94%
+// of damaged frames in testing and 76% on real phones. This share of the cleared drive
+// frames is therefore still sent to gpt-5-mini, and the phone gets gpt-5-mini's answer
+// for them: an audited frame cannot be a miss, and the request log keeps saying what the
+// screen is missing. The stack parameter is ScreenAuditRate.
+export const DEFAULT_SCREEN_AUDIT_RATE = 0.1;
+
+// The rate as configured: a number from 0 to 1. Unset is the default. A value that
+// cannot be read audits every cleared frame, because the other reading of a typo is no
+// audit at all: this way the mistake costs gpt-5-mini calls (what production pays today)
+// and never a pothole.
+export function auditRate(value) {
+  if (value === undefined || value === null || String(value).trim() === "") return DEFAULT_SCREEN_AUDIT_RATE;
+  const rate = typeof value === "number" ? value : Number(String(value).trim());
+  return Number.isFinite(rate) && rate >= 0 && rate <= 1 ? rate : 1;
+}
+
+// A number in [0, 1) from the operating system's generator, drawn after the screen has
+// answered. Nothing a client sends (the image, its request, the time) moves it, so no
+// client can tell beforehand which frames gpt-5-mini will also see.
+const drawForAudit = () => randomInt(2 ** 32) / 2 ** 32;
 
 // Aborts after the given time, or as soon as the caller's own signal does.
 function timeoutSignal(milliseconds, outer = null) {
@@ -156,8 +180,11 @@ export function createDetector({
   yoloTimeoutMs = RUNTIME_CONFIG.timeoutsMs.serverYoloMax,
   yoloScreenTimeoutMs = YOLO_SCREEN_TIMEOUT_MS,
   shadowGraceMs = SHADOW_SCREEN_GRACE_MS,
+  screenAuditRate = DEFAULT_SCREEN_AUDIT_RATE,
+  auditDraw = drawForAudit,
 } = {}) {
   const secrets = secretProvider || (async () => ({}));
+  const auditShare = auditRate(screenAuditRate);
 
   // A secret with no current version (as on 2026-09-19) is a missing credential, not a
   // server fault, and must read as one to the app instead of internal_error.
@@ -429,7 +456,7 @@ export function createDetector({
       const result = await openai(input, context);
       return { ...result, fallbackFrom: "yolo", fallbackReason: error.code };
     }
-    if (!flagsDamage(screen.verdict)) return screen;
+    if (!flagsDamage(screen.verdict)) return auditCleared(input, context, screen);
     context.detectorScreenedBy = "yolo";
     try {
       const confirmed = await openai(input, context);
@@ -442,6 +469,25 @@ export function createDetector({
       if (!(error instanceof HttpError) || !error.details?.fallback_allowed) throw error;
       context.detectorFallbackReason = error.code;
       return { ...screen, fallbackFrom: "openai", fallbackReason: error.code };
+    }
+  }
+
+  // A frame the screen cleared. One draw decides whether gpt-5-mini sees it too. When it
+  // does, the phone gets gpt-5-mini's answer, so a pothole the screen missed on an
+  // audited frame is still reported. The audit is a measurement and may not cost the
+  // phone anything but time: when gpt-5-mini cannot be asked (no credit, a rate limit, a
+  // timeout, a 5xx) the frame is answered exactly as an unaudited one, and the log says
+  // the audit was lost.
+  async function auditCleared(input, context, screen) {
+    if (!(auditDraw() < auditShare)) return screen;
+    context.screenAudited = true;
+    try {
+      const judged = await openai(input, context);
+      return { ...judged, screenedBy: "yolo", screenModel: screen.model };
+    } catch (error) {
+      if (!(error instanceof HttpError)) throw error;
+      context.screenAuditError = error.code;
+      return screen;
     }
   }
 

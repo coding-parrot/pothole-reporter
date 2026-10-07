@@ -1274,6 +1274,7 @@ export function createService({
       screen_agrees: context.screenAgrees ?? null,
       screen_error: context.screenError || null,
       screen_model: context.screenModel || null,
+      screen_audit_error: context.screenAuditError || null,
       quota_refunded: context.quotaRefunded || false,
       db_ms: Math.round(timings.db.ms),
       db_calls: timings.db.calls,
