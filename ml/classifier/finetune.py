@@ -1,18 +1,25 @@
 #!/usr/bin/env python3
-"""Fine-tune the last blocks of a CNN encoder, starting from its trained probe head.
+"""Fine-tune a small CNN encoder on whole frames with real augmentation.
 
-    python finetune.py --encoder mobilenetv3_l --size 448 --from-block 5
+    python finetune.py --encoder mobilenetv3_l --size 448 --name ft_mnv3_s1 --seed 1
 
-Used only because the frozen probes are short of the bar. Training whole images on this
-shared 8 GB Mac took 5 s a step, so the frozen part of the network (the stem and the
-blocks before --from-block) is run once and its feature maps are cached; only the last
-blocks and the head are then trained, on those maps. That is the same optimisation as
-fine-tuning the last blocks with the earlier ones frozen, without image augmentation.
+v1 could only train the last blocks on cached feature maps, with no augmentation, and
+it memorised. This trains on the images: every step sees freshly augmented whole frames
+(augment.py: colour, blur, JPEG, resolution, flip, shrink, perspective; never a crop).
 
-Targets are soft where the teacher answered twice. The epoch kept is the one that
-clears most undamaged validation frames at 98% recall of first-answer damaged frames.
-Outputs: work/finetuned/<encoder>_<size>.pt (the full encoder body) and
-work/heads/<encoder>_<size>_ft.pt, which export_onnx.py and release.py take.
+On a GPU (the T4 this was run on) the whole network trains, batch 32, mixed precision,
+batch-norm statistics included. On the 8 GB Mac the same script runs with
+--frozen-blocks 2 --batch 8 --bn-frozen (0.40 s a step), which is why training moved.
+
+Sampling is class-balanced per epoch (half the frames damaged), targets are soft where
+the teacher answered twice, the loss is binary cross-entropy or focal. After every epoch
+the held-out-source validation split is scored on clean frames with the running average
+of the weights; the epoch kept is the one that clears most undamaged validation frames
+at 98% recall, and training stops when that has not improved for --patience epochs.
+Every epoch is checkpointed, so an interrupted run resumes.
+
+Writes work/finetuned/<encoder>_<size>_<name>.body.pt, work/heads/<encoder>_<size>_<name>.pt and
+work/scores/<encoder>_<size>_<name>.npz (every manifest frame and the owner images).
 """
 import argparse
 import json
@@ -22,196 +29,298 @@ import numpy as np
 import torch
 from PIL import Image
 
+from augment import augment
 from common import FRAMES, WORK, soft_target, write_json
-from metrics import at_threshold, report, threshold_for_recall
-from models import Encoder, Head, letterbox
-
-SEED = 20261007
+from metrics import at_threshold, auc, threshold_for_recall
+from models import Encoder, Head, default_device
 
 
 class Frames(torch.utils.data.Dataset):
-    def __init__(self, paths, size):
-        self.paths, self.size = paths, size
+    """item -> (uint8 canvas, target). With augmentation every draw is different."""
+
+    def __init__(self, paths, targets, size, augmented, seed=0):
+        self.paths, self.targets, self.size = paths, targets, size
+        self.augmented, self.seed = augmented, seed
 
     def __len__(self):
         return len(self.paths)
 
-    def __getitem__(self, index):
-        return torch.from_numpy(letterbox(Image.open(FRAMES / self.paths[index]), self.size))
+    def __getitem__(self, item):
+        index, draw = item if isinstance(item, tuple) else (item, 0)
+        rng = np.random.default_rng((self.seed, draw, index)) if self.augmented else None
+        pixels = augment(Image.open(FRAMES / self.paths[index]), self.size, rng)
+        return torch.from_numpy(np.array(pixels)), self.targets[index]
 
 
-def cache_trunk(encoder, rows, size, from_block, device, target):
-    """Feature maps entering the first trainable block, float16, one row per frame."""
+class BalancedEpoch(torch.utils.data.Sampler):
+    """`length` frames an epoch, half of them damaged. Yields (index, draw) so the
+    augmentation differs every time a frame comes round again."""
+
+    def __init__(self, targets, length, seed):
+        self.positive = np.flatnonzero(targets >= 0.5)
+        self.negative = np.flatnonzero(targets < 0.5)
+        self.length, self.seed, self.epoch = length, seed, 0
+
+    def __len__(self):
+        return self.length
+
+    def take(self, pool, count, rng):
+        rounds = [rng.permutation(pool) for _ in range(-(-count // len(pool)))]
+        return np.concatenate(rounds)[:count]
+
+    def __iter__(self):
+        rng = np.random.default_rng((self.seed, self.epoch))
+        half = self.length // 2
+        order = np.concatenate([self.take(self.positive, half, rng),
+                                self.take(self.negative, self.length - half, rng)])
+        rng.shuffle(order)
+        return iter([(int(index), self.epoch * 100000 + position)
+                     for position, index in enumerate(order)])
+
+
+def trained_modules(body, frozen_blocks):
+    """frozen_blocks < 0 trains everything; otherwise the stem and that many stages stay
+    as pretrained. MobileNetV3's conv_head sits after the pooling and is not used."""
+    tail = [body.conv_head, body.bn2] if hasattr(body, "bn2") else []
+    if frozen_blocks < 0:
+        return [body.conv_stem, body.bn1, *body.blocks, *tail]
+    return [*body.blocks[frozen_blocks:], *tail]
+
+
+def forward(encoder, head, frames, frozen_blocks):
     body = encoder.body
-    paths = [row["path"] for row in rows]
-    listing = target.with_suffix(".paths.json")
-    if target.exists() and listing.exists() and json.loads(listing.read_text()) == paths:
-        return np.load(target, mmap_mode="r")
-    loader = torch.utils.data.DataLoader(Frames(paths, size), batch_size=32, num_workers=3)
-    maps = None
-    done = 0
-    started = time.monotonic()
-    with torch.inference_mode():
-        for frames in loader:
-            x = (frames.to(device).permute(0, 3, 1, 2).float() - encoder.mean) / encoder.std
-            x = body.bn1(body.conv_stem(x))
-            for block in body.blocks[:from_block]:
-                x = block(x)
-            x = x.float().cpu().numpy().astype(np.float16)
-            if maps is None:
-                maps = np.lib.format.open_memmap(target, mode="w+", dtype=np.float16,
-                                                 shape=(len(paths), *x.shape[1:]))
-            maps[done:done + len(x)] = x
-            done += len(x)
-            if done % 1600 == 0:
-                print(f"trunk {done}/{len(paths)} {time.monotonic() - started:.0f}s", flush=True)
-    maps.flush()
-    listing.write_text(json.dumps(paths))
-    return np.load(target, mmap_mode="r")
-
-
-def tail_features(body, from_block, maps):
-    x = maps
-    for block in body.blocks[from_block:]:
+    x = (frames.permute(0, 3, 1, 2).float() - encoder.mean) / encoder.std
+    x = x.contiguous(memory_format=torch.channels_last)
+    with torch.set_grad_enabled(frozen_blocks < 0):
+        x = body.bn1(body.conv_stem(x))
+        for block in body.blocks[:max(frozen_blocks, 0)]:
+            x = block(x)
+    for block in body.blocks[max(frozen_blocks, 0):]:
         x = block(x)
     if hasattr(body, "bn2"):  # EfficientNet ends its feature map with conv_head and bn2
         x = body.bn2(body.conv_head(x))
-    return torch.cat([x.mean((2, 3)), x.amax((2, 3))], dim=1)
+    x = x.float()
+    return head(torch.cat([x.mean((2, 3)), x.amax((2, 3))], dim=1))
 
 
-def tail_modules(body, from_block):
-    return list(body.blocks[from_block:]) + ([body.conv_head, body.bn2] if hasattr(body, "bn2") else [])
+def set_mode(encoder, head, frozen_blocks, training, bn_frozen):
+    encoder.eval()
+    head.train(training)
+    if training:
+        for module in trained_modules(encoder.body, frozen_blocks):
+            module.train()
+            if bn_frozen:
+                for layer in module.modules():
+                    if isinstance(layer, torch.nn.modules.batchnorm._BatchNorm):
+                        layer.eval()
 
 
-def scores_for(body, head, from_block, maps, index, device):
-    for module in tail_modules(body, from_block):
-        module.eval()
+def score(encoder, head, paths, size, device, batch=64, workers=6):
+    """Clean (unaugmented, letterboxed) scores, the way the model is served."""
+    encoder.eval()
     head.eval()
+    data = Frames(paths, np.zeros(len(paths), dtype=np.float32), size, augmented=False)
+    loader = torch.utils.data.DataLoader(data, batch_size=batch, num_workers=workers)
     out = []
     with torch.inference_mode():
-        for chunk in np.array_split(index, max(1, len(index) // 128)):
-            batch = torch.from_numpy(np.asarray(maps[np.sort(chunk)], dtype=np.float32)).to(device)
-            out.append(torch.sigmoid(head(tail_features(body, from_block, batch))).cpu().numpy())
+        for frames, _ in loader:
+            out.append(torch.sigmoid(head(encoder(frames.to(device)))).float().cpu().numpy())
     return np.concatenate(out)
+
+
+def focal_loss(logits, targets, gamma):
+    """Binary focal loss that accepts soft targets (gamma 0 is cross-entropy)."""
+    loss = torch.nn.functional.binary_cross_entropy_with_logits(logits, targets, reduction="none")
+    if gamma:
+        probability = torch.sigmoid(logits)
+        wrongness = targets * (1 - probability) + (1 - targets) * probability
+        loss = loss * wrongness.pow(gamma)
+    return loss.mean()
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--encoder", required=True, choices=["mobilenetv3_l", "efficientnet_b0"])
-    parser.add_argument("--size", type=int, required=True)
-    parser.add_argument("--head", default="hidden256")
-    parser.add_argument("--from-block", type=int, default=5, help="first block that is trained")
-    parser.add_argument("--epochs", type=int, default=5)
-    parser.add_argument("--batch", type=int, default=64)
-    parser.add_argument("--lr", type=float, default=3e-5)
-    parser.add_argument("--map-dropout", type=float, default=0.1)
-    parser.add_argument("--device", default="mps" if torch.backends.mps.is_available() else "cpu")
+    parser.add_argument("--size", type=int, default=448)
+    parser.add_argument("--name", required=True, help="output name")
+    parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--head-from", help="a probe head name (work/heads/<encoder>_<size>_<it>.pt)")
+    parser.add_argument("--frozen-blocks", type=int, default=-1, help="-1 trains the whole encoder")
+    parser.add_argument("--bn-frozen", action="store_true",
+                        help="keep batch-norm running statistics (for batches too small to estimate them)")
+    parser.add_argument("--epochs", type=int, default=14)
+    parser.add_argument("--epoch-frames", type=int, default=24000)
+    parser.add_argument("--batch", type=int, default=32)
+    parser.add_argument("--lr", type=float, default=2e-4)
+    parser.add_argument("--head-lr", type=float, default=1e-3)
+    parser.add_argument("--weight-decay", type=float, default=0.05)
+    parser.add_argument("--focal-gamma", type=float, default=0.0)
+    parser.add_argument("--ema", type=float, default=0.999)
+    parser.add_argument("--patience", type=int, default=4)
+    parser.add_argument("--workers", type=int, default=7)
+    parser.add_argument("--device", default=default_device())
     args = parser.parse_args()
-    torch.manual_seed(SEED)
-    torch.set_num_threads(3)
-    generator = np.random.default_rng(SEED)
+    torch.manual_seed(args.seed)
+    torch.backends.cudnn.benchmark = True  # one input size throughout
+    amp = args.device == "cuda"
 
     rows = [json.loads(line) for line in (WORK / "manifest.jsonl").read_text().splitlines()]
-    split = np.array([row["split"] for row in rows])
-    domain = np.array([row["domain"] for row in rows])
-    labels = np.array([row["damaged"] for row in rows])
-    soft = np.array([soft_target(row) for row in rows], dtype=np.float32)
-    index = {name: np.flatnonzero(split == name) for name in ("train", "validation", "test")}
+    train = [row for row in rows if row["split"] == "train"]
+    validation = [row for row in rows if row["split"] == "validation"]
+    targets = np.array([soft_target(row) for row in train], dtype=np.float32)
+    truth = np.array([row["damaged"] for row in validation])
+    validation_domain = np.array([row["domain"] for row in validation])
+    out = WORK / "finetuned"
+    out.mkdir(exist_ok=True)
+    (WORK / "scores").mkdir(exist_ok=True)
+    stem = f"{args.encoder}_{args.size}_{args.name}"
+    checkpoint_path = out / f"{stem}.checkpoint.pt"
 
-    encoder = Encoder(args.encoder, args.size).eval().to(args.device)
+    encoder = Encoder(args.encoder, args.size).to(args.device).to(memory_format=torch.channels_last)
+    width = 2 * encoder.body.num_features
+    hidden = 256
+    head = Head(width, hidden=hidden, dropout=0.3)
+    if args.head_from:
+        saved = torch.load(WORK / "heads" / f"{args.encoder}_{args.size}_{args.head_from}.pt")
+        hidden = saved["hidden"]
+        head = Head(saved["width"], hidden=hidden, dropout=0.3 if hidden else 0.0)
+        head.load_state_dict(saved["state"])
+    head.to(args.device)
     for parameter in encoder.parameters():
         parameter.requires_grad_(False)
-    (WORK / "trunk").mkdir(exist_ok=True)
-    maps = cache_trunk(encoder, rows, args.size, args.from_block, args.device,
-                       WORK / "trunk" / f"{args.encoder}_{args.size}_b{args.from_block}.npy")
-    body = encoder.body
-    saved = torch.load(WORK / "heads" / f"{args.encoder}_{args.size}_{args.head}.pt")
-    head = Head(saved["width"], hidden=saved["hidden"], dropout=0.5 if saved["hidden"] else 0.0)
-    head.load_state_dict(saved["state"])
-    head.to(args.device)
-    trained = tail_modules(body, args.from_block)
-    parameters = [p for module in trained for p in module.parameters()]
-    for parameter in parameters:
+    body_parameters = [p for module in trained_modules(encoder.body, args.frozen_blocks)
+                       for p in module.parameters()]
+    for parameter in body_parameters:
         parameter.requires_grad_(True)
     optimiser = torch.optim.AdamW([
-        {"params": parameters, "lr": args.lr},
-        {"params": head.layers.parameters(), "lr": args.lr},
-    ], weight_decay=0.05)
-    steps_per_epoch = len(index["train"]) // args.batch
+        {"params": body_parameters, "lr": args.lr},
+        {"params": head.layers.parameters(), "lr": args.head_lr},
+    ], weight_decay=args.weight_decay)
+    steps_per_epoch = args.epoch_frames // args.batch
     schedule = torch.optim.lr_scheduler.OneCycleLR(
-        optimiser, max_lr=args.lr, total_steps=args.epochs * steps_per_epoch, pct_start=0.15)
-    train_soft = soft[index["train"]]
-    positive_weight = torch.tensor((1 - train_soft).sum() / train_soft.sum(), device=args.device)
-    loss_function = torch.nn.BCEWithLogitsLoss(pos_weight=positive_weight)
+        optimiser, max_lr=[args.lr, args.head_lr], total_steps=args.epochs * steps_per_epoch,
+        pct_start=0.1)
+    scaler = torch.amp.GradScaler("cuda", enabled=amp)
+    # The model that is scored and kept is the running average of the trained weights.
+    averaged = {"encoder": {k: v.detach().clone() for k, v in encoder.state_dict().items()},
+                "head": {k: v.detach().clone() for k, v in head.state_dict().items()}}
 
-    def validation_point():
-        scores = scores_for(body, head, args.from_block, maps, index["validation"], args.device)
-        truth = labels[np.sort(index["validation"])]
-        return at_threshold(scores, truth, threshold_for_recall(scores, truth, 0.98))["cleared_share"]
+    def update_average():
+        with torch.no_grad():
+            for name, module in (("encoder", encoder), ("head", head)):
+                for key, value in module.state_dict().items():
+                    if value.dtype.is_floating_point:
+                        averaged[name][key].lerp_(value, 1 - args.ema)
+                    else:
+                        averaged[name][key].copy_(value)
 
-    history = [{"epoch": -1, "validation_cleared_at_98": validation_point()}]
-    print(f"probe start: validation cleared at 98% recall {history[0]['validation_cleared_at_98']:.4f}",
-          flush=True)
-    best = (history[0]["validation_cleared_at_98"],
-            {k: v.detach().cpu().clone() for k, v in body.state_dict().items()},
-            {k: v.detach().cpu().clone() for k, v in head.state_dict().items()}, -1)
-    started = time.monotonic()
-    for epoch in range(args.epochs):
-        # Batch-norm layers keep their running statistics (eval mode) and train only their
-        # scale and shift. With batch statistics the features moved away from what the
-        # probe head was fitted on and the first epoch undid the probe.
-        for module in trained:
-            module.train()
-            for layer in module.modules():
-                if isinstance(layer, torch.nn.modules.batchnorm._BatchNorm):
-                    layer.eval()
-        head.train()
-        order = generator.permutation(index["train"])
-        running = 0.0
-        for step in range(steps_per_epoch):
-            chosen = np.sort(order[step * args.batch:(step + 1) * args.batch])
-            batch = torch.from_numpy(np.asarray(maps[chosen], dtype=np.float32)).to(args.device)
-            target = torch.from_numpy(soft[chosen]).to(args.device)
-            # No image augmentation is possible on cached maps; dropping whole channels
-            # of the cached map is the regulariser instead.
-            batch = torch.nn.functional.dropout2d(batch, args.map_dropout)
-            optimiser.zero_grad()
-            loss = loss_function(head(tail_features(body, args.from_block, batch)), target)
-            loss.backward()
-            optimiser.step()
+    def with_average(function):
+        live = ({k: v.clone() for k, v in encoder.state_dict().items()},
+                {k: v.clone() for k, v in head.state_dict().items()})
+        encoder.load_state_dict(averaged["encoder"])
+        head.load_state_dict(averaged["head"])
+        try:
+            return function()
+        finally:
+            encoder.load_state_dict(live[0])
+            head.load_state_dict(live[1])
+
+    def validate():
+        scores = with_average(lambda: score(encoder, head, [row["path"] for row in validation],
+                                            args.size, args.device, workers=args.workers))
+        threshold = threshold_for_recall(scores, truth, 0.98)
+        point = at_threshold(scores, truth, threshold)
+        by_domain = {}
+        for domain in sorted(set(validation_domain)):
+            chosen = validation_domain == domain
+            part = at_threshold(scores[chosen], truth[chosen], threshold)
+            by_domain[domain] = {"recall": part["recall"], "cleared_share": part["cleared_share"]}
+        return {"validation_cleared_at_98": point["cleared_share"],
+                "validation_auc": auc(scores, truth), "validation_by_domain": by_domain}
+
+    history, best, start_epoch = [], {"value": -1.0, "epoch": None}, 0
+    if checkpoint_path.exists():
+        saved = torch.load(checkpoint_path, map_location=args.device)
+        encoder.load_state_dict(saved["encoder"])
+        head.load_state_dict(saved["head"])
+        optimiser.load_state_dict(saved["optimiser"])
+        schedule.load_state_dict(saved["schedule"])
+        scaler.load_state_dict(saved["scaler"])
+        averaged = saved["averaged"]
+        history, best, start_epoch = saved["history"], saved["best"], saved["epoch"] + 1
+        print(f"resuming after epoch {saved['epoch']}", flush=True)
+    else:
+        first = validate()
+        history.append({"epoch": -1, **first})
+        print(f"start: {json.dumps(first)}", flush=True)
+
+    def keep_best():
+        body = {key[5:]: value.cpu() for key, value in averaged["encoder"].items()
+                if key.startswith("body.")}
+        torch.save(body, out / f"{stem}.body.pt")
+        torch.save({"state": {k: v.cpu() for k, v in averaged["head"].items()},
+                    "hidden": hidden, "width": width}, WORK / "heads" / f"{stem}.pt")
+
+    data = Frames([row["path"] for row in train], targets, args.size, augmented=True, seed=args.seed)
+    sampler = BalancedEpoch(targets, steps_per_epoch * args.batch, args.seed)
+    loader = torch.utils.data.DataLoader(data, batch_size=args.batch, sampler=sampler,
+                                         num_workers=args.workers, persistent_workers=True,
+                                         drop_last=True, prefetch_factor=4)
+    stopped = any(entry.get("stopped") for entry in history)
+    for epoch in range(start_epoch, args.epochs):
+        if stopped:
+            break
+        sampler.epoch = epoch
+        set_mode(encoder, head, args.frozen_blocks, training=True, bn_frozen=args.bn_frozen)
+        running, started = 0.0, time.monotonic()
+        for step, (frames, target) in enumerate(loader, 1):
+            optimiser.zero_grad(set_to_none=True)
+            with torch.autocast("cuda", dtype=torch.float16, enabled=amp):
+                logits = forward(encoder, head, frames.to(args.device, non_blocking=True),
+                                 args.frozen_blocks)
+            loss = focal_loss(logits.float(), target.to(args.device), args.focal_gamma)
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimiser)
+            torch.nn.utils.clip_grad_norm_(body_parameters, 5.0)
+            scaler.step(optimiser)
+            scaler.update()
             schedule.step()
+            update_average()
             running += loss.item()
-        cleared = validation_point()
-        history.append({"epoch": epoch, "train_loss": running / steps_per_epoch,
-                        "validation_cleared_at_98": cleared})
-        print(f"epoch {epoch}: loss {running / steps_per_epoch:.4f}, validation cleared at 98% "
-              f"recall {cleared:.4f}, {time.monotonic() - started:.0f}s", flush=True)
-        if cleared > best[0]:
-            best = (cleared, {k: v.detach().cpu().clone() for k, v in body.state_dict().items()},
-                    {k: v.detach().cpu().clone() for k, v in head.state_dict().items()}, epoch)
-    body.load_state_dict(best[1])
-    head.load_state_dict(best[2])
-    (WORK / "finetuned").mkdir(exist_ok=True)
-    torch.save(best[1], WORK / "finetuned" / f"{args.encoder}_{args.size}.pt")
-    torch.save({"state": best[2], "hidden": saved["hidden"], "width": saved["width"]},
-               WORK / "heads" / f"{args.encoder}_{args.size}_ft.pt")
+            if step % 250 == 0:
+                print(f"  epoch {epoch} step {step}/{steps_per_epoch} loss {running / step:.4f} "
+                      f"{time.monotonic() - started:.0f}s", flush=True)
+        entry = {"epoch": epoch, "train_loss": running / steps_per_epoch,
+                 "seconds": round(time.monotonic() - started), **validate()}
+        if entry["validation_cleared_at_98"] > best["value"]:
+            best = {"value": entry["validation_cleared_at_98"], "epoch": epoch}
+            keep_best()
+        if epoch - (best["epoch"] if best["epoch"] is not None else -1) >= args.patience:
+            entry["stopped"] = stopped = True
+        history.append(entry)
+        print(json.dumps(entry), flush=True)
+        torch.save({"encoder": encoder.state_dict(), "head": head.state_dict(),
+                    "optimiser": optimiser.state_dict(), "schedule": schedule.state_dict(),
+                    "scaler": scaler.state_dict(), "averaged": averaged, "history": history,
+                    "best": best, "epoch": epoch}, checkpoint_path)
+    if best["epoch"] is None:
+        # No epoch beat the starting point: keep the start (the pretrained encoder and head).
+        raise SystemExit("fine-tuning never improved on its starting point; nothing kept")
 
-    every = np.arange(len(rows))
-    scores = scores_for(body, head, args.from_block, maps, every, args.device)
-    np.save(WORK / "heads" / f"{args.encoder}_{args.size}_ft_scores.npy", scores)
-    validation, test = split == "validation", split == "test"
-    result = {"encoder": args.encoder, "size": args.size, "from_block": args.from_block,
-              "epochs": args.epochs, "best_epoch": best[3], "lr": args.lr, "history": history,
-              "all": report((scores[validation], labels[validation]), (scores[test], labels[test]))}
-    for name in ("drive_video", "rdd2022_india"):
-        chosen = domain == name
-        result[name] = report((scores[validation & chosen], labels[validation & chosen]),
-                              (scores[test & chosen], labels[test & chosen]))
-    write_json(WORK / "results" / f"{args.encoder}_{args.size}_ft.json", result)
-    point = result["all"]["operating_points"]["0.98"]["test"]
-    print(f"fine-tuned {args.encoder} {args.size} from block {args.from_block}: test AUC "
-          f"{result['all']['auc']:.4f}; at the validation 98% threshold: test recall "
-          f"{point['recall']:.3f}, cleared {point['cleared_share']:.3f}; best epoch {best[3]}")
+    # Score everything with the kept weights, through the same clean path.
+    encoder.body.load_state_dict(torch.load(out / f"{stem}.body.pt"))
+    kept = torch.load(WORK / "heads" / f"{stem}.pt")
+    head.load_state_dict(kept["state"])
+    owner = [row["path"] for row in map(json.loads, (FRAMES / "index.jsonl").read_text().splitlines())
+             if row.get("split_hint") == "owner"]
+    paths = [row["path"] for row in rows] + owner
+    scores = score(encoder, head, paths, args.size, args.device, workers=args.workers)
+    np.savez(WORK / "scores" / f"{stem}.npz", paths=np.array(paths), scores=scores.astype(np.float32))
+    write_json(WORK / "results" / f"finetune_{stem}.json",
+               {"args": vars(args), "history": history, "best": best,
+                "train_frames": len(train), "validation_frames": len(validation)})
+    checkpoint_path.unlink()  # the kept weights and the history are what matter now
+    print(f"best epoch {best['epoch']}: validation cleared at 98% recall {best['value']:.4f}")
 
 
 if __name__ == "__main__":

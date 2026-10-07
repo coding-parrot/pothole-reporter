@@ -18,6 +18,7 @@ export const handler = createHealthFunction({
   logGroup: process.env.CENTRAL_LOG_GROUP,
   namespace: process.env.METRIC_NAMESPACE,
   keyParameter: process.env.CANARY_KEY_PARAMETER,
+  installParameter: process.env.CANARY_INSTALL_PARAMETER,
   logs: {
     startQuery: (input) => logs.send(new StartQueryCommand(input)),
     getQueryResults: (input) => logs.send(new GetQueryResultsCommand(input)),

@@ -15,17 +15,17 @@ import {
   municipalLookups, outsideStateLookups, reportShadowScreen, shadowScreenCurve,
 } from "./rules.mjs";
 
-export const REQUEST_QUERY = 'filter event="http_request" | stats count() as n, pct(duration_ms, 50) as p50, pct(duration_ms, 90) as p90 by route, outcome, status';
+export const REQUEST_QUERY = 'filter event="http_request" and not ispresent(canary) | stats count() as n, pct(duration_ms, 50) as p50, pct(duration_ms, 90) as p90 by route, outcome, status';
 
 // Our own share of a request. The detector is the model's time; everything the service
 // itself does around it (ten database calls on a detection) has a budget, so a slow
 // query or a serial wait added later shows up here and not as "the app is slow".
-export const OWN_TIME_QUERY = 'filter event="http_request" and ispresent(db_ms) and status=200 and route in ["/v1/vision/detect","/v1/potholes/report","/v1/tenders/resolve"] | stats count() as n, pct(db_ms, 90) as db90, pct(duration_ms - detector_ms - geo_ms, 90) as own90 by route';
+export const OWN_TIME_QUERY = 'filter event="http_request" and not ispresent(canary) and ispresent(db_ms) and status=200 and route in ["/v1/vision/detect","/v1/potholes/report","/v1/tenders/resolve"] | stats count() as n, pct(db_ms, 90) as db90, pct(duration_ms - detector_ms - geo_ms, 90) as own90 by route';
 
 // A place the service has already answered for is one map read and one metrics write:
 // 6 ms on 7 Oct 2026, down from 90 to 145. The public map is the same. Anything that
 // puts a table read or a recomputation back on that path shows up here.
-export const KNOWN_ANSWER_QUERY = 'filter event="http_request" and status=200 and (route="/v1/map" or (route="/v1/tenders/resolve" and answer_cache="hit")) | stats count() as n, pct(duration_ms, 50) as p50, pct(duration_ms, 90) as p90 by route';
+export const KNOWN_ANSWER_QUERY = 'filter event="http_request" and not ispresent(canary) and status=200 and (route="/v1/map" or (route="/v1/tenders/resolve" and answer_cache="hit")) | stats count() as n, pct(duration_ms, 50) as p50, pct(duration_ms, 90) as p90 by route';
 
 export const CRASH_QUERY = "filter @message like /Task timed out|Runtime exited|Error: Runtime/ | stats count() as n";
 

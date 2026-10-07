@@ -1,3 +1,209 @@
+# Road screen v2 (`road-screen-v2-mobilenetv3l-448`)
+
+MobileNetV3-Large, the whole network fine-tuned at 448 on whole frames with augmentation,
+on eleven public sources plus the owner's drive video. Trained on AWS on 7 Oct 2026
+(`CLOUD_PLAN.md`), deployed to `pothole-reporter-central-screen` the same day for SHADOW
+use only. It replaces v1 (described below, unchanged) in that function.
+
+**It is better than v1 and it still does not meet the bar on every held-out slice.** The
+bar: flag at least 98% of teacher-damaged frames from unseen sources and clear at least
+30% of the undamaged ones. At the deployed threshold it does that on the owner's held-out
+drive video (98.5%, 90.9% cleared), on the held-out RAD videos (98.3%, 38.1%) and on all
+test frames together (99.4%, 49.2%). It misses on the held-out RDD2022 India blocks
+(97.2% recall) and on IRDD, the dataset held out whole (99.9% recall but 7.0% cleared).
+
+**The automatic gate read "mixed" and nothing would have been deployed by it.** The gate
+was: v2 beats v1 on every held-out slice at the validation-98% threshold, both models
+calibrated on the same validation split. At that threshold v2 traded recall for clearing
+on the old slices (92.0% recall and 84.2% cleared against v1's 99.1% and 42.3%), so no
+old slice was a clean win. The coordinator then ruled to put v2 in shadow at the stricter
+threshold below, because at equal recall v2 clears more on every slice (AUC 0.932 against
+0.801 on all test frames) and shadow mode decides nothing for a user. That was a
+decision, not a passed gate.
+
+| | |
+|---|---|
+| Model | MobileNetV3-Large (timm `mobilenetv3_large_100.ra_in1k`), all layers fine-tuned, mean and max pooling, one hidden layer of 256; seed 2, best epoch 5 of 14 |
+| Input | the whole frame, letterboxed to 448 x 448, as v1 |
+| Output | `score` in 0..1 (logit divided by a temperature of 1.149); damaged when `score >= 0.0549` |
+| Threshold rule | the highest score that still flags 98% of teacher-damaged frames in EVERY validation source with at least 50 of them (RAD, Czech, India, Rome); serving-path scores; test never used |
+| ONNX | 13,864,689 bytes, sha256 `53f99bcb0da7e909aff2f2a85fd4389f69d1ffa511204cfff03a5b09d8150e41`; against torch on all 6,583 test frames the largest score difference is 0.000003 |
+| Published | `s3://pothole-reporter-ml-695656921622-ap-south-1/models/road-screen-v2-mobilenetv3l-448/` (`model.onnx`, `model.deployed.json`, `release.json`, `parity.json`) |
+| Scorecard | `reports/screen-v2-20261007-serving-path.md`, `reports/screen-v2-20261007-scorecard.json`; full files under `runs/screen-v2-20261007/report/` in that bucket |
+
+## v2 data
+
+Only sets with a stated open licence that download over HTTPS with no account, token or
+form. Annotations chose which images the teacher saw (every image with a pothole mark,
+then likely negatives and hard cases) and feed the "annotated pothole" check. The label
+is always the teacher's verdict. Frames below are the ones in the manifest.
+
+| Source | Licence | View, country | Their labels | Frames | Teacher-damaged | Split |
+|---|---|---|---|---|---|---|
+| Owner drive video (v1) | private | phone on dashboard, Bengaluru | none | 3,534 | 145 | train 1,776, validation 763, test 995 |
+| RDD2022 India (v1), figshare 10.6084/m9.figshare.21431547 | CC BY 4.0 on figshare; the authors' README says CC BY-SA 4.0 | phone on dashboard | boxes D00 D10 D20 D40 | 7,656 | 2,320 | by blocks: train 4,652, validation 1,540, test 1,464 |
+| RDD2022 Japan | same | phone on dashboard | same | 4,987 | 3,182 | train |
+| RDD2022 Norway | same | survey vehicle, wide | same | 1,121 | 449 | train |
+| RDD2022 China motorbike | same | phone on motorbike | same | 937 | 834 | train |
+| RDD2022 China drone | same | drone, top-down | same | 364 | 233 | train |
+| RDD2022 Czech | same | phone on dashboard | same | 853 | 242 | validation (whole country) |
+| RAD, Kaggle rohitsuresh15/radroad-anomaly-detection v3 | MIT | dashcam, Bengaluru, 1920 x 1080 | boxes, broad "RoadDamages" class | 7,184 | 2,600 | by source video (the repo's split): train 5,656, validation 899, test 629 |
+| Bučko et al., figshare 10.6084/m9.figshare.21214400 | CC BY 4.0 | dash camera, day, sunset, evening, night, rain; country not stated | pothole boxes | 2,094 | 1,413 | train |
+| Cracks and Potholes in Road Images, Mendeley 10.17632/t576ydh9v8.4 | CC BY 4.0 | survey vehicle, Brazil | road, crack, pothole masks | 1,259 | 1,197 | train |
+| Attain (windshield subsets), Mendeley 10.17632/nykrzdm74f.1 | CC BY 4.0 | phone on windshield; Iran by the institution | distress type and severity | 1,637 | 1,206 | train |
+| BharatPotHole, Kaggle surbhisaswatimohanty/bharatpothole | CC BY-SA 4.0 on Kaggle; CC BY 4.0 in the archive | dashcam, India; publisher stretched frames to 640 x 640 | pothole boxes | 2,836 | 770 | train |
+| Road Damage, Kaggle alvarobasily/road-damage | CC0 1.0, uploader's own photos | phone, moving vehicle; country not stated | boxes, 4 classes | 2,129 | 1,885 | train |
+| Rome road damage, Zenodo 10.5281/zenodo.18528034 | CC BY 4.0 | GoPro in a car, Italy, 640 x 360 | pothole, crack, manhole boxes | 1,897 | 1,218 | validation (whole dataset) |
+| IRDD, Zenodo 10.5281/zenodo.21167531 | CC BY 4.0 | phone on dashboard, portrait and landscape, Iraq | oriented boxes D00 D10 D20 D40 | 3,495 | 2,464 | test (whole dataset, never trained on) |
+
+Totals: 41,983 frames. Train 29,448 (14,683 damaged), validation 5,952 (2,267), test
+6,583 (3,208). 115 frames were dropped as near-copies (difference hash within 2 bits) of
+a frame held out in another dataset. The 27 owner-labelled images are scored only.
+
+The two Kaggle sets download without a key, which is why they are in. The ShareAlike
+reading of RDD2022 and BharatPotHole is the owner's call before weights leave the account,
+as in v1.
+
+Refused or skipped:
+
+- RDD2022 United States (4,805 images): Google Street View captures, not a vehicle camera
+  and not the dataset authors' to license.
+- Nienaber / Stellenbosch dashcam potholes (13,482 images, South Africa): no licence, only
+  "please cite"; the original host is gone and the Kaggle mirrors say "unknown".
+- Pothole Mix (CC BY-NC 3.0) and inside it EdmCrack600 (non-commercial), GAPs384
+  (academic only), Pothole-600 and Crack500 (no licence). Its Brazil part was taken from
+  its own CC BY 4.0 record instead.
+- RDD2020 on Mendeley (CC BY-NC 3.0; the same images as RDD2022), CQU-BPDD and CMIRD
+  (non-commercial), GAPs (signed agreement), IDD, the Mexico set and PothRGBD (account or
+  subscription), every Roboflow Universe set (API key), SVRDD (Baidu street view terms).
+- Kaggle pothole sets scraped from the web under CC0 or ODbL tags (the 665-image and
+  681-image families and their re-uploads), MIIA and RTK (no licence).
+- Not used though usable: IRD-Dataset Baghdad, PathCare, the Bangladesh and Kent sets
+  (small or view unverified), drone and top-down sets.
+
+## v2 labels
+
+Same teacher, same script, same production prompt and contract key (`3d3dad4bd03a8a0a`).
+30,858 new frames were labelled once; the 7,794 new validation and test frames a second
+time. 0 failed calls. Total teacher spend USD 33.66 of the USD 40 cap (USD 22.15 new).
+
+The teacher against itself on test (its second answer used as if it were the screen):
+
+| Slice | Damaged, first answer | Damaged both times | Recall of its own verdicts | Undamaged repeated |
+|---|---|---|---|---|
+| Old test split | 566 | 518 | 91.5% | 97.1% |
+| IRDD | 2,464 | 2,371 | 96.2% | 89.3% |
+| RAD test videos | 178 | 161 | 90.4% | 94.9% |
+| All test | 3,208 | 3,050 | 95.1% | 94.5% |
+
+So 98% against every teacher-damaged frame is more than the teacher gives itself. A
+screen can still reach it, by flagging more: v2 does at 49.2% cleared on all test.
+
+## v2 results
+
+All through the serving path (sharp and ONNX Runtime), thresholds from validation only.
+Each cell: recall of teacher-damaged frames (caught / damaged), share of undamaged cleared.
+
+At the deployed threshold (98% recall on every validation source):
+
+| Test slice | v2 | v2, teacher-stable frames only | v1 as it was deployed (0.0470) |
+|---|---|---|---|
+| Old test split, all | 97.5% (552/566), 74.7% | 97.7% (506/518), 76.5% | 94.0%, 56.5% |
+| Owner drive video (137 damaged frames) | 98.5% (135/137), 90.9% | 98.4% (122/124), 92.1% | 82.5%, 93.1% |
+| RDD2022 India held-out blocks | 97.2% (417/429), 61.4% | 97.5% (384/394), 63.3% | 97.7%, 26.2% |
+| IRDD (held out whole) | 99.9% (2461/2464), 7.0% | 99.9% (2368/2371), 7.7% | 92.9%, 24.5% |
+| RAD test videos | 98.3% (175/178), 38.1% | 98.1% (158/161), 40.0% | 68.5%, 63.9% |
+| All test | 99.4% (3188/3208), 49.2% | 99.4% (3032/3050), 51.7% | 91.7%, 47.7% |
+
+Against v1 as deployed, v2 here loses 2 frames of recall on the India blocks (417
+against 419 of 429), clears less on drive video (90.9% against 93.1%), IRDD and RAD
+because it flags far more of their damage, flags 248 of the 266 India frames with a
+pothole box against 253, and clears neither of the two owner not_pothole images (v1
+cleared both).
+
+At the validation-98% threshold, pooled (the gate), v1 calibrated the same way:
+
+| Test slice | v1 | v2 (released, seed 2) | v1 cleared at v2's recall |
+|---|---|---|---|
+| Old test split, all | 99.1% (561/566), 42.3% | 92.0% (521/566), 84.2% | 60.5% |
+| Owner drive video | 98.5% (135/137), 84.8% | 93.4% (128/137), 93.7% | 90.6% |
+| RDD2022 India held-out blocks | 99.3% (426/429), 7.0% | 91.6% (393/429), 76.3% | 56.2% |
+| IRDD | 99.0% (2440/2464), 7.9% | 99.1% (2441/2464), 20.9% | 7.7% |
+| RAD test videos | 94.4% (168/178), 25.3% | 96.1% (171/178), 58.3% | 13.7% |
+| All test | 98.8% (3169/3208), 29.5% | 97.7% (3133/3208), 61.4% | 35.5% |
+
+Every variant at its own validation-98% threshold (training path, PIL and torch):
+
+| Variant | Old test, all | Owner drive | India blocks | IRDD | RAD test | All test | All-test AUC |
+|---|---|---|---|---|---|---|---|
+| v1 | 99.1%, 42.3% | 98.5%, 85.2% | 99.3%, 6.7% | 98.9%, 8.0% | 93.8%, 25.5% | 98.7%, 29.5% | 0.801 |
+| v1 recipe on new data, MobileNetV3-L | 95.9%, 65.2% | 97.8%, 90.8% | 95.3%, 44.0% | 99.6%, 5.5% | 99.4%, 20.8% | 99.0%, 41.0% | 0.877 |
+| the same with 4 augmented views | 95.6%, 63.3% | 94.9%, 90.4% | 95.8%, 40.8% | 99.8%, 5.7% | 96.1%, 29.3% | 98.9%, 41.2% | 0.868 |
+| v1 recipe on new data, EfficientNet-B0 | 95.9%, 57.3% | 96.4%, 83.0% | 95.8%, 36.0% | 100.0%, 3.4% | 99.4%, 8.6% | 99.2%, 34.3% | 0.884 |
+| the same with 4 augmented views | 95.4%, 63.0% | 97.1%, 90.4% | 94.9%, 40.2% | 99.8%, 6.6% | 97.8%, 17.7% | 98.9%, 39.7% | 0.886 |
+| full fine-tune, MobileNetV3-L, seed 1 | 94.5%, 82.4% | 97.8%, 91.8% | 93.5%, 74.6% | 99.2%, 16.1% | 96.6%, 55.2% | 98.2%, 58.5% | 0.934 |
+| full fine-tune, MobileNetV3-L, seed 2 (released) | 92.0%, 84.3% | 93.4%, 93.7% | 91.6%, 76.5% | 99.1%, 20.5% | 96.1%, 56.8% | 97.7%, 61.1% | 0.932 |
+| full fine-tune, EfficientNet-B0, seed 1 | 91.5%, 85.3% | 98.5%, 92.1% | 89.3%, 79.6% | 98.8%, 30.0% | 96.6%, 61.4% | 97.4%, 65.2% | 0.942 |
+
+The released seed was picked on validation alone (61.6% cleared at 98% validation recall
+against 59.9% for seed 1). EfficientNet-B0 ranks a little better but measured 162 ms on
+the Lambda in v1, over the 150 ms bar; it was not exported.
+
+Annotated potholes and owner labels, at the deployed threshold: 248 of 266 India frames
+with a pothole box flagged (93.2%), 1,494 of 1,495 IRDD frames (99.9%); 9 of 9 owner
+potholes flagged; 0 of 2 owner not_pothole images cleared; both owner-confirmed video
+events flagged (7 of 7 frames).
+
+Reading it:
+
+- More and wider data moved the ranking a lot (AUC 0.80 to 0.93). Augmented views on a
+  frozen encoder did not; fine-tuning the whole network on images did.
+- A pooled validation threshold still does not carry to the old test split: Rome is 1,218
+  of the 2,267 damaged validation frames and is easy, so the pooled 98% leaves India at
+  96.1% on validation and 91.6% on test. The per-source rule fixes most of that.
+- The clearing numbers of the public test sets understate a real drive. Their frames were
+  chosen for damage: 70% of the IRDD frames are teacher-damaged and most of the rest show
+  cracks. The owner's drive video (858 undamaged test frames, 90.9% cleared) is the only
+  slice with the mix a phone sees, and it is small: 137 damaged frames from two clips,
+  whose 98.5% has a 95% lower bound of about 95%.
+- Training still has 7 damaged frames from the owner's own camera.
+
+## v2 Lambda
+
+Same function, package and settings as v1 (31 MB zip, 2048 MB, arm64). Measured by Lambda
+on 7 Oct 2026 after the deploy, 20 warm calls per image:
+
+| | Cold start | Warm p50 | Warm p90 | Warm max | Model p50 | Decode p50 | Memory |
+|---|---|---|---|---|---|---|---|
+| `docs/example-pothole.jpg`, 619 x 1100 (score 0.897, damaged) | 652 ms init + 118 ms | 77 ms | 82 ms | 105 ms | 47 ms | 12 ms | 263 MB |
+| `seed/t013s.jpg` at 720 x 1280 (score 0.665, damaged) | | 77 ms | 92 ms | 104 ms | 48 ms | 13 ms | 263 MB |
+
+The 28 Lambda tests pass with the v2 model packaged. The function's log shows
+`screen_model_loaded` with `road-screen-v2-mobilenetv3l-448` and threshold 0.0549.
+`seed/t013s.jpg` is the frame only the assistant labelled clean; v1 flagged it too.
+
+The flip criteria in "Shadow mode and the flip" below are unchanged and apply to v2 as
+written: the threshold that matters is the one read from live scores.
+
+Back to v1: copy `runs/screen-v2-20261007/state/release/road-screen-v1-mobilenetv3l-448/model.onnx`
+from the ML bucket to `lambda/model/model.onnx`, restore `lambda/model/model.json` from
+commit 2b89f6d, run `AWS_PROFILE=pothole lambda/deploy.sh`.
+
+## v2 cost and what is left on AWS
+
+| | |
+|---|---|
+| Instance | one `g4dn.2xlarge` on demand, 05:59:49 to 10:30:50 UTC, 4.52 hours at USD 0.828: USD 3.74, plus about USD 0.11 for its 200 GB volume. It powered itself off when the last stage finished. |
+| Teacher | 38,652 answers used in v2 (30,858 first, 7,794 second): USD 22.15. Total with v1: USD 33.66. |
+| S3 | 34.2 GB: public archives 26.4 GB (expire after 30 days), frames 3.8 GB, v1 work 1.8 GB, run state and reports 2.0 GB, labels 0.1 GB. About USD 0.85 a month now, about USD 0.20 once the archives expire. |
+| Left | bucket `pothole-reporter-ml-695656921622-ap-south-1`, role and instance profile `pothole-reporter-ml-trainer`, security group `pothole-reporter-ml-trainer`. No instance, no volume. |
+
+Reproduce: `CLOUD_PLAN.md`. The deployed threshold is
+`python3 set_operating_point.py --report report.json --released model.json --rule val98_every_source --out lambda/model/model.json`
+on the serving-path `report.json` and the released `model.json`.
+
+---
+
 # Road screen v1 (`road-screen-v1-mobilenetv3l-448`)
 
 An encoder-only image classifier that scores one Drive Mode frame for road damage in

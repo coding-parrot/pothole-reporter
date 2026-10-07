@@ -46,3 +46,30 @@ export function createStoredIdentity({ parameters, name,
     return held;
   };
 }
+
+// The id of that install, published for the central function: it leaves the install
+// named here out of the public figures (service/canary-install.mjs). An install id is
+// the hash of a public key, so this is a plain parameter. Asked once per function
+// instance, written only when it is absent or names another install. Returns when the
+// id was published, as far as this instance knows.
+export function createInstallPublisher({ parameters, name, now = Date.now }) {
+  let published = null;
+  return async function publish(installId) {
+    if (published?.installId === installId) return published.since;
+    let current = null;
+    try {
+      current = (await parameters.getParameter({ Name: name })).Parameter;
+    } catch (error) {
+      if (error?.name !== "ParameterNotFound") throw error;
+    }
+    let since = now();
+    if (current?.Value === installId) {
+      since = current.LastModifiedDate ? new Date(current.LastModifiedDate).getTime() : since;
+    } else {
+      await parameters.putParameter({ Name: name, Type: "String", Overwrite: true, Value: installId,
+        Description: "Install id of the production health canary. The central function reads it to leave the canary out of the public figures." });
+    }
+    published = { installId, since };
+    return since;
+  };
+}

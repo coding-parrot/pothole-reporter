@@ -58,10 +58,11 @@ test("the timeout outlasts the slowest run that still ends in a report", () => {
   // reads: four requests of 20 s. full: those, a registration of 20 s, four signed of 30 s.
   const insights = readFileSync(new URL("../service/health/function.mjs", import.meta.url), "utf8");
   const patience = Number(insights.match(/patienceMs: ([\d_]+)/)[1].replaceAll("_", "")) / 1000;
-  const windowAndReads = 2 * patience + 4 * 20;
+  const window = 2 * patience;
   const full = 4 * 20 + 20 + 4 * 30;
   const timeout = Number(value(fn, "Timeout"));
-  assert.ok(timeout > Math.max(windowAndReads, full), `${timeout} s against ${windowAndReads} s and ${full} s`);
+  // The hourly event runs both, one after the other.
+  assert.ok(timeout > window + full, `${timeout} s against ${window} s and then ${full} s`);
   assert.ok(timeout <= 900);
 });
 
@@ -75,14 +76,15 @@ test("the function is given exactly the settings its entry point reads", () => {
   assert.equal(value(variables, "CENTRAL_LOG_GROUP"), "!Ref LambdaLogs");
   assert.equal(value(variables, "METRIC_NAMESPACE"), "!Ref ProjectPrefix");
   assert.equal(value(variables, "CANARY_KEY_PARAMETER"), "!Sub '/${ProjectPrefix}/health/canary-key'");
+  assert.equal(value(variables, "CANARY_INSTALL_PARAMETER"), "!Sub '/${ProjectPrefix}/health/canary-install-id'");
 });
 
 test("its role may query one log group, write its own log and keep one parameter, and nothing else", () => {
   assert.deepEqual(actions(role.slice(role.indexOf("Policies:"))).sort(), [
     "logs:CreateLogStream", "logs:GetQueryResults", "logs:PutLogEvents", "logs:StartQuery", "logs:StopQuery",
-    "ssm:GetParameter", "ssm:PutParameter",
+    "ssm:GetParameter", "ssm:GetParameter", "ssm:PutParameter", "ssm:PutParameter",
   ]);
-  assert.equal(role.match(/- Sid:/g).length, 4);
+  assert.equal(role.match(/- Sid:/g).length, 5);
   assert.ok(!/Action: '?\*'?\s*$/m.test(role) && !/NotAction|NotResource|ManagedPolicyArns/.test(role));
   // No table, no secret, no function: the canary goes through the public API like a phone.
   assert.ok(!/Table|DetectorSecret|CentralFunction/.test(role));
@@ -103,25 +105,29 @@ test("its role may query one log group, write its own log and keep one parameter
   // The parameter the role may touch is the one the function is told to use.
   const name = value(fn, "CANARY_KEY_PARAMETER").match(/'(.+)'/)[1];
   assert.ok(value(key, "Resource").endsWith(`:parameter${name}'`));
+  // And the install id it publishes for the central function, which is no secret.
+  const publish = statement(role, "PublishCanaryInstallId");
+  assert.deepEqual(actions(publish).sort(), ["ssm:GetParameter", "ssm:PutParameter"]);
+  const published = value(fn, "CANARY_INSTALL_PARAMETER").match(/'(.+)'/)[1];
+  assert.ok(value(publish, "Resource").endsWith(`:parameter${published}'`));
 });
 
-test("the central function's role gains nothing from this", () => {
+test("the central function's role gains one read, of the canary's install id, and nothing else", () => {
   const central = resource("LambdaRole");
-  assert.ok(!/ssm:|logs:StartQuery|logs:GetQueryResults/.test(central));
+  assert.deepEqual(actions(central).filter((action) => !action.startsWith("dynamodb:")).sort(),
+    ["lambda:InvokeFunction", "logs:CreateLogStream", "logs:PutLogEvents", "secretsmanager:GetSecretValue", "ssm:GetParameter"]);
+  assert.ok(!central.includes("canary-key"), "never the canary's private key");
 });
 
-const RULES = { HealthWindowSchedule: "HealthWindowInvokePermission", HealthReadsSchedule: "HealthReadsInvokePermission",
-  HealthCanarySchedule: "HealthCanaryInvokePermission" };
+const RULES = { HealthWindowSchedule: "HealthWindowInvokePermission", HealthCanarySchedule: "HealthCanaryInvokePermission" };
 const schedule = (name) => {
   const rule = resource(name);
   const cron = value(rule, "ScheduleExpression").match(/^cron\((\S+) (\S+) \* \* \? \*\)$/);
   assert.ok(cron, `${name} is not a daily cron expression`);
   return { rule, minute: cron[1], hour: cron[2], input: JSON.parse(value(rule, "Input").slice(1, -1)) };
 };
-// Runs in six hours of a cron hour field: every hour, or every Nth.
-const runsInSixHours = (hour) => (hour === "*" ? 6 : 6 / Number(hour.match(/^0\/(\d+)$/)[1]));
 
-test("three rules invoke it, each allowed to, each sending an event the function accepts", async () => {
+test("two rules invoke it, each allowed to, each sending an event the function accepts", async () => {
   for (const [name, permission] of Object.entries(RULES)) {
     const { rule, input } = schedule(name);
     assert.equal(value(rule, "State"), "ENABLED");
@@ -133,7 +139,7 @@ test("three rules invoke it, each allowed to, each sending an event the function
     // The event as written in the template, given to the function itself.
     const written = [];
     const health = createHealthFunction({
-      apiUrl: "https://api.test", logGroup: "g", namespace: "n", keyParameter: "/k", fetch: fetchFrom(fakeApi()),
+      apiUrl: "https://api.test", logGroup: "g", namespace: "n", keyParameter: "/k", installParameter: "/i", fetch: fetchFrom(fakeApi()),
       readImage: () => Buffer.from("jpeg"), log: () => {}, emit: (line) => written.push(JSON.parse(line)), sleep: async () => {},
       logs: { startQuery: async ({ queryString }) => ({ queryId: String(HEALTHY_WINDOW.findIndex((entry) => queryString.includes(entry.match))) }),
         getQueryResults: async ({ queryId }) => ({ status: "Complete", results: HEALTHY_WINDOW[Number(queryId)].rows.map((row) => Object.entries(row).map(([field, v]) => ({ field, value: v }))) }),
@@ -143,9 +149,9 @@ test("three rules invoke it, each allowed to, each sending an event the function
     assert.equal((await health(input)).healthy, true, `${name} sends ${JSON.stringify(input)}`);
     assert.deepEqual([written[0].window, written[0].canary], [input.window ?? null, input.canary ?? null]);
   }
-  assert.deepEqual(schedule("HealthWindowSchedule").input, { window: "6h", canary: "reads" });
-  assert.deepEqual(schedule("HealthReadsSchedule").input, { canary: "reads" });
+  assert.deepEqual(schedule("HealthWindowSchedule").input, { window: "6h", canary: "full" });
   assert.deepEqual(schedule("HealthCanarySchedule").input, { canary: "full" });
+  assert.ok(!template.includes("HealthReadsSchedule"), "the reads-only rule is gone: every scheduled canary is a full one");
 });
 
 test("no two rules fire in the same minute, because the function runs one at a time", () => {
@@ -158,25 +164,18 @@ test("no two rules fire in the same minute, because the function runs one at a t
   assert.ok(Math.min(...gaps) * 60 > Number(value(fn, "Timeout")), `gaps ${gaps} minutes`);
 });
 
-test("the cadence: a canary every half hour, the window every hour, a detection every three", () => {
-  assert.equal(schedule("HealthWindowSchedule").hour, "*");
-  assert.equal(schedule("HealthReadsSchedule").hour, "*");
-  assert.equal(Math.abs(Number(schedule("HealthWindowSchedule").minute) - Number(schedule("HealthReadsSchedule").minute)), 30);
-  assert.equal(runsInSixHours(schedule("HealthCanarySchedule").hour), 2);
-});
-
-// The request log does not say which install made a request, so the full canary's three
-// tender lookups are judged by the window rules beside people's, and none of them ever
-// matches a tender (its Bengaluru point answers no_location_match). "tenders match"
-// fails at 20 lookups with none matched (test/health-window.test.mjs). The canaries of
-// one window must stay under half of that, or a quiet night alarms on the canary alone.
-test("the full canaries of one window stay under half the lookups that would break a rule on their own", () => {
-  const LOOKUPS_PER_FULL_CANARY = 3;
-  const window = Number(schedule("HealthWindowSchedule").input.window.match(/^(\d+)h$/)[1]);
-  const full = Object.keys(RULES).map(schedule).filter(({ input }) => input.canary === "full");
-  const canaries = full.reduce((sum, { hour }) => sum + runsInSixHours(hour) * (window / 6), 0);
-  assert.equal(canaries * LOOKUPS_PER_FULL_CANARY, 6);
-  assert.ok(canaries * LOOKUPS_PER_FULL_CANARY <= 10, `${canaries} full canaries in ${window} h`);
+// The full canary ran every three hours while its lookups were judged beside people's:
+// none of them matches a tender, and "tenders match" fails at 20 unmatched in a window.
+// Its lines are now marked by the service and left out by every query
+// (test/health-window.test.mjs), so it runs every half hour: 12 canaries and 36 lookups
+// in a window, none of them counted.
+test("the cadence: the full canary every half hour, the window every hour", () => {
+  const window = schedule("HealthWindowSchedule");
+  const canary = schedule("HealthCanarySchedule");
+  assert.deepEqual([window.hour, canary.hour], ["*", "*"]);
+  assert.equal(Math.abs(Number(window.minute) - Number(canary.minute)), 30);
+  assert.equal(template.match(/"canary": "full"/g).length, 2);
+  assert.ok(!/"canary": "reads"/.test(template));
 });
 
 test("a failed or throttled run is never retried: each full canary is a paid detection", () => {
@@ -195,10 +194,10 @@ test("broken rules alarm on the second evaluation, a failed canary on the first,
   assert.equal(value(canary, "MetricName"), CANARY_FAILED_METRIC);
   assert.equal(value(canary, "EvaluationPeriods"), "1");
   // CloudWatch looks back two periods more than it evaluates. That range has to hold the
-  // last full canary, or a fault only the full canary sees would clear and alarm again
-  // on every run.
+  // last canary (they are half an hour apart), or a standing fault would clear and alarm
+  // again on every run.
   const lookBack = (Number(value(canary, "EvaluationPeriods")) + 2) * Number(value(canary, "Period"));
-  assert.ok(lookBack > 3 * 3600 && lookBack <= 6 * 3600, `${lookBack} s`);
+  assert.ok(lookBack > 2 * 1800 && lookBack <= 2 * 3600, `${lookBack} s`);
   for (const alarm of [rules, canary]) {
     // The namespace the function writes to (METRIC_NAMESPACE), with no dimension.
     assert.equal(value(alarm, "Namespace"), value(fn, "METRIC_NAMESPACE"));

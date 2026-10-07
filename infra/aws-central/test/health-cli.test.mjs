@@ -14,9 +14,9 @@ import { BROKEN_WINDOW, HEALTHY_WINDOW, fakeApi, fakeAwsCli, serve } from "./hea
 
 const SCRIPT = fileURLToPath(new URL("../tools/production-health.mjs", import.meta.url));
 
-function run(args, { window = HEALTHY_WINDOW, api = fakeApi(), env = {} } = {}) {
+function run(args, { window = HEALTHY_WINDOW, api = fakeApi(), env = {}, key = null } = {}) {
   return serve(api).then((server) => new Promise((resolve) => {
-    const aws = fakeAwsCli(window);
+    const aws = fakeAwsCli(window, { key });
     execFile(process.execPath, [SCRIPT, ...args], {
       env: { ...process.env, PATH: `${aws.directory}:${process.env.PATH}`, API_URL: server.url, AWS_REGION: "ap-south-1",
         LOG_GROUP: "/aws/lambda/pothole-reporter-central", CANARY_CATALOGUE_IS_THIS_CHECKOUT: "", ...env },
@@ -24,6 +24,7 @@ function run(args, { window = HEALTHY_WINDOW, api = fakeApi(), env = {} } = {}) 
       server.close().then(() => resolve({
         code: error ? error.code : 0,
         stderr,
+        stdout,
         asked: aws.asked(),
         // Only what a clock, a fresh key or the machine's zlib decides is blanked. The
         // stand-in server gzips the map with whatever zlib this Node carries: the same
@@ -71,7 +72,7 @@ const HEALTHY_CANARY_LINES = [
   "  ok   /v1/map: 200 in N ms",
   "  ok   /v1/impact: 200 in N ms",
   "  ok   map is compressed: 6023 bytes of JSON sent as N, gzip",
-  "  ok   install registers: ########",
+  "  ok   install registers: ######## (a new install: the stored canary key could not be read)",
   "  ok   shared detection finds the example pothole: pothole_cavity medium via openai in N ms",
   "  ok   Bengaluru street is classified municipal: LGD 305851 GBA - Central via the packaged state GIS layers; tender none (no_location_match) in N ms",
   "  ok   road class needs no state GIS call: lookup.local municipal_polygon",
@@ -172,4 +173,38 @@ test("a window that is not hours or days is one broken rule", async () => {
   const result = await run(["--window", "soon"]);
   assert.deepEqual(result.lines, ["  FAIL health check ran: --window takes hours or days, like 24h or 7d, not soon", "", "UNHEALTHY: 1 rule(s) broken", ""]);
   assert.equal(result.code, 1);
+});
+
+// Every deploy runs the canary, and until 7 Oct 2026 every run registered a new install:
+// one more "active installation" in the public figures per deploy. The script now asks
+// the parameter store for the scheduled canary's key and runs as that install, which the
+// service leaves out of the figures; a caller who may not read the key (the GitHub
+// workflow's user) gets a new install, and the output says which it was.
+test("the canary runs as the scheduled canary's stored install when the caller can read its key", async () => {
+  const { generateKeyPairSync } = await import("node:crypto");
+  const { installationPublicKey } = await import("../service/auth.mjs");
+  const kept = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  const pem = kept.privateKey.export({ type: "pkcs8", format: "pem" });
+  const id = installationPublicKey(kept.publicKey.export({ type: "spki", format: "der" }).toString("base64")).installId;
+  const api = fakeApi();
+  const first = await run(["--canary"], { api, key: pem });
+  const second = await run(["--canary"], { api, key: pem });
+  for (const result of [first, second]) {
+    assert.equal(result.code, 0);
+    assert.ok(result.stdout.includes(`  ok   install registers: ${id.slice(0, 8)} (the scheduled canary's stored install)\n`));
+    assert.ok(!result.stdout.includes("PRIVATE KEY") && !result.stderr.includes("PRIVATE KEY"));
+    assert.equal(result.stderr, "");
+  }
+  assert.deepEqual([...api.installs.keys()], [id], "two runs, one install");
+  // It names itself on its reads, as the scheduled canary does.
+  assert.ok(api.calls.filter((call) => call.name.startsWith("GET ")).every((call) => call.headers["x-install-id"] === id));
+});
+
+test("a caller who cannot read the key runs as a new install, says so, and prints no error", async () => {
+  const api = fakeApi();
+  const result = await run(["--canary"], { api });
+  assert.equal(result.code, 0);
+  assert.match(result.stdout, /install registers: [0-9a-f]{8} \(a new install: the stored canary key could not be read\)\n/);
+  assert.equal(result.stderr, "", "the refusal is not printed as an error: the canary ran");
+  assert.equal(api.installs.size, 1);
 });
