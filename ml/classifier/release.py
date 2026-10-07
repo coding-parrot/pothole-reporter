@@ -44,6 +44,24 @@ def node_scores(paths, root):
     return np.array([row["score"] for row in rows]), rows
 
 
+LOGIT_LIMIT = 30  # the same clamp as lambda/scorer.mjs soften()
+
+
+def soften(scores, temperature):
+    logits = np.clip(np.log(scores / (1 - scores)), -LOGIT_LIMIT, LOGIT_LIMIT)
+    return 1 / (1 + np.exp(-logits / temperature))
+
+
+def fit_temperature(scores, labels):
+    """The temperature that minimises validation log loss. Order is unchanged."""
+    best = (np.inf, 1.0)
+    for temperature in np.geomspace(1, 64, 61):
+        p = np.clip(soften(scores, temperature), 1e-7, 1 - 1e-7)
+        loss = -np.mean(np.where(labels, np.log(p), np.log(1 - p)))
+        best = min(best, (loss, float(temperature)))
+    return round(best[1], 3)
+
+
 def owner_images():
     """The labelled eval images, prepared as drive frames. Only labelled_by == owner is
     ground truth; the assistant-labelled rest is reported apart."""
@@ -71,6 +89,8 @@ def main():
     parser.add_argument("--version", required=True)
     parser.add_argument("--target-recall", type=float, default=0.99,
                         help="validation recall the threshold is set for")
+    parser.add_argument("--reuse-export", action="store_true",
+                        help="keep the ONNX export_onnx.py already wrote and checked")
     args = parser.parse_args()
 
     name = f"{args.encoder}_{args.size}_{args.head}"
@@ -78,7 +98,8 @@ def main():
                "--size", str(args.size), "--head", args.head]
     if args.weights:
         command += ["--weights", args.weights]
-    subprocess.run(command, check=True)
+    if not (args.reuse_export and (WORK / "onnx" / f"{name}.parity.json").exists()):
+        subprocess.run(command, check=True)
     parity = read_json(WORK / "onnx" / f"{name}.parity.json")
     model_dir = HERE / "lambda" / "model"
     model_dir.mkdir(exist_ok=True)
@@ -89,17 +110,27 @@ def main():
 
     rows = [json.loads(line) for line in (WORK / "manifest.jsonl").read_text().splitlines()]
     rows = [row for row in rows if row["split"] in ("validation", "test")]
-    scores, timing = node_scores([row["path"] for row in rows], FRAMES)
+    raw, timing = node_scores([row["path"] for row in rows], FRAMES)  # temperature 1
     split = np.array([row["split"] for row in rows])
     domain = np.array([row["domain"] for row in rows])
     labels = np.array([row["damaged"] for row in rows])
     validation, test = split == "validation", split == "test"
+    temperature = fit_temperature(raw[validation], labels[validation])
+    scores = soften(raw, temperature)
+    meta["temperature"] = temperature
+    write_json(model_dir / "model.json", meta)
+    # The served path now applies the temperature itself. Prove it gives these numbers.
+    spot = [row["path"] for row in rows[:: max(1, len(rows) // 60)]]
+    served, _ = node_scores(spot, FRAMES)
+    drift = float(np.abs(served - scores[:: max(1, len(rows) // 60)]).max())
+    if drift > 1e-6:
+        sys.exit(f"the served temperature differs from release.py's by {drift}")
 
     threshold = threshold_for_recall(scores[validation], labels[validation], args.target_recall)
     out = {
         "model_version": args.version, "encoder": args.encoder, "input_size": args.size,
         "head": args.head, "fine_tuned": bool(args.weights), "onnx": parity,
-        "threshold": threshold, "threshold_rule":
+        "temperature": temperature, "threshold": threshold, "threshold_rule":
             f"highest score that still flags {args.target_recall:.0%} of teacher-damaged "
             "validation frames, scored through the serving path",
         "scoring_path": "lambda/scorer.mjs (sharp letterbox, ONNX Runtime)",
@@ -121,7 +152,7 @@ def main():
     if saved.exists() and not args.weights:
         every = [json.loads(line)["path"] for line in (WORK / "manifest.jsonl").read_text().splitlines()]
         position = {path: index for index, path in enumerate(every)}
-        trained = np.load(saved)[[position[row["path"]] for row in rows]]
+        trained = soften(np.load(saved)[[position[row["path"]] for row in rows]], temperature)
         out["serving_vs_training_path"] = {
             "frames": len(rows),
             "max_abs_score_difference": float(np.abs(trained - scores).max()),
@@ -139,7 +170,7 @@ def main():
                  "scores": [round(v, 4) for v in values]}
         for source, values in events.items()}
     items, owner_root = owner_images()
-    owner_scores, _ = node_scores([item["path"] for item in items], owner_root)
+    owner_scores, _ = node_scores([item["path"] for item in items], owner_root)  # already softened
     for item, score in zip(items, owner_scores):
         item["score"] = round(float(score), 4)
         item["flagged"] = bool(score >= threshold)
@@ -174,6 +205,15 @@ def main():
         "frames_labelled_twice": again, "damaged_first_time": first,
         "damaged_both_times": both, "teacher_self_recall": both / first if first else None}
 
+    # The same threshold against frames the teacher judged the same way twice. A frame it
+    # calls damaged once and undamaged once is a coin toss no screen can be asked to call.
+    twice = np.array(["damaged_again" in row for row in rows])
+    stable = twice & np.array([row.get("damaged_again") == row["damaged"] for row in rows])
+    out["at_threshold_teacher_agrees_with_itself"] = {
+        label: at_threshold(scores[test & stable & chosen], labels[test & stable & chosen], threshold)
+        for label, chosen in (("all", np.ones(len(rows), bool)), ("drive_video", domain == "drive_video"),
+                              ("rdd2022_india", domain == "rdd2022_india"))}
+
     meta.update({"threshold": threshold, "encoder": args.encoder, "head": args.head,
                  "target_validation_recall": args.target_recall})
     write_json(model_dir / "model.json", meta)
@@ -182,6 +222,9 @@ def main():
         point = out["at_threshold"][label]["test"]
         print(f"{label:14s} test: recall {point['recall']:.4f} ({point['caught']}/{point['damaged']}), "
               f"cleared {point['cleared_share']:.4f} ({point['cleared']}/{point['undamaged']})")
+    for label, point in out["at_threshold_teacher_agrees_with_itself"].items():
+        print(f"{label:14s} test, teacher stable: recall {point['recall']:.4f} "
+              f"({point['caught']}/{point['damaged']}), cleared {point['cleared_share']:.4f}")
     print(json.dumps({k: out[k] for k in ("threshold", "owner_video_events", "rdd_human_boxes_test",
                                           "teacher_repeat_on_test")}, indent=1))
     print("owner images:", {k: v for k, v in out["owner_images"].items() if k != "items"})

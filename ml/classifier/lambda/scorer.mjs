@@ -19,6 +19,17 @@ export function letterboxGeometry(width, height, size) {
   return { width: w, height: h, left, top, right: size - w - left, bottom: size - h - top };
 }
 
+// The head is far too sure of itself: raw scores pile up at 0 and 1 and the useful
+// threshold sat near 0.0006. Dividing the logit by the temperature release.py fitted on
+// validation spreads the scores out without changing their order, so a threshold and a
+// logged screen_score are readable numbers. release.py applies the same formula.
+export const LOGIT_LIMIT = 30;
+export function soften(score, temperature = 1) {
+  if (!(temperature > 0) || temperature === 1) return score;
+  const logit = Math.max(-LOGIT_LIMIT, Math.min(LOGIT_LIMIT, Math.log(score / (1 - score))));
+  return 1 / (1 + Math.exp(-logit / temperature));
+}
+
 export async function createScorer({ modelDir, threads = 2 } = {}) {
   const meta = JSON.parse(readFileSync(path.join(modelDir, "model.json"), "utf8"));
   const bytes = readFileSync(path.join(modelDir, "model.onnx"));
@@ -63,7 +74,7 @@ export async function createScorer({ modelDir, threads = 2 } = {}) {
   async function run(pixels) {
     const frames = new ort.Tensor("uint8", pixels, [1, size, size, 3]);
     const output = await session.run({ frames });
-    return Number(output.score.data[0]);
+    return soften(Number(output.score.data[0]), meta.temperature);
   }
 
   // The first run allocates the arena and the thread pool. Paying for it during init

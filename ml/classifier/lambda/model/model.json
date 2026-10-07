@@ -1,6 +1,10 @@
 {
- "model_version": "latency-dummy-efficientnet_b0_224",
- "sha256": "1dff0c9a9e583b4157ef1a1abf19279a43e670c5c219789869cafea305fd0151",
- "input_size": 224,
- "threshold": 0.0001
+ "encoder": "mobilenetv3_l",
+ "head": "hidden256",
+ "input_size": 448,
+ "model_version": "road-screen-v1-mobilenetv3l-448",
+ "sha256": "75bb630aed191893cc4add1f6aa395aad694c6fafaf5b439f5e33186815c1cc4",
+ "target_validation_recall": 0.99,
+ "temperature": 2.462,
+ "threshold": 0.04699918670128432
 }

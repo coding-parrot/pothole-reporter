@@ -101,9 +101,10 @@ def main():
     parser.add_argument("--size", type=int, required=True)
     parser.add_argument("--head", default="hidden256")
     parser.add_argument("--from-block", type=int, default=5, help="first block that is trained")
-    parser.add_argument("--epochs", type=int, default=12)
+    parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--batch", type=int, default=64)
-    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--lr", type=float, default=3e-5)
+    parser.add_argument("--map-dropout", type=float, default=0.1)
     parser.add_argument("--device", default="mps" if torch.backends.mps.is_available() else "cpu")
     args = parser.parse_args()
     torch.manual_seed(SEED)
@@ -156,8 +157,14 @@ def main():
             {k: v.detach().cpu().clone() for k, v in head.state_dict().items()}, -1)
     started = time.monotonic()
     for epoch in range(args.epochs):
+        # Batch-norm layers keep their running statistics (eval mode) and train only their
+        # scale and shift. With batch statistics the features moved away from what the
+        # probe head was fitted on and the first epoch undid the probe.
         for module in trained:
             module.train()
+            for layer in module.modules():
+                if isinstance(layer, torch.nn.modules.batchnorm._BatchNorm):
+                    layer.eval()
         head.train()
         order = generator.permutation(index["train"])
         running = 0.0
@@ -165,6 +172,9 @@ def main():
             chosen = np.sort(order[step * args.batch:(step + 1) * args.batch])
             batch = torch.from_numpy(np.asarray(maps[chosen], dtype=np.float32)).to(args.device)
             target = torch.from_numpy(soft[chosen]).to(args.device)
+            # No image augmentation is possible on cached maps; dropping whole channels
+            # of the cached map is the regulariser instead.
+            batch = torch.nn.functional.dropout2d(batch, args.map_dropout)
             optimiser.zero_grad()
             loss = loss_function(head(tail_features(body, args.from_block, batch)), target)
             loss.backward()

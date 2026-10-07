@@ -52,20 +52,24 @@ def main():
     rows = [row for row in rows if row["split"] == "test"]
     if args.limit:
         rows = rows[:: max(1, len(rows) // args.limit)]
-    worst = 0.0
+    # torch runs on the GPU where there is one (this Mac's CPU needs 0.4 s a frame for a
+    # depthwise CNN); ONNX Runtime runs on the CPU, as it does in Lambda.
+    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    model.to(device)
     torch_scores, onnx_scores = [], []
     with torch.inference_mode():
-        for row in rows:
-            frame = letterbox(Image.open(FRAMES / row["path"]), args.size)[None]
-            a = float(model(torch.from_numpy(frame))[0])
-            b = float(session.run(["score"], {"frames": frame})[0][0])
-            torch_scores.append(a)
-            onnx_scores.append(b)
-            worst = max(worst, abs(a - b))
+        for start in range(0, len(rows), 32):
+            frames = np.stack([letterbox(Image.open(FRAMES / row["path"]), args.size)
+                               for row in rows[start:start + 32]])
+            torch_scores += model(torch.from_numpy(frames).to(device)).float().cpu().tolist()
+            onnx_scores += [float(session.run(["score"], {"frames": frame[None]})[0][0])
+                            for frame in frames]
+    worst = float(np.abs(np.array(torch_scores) - np.array(onnx_scores)).max())
     receipt = {
         "model": name, "onnx_bytes": target.stat().st_size,
         "onnx_sha256": sha256_hex(target.read_bytes()),
-        "frames_compared": len(rows), "max_abs_score_difference": worst,
+        "frames_compared": len(rows), "torch_device": device,
+        "max_abs_score_difference": worst,
         "mean_abs_score_difference": float(np.mean(np.abs(np.array(torch_scores) - np.array(onnx_scores)))),
     }
     write_json(WORK / "onnx" / f"{name}.parity.json", receipt)
