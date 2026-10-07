@@ -52,6 +52,7 @@ jobs:
           python3 tests/national_highway_contracts_test.py
           python3 tests/gepnic_tender_crawler_test.py
           python3 tests/gepnic_road_notice_pack_builder_test.py
+          python3 tests/gepnic_carry_over_test.py
           python3 tests/bihar_road_tender_puller_test.py
           python3 tests/chhattisgarh_chips_road_tender_puller_test.py
           python3 tests/gujarat_nprocure_road_tender_puller_test.py
@@ -83,10 +84,21 @@ jobs:
             data/custom-road-tenders/ld \
             data/custom-road-tenders/tg \
             data/pmgsy-road-agreements/sources
-          find data/gepnic-road-notices/sources -type f -name '*.json' -delete
+          # A portal that is down keeps its last receipt while that is inside the 7-day
+          # review window: run 37573977613 timed out on West Bengal's main portal and the
+          # State fell from 874 notices to 55, with a receipt two days old deleted here.
+          # The committed receipts are staged outside the checkout, and the crawler copies
+          # back only the receipt of a declared source that failed, so one whose source
+          # has left the registry cannot linger.
+          previous_gepnic_sources="$RUNNER_TEMP/gepnic-previous-sources"
+          rm -rf "$previous_gepnic_sources"
+          mkdir -p "$previous_gepnic_sources"
+          find data/gepnic-road-notices/sources -type f -name '*.json' \
+            -exec mv {} "$previous_gepnic_sources/" \;
           find data/gepnic-road-notices/states -type f -name '*.json' -delete
           python3 tools/pull-india-gepnic.py \
             --output-dir data/gepnic-road-notices \
+            --previous-sources "$previous_gepnic_sources" \
             --retrieved-at "$catalog_retrieved_at" \
             --timeout 90 \
             --request-delay 0.20 \
