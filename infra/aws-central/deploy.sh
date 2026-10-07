@@ -28,7 +28,7 @@ template_default() {
   sed -n "/^  $1:\$/,/Default:/p" infra/aws-central/template.yaml | sed -n 's/^    Default: //p' | head -1
 }
 TEMPLATE_PARAMETERS=""
-for name in DailyVisionCap GlobalVisionMinuteCap GlobalVisionDailyCap MonthlyVisionCap GeocoderReverseUrl AlertEmail; do
+for name in DailyVisionCap GlobalVisionMinuteCap GlobalVisionDailyCap MonthlyVisionCap ReservedConcurrency GeocoderReverseUrl AlertEmail; do
   default_value="$(template_default "$name")"
   [[ -n "$default_value" ]] || { echo "template.yaml declares no default for $name" >&2; exit 1; }
   TEMPLATE_PARAMETERS="$TEMPLATE_PARAMETERS $name=$default_value"
