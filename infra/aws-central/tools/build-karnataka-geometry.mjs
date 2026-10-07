@@ -1,34 +1,53 @@
 #!/usr/bin/env node
-// Builds the geometry the central service answers Karnataka road ownership from when
-// KGIS cannot. Two steps, both deterministic:
+// Builds the geometry the central service answers Karnataka road ownership from. The
+// request path never asks KGIS: everything it would have asked is copied here first.
 //
-//   node infra/aws-central/tools/build-karnataka-geometry.mjs --snapshot
-//     Reads the 319 urban local body polygons from the KGIS Town layer (the layer the
-//     live lookup queries) into data/karnataka-town-polygons.json. Needs the network.
+//   node infra/aws-central/tools/build-karnataka-geometry.mjs --refresh
+//     The weekly refresh. Re-reads every KGIS layer below, then rebuilds both bundles.
+//     Needs the network; safe to stop and run again (a partial download resumes).
 //
 //   node infra/aws-central/tools/build-karnataka-geometry.mjs
-//     Combines that snapshot, the app's pinned Karnataka state boundary (OpenStreetMap,
-//     in-ka-state-routing) and the app's national highway tiles (OpenStreetMap) into
-//     data/karnataka-local-geometry.json, the file the Lambda package carries for road
-//     ownership. It also rebuilds data/karnataka-ward-geometry.json (below).
+//     No network. Rebuilds data/karnataka-ownership.bin from the town snapshot, the app's
+//     pinned Karnataka state boundary (OpenStreetMap, in-ka-state-routing) and the highway
+//     and panchayat polygons the bundle already holds, and data/karnataka-ward-geometry.json
+//     from the ward snapshot.
 //
-//   node infra/aws-central/tools/build-karnataka-geometry.mjs --snapshot-wards
-//     Reads every polygon of the KGIS "Ward New" layer (7,421 wards in 309 towns on
-//     6 Oct 2026) into data/karnataka-ward-polygons.json, then groups them by town into
-//     data/karnataka-ward-geometry.json, which the Lambda package carries so a municipal
-//     point's ward is answered with no extra KGIS call. Needs the network.
+// --refresh is these three, which can also be run one at a time:
 //
-// Nothing here draws geometry: every ring and line is copied from a register the app or
-// the service already trusts, and the bundle records the hash of each source so the
-// test suite can tell when it has gone stale.
+//   --snapshot
+//     The 319 urban local body polygons of the KGIS Town layer into
+//     data/karnataka-town-polygons.json.
+//
+//   --snapshot-wards
+//     Every polygon of the KGIS "Ward New" layer (7,421 wards in 309 towns on 6 Oct 2026)
+//     into data/karnataka-ward-polygons.json, grouped by town into
+//     data/karnataka-ward-geometry.json, which names a municipal point's ward.
+//
+//   --snapshot-ownership
+//     The three highway land-cover layers (national 289, state 290, district 291) and the
+//     gram panchayat layer, whole, into the work directory data/.kgis-work (gitignored),
+//     one request at a time, then into data/karnataka-ownership.bin. --from-work rebuilds
+//     from a download that is already complete, without the network.
+//
+// Nothing here draws geometry: every ring is copied from a register the app or the
+// service already trusts, and the bundle records where each layer came from, how many
+// features KGIS counted, and a hash of what was stored, so the test suite can tell when
+// it has gone stale or been edited.
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import readline from "node:readline";
 import { fileURLToPath } from "node:url";
+
+import { loadOwnershipBundle, polygonRings } from "../service/local-ownership.mjs";
+import { decodeRun } from "../service/spatial.mjs";
+import { KGIS_LAYERS, downloadLayer, politeJson } from "./kgis-layers.mjs";
+import { createOwnershipWriter } from "./ownership-bundle-writer.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const SNAPSHOT_PATH = path.join(root, "data/karnataka-town-polygons.json");
-const BUNDLE_PATH = path.join(root, "data/karnataka-local-geometry.json");
+const OWNERSHIP_PATH = path.join(root, "data/karnataka-ownership.bin");
+const WORK_DIR = path.join(root, "data/.kgis-work");
 const WARD_SNAPSHOT_PATH = path.join(root, "data/karnataka-ward-polygons.json");
 const WARD_BUNDLE_PATH = path.join(root, "data/karnataka-ward-geometry.json");
 const SCALE = 100_000;
@@ -36,10 +55,13 @@ const KGIS_TOWN_LAYER = "https://kgis.ksrsac.in/kgismaps/rest/services/Boundarie
 const TOWN_FIELDS = "OBJECTID,KGISTownName,Town_Type,KGISTownCode,LGD_TownCode,KGISDistrictCode,last_edited_date";
 const KGIS_WARD_LAYER = "https://kgis.ksrsac.in/kgismaps/rest/services/Boundaries/Admin_Dynamic_New/MapServer/2";
 const WARD_FIELDS = "OBJECTID,KGISWardID,KGISWardCode,LGD_WardCode,KGISWardNo,KGISWardName,KGISTownCode,last_edited_date";
-// The app matches a fix to a highway centre line at 15 m when it has no GPS accuracy to
-// widen it with (static/highway-manifest.json match.minimum_match_distance_m). The server
-// is never told the accuracy, so it uses the same floor.
-const HIGHWAY_MATCH_METRES = 15;
+// Towns, panchayats and the state are only ever asked "is the point inside", so the
+// 1.1 m grid the town snapshot already uses is enough for them. A highway is asked "is
+// the point within 5 m" and its polygons are about 8 m wide, so those are stored twice as
+// finely: no stored vertex is more than 0.39 m from where KGIS has it. Measured on
+// 7 Oct 2026, highways at 1/100,000 degree made the file 34 MB, at this scale 38 MB and
+// at 1/1,000,000 degree 46 MB.
+const HIGHWAY_SCALE = 200_000;
 
 const sha256 = (bytes) => crypto.createHash("sha256").update(bytes).digest("hex");
 const today = () => new Date().toISOString().slice(0, 10);
@@ -97,34 +119,22 @@ function boxOfRuns(runs) {
   return box;
 }
 
-// KGIS stalls on its query endpoints for minutes at a time, so a page is asked for up to
-// three times before the snapshot gives up. A page that answers is never re-read.
+// The town and ward layers are small enough to hold in memory, so they are read straight
+// into their snapshots, through the same polite client as the large layers: one request
+// at a time, a pause after each, retries with backoff.
 async function fetchPage(layer, fields, offset, size) {
-  const url = `${layer}/query?where=1%3D1&outFields=${encodeURIComponent(fields)}`
+  const page = await politeJson(`${layer}/query?where=1%3D1&outFields=${encodeURIComponent(fields)}`
     + "&returnGeometry=true&outSR=4326&geometryPrecision=6&orderByFields=OBJECTID"
-    + `&resultOffset=${offset}&resultRecordCount=${size}&f=json`;
-  let failure = null;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(120_000) });
-      if (!response.ok) throw new Error(`KGIS answered ${response.status} at offset ${offset}`);
-      const page = await response.json();
-      if (!Array.isArray(page.features)) {
-        throw new Error(`KGIS answered without features at offset ${offset}: ${JSON.stringify(page).slice(0, 200)}`);
-      }
-      if (page.spatialReference?.wkid !== 4326) throw new Error("KGIS did not answer in WGS84");
-      return page;
-    } catch (error) {
-      failure = error;
-    }
+    + `&resultOffset=${offset}&resultRecordCount=${size}&f=json`, { timeoutMs: 120_000, attempts: 4 });
+  if (!Array.isArray(page.features)) {
+    throw new Error(`KGIS answered without features at offset ${offset}: ${JSON.stringify(page).slice(0, 200)}`);
   }
-  throw failure;
+  if (page.spatialReference?.wkid !== 4326) throw new Error("KGIS did not answer in WGS84");
+  return page;
 }
 
 async function fetchLayer(layer, fields, pageSize, minimum) {
-  const countResponse = await fetch(`${layer}/query?where=1%3D1&returnCountOnly=true&f=json`,
-    { signal: AbortSignal.timeout(30_000) });
-  const expected = (await countResponse.json()).count;
+  const expected = (await politeJson(`${layer}/query?where=1%3D1&returnCountOnly=true&f=json`, { timeoutMs: 30_000 })).count;
   if (!Number.isInteger(expected) || expected < minimum) throw new Error(`${layer} count is ${expected}`);
   const features = [];
   for (let offset = 0; offset < expected;) {
@@ -310,89 +320,150 @@ function stateBoundary() {
   };
 }
 
-function nationalHighways(stateBox) {
-  const manifest = readJson(path.join(root, "static/highway-manifest.json"));
-  if (manifest.match?.minimum_match_distance_m !== HIGHWAY_MATCH_METRES) {
-    throw new Error("The highway manifest's minimum match distance moved; update HIGHWAY_MATCH_METRES");
+
+const pointsOfRun = (run) => decodeRun(run);
+
+// The highway and panchayat polygons as KGIS gave them, from a completed download in the
+// work directory: one feature a line, in OBJECTID order.
+async function* downloadedPolygons(layer, scale) {
+  const lines = readline.createInterface({
+    input: fs.createReadStream(path.join(WORK_DIR, `${layer.key}.ndjson`)), crlfDelay: Infinity,
+  });
+  for await (const line of lines) {
+    if (!line) continue;
+    const { attributes, rings } = JSON.parse(line);
+    yield {
+      objectid: attributes.OBJECTID,
+      name: String(attributes.Name ?? attributes.KGISGPName ?? "").trim() || null,
+      rings: rings.map((ring) => ring.map(([lng, lat]) => [Math.round(lng * scale), Math.round(lat * scale)])),
+    };
   }
-  // A feature's box may cross the state line by up to the match distance and still be
-  // the carriageway a border fix sits on. 0.001 degrees is about 110 m.
-  const pad = Math.ceil(0.001 * SCALE);
-  const tiles = [];
-  const features = [];
-  for (const [tileId, resource] of Object.entries(manifest.tiles)) {
-    const [west, south, east, north] = resource.bbox.map((value) => value * SCALE);
-    if (east < stateBox[0] - pad || west > stateBox[2] + pad
-        || north < stateBox[1] - pad || south > stateBox[3] + pad) continue;
-    const bytes = fs.readFileSync(path.join(root, "docs", resource.path));
-    if (sha256(bytes) !== resource.sha256) throw new Error(`Highway tile ${tileId} hash mismatch`);
-    const tile = JSON.parse(bytes);
-    if (tile.coordinate_scale !== SCALE) throw new Error(`Highway tile ${tileId} is not at scale ${SCALE}`);
-    let kept = 0;
-    for (const feature of tile.features) {
-      const box = feature[1];
-      if (box[2] < stateBox[0] - pad || box[0] > stateBox[2] + pad
-          || box[3] < stateBox[1] - pad || box[1] > stateBox[3] + pad) continue;
-      features.push(feature);
-      kept += 1;
-    }
-    tiles.push({ tile_id: tileId, sha256: resource.sha256, features: tile.features.length, kept });
-  }
-  if (!tiles.length) throw new Error("No highway tile touches Karnataka");
-  return {
-    classes: ["national_highway"],
-    match_metres: HIGHWAY_MATCH_METRES,
-    source_name: manifest.source.source_name,
-    source_retrieved_at: manifest.source.source_retrieved_at,
-    source_license: manifest.source.source_license,
-    attribution: manifest.source.attribution,
-    tiles,
-    features,
-  };
 }
 
-function bundle() {
-  const snapshotBytes = fs.readFileSync(SNAPSHOT_PATH);
-  const towns = JSON.parse(snapshotBytes);
+// The same polygons out of the bundle already on disk, when nothing was downloaded.
+function* bundledPolygons(bundle, layer) {
+  for (let polygon = layer.first_polygon; polygon < layer.first_polygon + layer.polygons; polygon += 1) {
+    const attribute = bundle.polyAttr[polygon];
+    yield {
+      objectid: bundle.polyObjectId[polygon],
+      name: attribute === 0xffffffff ? null : layer.names[attribute],
+      rings: polygonRings(bundle, polygon).map((ring) => Array.from({ length: ring.length / 2 },
+        (unused, index) => [ring[index * 2] / layer.step, ring[index * 2 + 1] / layer.step])),
+    };
+  }
+}
+
+async function ownershipBundle({ fromWork }) {
+  const townBytes = fs.readFileSync(SNAPSHOT_PATH);
+  const towns = JSON.parse(townBytes);
   if (towns.format !== "pothole-kgis-town-polygons" || towns.coordinate_scale !== SCALE) {
     throw new Error("Unexpected town snapshot format");
   }
+  const previous = fromWork ? null
+    : fs.existsSync(OWNERSHIP_PATH) ? await loadOwnershipBundle(OWNERSHIP_PATH) : null;
+  if (!fromWork && !previous) {
+    throw new Error("No data/karnataka-ownership.bin to rebuild from; run with --snapshot-ownership");
+  }
+  const scale = Math.max(SCALE, fromWork ? HIGHWAY_SCALE
+    : previous.layers.find((layer) => layer.name === "national_highway").scale);
+  const writer = createOwnershipWriter({ scale });
+
   const state = stateBoundary();
-  const highways = nationalHighways(state.bbox);
-  writeJsonIfChanged(BUNDLE_PATH, {
-    _comment: "Generated by infra/aws-central/tools/build-karnataka-geometry.mjs from "
-      + "data/karnataka-town-polygons.json (KGIS), the in-ka-state-routing pack (OpenStreetMap) "
-      + "and the national highway tiles (OpenStreetMap). The central service reads it when "
-      + "KGIS cannot answer a Karnataka lookup. Do not edit by hand.",
-    format: "pothole-karnataka-local-geometry",
-    schema_version: 1,
-    generated_at: today(),
-    coordinate_scale: SCALE,
-    towns: {
-      source: towns.source,
-      retrieved_at: towns.retrieved_at,
-      source_last_edited: towns.source_last_edited,
-      snapshot_sha256: sha256(snapshotBytes),
-      count: towns.count,
-      with_lgd: towns.towns.filter((town) => town.lgd !== null).length,
-      features: towns.towns.map(({ lgd, name, type, kgis_code: kgisCode, bbox, rings }) => ({
-        lgd, name, type, kgis_code: kgisCode, bbox, rings,
-      })),
-    },
-    state,
-    highways,
+  const { rings: stateRings, ...stateSource } = state;
+  writer.beginLayer("state", { scale: SCALE, ...stateSource });
+  writer.addPolygon({ objectid: 0, rings: stateRings.map(pointsOfRun) });
+  writer.endLayer();
+
+  const kgisLayer = async (name) => {
+    const kgis = KGIS_LAYERS[name];
+    const layerScale = name === "gram_panchayat" ? SCALE : scale;
+    let provenance;
+    let polygons;
+    let carried = {};
+    if (fromWork) {
+      const doneFile = path.join(WORK_DIR, `${kgis.key}.done.json`);
+      if (!fs.existsSync(doneFile)) throw new Error(`${name} has no completed download in ${path.relative(root, WORK_DIR)}`);
+      const done = readJson(doneFile);
+      if (done.count !== done.kgis_count) throw new Error(`${name}: ${done.count} features read, KGIS counted ${done.kgis_count}`);
+      provenance = {
+        source: done.source, layer_id: done.layer_id, source_fields: done.source_fields,
+        retrieved_at: done.retrieved_at, source_last_edited: done.source_last_edited,
+        kgis_count: done.kgis_count, raw_bytes: done.raw_bytes, raw_sha256: done.raw_sha256,
+      };
+      polygons = downloadedPolygons(kgis, layerScale);
+    } else {
+      const layer = previous.layers.find((entry) => entry.name === name);
+      provenance = Object.fromEntries(["source", "layer_id", "source_fields", "retrieved_at",
+        "source_last_edited", "kgis_count", "raw_bytes", "raw_sha256"].map((key) => [key, layer[key]]));
+      polygons = bundledPolygons(previous, layer);
+      // How many vertices KGIS sent is a fact about the download, not about this rebuild.
+      carried = { source_vertices: layer.source_vertices };
+    }
+    writer.beginLayer(name, { scale: layerScale, ...provenance });
+    const names = [];
+    const nameIndex = new Map();
+    let count = 0;
+    let unnamed = 0;
+    for await (const polygon of polygons) {
+      let attribute = 0xffffffff;
+      if (polygon.name === null) unnamed += 1;
+      else {
+        if (!nameIndex.has(polygon.name)) nameIndex.set(polygon.name, names.push(polygon.name) - 1);
+        attribute = nameIndex.get(polygon.name);
+      }
+      writer.addPolygon({ objectid: polygon.objectid, attribute, rings: polygon.rings });
+      count += 1;
+    }
+    if (count !== provenance.kgis_count) throw new Error(`${name}: ${count} polygons, KGIS counted ${provenance.kgis_count}`);
+    writer.endLayer({ count, unnamed, names, ...carried });
+    console.log(`${name}: ${count} polygons`);
+  };
+  for (const name of ["national_highway", "state_highway", "district_highway"]) await kgisLayer(name);
+
+  writer.beginLayer("town", {
+    scale: SCALE,
+    source: towns.source,
+    retrieved_at: towns.retrieved_at,
+    source_last_edited: towns.source_last_edited,
+    snapshot_sha256: sha256(townBytes),
+    count: towns.count,
+    with_lgd: towns.towns.filter((town) => town.lgd !== null).length,
+    towns: towns.towns.map(({ lgd, name, type, kgis_code: kgisCode }) => ({ lgd, name, type, kgis_code: kgisCode })),
   });
+  towns.towns.forEach((town, index) => {
+    writer.addPolygon({ objectid: town.objectid, attribute: index, rings: town.rings.map(pointsOfRun) });
+  });
+  writer.endLayer();
+
+  await kgisLayer("gram_panchayat");
+
+  const result = writer.finish(OWNERSHIP_PATH, {
+    _comment: "Generated by infra/aws-central/tools/build-karnataka-geometry.mjs. Karnataka road "
+      + "ownership as KGIS publishes it: the state (OpenStreetMap, in-ka-state-routing), the "
+      + "KGIS towns, gram panchayats and national, state and district highway land cover. "
+      + "The central service answers every Karnataka lookup from it. Do not edit by hand.",
+  });
+  console.log(`${result.changed ? "wrote" : "unchanged"} ${path.relative(root, OWNERSHIP_PATH)} (${result.size} bytes)`);
 }
 
 const args = new Set(process.argv.slice(2));
-if (args.has("--snapshot")) {
-  await snapshot();
-  args.delete("--snapshot");
-}
-if (args.has("--snapshot-wards")) {
-  await snapshotWards();
-  args.delete("--snapshot-wards");
-}
+const take = (flag) => args.delete(flag);
+const refresh = take("--refresh");
+const snapshotTowns = take("--snapshot") || refresh;
+const snapshotWardLayer = take("--snapshot-wards") || refresh;
+const snapshotOwnership = take("--snapshot-ownership") || refresh;
+const fromWork = take("--from-work") || snapshotOwnership;
 if (args.size) throw new Error(`Unknown arguments: ${[...args].join(" ")}`);
-bundle();
+if (snapshotTowns) await snapshot();
+if (snapshotWardLayer) await snapshotWards();
+if (snapshotOwnership) {
+  // A download finished on an earlier day is a previous refresh: start again. One
+  // finished today, or one that was stopped part way, is this refresh: carry on.
+  for (const name of Object.keys(KGIS_LAYERS)) {
+    const doneFile = path.join(WORK_DIR, `${KGIS_LAYERS[name].key}.done.json`);
+    const stale = fs.existsSync(doneFile) && readJson(doneFile).retrieved_at !== today();
+    await downloadLayer(name, { workDir: WORK_DIR, restart: stale });
+  }
+}
+await ownershipBundle({ fromWork });
 wardBundle();

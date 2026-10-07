@@ -93,6 +93,23 @@ test("a live location answer is stored and the next lookup in that cell asks nob
   assert.equal(geolocator.kgisTimeoutMs, 3000);
 });
 
+// Since 7 Oct 2026 the road class is read from the packaged copy of the state GIS layers
+// (highways and panchayats included), so that answer is complete and is stored like a
+// live one. Without this every Karnataka lookup asked the geocoder again.
+test("an answer from the packaged state GIS layers is stored", async () => {
+  let asked = 0;
+  const repository = cellStore();
+  const packaged = (lat, lng) => ({ ...liveAnswer(lat, lng), source: "kgis_snapshot",
+    lookup: { kgis: "snapshot", local: "municipal_polygon", geocoder: "available" } });
+  const geolocator = createCachedGeolocator({ repository,
+    geolocator: { resolve: async ({ lat, lng }) => { asked += 1; return packaged(lat, lng); } } });
+  await geolocator.resolve({ lat: 12.99657, lng: 77.62034 });
+  const second = await geolocator.resolve({ lat: 12.99658, lng: 77.62031 });
+  assert.equal(asked, 1);
+  assert.equal(second.lookup.cache, "hit");
+  assert.equal(second.lookup.kgis, "snapshot");
+});
+
 test("an answer that came from a caller's hint, a fallback or an outage is never stored", async () => {
   for (const patch of [
     { address_source: "client_hint" },

@@ -1,8 +1,11 @@
 import { readFile } from "node:fs/promises";
 
 import { HttpError } from "./errors.mjs";
+import {
+  HIGHWAY_LAYERS, OWNERSHIP_BUNDLE_PATH, OWNERSHIP_FORMAT, loadOwnershipBundle, polygonAttributes, polygonsAt,
+} from "./local-ownership.mjs";
 import { highwayRefsFromAddress, stateCodeFor } from "./national-tenders.mjs";
-import { metresToPolyline, pointInRings, withinBox } from "./spatial.mjs";
+import { pointInRings, withinBox } from "./spatial.mjs";
 
 const GEOCODER_USER_AGENT = "PotholeReporter-central/1 (+https://coding-parrot.github.io/pothole-reporter/; contact@aiengg.dev)";
 const KGIS_TOWN = "https://kgis.ksrsac.in/kgismaps/rest/services/Boundaries/Admin_Dynamic_New/MapServer/1/query";
@@ -11,18 +14,19 @@ const KGIS_SH = "https://kgis.ksrsac.in/kgismaps/rest/services/State_Basemap/Sta
 const KGIS_DH = "https://kgis.ksrsac.in/kgismaps/rest/services/State_Basemap/State_Basemap_Dynamic/MapServer/291/query";
 const KGIS_GP = "https://kgis.ksrsac.in/kgismaps/rest/services/Boundaries/GP_Boundary/MapServer/0/query";
 
-// What the service answers from when KGIS cannot: the 319 KGIS town polygons, the state
-// boundary and the national highway centre lines, built by
+// What the service answers Karnataka road ownership from: a packaged copy of every KGIS
+// layer the live lookup read (towns, the three highway land-cover layers, gram
+// panchayats) and the state boundary, built by
 // infra/aws-central/tools/build-karnataka-geometry.mjs and shipped in the Lambda package
-// at this same path relative to the service.
-export const LOCAL_GEOMETRY_PATH = new URL("../../../data/karnataka-local-geometry.json", import.meta.url);
-export const LOCAL_GEOMETRY_FORMAT = "pothole-karnataka-local-geometry";
+// at this same path relative to the service. See local-ownership.mjs for the file.
+export const LOCAL_GEOMETRY_PATH = OWNERSHIP_BUNDLE_PATH;
+export const LOCAL_GEOMETRY_FORMAT = OWNERSHIP_FORMAT;
 
 // The ward a municipal point is in: every polygon of the KGIS "Ward New" layer, grouped
 // by town, built by the same tool and shipped at this same path relative to the service.
-// It is read on every municipal lookup, KGIS up or down, because a live ward query would
-// add a slow call (20 s answers happen) to the request path for a fact that changes when
-// a delimitation does.
+// It is read on every municipal lookup, like the ownership bundle, because a live ward
+// query would add a slow call (20 s answers happen) to the request path for a fact that
+// changes when a delimitation does.
 export const WARD_GEOMETRY_PATH = new URL("../../../data/karnataka-ward-geometry.json", import.meta.url);
 export const WARD_GEOMETRY_FORMAT = "pothole-karnataka-ward-geometry";
 
@@ -46,7 +50,9 @@ function pointUrl(endpoint, lat, lng, fields, distance = 0) {
 // Measured on 21 Sep 2026: 5 m finds it, while 10 m picks up an unnamed State Highway in
 // central Hubballi and 20 m picks up OBJECTID 3059, Bengaluru's MG Road, which the layer
 // misclassifies as a National Highway. Past 5 m, city reports were told to write to NHAI.
-const HIGHWAY_BUFFER_METRES = 5;
+// The packaged polygons are tested with the same rule: within this many metres of the
+// polygon, measured on the ground.
+export const HIGHWAY_BUFFER_METRES = 5;
 
 // KGIS is Karnataka's register. Outside Karnataka it answers "no features" for every
 // layer, which is indistinguishable from an outage, so a Gujarat street reported on
@@ -54,8 +60,8 @@ const HIGHWAY_BUFFER_METRES = 5;
 // user to check a signal that was already full 5G. Karnataka spans lat 11.59 to 18.46
 // and lng 74.04 to 78.59; this envelope pads that by half a degree (about 55 km) so
 // every border point, and anything a coarse GPS fix could place near one, is still put
-// to KGIS exactly as before. Only points far outside can skip it, and for those
-// "outside Karnataka" is a fact about geography, not about whether KGIS is reachable.
+// to the register's polygons. Only points far outside skip them, and for those
+// "outside Karnataka" is a fact about geography, not about any lookup.
 const KARNATAKA_ENVELOPE = Object.freeze({
   minLat: 11.09, maxLat: 18.96, minLng: 73.54, maxLng: 79.09,
 });
@@ -126,15 +132,6 @@ function partsFromGeocoder(data) {
   };
 }
 
-function validLocalGeometry(geometry) {
-  return geometry && geometry.format === LOCAL_GEOMETRY_FORMAT
-    && Number.isFinite(geometry.coordinate_scale) && geometry.coordinate_scale > 0
-    && Array.isArray(geometry.towns?.features) && geometry.towns.features.length > 0
-    && Array.isArray(geometry.state?.rings) && Array.isArray(geometry.state?.bbox)
-    && Array.isArray(geometry.highways?.features)
-    && Number.isFinite(geometry.highways?.match_metres);
-}
-
 function validWardGeometry(geometry) {
   return geometry && geometry.format === WARD_GEOMETRY_FORMAT
     && Number.isFinite(geometry.coordinate_scale) && geometry.coordinate_scale > 0
@@ -142,17 +139,14 @@ function validWardGeometry(geometry) {
     && Object.values(geometry.towns).every((town) => Array.isArray(town?.bbox) && Array.isArray(town?.wards));
 }
 
-// One parse per process per file. The Lambda keeps it across invocations; the tests
-// share it across the many geolocators they build.
-const localGeometryCache = new Map();
-function loadBundle(path, logger, valid, event) {
+// One load per process per file. The Lambda keeps it across invocations; the tests
+// share it across the many geolocators they build. A failure is logged once, not per
+// lookup: the file is either in the package or it is not.
+const bundleCache = new Map();
+function loadOnce(path, logger, event, load) {
   const key = String(path);
-  if (!localGeometryCache.has(key)) {
-    localGeometryCache.set(key, readFile(path, "utf8").then(JSON.parse).then((geometry) => {
-      if (!valid(geometry)) throw new Error("not the expected geometry bundle");
-      return geometry;
-    }).catch((error) => {
-      // Logged once, not per lookup: the file is either in the package or it is not.
+  if (!bundleCache.has(key)) {
+    bundleCache.set(key, load(path).catch((error) => {
       logger.error(JSON.stringify({
         event,
         path: key,
@@ -161,10 +155,14 @@ function loadBundle(path, logger, valid, event) {
       return null;
     }));
   }
-  return localGeometryCache.get(key);
+  return bundleCache.get(key);
 }
-const loadLocalGeometry = (path, logger) => loadBundle(path, logger, validLocalGeometry, "local_geometry_unavailable");
-const loadWardGeometry = (path, logger) => loadBundle(path, logger, validWardGeometry, "ward_geometry_unavailable");
+const loadLocalGeometry = (path, logger) => loadOnce(path, logger, "local_geometry_unavailable", loadOwnershipBundle);
+const loadWardGeometry = (path, logger) => loadOnce(path, logger, "ward_geometry_unavailable",
+  (file) => readFile(file, "utf8").then(JSON.parse).then((geometry) => {
+    if (!validWardGeometry(geometry)) throw new Error("not the expected geometry bundle");
+    return geometry;
+  }));
 
 // KGIS names a Bengaluru ward "41 - Munnenkolalu". The number is the current (Greater
 // Bengaluru) numbering and is reported on its own; the name is what people and tender
@@ -217,68 +215,93 @@ export function wardRosterOf(geometry, wardCode) {
   return rosters.get(group);
 }
 
-// The same order of precedence as the KGIS path: a highway through a town is not the
-// town's road, and a town is checked before the state line because a town polygon can
-// overhang the OpenStreetMap boundary by a few metres.
-function classifyLocally(geometry, lat, lng) {
-  const scale = geometry.coordinate_scale;
-  const x = lng * scale;
-  const y = lat * scale;
-  const metres = geometry.highways.match_metres;
-  const padY = Math.ceil((metres / 110_540) * scale);
-  const padX = Math.ceil((metres / Math.max(20_000, 111_320 * Math.cos((lat * Math.PI) / 180))) * scale);
-  let nearest = null;
-  for (const [ref, box, encoded] of geometry.highways.features) {
-    if (!withinBox(x, y, box, padX, padY)) continue;
-    const distance = metresToPolyline(lng, lat, encoded, scale);
-    if (distance <= metres && (!nearest || distance < nearest.distance)) nearest = { ref, distance };
+// What one polygon says about a point it covers.
+function verdictOf(bundle, hit) {
+  const record = polygonAttributes(bundle, hit.polygon);
+  if (HIGHWAY_LAYERS.includes(record.layer)) {
+    return {
+      road_ownership: record.layer,
+      highway_name: bounded(record.name, 160) || null,
+      local: `${record.layer}_polygon`,
+    };
   }
-  if (nearest) {
-    return { road_ownership: "national_highway", highway_name: nearest.ref, local: "national_highway_geometry" };
-  }
-  for (const town of geometry.towns.features) {
-    if (!withinBox(x, y, town.bbox) || !pointInRings(x, y, town.rings)) continue;
+  if (record.layer === "town") {
     // ELCITA, the Electronic City industrial township, is in the KGIS layer with no LGD
     // code. KGIS itself answers "unknown" for it (a town the directory cannot key), and
     // the snapshot must not say more than the register does.
-    if (town.lgd == null) return { road_ownership: "unknown", local: "town_without_lgd" };
+    if (record.lgd == null) return { road_ownership: "unknown", local: "town_without_lgd" };
     return {
       road_ownership: "municipal",
-      lgd: String(town.lgd),
-      town: town.name,
-      town_code: town.kgis_code || null,
+      lgd: String(record.lgd),
+      town: record.name,
+      town_code: record.kgis_code || null,
       local: "municipal_polygon",
     };
   }
-  if (withinBox(x, y, geometry.state.bbox) && pointInRings(x, y, geometry.state.rings)) {
-    // Inside Karnataka and in no urban body: gram panchayat country. The snapshot holds
-    // no panchayat polygons, so the body is not named.
-    return { road_ownership: "rural", local: "state_polygon" };
-  }
-  return { road_ownership: "outside_state", local: "outside_state_polygon" };
+  const name = bounded(record.name, 160);
+  return name ? { road_ownership: "rural", rural_body: name, local: "gp_polygon" }
+    : { road_ownership: "rural", rural_body: null, local: "gp_polygon_unnamed" };
 }
 
-export function createGeolocator({
-  fetchImpl = fetch,
-  geocoderUrl = "",
-  geocoderBearerToken = "",
-  kgisTimeoutMs = 3_000,
-  kgisBreakerMs = 60_000,
-  localGeometryPath = LOCAL_GEOMETRY_PATH,
-  wardGeometryPath = WARD_GEOMETRY_PATH,
-  logger = console,
-} = {}) {
-  const cache = new Map();
-  // KGIS stalls on its query endpoints for minutes at a time while its root still
-  // answers. One timeout opens the breaker so later reports skip KGIS at once instead
-  // of each holding a Lambda slot while it waits. While it is open, and whenever KGIS
-  // gives no verdict, the local geometry answers instead. After kgisBreakerMs the next
-  // lookup puts KGIS back on trial.
-  let kgisClosedAt = 0;
-  const kgis = async (url) => {
-    if (Date.now() < kgisClosedAt) return UNAVAILABLE;
-    const result = await readJson(fetchImpl, url, { timeoutMs: kgisTimeoutMs });
-    if (result.timedOut) kgisClosedAt = Date.now() + kgisBreakerMs;
+// A highway polygon KGIS gives no name, a town it gives no LGD code, a panchayat polygon
+// with a blank name.
+const nameless = (verdict) => verdict.highway_name === null
+  || verdict.road_ownership === "unknown" || verdict.local === "gp_polygon_unnamed";
+
+// The live lookup's own rules, in its order, on the packaged copy of the same layers:
+// a highway within HIGHWAY_BUFFER_METRES (national, then state, then district) is not
+// the town's road even inside the town; then the town; then the gram panchayat.
+//
+// One rule is not copied. KGIS's panchayat layer holds 309 polygons with a blank name
+// (2.7% of the state's area lies in one and in no town) and has gaps (0.1%), and the live
+// code, which had no state boundary to check, read "no panchayat name" as outside_state
+// for all of it. Here a point inside the state boundary is a rural road with no body
+// named, and only a point outside the boundary is outside_state. lookup.local says which
+// it was ("gp_polygon_unnamed", "state_polygon_no_panchayat", "outside_state_polygon").
+//
+// Where several polygons of the deciding layer cover the point (a junction of two state
+// highways, the seam between a named stretch of road and an unnamed one), the live code
+// read whichever KGIS listed first. That order is KGIS's spatial index's, changes with
+// the output fields a query asks for, and followed no property of the polygons on the
+// 28 junctions tried on 7 Oct 2026. So the choice here is a rule of its own: the polygon
+// the point is in or nearest to, then one with a name (or an LGD code) over one without,
+// then the lowest OBJECTID. Every candidate is returned, the answer first.
+export function localVerdicts(bundle, lat, lng, bufferMetres = HIGHWAY_BUFFER_METRES) {
+  const hits = polygonsAt(bundle, lat, lng, bufferMetres);
+  for (const name of [...HIGHWAY_LAYERS, "town", "gram_panchayat"]) {
+    const layer = bundle.layerIndex[name];
+    const verdicts = hits.filter((hit) => hit.layer === layer)
+      .map((hit) => ({ hit, verdict: verdictOf(bundle, hit) }))
+      .sort((left, right) => left.hit.metres - right.hit.metres
+        || Number(nameless(left.verdict)) - Number(nameless(right.verdict))
+        || left.hit.polygon - right.hit.polygon)
+      .map(({ verdict }) => verdict);
+    if (verdicts.length) return verdicts;
+  }
+  const inState = hits.some((hit) => hit.layer === bundle.layerIndex.state);
+  return [inState
+    ? { road_ownership: "rural", rural_body: null, local: "state_polygon_no_panchayat" }
+    : { road_ownership: "outside_state", local: "outside_state_polygon" }];
+}
+
+export function classifyLocally(bundle, lat, lng, bufferMetres = HIGHWAY_BUFFER_METRES) {
+  return localVerdicts(bundle, lat, lng, bufferMetres)[0];
+}
+
+// The live KGIS lookup, as the request path ran it until 7 Oct 2026: four layer queries
+// at once, and the panchayat layer when the point is in no town. It is kept for
+// tools/verify-local-ownership.mjs, which compares it with the packaged polygons, and is
+// off the request path unless a geolocator is built with liveKgis.
+//
+// KGIS stalls on its query endpoints for minutes at a time while its root still
+// answers. One timeout opens the breaker so later lookups skip KGIS at once instead of
+// each waiting; after breakerMs the next lookup puts KGIS back on trial.
+export function createKgisClient({ fetchImpl = fetch, timeoutMs = 3_000, breakerMs = 60_000 } = {}) {
+  let closedUntil = 0;
+  const ask = async (url) => {
+    if (Date.now() < closedUntil) return UNAVAILABLE;
+    const result = await readJson(fetchImpl, url, { timeoutMs });
+    if (result.timedOut) closedUntil = Date.now() + breakerMs;
     // A JSON error/proxy envelope is not proof of zero matching features.
     if (result.available && (!Array.isArray(result.data.features)
         || result.data.features.some((feature) => !feature || typeof feature !== 'object'
@@ -286,6 +309,74 @@ export function createGeolocator({
     return result;
   };
   return {
+    // road_ownership "unknown" means KGIS gave no verdict: a layer was down, stalled or
+    // malformed, the breaker is open, or the point is in a town with no LGD code.
+    async verdict(lat, lng) {
+      const [town, nh, sh, dh] = await Promise.all([
+        ask(pointUrl(KGIS_TOWN, lat, lng, "KGISTownName,Town_Type,KGISTownCode,LGD_TownCode")),
+        ask(pointUrl(KGIS_NH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
+        ask(pointUrl(KGIS_SH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
+        ask(pointUrl(KGIS_DH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
+      ]);
+      const highwayLayers = [[nh, "national_highway"], [sh, "state_highway"], [dh, "district_highway"]];
+      const highwaysAvailable = highwayLayers.every(([item]) => item.available);
+      const verdict = {
+        available: town.available && highwaysAvailable,
+        town_available: town.available,
+        highway_available: highwaysAvailable,
+        gp_asked: false,
+        gp_available: false,
+        road_ownership: "unknown",
+        highway_name: null,
+        rural_body: null,
+        lgd: "",
+        town: null,
+        town_code: "",
+      };
+      if (!verdict.available) return verdict;
+      const townFeature = town.data.features[0];
+      const highway = highwayLayers.find(([item]) => item.data.features[0]);
+      const attrs = townFeature?.attributes || {};
+      const lgd = attrs.LGD_TownCode == null ? "" : bounded(String(attrs.LGD_TownCode), 64);
+      if (highway) {
+        verdict.road_ownership = highway[1];
+        verdict.highway_name = bounded(highway[0].data.features[0].attributes.Name, 160) || null;
+      } else if (townFeature && lgd) {
+        verdict.road_ownership = "municipal";
+        verdict.lgd = lgd;
+        verdict.town = bounded(attrs.KGISTownName, 160) || null;
+        verdict.town_code = attrs.KGISTownCode == null ? "" : bounded(String(attrs.KGISTownCode), 16);
+      } else if (!townFeature) {
+        const gp = await ask(pointUrl(KGIS_GP, lat, lng, "KGISGPName"));
+        verdict.gp_asked = true;
+        verdict.gp_available = gp.available;
+        verdict.rural_body = bounded(gp.data?.features?.[0]?.attributes?.KGISGPName, 160) || null;
+        verdict.road_ownership = gp.available ? (verdict.rural_body ? "rural" : "outside_state") : "unknown";
+      }
+      return verdict;
+    },
+  };
+}
+
+export function createGeolocator({
+  fetchImpl = fetch,
+  geocoderUrl = "",
+  geocoderBearerToken = "",
+  // Off: Karnataka road ownership comes from the packaged polygons and KGIS is never
+  // called. On (the verification tool, and tests of the live path): KGIS is asked first
+  // and the packaged polygons answer only when it gives no verdict.
+  liveKgis = false,
+  kgisTimeoutMs = 3_000,
+  kgisBreakerMs = 60_000,
+  localGeometryPath = LOCAL_GEOMETRY_PATH,
+  wardGeometryPath = WARD_GEOMETRY_PATH,
+  logger = console,
+} = {}) {
+  const cache = new Map();
+  const kgis = liveKgis
+    ? createKgisClient({ fetchImpl, timeoutMs: kgisTimeoutMs, breakerMs: kgisBreakerMs }) : null;
+  return {
+    liveKgis,
     kgisTimeoutMs,
     kgisBreakerMs,
     async wardRoster(wardCode) {
@@ -337,81 +428,74 @@ export function createGeolocator({
             "The operator geocoder URL is invalid.");
         }
       }
-      // A point far outside Karnataka is not a KGIS question, so do not spend a lookup
-      // (or a Lambda slot) on one. Its answer would be an empty feature set, which is
-      // indistinguishable from an outage, and an outage then reads as "we could not
-      // determine the road class" for a street KGIS was never going to know.
+      // The street name is the one upstream call left on this path. It runs while the
+      // polygons are read, never after them.
+      const geocoding = geocoder
+        ? readJson(fetchImpl, geocoder.url, { headers: geocoder.headers })
+        : Promise.resolve({ available: false, data: null });
+      // A point far outside Karnataka is not a question for Karnataka's register: it has
+      // no polygon there, and (live) its empty answer is indistinguishable from an outage.
       const inKarnataka = withinKarnatakaEnvelope(lat, lng);
-      const askKgis = (url) => (inKarnataka ? kgis(url) : Promise.resolve(UNAVAILABLE));
-      const [town, nh, sh, dh, geocoded] = await Promise.all([
-        askKgis(pointUrl(KGIS_TOWN, lat, lng,
-          "KGISTownName,Town_Type,KGISTownCode,LGD_TownCode")),
-        askKgis(pointUrl(KGIS_NH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
-        askKgis(pointUrl(KGIS_SH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
-        askKgis(pointUrl(KGIS_DH, lat, lng, "Name", HIGHWAY_BUFFER_METRES)),
-        geocoder
-          ? readJson(fetchImpl, geocoder.url, { headers: geocoder.headers })
-          : Promise.resolve({ available: false, data: null }),
-      ]);
-      const highwayLayers = [
-        [nh, "national_highway"],
-        [sh, "state_highway"],
-        [dh, "district_highway"],
-      ];
-      const kgisAvailable = town.available && highwayLayers.every(([item]) => item.available);
-      const townFeature = town.data?.features?.[0];
-      const highway = highwayLayers.find(([item]) => item.data?.features?.[0]);
-      const attrs = townFeature?.attributes || {};
-      let lgd = attrs.LGD_TownCode == null ? "" : bounded(String(attrs.LGD_TownCode), 64);
-      let townName = bounded(attrs.KGISTownName, 160) || null;
-      let townCode = attrs.KGISTownCode == null ? "" : bounded(String(attrs.KGISTownCode), 16);
+      let lgd = "";
+      let townName = null;
+      let townCode = "";
       let roadOwnership = "unknown";
       let highwayName = null;
       let ruralBody = null;
-      let gpAvailable = false;
       let source = "unresolved";
       let local = !inKarnataka ? "out_of_scope" : "not_needed";
+      // What each KGIS layer contributed: "snapshot" (the packaged copy, no call made),
+      // or, with liveKgis, whether the live call answered.
+      const state = !inKarnataka ? "out_of_scope" : liveKgis ? "unavailable" : "snapshot";
+      const kgisLookup = {
+        kgis: state,
+        kgis_town: state,
+        kgis_highway: state,
+        kgis_gp: inKarnataka && !liveKgis ? "snapshot" : "not_needed_or_unavailable",
+      };
       if (!inKarnataka) {
         // Geography, not availability: this coordinate is hundreds of kilometres from
         // the Karnataka line. The client turns this into a regional-routing answer that
         // never asks the user to retry on a better signal.
         roadOwnership = "outside_state";
-      } else if (kgisAvailable) {
-        if (highway) {
-          roadOwnership = highway[1];
-          highwayName = bounded(highway[0].data.features[0]?.attributes?.Name, 160) || null;
-        } else if (townFeature && lgd) {
-          roadOwnership = "municipal";
-          source = "kgis";
-        } else if (!townFeature) {
-          const gp = await askKgis(pointUrl(KGIS_GP, lat, lng, "KGISGPName"));
-          gpAvailable = gp.available;
-          ruralBody = bounded(gp.data?.features?.[0]?.attributes?.KGISGPName, 160) || null;
-          roadOwnership = gp.available ? (ruralBody ? "rural" : "outside_state") : "unknown";
-        }
+      } else if (liveKgis) {
+        const verdict = await kgis.verdict(lat, lng);
+        kgisLookup.kgis = verdict.available ? "available" : "unavailable";
+        kgisLookup.kgis_town = verdict.town_available ? "available" : "unavailable";
+        kgisLookup.kgis_highway = verdict.highway_available ? "available" : "unavailable";
+        kgisLookup.kgis_gp = verdict.gp_available ? "available" : "not_needed_or_unavailable";
+        roadOwnership = verdict.road_ownership;
+        highwayName = verdict.highway_name;
+        ruralBody = verdict.rural_body;
+        lgd = verdict.lgd;
+        townName = verdict.town;
+        townCode = verdict.town_code;
+        if (roadOwnership === "municipal") source = "kgis";
       }
       if (inKarnataka && roadOwnership === "unknown") {
-        // KGIS gave no verdict: a layer was down, stalled, malformed, or the breaker is
-        // open. 227 of 450 tender lookups in the 30 days to 6 Oct 2026 ended here as a
-        // 503. The same register's polygons, snapshotted, answer instead; only a point
-        // they genuinely cannot place stays unknown.
-        const geometry = await loadLocalGeometry(localGeometryPath, logger);
-        if (!geometry) {
+        // The packaged polygons: always, in the default configuration; with liveKgis,
+        // when KGIS gave no verdict (227 of 450 tender lookups in the 30 days to
+        // 6 Oct 2026 ended there as a 503). Only a point the register itself cannot
+        // place stays unknown.
+        const bundle = await loadLocalGeometry(localGeometryPath, logger);
+        if (!bundle) {
           local = "unavailable";
         } else {
-          const verdict = classifyLocally(geometry, lat, lng);
+          const verdict = classifyLocally(bundle, lat, lng);
           local = verdict.local;
           roadOwnership = verdict.road_ownership;
           highwayName = verdict.highway_name || null;
+          ruralBody = verdict.rural_body || null;
           lgd = verdict.lgd || "";
           townName = verdict.town || null;
           townCode = verdict.town_code || "";
           if (roadOwnership === "municipal") source = "kgis_snapshot";
         }
       }
+      const geocoded = await geocoding;
       const municipal = roadOwnership === "municipal";
       // The ward, from the packaged copy of the KGIS ward layer. No live call: the town
-      // (live or snapshot) is already known, and the polygons are local.
+      // is already known, and the polygons are local.
       let ward = null;
       let wardLookup = roadOwnership === "outside_state" ? "out_of_scope" : "not_municipal";
       if (municipal && lgd) {
@@ -450,14 +534,7 @@ export function createGeolocator({
         highway_name: highwayName,
         rural_body: ruralBody,
         lookup: {
-          kgis: !inKarnataka ? "out_of_scope"
-            : kgisAvailable ? "available" : "unavailable",
-          kgis_town: !inKarnataka ? "out_of_scope"
-            : town.available ? "available" : "unavailable",
-          kgis_highway: !inKarnataka ? "out_of_scope"
-            : highwayLayers.every(([item]) => item.available)
-              ? "available" : "unavailable",
-          kgis_gp: gpAvailable ? "available" : "not_needed_or_unavailable",
+          ...kgisLookup,
           local,
           ward: wardLookup,
           geocoder: geocoded.available ? "available"

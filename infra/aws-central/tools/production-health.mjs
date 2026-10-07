@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { WARD_TENDER_QUERY, judgeWardSnapshot, judgeWardTenders } from "./health-rules.mjs";
+import { ROAD_LAYER_QUERY, WARD_TENDER_QUERY, judgeRoadLayers, judgeWardSnapshot, judgeWardTenders } from "./health-rules.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const args = process.argv.slice(2);
@@ -142,6 +142,9 @@ async function windowRules(hours) {
   } else {
     ok("tenders match somewhere in India", `${resolveMatched} matched of ${streetResolved} lookups with a street`);
   }
+
+  const roadLayers = judgeRoadLayers(await insights(ROAD_LAYER_QUERY, hours));
+  roadLayers.broken ? fail("road ownership layers are in the package", roadLayers.detail) : ok("road ownership layers are in the package", roadLayers.detail);
 
   // Most Bengaluru tenders name a ward or a locality, never a street, so since the ward
   // tender release a municipal lookup with a resolved ward should often come back with
@@ -288,9 +291,14 @@ async function canary() {
   const withHint = await signedPost("/v1/tenders/resolve", { ...CANARY_POINT, address_hint: CANARY_POINT.hint });
   const jurisdiction = withHint.body?.jurisdiction;
   if (withHint.status === 200 && jurisdiction?.road_ownership === "municipal" && jurisdiction?.lgd) {
-    ok("Bengaluru street is classified municipal", `LGD ${jurisdiction.lgd} ${jurisdiction.town} via ${jurisdiction.lookup?.kgis === "available" ? "state GIS" : "local fallback"}; tender ${withHint.body.tender ? withHint.body.tender.tender_number : `none (${withHint.body.reason})`} in ${withHint.took} ms`);
+    ok("Bengaluru street is classified municipal", `LGD ${jurisdiction.lgd} ${jurisdiction.town} via ${{ available: "the live state GIS", snapshot: "the packaged state GIS layers" }[jurisdiction.lookup?.kgis] || "the outage fallback"}; tender ${withHint.body.tender ? withHint.body.tender.tender_number : `none (${withHint.body.reason})`} in ${withHint.took} ms`);
     if (withHint.body.reason === "address_unresolved") fail("hinted address is used for matching", "address_unresolved with a hint present");
     if (withHint.body.reason === "no_tenders_for_jurisdiction") fail("tender table has rows for Bengaluru", "no_tenders_for_jurisdiction; seed the table");
+    // The road class is read from the packaged layers; a request that waits on the state
+    // GIS again is the 20 s stall coming back.
+    jurisdiction.lookup?.kgis === "snapshot" && jurisdiction.lookup?.local === "municipal_polygon"
+      ? ok("road class needs no state GIS call", `lookup.local ${jurisdiction.lookup.local}`)
+      : fail("road class needs no state GIS call", `lookup.kgis ${jurisdiction.lookup?.kgis}, lookup.local ${jurisdiction.lookup?.local}`);
     // The canary point is in KGIS ward 10, Cox Town, whose tenders the index names by the
     // old BBMP ward 108. A service from before the ward release answers no lookup.ward at
     // all and is not judged here.

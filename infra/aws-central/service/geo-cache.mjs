@@ -4,23 +4,25 @@
 // one function instance. Live answers are kept here for a week, keyed by the same 11 m
 // cell, in the control table that already expires rows by expires_at.
 //
-// Only an answer both upstreams gave live is stored. A caller's own address hint is that
-// caller's claim; the local snapshot cannot tell a state highway from a street; and an
-// outage must be asked again, not remembered.
+// Only a complete answer is stored. A caller's own address hint is that caller's claim,
+// and an outage must be asked again, not remembered. The road class from the packaged
+// copy of the state GIS layers ("snapshot", every layer since 7 Oct 2026) is complete;
+// the fallback a live outage falls to (liveKgis, lookup.kgis "unavailable") is not kept.
 
 // The version is part of every key. Raise it whenever the stored answer gains a field
 // the service reads, or cells stored under the old shape keep answering without it for
 // up to a week. v2: the ward (ward_name, ward_no, ward_code, lookup.ward) and
-// address_parts.localities, which ward tender matching reads.
-const VERSION = "v2";
+// address_parts.localities, which ward tender matching reads. v3: the road class comes
+// from the packaged layers, and a point inside Karnataka with no named panchayat is
+// rural where the live lookup had stored outside_state.
+const VERSION = "v3";
 const WEEK_MS = 7 * 86_400_000;
 const MEMORY_CELLS = 5_000;
 
 function storable(value) {
   if (!value || !value.road_ownership || value.road_ownership === "unknown") return false;
   if (value.address_source !== "operator_geocoder" || !value.address) return false;
-  if (value.source === "kgis_snapshot") return false;
-  return ["available", "out_of_scope"].includes(value.lookup?.kgis);
+  return ["available", "out_of_scope", "snapshot"].includes(value.lookup?.kgis);
 }
 
 export function createCachedGeolocator({ geolocator, repository, ttlMs = WEEK_MS, now = Date.now } = {}) {
