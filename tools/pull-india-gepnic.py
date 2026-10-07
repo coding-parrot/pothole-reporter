@@ -5,12 +5,17 @@ This is an orchestrator around ``pull-gepnic-tenders.py``. It only follows the p
 "Tenders by Organisation" links exposed by each official portal, never a CAPTCHA form.
 Jurisdictions using a different procurement product remain explicit gaps in the source
 registry; they are not silently labelled complete.
+
+A portal that stays down keeps the receipt of the crawl before it, byte for byte and
+under its own ``retrieved_at``, while that receipt is inside the review window
+(``--previous-sources``). The crawl report names every receipt kept this way.
 """
 
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -116,6 +121,71 @@ def crawl_with_retries(crawler: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
     raise AssertionError("unreachable")
 
 
+# The review window of build-gepnic-road-notice-packs.py (REVIEW_DAYS). The builder
+# refuses a carried receipt older than its own window, so a longer one here could only
+# turn a dropped portal into a refused build; tests/gepnic_carry_over_test.py holds the
+# two numbers together.
+CARRY_OVER_DAYS = 7
+
+
+def carry_over(
+    source: dict[str, str], previous_sources: Path, output_dir: Path, retrieved_at: str
+) -> dict[str, str] | None:
+    """Keep a failed portal's last receipt as it was, if it is still inside the window.
+
+    Run 37573977613 (7 Oct 2026) timed out on West Bengal's main portal and the State
+    went from 874 notices to 55, although the receipt of 5 Oct had five days of its
+    review window left. The receipt is copied back unchanged, so it still carries its
+    own ``retrieved_at``, and the ledger entry returned here says from when it is and
+    what its bytes hash to.
+
+    The carry-over lives in the crawler, not in a step between crawl and build, because
+    only the crawler knows a portal failed in this crawl, and it already owns the
+    ledger. The pack builder can then stay strict with one author to check against: a
+    failed source may have a receipt only if this ledger lists it, with the same bytes
+    and a date inside the window. Anything else is still refused there.
+    """
+    path = previous_sources / f"{source['source_id']}.json"
+    try:
+        content = path.read_bytes()
+    except OSError:
+        return None
+    try:
+        previous = json.loads(content.decode("utf-8"))
+        if not isinstance(previous, dict):
+            raise ValueError("not a receipt")
+        kept_at = str(previous.get("retrieved_at"))
+        age = (
+            datetime.strptime(retrieved_at, "%Y-%m-%dT%H:%M:%SZ")
+            - datetime.strptime(kept_at, "%Y-%m-%dT%H:%M:%SZ")
+        )
+    except ValueError as error:
+        print(f"DROP {source['source_id']}: the last receipt cannot be read: {error}",
+              file=sys.stderr)
+        return None
+    if (previous.get("source_id"), previous.get("state_code")) != (
+        source["source_id"], source["state_code"]
+    ):
+        print(f"DROP {source['source_id']}: the last receipt belongs to another source",
+              file=sys.stderr)
+        return None
+    # Never republish a receipt past its review date, and never one that claims to be
+    # as new as (or newer than) the crawl that failed to fetch it.
+    if not timedelta(0) < age <= timedelta(days=CARRY_OVER_DAYS):
+        print(f"DROP {source['source_id']}: the last receipt ({kept_at}) is outside "
+              f"the {CARRY_OVER_DAYS}-day review window", file=sys.stderr)
+        return None
+    target = output_dir / "sources" / path.name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(content)
+    return {
+        "source_id": source["source_id"],
+        "state_code": source["state_code"],
+        "retrieved_at": kept_at,
+        "sha256": hashlib.sha256(content).hexdigest(),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state-code", action="append", default=[],
@@ -128,7 +198,18 @@ def main() -> int:
     parser.add_argument("--request-delay", type=float, default=0.15)
     parser.add_argument("--allow-partial", action="store_true",
                         help="write successful receipts and a failure ledger instead of aborting")
+    parser.add_argument("--previous-sources", type=Path,
+                        help="receipts of the previous crawl, staged outside --output-dir; "
+                             "a portal that fails keeps its receipt from here while it is "
+                             "inside the review window")
     args = parser.parse_args()
+    # The output directory starts without the previous receipts, so one whose source
+    # has left the registry cannot linger: only a declared source that failed in this
+    # crawl is ever copied back.
+    if args.previous_sources is not None:
+        staged, output = args.previous_sources.resolve(), args.output_dir.resolve()
+        if staged == output or output in staged.parents:
+            parser.error("--previous-sources must be staged outside --output-dir")
 
     crawler = _load_crawler()
     retrieved_at = _timestamp(args.retrieved_at)
@@ -147,6 +228,7 @@ def main() -> int:
     )
     successes: list[dict[str, Any]] = []
     failures: list[dict[str, str]] = []
+    carried_over: list[dict[str, str]] = []
     for source in sources:
         print(f"pull {source['source_id']} ({source['state_code']})", file=sys.stderr)
         try:
@@ -167,6 +249,12 @@ def main() -> int:
             print(f"FAIL {source['source_id']}: {error}", file=sys.stderr)
             if not args.allow_partial:
                 return 2
+            if args.previous_sources is not None:
+                kept = carry_over(source, args.previous_sources, args.output_dir, retrieved_at)
+                if kept is not None:
+                    carried_over.append(kept)
+                    print(f"::warning::{source['source_id']}: portal down, kept the "
+                          f"receipt of {kept['retrieved_at']}", file=sys.stderr)
 
     by_state: dict[str, list[dict[str, Any]]] = {}
     for receipt in successes:
@@ -210,6 +298,10 @@ def main() -> int:
         "source_count_failed": len(failures),
         "states": state_summaries,
         "failures": failures,
+        # A carried-over source is still a failure of this crawl: it stays in the
+        # counts and the failure ledger above, and "states" describes only what this
+        # crawl fetched. This list says which failed sources kept an older receipt.
+        "carried_over": carried_over,
     }
     _write_json(args.output_dir / "crawl-report.json", report)
     print(json.dumps(report, indent=2, ensure_ascii=False))

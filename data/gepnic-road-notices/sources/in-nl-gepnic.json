@@ -5,12 +5,11 @@
   "organisations": [
     "Department of Power",
     "Electrical Inspectorate",
-    "Motor Vehicles Department",
-    "Principal Director - Directorate of School Education - Nagaland - WBT"
+    "Motor Vehicles Department"
   ],
-  "retrieved_at": "2026-10-05T05:42:16Z",
-  "rows_excluded_by_scope": 5,
-  "rows_scanned": 5,
+  "retrieved_at": "2026-10-07T04:59:04Z",
+  "rows_excluded_by_scope": 3,
+  "rows_scanned": 3,
   "schema_version": 1,
   "source_id": "in-nl-gepnic",
   "source_name": "Nagaland e-Procurement Portal",

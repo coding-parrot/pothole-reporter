@@ -86,6 +86,9 @@ REPORT_FIELDS = {
     "source_count_failed", "source_count_requested", "source_count_succeeded",
     "states",
 }
+# Reports written before 7 Oct 2026 have no carry-over list; they carried nothing.
+OPTIONAL_REPORT_FIELDS = {"carried_over"}
+CARRIED_OVER_FIELDS = {"retrieved_at", "sha256", "source_id", "state_code"}
 
 SOURCE_FIELDS = {
     "format", "schema_version", "source_id", "source_name", "source_url",
@@ -556,19 +559,29 @@ def _expected_gepnic_sources(project_root: Path) -> dict[str, str]:
     return expected
 
 
-def _ledger_failed_sources(project_root: Path) -> set[str]:
-    """Source IDs the crawler recorded as failed; the full report is validated later."""
+def _ledger_source_ids(project_root: Path, key: str) -> set[str]:
+    """Source IDs one list of the crawl report names; the full report is validated later."""
     try:
         report = json.loads((project_root / CRAWL_REPORT_PATH).read_bytes().decode("utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return set()
-    failures = report.get("failures") if isinstance(report, dict) else None
-    if not isinstance(failures, list):
+    entries = report.get(key) if isinstance(report, dict) else None
+    if not isinstance(entries, list):
         return set()
     return {
-        failure["source_id"] for failure in failures
-        if isinstance(failure, dict) and isinstance(failure.get("source_id"), str)
+        entry["source_id"] for entry in entries
+        if isinstance(entry, dict) and isinstance(entry.get("source_id"), str)
     }
+
+
+def _ledger_failed_sources(project_root: Path) -> set[str]:
+    """Source IDs the crawler recorded as failed."""
+    return _ledger_source_ids(project_root, "failures")
+
+
+def _ledger_carried_sources(project_root: Path) -> set[str]:
+    """Failed source IDs whose earlier receipt the crawler recorded as carried over."""
+    return _ledger_source_ids(project_root, "carried_over")
 
 
 def _source_files(project_root: Path, expected: dict[str, str]) -> list[Path]:
@@ -580,7 +593,10 @@ def _source_files(project_root: Path, expected: dict[str, str]) -> list[Path]:
     actual = {path.stem for path in paths}
     # A portal the crawler could not reach has no receipt. Its jurisdiction ships no
     # notices from it, rather than every other State losing its catalogue too.
+    # The one exception is a receipt the crawler itself recorded as carried over from
+    # an earlier crawl; _validated_crawl_report holds each of those to its ledger entry.
     failed = _ledger_failed_sources(project_root)
+    stale = actual & failed - _ledger_carried_sources(project_root)
     missing = sorted(set(expected) - actual - failed)
     unexpected = sorted(actual - set(expected))
     _expect(
@@ -588,9 +604,9 @@ def _source_files(project_root: Path, expected: dict[str, str]) -> list[Path]:
         "missing expected GePNIC source files: " + ", ".join(missing),
     )
     _expect(
-        not (actual & failed),
+        not stale,
         "GePNIC sources recorded as failed still have receipts: "
-        + ", ".join(sorted(actual & failed)),
+        + ", ".join(sorted(stale)),
     )
     _expect(
         not unexpected,
@@ -627,9 +643,12 @@ def _custom_source_files(
     return selected
 
 
+def _instant(timestamp: str) -> datetime:
+    return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).astimezone(timezone.utc)
+
+
 def _snapshot_date(timestamp: str) -> str:
-    parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-    return parsed.astimezone(timezone.utc).date().isoformat()
+    return _instant(timestamp).date().isoformat()
 
 
 def _pack_envelope(
@@ -694,12 +713,75 @@ def _load_sources(
     return snapshots, gepnic_snapshots, expected
 
 
+def _validated_carried_over(
+    project_root: Path,
+    report: dict[str, Any],
+    expected_sources: dict[str, str],
+    failure_ids: list[str],
+    snapshots: list[SourceSnapshot],
+) -> set[str]:
+    """Hold every receipt kept from an earlier crawl to the crawler's ledger entry.
+
+    A failed portal may keep its last receipt (West Bengal's main portal timed out on
+    7 Oct 2026 and the State fell from 874 notices to 55). That is the only way a
+    failed source may have a receipt, so each one must be the file the crawler hashed,
+    under the date it recorded, older than this crawl and inside the review window.
+    """
+    carried = report.get("carried_over", [])
+    _expect(isinstance(carried, list), "crawl-report.carried_over must be an array")
+    crawled_at = _instant(report["retrieved_at"])
+    receipts = {snapshot.receipt.source_id: snapshot.receipt for snapshot in snapshots}
+    carried_ids: list[str] = []
+    for index, entry in enumerate(carried):
+        field = f"crawl-report.carried_over[{index}]"
+        _expect(
+            isinstance(entry, dict) and set(entry) == CARRIED_OVER_FIELDS,
+            f"{field} fields differ from the crawler contract",
+        )
+        source_id = _text(entry["source_id"], f"{field}.source_id", 100)
+        _expect(
+            source_id in failure_ids,
+            f"{field} names a source this crawl did not record as failed",
+        )
+        _expect(
+            entry["state_code"] == expected_sources[source_id],
+            f"{field}.state_code differs from the registry",
+        )
+        kept_at = _timestamp(entry["retrieved_at"], f"{field}.retrieved_at", require_utc=True)
+        age = crawled_at - _instant(kept_at)
+        _expect(
+            age > timedelta(0),
+            f"{field} is not older than the crawl that carried it over",
+        )
+        # Past the window the State's review date has passed: never republish it.
+        _expect(
+            age <= timedelta(days=REVIEW_DAYS),
+            f"{field} is outside the {REVIEW_DAYS}-day review window",
+        )
+        receipt = receipts.get(source_id)
+        _expect(receipt is not None, f"{field} has no receipt")
+        _expect(
+            receipt.retrieved_at == kept_at,
+            f"{field}.retrieved_at differs from its receipt",
+        )
+        content = (project_root / SOURCE_DIRECTORY / f"{source_id}.json").read_bytes()
+        _expect(
+            hashlib.sha256(content).hexdigest() == entry["sha256"],
+            f"{field}.sha256 differs from its receipt",
+        )
+        carried_ids.append(source_id)
+    _expect(
+        len(carried_ids) == len(set(carried_ids)),
+        "crawl-report carried-over ledger contains duplicate source IDs",
+    )
+    return set(carried_ids)
+
+
 def _validated_crawl_report(
     project_root: Path,
     expected_sources: dict[str, str],
     snapshots: list[SourceSnapshot],
     canonical_retrieved_at: str,
-    state_summaries: dict[str, dict[str, int]],
 ) -> bytes:
     """Validate the crawler-owned report without replacing its failure ledger."""
     path = project_root / CRAWL_REPORT_PATH
@@ -712,7 +794,8 @@ def _validated_crawl_report(
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise BuildError(f"invalid UTF-8 JSON in {CRAWL_REPORT_PATH}: {error}") from error
     _expect(
-        isinstance(report, dict) and set(report) == REPORT_FIELDS,
+        isinstance(report, dict)
+        and REPORT_FIELDS <= set(report) <= REPORT_FIELDS | OPTIONAL_REPORT_FIELDS,
         "canonical GePNIC crawl-report fields differ from the crawler contract",
     )
     _expect(
@@ -770,18 +853,27 @@ def _validated_crawl_report(
         report["source_count_failed"] <= MAX_FAILED_SOURCES,
         f"production GePNIC build tolerates at most {MAX_FAILED_SOURCES} crawler failures",
     )
+    # A carried-over source stays a failure of this crawl: it counts toward the limit
+    # above, and the crawl's own success count and State summaries leave it out.
+    carried_ids = _validated_carried_over(
+        project_root, report, expected_sources, failure_ids, snapshots
+    )
+    fetched = [
+        snapshot for snapshot in snapshots
+        if snapshot.receipt.source_id not in carried_ids
+    ]
     _expect(
-        report["source_count_succeeded"] == len(snapshots),
+        report["source_count_succeeded"] == len(fetched),
         "crawl-report succeeded-source count differs from source receipts",
     )
-    successful_ids = {snapshot.receipt.source_id for snapshot in snapshots}
+    successful_ids = {snapshot.receipt.source_id for snapshot in fetched}
     _expect(
         successful_ids | set(failure_ids) == set(expected_sources)
         and not (successful_ids & set(failure_ids)),
         "crawl-report success/failure source accounting differs from the registry",
     )
     _expect(
-        report["states"] == state_summaries,
+        report["states"] == _state_summaries(fetched),
         "crawl-report state summaries differ from the validated source receipts",
     )
     return report_bytes
@@ -835,8 +927,12 @@ def plan_build(
         _snapshot_date(snapshot.receipt.retrieved_at) for snapshot in snapshots
     ]
     manifest_date = max(all_dates)
+    # Every source this crawl fetched shares the crawl's timestamp. A receipt the
+    # ledger lists as carried over keeps the timestamp of the crawl that fetched it.
+    carried_sources = _ledger_carried_sources(project_root)
     retrieved_timestamps = {
         snapshot.receipt.retrieved_at for snapshot in gepnic_snapshots
+        if snapshot.receipt.source_id not in carried_sources
     }
     _expect(
         len(retrieved_timestamps) == 1,
@@ -858,7 +954,13 @@ def plan_build(
             len(notices) <= MAX_RECORDS_PER_PACK,
             f"{state_code} exceeds {MAX_RECORDS_PER_PACK} road notices",
         )
-        generated_at = max(_snapshot_date(receipt.retrieved_at) for receipt in receipts)
+        # A State is dated by its OLDEST source. When it mixes a fresh source with a
+        # receipt carried over from an earlier crawl, the newer date would present the
+        # old notices as newer than they are and push their review date out. The
+        # client requires the pack's generated_at to equal the manifest's
+        # source_retrieved_at, so both take this date. In a crawl with no failures
+        # every source of a State has one date and nothing changes.
+        generated_at = min(_snapshot_date(receipt.retrieved_at) for receipt in receipts)
         pack_id = f"in-road-notices-{state_code.lower()}"
         pack_bytes = _compact_json(
             _pack_envelope(state_code, generated_at, receipts, notices)
@@ -917,7 +1019,6 @@ def plan_build(
         expected_sources,
         gepnic_snapshots,
         canonical_retrieved_at,
-        _state_summaries(gepnic_snapshots),
     )
     return packs, _manifest_json(manifest), report_bytes
 

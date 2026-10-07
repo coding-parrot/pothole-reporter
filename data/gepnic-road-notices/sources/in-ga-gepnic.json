@@ -3,6 +3,28 @@
   "lifecycle": "procurement_notice",
   "notices": [
     {
+      "closing_at": "2026-10-21T17:00:00+05:30",
+      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SN9dqBMl9JGM1VSR8s3TgNw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SAUg29c9IU03A%2F5oq6LBN2A%3D%3D",
+      "opening_at": "2026-10-22T11:00:00+05:30",
+      "organisation_chain": "ELECTRICITY DEPARTMENT||CIRCLE - II (NORTH)||DIVISION - VI, Mapusa",
+      "organisation_path": [
+        "ELECTRICITY DEPARTMENT",
+        "CIRCLE - II (NORTH)",
+        "DIVISION - VI, Mapusa"
+      ],
+      "published_at": "2026-10-06T17:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Goa e-Procurement Portal",
+      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SN9dqBMl9JGM1VSR8s3TgNw%3D%3D",
+      "state_code": "GA",
+      "tender_id": "2026_ED_32195_1",
+      "tender_reference": "Tender21(26-27)/4652 dt 6/10/2026",
+      "title": "Work of conversion of pole mounted 200 KVA Panchayat Distribution Transformer Centre to Plinth mounted DTC due to road widening of the road opposite Calangute Panchayat under the jurisdiction of Section Office Calangute Sub Division IV Calangute Divi"
+    },
+    {
       "closing_at": "2026-10-12T15:00:00+05:30",
       "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SbAUnYlBS9uc2lJ%2BHUTcpXg%3D%3D",
       "lifecycle": "procurement_notice",
@@ -15,7 +37,7 @@
         "DIVISION - XXIII-Bicholim"
       ],
       "published_at": "2026-10-01T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Goa e-Procurement Portal",
       "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SbAUnYlBS9uc2lJ%2BHUTcpXg%3D%3D",
@@ -23,72 +45,6 @@
       "tender_id": "2026_PWD_32133_1",
       "tender_reference": "PWD/WDXXIII/ASW/26-27/F10/12/1",
       "title": "Repair and strengthening of Rural road 68152 for a length of 0.17 kms in Mayem Constituency of Bicholim taluka"
-    },
-    {
-      "closing_at": "2026-10-06T18:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S93L7za%2B33UObRsXJ3U15zw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-07T10:00:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - II- Panaji",
-      "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - III-Panaji",
-        "DIVISION - II- Panaji"
-      ],
-      "published_at": "2026-09-30T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S93L7za%2B33UObRsXJ3U15zw%3D%3D",
-      "state_code": "GA",
-      "tender_id": "2026_PWD_32109_1",
-      "tender_reference": "PWD/DIV II/R/F-1/ASW/2026-27/21/Line1",
-      "title": "Improvement of existing Rural Road for a length of 0.061KMs with Shot blasted pavers near St. Estevam Panchayat ghar in Cumbharjua Constituency of Tiswadi Taluka (MLA-LAD)."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=ST%2Bb3dSyThhOE8wra6tHoZw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-06T10:30:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - IV-Fatorda-Margao||DIVISION - VI-Margao",
-      "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - IV-Fatorda-Margao",
-        "DIVISION - VI-Margao"
-      ],
-      "published_at": "2026-09-28T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=ST%2Bb3dSyThhOE8wra6tHoZw%3D%3D",
-      "state_code": "GA",
-      "tender_id": "2026_PWD_32042_1",
-      "tender_reference": "F-3/PWD/WDVI/ASW/19/2026-2027/ Line 3",
-      "title": "Urgent repairs to road near Chowgule College for a length of 0.20km for a road ID 65579 in Fatorda Constituency of Salcete Taluka."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SaK0bS%2B%2BtpLlVchs9YxsJHA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-06T10:30:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - IV-Fatorda-Margao||DIVISION - VI-Margao",
-      "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - IV-Fatorda-Margao",
-        "DIVISION - VI-Margao"
-      ],
-      "published_at": "2026-09-28T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SaK0bS%2B%2BtpLlVchs9YxsJHA%3D%3D",
-      "state_code": "GA",
-      "tender_id": "2026_PWD_32037_1",
-      "tender_reference": "F-3/PWD/WDVI/ASW/19/2026-2027/ Line 1",
-      "title": "Construction of road along rural road from Passos ward to Tibet ward for a length of 0.350 km in V.P. Cavelossim in Benaulim Constituency of Salcete Taluka."
     },
     {
       "closing_at": "2026-10-12T15:00:00+05:30",
@@ -103,7 +59,7 @@
         "DIVISION - XIII- Mapusa"
       ],
       "published_at": "2026-09-28T16:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Goa e-Procurement Portal",
       "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2IEBzHMtkBmcvxw6JDuLdA%3D%3D",
@@ -113,121 +69,11 @@
       "title": "Improvement, widening and Resurfacing of road from NH-66 road Junction at Torxem to Kadshi Mopa under VP Tamboxem Ugvem-Mopa Pernem Goa"
     },
     {
-      "closing_at": "2026-10-05T18:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SxHadI9eck26Il5dp%2FLoFNQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-06T10:00:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - II- Panaji",
-      "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - III-Panaji",
-        "DIVISION - II- Panaji"
-      ],
-      "published_at": "2026-09-25T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SxHadI9eck26Il5dp%2FLoFNQ%3D%3D",
-      "state_code": "GA",
-      "tender_id": "2026_PWD_32012_1",
-      "tender_reference": "PWD/DIV II/R/F-1/ASW/2026-27/20/Line2",
-      "title": "Improvement and hotmixing of roads in Ward No. 6 and Ward No. 9 in Panaji constituency of Tiswadi Taluka."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SsvckfF9zV%2FPFlChrv0OwKg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-07T10:30:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - XVIII, Ponda",
-      "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - III-Panaji",
-        "DIVISION - XVIII, Ponda"
-      ],
-      "published_at": "2026-09-22T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SsvckfF9zV%2FPFlChrv0OwKg%3D%3D",
-      "state_code": "GA",
-      "tender_id": "2026_PWD_31918_1",
-      "tender_reference": "PWD/DIV.XVIII(R)/TECH/2026/F- 5/22/2026-27 LINE-4",
-      "title": "Repair and Improvement of Rural Roads at Haldai, Anandwadi for a length of 0.610 K.Ms in Shiroda Constituency of Ponda Taluka."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2BVHY%2FgKlWBgvtNJqh8n9pg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-07T10:30:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - XVIII, Ponda",
-      "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - III-Panaji",
-        "DIVISION - XVIII, Ponda"
-      ],
-      "published_at": "2026-09-22T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2BVHY%2FgKlWBgvtNJqh8n9pg%3D%3D",
-      "state_code": "GA",
-      "tender_id": "2026_PWD_31917_1",
-      "tender_reference": "PWD/DIV.XVIII(R)/TECH/2026/F- 5/22/2026-27 LINE-3",
-      "title": "Repair and Improvement of Rural Roads at Karman dongar for a length of 0.800 K.Ms in Shiroda Constituency of Ponda Taluka."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SKNurADvr0SermkJ7OA5EHQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-07T10:30:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - XVIII, Ponda",
-      "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - III-Panaji",
-        "DIVISION - XVIII, Ponda"
-      ],
-      "published_at": "2026-09-22T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SKNurADvr0SermkJ7OA5EHQ%3D%3D",
-      "state_code": "GA",
-      "tender_id": "2026_PWD_31909_1",
-      "tender_reference": "PWD/DIV.XVIII(R)/TECH/2026/F- 5/22/2026-27 LINE-1",
-      "title": "Repair and Improvement of Rural Roads at Borim for a length of 0.950 K.Ms in Shiroda Constituency of Ponda Taluka."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SMes2KHBUDy6u9wckf4apmA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-07T10:30:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - XVIII, Ponda",
-      "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - III-Panaji",
-        "DIVISION - XVIII, Ponda"
-      ],
-      "published_at": "2026-09-22T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SMes2KHBUDy6u9wckf4apmA%3D%3D",
-      "state_code": "GA",
-      "tender_id": "2026_PWD_31914_1",
-      "tender_reference": "PWD/DIV.XVIII(R)/TECH/2026/F- 5/22/2026-27 LINE-2",
-      "title": "Repairs to the rural road for the length of 0.115 Km at Honsowada of V.P. Madkai in Marcaim Constituency of Ponda Taluka ."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
+      "closing_at": "2026-10-19T15:00:00+05:30",
       "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SaMn0EgDY%2FsiRKxo18MQnZg%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-07T10:30:00+05:30",
+      "opening_at": "2026-10-21T10:30:00+05:30",
       "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - XVIII, Ponda",
       "organisation_path": [
         "PUBLIC WORKS DEPARTMENT",
@@ -235,7 +81,7 @@
         "DIVISION - XVIII, Ponda"
       ],
       "published_at": "2026-09-22T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Goa e-Procurement Portal",
       "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SaMn0EgDY%2FsiRKxo18MQnZg%3D%3D",
@@ -245,11 +91,11 @@
       "title": "Improvement to rural road for length of 0.055Kms at Marcel for in V.P. Tivrem Orgao in Priol Constituency of Ponda Taluka."
     },
     {
-      "closing_at": "2026-10-05T15:00:00+05:30",
+      "closing_at": "2026-10-19T15:00:00+05:30",
       "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S6wDCtAC20B16iCbcKnCAjg%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-07T10:30:00+05:30",
+      "opening_at": "2026-10-21T10:30:00+05:30",
       "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - XVIII, Ponda",
       "organisation_path": [
         "PUBLIC WORKS DEPARTMENT",
@@ -257,7 +103,7 @@
         "DIVISION - XVIII, Ponda"
       ],
       "published_at": "2026-09-22T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Goa e-Procurement Portal",
       "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S6wDCtAC20B16iCbcKnCAjg%3D%3D",
@@ -265,6 +111,50 @@
       "tender_id": "2026_PWD_31924_1",
       "tender_reference": "PWD/DIV.XVIII(R)/TECH/2026/F- 5/22/2026-27 LINE-8",
       "title": "Construction of Rural road for the length of 0.16 KM (Ameywada Extension) in V.P. Betqui Khandola in Priol Constituency in Ponda Taluka"
+    },
+    {
+      "closing_at": "2026-10-19T15:00:00+05:30",
+      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SMes2KHBUDy6u9wckf4apmA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
+      "opening_at": "2026-10-21T10:30:00+05:30",
+      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - XVIII, Ponda",
+      "organisation_path": [
+        "PUBLIC WORKS DEPARTMENT",
+        "CIRCLE - III-Panaji",
+        "DIVISION - XVIII, Ponda"
+      ],
+      "published_at": "2026-09-22T18:55:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Goa e-Procurement Portal",
+      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SMes2KHBUDy6u9wckf4apmA%3D%3D",
+      "state_code": "GA",
+      "tender_id": "2026_PWD_31914_1",
+      "tender_reference": "PWD/DIV.XVIII(R)/TECH/2026/F- 5/22/2026-27 LINE-2",
+      "title": "Repairs to the rural road for the length of 0.115 Km at Honsowada of V.P. Madkai in Marcaim Constituency of Ponda Taluka ."
+    },
+    {
+      "closing_at": "2026-10-19T15:00:00+05:30",
+      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SKNurADvr0SermkJ7OA5EHQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
+      "opening_at": "2026-10-21T10:30:00+05:30",
+      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - XVIII, Ponda",
+      "organisation_path": [
+        "PUBLIC WORKS DEPARTMENT",
+        "CIRCLE - III-Panaji",
+        "DIVISION - XVIII, Ponda"
+      ],
+      "published_at": "2026-09-22T18:55:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Goa e-Procurement Portal",
+      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SKNurADvr0SermkJ7OA5EHQ%3D%3D",
+      "state_code": "GA",
+      "tender_id": "2026_PWD_31909_1",
+      "tender_reference": "PWD/DIV.XVIII(R)/TECH/2026/F- 5/22/2026-27 LINE-1",
+      "title": "Repair and Improvement of Rural Roads at Borim for a length of 0.950 K.Ms in Shiroda Constituency of Ponda Taluka."
     },
     {
       "closing_at": "2026-10-07T15:00:00+05:30",
@@ -279,7 +169,7 @@
         "DIVISION - VI-Margao"
       ],
       "published_at": "2026-09-10T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Goa e-Procurement Portal",
       "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sn1kHrctK8nZm73tXSypBzg%3D%3D",
@@ -301,7 +191,7 @@
         "DIVISION - VI-Margao"
       ],
       "published_at": "2026-09-10T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Goa e-Procurement Portal",
       "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S0W61CBFiXuZRrk5SXWaZKw%3D%3D",
@@ -311,114 +201,26 @@
       "title": "Repairs to road opposite Vaishakh Housing Society Madel for a length of 0.22km near road ID 63944 in Fatorda Constituency of Salcete Taluka."
     },
     {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SN5tMhau0TMeBH%2BcqDbdmMg%3D%3D",
+      "closing_at": "2026-10-14T13:00:00+05:30",
+      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sn1%2FIzsQsq5TW0MLA2GluEw%3D%3D",
       "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-07T10:30:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - IV-Fatorda-Margao||DIVISION - XXV-Margao",
+      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=S%2Bt7ylexecXeEINPR4PWtnw%3D%3D",
+      "opening_at": "2026-10-15T09:00:00+05:30",
+      "organisation_chain": "VILLAGE PANCHAYATS||DISTRICT SOUTH GOA||VILLAGE PANCHAYAT NETORLIM",
       "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - IV-Fatorda-Margao",
-        "DIVISION - XXV-Margao"
+        "VILLAGE PANCHAYATS",
+        "DISTRICT SOUTH GOA",
+        "VILLAGE PANCHAYAT NETORLIM"
       ],
-      "published_at": "2026-09-09T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "published_at": "2026-10-06T09:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SN5tMhau0TMeBH%2BcqDbdmMg%3D%3D",
+      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sn1%2FIzsQsq5TW0MLA2GluEw%3D%3D",
       "state_code": "GA",
-      "tender_id": "2026_PWD_31700_1",
-      "tender_reference": "PWD/WDXXV/ASW/F-2/26-27/25 Line 3 dt 09/09/2026",
-      "title": "Construction of Rural Road along road ID 65935 for a length of 0.23 Km in V. P. Poinguinim in Canacona Constituency of Canacona Taluka."
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDYiEqqUwNRHSkTwcWDWfkQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-08T10:30:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - XVIII, Ponda",
-      "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - III-Panaji",
-        "DIVISION - XVIII, Ponda"
-      ],
-      "published_at": "2026-09-09T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDYiEqqUwNRHSkTwcWDWfkQ%3D%3D",
-      "state_code": "GA",
-      "tender_id": "2026_PWD_31709_1",
-      "tender_reference": "PWD/DIV.XVIII(R)/TECH/2026/F- 5/21/2026-27 LINE-4",
-      "title": "Repairs to the road side portion and improvement of side berms along rural roads for a length of 24.32kms in V.P. Betqui-Candola of Priol Constituency of Ponda Taluka."
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SjslhkuTvn7h1bsVImv4uOQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-08T10:30:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - XVIII, Ponda",
-      "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - III-Panaji",
-        "DIVISION - XVIII, Ponda"
-      ],
-      "published_at": "2026-09-09T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SjslhkuTvn7h1bsVImv4uOQ%3D%3D",
-      "state_code": "GA",
-      "tender_id": "2026_PWD_31714_1",
-      "tender_reference": "PWD/DIV.XVIII(R)/TECH/2026/F- 5/21/2026-27 LINE-5",
-      "title": "Improvement of road adjacent to Municipal garden and construction of cross drain and rainwater drainage system behind the house of Hassan Shaik under MLA-LAD scheme in Ponda Constituency."
-    },
-    {
-      "closing_at": "2026-10-06T15:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S75D8ZwUud0bN1sqWmhg7gg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-08T10:30:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - III-Panaji||DIVISION - XVIII, Ponda",
-      "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - III-Panaji",
-        "DIVISION - XVIII, Ponda"
-      ],
-      "published_at": "2026-09-09T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S75D8ZwUud0bN1sqWmhg7gg%3D%3D",
-      "state_code": "GA",
-      "tender_id": "2026_PWD_31717_1",
-      "tender_reference": "PWD/DIV.XVIII(R)/TECH/2026/F- 5/21/2026-27 LINE-6",
-      "title": "Repair of Rural Road (Sateri Bhat) with full grout for a length of 0.11 kms of Priol Constituency of Ponda Taluka."
-    },
-    {
-      "closing_at": "2026-10-05T15:00:00+05:30",
-      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFkK6uYiXNunNsc56zAvpuQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sah2zYAQ5M9H4B0r42Ywf6w%3D%3D",
-      "opening_at": "2026-10-06T10:30:00+05:30",
-      "organisation_chain": "PUBLIC WORKS DEPARTMENT||CIRCLE - IV-Fatorda-Margao||DIVISION - VI-Margao",
-      "organisation_path": [
-        "PUBLIC WORKS DEPARTMENT",
-        "CIRCLE - IV-Fatorda-Margao",
-        "DIVISION - VI-Margao"
-      ],
-      "published_at": "2026-08-31T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Goa e-Procurement Portal",
-      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFkK6uYiXNunNsc56zAvpuQ%3D%3D",
-      "state_code": "GA",
-      "tender_id": "2026_PWD_31449_1",
-      "tender_reference": "F-3/PWD/WDVI/ASW/15/2026-2027/ Line 1",
-      "title": "Construction of road from Manovikas school at Amrutnagar to MDR-39 at Sonsodo near road ID 65760 in Fatorda Constituency of Salcete Taluka."
+      "tender_id": "2026_VP_32105_1",
+      "tender_reference": "VPN/SAN/Tender Notice/2026-27/1338 dated 30/09/2026",
+      "title": "Construction of road from main road toKondu Varak house at Devrem Vichundrem in nward No. 1 in VP Netorlim Taluka Sanguem"
     },
     {
       "closing_at": "2026-10-07T16:00:00+05:30",
@@ -433,7 +235,7 @@
         "VILLAGE PANCHAYAT USGAO GANJEM"
       ],
       "published_at": "2026-09-30T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Goa e-Procurement Portal",
       "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SVrFWfHTD%2B%2F5A9b%2F%2BfUstWg%3D%3D",
@@ -441,13 +243,35 @@
       "tender_id": "2026_VP_32088_1",
       "tender_reference": "VPUG/E-Tender NIT/2026-27/3345/Lane 07",
       "title": "Construction of Road from main road to Krishna Temple at Kelini Gauliwada in ward no.10 in V.P Usgao Ganjem, Ponda Goa."
+    },
+    {
+      "closing_at": "2026-10-14T10:00:00+05:30",
+      "detail_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S0k7%2BXPwG33N7WUBSQ7S6Gg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SX%2FB7iPqLtlwRMXTHkbwNyQ%3D%3D",
+      "opening_at": "2026-10-15T11:30:00+05:30",
+      "organisation_chain": "WATER RESOURCE DEPARTMENT||CIRCLE II||DIVISION - VII",
+      "organisation_path": [
+        "WATER RESOURCE DEPARTMENT",
+        "CIRCLE II",
+        "DIVISION - VII"
+      ],
+      "published_at": "2026-10-05T17:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Goa e-Procurement Portal",
+      "source_url": "https://eprocure.goa.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S0k7%2BXPwG33N7WUBSQ7S6Gg%3D%3D",
+      "state_code": "GA",
+      "tender_id": "2026_WRD_32161_1",
+      "tender_reference": "WRD/WDVII/2026-27/TN-15/L2",
+      "title": "Improvement to waterway from main road to Ganapati visarjan pond Shirgal Dhargal ward no 7 in Pernem Constituency"
     }
   ],
   "organisations": [
     "CAPTAIN OF PORTS DEPARTMENT",
+    "CORPORATION OF THE CITY OF PANAJI",
     "DEPARTMENT OF ANIMAL HUSBANDRY AND VETERINARY SERVICES",
     "DEPARTMENT OF DRINKING WATER",
-    "DEPARTMENT OF INFORMATION AND PUBLICITY",
     "DEPARTMENT OF INFORMATION TECHNOLOGY, ELECTRONICS AND COMMUNICATIONS",
     "Department of Rural Development",
     "DEPARTMENT OF TOURISM",
@@ -478,9 +302,9 @@
     "WATER RESOURCE DEPARTMENT",
     "ZILLA PANCHAYATS"
   ],
-  "retrieved_at": "2026-10-05T05:42:16Z",
-  "rows_excluded_by_scope": 264,
-  "rows_scanned": 284,
+  "retrieved_at": "2026-10-07T04:59:04Z",
+  "rows_excluded_by_scope": 245,
+  "rows_scanned": 257,
   "schema_version": 1,
   "source_id": "in-ga-gepnic",
   "source_name": "Goa e-Procurement Portal",
