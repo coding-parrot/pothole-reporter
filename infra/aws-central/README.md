@@ -85,7 +85,7 @@ Switched on in production on 8 Oct 2026, on the owner's instruction, with
 `road-screen-v2-mobilenetv3l-448` at threshold 0.0549 and `ScreenAuditRate` 0.1. The
 readiness line below had not said READY and could not have: it needs 300 damaged frames
 from real drives, and the only shadow traffic was emulators and rack phones that were not
-looking at a road (4.5% of those frames cleared). The evidence the switch rests on is the
+looking at a road (79 of 1,167 such frames cleared). The evidence the switch rests on is the
 held-out test: 135 of 137 damaged frames of the owner's Bengaluru drive video flagged,
 90.9% of its undamaged frames cleared. Proof run after the switch, sent as the canary's
 install: of 37 frames from three ordinary drive clips the screen answered 35 alone in
