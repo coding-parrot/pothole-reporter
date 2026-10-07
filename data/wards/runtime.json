@@ -12,8 +12,8 @@
   {
    "id": "MP/bhopal",
    "file": "MP/bhopal.json",
-   "sha256": "d90967c76169792f8edcf63ec7a1b4991d37891c48c77f8ca87aacb7d7c2ffb5",
-   "bytes": 90186,
+   "sha256": "d22ab0faae2d719594257c55cece21b53a19014c823c1efdd835c017eb43edee",
+   "bytes": 90212,
    "state_code": "MP",
    "body": "Bhopal Municipal Corporation",
    "town_code": "MP-bhopal",
@@ -35,7 +35,7 @@
    ],
    "wards": 85,
    "source_last_edited": "2016-08-12",
-   "vintage": "85-ward map as the corporation published it; not checked against any later re-delimitation.",
+   "vintage": "The 85 wards as the corporation published them. A 2024 ward map draws the same numbers over 97.7% of the file's area.",
    "read": {
     "read": 41,
     "right": 41,

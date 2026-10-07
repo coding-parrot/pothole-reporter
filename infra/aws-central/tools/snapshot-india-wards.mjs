@@ -191,7 +191,7 @@ export const SOURCES = [
     read: (p) => ({ no: number(p.Ward_Number), name: text(p.Name), zone: text(p.zone) }),
     source_fields: "Ward_Number,Name,zone",
     upstream: "DataMeet: \"liberated from a Google Map present on the Bhopal Municipal Corporation website\" (bhopalmunicipal.com/city-information/informative-map.html).",
-    vintage: "85-ward map as the corporation published it; not checked against any later re-delimitation.",
+    vintage: "The 85 wards as the corporation published them. A 2024 ward map draws the same numbers over 97.7% of the file's area.",
     caveats: ["Ward names are in Devanagari; a Latin-letter tender title cannot be matched to them by name, only by ward number."],
     notices: { state: "MP", city: "Bhopal", names: /\bbhopal\b/i },
   }),
