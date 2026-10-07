@@ -218,6 +218,13 @@ Resources:
                 Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource: !Ref DetectorSecret
+              # Which install is the health canary's, so it is left out of the public
+              # figures. A plain parameter holding an install id, which is no secret; the
+              # canary's private key is another parameter, which this role cannot read.
+              - Sid: ReadCanaryInstallId
+                Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectPrefix}/health/canary-install-id'
               - !If
                 - HasYoloFunction
                 - Sid: InvokeYoloDetector
@@ -265,6 +272,7 @@ Resources:
           GLOBAL_VISION_DAILY_CAP: !Ref GlobalVisionDailyCap
           MONTHLY_VISION_CAP: !Ref MonthlyVisionCap
           GEOCODER_REVERSE_URL: !Ref GeocoderReverseUrl
+          CANARY_INSTALL_PARAMETER: !Sub '/${ProjectPrefix}/health/canary-install-id'
           NODE_OPTIONS: --enable-source-maps
 
   Api:
@@ -547,6 +555,12 @@ Resources:
                 Effect: Allow
                 Action: [ssm:GetParameter, ssm:PutParameter]
                 Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectPrefix}/health/canary-key'
+              # The id of that install, published for the central function to read, so
+              # that the canary is left out of the public figures.
+              - Sid: PublishCanaryInstallId
+                Effect: Allow
+                Action: [ssm:GetParameter, ssm:PutParameter]
+                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectPrefix}/health/canary-install-id'
   HealthFunction:
     Type: AWS::Lambda::Function
     DependsOn: HealthLogs
@@ -576,6 +590,7 @@ Resources:
           CENTRAL_LOG_GROUP: !Ref LambdaLogs
           METRIC_NAMESPACE: !Ref ProjectPrefix
           CANARY_KEY_PARAMETER: !Sub '/${ProjectPrefix}/health/canary-key'
+          CANARY_INSTALL_PARAMETER: !Sub '/${ProjectPrefix}/health/canary-install-id'
   # A run is worth nothing late and must not be repeated: Lambda would otherwise retry a
   # failed or throttled run twice, for up to six hours, and each full canary is a paid
   # detection. The next scheduled run is the retry.

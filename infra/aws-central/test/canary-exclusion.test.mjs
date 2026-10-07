@@ -3,7 +3,9 @@ import { generateKeyPairSync, randomUUID, sign } from "node:crypto";
 import test from "node:test";
 
 import { canonicalRequest, installationPublicKey } from "../service/auth.mjs";
-import { createCanaryInstall } from "../service/canary-install.mjs";
+import { readFileSync } from "node:fs";
+
+import { createCanaryInstall, parameterReader } from "../service/canary-install.mjs";
 import { createService } from "../service/core.mjs";
 import { createDynamoRepository } from "../service/dynamo-repository.mjs";
 import { detectBody, memoryRepository } from "./support.mjs";
@@ -211,4 +213,69 @@ test("the canary's id is read off the request path, kept ten minutes, and surviv
     await none.refresh();
     assert.equal(none.id(), null);
   }
+});
+
+// The central function's package has no SSM client: the nodejs22.x runtime provides one,
+// and it is loaded only when the id is first read, so a client that could not be loaded
+// costs the exclusion and never a request.
+test("the id is one read of one named parameter, with the runtime's SSM client loaded on first use", async () => {
+  const sent = [];
+  let loads = 0;
+  const sdk = async () => {
+    loads += 1;
+    return {
+      SSMClient: class { async send(command) { sent.push(command.input); return { Parameter: { Value: "c".repeat(32) } }; } },
+      GetParameterCommand: class { constructor(input) { this.input = input; } },
+    };
+  };
+  const read = parameterReader({ name: "/pothole-reporter-central/health/canary-install-id", sdk });
+  assert.equal(loads, 0);
+  assert.equal(await read(), "c".repeat(32));
+  assert.equal(await read(), "c".repeat(32));
+  assert.equal(loads, 1);
+  assert.deepEqual(sent, [{ Name: "/pothole-reporter-central/health/canary-install-id" }, { Name: "/pothole-reporter-central/health/canary-install-id" }]);
+  // Not published yet is not an error; anything else is, for refresh() to log.
+  const named = (name) => async () => ({ GetParameterCommand: class {}, SSMClient: class { async send() { throw Object.assign(new Error(name), { name }); } } });
+  assert.equal(await parameterReader({ name: "/n", sdk: named("ParameterNotFound") })(), null);
+  await assert.rejects(parameterReader({ name: "/n", sdk: named("AccessDeniedException") })(), /AccessDenied/);
+  await assert.rejects(parameterReader({ name: "/n", sdk: async () => { throw new Error("Cannot find package"); } })(), /Cannot find package/);
+  assert.equal(await parameterReader({ name: "", sdk })(), null, "no parameter named: nobody is the canary");
+});
+
+test("the central function reads the id at start-up and on the warm event, never in a request", () => {
+  const entry = readFileSync(new URL("../service/handler.mjs", import.meta.url), "utf8");
+  assert.match(entry, /parameterReader\(\{ name: process\.env\.CANARY_INSTALL_PARAMETER/);
+  assert.match(entry, /createService\(\{[^}]*canaryInstall: canary\.id/);
+  const warm = entry.slice(entry.indexOf("createWarmHandler("));
+  assert.match(warm.slice(0, warm.indexOf("tick:")), /canary\.refresh\(\)/, "at start-up");
+  assert.match(warm.slice(warm.indexOf("tick:")), /canary\.refresh\(\)/, "and every minute, which asks once in ten");
+  // The only way the SSM client is named: loaded on first use, from the runtime.
+  assert.ok(!/^import .*client-ssm/m.test(entry));
+});
+
+test("the template gives the central function one read on the one parameter the health function writes", () => {
+  const template = readFileSync(new URL("../template.yaml", import.meta.url), "utf8");
+  const block = (name) => {
+    const lines = template.split("\n");
+    const start = lines.indexOf(`  ${name}:`);
+    const length = lines.slice(start + 1).findIndex((line) => /^ {0,2}[A-Za-z#]/.test(line));
+    return lines.slice(start, start + 1 + length).join("\n");
+  };
+  const ARN = "!Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectPrefix}/health/canary-install-id'";
+  const NAME = "!Sub '/${ProjectPrefix}/health/canary-install-id'";
+  const central = block("LambdaRole");
+  const grant = central.slice(central.indexOf("- Sid: ReadCanaryInstallId"));
+  assert.match(grant, /Action: ssm:GetParameter\n/);
+  assert.ok(grant.includes(`Resource: ${ARN}`));
+  assert.deepEqual(central.match(/ssm:[A-Z]\w+/g), ["ssm:GetParameter"], "one action, on one parameter");
+  assert.ok(block("CentralFunction").includes(`CANARY_INSTALL_PARAMETER: ${NAME}`));
+  // The health function publishes it: the same name, and it may read and write it.
+  const health = block("HealthRole");
+  const publish = health.slice(health.indexOf("- Sid: PublishCanaryInstallId"), health.indexOf("- Sid:", health.indexOf("- Sid: PublishCanaryInstallId") + 1) === -1
+    ? undefined : health.indexOf("- Sid:", health.indexOf("- Sid: PublishCanaryInstallId") + 1));
+  assert.match(publish, /Action: \[ssm:GetParameter, ssm:PutParameter\]/);
+  assert.ok(publish.includes(`Resource: ${ARN}`));
+  assert.ok(block("HealthFunction").includes(`CANARY_INSTALL_PARAMETER: ${NAME}`));
+  // It is not the private key's parameter, which the central function may never read.
+  assert.ok(!central.includes("canary-key"));
 });

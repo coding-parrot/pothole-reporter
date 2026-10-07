@@ -28,3 +28,22 @@ export function createCanaryInstall({ read, ttlMs = 600_000, now = Date.now, log
     },
   };
 }
+
+// `read` for the deployed function: one GetParameter on the parameter the health
+// function publishes. The central package carries no SSM client; the nodejs22.x runtime
+// provides one, and it is loaded here on first use, not at the top of handler.mjs, so a
+// client that cannot be loaded costs the exclusion and never the service.
+export function parameterReader({ name, sdk = () => import("@aws-sdk/client-ssm") }) {
+  let client = null;
+  return async function read() {
+    if (!name) return null;
+    client ||= await sdk().then(({ GetParameterCommand, SSMClient }) => ({ ssm: new SSMClient({}), GetParameterCommand }));
+    try {
+      return (await client.ssm.send(new client.GetParameterCommand({ Name: name }))).Parameter?.Value || null;
+    } catch (error) {
+      // The health function has not run its first full canary yet.
+      if (error?.name === "ParameterNotFound") return null;
+      throw error;
+    }
+  };
+}

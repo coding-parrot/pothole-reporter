@@ -7,7 +7,8 @@
 //
 // Everything it needs is passed in: `fetch`, the clock, the API's URL, `identity` (the
 // install's P-256 key pair, a new one or a kept one) and `readImage` (the photograph's
-// bytes). Returns the install id a full canary ran as.
+// bytes). Returns the install id a full canary ran as, and whether the service marked
+// its requests as the canary's.
 
 import { createHash, randomUUID, sign } from "node:crypto";
 
@@ -32,8 +33,15 @@ export async function runCanary({ apiUrl, fetch, identity, readImage, report, de
     return { ...result, took };
   }
 
+  // A kept key is known before anything is asked, and so is its install id (the hash of
+  // the public key). The canary names itself on its reads with it: a service that knows
+  // the id leaves those requests, like the signed ones, out of the public figures.
+  const held = depth === "full" ? await identity() : null;
+  const spki = held ? held.publicKey.export({ type: "spki", format: "der" }) : null;
+  const self = spki ? { "x-install-id": sha(spki).slice(0, 32) } : {};
+
   async function publicGet(route) {
-    const response = await fetch(apiUrl + route, { signal: AbortSignal.timeout(20_000) });
+    const response = await fetch(apiUrl + route, { headers: self, signal: AbortSignal.timeout(20_000) });
     const text = await response.text();
     let body = null;
     try { body = JSON.parse(text); } catch { body = null; }
@@ -51,7 +59,7 @@ export async function runCanary({ apiUrl, fetch, identity, readImage, report, de
   // The map is the largest thing the app downloads from the service. It went over the
   // air uncompressed (52.8 KB) until 6 Oct 2026; the wire size is asked for raw here,
   // because fetch would quietly decompress and hide a regression.
-  const wire = await fetch(`${apiUrl}/v1/map`, { headers: { "accept-encoding": "gzip" },
+  const wire = await fetch(`${apiUrl}/v1/map`, { headers: { ...self, "accept-encoding": "gzip" },
     signal: AbortSignal.timeout(20_000) });
   const encoding = wire.headers.get("content-encoding");
   const plainBytes = Buffer.byteLength(await wire.text());
@@ -64,10 +72,10 @@ export async function runCanary({ apiUrl, fetch, identity, readImage, report, de
   // Registering a key the service already holds changes nothing there and answers the
   // same install id (it is the hash of the public key), so a kept key is one install for
   // as long as it is kept.
-  const { publicKey, privateKey } = await identity();
+  const { privateKey } = held;
   const registration = await fetch(`${apiUrl}/v1/installations`, {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ public_key: publicKey.export({ type: "spki", format: "der" }).toString("base64") }),
+    body: JSON.stringify({ public_key: spki.toString("base64") }),
     signal: AbortSignal.timeout(20_000),
   });
   const install = await registration.json();
@@ -92,7 +100,8 @@ export async function runCanary({ apiUrl, fetch, identity, readImage, report, de
     const text = await response.text();
     let parsed = null;
     try { parsed = JSON.parse(text); } catch { parsed = { raw: text.slice(0, 200) }; }
-    return { status: response.status, body: parsed, took: now() - started };
+    // x-canary: the service's word that it knows this install as the canary's.
+    return { status: response.status, body: parsed, took: now() - started, marked: response.headers.get("x-canary") === "true" };
   }
 
   const image = readImage();
@@ -155,5 +164,5 @@ export async function runCanary({ apiUrl, fetch, identity, readImage, report, de
   withoutHint.status === 200 && source === "packaged_streets"
     ? ok("server finds the street itself, with no geocoder call", `${withoutHint.body.jurisdiction.address} in ${withoutHint.took} ms`)
     : fail("server finds the street itself, with no geocoder call", `${withoutHint.status} address_source ${source}, lookup.streets ${withoutHint.body?.jurisdiction?.lookup?.streets}; reason ${withoutHint.body?.reason || withoutHint.body?.error}`);
-  return { installId: install.install_id };
+  return { installId: install.install_id, recognised: detect.marked };
 }

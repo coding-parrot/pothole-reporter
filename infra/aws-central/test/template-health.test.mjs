@@ -75,14 +75,15 @@ test("the function is given exactly the settings its entry point reads", () => {
   assert.equal(value(variables, "CENTRAL_LOG_GROUP"), "!Ref LambdaLogs");
   assert.equal(value(variables, "METRIC_NAMESPACE"), "!Ref ProjectPrefix");
   assert.equal(value(variables, "CANARY_KEY_PARAMETER"), "!Sub '/${ProjectPrefix}/health/canary-key'");
+  assert.equal(value(variables, "CANARY_INSTALL_PARAMETER"), "!Sub '/${ProjectPrefix}/health/canary-install-id'");
 });
 
 test("its role may query one log group, write its own log and keep one parameter, and nothing else", () => {
   assert.deepEqual(actions(role.slice(role.indexOf("Policies:"))).sort(), [
     "logs:CreateLogStream", "logs:GetQueryResults", "logs:PutLogEvents", "logs:StartQuery", "logs:StopQuery",
-    "ssm:GetParameter", "ssm:PutParameter",
+    "ssm:GetParameter", "ssm:GetParameter", "ssm:PutParameter", "ssm:PutParameter",
   ]);
-  assert.equal(role.match(/- Sid:/g).length, 4);
+  assert.equal(role.match(/- Sid:/g).length, 5);
   assert.ok(!/Action: '?\*'?\s*$/m.test(role) && !/NotAction|NotResource|ManagedPolicyArns/.test(role));
   // No table, no secret, no function: the canary goes through the public API like a phone.
   assert.ok(!/Table|DetectorSecret|CentralFunction/.test(role));
@@ -103,11 +104,18 @@ test("its role may query one log group, write its own log and keep one parameter
   // The parameter the role may touch is the one the function is told to use.
   const name = value(fn, "CANARY_KEY_PARAMETER").match(/'(.+)'/)[1];
   assert.ok(value(key, "Resource").endsWith(`:parameter${name}'`));
+  // And the install id it publishes for the central function, which is no secret.
+  const publish = statement(role, "PublishCanaryInstallId");
+  assert.deepEqual(actions(publish).sort(), ["ssm:GetParameter", "ssm:PutParameter"]);
+  const published = value(fn, "CANARY_INSTALL_PARAMETER").match(/'(.+)'/)[1];
+  assert.ok(value(publish, "Resource").endsWith(`:parameter${published}'`));
 });
 
-test("the central function's role gains nothing from this", () => {
+test("the central function's role gains one read, of the canary's install id, and nothing else", () => {
   const central = resource("LambdaRole");
-  assert.ok(!/ssm:|logs:StartQuery|logs:GetQueryResults/.test(central));
+  assert.deepEqual(actions(central).filter((action) => !action.startsWith("dynamodb:")).sort(),
+    ["lambda:InvokeFunction", "logs:CreateLogStream", "logs:PutLogEvents", "secretsmanager:GetSecretValue", "ssm:GetParameter"]);
+  assert.ok(!central.includes("canary-key"), "never the canary's private key");
 });
 
 const RULES = { HealthWindowSchedule: "HealthWindowInvokePermission", HealthReadsSchedule: "HealthReadsInvokePermission",
