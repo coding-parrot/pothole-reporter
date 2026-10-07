@@ -39,6 +39,7 @@ const FEEDBACK_TEST_MODES = new Set(["bike", "car", "walk", "other"]);
 const FEEDBACK_TEXT_MAX = 2_000;
 const OBSERVED_AHEAD_MS = 10 * 60_000;
 const LOCK_ATTEMPTS = 4;
+const READ_ONLY_ROUTES = new Set(["/v1/tenders/resolve"]);
 // A municipal body may be named by the live KGIS register or, when KGIS cannot answer,
 // by the service's snapshot of the same register's polygons. Either carries an LGD code
 // the tender index is keyed on.
@@ -218,19 +219,35 @@ function compressed(result, event) {
   };
 }
 
-// Keep a loaded value for as long as it is declared fresh. The promise is stored, so
-// requests arriving together share one read; a failed read is forgotten at once.
-function freshFor(ttlMs, maximum = 64) {
+// Keep a loaded value for as long as it is declared fresh, then keep answering from it
+// while one refresh runs behind the answer: nobody waits for a read the previous caller
+// could have started. A value more than four lifetimes old is not served; that caller
+// waits. The promise is stored, so requests arriving together share one read, and a
+// failed read leaves the last good value in place.
+function freshFor(ttlMs, { maximum = 64, now = Date.now } = {}) {
   const entries = new Map();
-  return (key, load) => {
-    const held = entries.get(key);
-    if (held && held.until > Date.now()) return held.value;
-    const value = Promise.resolve().then(load);
-    const entry = { value, until: Date.now() + ttlMs };
+  const load = (key, loader) => {
+    const entry = entries.get(key) || {};
+    const pending = Promise.resolve().then(loader);
+    entry.pending = pending;
     entries.set(key, entry);
-    value.catch(() => { if (entries.get(key) === entry) entries.delete(key); });
+    pending.then((value) => {
+      if (entry.pending === pending) Object.assign(entry, { value, at: now(), pending: null, has: true });
+    }, () => {
+      if (entry.pending === pending) entry.pending = null;
+      if (!entry.has && entries.get(key) === entry) entries.delete(key);
+    });
     while (entries.size > maximum) entries.delete(entries.keys().next().value);
-    return value;
+    return pending;
+  };
+  return (key, loader) => {
+    const entry = entries.get(key);
+    if (!entry || !entry.has) return entry?.pending || load(key, loader);
+    const age = now() - entry.at;
+    if (age <= ttlMs) return Promise.resolve(entry.value);
+    if (age > ttlMs * 4) return entry.pending || load(key, loader);
+    if (!entry.pending) load(key, loader).catch(() => {});
+    return Promise.resolve(entry.value);
   };
 }
 
@@ -282,7 +299,7 @@ const newTimings = () => ({
 
 export function createService({
   repository: rawRepository, detector: rawDetector, geolocator: rawGeolocator,
-  catalogue: rawCatalogue = null, logger = console, lockWaitMs = 250,
+  catalogue: rawCatalogue = null, logger = console, lockWaitMs = 250, now = Date.now,
 } = {}) {
   if (!rawRepository || !rawDetector || !rawGeolocator) throw new Error("Service dependencies are required.");
   const repository = timed(rawRepository, "db");
@@ -292,9 +309,34 @@ export function createService({
   // The map and impact routes tell clients their answer is good for 30 and 60 seconds
   // and the app polls both; the rows are kept exactly that long. A body's tender list
   // changes only when the table is reseeded, and Bengaluru's is 795 rows per lookup.
-  const mapRows = freshFor(30_000);
-  const impactRows = freshFor(60_000);
-  const tenderRows = freshFor(600_000);
+  const mapRows = freshFor(30_000, { now });
+  const impactRows = freshFor(60_000, { now });
+  const tenderRows = freshFor(600_000, { now });
+  // An install's public key never changes, and it was read from the table on every
+  // signed request. It is remembered for five minutes, which is also how long a
+  // revocation takes to bite; an unknown install is never remembered as unknown.
+  const knownInstalls = new Map();
+  async function installationFor(installId) {
+    const held = knownInstalls.get(installId);
+    if (held && held.until > now()) return held.installation;
+    const installation = await repository.getInstallation(installId);
+    if (installation && !installation.revoked_at) {
+      knownInstalls.set(installId, { installation, until: now() + 300_000 });
+      while (knownInstalls.size > 5_000) knownInstalls.delete(knownInstalls.keys().next().value);
+    } else {
+      knownInstalls.delete(installId);
+    }
+    return installation;
+  }
+  // last_seen_at says an install is alive; once every ten minutes says that as well as
+  // once a request, and a drive sends a request a second.
+  const lastTouched = new Map();
+  async function touchInstallation(installId) {
+    if (now() - (lastTouched.get(installId) || 0) < 600_000) return;
+    lastTouched.set(installId, now());
+    while (lastTouched.size > 5_000) lastTouched.delete(lastTouched.keys().next().value);
+    await repository.touchInstallation(installId);
+  }
 
   async function authenticate(event, context, path, method, raw) {
     const inputHeaders = headers(event);
@@ -310,15 +352,15 @@ export function createService({
       throw new HttpError(400, "idempotency_key_required", "Send an Idempotency-Key header.");
     }
     const sentAt = Number(timestamp);
-    if (!Number.isFinite(sentAt) || Math.abs(Date.now() - sentAt) > SIGNATURE_AGE_MS) {
+    if (!Number.isFinite(sentAt) || Math.abs(now() - sentAt) > SIGNATURE_AGE_MS) {
       // A phone with a skewed clock fails every signed route. The server's time lets
       // the app correct its offset and re-sign instead of dropping the request.
       throw new HttpError(401, "stale_request", "The signed request is too old.", {
-        server_time: Date.now(),
+        server_time: now(),
         retryable: true,
       });
     }
-    const installation = await repository.getInstallation(installId);
+    const installation = await installationFor(installId);
     if (!installation || installation.revoked_at) {
       throw new HttpError(401, "unknown_installation", "This installation is not registered.");
     }
@@ -334,6 +376,13 @@ export function createService({
       throw new HttpError(401, "bad_signature", "This request signature is not valid.");
     }
     context.installId = installId;
+    // A lookup changes nothing, so repeating it is harmless and there is nothing for an
+    // idempotency key or a replay claim to protect. Those were three table writes on
+    // every lookup; the signature and its five-minute age are still checked.
+    if (READ_ONLY_ROUTES.has(path)) {
+      await touchInstallation(installId);
+      return { replay: null };
+    }
     context.idempotencyId = `${installId}#${path}#${idempotencyKey}`;
     context.requestHash = sha256Hex(raw);
     const claimed = await repository.claimIdempotency({
@@ -369,11 +418,12 @@ export function createService({
     if (!await repository.claimReplay(`${installId}#${replayHash}`, Date.now() + 600_000)) {
       throw new HttpError(409, "replayed_request", "This signed request was already used.");
     }
-    await repository.touchInstallation(installId);
+    await touchInstallation(installId);
     return { replay: null };
   }
 
   async function complete(context, statusCode, payload) {
+    if (!context.idempotencyClaimed) return response(statusCode, payload, context.requestId);
     await repository.completeIdempotency({
       id: context.idempotencyId,
       owner: context.requestId,

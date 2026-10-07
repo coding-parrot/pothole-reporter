@@ -14,6 +14,7 @@
 // address_parts.localities, which ward tender matching reads.
 const VERSION = "v2";
 const WEEK_MS = 7 * 86_400_000;
+const MEMORY_CELLS = 5_000;
 
 function storable(value) {
   if (!value || !value.road_ownership || value.road_ownership === "unknown") return false;
@@ -25,6 +26,13 @@ function storable(value) {
 export function createCachedGeolocator({ geolocator, repository, ttlMs = WEEK_MS, now = Date.now } = {}) {
   if (!geolocator || !repository) throw new Error("A geolocator and a repository are required.");
   const cellOf = (lat, lng) => `GEO#${VERSION}#${lat.toFixed(4)},${lng.toFixed(4)}`;
+  // The store is a table read of about 8 ms. A function instance that has already
+  // answered for a cell keeps that answer in memory and reads nothing.
+  const memory = new Map();
+  const remember = (cell, value, expiresAt) => {
+    memory.set(cell, { value, expiresAt });
+    while (memory.size > MEMORY_CELLS) memory.delete(memory.keys().next().value);
+  };
   return {
     kgisTimeoutMs: geolocator.kgisTimeoutMs,
     // The ward roster is read from the packaged polygons, not from an upstream: nothing
@@ -35,14 +43,18 @@ export function createCachedGeolocator({ geolocator, repository, ttlMs = WEEK_MS
       const { lat, lng } = input;
       const cell = Number.isFinite(lat) && Number.isFinite(lng) ? cellOf(lat, lng) : null;
       if (cell) {
+        const held = memory.get(cell);
         // The store is an optimisation. If it is throttled or down, ask upstream as before.
-        const stored = await repository.getGeoCell(cell).catch(() => null);
+        const stored = held && held.expiresAt > now() ? held
+          : await repository.getGeoCell(cell).catch(() => null);
         if (stored && stored.expiresAt > now() && storable(stored.value)) {
+          if (stored !== held) remember(cell, stored.value, stored.expiresAt);
           return { ...stored.value, lat, lng, lookup: { ...stored.value.lookup, cache: "hit" } };
         }
       }
       const value = await geolocator.resolve(input);
       if (cell && storable(value)) {
+        remember(cell, value, now() + ttlMs);
         await repository.putGeoCell(cell, value, now() + ttlMs).catch(() => {});
       }
       return value && typeof value === "object"
