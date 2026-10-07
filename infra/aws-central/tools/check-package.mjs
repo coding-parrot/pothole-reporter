@@ -61,5 +61,14 @@ if (indiaWards.problems.length) {
   for (const line of (indiaWards.logged || []).slice(0, 5)) console.error(`  logged: ${line.slice(0, 300)}`);
   process.exit(1);
 }
+// The scheduled health function runs from this same package: its modules load from it
+// and the photograph its canary sends is in it (tools/staged-health.mjs).
+const { checkStagedHealth } = await import("./staged-health.mjs");
+const health = await checkStagedHealth(packageDirectory);
+if (health.problems.length) {
+  console.error(`package check FAILED for ${packageDirectory}:`);
+  for (const line of health.problems) console.error(`  ${line}`);
+  process.exit(1);
+}
 console.log(`package check ok: ${answer.address}; ward ${answer.ward_name}; ward snapshots outside Karnataka ${indiaWards.snapshots.join(", ") || "none"}`
-  + `${indiaWards.canary ? ` (${indiaWards.canary} answered)` : ""}; no network used`);
+  + `${indiaWards.canary ? ` (${indiaWards.canary} answered)` : ""}; health function loads, canary photograph ${health.photographBytes} bytes; no network used`);
