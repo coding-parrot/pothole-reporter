@@ -23,8 +23,8 @@ const repository = createDynamoRepository({
   quota: {
     perInstallDay: Number(process.env.DAILY_VISION_CAP || 10000),
     globalMinute: Number(process.env.GLOBAL_VISION_MINUTE_CAP || 1500),
-    globalDay: Number(process.env.GLOBAL_VISION_DAILY_CAP || 30_000),
-    globalMonth: Number(process.env.MONTHLY_VISION_CAP || 200_000),
+    globalDay: Number(process.env.GLOBAL_VISION_DAILY_CAP || 100_000),
+    globalMonth: Number(process.env.MONTHLY_VISION_CAP || 1_000_000),
   },
 });
 
