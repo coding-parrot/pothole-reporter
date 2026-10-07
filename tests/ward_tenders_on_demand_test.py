@@ -80,6 +80,8 @@ PLANS = {
     "17.3402": {"ward": FIVE},
     "17.3403": {"ward": FIVE},
     "17.3404": {"retryable": True, "delay": 1300},
+    "17.3405": {"ward": FIVE},
+    "17.3406": {"ward": FIVE},
 }
 
 # Counts every lookup and answers it from the plan for that latitude. The jurisdiction it
@@ -466,7 +468,22 @@ with sync_playwright() as playwright:
             "old": {"lat": 17.3402, "email_body": OLD_BODY.format(lat=17.3402)},
             "emailed": {"lat": 17.3403, "email_body": OLD_BODY.format(lat=17.3403)},
             "retrying": {"lat": 17.3404, "email_body": OLD_BODY.format(lat=17.3404)},
+            "current": {"lat": 17.3405, "complaint_template_version": 5, "email_body": "pending"},
+            "reworded": {"lat": 17.3406, "complaint_template_version": 5, "email_body": "pending"},
         })
+        # Two drafts of the current template, written before any answer: one exactly as the
+        # app writes it, one with a sentence of the reporter's own added.
+        own_words = "The pothole is beside the lamp post outside the school gate."
+        page.evaluate(r"""async ([ids, ownWords]) => {
+          const P = StandaloneAPI.__pure;
+          for (const [name, id] of Object.entries(ids)) {
+            const rec = await P.getReport(id);
+            const body = P.generatedComplaintOutputs(rec, "en").email_body;
+            rec.email_body = name === "reworded"
+              ? body.replace("\n\nRegards,", `\n\n${ownWords}\n\nRegards,`) : body;
+            await P.putReport(rec);
+          }
+        }""", [{"current": ids["current"], "reworded": ids["reworded"]}, own_words])
         page.evaluate(OPEN, ids["answered"])
         page.wait_for_timeout(700)
         sent = page.evaluate(SEND, ids["answered"])
@@ -502,6 +519,24 @@ with sync_playwright() as playwright:
               f"{calls_for(page, 17.3403)} lookups")
         check(after["ward_tenders"] != "absent" and len(after["ward_tenders"]) == 5,
               "the answer fetched for Email was not saved on the report")
+
+        # ---- a current draft: the app's own text gains the question, a reworded one does not ----
+        sent = page.evaluate(SEND, ids["current"])
+        composed = page.evaluate("() => (window.__composerCalls.slice(-1)[0] || {}).body || ''")
+        check(sent.get("ok")
+              and any(part.startswith(f"{ASK}{FIRST}: ") for part in composed.split("\n\n")),
+              f"a current draft in the app's own words did not gain the ward question: {composed[-300:]!r}")
+        check(page.evaluate(BROWSER_ROW, ids["current"])["email_body"] == composed,
+              "the letter the composer received was not the one saved")
+        before = page.evaluate(BROWSER_ROW, ids["reworded"])["email_body"]
+        sent = page.evaluate(SEND, ids["reworded"])
+        composed = page.evaluate("() => (window.__composerCalls.slice(-1)[0] || {}).body || ''")
+        after = page.evaluate(BROWSER_ROW, ids["reworded"])
+        check(sent.get("ok") and composed == before and after["email_body"] == before
+              and own_words in composed and "covered by" not in composed,
+              f"a draft the reporter reworded was rewritten for the ward question: {composed[-300:]!r}")
+        check(after["ward_tenders"] != "absent" and len(after["ward_tenders"]) == 5,
+              "the reworded draft's report did not keep the answer for its card")
 
         # ---- the service asks for a retry: its 1.5 s wait would overrun the budget, so the
         #      lookup is given up at once instead of being sent again after the composer ----
