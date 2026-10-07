@@ -6616,9 +6616,10 @@
   const TENDER_RETRY_DELAY_MS = 1500;
 
   // The resolver's second, weaker answer beside `tender`: road works tendered for the
-  // ward the point is in, not the contract for this road. The report card lists them and
-  // no complaint ever names one. Only what the card prints is kept, and an entry that is
-  // not a numbered, titled tender is dropped instead of being shown half empty.
+  // ward the point is in, not the contract for this road. The report card lists them, and
+  // a complaint asks the office about the first when the street matched nothing. Only
+  // what the card prints is kept, and an entry that is not a numbered, titled tender is
+  // dropped instead of being shown half empty.
   const WARD_TENDER_LIMITS = Object.freeze({
     count: 5, tenderNumber: 120, title: 240, published: 40, wardName: 120,
   });
@@ -9701,7 +9702,7 @@
         ? centralResolution.reason : null,
       tender_resolution_checked_at: centralResolution && centralResolution.reached
         ? Date.now() / 1000 : null,
-      // Shown on the report card only. No complaint text is built from these.
+      // Listed on the report card. The letter above asks about the first, as a question.
       ward_tenders: centralResolution && centralResolution.reached
         ? centralResolution.ward_tenders : [],
       ward_name: centralResolution && centralResolution.reached
