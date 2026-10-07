@@ -122,23 +122,26 @@ test("a point in no town is rural with its panchayat, and a point in no polygon 
   assert.equal(calls.kgis, 0);
 });
 
-// The live rule, copied as it was: no named panchayat means outside_state, even inside
-// Karnataka. KGIS answered outside_state for all four of these on 7 Oct 2026. lookup.local
-// tells the three kinds apart so the request log can count how often the rule is wrong.
-test("a point with no named panchayat is outside_state, as KGIS answered, and says which kind", async () => {
+// A point inside the state boundary is in Karnataka, whatever the panchayat layer calls
+// it. The live lookup read "no panchayat name" as outside_state (it had no state polygon
+// to check), so forest in 2.8% of the state's area was told it was outside Karnataka.
+// With the boundary packaged, such a point is a rural road with no body named.
+// lookup.local still tells the kinds apart.
+test("a point inside Karnataka with no named panchayat is rural, never outside_state", async () => {
   const { geolocator, calls } = counted();
   // Forest in the Male Mahadeshwara hills and at Sandur: KGIS files each under a
   // panchayat polygon with a blank name.
   for (const [lat, lng] of [[12.0231, 77.6737], [15.0788, 76.6221]]) {
     const forest = await geolocator.resolve({ lat, lng });
-    assert.equal(forest.road_ownership, "outside_state");
+    assert.equal(forest.road_ownership, "rural");
     assert.equal(forest.rural_body, null);
     assert.equal(forest.lookup.local, "gp_polygon_unnamed");
   }
   // The BRT hills and Nagarahole: inside the state boundary, in no panchayat polygon.
   for (const [lat, lng] of [[11.7788, 77.1261], [11.9787, 76.0694]]) {
     const gap = await geolocator.resolve({ lat, lng });
-    assert.equal(gap.road_ownership, "outside_state");
+    assert.equal(gap.road_ownership, "rural");
+    assert.equal(gap.rural_body, null);
     assert.equal(gap.lookup.local, "state_polygon_no_panchayat");
   }
   assert.equal(calls.kgis, 0);

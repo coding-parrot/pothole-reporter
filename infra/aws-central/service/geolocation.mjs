@@ -240,24 +240,24 @@ function verdictOf(bundle, hit) {
   }
   const name = bounded(record.name, 160);
   return name ? { road_ownership: "rural", rural_body: name, local: "gp_polygon" }
-    : { road_ownership: "outside_state", local: "gp_polygon_unnamed" };
+    : { road_ownership: "rural", rural_body: null, local: "gp_polygon_unnamed" };
 }
 
 // A highway polygon KGIS gives no name, a town it gives no LGD code, a panchayat polygon
 // with a blank name.
 const nameless = (verdict) => verdict.highway_name === null
-  || verdict.road_ownership === "unknown" || verdict.road_ownership === "outside_state";
+  || verdict.road_ownership === "unknown" || verdict.local === "gp_polygon_unnamed";
 
 // The live lookup's own rules, in its order, on the packaged copy of the same layers:
 // a highway within HIGHWAY_BUFFER_METRES (national, then state, then district) is not
-// the town's road even inside the town; then the town; then the gram panchayat; and a
-// point with no named panchayat is outside_state.
+// the town's road even inside the town; then the town; then the gram panchayat.
 //
-// That last rule is copied, not endorsed. KGIS's panchayat layer holds 309 polygons with
-// a blank name (2.7% of the state's area lies in one and in no town) and has gaps
-// (0.1%), and the live code read "no panchayat name" as outside_state for all of it.
-// lookup.local says which it was ("gp_polygon_unnamed", "state_polygon_no_panchayat",
-// "outside_state_polygon"), so the request log can count them.
+// One rule is not copied. KGIS's panchayat layer holds 309 polygons with a blank name
+// (2.7% of the state's area lies in one and in no town) and has gaps (0.1%), and the live
+// code, which had no state boundary to check, read "no panchayat name" as outside_state
+// for all of it. Here a point inside the state boundary is a rural road with no body
+// named, and only a point outside the boundary is outside_state. lookup.local says which
+// it was ("gp_polygon_unnamed", "state_polygon_no_panchayat", "outside_state_polygon").
 //
 // Where several polygons of the deciding layer cover the point (a junction of two state
 // highways, the seam between a named stretch of road and an unnamed one), the live code
@@ -279,7 +279,9 @@ export function localVerdicts(bundle, lat, lng, bufferMetres = HIGHWAY_BUFFER_ME
     if (verdicts.length) return verdicts;
   }
   const inState = hits.some((hit) => hit.layer === bundle.layerIndex.state);
-  return [{ road_ownership: "outside_state", local: inState ? "state_polygon_no_panchayat" : "outside_state_polygon" }];
+  return [inState
+    ? { road_ownership: "rural", rural_body: null, local: "state_polygon_no_panchayat" }
+    : { road_ownership: "outside_state", local: "outside_state_polygon" }];
 }
 
 export function classifyLocally(bundle, lat, lng, bufferMetres = HIGHWAY_BUFFER_METRES) {

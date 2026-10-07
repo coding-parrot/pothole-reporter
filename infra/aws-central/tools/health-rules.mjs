@@ -44,3 +44,18 @@ export function judgeWardTenders(rows, { minimum = 30, share = 0.2 } = {}) {
     ? { broken: true, resolved, answered, detail: `${answered} of ${resolved} lookups with a ward (${percent}%) answered a ward tender or a street tender; the rule is ${share * 100}%. Check the packaged ward snapshot, the tender table and ward-tenders.mjs` }
     : { broken: false, resolved, answered, detail: `${answered} of ${resolved} lookups with a ward (${percent}%) answered a ward tender or a street tender` };
 }
+
+// Lookups by where the road class came from. local_lookup "unavailable" means the service
+// could not read data/karnataka-ownership.bin: since 7 Oct 2026 the state GIS is never
+// asked in a request, so without that file every Karnataka point is "unknown".
+export const ROAD_LAYER_QUERY = 'filter event="http_request"'
+  + ' and (route="/v1/tenders/resolve" or route="/v1/potholes/report")'
+  + " | stats count() as n by local_lookup";
+
+export function judgeRoadLayers(rows) {
+  const unavailable = rows.filter((row) => row.local_lookup === "unavailable")
+    .reduce((sum, row) => sum + (Number(row.n) || 0), 0);
+  return unavailable
+    ? { broken: true, unavailable, detail: `${unavailable} lookups could not read the road ownership layers; data/karnataka-ownership.bin is missing from the package` }
+    : { broken: false, unavailable, detail: "0 lookups without the road ownership layers" };
+}

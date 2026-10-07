@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createGeolocator } from "../service/geolocation.mjs";
-import { WARD_TENDER_QUERY, judgeWardSnapshot, judgeWardTenders } from "../tools/health-rules.mjs";
+import { ROAD_LAYER_QUERY, WARD_TENDER_QUERY, judgeRoadLayers, judgeWardSnapshot, judgeWardTenders } from "../tools/health-rules.mjs";
 import { loadBodyTenders } from "../tools/ward-tender-vocabulary.mjs";
 import { harness, memoryRepository } from "./support.mjs";
 import { CASES } from "./ward-tender-cases.mjs";
@@ -119,4 +119,25 @@ test("a service packaged without the ward bundle logs ward_lookup unavailable", 
   const logged = JSON.parse(h.lines.log.findLast((line) => line.includes('"http_request"')));
   assert.equal(logged.ward_lookup, "unavailable");
   assert.equal(judgeWardSnapshot([{ n: "1", ward_lookup: logged.ward_lookup }]).broken, true);
+});
+
+// Since 7 Oct 2026 the road class comes from data/karnataka-ownership.bin and the state
+// GIS is never asked. A package without that file answers every Karnataka point
+// "unknown", which the app shows as a report nobody can be sent.
+test("a package without the road ownership layers is said out loud", () => {
+  const missing = judgeRoadLayers([{ n: "7", local_lookup: "unavailable" }, { n: "40", local_lookup: "municipal_polygon" }]);
+  assert.equal(missing.broken, true);
+  assert.match(missing.detail, /7 lookups/);
+  const whole = judgeRoadLayers([{ n: "40", local_lookup: "municipal_polygon" }, { n: "3", local_lookup: "out_of_scope" },
+    { n: "9" }]);
+  assert.equal(whole.broken, false);
+  assert.match(ROAD_LAYER_QUERY, /local_lookup/);
+});
+
+test("a service packaged without the ownership layers logs local_lookup unavailable", async () => {
+  const geolocator = createGeolocator({ localGeometryPath: "/nonexistent/karnataka-ownership.bin",
+    fetchImpl: async () => { throw new Error("no network in this test"); } });
+  const answer = await geolocator.resolve({ lat: 12.99657, lng: 77.62034 });
+  assert.equal(answer.road_ownership, "unknown");
+  assert.equal(answer.lookup.local, "unavailable");
 });
