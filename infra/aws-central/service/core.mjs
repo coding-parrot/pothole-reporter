@@ -308,8 +308,21 @@ export function createService({
   repository: rawRepository, detector: rawDetector, geolocator: rawGeolocator,
   catalogue: rawCatalogue = null, logger = console, lockWaitMs = 75, now = Date.now,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  canaryInstall = () => null,
 } = {}) {
   if (!rawRepository || !rawDetector || !rawGeolocator) throw new Error("Service dependencies are required.");
+  // The scheduled health canary's install (canary-install.mjs), or null while unknown.
+  // The public figures count people, so for this one install nothing is written to the
+  // metrics table and the request line says `canary: true`. It is a phone in every other
+  // way: the same signature check, quota and idempotency. On a signed route only a valid
+  // signature makes a request the canary's. Health, the map and the impact figures take
+  // no signature, so there the canary names itself in x-install-id; all anyone else
+  // gains by sending that header is that their own reads go uncounted.
+  const fromCanary = (context, event) => {
+    const id = canaryInstall();
+    if (!id) return false;
+    return context.installId === id || (context.method === "GET" && headers(event)["x-install-id"] === id);
+  };
   const repository = timed(rawRepository, "db");
   const detector = timed(rawDetector, "detector");
   const geolocator = timed(rawGeolocator, "geo");
@@ -475,11 +488,13 @@ export function createService({
     const source = provenance(body, body.capture_mode, false, true);
     context.visionMode = "own_key";
     context.outcome = `vision_check_${body.capture_mode}`;
-    await repository.recordCapture({
-      ...source,
-      visionMode: "own_key",
-      outcome: "vision_check",
-    });
+    if (!fromCanary(context)) {
+      await repository.recordCapture({
+        ...source,
+        visionMode: "own_key",
+        outcome: "vision_check",
+      });
+    }
     return complete(context, 202, { accepted: true, event: "vision_check" });
   }
 
@@ -598,11 +613,13 @@ export function createService({
       payload.detection_receipt_expires_at = expiresAt;
     }
     context.outcome = verdict.assessment;
-    await repository.recordCapture({
-      ...source,
-      visionMode: "shared_detect",
-      outcome: verdict.assessment,
-    });
+    if (!fromCanary(context)) {
+      await repository.recordCapture({
+        ...source,
+        visionMode: "shared_detect",
+        outcome: verdict.assessment,
+      });
+    }
     return complete(context, 200, payload);
   }
 
@@ -1029,7 +1046,7 @@ export function createService({
     const jobs = [
       ...WARM_MAP_LIMITS.map((limit) => mapRows.refresh(mapKey(undefined, undefined, limit),
         () => rawRepository.listPotholes({ since: Date.now() - 180 * 86_400_000, bbox: null, limit }))),
-      impactRows.refresh(impactKey(from, to), () => rawRepository.impact({ from, to })),
+      impactRows.refresh(impactKey(from, to), () => rawRepository.impact({ from, to, excludeInstall: canaryInstall() })),
     ];
     if (Number.isFinite(lat) && Number.isFinite(lng)) {
       jobs.push(Promise.resolve(rawGeolocator.resolve({ lat, lng })).then((jurisdiction) => routing(jurisdiction, {})));
@@ -1080,7 +1097,7 @@ export function createService({
         || Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`) > 90 * 86_400_000) {
       throw new HttpError(400, "bad_period", "Use a valid period of at most 90 days.");
     }
-    const data = await impactRows(impactKey(from, to), () => repository.impact({ from, to }));
+    const data = await impactRows(impactKey(from, to), () => repository.impact({ from, to, excludeInstall: canaryInstall() }));
     const requestsTotal = data.requests.reduce((sum, item) => sum + item.count, 0);
     const captureTotal = data.captures.reduce((sum, item) => sum + item.count, 0);
     context.outcome = "impact_read";
@@ -1214,17 +1231,23 @@ export function createService({
         } : {}),
       }));
     }
-    await repository.recordRequest({
-      route: context.route,
-      outcome: context.outcome,
-      visionMode: context.visionMode,
-      installId: context.installId,
-      failed: Boolean(context.failed),
-    }).catch((error) => logger.error(JSON.stringify({
-      event: "metrics_write_failed",
-      request_id: context.requestId,
-      error_type: error?.name || "Error",
-    })));
+    const canary = fromCanary(context, event);
+    if (canary) {
+      // So the canary can tell that it is being left out of the figures.
+      result.headers = { ...result.headers, "x-canary": "true" };
+    } else {
+      await repository.recordRequest({
+        route: context.route,
+        outcome: context.outcome,
+        visionMode: context.visionMode,
+        installId: context.installId,
+        failed: Boolean(context.failed),
+      }).catch((error) => logger.error(JSON.stringify({
+        event: "metrics_write_failed",
+        request_id: context.requestId,
+        error_type: error?.name || "Error",
+      })));
+    }
     logger.log(JSON.stringify({
       event: "http_request",
       request_id: context.requestId,
@@ -1282,6 +1305,9 @@ export function createService({
       // Which catalogue answered a tender_matched: ka_index, nh_contract, road_notice or
       // road_agreement. Null when nothing matched.
       tender_catalogue: context.tenderCatalogue || null,
+      // Only on the scheduled canary's requests, and absent otherwise (not null): the
+      // health rules keep a line with `not ispresent(canary)`.
+      ...(canary ? { canary: true } : {}),
     }));
     return result;
   }

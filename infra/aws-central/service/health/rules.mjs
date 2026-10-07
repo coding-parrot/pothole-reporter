@@ -7,7 +7,7 @@
 // each query for every byte of the window it scans, whatever its filter keeps, and one
 // query grouped more finely gives the same counts (checked against the three over the
 // same 24 hours and the same 7 days of production: every verdict identical).
-export const LOOKUP_QUERY = 'filter event="http_request"'
+export const LOOKUP_QUERY = 'filter event="http_request" and not ispresent(canary)'
   + ' and (route="/v1/tenders/resolve" or route="/v1/potholes/report")'
   + " | stats count() as n by road_ownership, local_lookup, ward_lookup, ward_snapshot, ward_tender_count, tender_catalogue";
 
@@ -62,7 +62,7 @@ export function judgeWardTenders(rows, { minimum = 30, share = 0.2 } = {}) {
 // of 0.02. A line whose screen did not answer carries screen_error, no screen_assessment
 // and no bucket. The report and the curve below read the same rows (two queries until
 // 7 Oct 2026, one now, for the reason given at LOOKUP_QUERY).
-export const SHADOW_QUERY = 'filter event="http_request" and route="/v1/vision/detect" and status=200'
+export const SHADOW_QUERY = 'filter event="http_request" and not ispresent(canary) and route="/v1/vision/detect" and status=200'
   + " and (ispresent(screen_assessment) or ispresent(screen_error) or ispresent(screen_score))"
   + " | fields floor(screen_score * 50) as bucket"
   + " | stats count() as n by outcome, screen_assessment, screen_error, bucket";

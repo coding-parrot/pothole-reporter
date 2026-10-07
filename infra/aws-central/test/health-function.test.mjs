@@ -16,6 +16,7 @@ import { BROKEN_WINDOW, HEALTHY_WINDOW, fakeApi, fetchFrom } from "./health-supp
 // private key appears in nothing the function writes.
 
 const KEY_NAME = "/pothole-reporter-central/health/canary-key";
+const INSTALL_NAME = "/pothole-reporter-central/health/canary-install-id";
 
 // Logs Insights answering from a window script, 1,000 bytes scanned a query.
 function logsFrom(script, { status = "Complete" } = {}) {
@@ -39,20 +40,23 @@ function logsFrom(script, { status = "Complete" } = {}) {
 // The parameter store, with the errors the SDK raises by name.
 function parameterStore(initial = {}) {
   const values = new Map(Object.entries(initial));
+  const modified = new Map();
   const calls = [];
   const named = (name) => Object.assign(new Error(name), { name });
   return {
     values,
+    modified,
     calls,
     getParameter: async (input) => {
       calls.push(["getParameter", input]);
       if (!values.has(input.Name)) throw named("ParameterNotFound");
-      return { Parameter: { Name: input.Name, Type: "SecureString", Value: values.get(input.Name) } };
+      return { Parameter: { Name: input.Name, Value: values.get(input.Name), LastModifiedDate: modified.get(input.Name) } };
     },
     putParameter: async (input) => {
       calls.push(["putParameter", input]);
       if (values.has(input.Name) && !input.Overwrite) throw named("ParameterAlreadyExists");
       values.set(input.Name, input.Value);
+      modified.delete(input.Name);
       return { Version: 1 };
     },
   };
@@ -63,7 +67,7 @@ function setup({ window = HEALTHY_WINDOW, api = fakeApi(), parameters = paramete
   const clock = { t: 1_760_000_000_000 };
   const health = createHealthFunction({
     apiUrl: "https://api.test", logGroup: "/aws/lambda/pothole-reporter-central", namespace: "pothole-reporter-central",
-    keyParameter: KEY_NAME, logs, parameters, fetch: fetchFrom(api), readImage: readExampleImage,
+    keyParameter: KEY_NAME, installParameter: INSTALL_NAME, logs, parameters, fetch: fetchFrom(api), readImage: readExampleImage,
     log: (text) => written.log.push(text), emit: (line) => written.emit.push(line),
     now: () => (clock.t += 7), sleep: async () => {}, ...rest,
   });
@@ -214,7 +218,7 @@ test("the first run makes the key and stores it once; every later run is the sam
   const api = fakeApi();
   const first = setup({ parameters, api });
   await first.health({ canary: "full" });
-  const puts = parameters.calls.filter(([name]) => name === "putParameter");
+  const puts = parameters.calls.filter(([name, input]) => name === "putParameter" && input.Name === KEY_NAME);
   assert.equal(puts.length, 1);
   assert.deepEqual({ ...puts[0][1], Value: null, Description: null }, { Name: KEY_NAME, Type: "SecureString", Overwrite: false, Value: null, Description: null });
   assert.match(puts[0][1].Value, /^-----BEGIN PRIVATE KEY-----\n/);
@@ -231,7 +235,7 @@ test("the first run makes the key and stores it once; every later run is the sam
   const later = setup({ parameters, api });
   await later.health({ canary: "full" });
   assert.equal(later.line().canary_install_id, installId);
-  assert.equal(parameters.calls.filter(([name]) => name === "putParameter").length, 1, "never made twice");
+  assert.equal(parameters.calls.filter(([name, input]) => name === "putParameter" && input.Name === KEY_NAME).length, 1, "never made twice");
   assert.equal(api.installs.size, 1, "three runs, one install");
 });
 
@@ -242,7 +246,7 @@ test("a stored key is reused and never replaced", async () => {
   const result = await health({ canary: "full" });
   assert.equal(result.healthy, true);
   assert.equal(line().canary_install_id, installationPublicKey(kept.publicKey.export({ type: "spki", format: "der" }).toString("base64")).installId);
-  assert.deepEqual(parameters.calls.map(([name]) => name), ["getParameter"]);
+  assert.deepEqual(parameters.calls.filter(([, input]) => input.Name === KEY_NAME).map(([name]) => name), ["getParameter"]);
 });
 
 test("two first runs at once keep the key that was stored first", async () => {
@@ -315,14 +319,102 @@ test("the Lambda entry point only wires the runtime's SDK to the tested function
   const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const packaged = Object.keys({ ...manifest.dependencies, ...manifest.devDependencies });
   const runtimeOnly = [...entry.matchAll(/from "(@aws-sdk\/[^"]+)"/g)].map((match) => match[1]);
+  // One other module names the SSM client: canary-install.mjs loads it on first use, for
+  // the central function, inside a read that may fail without failing anything.
+  const lazily = { "canary-install.mjs": /sdk = \(\) => import\("@aws-sdk\/client-ssm"\)/ };
   assert.deepEqual(runtimeOnly, ["@aws-sdk/client-cloudwatch-logs", "@aws-sdk/client-ssm"]);
   for (const name of runtimeOnly) assert.ok(!packaged.includes(name), `${name} comes from the Lambda runtime and is not packaged`);
   // No other module of the service may need them: the central function's package has no such client.
   const healthDir = new URL("../service/health/", import.meta.url);
   for (const dir of [healthDir, new URL("../service/", import.meta.url)]) {
     for (const file of readdirSync(dir).filter((name) => name.endsWith(".mjs") && !(dir === healthDir && name === "handler.mjs"))) {
-      const source = readFileSync(new URL(file, dir), "utf8");
+      const source = readFileSync(new URL(file, dir), "utf8").replace(lazily[file] || /$^/, "");
       for (const name of runtimeOnly) assert.ok(!source.includes(`"${name}"`), `${file} imports ${name}`);
     }
   }
+});
+
+// ------------------------------------------------------------------ out of the public figures
+// The central service leaves one install out of the public figures: the one whose id it
+// reads from a parameter. The health function is what writes that parameter.
+const marking = (api) => {
+  const fetch = fetchFrom(api);
+  // The service marks the answers to an install it knows as the canary's.
+  return async (url, init) => {
+    const response = await fetch(url, init);
+    const headers = new Headers(response.headers);
+    headers.set("x-canary", "true");
+    return new Response(await response.text(), { status: response.status, headers });
+  };
+};
+
+test("a full canary publishes its install id once, as a plain parameter, and does not rewrite it", async () => {
+  const parameters = parameterStore();
+  const { health, line } = setup({ parameters });
+  await health({ canary: "full" });
+  const id = line().canary_install_id;
+  assert.equal(parameters.values.get(INSTALL_NAME), id);
+  const puts = () => parameters.calls.filter(([name, input]) => name === "putParameter" && input.Name === INSTALL_NAME);
+  assert.deepEqual(puts().map(([, input]) => input), [{ Name: INSTALL_NAME, Type: "String", Overwrite: true, Value: id,
+    Description: puts()[0][1].Description }]);
+  await health({ canary: "full" });
+  // A new function instance finds it already there.
+  const later = setup({ parameters });
+  await later.health({ canary: "full" });
+  assert.equal(puts().length, 1);
+  // A reads canary has no install and publishes nothing.
+  const reads = setup();
+  await reads.health({ canary: "reads" });
+  assert.deepEqual(reads.parameters.calls, []);
+});
+
+test("a published id that is not this install's is replaced", async () => {
+  const parameters = parameterStore({ [INSTALL_NAME]: "0".repeat(32) });
+  const { health, line } = setup({ parameters });
+  await health({ canary: "full" });
+  assert.equal(parameters.values.get(INSTALL_NAME), line().canary_install_id);
+});
+
+test("the canary names itself on its reads, so the service can leave those out too", async () => {
+  const { health, api, line } = setup();
+  await health({ canary: "full" });
+  const reads = api.calls.filter((call) => call.name.startsWith("GET "));
+  assert.equal(reads.length, 4);
+  assert.ok(reads.every((call) => call.headers["x-install-id"] === line().canary_install_id));
+});
+
+test("the run says whether the service is leaving the canary out, and fails when it should be and is not", async () => {
+  const rule = (result) => result.report.split("\n").find((text) => text.includes("canary is left out of the public figures"));
+  // Just published: the service reads the parameter within ten minutes. Said, not failed.
+  const early = await setup().health({ canary: "full" });
+  assert.equal(early.healthy, true);
+  assert.match(rule(early), /^ {2}skip canary is left out of the public figures: its install id was published /);
+  // Published an hour ago and still not marked: its requests are being counted.
+  const parameters = parameterStore();
+  const first = setup({ parameters });
+  await first.health({ canary: "full" });
+  parameters.modified.set(INSTALL_NAME, new Date(1_760_000_000_000 - 3_600_000));
+  const stale = setup({ parameters });
+  const late = await stale.health({ canary: "full" });
+  assert.equal(late.canary_failed, 1);
+  assert.match(rule(late), /^ {2}FAIL canary is left out of the public figures: the service did not mark/);
+  // The same hour-old id, and the service marks the canary: ok.
+  const api = fakeApi();
+  const recognised = setup({ parameters, api, fetch: marking(api) });
+  const fine = await recognised.health({ canary: "full" });
+  assert.equal(fine.healthy, true);
+  assert.match(rule(fine), /^ {2}ok {3}canary is left out of the public figures: /);
+});
+
+test("an id that cannot be published is a failed canary", async () => {
+  const parameters = parameterStore();
+  const put = parameters.putParameter;
+  parameters.putParameter = async (input) => {
+    if (input.Name === INSTALL_NAME) throw Object.assign(new Error("not authorized to perform: ssm:PutParameter"), { name: "AccessDeniedException" });
+    return put(input);
+  };
+  const { health } = setup({ parameters });
+  const result = await health({ canary: "full" });
+  assert.equal(result.canary_failed, 1);
+  assert.deepEqual(result.could_not_run, ["canary: not authorized to perform: ssm:PutParameter"]);
 });

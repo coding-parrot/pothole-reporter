@@ -20,7 +20,7 @@
 // reads that silence as a failure.
 
 import { runCanary } from "./canary.mjs";
-import { createStoredIdentity } from "./canary-key.mjs";
+import { createInstallPublisher, createStoredIdentity } from "./canary-key.mjs";
 import { createInsights } from "./insights.mjs";
 import { createReport } from "./report.mjs";
 import { judgeWindow, parseWindow } from "./window.mjs";
@@ -54,10 +54,15 @@ export function metricLine({ namespace, timestamp, metrics, fields }) {
   });
 }
 
-export function createHealthFunction({ apiUrl, logGroup, namespace, keyParameter, logs, parameters, fetch, readImage, log, emit,
+// The central function reads the published id at most ten minutes late; twice that, and
+// a canary it still does not mark is being counted in the public figures.
+const RECOGNISED_WITHIN_MS = 20 * 60_000;
+
+export function createHealthFunction({ apiUrl, logGroup, namespace, keyParameter, installParameter, logs, parameters, fetch, readImage, log, emit,
   now = Date.now, sleep }) {
   // Kept for the life of the function instance, so a warm run reads the key store once.
   const identity = createStoredIdentity({ parameters, name: keyParameter });
+  const publish = createInstallPublisher({ parameters, name: installParameter, now });
 
   return async function health(event) {
     const plan = planFrom(event);
@@ -82,6 +87,15 @@ export function createHealthFunction({ apiUrl, logGroup, namespace, keyParameter
       await attempt("canary", async () => {
         const ran = await runCanary({ apiUrl, fetch, identity, readImage, report, depth: plan.canary, now });
         installId = ran.installId || null;
+        if (!installId) return;
+        const since = await publish(installId);
+        const rule = "canary is left out of the public figures";
+        if (ran.recognised) report.ok(rule, "the service marked its requests as the canary's");
+        else if (now() - since > RECOGNISED_WITHIN_MS) {
+          report.fail(rule, `the service did not mark the canary's requests, so they are counted as a person's and judged by the log rules; its install id was published ${Math.round((now() - since) / 60_000)} minutes ago. Check the central function's CANARY_INSTALL_PARAMETER and its read on that parameter`);
+        } else {
+          report.skip(rule, `its install id was published ${Math.round((now() - since) / 60_000)} minutes ago; the service reads it within ten`);
+        }
       });
     }
     const result = report.conclude();

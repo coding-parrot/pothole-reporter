@@ -271,3 +271,19 @@ test("a query that never completes is given up on, and stopped so it scans no mo
   await assert.rejects(createInsights({ logs: refused, logGroupName: "g", pollMs: 500, patienceMs: 1000,
     now: () => clock, sleep: async (ms) => { clock += ms; } })("q", 6), /did not complete/);
 });
+
+// The canary's requests are in the same log as people's. The service marks their lines
+// `canary: true` and leaves the field off every other line, so each query over request
+// lines keeps a line only where the field is absent. Checked against Logs Insights on
+// 7 Oct 2026: of 71 real lines in an hour, none marked, `not ispresent(canary)` kept 71.
+test("every query over request lines leaves the canary's lines out", async () => {
+  const overRequests = [REQUEST_QUERY, LOOKUP_QUERY, SHADOW_QUERY, OWN_TIME_QUERY, KNOWN_ANSWER_QUERY];
+  for (const text of overRequests) {
+    assert.match(text, /^filter event="http_request" and not ispresent\(canary\) /, text.slice(0, 60));
+  }
+  // Lambda's own lines about a crash are no request and carry no such field.
+  assert.ok(!CRASH_QUERY.includes("canary"));
+  const query = scriptedQuery(HEALTHY_WINDOW);
+  await judgeWindow({ query, hours: 6, logGroup: "g", report: createReport() });
+  assert.deepEqual(query.asked.map((asked) => asked.text).filter((text) => text.includes("http_request")).sort(), [...overRequests].sort());
+});

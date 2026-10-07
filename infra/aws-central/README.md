@@ -252,32 +252,36 @@ production through the public API, as a phone does. Until 7 Oct 2026 a GitHub sc
 ran the script; GitHub fired it every 4 to 5 hours when asked for every hour, and held
 AWS keys. That workflow is now for manual runs only.
 
-Three EventBridge rules each send the event that says what to run:
+Two EventBridge rules each send the event that says what to run:
 
 | Rule | When (UTC) | Event | What it does |
 | --- | --- | --- | --- |
-| `HealthWindowSchedule` | minute 17 of every hour | `{"window": "6h", "canary": "reads"}` | judges the last six hours of the request log (six Logs Insights queries), then the reads canary |
-| `HealthReadsSchedule` | minute 47 of every hour | `{"canary": "reads"}` | health, the map, the impact figures, the map's compression: four GETs |
-| `HealthCanarySchedule` | minute 32 of every third hour | `{"canary": "full"}` | the reads, then an install registration, one real detection and three signed tender lookups |
+| `HealthWindowSchedule` | minute 17 of every hour | `{"window": "6h", "canary": "full"}` | judges the last six hours of the request log (six Logs Insights queries), then the full canary |
+| `HealthCanarySchedule` | minute 47 of every hour | `{"canary": "full"}` | the full canary: health, the map, the impact figures, an install registration, one real detection and three signed tender lookups |
 
-The full canary is held to every three hours by the window rules, not by its cost. The
-request log does not record which install made a request, so the canary's three lookups
-are judged beside people's, and none of them matches a tender. "tenders match" fails at
-20 unmatched lookups in a window: every three hours is 6 in six hours, every half hour
-would be 36 and an alarm every quiet night. `test/template-health.test.mjs` holds the
-schedule under half the rule.
+The canary is not a person, and neither the public figures nor the log rules treat it as
+one. After its first full run the health function publishes its install id as the plain
+parameter `/pothole-reporter-central/health/canary-install-id`; the central function
+reads that parameter at start-up and on the warm event (once in ten minutes, never in a
+request; `service/canary-install.mjs`). For that install the service writes no metric,
+so the canary is in no request total, no capture check and no active installation, and
+it marks the request line `canary: true`, which every log query leaves out. Signature,
+quota and idempotency apply to it as to a phone. Each full run checks that the service
+marked its requests, and fails the canary if it did not twenty minutes after the id was
+published. (Until 7 Oct 2026 the canary's lookups were judged beside people's, which
+held the full canary to every three hours.)
 
 What it costs a month, at Mumbai prices, from what was measured on 7 Oct 2026:
 
 | | Measured | USD a month |
 | --- | --- | --- |
 | Logs Insights | 720 windows of 13.9 MB (six queries over six hours of log), USD 0.0067 a GB | 0.07 |
-| Detections | 240 at USD 0.0005 | 0.12 |
-| Lambda | 1,680 runs, about 1,300 GB-seconds at 256 MB (window and reads 2.5 s, reads 0.45 s) | 0.02 |
+| Detections | 1,440 at USD 0.0005 | 0.72 |
+| Lambda | 1,440 runs, about 2,700 GB-seconds at 256 MB (window 2.5 s measured, full canary about 6 s) | 0.04 |
 | Alarms | three alarms on four metrics at USD 0.10 (the account's ten free alarms were taken) | 0.40 |
 | Custom metrics | written only when something is broken: USD 0.0004 for each broken hour | 0.00 |
-| EventBridge rules, the SSM parameter | no charge | 0.00 |
-| | | 0.61 |
+| EventBridge rules, the two SSM parameters | no charge | 0.00 |
+| | | 1.23 |
 
 Logs Insights grows with traffic: the busiest six hours so far (the evening of 6 Oct,
 about 4.5 MB a query) would be 13 cents a month if every window were like it.
@@ -299,12 +303,10 @@ their failures have aged out of the range CloudWatch looks back over (two period
 than it evaluates), some hours after production recovers.
 
 The scheduled canary is one install: a P-256 key made on its first full run and kept as
-the SecureString `/pothole-reporter-central/health/canary-key`. In the public figures
-(`/v1/impact`, 30 days) it is 1 active installation, 240 capture checks and 1,200 of the
-requests the app's page counts (it leaves out the 6,720 to health, the map and impact,
-which the API's `requests_total` includes). It sends no report, so it adds no
-observation and nothing to the map. The command-line canary still registers a new
-install on every run, deploys included.
+the SecureString `/pothole-reporter-central/health/canary-key`. It sends no report, so
+it adds no observation and nothing to the map. The command-line canary
+(`tools/production-health.mjs --canary`, and so every deploy) runs as the same install
+when the caller's credentials can read that key, and says which install it ran as.
 
 To run it by hand:
 

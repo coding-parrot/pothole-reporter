@@ -4,6 +4,7 @@ import { createCachedGeolocator } from "./geo-cache.mjs";
 import { createGeolocator } from "./geolocation.mjs";
 import { createLocalAddress } from "./local-address.mjs";
 import { createNationalCatalogue } from "./national-tenders.mjs";
+import { createCanaryInstall, parameterReader } from "./canary-install.mjs";
 import { createService } from "./core.mjs";
 import { createWarmHandler } from "./warm.mjs";
 
@@ -49,7 +50,11 @@ const geolocator = createCachedGeolocator({ geolocator: liveGeolocator, reposito
 // tools/stage-national-tenders.mjs) at the module's default path.
 const catalogue = createNationalCatalogue();
 
-const service = createService({ repository, detector, geolocator, catalogue });
+// The scheduled health canary's install, which is left out of the public figures. The
+// health function publishes its id; it is read at start-up and on the warm event.
+const canary = createCanaryInstall({ read: parameterReader({ name: process.env.CANARY_INSTALL_PARAMETER || "" }) });
+
+const service = createService({ repository, detector, geolocator, catalogue, canaryInstall: canary.id });
 
 // One real Bengaluru lookup at start-up loads everything a lookup reads from disk (see
 // warm.mjs). The same point through the cached geolocator is a table read (its answer is
@@ -64,7 +69,9 @@ export const handler = createWarmHandler({
     liveGeolocator.resolve(WARM_POINT),
     geolocator.resolve(WARM_POINT),
     secretProvider(),
+    canary.refresh(),
   ]),
-  // Every minute: the map rows, the impact period and Bengaluru's tender index.
-  tick: () => service.keepWarm(WARM_POINT),
+  // Every minute: the map rows, the impact period and Bengaluru's tender index, and
+  // (once in ten minutes) which install is the canary's.
+  tick: () => Promise.all([service.keepWarm(WARM_POINT), canary.refresh()]),
 });

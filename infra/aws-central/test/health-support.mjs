@@ -236,10 +236,13 @@ export async function serve(api) {
 // A stand-in `aws` executable for the script run as a process: it answers `logs
 // start-query` and `logs get-query-results` from a window script and writes every
 // start-query it is given to a file. Returns the directory to put first on PATH.
-export function fakeAwsCli(script) {
+// `key`, when given, is what `ssm get-parameter` answers as the stored canary key;
+// without it that call fails, as it does for a caller who may not read the parameter.
+export function fakeAwsCli(script, { key = null } = {}) {
   const directory = mkdtempSync(path.join(os.tmpdir(), "fake-aws-"));
   const asked = path.join(directory, "asked.jsonl");
   writeFileSync(path.join(directory, "script.json"), JSON.stringify(script));
+  writeFileSync(path.join(directory, "key.json"), JSON.stringify({ key }));
   writeFileSync(asked, "");
   writeFileSync(path.join(directory, "aws"), `#!/usr/bin/env node
 const { appendFileSync, readFileSync } = require("node:fs");
@@ -256,6 +259,11 @@ if (args[0] === "logs" && args[1] === "start-query") {
   if (!entry) { console.error("no scripted answer"); process.exit(254); }
   console.log(JSON.stringify({ status: entry.status || "Complete",
     results: entry.rows.map((row) => Object.entries(row).map(([field, value]) => ({ field, value }))) }));
+} else if (args[0] === "ssm" && args[1] === "get-parameter") {
+  const { key } = JSON.parse(readFileSync(${JSON.stringify(path.join(directory, "key.json"))}, "utf8"));
+  appendFileSync(${JSON.stringify(path.join(directory, "ssm.jsonl"))}, JSON.stringify({ name: option("--name"), decrypt: args.includes("--with-decryption") }) + "\\n");
+  if (!key) { console.error("An error occurred (AccessDeniedException) when calling the GetParameter operation"); process.exit(254); }
+  console.log(JSON.stringify({ Parameter: { Name: option("--name"), Type: "SecureString", Value: key } }));
 } else {
   console.error("unexpected aws call: " + args.join(" "));
   process.exit(2);
