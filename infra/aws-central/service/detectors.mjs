@@ -65,6 +65,14 @@ function timeoutSignal(milliseconds, outer = null) {
   };
 }
 
+// The YOLO and screen Lambdas accept ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$ as a request id.
+// API Gateway's ids are base64 ("E21ZGgNkBcwEJ5w="), so every other character becomes a
+// dot: still unique enough to find the pair of log lines, and never refused.
+const screenRequestId = (requestId) => {
+  const safe = String(requestId || "").replace(/[^A-Za-z0-9._:-]/g, ".").slice(0, 128);
+  return /^[A-Za-z0-9]/.test(safe) ? safe : `r${safe}`.slice(0, 128);
+};
+
 const flagsDamage = (verdict) => verdict?.image_quality === "acceptable"
   && verdict?.assessment === "damaged";
 
@@ -269,7 +277,7 @@ export function createDetector({
     return {
       version: 1,
       task: promptConfig.id,
-      request_id: context.requestId,
+      request_id: screenRequestId(context.requestId),
       model: yoloModel,
       capture_mode: input.captureMode,
       language: input.language,
@@ -308,13 +316,13 @@ export function createDetector({
             routeKey: "POST /v1/detect",
             rawPath: "/v1/detect",
             headers: {
-              "x-request-id": context.requestId,
+              "x-request-id": screenRequestId(context.requestId),
               "x-yolo-api-key": secret.yoloApiKey,
               "content-type": "application/json",
             },
             body: JSON.stringify(payload),
             isBase64Encoded: false,
-            requestContext: { requestId: context.requestId },
+            requestContext: { requestId: screenRequestId(context.requestId) },
           })),
         }), { abortSignal: timeout.signal });
       } catch (error) {
@@ -347,7 +355,7 @@ export function createDetector({
           redirect: "error",
           headers: {
             "content-type": "application/json",
-            "x-request-id": context.requestId,
+            "x-request-id": screenRequestId(context.requestId),
             "x-yolo-api-key": secret.yoloApiKey,
           },
           body: JSON.stringify(payload),

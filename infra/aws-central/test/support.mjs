@@ -1,4 +1,4 @@
-import { generateKeyPairSync, randomUUID, sign } from "node:crypto";
+import { generateKeyPairSync, randomUUID, sign, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { DETECT_PROMPT_VERSION } from "../../../llm/generated/contract.mjs";
@@ -109,6 +109,10 @@ export async function harness({ repository = memoryRepository(), detector = {},
   });
   if (repository.calls) repository.calls.requests.length = 0;
 
+  // API Gateway's own request ids, as production sends them: 16 base64 characters ending
+  // in "=" ("E21ZGgNkBcwEJ5w="). The harness used a UUID until 7 Oct 2026, so nothing
+  // here noticed that the screen Lambda refuses an id with "=" in it.
+  const gatewayRequestId = () => randomBytes(11).toString("base64");
   const post = (path, value, { key = randomUUID(), sentAt = Date.now(), awsContext } = {}) => {
     const body = JSON.stringify(value);
     const timestamp = String(sentAt);
@@ -117,7 +121,7 @@ export async function harness({ repository = memoryRepository(), detector = {},
     })), { key: privateKey, dsaEncoding: "ieee-p1363" }).toString("base64");
     return handle({
       rawPath: path,
-      requestContext: { http: { method: "POST" }, requestId: randomUUID() },
+      requestContext: { http: { method: "POST" }, requestId: gatewayRequestId() },
       headers: {
         "X-Install-ID": installId,
         "X-Timestamp": timestamp,

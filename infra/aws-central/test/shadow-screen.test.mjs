@@ -331,6 +331,23 @@ test("the shadow request is the screen contract with the screen token, never the
   assert.ok(options?.abortSignal);
 });
 
+// The screen Lambda (and the YOLO Lambda) accept only ^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$
+// as a request id. API Gateway's ids end in "=", so on its first live frames
+// (7 Oct 2026) every shadow call was refused with bad_request_id.
+test("the request id sent to the screen is one the screen accepts", async () => {
+  const screen = screenLambda(screenUndamaged);
+  const shadow = await detectWith({ screen, openai: openai(undamaged) });
+  assert.equal(shadow.status, 200);
+  assert.match(shadow.body.request_id, /[=+/]/, "the harness must send a gateway-shaped id");
+  const accepted = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+  const event = JSON.parse(Buffer.from(screen.calls[0].input.Payload).toString("utf8"));
+  assert.match(event.headers["x-request-id"], accepted);
+  assert.match(event.requestContext.requestId, accepted);
+  const sent = JSON.parse(event.body).request_id;
+  assert.match(sent, accepted);
+  assert.equal(event.headers["x-request-id"], sent, "header and body must agree or the screen answers request_id_mismatch");
+});
+
 test("a screen without a score (the YOLO contract) still records its assessment", async () => {
   const screen = screenLambda(async () => envelope(screenDamaged, undefined));
   const shadow = await detectWith({ screen, openai: openai(openaiDamaged) });
