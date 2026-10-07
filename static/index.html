@@ -5416,7 +5416,43 @@ function grabPreview(video, canvas = null) {
     target.height = video.videoHeight;
   }
   target.getContext("2d").drawImage(video, 0, 0, target.width, target.height);
-  return new Promise((r) => target.toBlob(r, "image/jpeg", 0.9));
+  return canvasJpeg(target, 0.9);
+}
+
+// canvas.toBlob encodes when the page next has idle time, and answers in about 35 ms.
+// On real phones (Pixel 8a, Galaxy A13 5G and A15, WebView 153, 7 Oct 2026) that answer
+// sometimes did not come for the first 10 s of a drive: three captures in a row outlived
+// their 3 s limit while the preview played, and the drive called a streaming camera lost
+// and reopened it. So toBlob gets a short head start, and if it has not answered the
+// same canvas is encoded here and now. Whichever answers first is the frame; the other
+// is dropped. Both encode the whole canvas, so the frame is the full camera frame either way.
+const GRAB_ENCODE_WAIT_MS = 400;
+function canvasJpeg(target, quality) {
+  return new Promise((resolve) => {
+    let settled = false;
+    let timer = null;
+    const finish = (blob) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(blob);
+    };
+    timer = setTimeout(() => {
+      if (settled) return;
+      try {
+        const url = target.toDataURL("image/jpeg", quality);
+        const bytes = atob(url.slice(url.indexOf(",") + 1));
+        const buffer = new Uint8Array(bytes.length);
+        for (let i = 0; i < bytes.length; i += 1) buffer[i] = bytes.charCodeAt(i);
+        // An empty or tainted canvas encodes to nothing useful; leave that to toBlob
+        // and to the caller's own limit, as before.
+        if (buffer.length > 2 && url.startsWith("data:image/jpeg")) {
+          finish(new Blob([buffer], { type: "image/jpeg" }));
+        }
+      } catch (e) {}
+    }, window.__grabEncodeWaitMs || GRAB_ENCODE_WAIT_MS);
+    target.toBlob(finish, "image/jpeg", quality);
+  });
 }
 
 // One cheap read of the frame the preview is already showing. No capture-session

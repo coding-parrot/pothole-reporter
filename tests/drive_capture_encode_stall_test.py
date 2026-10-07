@@ -91,19 +91,29 @@ with sync_playwright() as playwright:
         if late["answers"] != 1 or late["size"] < 1000:
             fails.append(f"a late toBlob changed the capture's answer: {late}")
 
-        # With toBlob working, it is still the one that answers: no second encode.
+        # A toBlob that answers in time is still the one that answers: no second encode.
+        # (Timed by hand: how soon the real one answers depends on the machine's idle time.)
         normal = page.evaluate("""async () => {
-          HTMLCanvasElement.prototype.toBlob = window.__realToBlob;
+          const mine = document.createElement('canvas');
+          const answer = new Blob([new Uint8Array(2048)], { type: 'image/jpeg' });
+          HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
+            if (this !== mine) return window.__realToBlob.call(this, callback, type, quality);
+            setTimeout(() => callback(answer), 50);
+          };
           let dataUrls = 0;
           const realDataUrl = HTMLCanvasElement.prototype.toDataURL;
-          HTMLCanvasElement.prototype.toDataURL = function (...args) { dataUrls += 1; return realDataUrl.apply(this, args); };
-          const blob = await grabPreview(document.getElementById('driveVideo'));
+          HTMLCanvasElement.prototype.toDataURL = function (...args) {
+            if (this === mine) dataUrls += 1;
+            return realDataUrl.apply(this, args);
+          };
+          const blob = await grabPreview(document.getElementById('driveVideo'), mine);
           await new Promise((resolve) => setTimeout(resolve, 900));
           HTMLCanvasElement.prototype.toDataURL = realDataUrl;
-          return { size: blob ? blob.size : 0, dataUrls };
+          HTMLCanvasElement.prototype.toBlob = window.__realToBlob;
+          return { size: blob ? blob.size : 0, fromToBlob: blob === answer, dataUrls };
         }""")
-        if normal["size"] < 1000 or normal["dataUrls"] != 0:
-            fails.append(f"with toBlob working the capture encoded twice or failed: {normal}")
+        if normal["size"] < 1000 or not normal["fromToBlob"] or normal["dataUrls"] != 0:
+            fails.append(f"a toBlob that answered in time was not the frame, or the canvas was encoded twice: {normal}")
         fails += [f"page error: {error}" for error in errors[:3]]
     finally:
         browser.close()
