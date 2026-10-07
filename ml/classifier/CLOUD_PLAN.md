@@ -58,9 +58,16 @@ view, and the list of what was refused and why.
 9. `export`: ONNX, checked against torch on the whole test split, thresholds set on
    serving-path scores. Published to `models/<version>/`.
 
-Each stage ends by syncing its logs and outputs to S3 and appending to
-`runs/<run-id>/progress.md`. The driver chains every stage and finishes by itself, so a
-lost session costs nothing: read `progress.md` first.
+Each stage ends by syncing its logs, outputs and resumable state to S3 and appending to
+`runs/<run-id>/progress.md`. The driver chains every stage, retries a failed stage once
+and finishes by itself, so a lost session costs nothing: read `progress.md` first.
+
+No idle GPU: `cloud/watchdog.sh` powers the instance off (which terminates it) the moment
+the last stage is done, or when no driver has run for 10 minutes. A relaunch
+(`MARKET=spot cloud/launch.sh`, on-demand only if spot is refused) starts `run.sh` on an
+empty disk, which restores the finished stages from `runs/<run-id>/state/` and carries on.
+Every number in the report is computed on the instance; the Mac only reads
+`report.md` and `report.json` from S3.
 
 ## Gates
 
@@ -80,6 +87,7 @@ ml/classifier/cloud/aws_setup.sh                 # bucket, role, security group 
 ml/classifier/cloud/launch.sh                    # the one instance
 ml/classifier/cloud/ssm.sh 'cd /opt/ml && git clone -b feat/screen-v2 https://github.com/coding-parrot/pothole-reporter.git repo'
 ml/classifier/cloud/ssm.sh 'cd /opt/ml/repo && nohup setsid ml/classifier/cloud/run.sh > /opt/ml/run.log 2>&1 &'
+ml/classifier/cloud/ssm.sh 'cd /opt/ml/repo && nohup setsid ml/classifier/cloud/watchdog.sh > /opt/ml/watchdog.log 2>&1 &'
 aws s3 cp s3://pothole-reporter-ml-695656921622-ap-south-1/runs/<run-id>/progress.md -
 ml/classifier/cloud/teardown.sh                  # always, pass or fail
 ```

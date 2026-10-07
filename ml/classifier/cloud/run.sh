@@ -5,7 +5,11 @@
 # runs/$RUN_ID/progress.md, so the state of the run is one `aws s3 cp` away.
 #
 #   nohup setsid ml/classifier/cloud/run.sh > /opt/ml/run.log 2>&1 &
+#   nohup setsid ml/classifier/cloud/watchdog.sh > /opt/ml/watchdog.log 2>&1 &   # powers off at the end
 #   STAGES="evaluate export" ml/classifier/cloud/run.sh        # only these
+#
+# On a fresh instance with an empty work directory it first restores the finished
+# stages of $RUN_ID from S3 (resume_from_s3), so a relaunch carries on.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 . "$HERE/env.sh"
@@ -28,16 +32,23 @@ progress() {
 
 stage() {  # name, then the command
   local name="$1"; shift
-  if [[ -e "$WORK/.done/$name" ]]; then echo "$name: done before"; return 0; fi
+  if [[ -e "$WORK/.done/$name" && ( "$name" != setup || -x /opt/node/bin/node ) ]]; then
+    echo "$name: done before"; return 0
+  fi
   echo "$name: start $(date -u +%H:%M:%S)"
   local started=$SECONDS status=0
   # A subshell with its own `set -e`, and not on the left of `||`: bash ignores errexit
   # inside anything whose status is being tested, which would let a stage run on after
   # a failed step.
-  set +e
-  ( set -e; "$@" ) > "$WORK/logs/$name.log" 2>&1
-  status=$?
-  set -e
+  local attempt
+  for attempt in 1 2; do  # one retry: every stage picks up where it stopped
+    set +e
+    ( set -e; "$@" ) > "$WORK/logs/$name.log" 2>&1
+    status=$?
+    set -e
+    [[ $status -ne 0 ]] || break
+    cp "$WORK/logs/$name.log" "$WORK/logs/$name.attempt$attempt.log"
+  done
   aws s3 cp "$WORK/logs/$name.log" "$S3/runs/$RUN_ID/logs/$name.log" --only-show-errors || true
   if [[ $status -ne 0 ]]; then
     progress "$name FAILED after $((SECONDS - started))s: $(tail -n 3 "$WORK/logs/$name.log" | tr '\n' ' ' | cut -c1-300)"
@@ -45,6 +56,39 @@ stage() {  # name, then the command
   fi
   touch "$WORK/.done/$name"
   progress "$name done in $((SECONDS - started))s. $(tail -n 1 "$WORK/logs/$name.log" | cut -c1-300)"
+  "$HERE/sync_state.sh"
+}
+
+resume_from_s3() {
+  # A relaunched instance: bring back what the finished stages produced, so their
+  # markers are true here too. Raw archives are not needed again once frames exist.
+  aws s3 ls "$S3/runs/$RUN_ID/state/.done/" >/dev/null 2>&1 || return 0
+  echo "resuming $RUN_ID from S3"
+  for part in .done embeddings heads scores finetuned results report release onnx; do
+    aws s3 sync "$S3/runs/$RUN_ID/state/$part" "$WORK/$part" --only-show-errors
+  done
+  aws s3 cp "$S3/runs/$RUN_ID/progress.md" "$WORK/progress.md" --only-show-errors || true
+  if [[ -e "$WORK/.done/restore_v1_frames" ]]; then
+    for part in owner heads onnx; do aws s3 sync "$S3/v1-work/$part" "$WORK/$part" --only-show-errors; done
+    aws s3 sync "$S3/v1-work/frames" "$WORK/frames" --only-show-errors --exclude index.jsonl
+  fi
+  if [[ -e "$WORK/.done/prepare" ]]; then
+    aws s3 sync "$S3/frames" "$WORK/frames" --only-show-errors
+    mv "$WORK/frames/selection.json" "$WORK/selection.json"
+  fi
+  if [[ -e "$WORK/.done/restore_v1_labels" ]]; then
+    aws s3 sync "$S3/v1-work/rdd2022_india/train/annotations" "$WORK/rdd2022_india/train/annotations" --only-show-errors
+    aws s3 cp "$S3/v1-work/manifest.jsonl" "$WORK/manifest-v1.jsonl" --only-show-errors
+    [[ -e "$WORK/.done/label" ]] || aws s3 sync "$S3/v1-work/teacher" "$WORK/teacher" --only-show-errors
+  fi
+  if [[ -e "$WORK/.done/label" ]]; then
+    aws s3 cp "$S3/labels/teacher.tar" "$WORK/teacher.tar" --only-show-errors
+    tar -C "$WORK" -xf "$WORK/teacher.tar" && rm "$WORK/teacher.tar"
+  fi
+  if [[ -e "$WORK/.done/manifest" ]]; then
+    aws s3 cp "$S3/labels/manifest.jsonl" "$WORK/manifest.jsonl" --only-show-errors
+  fi
+  progress "resumed on a new instance from S3"
 }
 
 setup() {
@@ -174,6 +218,7 @@ export_model() {
   "$PYTHON" -c "import json,sys; d=json.load(open(sys.argv[1])); c=d['comparisons']; print('v2 beats v1 on every slice (serving path):', {k: v['v2_beats_v1_on_every_slice'] for k, v in c.items()})" "$WORK/report/serving-path/report.json"
 }
 
+[[ -n "$(ls -A "$WORK/.done")" ]] || resume_from_s3
 for name in ${STAGES:-setup restore_v1_frames fetch prepare restore_v1_labels label manifest probes finetunes evaluate export}; do
   case "$name" in
     fetch) stage fetch "$HERE/fetch_raw.sh" ;;

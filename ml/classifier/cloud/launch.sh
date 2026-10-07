@@ -19,6 +19,13 @@ USER_DATA="$(mktemp)"
 trap 'rm -f "$USER_DATA"' EXIT
 printf '#!/bin/bash\nshutdown -h +720\n' > "$USER_DATA"
 
+# MARKET=spot asks for a spot instance first (a relaunch: the run resumes from S3, so an
+# interruption costs little) and falls back to on-demand if spot is refused.
+MARKETS=("on-demand")
+[[ "${MARKET:-on-demand}" != "spot" ]] || MARKETS=("spot" "on-demand")
+for market in "${MARKETS[@]}"; do
+MARKET_OPTIONS=()
+[[ "$market" != "spot" ]] || MARKET_OPTIONS=(--instance-market-options "MarketType=spot,SpotOptions={SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}")
 for zone in "${AWS_REGION}a" "${AWS_REGION}b"; do
   SUBNET="$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC" "Name=availability-zone,Values=$zone" \
     "Name=default-for-az,Values=true" --query 'Subnets[0].SubnetId' --output text)"
@@ -29,12 +36,12 @@ for zone in "${AWS_REGION}a" "${AWS_REGION}b"; do
       --instance-initiated-shutdown-behavior terminate \
       --metadata-options "HttpTokens=required,HttpEndpoint=enabled" \
       --block-device-mappings "[{\"DeviceName\":\"$ROOT_DEVICE\",\"Ebs\":{\"VolumeSize\":200,\"VolumeType\":\"gp3\",\"DeleteOnTermination\":true}}]" \
-      --user-data "file://$USER_DATA" \
+      --user-data "file://$USER_DATA" "${MARKET_OPTIONS[@]}" \
       --tag-specifications \
         "ResourceType=instance,Tags=[{Key=Name,Value=$ML_INSTANCE_NAME},{Key=project,Value=$ML_TAG}]" \
         "ResourceType=volume,Tags=[{Key=Name,Value=$ML_INSTANCE_NAME},{Key=project,Value=$ML_TAG}]" \
       --query 'Instances[0].InstanceId' --output text 2>/tmp/ml-launch.err)"; then
-    echo "launched $INSTANCE ($ML_INSTANCE_TYPE, $AMI) in $zone at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "launched $INSTANCE ($ML_INSTANCE_TYPE, $market, $AMI) in $zone at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     aws ec2 wait instance-running --instance-ids "$INSTANCE"
     # The SSM agent registers a minute or so after boot.
     for attempt in $(seq 1 40); do
@@ -46,5 +53,6 @@ for zone in "${AWS_REGION}a" "${AWS_REGION}b"; do
     echo "instance is running but SSM did not come online" >&2; exit 1
   fi
   cat /tmp/ml-launch.err >&2
+done
 done
 echo "could not launch in any zone" >&2; exit 1
