@@ -113,6 +113,32 @@ function recordScreenVerdict(context, screen) {
   return flagged;
 }
 
+// What the phone is told about a drive frame the screen answered alone. The screen's own
+// sentences are fixed English and ten words long ("The road screen found no road damage
+// in this frame."); the contract's description is at most eight words, and in Kannada
+// when the request asks for it (the one language the prompt has a suffix for). The
+// Kannada lines are the YOLO detector's own (infra/aws-yolo/service/detector.py).
+const SCREEN_DESCRIPTIONS = Object.freeze({
+  en: Object.freeze({
+    damaged: "The road screen flagged likely road damage.",
+    undamaged: "No road damage found in this frame.",
+    rejected: "The image quality is insufficient for pothole detection.",
+  }),
+  kn: Object.freeze({
+    damaged: "ಪಥೋಲ್ ಮಾದರಿಯು ರಸ್ತೆ ಮೇಲ್ಮೈಯಲ್ಲಿ ಗುಂಡಿಯನ್ನು ಪತ್ತೆಹಚ್ಚಿದೆ.",
+    undamaged: "ಬಳಸಬಹುದಾದ ರಸ್ತೆ ಚಿತ್ರದಲ್ಲಿ ಪಥೋಲ್ ಪತ್ತೆಯಾಗಿಲ್ಲ.",
+    rejected: "ಚಿತ್ರದ ಗುಣಮಟ್ಟ ಪಥೋಲ್ ಪರಿಶೀಲನೆಗೆ ಸಾಕಾಗಿಲ್ಲ.",
+  }),
+});
+
+// The screen's verdict as the phone gets it: the same four decisions, with the
+// description the contract allows.
+function screenAnswer(screen, language) {
+  const lines = SCREEN_DESCRIPTIONS[language] || SCREEN_DESCRIPTIONS.en;
+  const kind = screen.verdict.image_quality === "acceptable" ? screen.verdict.assessment : "rejected";
+  return { ...screen, verdict: { ...screen.verdict, description: lines[kind] } };
+}
+
 function outputFormat() {
   return {
     format: {
@@ -494,7 +520,7 @@ export function createDetector({
       // rather than silently changing which model judged the frame.
       if (!(error instanceof HttpError) || !error.details?.fallback_allowed) throw error;
       context.detectorFallbackReason = error.code;
-      return { ...screen, fallbackFrom: "openai", fallbackReason: error.code };
+      return { ...screenAnswer(screen, input.language), fallbackFrom: "openai", fallbackReason: error.code };
     }
   }
 
@@ -505,7 +531,8 @@ export function createDetector({
   // timeout, a 5xx) the frame is answered exactly as an unaudited one, and the log says
   // the audit was lost.
   async function auditCleared(input, context, screen) {
-    if (!(auditDraw() < auditShare)) return screen;
+    const answer = screenAnswer(screen, input.language);
+    if (!(auditDraw() < auditShare)) return answer;
     context.screenAudited = true;
     try {
       const judged = await openai(input, context);
@@ -515,7 +542,7 @@ export function createDetector({
     } catch (error) {
       if (!(error instanceof HttpError)) throw error;
       context.screenAuditError = error.code;
-      return screen;
+      return answer;
     }
   }
 

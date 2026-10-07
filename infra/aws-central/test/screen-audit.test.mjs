@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { DETECT_PROMPT_VERSION, DETECT_SCHEMA, DETECT_SCHEMA_VERSION } from "../../../llm/generated/contract.mjs";
 import { DEFAULT_SCREEN_AUDIT_RATE, auditRate, createDetector } from "../service/detectors.mjs";
 import { detectBody, harness, secretFrom, undamaged, upstream } from "./support.mjs";
 
@@ -366,4 +367,91 @@ test("shadow mode logs no audit rate: that is how a query tells a shadow line fr
   assert.equal(shadow.log.screen_agrees, true);
   assert.equal(shadow.log.screen_audit_rate, null);
   assert.equal(shadow.log.screen_audited, null);
+});
+
+// ------------------------------------------------------------- what the phone is told
+// The screen's own sentences are fixed English and ten words long ("The road screen found
+// no road damage in this frame."). The contract's description is at most eight words, in
+// Kannada when the request asks for it. A frame the screen answers alone is the common
+// case in this mode, so its answer has to be one every installed app accepts.
+const words = (text) => text.trim().split(/\s+/).length;
+const KANNADA = /[ಀ-೿]/;
+const withoutIds = ({ request_id: id, detection_receipt: receipt, detection_receipt_expires_at: expires, ...rest }) => rest;
+
+test("the contract still asks for at most eight words", () => {
+  assert.match(DETECT_SCHEMA.properties.description.description, /^At most eight words/);
+  assert.equal(words(screenUndamaged.description), 10, "the screen's own sentence is the long one these cases start from");
+});
+
+for (const language of ["en", "kn", "mr", "bn", undefined]) {
+  test(`a cleared frame is a complete, short answer in the contract's shape (language ${language})`, async () => {
+    const result = await detectWith({ screen: screenLambda(screenUndamaged), openai: openai(openaiDamaged), auditDraw: NO_AUDIT,
+      body: { ...driveBody, ...(language ? { language } : {}) } });
+    assert.equal(result.status, 200, JSON.stringify(result.body));
+    // The app's own check: every field the schema requires is there.
+    for (const field of DETECT_SCHEMA.required) assert.ok(Object.hasOwn(result.body, field), field);
+    for (const field of ["image_quality", "assessment", "damage_type", "size"]) {
+      assert.ok(DETECT_SCHEMA.properties[field].enum.includes(result.body[field]), field);
+    }
+    assert.deepEqual([result.body.image_quality, result.body.assessment, result.body.damage_type, result.body.size],
+      ["acceptable", "undamaged", null, null]);
+    const { description } = result.body;
+    assert.ok(description.trim().length > 0);
+    assert.ok(words(description) <= 8, description);
+    assert.notEqual(description, screenUndamaged.description);
+    // Kannada is the one language the prompt asks gpt-5-mini to write in.
+    assert.equal(KANNADA.test(description), language === "kn", description);
+    assert.equal(result.body.detector.provider, "shared_server");
+    assert.equal(result.body.detector.backend_provider, "yolo");
+    assert.equal(result.body.detector.model, "road-screen-v2");
+    assert.equal(result.body.detector.prompt_version, DETECT_PROMPT_VERSION);
+    assert.equal(result.body.detector.schema_version, DETECT_SCHEMA_VERSION);
+    assert.equal(result.body.detection_receipt, undefined);
+  });
+}
+
+for (const language of ["en", "kn"]) {
+  test(`a screen verdict left standing by exhausted credit is short too (language ${language})`, async () => {
+    const result = await detectWith({ screen: screenLambda(screenDamaged, { score: 0.9 }),
+      openai: openai({ error: { code: "insufficient_quota" } }, 429), auditDraw: NO_AUDIT, body: { ...driveBody, language } });
+    assert.equal(result.body.assessment, "damaged");
+    assert.ok(words(result.body.description) <= 8, result.body.description);
+    assert.equal(KANNADA.test(result.body.description), language === "kn");
+  });
+
+  test(`a frame the screen rejects for quality is short too (language ${language})`, async () => {
+    const result = await detectWith({ screen: screenLambda({ ...screenUndamaged, image_quality: "rejected" }),
+      openai: openai(undamaged), auditDraw: NO_AUDIT, body: { ...driveBody, language } });
+    assert.equal(result.body.image_quality, "rejected");
+    assert.ok(words(result.body.description) <= 8, result.body.description);
+    assert.equal(KANNADA.test(result.body.description), language === "kn");
+  });
+}
+
+// gpt-5-mini sees a frame for one of two reasons: the screen flagged it, or the screen
+// cleared it and it was drawn for audit. The phone is told gpt-5-mini answered and never
+// which reason it was.
+test("an audited frame's response is a flagged frame's response, field for field", async () => {
+  for (const verdict of [undamaged, openaiDamaged]) {
+    const body = { ...driveBody, client_observation_id: "obs-same" };
+    const audited = await detectWith({ screen: screenLambda(screenUndamaged, { score: 0.02 }), openai: openai(verdict), auditDraw: AUDIT, body });
+    const flagged = await detectWith({ screen: screenLambda(screenDamaged, { score: 0.9 }), openai: openai(verdict), auditDraw: AUDIT, body });
+    assert.deepEqual(withoutIds(audited.body), withoutIds(flagged.body));
+    assert.equal(Boolean(audited.body.detection_receipt), Boolean(flagged.body.detection_receipt));
+    const { "x-request-id": first, ...auditedHeaders } = audited.headers;
+    const { "x-request-id": second, ...flaggedHeaders } = flagged.headers;
+    assert.deepEqual(auditedHeaders, flaggedHeaders);
+  }
+});
+
+test("nothing the phone can read names the audit or its rate", async () => {
+  for (const auditDraw of [AUDIT, NO_AUDIT]) {
+    const result = await detectWith({ screen: screenLambda(screenUndamaged), openai: openai(undamaged), auditDraw });
+    assert.doesNotMatch(JSON.stringify([result.body, result.headers]), /audit/i);
+    assert.doesNotMatch(JSON.stringify(result.body), /0\.1\b/);
+  }
+  const h = await harness({ detector: detectorWith({ screen: screenLambda(screenUndamaged), openai: openai(undamaged) }) });
+  const health = await h.handle({ rawPath: "/v1/health", requestContext: { http: { method: "GET" } } });
+  assert.equal(health.statusCode, 200);
+  assert.doesNotMatch(health.body, /audit/i);
 });
