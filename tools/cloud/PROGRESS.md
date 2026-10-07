@@ -20,3 +20,6 @@
 - Test now samples the HUD every 1.5 s, counts camera opens from logcat, and runs a
   second 10 s drive as a control (no sheets). buildspec-ci.yml and requirements-ci.txt
   drafted, not yet used.
+- Full run 2 (4 phones, pool pothole-india-phones created) scheduled:
+  arn:aws:devicefarm:us-west-2:695656921622:run:5425ff41-703f-49dd-b67a-dae7a8b54b98/f2dff49f-08af-45bd-8c48-e4302b102a5b
+  results folder ~/Downloads/pothole-testers/device-farm/1.40.0/run-20261007-180839
