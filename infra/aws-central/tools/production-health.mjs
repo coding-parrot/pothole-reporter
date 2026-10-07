@@ -12,10 +12,11 @@
 // rules.mjs); this file only gives them the aws CLI, fetch and a fresh install key.
 //
 // --window needs the aws CLI with Logs Insights rights on the function's log group.
-// --canary needs only the public API URL (API_URL, default the production stack).
+// --canary needs only the public API URL (API_URL, default the production stack). With
+// credentials that can read the scheduled canary's key it runs as that install.
 
 import { execFileSync } from "node:child_process";
-import { generateKeyPairSync } from "node:crypto";
+import { createPrivateKey, createPublicKey, generateKeyPairSync } from "node:crypto";
 
 import { runCanary } from "../service/health/canary.mjs";
 import { readExampleImage } from "../service/health/example-image.mjs";
@@ -33,6 +34,7 @@ const value = (name, fallback) => {
 const API_URL = (process.env.API_URL || "https://ffjvg34k07.execute-api.ap-south-1.amazonaws.com").replace(/\/$/, "");
 const LOG_GROUP = process.env.LOG_GROUP || "/aws/lambda/pothole-reporter-central";
 const REGION = process.env.AWS_REGION || "ap-south-1";
+const KEY_PARAMETER = process.env.CANARY_KEY_PARAMETER || "/pothole-reporter-central/health/canary-key";
 
 function aws(...params) {
   return JSON.parse(execFileSync("aws", [...params, "--region", REGION, "--output", "json"],
@@ -69,6 +71,23 @@ async function openNoticesForCanaryWard() {
   }
 }
 
+// The scheduled canary's one install, when this caller may read its key (the deploying
+// user can): the service leaves that install out of the public figures and marks its
+// request lines, so a deploy's canary is no longer a new "active installation" each
+// time. Anyone else (no aws CLI, or the GitHub workflow's user, who may only query the
+// log) runs as a new install, and the "install registers" line says which it was. The
+// key is held in memory and never printed.
+function canaryIdentity() {
+  try {
+    const pem = JSON.parse(execFileSync("aws", ["ssm", "get-parameter", "--name", KEY_PARAMETER, "--with-decryption",
+      "--region", REGION, "--output", "json"], { encoding: "utf8", timeout: 30_000, stdio: ["ignore", "pipe", "pipe"] })).Parameter.Value;
+    const privateKey = createPrivateKey(pem);
+    return { privateKey, publicKey: createPublicKey(privateKey), described: "the scheduled canary's stored install" };
+  } catch {
+    return { ...generateKeyPairSync("ec", { namedCurve: "prime256v1" }), described: "a new install: the stored canary key could not be read" };
+  }
+}
+
 const windowArg = value("window", null);
 if (!windowArg && !flag("canary")) {
   console.error("usage: production-health.mjs [--window 24h] [--canary]");
@@ -82,8 +101,7 @@ try {
       apiUrl: API_URL,
       fetch,
       report,
-      // A new key, so a new install, on every run. The scheduled function keeps one.
-      identity: async () => generateKeyPairSync("ec", { namedCurve: "prime256v1" }),
+      identity: async () => canaryIdentity(),
       readImage: readExampleImage,
       // CANARY_CATALOGUE_IS_THIS_CHECKOUT: deploy.sh sets it, because the notices
       // production serves are then the ones this checkout staged.

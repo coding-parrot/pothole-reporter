@@ -83,7 +83,8 @@ export async function runCanary({ apiUrl, fetch, identity, readImage, report, de
     fail("install registers", `${registration.status} ${JSON.stringify(install).slice(0, 200)}`);
     return {};
   }
-  ok("install registers", install.install_id.slice(0, 8));
+  // `described` is the caller's word for which install this is, when it has one to say.
+  ok("install registers", `${install.install_id.slice(0, 8)}${held.described ? ` (${held.described})` : ""}`);
 
   async function signedPost(route, payload, timeoutMs = 30_000) {
     const body = JSON.stringify(payload);
