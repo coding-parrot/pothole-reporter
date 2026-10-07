@@ -1,102 +1,124 @@
 {
+  "carried_over": [
+    {
+      "retrieved_at": "2026-10-05T05:42:16Z",
+      "sha256": "5c0176709937070eb57c9577c7fc79c7a23fba1fb1b3837e97c5803b52097e7f",
+      "source_id": "in-la-gepnic",
+      "state_code": "LA"
+    },
+    {
+      "retrieved_at": "2026-10-05T05:42:16Z",
+      "sha256": "62e3ef36a2e74a506eae4288abadd811d32950829eaff061c8def300b7bc81cd",
+      "source_id": "in-wb-gepnic-current",
+      "state_code": "WB"
+    }
+  ],
   "failures": [
+    {
+      "error": "failed to fetch https://tenders.ladakh.gov.in/nicgep/app?component=clear&page=FrontEndTendersByOrganisation&service=direct: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self-signed certificate in certificate chain (_ssl.c:1010)>",
+      "organisation_url": "https://tenders.ladakh.gov.in/nicgep/app?component=clear&page=FrontEndTendersByOrganisation&service=direct",
+      "source_id": "in-la-gepnic",
+      "source_name": "Ladakh e-Procurement Portal",
+      "state_code": "LA"
+    },
     {
       "error": "GePNIC organisation directory table was not found or was empty",
       "organisation_url": "https://mizoramtenders.gov.in/nicgep/app?component=clear&page=FrontEndTendersByOrganisation&service=direct",
       "source_id": "in-mz-gepnic",
       "source_name": "Mizoram e-Procurement Portal",
       "state_code": "MZ"
+    },
+    {
+      "error": "failed to fetch https://tenders.wb.gov.in/nicgep/app?component=clear&page=FrontEndTendersByOrganisation&service=direct: <urlopen error timed out>",
+      "organisation_url": "https://tenders.wb.gov.in/nicgep/app?component=clear&page=FrontEndTendersByOrganisation&service=direct",
+      "source_id": "in-wb-gepnic-current",
+      "source_name": "West Bengal e-Procurement Portal",
+      "state_code": "WB"
     }
   ],
   "format": "india-gepnic-road-surface-crawl-report",
-  "retrieved_at": "2026-10-05T05:42:16Z",
+  "retrieved_at": "2026-10-07T04:59:04Z",
   "schema_version": 1,
-  "source_count_failed": 1,
+  "source_count_failed": 3,
   "source_count_requested": 30,
-  "source_count_succeeded": 29,
+  "source_count_succeeded": 27,
   "states": {
     "AN": {
-      "notices": 6,
-      "rows_excluded_by_scope": 193,
-      "rows_scanned": 199,
+      "notices": 8,
+      "rows_excluded_by_scope": 203,
+      "rows_scanned": 211,
       "sources": 1
     },
     "AR": {
       "notices": 1,
-      "rows_excluded_by_scope": 9,
-      "rows_scanned": 10,
+      "rows_excluded_by_scope": 5,
+      "rows_scanned": 6,
       "sources": 1
     },
     "AS": {
       "notices": 41,
-      "rows_excluded_by_scope": 474,
-      "rows_scanned": 515,
+      "rows_excluded_by_scope": 444,
+      "rows_scanned": 485,
       "sources": 1
     },
     "CH": {
-      "notices": 16,
-      "rows_excluded_by_scope": 246,
-      "rows_scanned": 262,
+      "notices": 12,
+      "rows_excluded_by_scope": 257,
+      "rows_scanned": 269,
       "sources": 1
     },
     "DH": {
       "notices": 1,
-      "rows_excluded_by_scope": 13,
-      "rows_scanned": 14,
+      "rows_excluded_by_scope": 17,
+      "rows_scanned": 18,
       "sources": 1
     },
     "DL": {
-      "notices": 21,
-      "rows_excluded_by_scope": 681,
-      "rows_scanned": 702,
+      "notices": 20,
+      "rows_excluded_by_scope": 596,
+      "rows_scanned": 616,
       "sources": 1
     },
     "GA": {
-      "notices": 20,
-      "rows_excluded_by_scope": 264,
-      "rows_scanned": 284,
+      "notices": 12,
+      "rows_excluded_by_scope": 245,
+      "rows_scanned": 257,
       "sources": 1
     },
     "HP": {
-      "notices": 75,
-      "rows_excluded_by_scope": 993,
-      "rows_scanned": 1068,
+      "notices": 102,
+      "rows_excluded_by_scope": 1012,
+      "rows_scanned": 1114,
       "sources": 1
     },
     "HR": {
-      "notices": 157,
-      "rows_excluded_by_scope": 2126,
-      "rows_scanned": 2283,
+      "notices": 114,
+      "rows_excluded_by_scope": 1848,
+      "rows_scanned": 1962,
       "sources": 1
     },
     "JH": {
-      "notices": 131,
-      "rows_excluded_by_scope": 555,
-      "rows_scanned": 686,
+      "notices": 110,
+      "rows_excluded_by_scope": 556,
+      "rows_scanned": 666,
       "sources": 1
     },
     "JK": {
-      "notices": 412,
-      "rows_excluded_by_scope": 4423,
-      "rows_scanned": 4835,
+      "notices": 368,
+      "rows_excluded_by_scope": 3779,
+      "rows_scanned": 4147,
       "sources": 1
     },
     "KL": {
-      "notices": 1378,
-      "rows_excluded_by_scope": 6258,
-      "rows_scanned": 7636,
-      "sources": 1
-    },
-    "LA": {
-      "notices": 6,
-      "rows_excluded_by_scope": 46,
-      "rows_scanned": 52,
+      "notices": 1355,
+      "rows_excluded_by_scope": 6128,
+      "rows_scanned": 7483,
       "sources": 1
     },
     "MH": {
-      "notices": 92,
-      "rows_excluded_by_scope": 2571,
-      "rows_scanned": 2663,
+      "notices": 104,
+      "rows_excluded_by_scope": 2418,
+      "rows_scanned": 2522,
       "sources": 1
     },
     "ML": {
@@ -107,44 +129,44 @@
     },
     "MN": {
       "notices": 2,
-      "rows_excluded_by_scope": 33,
-      "rows_scanned": 35,
+      "rows_excluded_by_scope": 45,
+      "rows_scanned": 47,
       "sources": 1
     },
     "MP": {
-      "notices": 715,
-      "rows_excluded_by_scope": 4840,
-      "rows_scanned": 5555,
+      "notices": 666,
+      "rows_excluded_by_scope": 4775,
+      "rows_scanned": 5441,
       "sources": 1
     },
     "NL": {
       "notices": 0,
-      "rows_excluded_by_scope": 5,
-      "rows_scanned": 5,
+      "rows_excluded_by_scope": 3,
+      "rows_scanned": 3,
       "sources": 1
     },
     "OD": {
-      "notices": 273,
-      "rows_excluded_by_scope": 1539,
-      "rows_scanned": 1812,
+      "notices": 230,
+      "rows_excluded_by_scope": 1507,
+      "rows_scanned": 1737,
       "sources": 1
     },
     "PB": {
-      "notices": 50,
-      "rows_excluded_by_scope": 3210,
-      "rows_scanned": 3260,
+      "notices": 46,
+      "rows_excluded_by_scope": 3205,
+      "rows_scanned": 3251,
       "sources": 1
     },
     "PY": {
-      "notices": 4,
-      "rows_excluded_by_scope": 59,
-      "rows_scanned": 63,
+      "notices": 1,
+      "rows_excluded_by_scope": 50,
+      "rows_scanned": 51,
       "sources": 1
     },
     "RJ": {
-      "notices": 399,
-      "rows_excluded_by_scope": 4505,
-      "rows_scanned": 4904,
+      "notices": 362,
+      "rows_excluded_by_scope": 3886,
+      "rows_scanned": 4248,
       "sources": 1
     },
     "SK": {
@@ -154,34 +176,34 @@
       "sources": 1
     },
     "TN": {
-      "notices": 117,
-      "rows_excluded_by_scope": 5675,
-      "rows_scanned": 5792,
+      "notices": 83,
+      "rows_excluded_by_scope": 5367,
+      "rows_scanned": 5450,
       "sources": 1
     },
     "TR": {
-      "notices": 58,
-      "rows_excluded_by_scope": 280,
-      "rows_scanned": 338,
+      "notices": 63,
+      "rows_excluded_by_scope": 413,
+      "rows_scanned": 476,
       "sources": 1
     },
     "UK": {
-      "notices": 68,
-      "rows_excluded_by_scope": 656,
-      "rows_scanned": 724,
+      "notices": 61,
+      "rows_excluded_by_scope": 625,
+      "rows_scanned": 686,
       "sources": 1
     },
     "UP": {
-      "notices": 1664,
-      "rows_excluded_by_scope": 9995,
-      "rows_scanned": 11659,
+      "notices": 1548,
+      "rows_excluded_by_scope": 9302,
+      "rows_scanned": 10850,
       "sources": 1
     },
     "WB": {
-      "notices": 874,
-      "rows_excluded_by_scope": 14234,
-      "rows_scanned": 15108,
-      "sources": 2
+      "notices": 55,
+      "rows_excluded_by_scope": 2713,
+      "rows_scanned": 2768,
+      "sources": 1
     }
   }
 }

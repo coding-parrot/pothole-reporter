@@ -15,7 +15,7 @@
         "Executive Engineer-PWD - Daman"
       ],
       "published_at": "2026-09-21T18:55:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Dadra and Nagar Haveli and Daman and Diu e-Procurement Portal",
       "source_url": "https://ddtenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvDPztlfv6LiLoSBd1qyr8w%3D%3D",
@@ -29,9 +29,9 @@
     "Daman District",
     "Diu District"
   ],
-  "retrieved_at": "2026-10-05T05:42:16Z",
-  "rows_excluded_by_scope": 13,
-  "rows_scanned": 14,
+  "retrieved_at": "2026-10-07T04:59:04Z",
+  "rows_excluded_by_scope": 17,
+  "rows_scanned": 18,
   "schema_version": 1,
   "source_id": "in-dh-gepnic",
   "source_name": "Dadra and Nagar Haveli and Daman and Diu e-Procurement Portal",

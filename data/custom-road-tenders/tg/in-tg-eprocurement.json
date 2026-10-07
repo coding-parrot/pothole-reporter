@@ -6,7 +6,7 @@
   "source_url": "https://tender.telangana.gov.in/login.html",
   "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
   "api_url": "https://tender.telangana.gov.in/TenderDetailsHomeJson.html",
-  "retrieved_at": "2026-10-05T05:42:16Z",
+  "retrieved_at": "2026-10-07T04:59:04Z",
   "state_code": "TG",
   "lifecycle": "procurement_notice",
   "source_limitations": [
@@ -16,764 +16,43 @@
   ],
   "organisations": [
     "GREATER HYDERABAD MUNICIPAL CORPORATION-Allwyn colony circle-51",
-    "GREATER HYDERABAD MUNICIPAL CORPORATION-Executive Engineer-4B(SZ),GHMC",
-    "GREATER HYDERABAD MUNICIPAL CORPORATION-SUPERITENDING ENGINEER-III",
+    "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+    "GREATER HYDERABAD MUNICIPAL CORPORATION-Masabtank circle 34 golconda zone",
     "HMDA-SE-LAKES",
+    "I & CAD - Telangana-SE , N.S DAM CIRCLE HILL COLONY ,NAGARJUNA SAGAR, NALGONDA DIST.",
     "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Jammikunta Nagara Panchayath, Karimnagar Dist",
     "MUNICIPAL ADMINISTRATION DEPARTMENT - TELANGANA-Commissioner Nagarapanchayath, Huzurabad",
-    "MUNICIPALITIES - TELANGANA-GADWAL MUNICIPALITY",
+    "MUNICIPALITIES - TELANGANA-Gummadidala Municipality",
     "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
     "MUNICIPALITIES - TELANGANA-KORUTLA MUNICIPALITY",
+    "MUNICIPALITIES - TELANGANA-KOTHAGUDEM MUNICIPALITY",
     "MUNICIPALITIES - TELANGANA-MANCHERIAL MUNICIPALITY",
     "MUNICIPALITIES - TELANGANA-SIRCILLA MUNICIPALITY",
+    "MUNICIPALITIES - TELANGANA-Shankarpally Municipality",
+    "MUNICIPALITIES - TELANGANA-THIRUMALAGIRI MUNCIPALITY",
     "Malkajgiri Municipal Corporation-EE-DIV-11",
-    "Malkajgiri Municipal Corporation-OFFICE OF L.B.Nagar",
-    "Malkajgiri Municipal Corporation-Superinteding Engineer Uppal Zone",
     "NOTIFIED AREA COMMITTE, RGIA HYD-NAC ,RGIA HYDERABAD",
     "Northern Power Distribution company of TS LTD-CGM P& R NPDCL",
     "PRED - TELANGANA-SE PRED PR KARIMNAGAR",
     "PRED - TELANGANA-SE PRED PR RANGA REDDY",
+    "PRED - TELANGANA-Superintending Engineer PR Circle, Bhongir",
     "R&B - Telangana-EE OFFICE- JAGTIAL",
     "R&B - Telangana-EE, R&B DIVISION, JOGULAMBA DIST",
-    "R&B - Telangana-SE R&B ADILABAD",
     "R&B - Telangana-SE R&B KHAMMAM",
     "R&B - Telangana-SE R&B MEDAK",
-    "R&B - Telangana-Superintending Engineer (R&B) Circle, Jagitial",
     "R&B - Telangana-Superintending Engineer R&B Circle, Yadadri Bhuvanagiri",
+    "SOUTHERN POWER DISTRIBUTION COMPANY OF TELANGANA L-Ranga Reddy Zone",
     "TELANGANA POWER GENERATION CORPORATION LIMITED-Chief Engineer Civil Construction YTPS",
     "TWED - TELANGANA-SE TWED TW WARANGAL",
     "cyberabad municipal corporation-Kukatpally Zone (Zone 6) GHMC HYD",
-    "cyberabad municipal corporation-OFFICE OF QUTHBULLAPUR",
-    "cyberabad municipal corporation-SUPERITENDING ENGINEER-III"
+    "cyberabad municipal corporation-OFFICE OF QUTHBULLAPUR"
   ],
-  "rows_scanned": 1835,
-  "rows_excluded_by_scope": 1715,
+  "rows_scanned": 2204,
+  "rows_excluded_by_scope": 2050,
   "rows_excluded_by_deadline": 0,
   "rows_excluded_invalid": 0,
-  "records_kept": 120,
+  "records_kept": 154,
   "notices": [
-    {
-      "bid_submission_start_at": "2026-09-28T09:30:00Z",
-      "closing_at": "2026-10-05T07:23:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "Malkajgiri Municipal Corporation-OFFICE OF L.B.Nagar",
-      "organisation_path": [
-        "Malkajgiri Municipal Corporation-OFFICE OF L.B.Nagar"
-      ],
-      "official_fields": {
-        "department_name": "Malkajgiri Municipal Corporation-OFFICE OF L.B.Nagar",
-        "tender_id": "737905",
-        "tender_reference": "E/5826/14/121/2026-27, Dt : 22-09-2026.",
-        "tender_category": "WORKS",
-        "title": "Restoration of badly damaged road with CC from Plot No321/5-7-257 to 5-7-331, B.N Reddy Nagar Colony in B.N Reddy Ward No.42 of Hayath Nagar Circle, LBNZ, MMC. (Reserved for Individual SC Contractors, Proprietaryship/ Partnerships and Labour Contract Co-op Societies.)",
-        "estimated_contract_value": "3072307.00",
-        "published_date_time": "27/09/2026 12:57 PM",
-        "bid_submission_start_date_time": "28/09/2026 03:00 PM",
-        "bid_submission_closing_date_time": "05/10/2026 12:53 PM",
-        "detail_action_arguments": [
-          670906,
-          101,
-          670896
-        ]
-      },
-      "published_at": "2026-09-27T07:27:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "737905",
-      "tender_reference": "E/5826/14/121/2026-27, Dt : 22-09-2026.",
-      "title": "Restoration of badly damaged road with CC from Plot No321/5-7-257 to 5-7-331, B.N Reddy Nagar Colony in B.N Reddy Ward No.42 of Hayath Nagar Circle, LBNZ, MMC. (Reserved for Individual SC Contractors, Proprietaryship/ Partnerships and Labour Contract Co-op Societies.)"
-    },
-    {
-      "bid_submission_start_at": "2026-09-29T07:30:00Z",
-      "closing_at": "2026-10-05T08:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "cyberabad municipal corporation-SUPERITENDING ENGINEER-III",
-      "organisation_path": [
-        "cyberabad municipal corporation-SUPERITENDING ENGINEER-III"
-      ],
-      "official_fields": {
-        "department_name": "cyberabad municipal corporation-SUPERITENDING ENGINEER-III",
-        "tender_id": "738056",
-        "tender_reference": "NIT.No.55/SE/SLPZ/CMC/2026-27, Dated: 28.09.2026",
-        "tender_category": "WORKS",
-        "title": "Repairs of badly damaged stretches by Recarpeting of  BT  road at Radial road 30,Radial road 30 extension, Radial road 7,Osman nagar road in Tellapur ward no 263 in Patancheru Circle 46, Slp Zone, CMC (Item No.1) (7th  call)",
-        "estimated_contract_value": "5880866.00",
-        "published_date_time": "28/09/2026 02:09 PM",
-        "bid_submission_start_date_time": "29/09/2026 01:00 PM",
-        "bid_submission_closing_date_time": "05/10/2026 01:30 PM",
-        "detail_action_arguments": [
-          671057,
-          101,
-          671047
-        ]
-      },
-      "published_at": "2026-09-28T08:39:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "738056",
-      "tender_reference": "NIT.No.55/SE/SLPZ/CMC/2026-27, Dated: 28.09.2026",
-      "title": "Repairs of badly damaged stretches by Recarpeting of BT road at Radial road 30,Radial road 30 extension, Radial road 7,Osman nagar road in Tellapur ward no 263 in Patancheru Circle 46, Slp Zone, CMC (Item No.1) (7th call)"
-    },
-    {
-      "bid_submission_start_at": "2026-09-29T07:30:00Z",
-      "closing_at": "2026-10-05T08:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-SUPERITENDING ENGINEER-III",
-      "organisation_path": [
-        "GREATER HYDERABAD MUNICIPAL CORPORATION-SUPERITENDING ENGINEER-III"
-      ],
-      "official_fields": {
-        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-SUPERITENDING ENGINEER-III",
-        "tender_id": "738061",
-        "tender_reference": "NIT.No.55/SE/SLPZ/CMC/2026-27, Dated: 28.09.2026",
-        "tender_category": "WORKS",
-        "title": "Recarpeting of BT road from HUDA Kaman to Radial Road -30 in Tellapur ward no-263, Patancheru Circle-46, SLP Zone, CMC (Item No.2) (7th  call)",
-        "estimated_contract_value": "7251668.00",
-        "published_date_time": "28/09/2026 02:14 PM",
-        "bid_submission_start_date_time": "29/09/2026 01:00 PM",
-        "bid_submission_closing_date_time": "05/10/2026 01:30 PM",
-        "detail_action_arguments": [
-          671062,
-          101,
-          671052
-        ]
-      },
-      "published_at": "2026-09-28T08:44:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "738061",
-      "tender_reference": "NIT.No.55/SE/SLPZ/CMC/2026-27, Dated: 28.09.2026",
-      "title": "Recarpeting of BT road from HUDA Kaman to Radial Road -30 in Tellapur ward no-263, Patancheru Circle-46, SLP Zone, CMC (Item No.2) (7th call)"
-    },
-    {
-      "bid_submission_start_at": "2026-09-29T07:30:00Z",
-      "closing_at": "2026-10-05T08:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-SUPERITENDING ENGINEER-III",
-      "organisation_path": [
-        "GREATER HYDERABAD MUNICIPAL CORPORATION-SUPERITENDING ENGINEER-III"
-      ],
-      "official_fields": {
-        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-SUPERITENDING ENGINEER-III",
-        "tender_id": "738064",
-        "tender_reference": "NIT.No.55/SE/SLPZ/CMC/2026-27, Dated: 28.09.2026",
-        "tender_category": "WORKS",
-        "title": "Recarpeting of BT road from Aditya Eden Woods to Radial Road-30 in Tellapur Ward No.263, Patancheru Circle-46, SLP Zone, CMC (Item No.3) (7th  call)",
-        "estimated_contract_value": "6058535.00",
-        "published_date_time": "28/09/2026 02:18 PM",
-        "bid_submission_start_date_time": "29/09/2026 01:00 PM",
-        "bid_submission_closing_date_time": "05/10/2026 01:30 PM",
-        "detail_action_arguments": [
-          671065,
-          101,
-          671055
-        ]
-      },
-      "published_at": "2026-09-28T08:48:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "738064",
-      "tender_reference": "NIT.No.55/SE/SLPZ/CMC/2026-27, Dated: 28.09.2026",
-      "title": "Recarpeting of BT road from Aditya Eden Woods to Radial Road-30 in Tellapur Ward No.263, Patancheru Circle-46, SLP Zone, CMC (Item No.3) (7th call)"
-    },
-    {
-      "bid_submission_start_at": "2026-09-29T07:30:00Z",
-      "closing_at": "2026-10-05T08:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "cyberabad municipal corporation-SUPERITENDING ENGINEER-III",
-      "organisation_path": [
-        "cyberabad municipal corporation-SUPERITENDING ENGINEER-III"
-      ],
-      "official_fields": {
-        "department_name": "cyberabad municipal corporation-SUPERITENDING ENGINEER-III",
-        "tender_id": "738068",
-        "tender_reference": "NIT.No.55/SE/SLPZ/CMC/2026-27, Dated: 28.09.2026",
-        "tender_category": "WORKS",
-        "title": "Recarpeting of Badly damged BT road from a) Alkapoor township Road No.4 to 9 star Hills b) 9Star Hills apartment to Sports Park c) Alkapoor township Sports Park to Road No.25 in Neknampur Ward No.128 in Narsingi Circle-45, SLP Zone, CMC CMC (Item No.4) (5th call)",
-        "estimated_contract_value": "6168568.00",
-        "published_date_time": "28/09/2026 02:23 PM",
-        "bid_submission_start_date_time": "29/09/2026 01:00 PM",
-        "bid_submission_closing_date_time": "05/10/2026 01:30 PM",
-        "detail_action_arguments": [
-          671069,
-          101,
-          671059
-        ]
-      },
-      "published_at": "2026-09-28T08:53:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "738068",
-      "tender_reference": "NIT.No.55/SE/SLPZ/CMC/2026-27, Dated: 28.09.2026",
-      "title": "Recarpeting of Badly damged BT road from a) Alkapoor township Road No.4 to 9 star Hills b) 9Star Hills apartment to Sports Park c) Alkapoor township Sports Park to Road No.25 in Neknampur Ward No.128 in Narsingi Circle-45, SLP Zone, CMC CMC (Item No.4) (5th call)"
-    },
-    {
-      "bid_submission_start_at": "2026-09-28T12:00:00Z",
-      "closing_at": "2026-10-05T09:30:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "Malkajgiri Municipal Corporation-Superinteding Engineer Uppal Zone",
-      "organisation_path": [
-        "Malkajgiri Municipal Corporation-Superinteding Engineer Uppal Zone"
-      ],
-      "official_fields": {
-        "department_name": "Malkajgiri Municipal Corporation-Superinteding Engineer Uppal Zone",
-        "tender_id": "738165",
-        "tender_reference": "15/SE(M)/UZ/MMC/130/2026-27",
-        "tender_category": "WORKS",
-        "title": "Attending Road repair works  from Pillar No. 810 to Pillar No.820, Providing U-turns on Nagole to Uppal  under Road safety Drive  in Ward No,10-Uppal. Uppal Circle-2, GHMC (4th call)",
-        "estimated_contract_value": "4777131.00",
-        "published_date_time": "28/09/2026 05:11 PM",
-        "bid_submission_start_date_time": "28/09/2026 05:30 PM",
-        "bid_submission_closing_date_time": "05/10/2026 03:00 PM",
-        "detail_action_arguments": [
-          671166,
-          101,
-          671156
-        ]
-      },
-      "published_at": "2026-09-28T11:41:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "738165",
-      "tender_reference": "15/SE(M)/UZ/MMC/130/2026-27",
-      "title": "Attending Road repair works from Pillar No. 810 to Pillar No.820, Providing U-turns on Nagole to Uppal under Road safety Drive in Ward No,10-Uppal. Uppal Circle-2, GHMC (4th call)"
-    },
-    {
-      "bid_submission_start_at": "2026-09-28T12:00:00Z",
-      "closing_at": "2026-10-05T09:30:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "Malkajgiri Municipal Corporation-Superinteding Engineer Uppal Zone",
-      "organisation_path": [
-        "Malkajgiri Municipal Corporation-Superinteding Engineer Uppal Zone"
-      ],
-      "official_fields": {
-        "department_name": "Malkajgiri Municipal Corporation-Superinteding Engineer Uppal Zone",
-        "tender_id": "738170",
-        "tender_reference": "15/SE(M)/UZ/MMC/131/2026-27",
-        "tender_category": "WORKS",
-        "title": "Strengthening and Recarpeting of damaged existing BT Road from Ganesh Kaman to Union Bank and internal lanes at EC Nagar in Ward-17 Cherlapally of Kapra-Circle 07, Uppal Zone, GHMC. (3RD RECALL)",
-        "estimated_contract_value": "5906754.00",
-        "published_date_time": "28/09/2026 05:19 PM",
-        "bid_submission_start_date_time": "28/09/2026 05:30 PM",
-        "bid_submission_closing_date_time": "05/10/2026 03:00 PM",
-        "detail_action_arguments": [
-          671171,
-          101,
-          671161
-        ]
-      },
-      "published_at": "2026-09-28T11:49:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "738170",
-      "tender_reference": "15/SE(M)/UZ/MMC/131/2026-27",
-      "title": "Strengthening and Recarpeting of damaged existing BT Road from Ganesh Kaman to Union Bank and internal lanes at EC Nagar in Ward-17 Cherlapally of Kapra-Circle 07, Uppal Zone, GHMC. (3RD RECALL)"
-    },
-    {
-      "bid_submission_start_at": "2026-09-08T09:30:00Z",
-      "closing_at": "2026-10-05T09:30:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "HMDA-SE-LAKES",
-      "organisation_path": [
-        "HMDA-SE-LAKES"
-      ],
-      "official_fields": {
-        "department_name": "HMDA-SE-LAKES ",
-        "tender_id": "731124",
-        "tender_reference": "HMDA/DEV/CE/15/2026-27, DATE: 03.09.2026",
-        "tender_category": "WORKS",
-        "title": "Construction of Elevated Corridor from ICCC, Banjara hills to Shilpa Layout flyover Road",
-        "estimated_contract_value": "0",
-        "published_date_time": "07/09/2026 07:59 PM",
-        "bid_submission_start_date_time": "08/09/2026 03:00 PM",
-        "bid_submission_closing_date_time": "05/10/2026 03:00 PM",
-        "detail_action_arguments": [
-          666123,
-          101,
-          666113
-        ]
-      },
-      "published_at": "2026-09-07T14:29:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "731124",
-      "tender_reference": "HMDA/DEV/CE/15/2026-27, DATE: 03.09.2026",
-      "title": "Construction of Elevated Corridor from ICCC, Banjara hills to Shilpa Layout flyover Road"
-    },
-    {
-      "bid_submission_start_at": "2026-09-28T10:30:00Z",
-      "closing_at": "2026-10-05T10:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "R&B - Telangana-SE R&B ADILABAD",
-      "organisation_path": [
-        "R&B - Telangana-SE R&B ADILABAD"
-      ],
-      "official_fields": {
-        "department_name": "R&B - Telangana-SE  R&B ADILABAD",
-        "tender_id": "737579",
-        "tender_reference": "Chief Engineer(R&B)SR,CRN,HAM& MD TGRDC e-NIT No.1606-3/DCE(R)/EE-R/DEE-9/ AEE/2026-27/ADB3    Dt:22.09.2026",
-        "tender_category": "WORKS",
-        "title": "Improvements by Widening and Strengthening of old NH-7 road passing through Adilabad town from Km 192/4 to 198/5 in Adilabad District Sub work Improvements to old NH7 passing through Adilabad Town limits from Km 192/680 to 193/135 L/S in Adilabad District(2nd Call)",
-        "estimated_contract_value": "24418266.00",
-        "published_date_time": "28/09/2026 01:02 PM",
-        "bid_submission_start_date_time": "28/09/2026 04:00 PM",
-        "bid_submission_closing_date_time": "05/10/2026 03:30 PM",
-        "detail_action_arguments": [
-          670580,
-          101,
-          670570
-        ]
-      },
-      "published_at": "2026-09-28T07:32:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "737579",
-      "tender_reference": "Chief Engineer(R&B)SR,CRN,HAM& MD TGRDC e-NIT No.1606-3/DCE(R)/EE-R/DEE-9/ AEE/2026-27/ADB3 Dt:22.09.2026",
-      "title": "Improvements by Widening and Strengthening of old NH-7 road passing through Adilabad town from Km 192/4 to 198/5 in Adilabad District Sub work Improvements to old NH7 passing through Adilabad Town limits from Km 192/680 to 193/135 L/S in Adilabad District(2nd Call)"
-    },
-    {
-      "bid_submission_start_at": "2026-09-28T10:30:00Z",
-      "closing_at": "2026-10-05T10:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "R&B - Telangana-SE R&B ADILABAD",
-      "organisation_path": [
-        "R&B - Telangana-SE R&B ADILABAD"
-      ],
-      "official_fields": {
-        "department_name": "R&B - Telangana-SE  R&B ADILABAD",
-        "tender_id": "737581",
-        "tender_reference": "Chief Engineer(R&B)SR,CRN,HAM& MD TGRDC e-NIT No.1606-3/DCE(R)/EE-R/DEE-9/ AEE/2026-27/ADB4    Dt:22.09.2026",
-        "tender_category": "WORKS",
-        "title": "Construction of BT Road on NH44 to Pendalwada road from Km 0/0 to 2/5 in Adilabad District(2nd Call)",
-        "estimated_contract_value": "14816612.00",
-        "published_date_time": "28/09/2026 12:58 PM",
-        "bid_submission_start_date_time": "28/09/2026 04:00 PM",
-        "bid_submission_closing_date_time": "05/10/2026 03:30 PM",
-        "detail_action_arguments": [
-          670582,
-          101,
-          670572
-        ]
-      },
-      "published_at": "2026-09-28T07:28:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "737581",
-      "tender_reference": "Chief Engineer(R&B)SR,CRN,HAM& MD TGRDC e-NIT No.1606-3/DCE(R)/EE-R/DEE-9/ AEE/2026-27/ADB4 Dt:22.09.2026",
-      "title": "Construction of BT Road on NH44 to Pendalwada road from Km 0/0 to 2/5 in Adilabad District(2nd Call)"
-    },
-    {
-      "bid_submission_start_at": "2026-09-28T16:30:00Z",
-      "closing_at": "2026-10-05T10:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "R&B - Telangana-Superintending Engineer (R&B) Circle, Jagitial",
-      "organisation_path": [
-        "R&B - Telangana-Superintending Engineer (R&B) Circle, Jagitial"
-      ],
-      "official_fields": {
-        "department_name": "R&B - Telangana-Superintending Engineer (R&B) Circle, Jagitial",
-        "tender_id": "738194",
-        "tender_reference": "The Chief Engineer (R&B), State Roads CRN, HAM  MD-TGRDC Errummanzil, Hyderabad e- NIT No.1606-3/NP-P2/DCE(R)/EE-R/DEE-9/AEE/2026-27 Dt:22.09.2026",
-        "tender_category": "WORKS",
-        "title": "Periodical Renewal to PWD road to Gumpula from km 0/0 to 9/5 and 10/6 to 13/8 in Peddapally District",
-        "estimated_contract_value": "50459581.00",
-        "published_date_time": "28/09/2026 07:33 PM",
-        "bid_submission_start_date_time": "28/09/2026 10:00 PM",
-        "bid_submission_closing_date_time": "05/10/2026 03:30 PM",
-        "detail_action_arguments": [
-          671195,
-          101,
-          671185
-        ]
-      },
-      "published_at": "2026-09-28T14:03:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "738194",
-      "tender_reference": "The Chief Engineer (R&B), State Roads CRN, HAM MD-TGRDC Errummanzil, Hyderabad e- NIT No.1606-3/NP-P2/DCE(R)/EE-R/DEE-9/AEE/2026-27 Dt:22.09.2026",
-      "title": "Periodical Renewal to PWD road to Gumpula from km 0/0 to 9/5 and 10/6 to 13/8 in Peddapally District"
-    },
-    {
-      "bid_submission_start_at": "2026-09-28T18:20:00Z",
-      "closing_at": "2026-10-05T10:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "R&B - Telangana-SE R&B MEDAK",
-      "organisation_path": [
-        "R&B - Telangana-SE R&B MEDAK"
-      ],
-      "official_fields": {
-        "department_name": "R&B - Telangana-SE  R&B  MEDAK",
-        "tender_id": "738025",
-        "tender_reference": "e NIT No. 1606-3/1/SRD/DCE (R)/EE R/DEE 9I/AEE/2026-27 Date.22.09.2026",
-        "tender_category": "WORKS",
-        "title": "Improvements to PWD RandB road to Ramalayam (Kosgi town) from km 0/0 to 0/600 in Kodangal Assembly Consituency in Narayanpet District(2nd call)",
-        "estimated_contract_value": "42501937.00",
-        "published_date_time": "28/09/2026 08:26 PM",
-        "bid_submission_start_date_time": "28/09/2026 11:50 PM",
-        "bid_submission_closing_date_time": "05/10/2026 03:30 PM",
-        "detail_action_arguments": [
-          671026,
-          101,
-          671016
-        ]
-      },
-      "published_at": "2026-09-28T14:56:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "738025",
-      "tender_reference": "e NIT No. 1606-3/1/SRD/DCE (R)/EE R/DEE 9I/AEE/2026-27 Date.22.09.2026",
-      "title": "Improvements to PWD RandB road to Ramalayam (Kosgi town) from km 0/0 to 0/600 in Kodangal Assembly Consituency in Narayanpet District(2nd call)"
-    },
-    {
-      "bid_submission_start_at": "2026-09-28T18:20:00Z",
-      "closing_at": "2026-10-05T10:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "R&B - Telangana-SE R&B MEDAK",
-      "organisation_path": [
-        "R&B - Telangana-SE R&B MEDAK"
-      ],
-      "official_fields": {
-        "department_name": "R&B - Telangana-SE  R&B  MEDAK",
-        "tender_id": "738048",
-        "tender_reference": "e NIT No. 1606-3/2/SRD/DCE (R)/EE R/DEE 9I/AEE/2026-27 Date.22.09.2026",
-        "tender_category": "WORKS",
-        "title": "Improvements to Doultabad PWD road to Agmapur road via Sikindlapur and Naguladevlapally road from km 0/800 to 1/600 in Sangareddy District",
-        "estimated_contract_value": "14374325.00",
-        "published_date_time": "28/09/2026 08:30 PM",
-        "bid_submission_start_date_time": "28/09/2026 11:50 PM",
-        "bid_submission_closing_date_time": "05/10/2026 03:30 PM",
-        "detail_action_arguments": [
-          671049,
-          101,
-          671039
-        ]
-      },
-      "published_at": "2026-09-28T15:00:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "738048",
-      "tender_reference": "e NIT No. 1606-3/2/SRD/DCE (R)/EE R/DEE 9I/AEE/2026-27 Date.22.09.2026",
-      "title": "Improvements to Doultabad PWD road to Agmapur road via Sikindlapur and Naguladevlapally road from km 0/800 to 1/600 in Sangareddy District"
-    },
-    {
-      "bid_submission_start_at": "2026-09-28T14:30:00Z",
-      "closing_at": "2026-10-05T10:30:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "R&B - Telangana-Superintending Engineer R&B Circle, Yadadri Bhuvanagiri",
-      "organisation_path": [
-        "R&B - Telangana-Superintending Engineer R&B Circle, Yadadri Bhuvanagiri"
-      ],
-      "official_fields": {
-        "department_name": "R&B - Telangana-Superintending Engineer R&B Circle, Yadadri Bhuvanagiri",
-        "tender_id": "737773",
-        "tender_reference": "1606-3/DCE(R)/EE-R/DEE-9/AEE/2026-27,Dt:22.09.2026",
-        "tender_category": "WORKS",
-        "title": "Improvements to Gundlagudem (Old NH-163 ) to Pembarthy Gate (via Patelgudem ) from Km. 0/0 to Km. 5/8 in Yadadri-Bhuvanagiri District(3rd-Call).",
-        "estimated_contract_value": "42777516.00",
-        "published_date_time": "28/09/2026 04:58 PM",
-        "bid_submission_start_date_time": "28/09/2026 08:00 PM",
-        "bid_submission_closing_date_time": "05/10/2026 04:00 PM",
-        "detail_action_arguments": [
-          670774,
-          101,
-          670764
-        ]
-      },
-      "published_at": "2026-09-28T11:28:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "737773",
-      "tender_reference": "1606-3/DCE(R)/EE-R/DEE-9/AEE/2026-27,Dt:22.09.2026",
-      "title": "Improvements to Gundlagudem (Old NH-163 ) to Pembarthy Gate (via Patelgudem ) from Km. 0/0 to Km. 5/8 in Yadadri-Bhuvanagiri District(3rd-Call)."
-    },
-    {
-      "bid_submission_start_at": "2026-09-30T04:30:00Z",
-      "closing_at": "2026-10-06T05:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "MUNICIPALITIES - TELANGANA-GADWAL MUNICIPALITY",
-      "organisation_path": [
-        "MUNICIPALITIES - TELANGANA-GADWAL MUNICIPALITY"
-      ],
-      "official_fields": {
-        "department_name": "MUNICIPALITIES - TELANGANA-GADWAL  MUNICIPALITY",
-        "tender_id": "737906",
-        "tender_reference": "E1/GDL/UIDF/03/2025-26",
-        "tender_category": "WORKS",
-        "title": "Recarpeting of BT Roads at various places in Gadwal Municipality under UIDF scheme  for the F.Y. 2024-25",
-        "estimated_contract_value": "46368472.00",
-        "published_date_time": "29/09/2026 10:59 PM",
-        "bid_submission_start_date_time": "30/09/2026 10:00 AM",
-        "bid_submission_closing_date_time": "06/10/2026 10:30 AM",
-        "detail_action_arguments": [
-          670907,
-          101,
-          670897
-        ]
-      },
-      "published_at": "2026-09-29T17:29:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "737906",
-      "tender_reference": "E1/GDL/UIDF/03/2025-26",
-      "title": "Recarpeting of BT Roads at various places in Gadwal Municipality under UIDF scheme for the F.Y. 2024-25"
-    },
-    {
-      "bid_submission_start_at": "2026-09-30T04:30:00Z",
-      "closing_at": "2026-10-06T05:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "MUNICIPALITIES - TELANGANA-GADWAL MUNICIPALITY",
-      "organisation_path": [
-        "MUNICIPALITIES - TELANGANA-GADWAL MUNICIPALITY"
-      ],
-      "official_fields": {
-        "department_name": "MUNICIPALITIES - TELANGANA-GADWAL  MUNICIPALITY",
-        "tender_id": "737907",
-        "tender_reference": "E1/GDL/UIDF/04/2025-26",
-        "tender_category": "WORKS",
-        "title": "Development of Chintalpet Main Road by Widening and Laying in Gadwal Municipality under UIDF scheme for the F.Y. 2024-25",
-        "estimated_contract_value": "17811673.00",
-        "published_date_time": "29/09/2026 10:56 PM",
-        "bid_submission_start_date_time": "30/09/2026 10:00 AM",
-        "bid_submission_closing_date_time": "06/10/2026 10:30 AM",
-        "detail_action_arguments": [
-          670908,
-          101,
-          670898
-        ]
-      },
-      "published_at": "2026-09-29T17:26:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "737907",
-      "tender_reference": "E1/GDL/UIDF/04/2025-26",
-      "title": "Development of Chintalpet Main Road by Widening and Laying in Gadwal Municipality under UIDF scheme for the F.Y. 2024-25"
-    },
-    {
-      "bid_submission_start_at": "2026-09-28T08:00:00Z",
-      "closing_at": "2026-10-06T07:30:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-Executive Engineer-4B(SZ),GHMC",
-      "organisation_path": [
-        "GREATER HYDERABAD MUNICIPAL CORPORATION-Executive Engineer-4B(SZ),GHMC"
-      ],
-      "official_fields": {
-        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-Executive Engineer-4B(SZ),GHMC",
-        "tender_id": "738039",
-        "tender_reference": "14/EE-25/CRZ/GHMC/2026-27Dated:26.09.2026 (Item-01)",
-        "tender_category": "WORKS",
-        "title": "Repairs of potholes using Pot-Hole Repairs Machine Jet patcher in Charminar Zone of Greater Hyderabad Municipal Corporation.(Recall) Rs.50.00 Lakhs",
-        "estimated_contract_value": "3964046.00",
-        "published_date_time": "28/09/2026 01:29 PM",
-        "bid_submission_start_date_time": "28/09/2026 01:30 PM",
-        "bid_submission_closing_date_time": "06/10/2026 01:00 PM",
-        "detail_action_arguments": [
-          671040,
-          101,
-          671030
-        ]
-      },
-      "published_at": "2026-09-28T07:59:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "738039",
-      "tender_reference": "14/EE-25/CRZ/GHMC/2026-27Dated:26.09.2026 (Item-01)",
-      "title": "Repairs of potholes using Pot-Hole Repairs Machine Jet patcher in Charminar Zone of Greater Hyderabad Municipal Corporation.(Recall) Rs.50.00 Lakhs"
-    },
-    {
-      "bid_submission_start_at": "2026-10-03T10:30:00Z",
-      "closing_at": "2026-10-06T10:30:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "cyberabad municipal corporation-Kukatpally Zone (Zone 6) GHMC HYD",
-      "organisation_path": [
-        "cyberabad municipal corporation-Kukatpally Zone (Zone 6) GHMC HYD"
-      ],
-      "official_fields": {
-        "department_name": "cyberabad municipal corporation-Kukatpally Zone (Zone 6) GHMC HYD",
-        "tender_id": "738916",
-        "tender_reference": "NIT No. 25/01/SE/KPZ/CMC/2026-27,Dt: 01.10.2026",
-        "tender_category": "WORKS",
-        "title": "Recarpeting of BT road from Borabanda Culvert to Godavari Cuts, Sunam cheruvu in ward number 232- Madhapur circle -50, KPZ, CMC.",
-        "estimated_contract_value": "10698661.00",
-        "published_date_time": "01/10/2026 05:12 PM",
-        "bid_submission_start_date_time": "03/10/2026 04:00 PM",
-        "bid_submission_closing_date_time": "06/10/2026 04:00 PM",
-        "detail_action_arguments": [
-          671917,
-          101,
-          671907
-        ]
-      },
-      "published_at": "2026-10-01T11:42:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "738916",
-      "tender_reference": "NIT No. 25/01/SE/KPZ/CMC/2026-27,Dt: 01.10.2026",
-      "title": "Recarpeting of BT road from Borabanda Culvert to Godavari Cuts, Sunam cheruvu in ward number 232- Madhapur circle -50, KPZ, CMC."
-    },
-    {
-      "bid_submission_start_at": "2026-09-22T10:30:00Z",
-      "closing_at": "2026-10-06T11:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "TWED - TELANGANA-SE TWED TW WARANGAL",
-      "organisation_path": [
-        "TWED - TELANGANA-SE TWED TW WARANGAL"
-      ],
-      "official_fields": {
-        "department_name": "TWED - TELANGANA-SE TWED   TW  WARANGAL",
-        "tender_id": "736609",
-        "tender_reference": "SE/TW/WGL/NIT/398/2026-2027, Dt:18.09.2026",
-        "tender_category": "WORKS",
-        "title": "Providing Formation and BT road and CD works from Ambakanti to Hanuman tanda of Kuntala (M) in Nirmal District (only road on dam is required)",
-        "estimated_contract_value": "2291507.00",
-        "published_date_time": "22/09/2026 03:59 PM",
-        "bid_submission_start_date_time": "22/09/2026 04:00 PM",
-        "bid_submission_closing_date_time": "06/10/2026 04:30 PM",
-        "detail_action_arguments": [
-          669610,
-          101,
-          669600
-        ]
-      },
-      "published_at": "2026-09-22T10:29:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "736609",
-      "tender_reference": "SE/TW/WGL/NIT/398/2026-2027, Dt:18.09.2026",
-      "title": "Providing Formation and BT road and CD works from Ambakanti to Hanuman tanda of Kuntala (M) in Nirmal District (only road on dam is required)"
-    },
     {
       "bid_submission_start_at": "2026-09-22T13:30:00Z",
       "closing_at": "2026-10-07T09:30:00Z",
@@ -802,7 +81,7 @@
         ]
       },
       "published_at": "2026-09-22T12:36:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -840,7 +119,7 @@
         ]
       },
       "published_at": "2026-09-22T09:34:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -878,7 +157,7 @@
         ]
       },
       "published_at": "2026-09-21T16:03:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -916,7 +195,7 @@
         ]
       },
       "published_at": "2026-09-21T16:00:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -954,7 +233,7 @@
         ]
       },
       "published_at": "2026-09-21T16:28:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -992,7 +271,7 @@
         ]
       },
       "published_at": "2026-09-21T16:18:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1030,7 +309,7 @@
         ]
       },
       "published_at": "2026-09-21T16:34:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1068,7 +347,7 @@
         ]
       },
       "published_at": "2026-09-21T16:07:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1106,7 +385,7 @@
         ]
       },
       "published_at": "2026-09-21T15:56:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1144,7 +423,7 @@
         ]
       },
       "published_at": "2026-09-21T16:23:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1182,7 +461,7 @@
         ]
       },
       "published_at": "2026-09-21T16:14:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1191,44 +470,6 @@
       "tender_id": "736525",
       "tender_reference": "Chief Engineer (R&B), SR, CRN, HAM & MD-TGRDC, Hyderabad e NIT No. 09/KMM-PLAN/Road work (02) /CE(SR)/SE(D&P)-II/EE-III/DEE-2/2026, Dt.09.09.2026",
       "title": "Widening and strengthening Ramakrishnapuram-pedagopathi road to Double lane from km 0/0 - 5/0 km 7/1 - 12/060 and to Four lane from km 5/0 - 7/1 in khammam District"
-    },
-    {
-      "bid_submission_start_at": "2026-09-28T17:30:00Z",
-      "closing_at": "2026-10-07T10:00:00Z",
-      "detail_url": null,
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
-      "opening_at": null,
-      "organisation_chain": "PRED - TELANGANA-SE PRED PR RANGA REDDY",
-      "organisation_path": [
-        "PRED - TELANGANA-SE PRED PR RANGA REDDY"
-      ],
-      "official_fields": {
-        "department_name": "PRED - TELANGANA-SE PRED PR  RANGA REDDY",
-        "tender_id": "737752",
-        "tender_reference": "NIT No. RO/PRED/RR/227/2026-27 dated 17.09.2026  of the Superintending Engineer, PR Region, Rangareddy",
-        "tender_category": "WORKS",
-        "title": "Development Works such as Laying CC Roads UGDS at Manchal  M Total 4 Works of RangaReddy District Est Cost Rs.12.00 Lakhs Sanctioned under DMFT 2025-26  Grant 4th Call.",
-        "estimated_contract_value": "972874.00",
-        "published_date_time": "26/09/2026 04:30 PM",
-        "bid_submission_start_date_time": "28/09/2026 11:00 PM",
-        "bid_submission_closing_date_time": "07/10/2026 03:30 PM",
-        "detail_action_arguments": [
-          670753,
-          101,
-          670743
-        ]
-      },
-      "published_at": "2026-09-26T11:00:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Telangana State eProcurement Portal public live tenders",
-      "source_url": "https://tender.telangana.gov.in/login.html",
-      "state_code": "TG",
-      "tender_category": "WORKS",
-      "tender_id": "737752",
-      "tender_reference": "NIT No. RO/PRED/RR/227/2026-27 dated 17.09.2026 of the Superintending Engineer, PR Region, Rangareddy",
-      "title": "Development Works such as Laying CC Roads UGDS at Manchal M Total 4 Works of RangaReddy District Est Cost Rs.12.00 Lakhs Sanctioned under DMFT 2025-26 Grant 4th Call."
     },
     {
       "bid_submission_start_at": "2026-09-29T05:30:00Z",
@@ -1258,7 +499,7 @@
         ]
       },
       "published_at": "2026-09-28T11:12:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1296,7 +537,7 @@
         ]
       },
       "published_at": "2026-09-29T09:29:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1334,7 +575,7 @@
         ]
       },
       "published_at": "2026-09-29T10:44:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1372,7 +613,7 @@
         ]
       },
       "published_at": "2026-09-22T12:31:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1381,6 +622,44 @@
       "tender_id": "736608",
       "tender_reference": "SE/TW/WGL/NIT/397/2026-2027, Dt:18.09.2026",
       "title": "Providing Formation and BT road and CD works from Medhanpur to Mahadev tanda of Kunta (M) in Nirmal District"
+    },
+    {
+      "bid_submission_start_at": "2026-09-28T14:30:00Z",
+      "closing_at": "2026-10-07T11:00:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "R&B - Telangana-Superintending Engineer R&B Circle, Yadadri Bhuvanagiri",
+      "organisation_path": [
+        "R&B - Telangana-Superintending Engineer R&B Circle, Yadadri Bhuvanagiri"
+      ],
+      "official_fields": {
+        "department_name": "R&B - Telangana-Superintending Engineer R&B Circle, Yadadri Bhuvanagiri",
+        "tender_id": "737773",
+        "tender_reference": "1606-3/DCE(R)/EE-R/DEE-9/AEE/2026-27,Dt:22.09.2026",
+        "tender_category": "WORKS",
+        "title": "Improvements to Gundlagudem (Old NH-163 ) to Pembarthy Gate (via Patelgudem ) from Km. 0/0 to Km. 5/8 in Yadadri-Bhuvanagiri District(3rd-Call).",
+        "estimated_contract_value": "42777516.00",
+        "published_date_time": "28/09/2026 04:58 PM",
+        "bid_submission_start_date_time": "28/09/2026 08:00 PM",
+        "bid_submission_closing_date_time": "07/10/2026 04:30 PM",
+        "detail_action_arguments": [
+          670774,
+          101,
+          670764
+        ]
+      },
+      "published_at": "2026-09-28T11:28:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "737773",
+      "tender_reference": "1606-3/DCE(R)/EE-R/DEE-9/AEE/2026-27,Dt:22.09.2026",
+      "title": "Improvements to Gundlagudem (Old NH-163 ) to Pembarthy Gate (via Patelgudem ) from Km. 0/0 to Km. 5/8 in Yadadri-Bhuvanagiri District(3rd-Call)."
     },
     {
       "bid_submission_start_at": "2026-09-23T14:30:00Z",
@@ -1410,7 +689,7 @@
         ]
       },
       "published_at": "2026-09-23T13:09:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1448,7 +727,7 @@
         ]
       },
       "published_at": "2026-09-23T13:03:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1486,7 +765,7 @@
         ]
       },
       "published_at": "2026-09-23T12:50:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1524,7 +803,7 @@
         ]
       },
       "published_at": "2026-09-23T12:57:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1533,6 +812,44 @@
       "tender_id": "737209",
       "tender_reference": "SE/TW/WGL/NIT/402/2026-2027, Dt:21.09.2026",
       "title": "Construction of Internal CC Roads in and Drains in Ravinuthala ST Colony of Ravinuthala (GP) of Bonakal (M) in Khammam District"
+    },
+    {
+      "bid_submission_start_at": "2026-09-28T17:30:00Z",
+      "closing_at": "2026-10-08T10:00:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "PRED - TELANGANA-SE PRED PR RANGA REDDY",
+      "organisation_path": [
+        "PRED - TELANGANA-SE PRED PR RANGA REDDY"
+      ],
+      "official_fields": {
+        "department_name": "PRED - TELANGANA-SE PRED PR  RANGA REDDY",
+        "tender_id": "737752",
+        "tender_reference": "NIT No. RO/PRED/RR/227/2026-27 dated 17.09.2026  of the Superintending Engineer, PR Region, Rangareddy",
+        "tender_category": "WORKS",
+        "title": "Development Works such as Laying CC Roads UGDS at Manchal  M Total 4 Works of RangaReddy District Est Cost Rs.12.00 Lakhs Sanctioned under DMFT 2025-26  Grant 4th Call.",
+        "estimated_contract_value": "972874.00",
+        "published_date_time": "26/09/2026 04:30 PM",
+        "bid_submission_start_date_time": "28/09/2026 11:00 PM",
+        "bid_submission_closing_date_time": "08/10/2026 03:30 PM",
+        "detail_action_arguments": [
+          670753,
+          101,
+          670743
+        ]
+      },
+      "published_at": "2026-09-26T11:00:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "737752",
+      "tender_reference": "NIT No. RO/PRED/RR/227/2026-27 dated 17.09.2026 of the Superintending Engineer, PR Region, Rangareddy",
+      "title": "Development Works such as Laying CC Roads UGDS at Manchal M Total 4 Works of RangaReddy District Est Cost Rs.12.00 Lakhs Sanctioned under DMFT 2025-26 Grant 4th Call."
     },
     {
       "bid_submission_start_at": "2026-10-01T10:30:00Z",
@@ -1562,7 +879,7 @@
         ]
       },
       "published_at": "2026-10-01T10:26:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1600,7 +917,7 @@
         ]
       },
       "published_at": "2026-09-24T11:49:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1638,7 +955,7 @@
         ]
       },
       "published_at": "2026-10-03T13:01:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1676,7 +993,7 @@
         ]
       },
       "published_at": "2026-09-30T09:19:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1714,7 +1031,7 @@
         ]
       },
       "published_at": "2026-10-03T08:07:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1752,7 +1069,7 @@
         ]
       },
       "published_at": "2026-10-03T05:26:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1790,7 +1107,7 @@
         ]
       },
       "published_at": "2026-10-01T12:58:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1799,6 +1116,82 @@
       "tender_id": "738910",
       "tender_reference": "NIT No. 11/E1/MCJ/2026-27/3, Dt: 30/09/2026",
       "title": "Formation of temporary road with wet mix in potholes from Gantala Rajender house to Md. Ankoosh house in Ward no. 17 in Jammikunta Municipality (Invited under earmarked works SC -Communities are only eligible to participate)"
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T13:45:00Z",
+      "closing_at": "2026-10-12T06:00:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-Masabtank circle 34 golconda zone",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-Masabtank circle 34 golconda zone"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-Masabtank circle 34 golconda zone",
+        "tender_id": "740114",
+        "tender_reference": "19/EE/CIR-34/MASABTANK/GZ/GHMC/2026-27,Dt: 06-10-2026 (Item No.2)",
+        "tender_category": "WORKS",
+        "title": "Recarpeting of BT road from Jubilee High School to Alshukoor hotel under  Ahmednagar- 144, Masabtank Circle-34, GZ, GHMC. (Item No.2) 1st RECALL",
+        "estimated_contract_value": "3078838.00",
+        "published_date_time": "06/10/2026 07:00 PM",
+        "bid_submission_start_date_time": "06/10/2026 07:15 PM",
+        "bid_submission_closing_date_time": "12/10/2026 11:30 AM",
+        "detail_action_arguments": [
+          673115,
+          101,
+          673105
+        ]
+      },
+      "published_at": "2026-10-06T13:30:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "740114",
+      "tender_reference": "19/EE/CIR-34/MASABTANK/GZ/GHMC/2026-27,Dt: 06-10-2026 (Item No.2)",
+      "title": "Recarpeting of BT road from Jubilee High School to Alshukoor hotel under Ahmednagar- 144, Masabtank Circle-34, GZ, GHMC. (Item No.2) 1st RECALL"
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T13:45:00Z",
+      "closing_at": "2026-10-12T06:00:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-Masabtank circle 34 golconda zone",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-Masabtank circle 34 golconda zone"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-Masabtank circle 34 golconda zone",
+        "tender_id": "740115",
+        "tender_reference": "19/EE/CIR-34/MASABTANK/GZ/GHMC/2026-27,Dt: 06-10-2026 (Item No.3)",
+        "tender_category": "WORKS",
+        "title": "Recarpeting of BT road from Oil Mill Junction to Mega Cafe under  Vijay Nagar Colony- 143, Masabtank Circle-34, GZ, GHMC (Item No.3) 1st RECALL",
+        "estimated_contract_value": "1989559.00",
+        "published_date_time": "06/10/2026 07:03 PM",
+        "bid_submission_start_date_time": "06/10/2026 07:15 PM",
+        "bid_submission_closing_date_time": "12/10/2026 11:30 AM",
+        "detail_action_arguments": [
+          673116,
+          101,
+          673106
+        ]
+      },
+      "published_at": "2026-10-06T13:33:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "740115",
+      "tender_reference": "19/EE/CIR-34/MASABTANK/GZ/GHMC/2026-27,Dt: 06-10-2026 (Item No.3)",
+      "title": "Recarpeting of BT road from Oil Mill Junction to Mega Cafe under Vijay Nagar Colony- 143, Masabtank Circle-34, GZ, GHMC (Item No.3) 1st RECALL"
     },
     {
       "bid_submission_start_at": "2026-10-01T17:30:00Z",
@@ -1828,7 +1221,7 @@
         ]
       },
       "published_at": "2026-10-01T09:37:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1866,7 +1259,7 @@
         ]
       },
       "published_at": "2026-10-01T09:30:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1904,7 +1297,7 @@
         ]
       },
       "published_at": "2026-09-23T05:54:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1942,7 +1335,7 @@
         ]
       },
       "published_at": "2026-10-04T07:09:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1980,7 +1373,7 @@
         ]
       },
       "published_at": "2026-10-05T04:44:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -1989,6 +1382,120 @@
       "tender_id": "739274",
       "tender_reference": "E1/293/DMFT/MMC/2026",
       "title": "Construction of CC Roads and CC Drains in Divsion No. 14,27,32,33,37 and 10 under Package No.05 in Mancherial Municipal Corporation under DMFT 2025-26 Funds."
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T09:30:00Z",
+      "closing_at": "2026-10-12T09:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-MANCHERIAL MUNICIPALITY",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-MANCHERIAL MUNICIPALITY"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-MANCHERIAL  MUNICIPALITY",
+        "tender_id": "739473",
+        "tender_reference": "E1/293/DMFT/MMC/2026",
+        "tender_category": "WORKS",
+        "title": "Construction of CC Roads and Under Ground Drain in Divsion No.32 under  Package No.02 in Mancherial Municipal Corporation UNDER DMFT 2025-26 FUNDS",
+        "estimated_contract_value": "7462750.00",
+        "published_date_time": "05/10/2026 02:38 PM",
+        "bid_submission_start_date_time": "05/10/2026 03:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 03:00 PM",
+        "detail_action_arguments": [
+          672474,
+          101,
+          672464
+        ]
+      },
+      "published_at": "2026-10-05T09:08:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739473",
+      "tender_reference": "E1/293/DMFT/MMC/2026",
+      "title": "Construction of CC Roads and Under Ground Drain in Divsion No.32 under Package No.02 in Mancherial Municipal Corporation UNDER DMFT 2025-26 FUNDS"
+    },
+    {
+      "bid_submission_start_at": "2026-09-28T18:20:00Z",
+      "closing_at": "2026-10-12T10:00:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "R&B - Telangana-SE R&B MEDAK",
+      "organisation_path": [
+        "R&B - Telangana-SE R&B MEDAK"
+      ],
+      "official_fields": {
+        "department_name": "R&B - Telangana-SE  R&B  MEDAK",
+        "tender_id": "738025",
+        "tender_reference": "e NIT No. 1606-3/1/SRD/DCE (R)/EE R/DEE 9I/AEE/2026-27 Date.22.09.2026",
+        "tender_category": "WORKS",
+        "title": "Improvements to PWD RandB road to Ramalayam (Kosgi town) from km 0/0 to 0/600 in Kodangal Assembly Consituency in Narayanpet District(2nd call)",
+        "estimated_contract_value": "42501937.00",
+        "published_date_time": "28/09/2026 08:26 PM",
+        "bid_submission_start_date_time": "28/09/2026 11:50 PM",
+        "bid_submission_closing_date_time": "12/10/2026 03:30 PM",
+        "detail_action_arguments": [
+          671026,
+          101,
+          671016
+        ]
+      },
+      "published_at": "2026-09-28T14:56:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "738025",
+      "tender_reference": "e NIT No. 1606-3/1/SRD/DCE (R)/EE R/DEE 9I/AEE/2026-27 Date.22.09.2026",
+      "title": "Improvements to PWD RandB road to Ramalayam (Kosgi town) from km 0/0 to 0/600 in Kodangal Assembly Consituency in Narayanpet District(2nd call)"
+    },
+    {
+      "bid_submission_start_at": "2026-09-28T18:20:00Z",
+      "closing_at": "2026-10-12T10:00:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "R&B - Telangana-SE R&B MEDAK",
+      "organisation_path": [
+        "R&B - Telangana-SE R&B MEDAK"
+      ],
+      "official_fields": {
+        "department_name": "R&B - Telangana-SE  R&B  MEDAK",
+        "tender_id": "738048",
+        "tender_reference": "e NIT No. 1606-3/2/SRD/DCE (R)/EE R/DEE 9I/AEE/2026-27 Date.22.09.2026",
+        "tender_category": "WORKS",
+        "title": "Improvements to Doultabad PWD road to Agmapur road via Sikindlapur and Naguladevlapally road from km 0/800 to 1/600 in Sangareddy District",
+        "estimated_contract_value": "14374325.00",
+        "published_date_time": "28/09/2026 08:30 PM",
+        "bid_submission_start_date_time": "28/09/2026 11:50 PM",
+        "bid_submission_closing_date_time": "12/10/2026 03:30 PM",
+        "detail_action_arguments": [
+          671049,
+          101,
+          671039
+        ]
+      },
+      "published_at": "2026-09-28T15:00:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "738048",
+      "tender_reference": "e NIT No. 1606-3/2/SRD/DCE (R)/EE R/DEE 9I/AEE/2026-27 Date.22.09.2026",
+      "title": "Improvements to Doultabad PWD road to Agmapur road via Sikindlapur and Naguladevlapally road from km 0/800 to 1/600 in Sangareddy District"
     },
     {
       "bid_submission_start_at": "2026-10-05T10:30:00Z",
@@ -2018,7 +1525,7 @@
         ]
       },
       "published_at": "2026-10-05T06:00:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2056,7 +1563,7 @@
         ]
       },
       "published_at": "2026-10-05T06:01:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2094,7 +1601,7 @@
         ]
       },
       "published_at": "2026-10-05T06:01:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2132,7 +1639,7 @@
         ]
       },
       "published_at": "2026-10-05T05:39:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2170,7 +1677,7 @@
         ]
       },
       "published_at": "2026-10-05T05:47:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2208,7 +1715,7 @@
         ]
       },
       "published_at": "2026-10-05T05:47:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2246,7 +1753,7 @@
         ]
       },
       "published_at": "2026-10-05T05:32:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2284,7 +1791,7 @@
         ]
       },
       "published_at": "2026-10-05T05:51:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2322,7 +1829,7 @@
         ]
       },
       "published_at": "2026-10-05T05:46:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2360,7 +1867,7 @@
         ]
       },
       "published_at": "2026-10-05T05:45:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2398,7 +1905,7 @@
         ]
       },
       "published_at": "2026-10-05T05:43:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2436,7 +1943,7 @@
         ]
       },
       "published_at": "2026-10-05T05:52:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2445,6 +1952,44 @@
       "tender_id": "739238",
       "tender_reference": "E1/DB/8201/288/MCK/2026-27/3, Dt: 03-10-2026",
       "title": "Filling of pot holes with stone dust and gravel at theegalagutta pally, saraswathi nagar, k.r. colony road no.1,and 2 revenu colony, carpentars colony, nagu noor road and other places for saddula bathukamma festival in division no 2 of municipal corporation karimnagar Est. cost of Rs. 2.00 Lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739474",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/33, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Filling of pot holes with stone dust, c.c patch work  in various places in division no 27  for  saddula bathukamma festival of municipal corporation  karimnagar Est. cost of Rs. 0.99 lakhs under MGF",
+        "estimated_contract_value": "80064.00",
+        "published_date_time": "05/10/2026 02:33 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672475,
+          101,
+          672465
+        ]
+      },
+      "published_at": "2026-10-05T09:03:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739474",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/33, Dt: 03-10-2026",
+      "title": "Filling of pot holes with stone dust, c.c patch work in various places in division no 27 for saddula bathukamma festival of municipal corporation karimnagar Est. cost of Rs. 0.99 lakhs under MGF"
     },
     {
       "bid_submission_start_at": "2026-10-05T10:30:00Z",
@@ -2474,7 +2019,7 @@
         ]
       },
       "published_at": "2026-10-05T06:09:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2512,7 +2057,7 @@
         ]
       },
       "published_at": "2026-10-05T05:48:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2521,6 +2066,44 @@
       "tender_id": "739223",
       "tender_reference": "E1/DB/8201/288/MCK/2026-27/36, Dt: 03-10-2026",
       "title": "Filling of pot holes with stone dust and gravel in various places for saddula bathukamma festival in division no 29, of municipal corporation karimnagar Est. cost of Rs. 1.35 lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739471",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/37, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Filling of pot Holes with   stone dust , gravel at Gandhi School and  in various places  in division no 35 for Saddula Bathukamma Festival  of municipal corporation Karimnagar Est. cost of Rs. 1.80 lakhs under MGF",
+        "estimated_contract_value": "145921.00",
+        "published_date_time": "05/10/2026 02:29 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672472,
+          101,
+          672462
+        ]
+      },
+      "published_at": "2026-10-05T08:59:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739471",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/37, Dt: 03-10-2026",
+      "title": "Filling of pot Holes with stone dust , gravel at Gandhi School and in various places in division no 35 for Saddula Bathukamma Festival of municipal corporation Karimnagar Est. cost of Rs. 1.80 lakhs under MGF"
     },
     {
       "bid_submission_start_at": "2026-10-05T10:30:00Z",
@@ -2550,7 +2133,7 @@
         ]
       },
       "published_at": "2026-10-05T05:49:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2588,7 +2171,7 @@
         ]
       },
       "published_at": "2026-10-05T05:50:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2626,7 +2209,7 @@
         ]
       },
       "published_at": "2026-10-05T05:52:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2664,7 +2247,7 @@
         ]
       },
       "published_at": "2026-10-05T06:02:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2702,7 +2285,7 @@
         ]
       },
       "published_at": "2026-10-05T05:49:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2740,7 +2323,7 @@
         ]
       },
       "published_at": "2026-10-05T05:50:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2778,7 +2361,7 @@
         ]
       },
       "published_at": "2026-10-05T05:50:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2787,6 +2370,44 @@
       "tender_id": "739235",
       "tender_reference": "E1/DB/8201/288/MCK/2026-27/43, Dt: 03-10-2026",
       "title": "Filling of pot Holes with stone diust and Gravel in Various Places on the occasion of Bathukamma Festivel 2026 in div no 41 of Municipal corporation Karimnagar Est. cost of Rs. 0.90 lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T12:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739602",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/51, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Engaging Blade tractor and Filling of pot holes with Gravel and stone dust  and filling of pot holes with C.C patches occasion of bathukamma paly grounds at Chinthakunta in division no 48 of Municipal Corporation, karimnagar Est. cost of Rs. 3.90 lakhs under MGF",
+        "estimated_contract_value": "313297.00",
+        "published_date_time": "05/10/2026 05:06 PM",
+        "bid_submission_start_date_time": "05/10/2026 06:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672603,
+          101,
+          672593
+        ]
+      },
+      "published_at": "2026-10-05T11:36:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739602",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/51, Dt: 03-10-2026",
+      "title": "Engaging Blade tractor and Filling of pot holes with Gravel and stone dust and filling of pot holes with C.C patches occasion of bathukamma paly grounds at Chinthakunta in division no 48 of Municipal Corporation, karimnagar Est. cost of Rs. 3.90 lakhs under MGF"
     },
     {
       "bid_submission_start_at": "2026-10-05T10:30:00Z",
@@ -2816,7 +2437,7 @@
         ]
       },
       "published_at": "2026-10-05T05:40:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2854,7 +2475,7 @@
         ]
       },
       "published_at": "2026-10-05T06:02:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2892,7 +2513,7 @@
         ]
       },
       "published_at": "2026-10-05T06:07:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2930,7 +2551,7 @@
         ]
       },
       "published_at": "2026-10-05T05:42:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -2968,7 +2589,7 @@
         ]
       },
       "published_at": "2026-10-05T05:59:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3006,7 +2627,7 @@
         ]
       },
       "published_at": "2026-10-05T05:41:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3044,7 +2665,7 @@
         ]
       },
       "published_at": "2026-10-05T06:03:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3082,7 +2703,7 @@
         ]
       },
       "published_at": "2026-10-05T05:30:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3120,7 +2741,7 @@
         ]
       },
       "published_at": "2026-10-05T06:08:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3158,7 +2779,7 @@
         ]
       },
       "published_at": "2026-10-05T06:09:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3196,7 +2817,7 @@
         ]
       },
       "published_at": "2026-10-05T06:05:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3234,7 +2855,7 @@
         ]
       },
       "published_at": "2026-10-05T05:58:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3243,6 +2864,348 @@
       "tender_id": "739240",
       "tender_reference": "E1/DB/8201/288/MCK/2026-27/7, Dt: 03-10-2026",
       "title": "Filling of pot holes with stone dust and barricading with flexi banner at gopal poor and durshed bridge and other places for saddula bathukamma festival in division no 4 of municipal corporation karimnagar Est. cost of Rs. 1.50 lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T12:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739594",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/70, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Estimate for Filling of Pot Holes with Stone dust and Engaging of Labours for Jungle cleaning and Levelling the uneval Road with Blade Tractor at Dam Katta Markendeya nagar Bathukamma Immerssion Point During the Bathukamma Festival of Municipal Corporation Karimnagar of 2026 Est. cost of Rs. 2.95 lakhs under MGF",
+        "estimated_contract_value": "238715.00",
+        "published_date_time": "05/10/2026 04:53 PM",
+        "bid_submission_start_date_time": "05/10/2026 06:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672595,
+          101,
+          672585
+        ]
+      },
+      "published_at": "2026-10-05T11:23:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739594",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/70, Dt: 03-10-2026",
+      "title": "Estimate for Filling of Pot Holes with Stone dust and Engaging of Labours for Jungle cleaning and Levelling the uneval Road with Blade Tractor at Dam Katta Markendeya nagar Bathukamma Immerssion Point During the Bathukamma Festival of Municipal Corporation Karimnagar of 2026 Est. cost of Rs. 2.95 lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739409",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/72, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Filling of Pot Holes with Gravel and  Stone Dust   From Hasnapur colony and Saibaba Tempel  on the occasion of Bthukamma Festivel  2026   of  Municipal corporation Karimnagar Est. cost of Rs. 1.65 lakhs under MGF",
+        "estimated_contract_value": "132689.00",
+        "published_date_time": "05/10/2026 12:51 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672410,
+          101,
+          672400
+        ]
+      },
+      "published_at": "2026-10-05T07:21:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739409",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/72, Dt: 03-10-2026",
+      "title": "Filling of Pot Holes with Gravel and Stone Dust From Hasnapur colony and Saibaba Tempel on the occasion of Bthukamma Festivel 2026 of Municipal corporation Karimnagar Est. cost of Rs. 1.65 lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739423",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/73, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Filling of Pot Holes with Gravel and  Stone Dust   From Bathukamma colony  on the occasion of Bthukamma Festivel  2026   of  Municipal corporation Karimnagar Est. cost of Rs. 1.62 lakhs under MGF",
+        "estimated_contract_value": "131151.00",
+        "published_date_time": "05/10/2026 01:03 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672424,
+          101,
+          672414
+        ]
+      },
+      "published_at": "2026-10-05T07:33:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739423",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/73, Dt: 03-10-2026",
+      "title": "Filling of Pot Holes with Gravel and Stone Dust From Bathukamma colony on the occasion of Bthukamma Festivel 2026 of Municipal corporation Karimnagar Est. cost of Rs. 1.62 lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739413",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/74, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Filling of Pot Holes with Gravel and  Stone Dust   From CM Point   on the occasion of Bthukamma Festivel  2026   of  Municipal corporation Karimnagar Est. cost of Rs. 2.30 lakhs under MGF",
+        "estimated_contract_value": "185132.00",
+        "published_date_time": "05/10/2026 12:56 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672414,
+          101,
+          672404
+        ]
+      },
+      "published_at": "2026-10-05T07:26:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739413",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/74, Dt: 03-10-2026",
+      "title": "Filling of Pot Holes with Gravel and Stone Dust From CM Point on the occasion of Bthukamma Festivel 2026 of Municipal corporation Karimnagar Est. cost of Rs. 2.30 lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739402",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/75, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Filling of Pot Holes with Gravel and  Stone Dust   From Gouthami nagar Water Tank  on the occasion of Bthukamma Festivel  2026   of  Municipal corporation Karimnagar Est. cost of Rs. 2.50 lakhs under MGF",
+        "estimated_contract_value": "202537.00",
+        "published_date_time": "05/10/2026 12:44 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672403,
+          101,
+          672393
+        ]
+      },
+      "published_at": "2026-10-05T07:14:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739402",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/75, Dt: 03-10-2026",
+      "title": "Filling of Pot Holes with Gravel and Stone Dust From Gouthami nagar Water Tank on the occasion of Bthukamma Festivel 2026 of Municipal corporation Karimnagar Est. cost of Rs. 2.50 lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739432",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/76, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Filling of Pot Holes with Gravel and  Stone Dust   From Gouthami nagar Hill  on the occasion of Bthukamma Festivel  2026   of  Municipal corporation Karimnagar Est. cost of Rs. 1.50 lakhs under MGF",
+        "estimated_contract_value": "120283.00",
+        "published_date_time": "05/10/2026 01:19 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672433,
+          101,
+          672423
+        ]
+      },
+      "published_at": "2026-10-05T07:49:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739432",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/76, Dt: 03-10-2026",
+      "title": "Filling of Pot Holes with Gravel and Stone Dust From Gouthami nagar Hill on the occasion of Bthukamma Festivel 2026 of Municipal corporation Karimnagar Est. cost of Rs. 1.50 lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739438",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/77, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Filling of Pot Holes with Gravel and  Stone Dust   From Vedha bavan   on the occasion of Bthukamma Festivel  2026   of  Municipal corporation Karimnagar Est. cost of Rs. 2.55 lakhs under MGF",
+        "estimated_contract_value": "205897.00",
+        "published_date_time": "05/10/2026 01:24 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672439,
+          101,
+          672429
+        ]
+      },
+      "published_at": "2026-10-05T07:54:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739438",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/77, Dt: 03-10-2026",
+      "title": "Filling of Pot Holes with Gravel and Stone Dust From Vedha bavan on the occasion of Bthukamma Festivel 2026 of Municipal corporation Karimnagar Est. cost of Rs. 2.55 lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739456",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/78, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Filling of Pot Holes with Gravel and  Stone Dust   From Alugunur Old Villege   on the occasion of Bthukamma Festivel  2026   of  Municipal corporation Karimnagar Est. cost of Rs. 1.60 lakhs under MGF",
+        "estimated_contract_value": "129116.00",
+        "published_date_time": "05/10/2026 01:51 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672457,
+          101,
+          672447
+        ]
+      },
+      "published_at": "2026-10-05T08:21:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739456",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/78, Dt: 03-10-2026",
+      "title": "Filling of Pot Holes with Gravel and Stone Dust From Alugunur Old Villege on the occasion of Bthukamma Festivel 2026 of Municipal corporation Karimnagar Est. cost of Rs. 1.60 lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739441",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/79, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Filling of Pot Holes with Gravel and  Stone Dust   From Alugunur Bridge  on the occasion of Bthukamma Festivel  2026   of  Municipal corporation Karimnagar Est. cost of Rs. 3.00 lakhs under MGF",
+        "estimated_contract_value": "243528.00",
+        "published_date_time": "05/10/2026 01:32 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672442,
+          101,
+          672432
+        ]
+      },
+      "published_at": "2026-10-05T08:02:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739441",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/79, Dt: 03-10-2026",
+      "title": "Filling of Pot Holes with Gravel and Stone Dust From Alugunur Bridge on the occasion of Bthukamma Festivel 2026 of Municipal corporation Karimnagar Est. cost of Rs. 3.00 lakhs under MGF"
     },
     {
       "bid_submission_start_at": "2026-10-05T10:30:00Z",
@@ -3272,7 +3235,7 @@
         ]
       },
       "published_at": "2026-10-05T06:00:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3281,6 +3244,44 @@
       "tender_id": "739242",
       "tender_reference": "E1/DB/8201/288/MCK/2026-27/8, Dt: 03-10-2026",
       "title": "Filling of pot holes with stone dust in various places in division no 5 for saddula bathukamma festival of municipal corporation karimnagar Est. cost of Rs. 1.10 lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739448",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/80, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Filling of Pot Holes with Gravel and  Stone Dust   From Mnakondur Cheruvu katta and water tank point on the occasion of Bthukamma Festivel  2026   of  Municipal corporation Karimnagar Est. cost of Rs. 1.72 lakhs under MGF",
+        "estimated_contract_value": "138400.00",
+        "published_date_time": "05/10/2026 01:38 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672449,
+          101,
+          672439
+        ]
+      },
+      "published_at": "2026-10-05T08:08:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739448",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/80, Dt: 03-10-2026",
+      "title": "Filling of Pot Holes with Gravel and Stone Dust From Mnakondur Cheruvu katta and water tank point on the occasion of Bthukamma Festivel 2026 of Municipal corporation Karimnagar Est. cost of Rs. 1.72 lakhs under MGF"
     },
     {
       "bid_submission_start_at": "2026-10-05T10:30:00Z",
@@ -3310,7 +3311,7 @@
         ]
       },
       "published_at": "2026-10-05T05:41:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3319,6 +3320,44 @@
       "tender_id": "739210",
       "tender_reference": "E1/DB/8201/288/MCK/2026-27/81, Dt: 03-10-2026",
       "title": "Filling of Pot Holes with Gravel and Stone Dust From Giddeperumandla Temple Ground and Approach Roads on the occasion of Bthukamma Festivel 2026 of Municipal corporation Karimnagar Est. cost of Rs. 1.82 Lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KARIMNAGAR MUNICIPAL CORPORATION"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KARIMNAGAR  MUNICIPAL CORPORATION",
+        "tender_id": "739492",
+        "tender_reference": "E1/DB/8201/288/MCK/2026-27/83, Dt: 03-10-2026",
+        "tender_category": "WORKS",
+        "title": "Filling of pot Holes with gravel and  stone dust and engaging  of bamboo barricading, Sand bags and Enagaging of  200 procline At Manair vagu on occasion of  Bathukamma Festival 2026.of Municipal Corporation Karimnagar Est. cost of Rs. 3.60 lakhs under MGF",
+        "estimated_contract_value": "290513.00",
+        "published_date_time": "05/10/2026 02:58 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672493,
+          101,
+          672483
+        ]
+      },
+      "published_at": "2026-10-05T09:28:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739492",
+      "tender_reference": "E1/DB/8201/288/MCK/2026-27/83, Dt: 03-10-2026",
+      "title": "Filling of pot Holes with gravel and stone dust and engaging of bamboo barricading, Sand bags and Enagaging of 200 procline At Manair vagu on occasion of Bathukamma Festival 2026.of Municipal Corporation Karimnagar Est. cost of Rs. 3.60 lakhs under MGF"
     },
     {
       "bid_submission_start_at": "2026-10-05T10:30:00Z",
@@ -3348,7 +3387,7 @@
         ]
       },
       "published_at": "2026-10-05T06:07:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3386,7 +3425,7 @@
         ]
       },
       "published_at": "2026-10-05T06:00:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3424,7 +3463,7 @@
         ]
       },
       "published_at": "2026-10-05T05:28:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3462,7 +3501,7 @@
         ]
       },
       "published_at": "2026-10-03T12:07:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3471,6 +3510,766 @@
       "tender_id": "739155",
       "tender_reference": "Lr.No. E1/DB/8201/288/MCK/2026-27/5, Dt: 03-10-2026",
       "title": "Filling of pot holes with stone dust and gravel at theegalagutta pally, vidayaranya puri 1,2,3 and manikeshawari nagar roads and amma gudi and other places for saddula bathukamma festival in division no 3 of municipal corporation karimnagar Est. cost of Rs. 2.00 Lakhs under MGF"
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "739307",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.01)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-4-372, 13-4-366/1/7, 13-4-369/5, 13-4-372, 13-4-304 at Sabzimandi and at H.No.13-4-170/B, 13-4-171, 13-4-172 and at HMWS and SB Office, Sabzimandi near Iqbal Plaza under Ward No.137-Tapachabutra, Karwan Circle-31, GZ, GHMC.",
+        "estimated_contract_value": "3477591.00",
+        "published_date_time": "06/10/2026 11:54 AM",
+        "bid_submission_start_date_time": "06/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672308,
+          101,
+          672298
+        ]
+      },
+      "published_at": "2026-10-06T06:24:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739307",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.01)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-4-372, 13-4-366/1/7, 13-4-369/5, 13-4-372, 13-4-304 at Sabzimandi and at H.No.13-4-170/B, 13-4-171, 13-4-172 and at HMWS and SB Office, Sabzimandi near Iqbal Plaza under Ward No.137-Tapachabutra, Karwan Circle-31, GZ, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T11:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "739944",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.02)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-5-431/A/142 and 13-5-431/A/147 at Mehboob Colony and from H.No.13-5-149/15 to 13-5-146/1 at Yousuf Nagar under Ward No.137-Tapachabutra, Karwan Circle-31, GZ, GHMC",
+        "estimated_contract_value": "2745119.00",
+        "published_date_time": "06/10/2026 03:17 PM",
+        "bid_submission_start_date_time": "06/10/2026 05:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672945,
+          101,
+          672935
+        ]
+      },
+      "published_at": "2026-10-06T09:47:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739944",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.02)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-5-431/A/142 and 13-5-431/A/147 at Mehboob Colony and from H.No.13-5-149/15 to 13-5-146/1 at Yousuf Nagar under Ward No.137-Tapachabutra, Karwan Circle-31, GZ, GHMC"
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T11:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "739945",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.03)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-4-368/A, 13-4-236/A, 13-4-366/A/1 and 13-4-239/A/18 at Sabzimandi and Kargil Nagar under Ward No.137-Tapachabutra, Karwan Circle-31, GZ, GHMC.",
+        "estimated_contract_value": "3062976.00",
+        "published_date_time": "06/10/2026 03:30 PM",
+        "bid_submission_start_date_time": "06/10/2026 05:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672946,
+          101,
+          672936
+        ]
+      },
+      "published_at": "2026-10-06T10:00:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739945",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.03)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-4-368/A, 13-4-236/A, 13-4-366/A/1 and 13-4-239/A/18 at Sabzimandi and Kargil Nagar under Ward No.137-Tapachabutra, Karwan Circle-31, GZ, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T11:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "739946",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.04)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-4-239/978, 13-4-239/9/A/71, 13-4-239/9/A/91, 13-4-239/9/A/26 and 13-4-239/9/A/4/1/A at Kargil Nagar under Ward No.137-Tapachabutra, Karwan Circle-31, GZ, GHMC.",
+        "estimated_contract_value": "3796692.00",
+        "published_date_time": "06/10/2026 03:41 PM",
+        "bid_submission_start_date_time": "06/10/2026 05:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672947,
+          101,
+          672937
+        ]
+      },
+      "published_at": "2026-10-06T10:11:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739946",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.04)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-4-239/978, 13-4-239/9/A/71, 13-4-239/9/A/91, 13-4-239/9/A/26 and 13-4-239/9/A/4/1/A at Kargil Nagar under Ward No.137-Tapachabutra, Karwan Circle-31, GZ, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T11:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "739947",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.06)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-4-592/8 to 13-4-592/8/B and 13-4-592/1/B/A/1 at Satyanarayana Nagar, Dariyabagh under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC.",
+        "estimated_contract_value": "3959814.00",
+        "published_date_time": "06/10/2026 03:50 PM",
+        "bid_submission_start_date_time": "06/10/2026 05:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672948,
+          101,
+          672938
+        ]
+      },
+      "published_at": "2026-10-06T10:20:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739947",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.06)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-4-592/8 to 13-4-592/8/B and 13-4-592/1/B/A/1 at Satyanarayana Nagar, Dariyabagh under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T11:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "739948",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.07)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-1108/A/2 to 13-3-1103/138 opposite KGN Hotel Lane and from H.No.13-3-242/7, 13-3-653, 13-3-242/2/A and 13-3-652/29/13 at Bheem Nagar under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC.",
+        "estimated_contract_value": "3876753.00",
+        "published_date_time": "06/10/2026 03:57 PM",
+        "bid_submission_start_date_time": "06/10/2026 05:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672949,
+          101,
+          672939
+        ]
+      },
+      "published_at": "2026-10-06T10:27:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739948",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.07)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-1108/A/2 to 13-3-1103/138 opposite KGN Hotel Lane and from H.No.13-3-242/7, 13-3-653, 13-3-242/2/A and 13-3-652/29/13 at Bheem Nagar under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "739900",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.08)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-945/2 and 13-3-700/1/A at Mallanna Temple Road, Kuruma Basthi under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC.",
+        "estimated_contract_value": "2992169.00",
+        "published_date_time": "06/10/2026 01:26 PM",
+        "bid_submission_start_date_time": "06/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672901,
+          101,
+          672891
+        ]
+      },
+      "published_at": "2026-10-06T07:56:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739900",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.08)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-945/2 and 13-3-700/1/A at Mallanna Temple Road, Kuruma Basthi under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T10:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "739918",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.09)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-793, 13-3-859, 13-3-925 near Akkagudi Markandeya Bhavan, H.No.13-4-750/A, 13-4-757/2 and 13-4-778/1 and at Indira Nagar from H.No.13-3-1103/16/1 to 13-3-1103/1 and H.No.13-3-1094/101 to 13-3-1049/163 under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC.",
+        "estimated_contract_value": "3555720.00",
+        "published_date_time": "06/10/2026 01:46 PM",
+        "bid_submission_start_date_time": "06/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672919,
+          101,
+          672909
+        ]
+      },
+      "published_at": "2026-10-06T08:16:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739918",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.09)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-793, 13-3-859, 13-3-925 near Akkagudi Markandeya Bhavan, H.No.13-4-750/A, 13-4-757/2 and 13-4-778/1 and at Indira Nagar from H.No.13-3-1103/16/1 to 13-3-1103/1 and H.No.13-3-1094/101 to 13-3-1049/163 under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T11:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "739949",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.10)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-586/61/62, 13-3-586/42/10/1, 13-3-587/12/30, 13-3-586/36/A and 13-3-588/7/A at Sai Durga Nagar under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC.",
+        "estimated_contract_value": "2582519.00",
+        "published_date_time": "06/10/2026 04:06 PM",
+        "bid_submission_start_date_time": "06/10/2026 05:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672950,
+          101,
+          672940
+        ]
+      },
+      "published_at": "2026-10-06T10:36:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739949",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.10)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-586/61/62, 13-3-586/42/10/1, 13-3-587/12/30, 13-3-586/36/A and 13-3-588/7/A at Sai Durga Nagar under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T11:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "739950",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.11)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-1083/31, 13-3-1083/43, 13-3-506/37/2/A, 13-3-506/38/48/1/13 and 13-3-506/38/9/1/16 at KS Nagar under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC.",
+        "estimated_contract_value": "3961482.00",
+        "published_date_time": "06/10/2026 04:11 PM",
+        "bid_submission_start_date_time": "06/10/2026 05:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672951,
+          101,
+          672941
+        ]
+      },
+      "published_at": "2026-10-06T10:41:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739950",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.11)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-1083/31, 13-3-1083/43, 13-3-506/37/2/A, 13-3-506/38/48/1/13 and 13-3-506/38/9/1/16 at KS Nagar under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T11:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "739934",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.12)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-506/330/121, 13-3-506/320/121/46 and 13-3-506/320/12/1 at Imampura under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC.",
+        "estimated_contract_value": "2380107.00",
+        "published_date_time": "06/10/2026 04:59 PM",
+        "bid_submission_start_date_time": "06/10/2026 05:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672935,
+          101,
+          672925
+        ]
+      },
+      "published_at": "2026-10-06T11:29:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739934",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.12)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-506/330/121, 13-3-506/320/121/46 and 13-3-506/320/12/1 at Imampura under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T11:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "740031",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27  Dt:05-10-2026 (Item No.13)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-1087/46, 13-3-1087/120, 13-3-1087/113/A and 13-3-1087/116/D/4 at Bharath Nagar under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC.",
+        "estimated_contract_value": "3063750.00",
+        "published_date_time": "06/10/2026 04:38 PM",
+        "bid_submission_start_date_time": "06/10/2026 05:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          673032,
+          101,
+          673022
+        ]
+      },
+      "published_at": "2026-10-06T11:08:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "740031",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.13)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-1087/46, 13-3-1087/120, 13-3-1087/113/A and 13-3-1087/116/D/4 at Bharath Nagar under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T12:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "740043",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27  Dt:05-10-2026 (Item No.14)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-396/147/D/11 and 13-3-444/A/3 at Durga Nagar under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC.",
+        "estimated_contract_value": "3546897.00",
+        "published_date_time": "06/10/2026 04:47 PM",
+        "bid_submission_start_date_time": "06/10/2026 06:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          673044,
+          101,
+          673034
+        ]
+      },
+      "published_at": "2026-10-06T11:17:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "740043",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.14)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-396/147/D/11 and 13-3-444/A/3 at Durga Nagar under Ward No.138-Jiyaguda, Karwan Circle-31, GZ, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-07T08:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "740212",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.18)",
+        "tender_category": "WORKS",
+        "title": "Recarpeting of BT road at damaged locations from Puranapool Junction to Milan Bakery, Hara Darwaza, Opp. H.No. 13-3-231/B and H.No. 13-5-832/A, Opp. Masjid-e-Kalimullah, in view of the Ganesh Festival procession route under Ward-137, Tapachabutra, Circle-31, GZ, GHMC. Recall",
+        "estimated_contract_value": "1597232.00",
+        "published_date_time": "07/10/2026 11:39 AM",
+        "bid_submission_start_date_time": "07/10/2026 02:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          673213,
+          101,
+          673203
+        ]
+      },
+      "published_at": "2026-10-07T06:09:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "740212",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.18)",
+      "title": "Recarpeting of BT road at damaged locations from Puranapool Junction to Milan Bakery, Hara Darwaza, Opp. H.No. 13-3-231/B and H.No. 13-5-832/A, Opp. Masjid-e-Kalimullah, in view of the Ganesh Festival procession route under Ward-137, Tapachabutra, Circle-31, GZ, GHMC. Recall"
+    },
+    {
+      "bid_submission_start_at": "2026-10-07T08:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "740179",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.36)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-5-292/127/G and Bhagya Laxmi Kirana Store beside Asifnagar Govt. School, Joshiwadi under Ward No.137-Tapachabutra (Reserved for Wadderas and Sagaras)",
+        "estimated_contract_value": "1859003.00",
+        "published_date_time": "07/10/2026 10:53 AM",
+        "bid_submission_start_date_time": "07/10/2026 02:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          673180,
+          101,
+          673170
+        ]
+      },
+      "published_at": "2026-10-07T05:23:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "740179",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.36)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-5-292/127/G and Bhagya Laxmi Kirana Store beside Asifnagar Govt. School, Joshiwadi under Ward No.137-Tapachabutra (Reserved for Wadderas and Sagaras)"
+    },
+    {
+      "bid_submission_start_at": "2026-10-07T08:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "740190",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.37)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-1050/47/B, 13-3-1050/29 and 13-3-1050/48, 13-3-1050/5 at Valmiki Nagar under Ward No.138-Jiyaguda (Reserved for STs)",
+        "estimated_contract_value": "1778639.00",
+        "published_date_time": "07/10/2026 11:02 AM",
+        "bid_submission_start_date_time": "07/10/2026 02:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          673191,
+          101,
+          673181
+        ]
+      },
+      "published_at": "2026-10-07T05:32:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "740190",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.37)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-1050/47/B, 13-3-1050/29 and 13-3-1050/48, 13-3-1050/5 at Valmiki Nagar under Ward No.138-Jiyaguda (Reserved for STs)"
+    },
+    {
+      "bid_submission_start_at": "2026-10-07T08:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "740199",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.38)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-506/38/123/1, 13-3-506/88/35/13, 13-3-506/38/18/A, 13-3-506/38/372/2, 13-3-506/38/367 and 13-3-506/38/230/A at Keshava Swamy Nagar under Ward No.138-Jiyaguda (Reserved for STs)",
+        "estimated_contract_value": "2908071.00",
+        "published_date_time": "07/10/2026 11:12 AM",
+        "bid_submission_start_date_time": "07/10/2026 02:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          673200,
+          101,
+          673190
+        ]
+      },
+      "published_at": "2026-10-07T05:42:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "740199",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.38)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-506/38/123/1, 13-3-506/88/35/13, 13-3-506/38/18/A, 13-3-506/38/372/2, 13-3-506/38/367 and 13-3-506/38/230/A at Keshava Swamy Nagar under Ward No.138-Jiyaguda (Reserved for STs)"
+    },
+    {
+      "bid_submission_start_at": "2026-10-07T08:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "740202",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.39)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-747/3, 13-3-731/A, 13-3-735, 13-3-737/A/1, 13-3-752/1 and 13-3-761/A/1 at Laxmi Narasimha Colony under Ward No.138-Jiyaguda (Reserved for STs)",
+        "estimated_contract_value": "3874277.00",
+        "published_date_time": "07/10/2026 11:21 AM",
+        "bid_submission_start_date_time": "07/10/2026 02:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          673203,
+          101,
+          673193
+        ]
+      },
+      "published_at": "2026-10-07T05:51:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "740202",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.39)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-747/3, 13-3-731/A, 13-3-735, 13-3-737/A/1, 13-3-752/1 and 13-3-761/A/1 at Laxmi Narasimha Colony under Ward No.138-Jiyaguda (Reserved for STs)"
+    },
+    {
+      "bid_submission_start_at": "2026-10-07T08:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "740207",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.40)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-413, 13-3-443/A/1, 13-3-557 at Imampura and H.No.13-3-396/147/D/11 at Sai Durga Nagar under Ward No.138-Jiyaguda",
+        "estimated_contract_value": "3153430.00",
+        "published_date_time": "07/10/2026 11:27 AM",
+        "bid_submission_start_date_time": "07/10/2026 02:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          673208,
+          101,
+          673198
+        ]
+      },
+      "published_at": "2026-10-07T05:57:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "740207",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.40)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-413, 13-3-443/A/1, 13-3-557 at Imampura and H.No.13-3-396/147/D/11 at Sai Durga Nagar under Ward No.138-Jiyaguda"
+    },
+    {
+      "bid_submission_start_at": "2026-10-07T08:30:00Z",
+      "closing_at": "2026-10-12T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+      "organisation_path": [
+        "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7"
+      ],
+      "official_fields": {
+        "department_name": "GREATER HYDERABAD MUNICIPAL CORPORATION-EE-DIV7",
+        "tender_id": "740210",
+        "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.41)",
+        "tender_category": "WORKS",
+        "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-470/19/A, 13-3-506/320/108/10/1, 13-3-506/320/108, 13-3-506/320/90/1 and 13-3-506/320/63/8 at Shivbagh under Ward No.138-Jiyaguda (Reserved for SCs)",
+        "estimated_contract_value": "3961635.00",
+        "published_date_time": "07/10/2026 11:34 AM",
+        "bid_submission_start_date_time": "07/10/2026 02:00 PM",
+        "bid_submission_closing_date_time": "12/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          673211,
+          101,
+          673201
+        ]
+      },
+      "published_at": "2026-10-07T06:04:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "740210",
+      "tender_reference": "Short Tender Notice No.21/EE/Karwan/Cir-31/GZ/GHMC/2026-27 Dt:05-10-2026 (Item No.41)",
+      "title": "Restoration of damaged CC road by laying new CC road proposed from H.No.13-3-470/19/A, 13-3-506/320/108/10/1, 13-3-506/320/108, 13-3-506/320/90/1 and 13-3-506/320/63/8 at Shivbagh under Ward No.138-Jiyaguda (Reserved for SCs)"
     },
     {
       "bid_submission_start_at": "2026-09-16T11:30:00Z",
@@ -3500,7 +4299,7 @@
         ]
       },
       "published_at": "2026-09-16T07:33:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3509,6 +4308,82 @@
       "tender_id": "735505",
       "tender_reference": "BID No:II-45/2026-27/TGNPDCL/CE(PROJ)/MNCL",
       "title": "proposal for Shifting of 11KV LT Lines along with DTRs due to Road Widening Work from the Existing 4Lane Road to 6 Lane Road Boundaries 66 feet from the Centre Line on either side of the Road from Bellampally Chowrasta to Srinivasa Garden in Mancherial Town 2 Section of Mancherial Sub Division, Mancherial Division, Mancherial Circle, on Partial Turnkey Basis"
+    },
+    {
+      "bid_submission_start_at": "2026-09-19T12:00:00Z",
+      "closing_at": "2026-10-12T11:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "SOUTHERN POWER DISTRIBUTION COMPANY OF TELANGANA L-Ranga Reddy Zone",
+      "organisation_path": [
+        "SOUTHERN POWER DISTRIBUTION COMPANY OF TELANGANA L-Ranga Reddy Zone"
+      ],
+      "official_fields": {
+        "department_name": "SOUTHERN POWER DISTRIBUTION COMPANY OF TELANGANA L-Ranga Reddy Zone",
+        "tender_id": "736432",
+        "tender_reference": "CE/OP/RR Zone- 19A/2026-27",
+        "tender_category": "WORKS",
+        "title": "Shifting of 11KV, DTRs and LT line road widening near Sanju Kiraana Shop to Velama Sangam Gate Kondapur in Kondapur Section of Kondapur Sub Division in Kondapur Division of Cybercity Circle",
+        "estimated_contract_value": "16523632.00",
+        "published_date_time": "19/09/2026 05:29 PM",
+        "bid_submission_start_date_time": "19/09/2026 05:30 PM",
+        "bid_submission_closing_date_time": "12/10/2026 05:00 PM",
+        "detail_action_arguments": [
+          669433,
+          101,
+          669423
+        ]
+      },
+      "published_at": "2026-09-19T11:59:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "736432",
+      "tender_reference": "CE/OP/RR Zone- 19A/2026-27",
+      "title": "Shifting of 11KV, DTRs and LT line road widening near Sanju Kiraana Shop to Velama Sangam Gate Kondapur in Kondapur Section of Kondapur Sub Division in Kondapur Division of Cybercity Circle"
+    },
+    {
+      "bid_submission_start_at": "2026-09-19T12:00:00Z",
+      "closing_at": "2026-10-12T11:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "SOUTHERN POWER DISTRIBUTION COMPANY OF TELANGANA L-Ranga Reddy Zone",
+      "organisation_path": [
+        "SOUTHERN POWER DISTRIBUTION COMPANY OF TELANGANA L-Ranga Reddy Zone"
+      ],
+      "official_fields": {
+        "department_name": "SOUTHERN POWER DISTRIBUTION COMPANY OF TELANGANA L-Ranga Reddy Zone",
+        "tender_id": "736417",
+        "tender_reference": "CE/OP/RRZ - 18A/2026-27",
+        "tender_category": "WORKS",
+        "title": "Shifting of 11KV, DTRs and LT line road widening near Arabindo Kohinoor Apartment to Sanju Kiraana Shop Kondapur in Kondapur Section of Kondapur Sub Division in Kondapur Division of Cybercity Circle",
+        "estimated_contract_value": "16538457.00",
+        "published_date_time": "19/09/2026 05:12 PM",
+        "bid_submission_start_date_time": "19/09/2026 05:30 PM",
+        "bid_submission_closing_date_time": "12/10/2026 05:00 PM",
+        "detail_action_arguments": [
+          669418,
+          101,
+          669408
+        ]
+      },
+      "published_at": "2026-09-19T11:42:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "736417",
+      "tender_reference": "CE/OP/RRZ - 18A/2026-27",
+      "title": "Shifting of 11KV, DTRs and LT line road widening near Arabindo Kohinoor Apartment to Sanju Kiraana Shop Kondapur in Kondapur Section of Kondapur Sub Division in Kondapur Division of Cybercity Circle"
     },
     {
       "bid_submission_start_at": "2026-09-29T09:30:00Z",
@@ -3538,7 +4413,7 @@
         ]
       },
       "published_at": "2026-09-27T09:21:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3576,7 +4451,7 @@
         ]
       },
       "published_at": "2026-09-28T08:06:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3614,7 +4489,7 @@
         ]
       },
       "published_at": "2026-09-28T08:34:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3652,7 +4527,7 @@
         ]
       },
       "published_at": "2026-09-28T07:17:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3690,7 +4565,7 @@
         ]
       },
       "published_at": "2026-09-28T07:41:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3728,7 +4603,7 @@
         ]
       },
       "published_at": "2026-09-28T08:22:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3766,7 +4641,7 @@
         ]
       },
       "published_at": "2026-09-28T10:56:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3804,7 +4679,7 @@
         ]
       },
       "published_at": "2026-09-28T11:16:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3842,7 +4717,7 @@
         ]
       },
       "published_at": "2026-09-29T04:31:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3880,7 +4755,7 @@
         ]
       },
       "published_at": "2026-09-29T04:39:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3918,7 +4793,7 @@
         ]
       },
       "published_at": "2026-09-29T04:48:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3956,7 +4831,7 @@
         ]
       },
       "published_at": "2026-09-29T04:56:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -3994,7 +4869,7 @@
         ]
       },
       "published_at": "2026-09-29T05:07:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4032,7 +4907,7 @@
         ]
       },
       "published_at": "2026-09-29T05:15:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4070,7 +4945,7 @@
         ]
       },
       "published_at": "2026-09-27T09:30:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4108,7 +4983,7 @@
         ]
       },
       "published_at": "2026-09-27T09:40:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4146,7 +5021,7 @@
         ]
       },
       "published_at": "2026-09-27T09:49:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4184,7 +5059,7 @@
         ]
       },
       "published_at": "2026-09-27T09:57:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4222,7 +5097,7 @@
         ]
       },
       "published_at": "2026-09-27T10:10:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4260,7 +5135,7 @@
         ]
       },
       "published_at": "2026-09-27T10:21:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4298,7 +5173,7 @@
         ]
       },
       "published_at": "2026-09-27T10:32:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4336,7 +5211,7 @@
         ]
       },
       "published_at": "2026-10-04T07:22:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4374,7 +5249,7 @@
         ]
       },
       "published_at": "2026-10-04T18:36:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4412,7 +5287,7 @@
         ]
       },
       "published_at": "2026-10-02T19:59:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4421,6 +5296,44 @@
       "tender_id": "739015",
       "tender_reference": "7/MCH/E1/2026-27/34 Dt: 01-10-2026",
       "title": "Repairs to Existing Culverts and Drains and Restoration of CC Road patches in all wards of Huzurabad Municipality under MGF Grants"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T12:30:00Z",
+      "closing_at": "2026-10-13T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-Shankarpally Municipality",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-Shankarpally Municipality"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-Shankarpally Municipality",
+        "tender_id": "739647",
+        "tender_reference": "E1/MCS/247/07/2026-27",
+        "tender_category": "WORKS",
+        "title": "Filling of Pot Holes for roads in Ward No. 08 to Ward No. 15 in Shankarpally Municipality. Under Municipal General Fund.",
+        "estimated_contract_value": "413700.00",
+        "published_date_time": "05/10/2026 05:57 PM",
+        "bid_submission_start_date_time": "05/10/2026 06:00 PM",
+        "bid_submission_closing_date_time": "13/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672648,
+          101,
+          672638
+        ]
+      },
+      "published_at": "2026-10-05T12:27:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739647",
+      "tender_reference": "E1/MCS/247/07/2026-27",
+      "title": "Filling of Pot Holes for roads in Ward No. 08 to Ward No. 15 in Shankarpally Municipality. Under Municipal General Fund."
     },
     {
       "bid_submission_start_at": "2026-10-06T10:30:00Z",
@@ -4450,7 +5363,7 @@
         ]
       },
       "published_at": "2026-10-01T10:44:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4488,7 +5401,7 @@
         ]
       },
       "published_at": "2026-10-01T11:09:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4497,6 +5410,196 @@
       "tender_id": "738869",
       "tender_reference": "NIT No. 25/07/SE/KPZ/CMC/2026-27,Dt: 01.10.2026",
       "title": "Recarpeting of BT Road from Babbuguda Culvert to Neelima Hospital in Mothi Nagar, Ward No.256, Moosapet Circle-53, CMC(2nd Call)."
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T11:00:00Z",
+      "closing_at": "2026-10-14T11:00:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-Gummadidala Municipality",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-Gummadidala Municipality"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-Gummadidala Municipality",
+        "tender_id": "739299",
+        "tender_reference": "MCG/E1/NIT/27/10/2026-27 Dt:03.10.2026.",
+        "tender_category": "WORKS",
+        "title": "Widening of CC road from NH 765 at Domadugu main road  to Uppar Domadugu and other lanes in ward no. 09 in Gummadidala Municipality under MGF 2026-27.",
+        "estimated_contract_value": "1968952.00",
+        "published_date_time": "05/10/2026 04:21 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:30 PM",
+        "bid_submission_closing_date_time": "14/10/2026 04:30 PM",
+        "detail_action_arguments": [
+          672300,
+          101,
+          672290
+        ]
+      },
+      "published_at": "2026-10-05T10:51:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739299",
+      "tender_reference": "MCG/E1/NIT/27/10/2026-27 Dt:03.10.2026.",
+      "title": "Widening of CC road from NH 765 at Domadugu main road to Uppar Domadugu and other lanes in ward no. 09 in Gummadidala Municipality under MGF 2026-27."
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T05:00:00Z",
+      "closing_at": "2026-10-14T11:15:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KOTHAGUDEM MUNICIPALITY",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KOTHAGUDEM MUNICIPALITY"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KOTHAGUDEM  MUNICIPALITY",
+        "tender_id": "739410",
+        "tender_reference": "E1/45/Works/2026-27 DT 05.10.2026",
+        "tender_category": "WORKS",
+        "title": "Widening of Exsisting CC Road with BT Layer from Khammam Road to Shivalayam at Sujathanagar in Kothagudem Corporation under NGB",
+        "estimated_contract_value": "6286254.00",
+        "published_date_time": "05/10/2026 12:53 PM",
+        "bid_submission_start_date_time": "06/10/2026 10:30 AM",
+        "bid_submission_closing_date_time": "14/10/2026 04:45 PM",
+        "detail_action_arguments": [
+          672411,
+          101,
+          672401
+        ]
+      },
+      "published_at": "2026-10-05T07:23:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739410",
+      "tender_reference": "E1/45/Works/2026-27 DT 05.10.2026",
+      "title": "Widening of Exsisting CC Road with BT Layer from Khammam Road to Shivalayam at Sujathanagar in Kothagudem Corporation under NGB"
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T05:00:00Z",
+      "closing_at": "2026-10-14T11:15:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KOTHAGUDEM MUNICIPALITY",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KOTHAGUDEM MUNICIPALITY"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KOTHAGUDEM  MUNICIPALITY",
+        "tender_id": "739391",
+        "tender_reference": "E1/45/Works/2026-27 Dt 05-10-2026",
+        "tender_category": "WORKS",
+        "title": "BT Renewal to Road from R and B Road to Laxmakkapeta and CC Drain from R and B Road to Jinning Mill Towards Laxmakkapeta at Nayakulagudem in Kothagudem Corporation under Nagarabruvrudhi",
+        "estimated_contract_value": "3538538.00",
+        "published_date_time": "05/10/2026 12:31 PM",
+        "bid_submission_start_date_time": "06/10/2026 10:30 AM",
+        "bid_submission_closing_date_time": "14/10/2026 04:45 PM",
+        "detail_action_arguments": [
+          672392,
+          101,
+          672382
+        ]
+      },
+      "published_at": "2026-10-05T07:01:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739391",
+      "tender_reference": "E1/45/Works/2026-27 Dt 05-10-2026",
+      "title": "BT Renewal to Road from R and B Road to Laxmakkapeta and CC Drain from R and B Road to Jinning Mill Towards Laxmakkapeta at Nayakulagudem in Kothagudem Corporation under Nagarabruvrudhi"
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T05:00:00Z",
+      "closing_at": "2026-10-14T11:15:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-KOTHAGUDEM MUNICIPALITY",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-KOTHAGUDEM MUNICIPALITY"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-KOTHAGUDEM  MUNICIPALITY",
+        "tender_id": "739371",
+        "tender_reference": "E1/45/Works/2026-27 Dt 05.10..2026",
+        "tender_category": "WORKS",
+        "title": "Laying of BT Road from Laxmidevipalli BT Road to PPV at Laxmidevipalli and Balance Formation  Road from Gollagudem to Raghavapuram Bridge  in Kothagudem Corporation under NGB",
+        "estimated_contract_value": "6412097.00",
+        "published_date_time": "05/10/2026 12:12 PM",
+        "bid_submission_start_date_time": "06/10/2026 10:30 AM",
+        "bid_submission_closing_date_time": "14/10/2026 04:45 PM",
+        "detail_action_arguments": [
+          672372,
+          101,
+          672362
+        ]
+      },
+      "published_at": "2026-10-05T06:42:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739371",
+      "tender_reference": "E1/45/Works/2026-27 Dt 05.10..2026",
+      "title": "Laying of BT Road from Laxmidevipalli BT Road to PPV at Laxmidevipalli and Balance Formation Road from Gollagudem to Raghavapuram Bridge in Kothagudem Corporation under NGB"
+    },
+    {
+      "bid_submission_start_at": "2026-10-07T05:30:00Z",
+      "closing_at": "2026-10-14T11:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "I & CAD - Telangana-SE , N.S DAM CIRCLE HILL COLONY ,NAGARJUNA SAGAR, NALGONDA DIST.",
+      "organisation_path": [
+        "I & CAD - Telangana-SE , N.S DAM CIRCLE HILL COLONY ,NAGARJUNA SAGAR, NALGONDA DIST."
+      ],
+      "official_fields": {
+        "department_name": "I  &  CAD - Telangana-SE , N.S DAM CIRCLE HILL COLONY ,NAGARJUNA SAGAR, NALGONDA DIST.",
+        "tender_id": "739398",
+        "tender_reference": "10SE/ICHC/2026-27   Dated: 05.10.2026(3rd Call)",
+        "tender_category": "WORKS",
+        "title": "Jungle clearance on slopes and filling of pot holes  from km 1.890 to km 73.800  on NSLBC,  Nalgonda Dist(3rd Call)",
+        "estimated_contract_value": "7080475.00",
+        "published_date_time": "05/10/2026 12:57 PM",
+        "bid_submission_start_date_time": "07/10/2026 11:00 AM",
+        "bid_submission_closing_date_time": "14/10/2026 05:00 PM",
+        "detail_action_arguments": [
+          672399,
+          101,
+          672389
+        ]
+      },
+      "published_at": "2026-10-05T07:27:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739398",
+      "tender_reference": "10SE/ICHC/2026-27 Dated: 05.10.2026(3rd Call)",
+      "title": "Jungle clearance on slopes and filling of pot holes from km 1.890 to km 73.800 on NSLBC, Nalgonda Dist(3rd Call)"
     },
     {
       "bid_submission_start_at": "2026-09-30T14:30:00Z",
@@ -4526,7 +5629,7 @@
         ]
       },
       "published_at": "2026-09-30T11:37:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4564,7 +5667,7 @@
         ]
       },
       "published_at": "2026-09-30T11:44:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4602,7 +5705,7 @@
         ]
       },
       "published_at": "2026-10-03T11:06:00Z",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Telangana State eProcurement Portal public live tenders",
       "source_url": "https://tender.telangana.gov.in/login.html",
@@ -4611,6 +5714,196 @@
       "tender_id": "739071",
       "tender_reference": "HMDA/DEV/CE/18/01/2026-27, Dt:29.09.2026",
       "title": "Widening and strengthening of Road from Gollur guda to Komera Banda in Shabad Mandal, Ranga Reddy District at Shadnagar-Chevella Road in Shabad Mandal, Ranga Reddy District"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T09:30:00Z",
+      "closing_at": "2026-10-19T09:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "cyberabad municipal corporation-OFFICE OF QUTHBULLAPUR",
+      "organisation_path": [
+        "cyberabad municipal corporation-OFFICE OF QUTHBULLAPUR"
+      ],
+      "official_fields": {
+        "department_name": "cyberabad municipal corporation-OFFICE OF QUTHBULLAPUR",
+        "tender_id": "739375",
+        "tender_reference": "NIT No. 26/SE/QBZ/CMC/2026-27, Dt. 03.10.2026",
+        "tender_category": "WORKS",
+        "title": "Widening of the Road and Providing of Central Median and Central Lighting from Mahadevapuram X Road to Gajularamaram Junction  in ward no. 277, Mahadevapuram, Gajularamaram Circle-57, CMC",
+        "estimated_contract_value": "32731097.00",
+        "published_date_time": "05/10/2026 12:32 PM",
+        "bid_submission_start_date_time": "05/10/2026 03:00 PM",
+        "bid_submission_closing_date_time": "19/10/2026 03:00 PM",
+        "detail_action_arguments": [
+          672376,
+          101,
+          672366
+        ]
+      },
+      "published_at": "2026-10-05T07:02:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739375",
+      "tender_reference": "NIT No. 26/SE/QBZ/CMC/2026-27, Dt. 03.10.2026",
+      "title": "Widening of the Road and Providing of Central Median and Central Lighting from Mahadevapuram X Road to Gajularamaram Junction in ward no. 277, Mahadevapuram, Gajularamaram Circle-57, CMC"
+    },
+    {
+      "bid_submission_start_at": "2026-10-05T10:30:00Z",
+      "closing_at": "2026-10-19T10:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "cyberabad municipal corporation-Kukatpally Zone (Zone 6) GHMC HYD",
+      "organisation_path": [
+        "cyberabad municipal corporation-Kukatpally Zone (Zone 6) GHMC HYD"
+      ],
+      "official_fields": {
+        "department_name": "cyberabad municipal corporation-Kukatpally Zone (Zone 6) GHMC HYD",
+        "tender_id": "739060",
+        "tender_reference": "NIT No. 25/03/SE/KPZ/CMC/2026-27,Dt: 01.10.2026",
+        "tender_category": "WORKS",
+        "title": "Recarpeting of BT road from Hitech city railway station road to Hyundai Company, Laying of damaged CC road H.No.5-734 to Sravya alaya and widening of existing road from hitech city railway station road to Hyundai Company and From H.No.5-734 to Sravya alaya in Izzathnagar W/s, Khanamet in Madhapur, Ward No.107 Madhapur in Chandanagar Division No.21, SLP Zone, GHMC.",
+        "estimated_contract_value": "15547413.53",
+        "published_date_time": "05/10/2026 12:50 PM",
+        "bid_submission_start_date_time": "05/10/2026 04:00 PM",
+        "bid_submission_closing_date_time": "19/10/2026 04:00 PM",
+        "detail_action_arguments": [
+          672061,
+          101,
+          672051
+        ]
+      },
+      "published_at": "2026-10-05T07:20:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739060",
+      "tender_reference": "NIT No. 25/03/SE/KPZ/CMC/2026-27,Dt: 01.10.2026",
+      "title": "Recarpeting of BT road from Hitech city railway station road to Hyundai Company, Laying of damaged CC road H.No.5-734 to Sravya alaya and widening of existing road from hitech city railway station road to Hyundai Company and From H.No.5-734 to Sravya alaya in Izzathnagar W/s, Khanamet in Madhapur, Ward No.107 Madhapur in Chandanagar Division No.21, SLP Zone, GHMC."
+    },
+    {
+      "bid_submission_start_at": "2026-10-07T11:39:00Z",
+      "closing_at": "2026-10-22T05:01:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "MUNICIPALITIES - TELANGANA-THIRUMALAGIRI MUNCIPALITY",
+      "organisation_path": [
+        "MUNICIPALITIES - TELANGANA-THIRUMALAGIRI MUNCIPALITY"
+      ],
+      "official_fields": {
+        "department_name": "MUNICIPALITIES - TELANGANA-THIRUMALAGIRI MUNCIPALITY",
+        "tender_id": "735919",
+        "tender_reference": "MCT/E1/14/NB/2025-26",
+        "tender_category": "WORKS",
+        "title": "Thirumalagiri Municipality Widening of BT Road from Bajaj\r\nshowroom Y Junction to Malipuram Cheruvu Katta End point and\r\nLaying of CC roads and Drains at various locations in Thirumalagiri\r\nMunicipality under Nagarabhivrudhi Funds (2nd call)",
+        "estimated_contract_value": "119066729.00",
+        "published_date_time": "06/10/2026 05:11 PM",
+        "bid_submission_start_date_time": "07/10/2026 05:09 PM",
+        "bid_submission_closing_date_time": "22/10/2026 10:31 AM",
+        "detail_action_arguments": [
+          668920,
+          101,
+          668910
+        ]
+      },
+      "published_at": "2026-10-06T11:41:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "735919",
+      "tender_reference": "MCT/E1/14/NB/2025-26",
+      "title": "Thirumalagiri Municipality Widening of BT Road from Bajaj showroom Y Junction to Malipuram Cheruvu Katta End point and Laying of CC roads and Drains at various locations in Thirumalagiri Municipality under Nagarabhivrudhi Funds (2nd call)"
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T11:30:00Z",
+      "closing_at": "2026-10-23T11:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "PRED - TELANGANA-Superintending Engineer PR Circle, Bhongir",
+      "organisation_path": [
+        "PRED - TELANGANA-Superintending Engineer PR Circle, Bhongir"
+      ],
+      "official_fields": {
+        "department_name": "PRED - TELANGANA-Superintending Engineer PR Circle, Bhongir",
+        "tender_id": "739556",
+        "tender_reference": "PRSEBNG/18/2025-26 Dt:08.06.2026 (8thCall) of SE, PR Circle, Bhongir",
+        "tender_category": "WORKS",
+        "title": "Providing BT Renewal on Road from NH202 to Kunur (via) Jammapur of Bhongir mandal of Yadadri Bhongir District, Estimate Cost Rs.75.00 Lakhs, Grant:MRR 2024-25",
+        "estimated_contract_value": "5677830.00",
+        "published_date_time": "06/10/2026 01:18 PM",
+        "bid_submission_start_date_time": "06/10/2026 05:00 PM",
+        "bid_submission_closing_date_time": "23/10/2026 05:00 PM",
+        "detail_action_arguments": [
+          672557,
+          101,
+          672547
+        ]
+      },
+      "published_at": "2026-10-06T07:48:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739556",
+      "tender_reference": "PRSEBNG/18/2025-26 Dt:08.06.2026 (8thCall) of SE, PR Circle, Bhongir",
+      "title": "Providing BT Renewal on Road from NH202 to Kunur (via) Jammapur of Bhongir mandal of Yadadri Bhongir District, Estimate Cost Rs.75.00 Lakhs, Grant:MRR 2024-25"
+    },
+    {
+      "bid_submission_start_at": "2026-10-06T11:30:00Z",
+      "closing_at": "2026-10-23T11:30:00Z",
+      "detail_url": null,
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tender.telangana.gov.in/TenderDetailsHome.html",
+      "opening_at": null,
+      "organisation_chain": "PRED - TELANGANA-Superintending Engineer PR Circle, Bhongir",
+      "organisation_path": [
+        "PRED - TELANGANA-Superintending Engineer PR Circle, Bhongir"
+      ],
+      "official_fields": {
+        "department_name": "PRED - TELANGANA-Superintending Engineer PR Circle, Bhongir",
+        "tender_id": "739589",
+        "tender_reference": "PRSEBNG/24/2025-26 Dt:29.09.2026 (9th Call) of SE, PR Circle, Bhongir",
+        "tender_category": "WORKS",
+        "title": "Providing BT Renewal on Road from NH163 at Gudur to Bibinaagar - Maqdumpally ZP Road via Annampatla of Bibinagar mandal of Yadadri Bhongir District, Estimate Cost Rs:111.00 Lakhs, Grant MRR 2024-25",
+        "estimated_contract_value": "8684470.00",
+        "published_date_time": "06/10/2026 01:16 PM",
+        "bid_submission_start_date_time": "06/10/2026 05:00 PM",
+        "bid_submission_closing_date_time": "23/10/2026 05:00 PM",
+        "detail_action_arguments": [
+          672590,
+          101,
+          672580
+        ]
+      },
+      "published_at": "2026-10-06T07:46:00Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Telangana State eProcurement Portal public live tenders",
+      "source_url": "https://tender.telangana.gov.in/login.html",
+      "state_code": "TG",
+      "tender_category": "WORKS",
+      "tender_id": "739589",
+      "tender_reference": "PRSEBNG/24/2025-26 Dt:29.09.2026 (9th Call) of SE, PR Circle, Bhongir",
+      "title": "Providing BT Renewal on Road from NH163 at Gudur to Bibinaagar - Maqdumpally ZP Road via Annampatla of Bibinagar mandal of Yadadri Bhongir District, Estimate Cost Rs:111.00 Lakhs, Grant MRR 2024-25"
     }
   ]
 }

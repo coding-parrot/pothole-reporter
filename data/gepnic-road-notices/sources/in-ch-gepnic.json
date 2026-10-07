@@ -3,6 +3,52 @@
   "lifecycle": "procurement_notice",
   "notices": [
     {
+      "closing_at": "2026-10-13T11:30:00+05:30",
+      "detail_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2vzZejha8No6ASyhNhfMmw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqfblx59yAoI1GX2pEwmyXg%3D%3D",
+      "opening_at": "2026-10-13T15:30:00+05:30",
+      "organisation_chain": "Chandigarh Administration||Engineering||Construction Circle - II||CP - II",
+      "organisation_path": [
+        "Chandigarh Administration",
+        "Engineering",
+        "Construction Circle - II",
+        "CP - II"
+      ],
+      "published_at": "2026-10-06T18:30:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Chandigarh e-Procurement Portal",
+      "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2vzZejha8No6ASyhNhfMmw%3D%3D",
+      "state_code": "CH",
+      "tender_id": "2026_CHD_95969_1",
+      "tender_reference": "CP2Road3165077",
+      "title": "Recarpeting of V3 Road from Jn43 to Route No3 Chandigarh"
+    },
+    {
+      "closing_at": "2026-10-13T11:30:00+05:30",
+      "detail_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S00oBszrinCGr7Qc0FVMCAA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqfblx59yAoI1GX2pEwmyXg%3D%3D",
+      "opening_at": "2026-10-13T15:30:00+05:30",
+      "organisation_chain": "Chandigarh Administration||Engineering||Construction Circle - II||CP - II",
+      "organisation_path": [
+        "Chandigarh Administration",
+        "Engineering",
+        "Construction Circle - II",
+        "CP - II"
+      ],
+      "published_at": "2026-10-06T18:30:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Chandigarh e-Procurement Portal",
+      "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S00oBszrinCGr7Qc0FVMCAA%3D%3D",
+      "state_code": "CH",
+      "tender_id": "2026_CHD_95968_1",
+      "tender_reference": "CP2Road3164974",
+      "title": "Recarpeting of V3 Road between Sector 14 and 25 and Approach Road T Point to Village Dhanas Chandigarh"
+    },
+    {
       "closing_at": "2026-10-07T11:30:00+05:30",
       "detail_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S6RHY1wllnDXQHEXEOTx4fA%3D%3D",
       "lifecycle": "procurement_notice",
@@ -16,7 +62,7 @@
         "CP - II"
       ],
       "published_at": "2026-10-01T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Chandigarh e-Procurement Portal",
       "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S6RHY1wllnDXQHEXEOTx4fA%3D%3D",
@@ -39,7 +85,7 @@
         "CP - II"
       ],
       "published_at": "2026-09-30T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Chandigarh e-Procurement Portal",
       "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S7QMPj5f2aG3jmfrl86jGKQ%3D%3D",
@@ -49,103 +95,11 @@
       "title": "Recarpeting of Roads Adjoining site for Amusement Park Institutional Area Sarangpur UT Chandigarh"
     },
     {
-      "closing_at": "2026-10-06T14:00:00+05:30",
-      "detail_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SI0n8Pf5hylilWhVv9m2k%2BA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqfblx59yAoI1GX2pEwmyXg%3D%3D",
-      "opening_at": "2026-10-06T15:00:00+05:30",
-      "organisation_chain": "Chandigarh Administration||Engineering||Construction Circle - I||CP - I",
-      "organisation_path": [
-        "Chandigarh Administration",
-        "Engineering",
-        "Construction Circle - I",
-        "CP - I"
-      ],
-      "published_at": "2026-09-29T17:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Chandigarh e-Procurement Portal",
-      "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SI0n8Pf5hylilWhVv9m2k%2BA%3D%3D",
-      "state_code": "CH",
-      "tender_id": "2026_CHD_95823_1",
-      "tender_reference": "CP1/2026/353401-03",
-      "title": "CONSTRUCTION OF ROAD AND PARKING MOTHER AND CHILD CARE CENTRE (BLOCK-K), GMCH SECTOR-32, CHANDIGARH."
-    },
-    {
-      "closing_at": "2026-10-06T14:00:00+05:30",
-      "detail_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SX9X%2BiAIQNu4RPshgDyvDZw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqfblx59yAoI1GX2pEwmyXg%3D%3D",
-      "opening_at": "2026-10-06T15:00:00+05:30",
-      "organisation_chain": "Chandigarh Administration||Engineering||Construction Circle - I||CP - I",
-      "organisation_path": [
-        "Chandigarh Administration",
-        "Engineering",
-        "Construction Circle - I",
-        "CP - I"
-      ],
-      "published_at": "2026-09-29T13:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Chandigarh e-Procurement Portal",
-      "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SX9X%2BiAIQNu4RPshgDyvDZw%3D%3D",
-      "state_code": "CH",
-      "tender_id": "2026_CHD_95803_1",
-      "tender_reference": "CP1/2026/3018304",
-      "title": "MAINTENANCE OF ROADS IN R-II SUB DIVISION U.T., CHANDIGARH (PROVIDING AND FIXING OF BARBED WIRE FENCING ON RESERVED OPEN LAND NEAR GOODWILL SOCIETY SECTOR 49-C, CHANDIGARH)."
-    },
-    {
-      "closing_at": "2026-10-05T14:00:00+05:30",
-      "detail_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SjOQ8H7IcOhG5ekQOwmLE5w%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqfblx59yAoI1GX2pEwmyXg%3D%3D",
-      "opening_at": "2026-10-05T15:00:00+05:30",
-      "organisation_chain": "Chandigarh Administration||Engineering||Construction Circle - I||CP - I",
-      "organisation_path": [
-        "Chandigarh Administration",
-        "Engineering",
-        "Construction Circle - I",
-        "CP - I"
-      ],
-      "published_at": "2026-09-28T11:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Chandigarh e-Procurement Portal",
-      "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SjOQ8H7IcOhG5ekQOwmLE5w%3D%3D",
-      "state_code": "CH",
-      "tender_id": "2026_CHD_95777_1",
-      "tender_reference": "CP1/2026/3034196",
-      "title": "MAINTENANCE OF ROADS IN R-II SUB DIVISION, U.T. CHANDIGARH. (PROVIDING AND APPLING ROAD MARKING, BOLLARDS AND RETRO REFLECTIVE TAPE ON THE CYCLE TRACK ON PURV MARG (JN. 38 TO JN.63, JN.63 TO U.T. BOUNDARY, SECTOR 48 SIDE), SUKHNA PATH (JN.51 TO JN.61"
-    },
-    {
-      "closing_at": "2026-10-05T14:00:00+05:30",
-      "detail_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnhiJx2jO5y6KSVPMwPNl5g%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqfblx59yAoI1GX2pEwmyXg%3D%3D",
-      "opening_at": "2026-10-05T15:00:00+05:30",
-      "organisation_chain": "Chandigarh Administration||Engineering||Construction Circle - I||CP - I",
-      "organisation_path": [
-        "Chandigarh Administration",
-        "Engineering",
-        "Construction Circle - I",
-        "CP - I"
-      ],
-      "published_at": "2026-09-28T10:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Chandigarh e-Procurement Portal",
-      "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnhiJx2jO5y6KSVPMwPNl5g%3D%3D",
-      "state_code": "CH",
-      "tender_id": "2026_CHD_95775_1",
-      "tender_reference": "CP1/2026/2385285",
-      "title": "MAINTENANCE OF ROAD IN R-II SUB DIVISION, U.T. CHANDIGARH (PROVIDING AND APPLYING HOT THERMOPLASTIC COMPOUND AND COLD REFLECTIVE ROAD MARKING PAINT)"
-    },
-    {
-      "closing_at": "2026-10-05T11:30:00+05:30",
+      "closing_at": "2026-10-12T11:30:00+05:30",
       "detail_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnV6XhQvGMfkZYpCTiVBFWw%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqfblx59yAoI1GX2pEwmyXg%3D%3D",
-      "opening_at": "2026-10-05T15:30:00+05:30",
+      "opening_at": "2026-10-12T15:30:00+05:30",
       "organisation_chain": "Chandigarh Administration||Engineering||Construction Circle - II||CP - II",
       "organisation_path": [
         "Chandigarh Administration",
@@ -154,7 +108,7 @@
         "CP - II"
       ],
       "published_at": "2026-09-11T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Chandigarh e-Procurement Portal",
       "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnV6XhQvGMfkZYpCTiVBFWw%3D%3D",
@@ -176,7 +130,7 @@
         "Road Division - I"
       ],
       "published_at": "2026-10-01T17:30:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Chandigarh e-Procurement Portal",
       "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=StTiHAPvYX8wNOzQyKxRBfQ%3D%3D",
@@ -198,7 +152,7 @@
         "Road Division - II"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Chandigarh e-Procurement Portal",
       "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Saqfd6hZgfGrs6dUJI%2FRICg%3D%3D",
@@ -220,7 +174,7 @@
         "Road Division - II"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Chandigarh e-Procurement Portal",
       "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sr1l40ICuIrrVHnAxa4H49A%3D%3D",
@@ -242,7 +196,7 @@
         "Road Division - III"
       ],
       "published_at": "2026-10-01T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Chandigarh e-Procurement Portal",
       "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SAQw3Y3lvj2gf7A3SCGvl4w%3D%3D",
@@ -250,72 +204,6 @@
       "tender_id": "2026_MCC_95844_1",
       "tender_reference": "2026/R2/167",
       "title": "Restoration of road cut for providing and laying additional 600mm (24inch) i/d and 450mm (18inch) i/d RCC NP-2 pipeline for smooth disposal of storm water near H. No. 1033 to Community Centre Ramdarbar Colony Phase-II, Chandigarh"
-    },
-    {
-      "closing_at": "2026-10-05T12:00:00+05:30",
-      "detail_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S53k%2FbBzQpAC9iQta%2BeASLw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
-      "opening_at": "2026-10-05T12:00:00+05:30",
-      "organisation_chain": "Municipal Corporation||Engineering-MCC||Road Division - I",
-      "organisation_path": [
-        "Municipal Corporation",
-        "Engineering-MCC",
-        "Road Division - I"
-      ],
-      "published_at": "2026-09-26T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Chandigarh e-Procurement Portal",
-      "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S53k%2FbBzQpAC9iQta%2BeASLw%3D%3D",
-      "state_code": "CH",
-      "tender_id": "2026_MCC_94564_5",
-      "tender_reference": "MCC/R1/2026/142",
-      "title": "P/L of 700mm (28inch) i/d, 600mm (24inch) i/d 450mm (18inch) i/d RCC NP-2 pipe line for smooth functioning of SWD system at various Location in S/41 (AandB), Chandigarh (Repair/Restoration of Road Cut made by MCPH Sub Div No. 13 Chandigarh."
-    },
-    {
-      "closing_at": "2026-10-05T12:00:00+05:30",
-      "detail_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S9qCj0FWbwyVWoJEYXUbRKg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
-      "opening_at": "2026-10-05T12:00:00+05:30",
-      "organisation_chain": "Municipal Corporation||Engineering-MCC||Road Division - I",
-      "organisation_path": [
-        "Municipal Corporation",
-        "Engineering-MCC",
-        "Road Division - I"
-      ],
-      "published_at": "2026-09-26T09:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Chandigarh e-Procurement Portal",
-      "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S9qCj0FWbwyVWoJEYXUbRKg%3D%3D",
-      "state_code": "CH",
-      "tender_id": "2026_MCC_95364_2",
-      "tender_reference": "MCC/R1/2026/152",
-      "title": "Restoration of Road Cut against the work Strengthening,P/L of 800mm(32inch)and700mm(28inch) and 450mm(18)dia RCC NP-2 pipes,Construction of MHs and road gullies for smooth disposal of Storm Water S/41A and nearAKSIPSchool in Audit PoolColony S41B,Chd"
-    },
-    {
-      "closing_at": "2026-10-09T12:00:00+05:30",
-      "detail_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SETpzj3FC0z30SGZ7bgt80A%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
-      "organisation_chain": "Municipal Corporation||Engineering-MCC||Road Division - I",
-      "organisation_path": [
-        "Municipal Corporation",
-        "Engineering-MCC",
-        "Road Division - I"
-      ],
-      "published_at": "2026-09-25T17:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Chandigarh e-Procurement Portal",
-      "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SETpzj3FC0z30SGZ7bgt80A%3D%3D",
-      "state_code": "CH",
-      "tender_id": "2026_MCC_95736_1",
-      "tender_reference": "MCC/2026/ROADS-III/09-14",
-      "title": "SCARIFYING and RECARPETING OF V4- ROAD IN SECTOR 18 and 19, V-5 ROADS IN SECTOR 18 and 21, V-6 ROADS IN SECTOR 18-C ,19 ABCD and PARKING ALONG V-4 IN SEC. 18 and 19 IN WARD NO. 11 UNDER THE JURISDICTION OF ROADS SUB DIVISION NO.2, M.C. CHANDIGARH."
     },
     {
       "closing_at": "2026-10-09T12:00:00+05:30",
@@ -330,7 +218,7 @@
         "Road Division - I"
       ],
       "published_at": "2026-09-25T17:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Chandigarh e-Procurement Portal",
       "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S1JGAT%2Fgn%2FQ5SA6oQ0q92og%3D%3D",
@@ -338,6 +226,28 @@
       "tender_id": "2026_MCC_95735_1",
       "tender_reference": "MCC/2026/ROADS-III/09-15",
       "title": "SCARIFYING and RE-CARPETING OF V-4 ROAD IN SECTOR 15, 16, 17 and 23 V-5 ROAD IN SECTOR 16, 22, 23 and 24, V-6 ROADS IN SECTOR 22 A and D, 23 and 24 IN WARD NO. 12 and 17 UNDER THE JURISDICTION OF ROADS SUB DIVISION NO.2, M.C. CHANDIGARH. (RE-CARPETI"
+    },
+    {
+      "closing_at": "2026-10-09T12:00:00+05:30",
+      "detail_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SETpzj3FC0z30SGZ7bgt80A%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
+      "opening_at": "2026-10-09T15:00:00+05:30",
+      "organisation_chain": "Municipal Corporation||Engineering-MCC||Road Division - I",
+      "organisation_path": [
+        "Municipal Corporation",
+        "Engineering-MCC",
+        "Road Division - I"
+      ],
+      "published_at": "2026-09-25T17:00:00+05:30",
+      "retrieved_at": "2026-10-07T04:59:04Z",
+      "scope": "road_surface",
+      "source_name": "Chandigarh e-Procurement Portal",
+      "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SETpzj3FC0z30SGZ7bgt80A%3D%3D",
+      "state_code": "CH",
+      "tender_id": "2026_MCC_95736_1",
+      "tender_reference": "MCC/2026/ROADS-III/09-14",
+      "title": "SCARIFYING and RECARPETING OF V4- ROAD IN SECTOR 18 and 19, V-5 ROADS IN SECTOR 18 and 21, V-6 ROADS IN SECTOR 18-C ,19 ABCD and PARKING ALONG V-4 IN SEC. 18 and 19 IN WARD NO. 11 UNDER THE JURISDICTION OF ROADS SUB DIVISION NO.2, M.C. CHANDIGARH."
     },
     {
       "closing_at": "2026-10-09T12:00:00+05:30",
@@ -352,7 +262,7 @@
         "Road Division - III"
       ],
       "published_at": "2026-09-25T13:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-07T04:59:04Z",
       "scope": "road_surface",
       "source_name": "Chandigarh e-Procurement Portal",
       "source_url": "https://etenders.chd.nic.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SqytgjSa8jdZ%2FpIAdZh%2BgdQ%3D%3D",
@@ -364,15 +274,12 @@
   ],
   "organisations": [
     "Chandigarh Administration",
-    "Chandigarh Housing Board",
-    "Chandigarh Industrial and Tourism Devp Corpn Ltd",
     "Municipal Corporation",
-    "Panjab University",
-    "PEC University of Technology"
+    "Panjab University"
   ],
-  "retrieved_at": "2026-10-05T05:42:16Z",
-  "rows_excluded_by_scope": 246,
-  "rows_scanned": 262,
+  "retrieved_at": "2026-10-07T04:59:04Z",
+  "rows_excluded_by_scope": 257,
+  "rows_scanned": 269,
   "schema_version": 1,
   "source_id": "in-ch-gepnic",
   "source_name": "Chandigarh e-Procurement Portal",
