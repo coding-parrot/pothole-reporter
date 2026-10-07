@@ -55,6 +55,20 @@ test("the stack schedules the warm event and may invoke the function with it", (
   assert.match(handler, /createWarmHandler\(/);
 });
 
+// The first request on a fresh instance also opened the connections to the table and to
+// the secret store: on 7 Oct 2026, after nine deploys in six hours, that put the p90 of
+// the service's own time on a lookup at 401 ms against a budget of 400. The warm-up
+// reads once through the cached geolocator (a table read) and fetches the detector
+// secret, each failing on its own without failing the other.
+test("the warm-up opens the table and the secret store, not only the files", () => {
+  const handler = readFileSync(new URL("../service/handler.mjs", import.meta.url), "utf8");
+  const warm = handler.slice(handler.indexOf("createWarmHandler("));
+  assert.match(warm, /Promise\.allSettled\(\[/);
+  assert.match(warm, /liveGeolocator\.resolve\(/, "the files: a stored answer reads none");
+  assert.match(warm, /[^e]geolocator\.resolve\(/, "the cached geolocator, whose first step is a table read");
+  assert.match(warm, /secretProvider\(\)/);
+});
+
 test("the deploy passes the concurrency the template declares", () => {
   // CloudFormation keeps a stack's old parameter value unless it is passed again.
   const deploy = readFileSync(new URL("../deploy.sh", import.meta.url), "utf8");

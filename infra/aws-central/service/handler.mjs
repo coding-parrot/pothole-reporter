@@ -52,8 +52,17 @@ const catalogue = createNationalCatalogue();
 const service = createService({ repository, detector, geolocator, catalogue });
 
 // One real Bengaluru lookup at start-up loads everything a lookup reads from disk (see
-// warm.mjs). The point is the production canary's.
+// warm.mjs). The same point through the cached geolocator is a table read (its answer is
+// stored, so it reads no file), which opens the connection to the table, and the detector
+// secret is fetched so the first detection does not wait for it. Each is on its own: a
+// store that is down must not stop the files being read. The point is the production
+// canary's.
+const WARM_POINT = { lat: 12.99717, lng: 77.62094 };
 export const handler = createWarmHandler({
   service,
-  warm: () => liveGeolocator.resolve({ lat: 12.99717, lng: 77.62094 }),
+  warm: () => Promise.allSettled([
+    liveGeolocator.resolve(WARM_POINT),
+    geolocator.resolve(WARM_POINT),
+    secretProvider(),
+  ]),
 });
