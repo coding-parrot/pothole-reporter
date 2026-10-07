@@ -60,6 +60,7 @@ phases:
           fi
         done
         cat "$OUT/slow-python.log"
+      - export HARNESS_FAILURE_DIR="$OUT/harness-failures"
       - node tools/harness/run.mjs --workers "$HARNESS_WORKERS" > "$OUT/harness.log" 2>&1; echo $? > "$OUT/harness.exit"
       - grep -vE '^  ok ' "$OUT/harness.log" | tail -150
       - echo $(( $(date +%s) - STARTED )) > "$OUT/test-seconds"

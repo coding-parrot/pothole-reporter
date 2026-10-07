@@ -40,3 +40,4 @@
   410 pinned from the Mac). Fixed in the test (size blanked). 9 billed minutes MEDIUM.
 - eval/prompt_eval.mjs written and self-tested; buildspec-eval.yml and launcher still to do.
 - CI builds 2: branch 5729b21 MEDIUM pothole-reporter-ci:8649206e-e4e3-4122-a2a1-f36d154be50b ; origin/main 4de90e2 SMALL (override buildspec) pothole-reporter-ci:e9229274-20fe-4b89-b8df-fdb1f87a2aba. NOTE origin/main moved from 0398f35 to 4de90e2 during this task.
+- Diagnostic runs with the 1.39.5 debug APK on Pixel 8a: run ef20e92f (WebView context works; camera reopened 10 s into the second drive while video played and GPS was fresh, captured 0) and run 03fd7e5a-44e9-4e71-a10c-50d9fded1fc2 (instrumented drive: toBlob/drawImage timing), results under ~/Downloads/pothole-testers/device-farm/1.39.5/. Working theory: captureFrame (drawImage + toBlob) does not finish in 3 s three times, then the watchdog reopens the camera.
