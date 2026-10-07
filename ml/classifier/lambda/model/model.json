@@ -1,10 +1,194 @@
 {
+ "at_threshold": {
+  "annotated_pothole_frames_flagged": {
+   "all_test": [
+    1742,
+    1761
+   ],
+   "new_test_irdd_iraq": [
+    1494,
+    1495
+   ],
+   "old_test_all": [
+    248,
+    266
+   ],
+   "old_test_rdd_india": [
+    248,
+    266
+   ]
+  },
+  "owner_images": {
+   "not_potholes": 2,
+   "not_potholes_cleared": 0,
+   "potholes": 9,
+   "potholes_flagged": 9
+  },
+  "owner_video_events": {
+   "events": 2,
+   "events_flagged": 2,
+   "frames": 7,
+   "frames_flagged": 7
+  },
+  "test": {
+   "all_test": {
+    "caught": 3188,
+    "cleared": 1659,
+    "cleared_share": 0.4915555555555556,
+    "damaged": 3208,
+    "recall": 0.9937655860349127,
+    "undamaged": 3375
+   },
+   "new_test_irdd_iraq": {
+    "caught": 2461,
+    "cleared": 72,
+    "cleared_share": 0.06983511154219205,
+    "damaged": 2464,
+    "recall": 0.9987824675324676,
+    "undamaged": 1031
+   },
+   "new_test_rad_bengaluru": {
+    "caught": 175,
+    "cleared": 172,
+    "cleared_share": 0.38137472283813745,
+    "damaged": 178,
+    "recall": 0.9831460674157303,
+    "undamaged": 451
+   },
+   "old_test_all": {
+    "caught": 552,
+    "cleared": 1415,
+    "cleared_share": 0.7474907554146857,
+    "damaged": 566,
+    "recall": 0.9752650176678446,
+    "undamaged": 1893
+   },
+   "old_test_drive": {
+    "caught": 135,
+    "cleared": 780,
+    "cleared_share": 0.9090909090909091,
+    "damaged": 137,
+    "recall": 0.9854014598540146,
+    "undamaged": 858
+   },
+   "old_test_rdd_india": {
+    "caught": 417,
+    "cleared": 635,
+    "cleared_share": 0.6135265700483091,
+    "damaged": 429,
+    "recall": 0.972027972027972,
+    "undamaged": 1035
+   }
+  },
+  "test_teacher_stable_only": {
+   "all_test": {
+    "caught": 3032,
+    "cleared": 1649,
+    "cleared_share": 0.5172521957340025,
+    "damaged": 3050,
+    "recall": 0.9940983606557378,
+    "undamaged": 3188
+   },
+   "new_test_irdd_iraq": {
+    "caught": 2368,
+    "cleared": 71,
+    "cleared_share": 0.07709011943539631,
+    "damaged": 2371,
+    "recall": 0.9987347110923661,
+    "undamaged": 921
+   },
+   "new_test_rad_bengaluru": {
+    "caught": 158,
+    "cleared": 171,
+    "cleared_share": 0.39953271028037385,
+    "damaged": 161,
+    "recall": 0.9813664596273292,
+    "undamaged": 428
+   },
+   "old_test_all": {
+    "caught": 506,
+    "cleared": 1407,
+    "cleared_share": 0.765089722675367,
+    "damaged": 518,
+    "recall": 0.9768339768339769,
+    "undamaged": 1839
+   },
+   "old_test_drive": {
+    "caught": 122,
+    "cleared": 777,
+    "cleared_share": 0.9206161137440758,
+    "damaged": 124,
+    "recall": 0.9838709677419355,
+    "undamaged": 844
+   },
+   "old_test_rdd_india": {
+    "caught": 384,
+    "cleared": 630,
+    "cleared_share": 0.6331658291457286,
+    "damaged": 394,
+    "recall": 0.9746192893401016,
+    "undamaged": 995
+   }
+  },
+  "validation": {
+   "caught": 2253,
+   "cleared": 1829,
+   "cleared_share": 0.4963364993215739,
+   "damaged": 2267,
+   "recall": 0.9938244375827084,
+   "undamaged": 3685
+  },
+  "validation_by_source": {
+   "drive_video": {
+    "caught": 0,
+    "cleared": 762,
+    "cleared_share": 1.0,
+    "damaged": 1,
+    "recall": 0.0,
+    "undamaged": 762
+   },
+   "rad_bengaluru": {
+    "caught": 321,
+    "cleared": 170,
+    "cleared_share": 0.29411764705882354,
+    "damaged": 321,
+    "recall": 1.0,
+    "undamaged": 578
+   },
+   "rdd2022_czech": {
+    "caught": 238,
+    "cleared": 249,
+    "cleared_share": 0.4075286415711948,
+    "damaged": 242,
+    "recall": 0.9834710743801653,
+    "undamaged": 611
+   },
+   "rdd2022_india": {
+    "caught": 476,
+    "cleared": 646,
+    "cleared_share": 0.6123222748815166,
+    "damaged": 485,
+    "recall": 0.9814432989690721,
+    "undamaged": 1055
+   },
+   "rome_road_damage": {
+    "caught": 1218,
+    "cleared": 2,
+    "cleared_share": 0.0029455081001472753,
+    "damaged": 1218,
+    "recall": 1.0,
+    "undamaged": 679
+   }
+  }
+ },
  "encoder": "mobilenetv3_l",
- "head": "hidden256",
+ "head": "ft_s2",
  "input_size": 448,
- "model_version": "road-screen-v1-mobilenetv3l-448",
- "sha256": "75bb630aed191893cc4add1f6aa395aad694c6fafaf5b439f5e33186815c1cc4",
- "target_validation_recall": 0.99,
- "temperature": 2.462,
- "threshold": 0.04699918670128432
+ "model_version": "road-screen-v2-mobilenetv3l-448",
+ "scorecard_run": "screen-v2-20261007",
+ "sha256": "53f99bcb0da7e909aff2f2a85fd4389f69d1ffa511204cfff03a5b09d8150e41",
+ "temperature": 1.149,
+ "threshold": 0.054906919069300855,
+ "threshold_raw_score": 0.036627352237701416,
+ "threshold_rule": "highest score that still flags 98% of teacher-damaged frames in EVERY validation source with at least 50 of them; scored through the serving path; test never used"
 }

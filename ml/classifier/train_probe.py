@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
-"""Train a small head on cached frozen-encoder features and score it by source split.
+"""Train a small head on cached frozen-encoder features (the v1 recipe).
 
-    python train_probe.py --encoder dinov2_s14 --size 448
+    python train_probe.py --encoder mobilenetv3_l --size 448 --name v2probe
+    python train_probe.py --encoder mobilenetv3_l --size 448 --name v2probe_aug --views 4
+    python train_probe.py --encoder mobilenetv3_l --size 448 --name v1 --score-head hidden256
 
-Two heads are fitted: a linear probe and one hidden layer. Hyperparameters are picked
-on validation by the share of undamaged frames cleared at 98% recall. Results go to
-work/results/<encoder>_<size>.json and the heads to work/heads/.
+The recipe is v1's: frozen encoder, features pooled over the whole frame, one hidden
+layer of 256, class-balanced loss, soft targets where the teacher answered twice, the
+weight decay and the epoch picked on validation by the share of undamaged frames cleared
+at 98% recall. --views adds augmented views of every training frame (embed.py --views).
+--score-head only scores an existing head (v1's released one) on today's frames.
+
+Writes work/heads/<encoder>_<size>_<name>.pt and work/scores/<encoder>_<size>_<name>.npz
+(frame paths and scores for every manifest frame and the owner-labelled images).
 """
 import argparse
 import json
@@ -13,26 +20,29 @@ import json
 import numpy as np
 import torch
 
-from common import EMBEDDINGS, WORK, soft_target, write_json
-from metrics import at_threshold, report, threshold_for_recall
+from common import EMBEDDINGS, FRAMES, WORK, soft_target, write_json
+from metrics import at_threshold, auc, threshold_for_recall
 from models import Head
 
 SEED = 20261007
 
 
-def load(encoder, size):
-    rows = [json.loads(line) for line in (WORK / "manifest.jsonl").read_text().splitlines()]
-    cached = np.load(EMBEDDINGS / f"{encoder}_{size}.npz", allow_pickle=False)
+def features_for(encoder, size, paths, suffix=""):
+    cached = np.load(EMBEDDINGS / f"{encoder}_{size}{suffix}.npz", allow_pickle=False)
     position = {path: index for index, path in enumerate(cached["paths"])}
-    missing = [row["path"] for row in rows if row["path"] not in position]
+    missing = [path for path in paths if path not in position]
     if missing:
-        raise SystemExit(f"{len(missing)} frames have no embedding; rerun embed.py")
-    order = [position[row["path"]] for row in rows]
-    return rows, cached["features"][order].astype(np.float32)
+        raise SystemExit(f"{len(missing)} frames have no {suffix or 'clean'} embedding; rerun embed.py")
+    return cached["features"][[position[path] for path in paths]].astype(np.float32)
 
 
-def fit_head(x, y, validation, hidden, weight_decay, epochs=80):
-    """Full-batch AdamW with class-balanced loss; keeps the best validation epoch."""
+def owner_paths():
+    return [row["path"] for row in map(json.loads, (FRAMES / "index.jsonl").read_text().splitlines())
+            if row.get("split_hint") == "owner"]
+
+
+def fit_head(x, y, validation, hidden, weight_decay, epochs):
+    """Minibatch AdamW with class-balanced loss; keeps the best validation epoch."""
     torch.manual_seed(SEED)
     head = Head(x.shape[1], hidden=hidden, dropout=0.5 if hidden else 0.0)
     head.centre.copy_(x.mean(0))
@@ -63,49 +73,66 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--encoder", required=True)
     parser.add_argument("--size", type=int, required=True)
+    parser.add_argument("--name", required=True)
+    parser.add_argument("--views", type=int, default=0)
+    parser.add_argument("--hidden", type=int, default=256)
+    parser.add_argument("--score-head", help="score this existing head instead of training")
     args = parser.parse_args()
-    rows, features = load(args.encoder, args.size)
+    rows = [json.loads(line) for line in (WORK / "manifest.jsonl").read_text().splitlines()]
+    paths = [row["path"] for row in rows]
     split = np.array([row["split"] for row in rows])
-    domain = np.array([row["domain"] for row in rows])
     labels = np.array([row["damaged"] for row in rows])
-    x = torch.from_numpy(features)
-    train = split == "train"
-    validation = split == "validation"
-    test = split == "test"
-    # Training targets are soft where the teacher answered twice; every metric below is
-    # against the first answer alone, which is what production would have returned.
-    soft = np.array([soft_target(row) for row in rows], dtype=np.float32)
-    y_train = torch.from_numpy(soft[train])
+    train, validation = split == "train", split == "validation"
+    x = torch.from_numpy(features_for(args.encoder, args.size, paths))
+    stem = f"{args.encoder}_{args.size}_{args.name}"
+    (WORK / "heads").mkdir(exist_ok=True)
+    (WORK / "scores").mkdir(exist_ok=True)
 
-    results = {"encoder": args.encoder, "size": args.size, "feature_width": features.shape[1],
-               "heads": {}}
-    for kind, hidden in (("linear", 0), ("hidden256", 256)):
+    if args.score_head:
+        saved = torch.load(WORK / "heads" / f"{args.encoder}_{args.size}_{args.score_head}.pt")
+        head = Head(saved["width"], hidden=saved["hidden"])
+        head.load_state_dict(saved["state"])
+        head.eval()
+        result = {"scored_head": args.score_head}
+    else:
+        # Training targets are soft where the teacher answered twice; every metric is
+        # against the first answer alone, which is what production would have returned.
+        soft = np.array([soft_target(row) for row in rows], dtype=np.float32)
+        train_paths = [path for path, chosen in zip(paths, train) if chosen]
+        x_train, y_train = [x[train]], [torch.from_numpy(soft[train])]
+        for view in range(args.views):
+            x_train.append(torch.from_numpy(
+                features_for(args.encoder, args.size, train_paths, f"_aug{view}")))
+            y_train.append(y_train[0])
+        x_train, y_train = torch.cat(x_train), torch.cat(y_train)
+        # The same number of passes over real frames as v1 made, whatever the view count.
+        epochs = max(20, 80 // (args.views + 1))
         candidates = []
         for weight_decay in (1e-4, 1e-2, 1e-1):
-            head, cleared = fit_head(x[train], y_train, (x[validation], labels[validation]),
-                                     hidden, weight_decay)
+            head, cleared = fit_head(x_train, y_train, (x[validation], labels[validation]),
+                                     args.hidden, weight_decay, epochs)
             candidates.append((cleared, weight_decay, head))
+            print(f"  weight decay {weight_decay:g}: validation cleared at 98% recall {cleared:.4f}",
+                  flush=True)
         cleared, weight_decay, head = max(candidates, key=lambda item: item[0])
-        with torch.inference_mode():
-            scores = torch.sigmoid(head(x)).numpy()
-        entry = {"weight_decay": weight_decay,
-                 "all": report((scores[validation], labels[validation]),
-                               (scores[test], labels[test]))}
-        for name in ("drive_video", "rdd2022_india"):
-            chosen = domain == name
-            entry[name] = report((scores[validation & chosen], labels[validation & chosen]),
-                                 (scores[test & chosen], labels[test & chosen]))
-        results["heads"][kind] = entry
-        (WORK / "heads").mkdir(exist_ok=True)
-        torch.save({"state": head.state_dict(), "hidden": hidden, "width": features.shape[1]},
-                   WORK / "heads" / f"{args.encoder}_{args.size}_{kind}.pt")
-        np.save(WORK / "heads" / f"{args.encoder}_{args.size}_{kind}_scores.npy", scores)
-        point = entry["all"]["operating_points"]["0.98"]["test"]
-        print(f"{args.encoder} {args.size} {kind:9s} wd {weight_decay:g}: test AUC "
-              f"{entry['all']['auc']:.4f}; at the validation 98% threshold: test recall "
-              f"{point['recall']:.3f} ({point['caught']}/{point['damaged']}), cleared "
-              f"{point['cleared_share']:.3f} of undamaged", flush=True)
-    write_json(WORK / "results" / f"{args.encoder}_{args.size}.json", results)
+        torch.save({"state": head.state_dict(), "hidden": args.hidden, "width": x.shape[1]},
+                   WORK / "heads" / f"{stem}.pt")
+        result = {"weight_decay": weight_decay, "epochs": epochs, "views": args.views,
+                  "train_rows": len(x_train), "validation_cleared_at_98": cleared}
+
+    extra = owner_paths()
+    with torch.inference_mode():
+        scores = torch.sigmoid(head(x)).numpy()
+        owner = (torch.sigmoid(head(torch.from_numpy(
+            features_for(args.encoder, args.size, extra)))).numpy() if extra else np.zeros(0))
+    np.savez(WORK / "scores" / f"{stem}.npz", paths=np.array(paths + extra),
+             scores=np.concatenate([scores, owner]).astype(np.float32))
+    test = split == "test"
+    result.update({"encoder": args.encoder, "size": args.size, "name": args.name,
+                   "validation_auc": auc(scores[validation], labels[validation]),
+                   "test_auc": auc(scores[test], labels[test])})
+    write_json(WORK / "results" / f"probe_{stem}.json", result)
+    print(json.dumps(result))
 
 
 if __name__ == "__main__":

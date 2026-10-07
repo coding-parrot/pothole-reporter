@@ -1,0 +1,3744 @@
+{
+ "lambda": {
+  "cold_start": {
+   "durationMs": 118.43,
+   "initMs": 651.92,
+   "memoryMb": 254,
+   "status": 200
+  },
+  "function": "pothole-reporter-central-screen",
+  "images": {
+   "clean_road": {
+    "assessment": "damaged",
+    "calls": 20,
+    "client_ms_from_this_machine": {
+     "p50": 930
+    },
+    "decode_ms": {
+     "p50": 13,
+     "p90": 20
+    },
+    "duration_ms": {
+     "max": 103.93,
+     "p50": 77.1,
+     "p90": 92.14
+    },
+    "infer_ms": {
+     "p50": 48,
+     "p90": 58
+    },
+    "max_memory_used_mb": 263,
+    "not_warm_or_failed": 0,
+    "score": 0.66513
+   },
+   "pothole": {
+    "assessment": "damaged",
+    "calls": 20,
+    "client_ms_from_this_machine": {
+     "p50": 904
+    },
+    "decode_ms": {
+     "p50": 12,
+     "p90": 16
+    },
+    "duration_ms": {
+     "max": 104.85,
+     "p50": 76.73,
+     "p90": 81.83
+    },
+    "infer_ms": {
+     "p50": 47,
+     "p90": 60
+    },
+    "max_memory_used_mb": 263,
+    "not_warm_or_failed": 0,
+    "score": 0.89666
+   }
+  },
+  "memory_configured_mb": 2048
+ },
+ "note": "recall and cleared share per test slice; thresholds from validation only. serving_path is the authority (sharp + ONNX Runtime); training_path compares every variant (PIL + torch).",
+ "run_id": "screen-v2-20261007",
+ "serving_path": {
+  "teacher_ceiling": {
+   "all_test": {
+    "damaged_both_answers": 3050,
+    "damaged_first_answer": 3208,
+    "frames_labelled_twice": 6583,
+    "teacher_as_screen_cleared_share": 0.9445925925925925,
+    "teacher_as_screen_recall": 0.9507481296758105,
+    "undamaged_both_answers": 3188,
+    "undamaged_first_answer": 3375
+   },
+   "new_test_irdd_iraq": {
+    "damaged_both_answers": 2371,
+    "damaged_first_answer": 2464,
+    "frames_labelled_twice": 3495,
+    "teacher_as_screen_cleared_share": 0.8933074684772065,
+    "teacher_as_screen_recall": 0.9622564935064936,
+    "undamaged_both_answers": 921,
+    "undamaged_first_answer": 1031
+   },
+   "new_test_rad_bengaluru": {
+    "damaged_both_answers": 161,
+    "damaged_first_answer": 178,
+    "frames_labelled_twice": 629,
+    "teacher_as_screen_cleared_share": 0.9490022172949002,
+    "teacher_as_screen_recall": 0.9044943820224719,
+    "undamaged_both_answers": 428,
+    "undamaged_first_answer": 451
+   },
+   "old_test_all": {
+    "damaged_both_answers": 518,
+    "damaged_first_answer": 566,
+    "frames_labelled_twice": 2459,
+    "teacher_as_screen_cleared_share": 0.971473851030111,
+    "teacher_as_screen_recall": 0.9151943462897526,
+    "undamaged_both_answers": 1839,
+    "undamaged_first_answer": 1893
+   },
+   "old_test_drive": {
+    "damaged_both_answers": 124,
+    "damaged_first_answer": 137,
+    "frames_labelled_twice": 995,
+    "teacher_as_screen_cleared_share": 0.9836829836829837,
+    "teacher_as_screen_recall": 0.9051094890510949,
+    "undamaged_both_answers": 844,
+    "undamaged_first_answer": 858
+   },
+   "old_test_rdd_india": {
+    "damaged_both_answers": 394,
+    "damaged_first_answer": 429,
+    "frames_labelled_twice": 1464,
+    "teacher_as_screen_cleared_share": 0.961352657004831,
+    "teacher_as_screen_recall": 0.9184149184149184,
+    "undamaged_both_answers": 995,
+    "undamaged_first_answer": 1035
+   }
+  },
+  "v2_beats_v1_on_every_slice": {
+   "served_road-screen-v2-mobilenetv3l-448": {
+    "against_v1_as_deployed": false,
+    "gate": false
+   }
+  },
+  "variants": {
+   "served_road-screen-v1-mobilenetv3l-448": {
+    "auc": {
+     "all_test": 0.8012013946614944,
+     "new_test_irdd_iraq": 0.7097714361293411,
+     "new_test_rad_bengaluru": 0.7034056653130372,
+     "old_test_all": 0.8816557747625154,
+     "old_test_drive": 0.9544263522365712,
+     "old_test_rdd_india": 0.8650428476515433
+    },
+    "v1_as_deployed": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1655,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1402,
+       1495
+      ],
+      "old_test_all": [
+       253,
+       266
+      ],
+      "old_test_rdd_india": [
+       253,
+       266
+      ]
+     },
+     "owner_images": [
+      8,
+      9,
+      2,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       2943,
+       3208,
+       1611,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2289,
+       2464,
+       253,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       122,
+       178,
+       288,
+       451
+      ],
+      "old_test_all": [
+       532,
+       566,
+       1070,
+       1893
+      ],
+      "old_test_drive": [
+       113,
+       137,
+       799,
+       858
+      ],
+      "old_test_rdd_india": [
+       419,
+       429,
+       271,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       2813,
+       3050,
+       1587,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2208,
+       2371,
+       246,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       118,
+       161,
+       276,
+       428
+      ],
+      "old_test_all": [
+       487,
+       518,
+       1065,
+       1839
+      ],
+      "old_test_drive": [
+       103,
+       124,
+       795,
+       844
+      ],
+      "old_test_rdd_india": [
+       384,
+       394,
+       270,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.000605195760726928
+    },
+    "val98": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1748,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1484,
+       1495
+      ],
+      "old_test_all": [
+       264,
+       266
+      ],
+      "old_test_rdd_india": [
+       264,
+       266
+      ]
+     },
+     "owner_images": [
+      8,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3169,
+       3208,
+       995,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2440,
+       2464,
+       81,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       168,
+       178,
+       114,
+       451
+      ],
+      "old_test_all": [
+       561,
+       566,
+       800,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       728,
+       858
+      ],
+      "old_test_rdd_india": [
+       426,
+       429,
+       72,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3017,
+       3050,
+       992,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2350,
+       2371,
+       81,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       153,
+       161,
+       112,
+       428
+      ],
+      "old_test_all": [
+       514,
+       518,
+       799,
+       1839
+      ],
+      "old_test_drive": [
+       123,
+       124,
+       727,
+       844
+      ],
+      "old_test_rdd_india": [
+       391,
+       394,
+       72,
+       995
+      ]
+     },
+     "threshold_raw_score": 2.175569534301758e-06
+    },
+    "val98_every_source": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1755,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1489,
+       1495
+      ],
+      "old_test_all": [
+       266,
+       266
+      ],
+      "old_test_rdd_india": [
+       266,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3191,
+       3208,
+       822,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2454,
+       2464,
+       66,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       173,
+       178,
+       52,
+       451
+      ],
+      "old_test_all": [
+       564,
+       566,
+       704,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       670,
+       858
+      ],
+      "old_test_rdd_india": [
+       429,
+       429,
+       34,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3036,
+       3050,
+       821,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2362,
+       2371,
+       66,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       157,
+       161,
+       52,
+       428
+      ],
+      "old_test_all": [
+       517,
+       518,
+       703,
+       1839
+      ],
+      "old_test_drive": [
+       123,
+       124,
+       669,
+       844
+      ],
+      "old_test_rdd_india": [
+       394,
+       394,
+       34,
+       995
+      ]
+     },
+     "threshold_raw_score": 1.4901161193847656e-07
+    },
+    "val99": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1755,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1489,
+       1495
+      ],
+      "old_test_all": [
+       266,
+       266
+      ],
+      "old_test_rdd_india": [
+       266,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3190,
+       3208,
+       832,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2453,
+       2464,
+       67,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       173,
+       178,
+       55,
+       451
+      ],
+      "old_test_all": [
+       564,
+       566,
+       710,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       674,
+       858
+      ],
+      "old_test_rdd_india": [
+       429,
+       429,
+       36,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3036,
+       3050,
+       831,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2362,
+       2371,
+       67,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       157,
+       161,
+       55,
+       428
+      ],
+      "old_test_all": [
+       517,
+       518,
+       709,
+       1839
+      ],
+      "old_test_drive": [
+       123,
+       124,
+       673,
+       844
+      ],
+      "old_test_rdd_india": [
+       394,
+       394,
+       36,
+       995
+      ]
+     },
+     "threshold_raw_score": 1.7881393432617188e-07
+    }
+   },
+   "served_road-screen-v2-mobilenetv3l-448": {
+    "auc": {
+     "all_test": 0.9320077583818233,
+     "new_test_irdd_iraq": 0.8729810138939625,
+     "new_test_rad_bengaluru": 0.9183337900794738,
+     "old_test_all": 0.9524956180385613,
+     "old_test_drive": 0.9770217616932946,
+     "old_test_rdd_india": 0.9335090030742205
+    },
+    "val98": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1717,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1487,
+       1495
+      ],
+      "old_test_all": [
+       230,
+       266
+      ],
+      "old_test_rdd_india": [
+       230,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3133,
+       3208,
+       2072,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2441,
+       2464,
+       215,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       171,
+       178,
+       263,
+       451
+      ],
+      "old_test_all": [
+       521,
+       566,
+       1594,
+       1893
+      ],
+      "old_test_drive": [
+       128,
+       137,
+       804,
+       858
+      ],
+      "old_test_rdd_india": [
+       393,
+       429,
+       790,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       2986,
+       3050,
+       2053,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2352,
+       2371,
+       211,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       155,
+       161,
+       261,
+       428
+      ],
+      "old_test_all": [
+       479,
+       518,
+       1581,
+       1839
+      ],
+      "old_test_drive": [
+       115,
+       124,
+       799,
+       844
+      ],
+      "old_test_rdd_india": [
+       364,
+       394,
+       782,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.11096793413162231
+    },
+    "val98_every_source": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1742,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1494,
+       1495
+      ],
+      "old_test_all": [
+       248,
+       266
+      ],
+      "old_test_rdd_india": [
+       248,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      0,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3188,
+       3208,
+       1659,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2461,
+       2464,
+       72,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       175,
+       178,
+       172,
+       451
+      ],
+      "old_test_all": [
+       552,
+       566,
+       1415,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       780,
+       858
+      ],
+      "old_test_rdd_india": [
+       417,
+       429,
+       635,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3032,
+       3050,
+       1649,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2368,
+       2371,
+       71,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       158,
+       161,
+       171,
+       428
+      ],
+      "old_test_all": [
+       506,
+       518,
+       1407,
+       1839
+      ],
+      "old_test_drive": [
+       122,
+       124,
+       777,
+       844
+      ],
+      "old_test_rdd_india": [
+       384,
+       394,
+       630,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.036627352237701416
+    },
+    "val99": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1737,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1493,
+       1495
+      ],
+      "old_test_all": [
+       244,
+       266
+      ],
+      "old_test_rdd_india": [
+       244,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      0,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3176,
+       3208,
+       1775,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2458,
+       2464,
+       104,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       174,
+       178,
+       206,
+       451
+      ],
+      "old_test_all": [
+       544,
+       566,
+       1465,
+       1893
+      ],
+      "old_test_drive": [
+       134,
+       137,
+       785,
+       858
+      ],
+      "old_test_rdd_india": [
+       410,
+       429,
+       680,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3023,
+       3050,
+       1762,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2367,
+       2371,
+       101,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       158,
+       161,
+       205,
+       428
+      ],
+      "old_test_all": [
+       498,
+       518,
+       1456,
+       1839
+      ],
+      "old_test_drive": [
+       121,
+       124,
+       782,
+       844
+      ],
+      "old_test_rdd_india": [
+       377,
+       394,
+       674,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.05049082636833191
+    }
+   }
+  }
+ },
+ "slice_cells": "[caught, damaged, cleared, undamaged]",
+ "source": "s3://pothole-reporter-ml-695656921622-ap-south-1/runs/screen-v2-20261007/report/",
+ "training_path": {
+  "teacher_ceiling": {
+   "all_test": {
+    "damaged_both_answers": 3050,
+    "damaged_first_answer": 3208,
+    "frames_labelled_twice": 6583,
+    "teacher_as_screen_cleared_share": 0.9445925925925925,
+    "teacher_as_screen_recall": 0.9507481296758105,
+    "undamaged_both_answers": 3188,
+    "undamaged_first_answer": 3375
+   },
+   "new_test_irdd_iraq": {
+    "damaged_both_answers": 2371,
+    "damaged_first_answer": 2464,
+    "frames_labelled_twice": 3495,
+    "teacher_as_screen_cleared_share": 0.8933074684772065,
+    "teacher_as_screen_recall": 0.9622564935064936,
+    "undamaged_both_answers": 921,
+    "undamaged_first_answer": 1031
+   },
+   "new_test_rad_bengaluru": {
+    "damaged_both_answers": 161,
+    "damaged_first_answer": 178,
+    "frames_labelled_twice": 629,
+    "teacher_as_screen_cleared_share": 0.9490022172949002,
+    "teacher_as_screen_recall": 0.9044943820224719,
+    "undamaged_both_answers": 428,
+    "undamaged_first_answer": 451
+   },
+   "old_test_all": {
+    "damaged_both_answers": 518,
+    "damaged_first_answer": 566,
+    "frames_labelled_twice": 2459,
+    "teacher_as_screen_cleared_share": 0.971473851030111,
+    "teacher_as_screen_recall": 0.9151943462897526,
+    "undamaged_both_answers": 1839,
+    "undamaged_first_answer": 1893
+   },
+   "old_test_drive": {
+    "damaged_both_answers": 124,
+    "damaged_first_answer": 137,
+    "frames_labelled_twice": 995,
+    "teacher_as_screen_cleared_share": 0.9836829836829837,
+    "teacher_as_screen_recall": 0.9051094890510949,
+    "undamaged_both_answers": 844,
+    "undamaged_first_answer": 858
+   },
+   "old_test_rdd_india": {
+    "damaged_both_answers": 394,
+    "damaged_first_answer": 429,
+    "frames_labelled_twice": 1464,
+    "teacher_as_screen_cleared_share": 0.961352657004831,
+    "teacher_as_screen_recall": 0.9184149184149184,
+    "undamaged_both_answers": 995,
+    "undamaged_first_answer": 1035
+   }
+  },
+  "v2_beats_v1_on_every_slice": {
+   "efficientnet_b0_448_ft_s1": {
+    "against_v1_as_deployed": false,
+    "gate": false
+   },
+   "efficientnet_b0_448_v2probe": {
+    "against_v1_as_deployed": false,
+    "gate": false
+   },
+   "efficientnet_b0_448_v2probe_aug": {
+    "against_v1_as_deployed": false,
+    "gate": false
+   },
+   "mobilenetv3_l_448_ft_s1": {
+    "against_v1_as_deployed": false,
+    "gate": false
+   },
+   "mobilenetv3_l_448_ft_s2": {
+    "against_v1_as_deployed": false,
+    "gate": false
+   },
+   "mobilenetv3_l_448_v2probe": {
+    "against_v1_as_deployed": false,
+    "gate": false
+   },
+   "mobilenetv3_l_448_v2probe_aug": {
+    "against_v1_as_deployed": false,
+    "gate": false
+   }
+  },
+  "variants": {
+   "efficientnet_b0_448_ft_s1": {
+    "auc": {
+     "all_test": 0.942114805578646,
+     "new_test_irdd_iraq": 0.8966636539987656,
+     "new_test_rad_bengaluru": 0.9168389845287626,
+     "old_test_all": 0.9587768960966477,
+     "old_test_drive": 0.9829598625219064,
+     "old_test_rdd_india": 0.936970597840163
+    },
+    "val98": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1704,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1487,
+       1495
+      ],
+      "old_test_all": [
+       217,
+       266
+      ],
+      "old_test_rdd_india": [
+       217,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      2,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3125,
+       3208,
+       2200,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2435,
+       2464,
+       309,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       172,
+       178,
+       277,
+       451
+      ],
+      "old_test_all": [
+       518,
+       566,
+       1614,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       790,
+       858
+      ],
+      "old_test_rdd_india": [
+       383,
+       429,
+       824,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       2985,
+       3050,
+       2179,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2351,
+       2371,
+       304,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       156,
+       161,
+       276,
+       428
+      ],
+      "old_test_all": [
+       478,
+       518,
+       1599,
+       1839
+      ],
+      "old_test_drive": [
+       122,
+       124,
+       787,
+       844
+      ],
+      "old_test_rdd_india": [
+       356,
+       394,
+       812,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.20712395012378693
+    },
+    "val98_every_source": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1731,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1492,
+       1495
+      ],
+      "old_test_all": [
+       239,
+       266
+      ],
+      "old_test_rdd_india": [
+       239,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      0,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3189,
+       3208,
+       1710,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2459,
+       2464,
+       104,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       177,
+       178,
+       177,
+       451
+      ],
+      "old_test_all": [
+       553,
+       566,
+       1429,
+       1893
+      ],
+      "old_test_drive": [
+       136,
+       137,
+       768,
+       858
+      ],
+      "old_test_rdd_india": [
+       417,
+       429,
+       661,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3035,
+       3050,
+       1702,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2368,
+       2371,
+       103,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       160,
+       161,
+       177,
+       428
+      ],
+      "old_test_all": [
+       507,
+       518,
+       1422,
+       1839
+      ],
+      "old_test_drive": [
+       123,
+       124,
+       765,
+       844
+      ],
+      "old_test_rdd_india": [
+       384,
+       394,
+       657,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.05949557200074196
+    },
+    "val99": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1723,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1491,
+       1495
+      ],
+      "old_test_all": [
+       232,
+       266
+      ],
+      "old_test_rdd_india": [
+       232,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3161,
+       3208,
+       1989,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2451,
+       2464,
+       218,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       174,
+       178,
+       231,
+       451
+      ],
+      "old_test_all": [
+       536,
+       566,
+       1540,
+       1893
+      ],
+      "old_test_drive": [
+       136,
+       137,
+       778,
+       858
+      ],
+      "old_test_rdd_india": [
+       400,
+       429,
+       762,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3012,
+       3050,
+       1972,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2362,
+       2371,
+       214,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       157,
+       161,
+       230,
+       428
+      ],
+      "old_test_all": [
+       493,
+       518,
+       1528,
+       1839
+      ],
+      "old_test_drive": [
+       123,
+       124,
+       775,
+       844
+      ],
+      "old_test_rdd_india": [
+       370,
+       394,
+       753,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.12702783942222595
+    }
+   },
+   "efficientnet_b0_448_v2probe": {
+    "auc": {
+     "all_test": 0.8842933407222684,
+     "new_test_irdd_iraq": 0.8191053006159699,
+     "new_test_rad_bengaluru": 0.7972919106106281,
+     "old_test_all": 0.8908681603601888,
+     "old_test_drive": 0.9496197233423511,
+     "old_test_rdd_india": 0.8488609619044402
+    },
+    "val98": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1741,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1493,
+       1495
+      ],
+      "old_test_all": [
+       248,
+       266
+      ],
+      "old_test_rdd_india": [
+       248,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3183,
+       3208,
+       1159,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2463,
+       2464,
+       35,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       177,
+       178,
+       39,
+       451
+      ],
+      "old_test_all": [
+       543,
+       566,
+       1085,
+       1893
+      ],
+      "old_test_drive": [
+       132,
+       137,
+       712,
+       858
+      ],
+      "old_test_rdd_india": [
+       411,
+       429,
+       373,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3027,
+       3050,
+       1154,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2370,
+       2371,
+       34,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       161,
+       161,
+       39,
+       428
+      ],
+      "old_test_all": [
+       496,
+       518,
+       1081,
+       1839
+      ],
+      "old_test_drive": [
+       119,
+       124,
+       710,
+       844
+      ],
+      "old_test_rdd_india": [
+       377,
+       394,
+       371,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.06862702965736389
+    },
+    "val98_every_source": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1752,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1495,
+       1495
+      ],
+      "old_test_all": [
+       257,
+       266
+      ],
+      "old_test_rdd_india": [
+       257,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      0,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3203,
+       3208,
+       855,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2464,
+       2464,
+       5,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       178,
+       178,
+       8,
+       451
+      ],
+      "old_test_all": [
+       561,
+       566,
+       842,
+       1893
+      ],
+      "old_test_drive": [
+       137,
+       137,
+       662,
+       858
+      ],
+      "old_test_rdd_india": [
+       424,
+       429,
+       180,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3045,
+       3050,
+       852,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2371,
+       2371,
+       5,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       161,
+       161,
+       8,
+       428
+      ],
+      "old_test_all": [
+       513,
+       518,
+       839,
+       1839
+      ],
+      "old_test_drive": [
+       124,
+       124,
+       661,
+       844
+      ],
+      "old_test_rdd_india": [
+       389,
+       394,
+       178,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.026384489610791206
+    },
+    "val99": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1751,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1495,
+       1495
+      ],
+      "old_test_all": [
+       256,
+       266
+      ],
+      "old_test_rdd_india": [
+       256,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      0,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3196,
+       3208,
+       978,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2464,
+       2464,
+       22,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       178,
+       178,
+       16,
+       451
+      ],
+      "old_test_all": [
+       554,
+       566,
+       940,
+       1893
+      ],
+      "old_test_drive": [
+       136,
+       137,
+       682,
+       858
+      ],
+      "old_test_rdd_india": [
+       418,
+       429,
+       258,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3039,
+       3050,
+       975,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2371,
+       2371,
+       22,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       161,
+       161,
+       16,
+       428
+      ],
+      "old_test_all": [
+       507,
+       518,
+       937,
+       1839
+      ],
+      "old_test_drive": [
+       123,
+       124,
+       681,
+       844
+      ],
+      "old_test_rdd_india": [
+       384,
+       394,
+       256,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.040263962000608444
+    }
+   },
+   "efficientnet_b0_448_v2probe_aug": {
+    "auc": {
+     "all_test": 0.8856367876604785,
+     "new_test_irdd_iraq": 0.8120758515248089,
+     "new_test_rad_bengaluru": 0.7861057824061387,
+     "old_test_all": 0.9047149718415811,
+     "old_test_drive": 0.96914399469144,
+     "old_test_rdd_india": 0.8528946094163485
+    },
+    "val98": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1738,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1494,
+       1495
+      ],
+      "old_test_all": [
+       244,
+       266
+      ],
+      "old_test_rdd_india": [
+       244,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3174,
+       3208,
+       1340,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2460,
+       2464,
+       68,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       174,
+       178,
+       80,
+       451
+      ],
+      "old_test_all": [
+       540,
+       566,
+       1192,
+       1893
+      ],
+      "old_test_drive": [
+       133,
+       137,
+       776,
+       858
+      ],
+      "old_test_rdd_india": [
+       407,
+       429,
+       416,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3023,
+       3050,
+       1334,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2370,
+       2371,
+       68,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       158,
+       161,
+       80,
+       428
+      ],
+      "old_test_all": [
+       495,
+       518,
+       1186,
+       1839
+      ],
+      "old_test_drive": [
+       120,
+       124,
+       774,
+       844
+      ],
+      "old_test_rdd_india": [
+       375,
+       394,
+       412,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.012467999011278152
+    },
+    "val98_every_source": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1745,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1495,
+       1495
+      ],
+      "old_test_all": [
+       250,
+       266
+      ],
+      "old_test_rdd_india": [
+       250,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3193,
+       3208,
+       1153,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2463,
+       2464,
+       33,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       176,
+       178,
+       54,
+       451
+      ],
+      "old_test_all": [
+       554,
+       566,
+       1066,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       769,
+       858
+      ],
+      "old_test_rdd_india": [
+       419,
+       429,
+       297,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3038,
+       3050,
+       1149,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2371,
+       2371,
+       33,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       159,
+       161,
+       54,
+       428
+      ],
+      "old_test_all": [
+       508,
+       518,
+       1062,
+       1839
+      ],
+      "old_test_drive": [
+       122,
+       124,
+       767,
+       844
+      ],
+      "old_test_rdd_india": [
+       386,
+       394,
+       295,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.004332882352173328
+    },
+    "val99": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1744,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1495,
+       1495
+      ],
+      "old_test_all": [
+       249,
+       266
+      ],
+      "old_test_rdd_india": [
+       249,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3188,
+       3208,
+       1186,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2463,
+       2464,
+       38,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       176,
+       178,
+       59,
+       451
+      ],
+      "old_test_all": [
+       549,
+       566,
+       1089,
+       1893
+      ],
+      "old_test_drive": [
+       134,
+       137,
+       772,
+       858
+      ],
+      "old_test_rdd_india": [
+       415,
+       429,
+       317,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3033,
+       3050,
+       1182,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2371,
+       2371,
+       38,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       159,
+       161,
+       59,
+       428
+      ],
+      "old_test_all": [
+       503,
+       518,
+       1085,
+       1839
+      ],
+      "old_test_drive": [
+       121,
+       124,
+       770,
+       844
+      ],
+      "old_test_rdd_india": [
+       382,
+       394,
+       315,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.005521019455045462
+    }
+   },
+   "mobilenetv3_l_448_ft_s1": {
+    "auc": {
+     "all_test": 0.9336956682368154,
+     "new_test_irdd_iraq": 0.8714776978598511,
+     "new_test_rad_bengaluru": 0.9288472557861431,
+     "old_test_all": 0.9579490367151435,
+     "old_test_drive": 0.9793527640242968,
+     "old_test_rdd_india": 0.9390425999121651
+    },
+    "val98": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1715,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1482,
+       1495
+      ],
+      "old_test_all": [
+       233,
+       266
+      ],
+      "old_test_rdd_india": [
+       233,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      0,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3151,
+       3208,
+       1975,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2444,
+       2464,
+       166,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       172,
+       178,
+       249,
+       451
+      ],
+      "old_test_all": [
+       535,
+       566,
+       1560,
+       1893
+      ],
+      "old_test_drive": [
+       134,
+       137,
+       788,
+       858
+      ],
+      "old_test_rdd_india": [
+       401,
+       429,
+       772,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3001,
+       3050,
+       1957,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2354,
+       2371,
+       163,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       156,
+       161,
+       247,
+       428
+      ],
+      "old_test_all": [
+       491,
+       518,
+       1547,
+       1839
+      ],
+      "old_test_drive": [
+       121,
+       124,
+       785,
+       844
+      ],
+      "old_test_rdd_india": [
+       370,
+       394,
+       762,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.10205995291471481
+    },
+    "val98_every_source": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1734,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1493,
+       1495
+      ],
+      "old_test_all": [
+       241,
+       266
+      ],
+      "old_test_rdd_india": [
+       241,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      0,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3182,
+       3208,
+       1714,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2458,
+       2464,
+       70,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       174,
+       178,
+       188,
+       451
+      ],
+      "old_test_all": [
+       550,
+       566,
+       1456,
+       1893
+      ],
+      "old_test_drive": [
+       136,
+       137,
+       778,
+       858
+      ],
+      "old_test_rdd_india": [
+       414,
+       429,
+       678,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3026,
+       3050,
+       1701,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2365,
+       2371,
+       67,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       157,
+       161,
+       187,
+       428
+      ],
+      "old_test_all": [
+       504,
+       518,
+       1447,
+       1839
+      ],
+      "old_test_drive": [
+       123,
+       124,
+       775,
+       844
+      ],
+      "old_test_rdd_india": [
+       381,
+       394,
+       672,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.05029534175992012
+    },
+    "val99": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1732,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1493,
+       1495
+      ],
+      "old_test_all": [
+       239,
+       266
+      ],
+      "old_test_rdd_india": [
+       239,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      0,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3176,
+       3208,
+       1780,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2456,
+       2464,
+       88,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       174,
+       178,
+       206,
+       451
+      ],
+      "old_test_all": [
+       546,
+       566,
+       1486,
+       1893
+      ],
+      "old_test_drive": [
+       136,
+       137,
+       780,
+       858
+      ],
+      "old_test_rdd_india": [
+       410,
+       429,
+       706,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3020,
+       3050,
+       1766,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2363,
+       2371,
+       85,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       157,
+       161,
+       205,
+       428
+      ],
+      "old_test_all": [
+       500,
+       518,
+       1476,
+       1839
+      ],
+      "old_test_drive": [
+       123,
+       124,
+       777,
+       844
+      ],
+      "old_test_rdd_india": [
+       377,
+       394,
+       699,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.060122936964035034
+    }
+   },
+   "mobilenetv3_l_448_ft_s2": {
+    "auc": {
+     "all_test": 0.9320533850558789,
+     "new_test_irdd_iraq": 0.8729215740612443,
+     "new_test_rad_bengaluru": 0.9177109544333442,
+     "old_test_all": 0.9526869496881761,
+     "old_test_drive": 0.9771323566944005,
+     "old_test_rdd_india": 0.9338716034368209
+    },
+    "val98": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1717,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1487,
+       1495
+      ],
+      "old_test_all": [
+       230,
+       266
+      ],
+      "old_test_rdd_india": [
+       230,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3133,
+       3208,
+       2063,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2441,
+       2464,
+       211,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       171,
+       178,
+       256,
+       451
+      ],
+      "old_test_all": [
+       521,
+       566,
+       1596,
+       1893
+      ],
+      "old_test_drive": [
+       128,
+       137,
+       804,
+       858
+      ],
+      "old_test_rdd_india": [
+       393,
+       429,
+       792,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       2986,
+       3050,
+       2043,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2352,
+       2371,
+       207,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       155,
+       161,
+       254,
+       428
+      ],
+      "old_test_all": [
+       479,
+       518,
+       1582,
+       1839
+      ],
+      "old_test_drive": [
+       115,
+       124,
+       799,
+       844
+      ],
+      "old_test_rdd_india": [
+       364,
+       394,
+       783,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.10808508843183517
+    },
+    "val98_every_source": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1740,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1494,
+       1495
+      ],
+      "old_test_all": [
+       246,
+       266
+      ],
+      "old_test_rdd_india": [
+       246,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      0,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3186,
+       3208,
+       1671,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2461,
+       2464,
+       75,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       175,
+       178,
+       176,
+       451
+      ],
+      "old_test_all": [
+       550,
+       566,
+       1420,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       781,
+       858
+      ],
+      "old_test_rdd_india": [
+       415,
+       429,
+       639,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3030,
+       3050,
+       1661,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2368,
+       2371,
+       74,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       158,
+       161,
+       175,
+       428
+      ],
+      "old_test_all": [
+       504,
+       518,
+       1412,
+       1839
+      ],
+      "old_test_drive": [
+       122,
+       124,
+       778,
+       844
+      ],
+      "old_test_rdd_india": [
+       382,
+       394,
+       634,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.03710085153579712
+    },
+    "val99": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1738,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1493,
+       1495
+      ],
+      "old_test_all": [
+       245,
+       266
+      ],
+      "old_test_rdd_india": [
+       245,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      0,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3179,
+       3208,
+       1760,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2459,
+       2464,
+       98,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       174,
+       178,
+       201,
+       451
+      ],
+      "old_test_all": [
+       546,
+       566,
+       1461,
+       1893
+      ],
+      "old_test_drive": [
+       134,
+       137,
+       784,
+       858
+      ],
+      "old_test_rdd_india": [
+       412,
+       429,
+       677,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3026,
+       3050,
+       1748,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2368,
+       2371,
+       95,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       158,
+       161,
+       200,
+       428
+      ],
+      "old_test_all": [
+       500,
+       518,
+       1453,
+       1839
+      ],
+      "old_test_drive": [
+       121,
+       124,
+       781,
+       844
+      ],
+      "old_test_rdd_india": [
+       379,
+       394,
+       672,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.04856899380683899
+    }
+   },
+   "mobilenetv3_l_448_v1": {
+    "auc": {
+     "all_test": 0.8014098088113051,
+     "new_test_irdd_iraq": 0.7096147669013818,
+     "new_test_rad_bengaluru": 0.7041904382271607,
+     "old_test_all": 0.8819446388871778,
+     "old_test_drive": 0.9570295884164497,
+     "old_test_rdd_india": 0.8649865432474129
+    },
+    "v1_as_deployed": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1656,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1403,
+       1495
+      ],
+      "old_test_all": [
+       253,
+       266
+      ],
+      "old_test_rdd_india": [
+       253,
+       266
+      ]
+     },
+     "owner_images": [
+      8,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       2937,
+       3208,
+       1613,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2285,
+       2464,
+       252,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       121,
+       178,
+       287,
+       451
+      ],
+      "old_test_all": [
+       531,
+       566,
+       1074,
+       1893
+      ],
+      "old_test_drive": [
+       113,
+       137,
+       799,
+       858
+      ],
+      "old_test_rdd_india": [
+       418,
+       429,
+       275,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       2809,
+       3050,
+       1589,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2205,
+       2371,
+       245,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       117,
+       161,
+       275,
+       428
+      ],
+      "old_test_all": [
+       487,
+       518,
+       1069,
+       1839
+      ],
+      "old_test_drive": [
+       103,
+       124,
+       795,
+       844
+      ],
+      "old_test_rdd_india": [
+       384,
+       394,
+       274,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.000605195760726928
+    },
+    "val98": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1747,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1483,
+       1495
+      ],
+      "old_test_all": [
+       264,
+       266
+      ],
+      "old_test_rdd_india": [
+       264,
+       266
+      ]
+     },
+     "owner_images": [
+      8,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3165,
+       3208,
+       997,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2437,
+       2464,
+       82,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       167,
+       178,
+       115,
+       451
+      ],
+      "old_test_all": [
+       561,
+       566,
+       800,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       731,
+       858
+      ],
+      "old_test_rdd_india": [
+       426,
+       429,
+       69,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3014,
+       3050,
+       994,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2348,
+       2371,
+       82,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       152,
+       161,
+       113,
+       428
+      ],
+      "old_test_all": [
+       514,
+       518,
+       799,
+       1839
+      ],
+      "old_test_drive": [
+       123,
+       124,
+       730,
+       844
+      ],
+      "old_test_rdd_india": [
+       391,
+       394,
+       69,
+       995
+      ]
+     },
+     "threshold_raw_score": 2.4606842998764478e-06
+    },
+    "val98_every_source": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1755,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1489,
+       1495
+      ],
+      "old_test_all": [
+       266,
+       266
+      ],
+      "old_test_rdd_india": [
+       266,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3190,
+       3208,
+       831,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2453,
+       2464,
+       66,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       173,
+       178,
+       57,
+       451
+      ],
+      "old_test_all": [
+       564,
+       566,
+       708,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       674,
+       858
+      ],
+      "old_test_rdd_india": [
+       429,
+       429,
+       34,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3036,
+       3050,
+       828,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2362,
+       2371,
+       66,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       157,
+       161,
+       55,
+       428
+      ],
+      "old_test_all": [
+       517,
+       518,
+       707,
+       1839
+      ],
+      "old_test_drive": [
+       123,
+       124,
+       673,
+       844
+      ],
+      "old_test_rdd_india": [
+       394,
+       394,
+       34,
+       995
+      ]
+     },
+     "threshold_raw_score": 1.5661508712128125e-07
+    },
+    "val99": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1755,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1489,
+       1495
+      ],
+      "old_test_all": [
+       266,
+       266
+      ],
+      "old_test_rdd_india": [
+       266,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3189,
+       3208,
+       854,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2452,
+       2464,
+       68,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       173,
+       178,
+       62,
+       451
+      ],
+      "old_test_all": [
+       564,
+       566,
+       724,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       686,
+       858
+      ],
+      "old_test_rdd_india": [
+       429,
+       429,
+       38,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3035,
+       3050,
+       851,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2361,
+       2371,
+       68,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       157,
+       161,
+       60,
+       428
+      ],
+      "old_test_all": [
+       517,
+       518,
+       723,
+       1839
+      ],
+      "old_test_drive": [
+       123,
+       124,
+       685,
+       844
+      ],
+      "old_test_rdd_india": [
+       394,
+       394,
+       38,
+       995
+      ]
+     },
+     "threshold_raw_score": 2.3152652772751026e-07
+    }
+   },
+   "mobilenetv3_l_448_v2probe": {
+    "auc": {
+     "all_test": 0.8767270712108617,
+     "new_test_irdd_iraq": 0.7680952958292919,
+     "new_test_rad_bengaluru": 0.8126385809312638,
+     "old_test_all": 0.9126865016921184,
+     "old_test_drive": 0.9737719701223351,
+     "old_test_rdd_india": 0.8568899699334482
+    },
+    "val98": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1744,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1492,
+       1495
+      ],
+      "old_test_all": [
+       252,
+       266
+      ],
+      "old_test_rdd_india": [
+       252,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      2,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3175,
+       3208,
+       1385,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2455,
+       2464,
+       57,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       177,
+       178,
+       94,
+       451
+      ],
+      "old_test_all": [
+       543,
+       566,
+       1234,
+       1893
+      ],
+      "old_test_drive": [
+       134,
+       137,
+       779,
+       858
+      ],
+      "old_test_rdd_india": [
+       409,
+       429,
+       455,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3018,
+       3050,
+       1375,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2362,
+       2371,
+       56,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       160,
+       161,
+       94,
+       428
+      ],
+      "old_test_all": [
+       496,
+       518,
+       1225,
+       1839
+      ],
+      "old_test_drive": [
+       121,
+       124,
+       776,
+       844
+      ],
+      "old_test_rdd_india": [
+       375,
+       394,
+       449,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.06606554239988327
+    },
+    "val98_every_source": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1755,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1495,
+       1495
+      ],
+      "old_test_all": [
+       260,
+       266
+      ],
+      "old_test_rdd_india": [
+       260,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3200,
+       3208,
+       922,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2464,
+       2464,
+       1,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       178,
+       178,
+       10,
+       451
+      ],
+      "old_test_all": [
+       558,
+       566,
+       911,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       746,
+       858
+      ],
+      "old_test_rdd_india": [
+       423,
+       429,
+       165,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3042,
+       3050,
+       919,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2371,
+       2371,
+       1,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       161,
+       161,
+       10,
+       428
+      ],
+      "old_test_all": [
+       510,
+       518,
+       908,
+       1839
+      ],
+      "old_test_drive": [
+       122,
+       124,
+       744,
+       844
+      ],
+      "old_test_rdd_india": [
+       388,
+       394,
+       164,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.012480364181101322
+    },
+    "val99": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1750,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1494,
+       1495
+      ],
+      "old_test_all": [
+       256,
+       266
+      ],
+      "old_test_rdd_india": [
+       256,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3194,
+       3208,
+       1123,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2463,
+       2464,
+       22,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       177,
+       178,
+       38,
+       451
+      ],
+      "old_test_all": [
+       554,
+       566,
+       1063,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       762,
+       858
+      ],
+      "old_test_rdd_india": [
+       419,
+       429,
+       301,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3036,
+       3050,
+       1117,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2370,
+       2371,
+       22,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       160,
+       161,
+       38,
+       428
+      ],
+      "old_test_all": [
+       506,
+       518,
+       1057,
+       1839
+      ],
+      "old_test_drive": [
+       122,
+       124,
+       760,
+       844
+      ],
+      "old_test_rdd_india": [
+       384,
+       394,
+       297,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.028938323259353638
+    }
+   },
+   "mobilenetv3_l_448_v2probe_aug": {
+    "auc": {
+     "all_test": 0.8684938579477233,
+     "new_test_irdd_iraq": 0.756153400430801,
+     "new_test_rad_bengaluru": 0.8036323774882284,
+     "old_test_all": 0.9075952131621242,
+     "old_test_drive": 0.9676126792915114,
+     "old_test_rdd_india": 0.8561377430942648
+    },
+    "val98": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1742,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1494,
+       1495
+      ],
+      "old_test_all": [
+       248,
+       266
+      ],
+      "old_test_rdd_india": [
+       248,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3172,
+       3208,
+       1389,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2460,
+       2464,
+       59,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       171,
+       178,
+       132,
+       451
+      ],
+      "old_test_all": [
+       541,
+       566,
+       1198,
+       1893
+      ],
+      "old_test_drive": [
+       130,
+       137,
+       776,
+       858
+      ],
+      "old_test_rdd_india": [
+       411,
+       429,
+       422,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3020,
+       3050,
+       1381,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2367,
+       2371,
+       58,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       156,
+       161,
+       130,
+       428
+      ],
+      "old_test_all": [
+       497,
+       518,
+       1193,
+       1839
+      ],
+      "old_test_drive": [
+       119,
+       124,
+       773,
+       844
+      ],
+      "old_test_rdd_india": [
+       378,
+       394,
+       420,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.03175950422883034
+    },
+    "val98_every_source": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1755,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1495,
+       1495
+      ],
+      "old_test_all": [
+       260,
+       266
+      ],
+      "old_test_rdd_india": [
+       260,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3197,
+       3208,
+       1068,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2463,
+       2464,
+       12,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       175,
+       178,
+       53,
+       451
+      ],
+      "old_test_all": [
+       559,
+       566,
+       1003,
+       1893
+      ],
+      "old_test_drive": [
+       135,
+       137,
+       770,
+       858
+      ],
+      "old_test_rdd_india": [
+       424,
+       429,
+       233,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3041,
+       3050,
+       1063,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2370,
+       2371,
+       11,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       160,
+       161,
+       53,
+       428
+      ],
+      "old_test_all": [
+       511,
+       518,
+       999,
+       1839
+      ],
+      "old_test_drive": [
+       122,
+       124,
+       767,
+       844
+      ],
+      "old_test_rdd_india": [
+       389,
+       394,
+       232,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.008323505520820618
+    },
+    "val99": {
+     "annotated_pothole_flagged": {
+      "all_test": [
+       1750,
+       1761
+      ],
+      "new_test_irdd_iraq": [
+       1495,
+       1495
+      ],
+      "old_test_all": [
+       255,
+       266
+      ],
+      "old_test_rdd_india": [
+       255,
+       266
+      ]
+     },
+     "owner_images": [
+      9,
+      9,
+      1,
+      2
+     ],
+     "owner_video_events": [
+      2,
+      2
+     ],
+     "slices": {
+      "all_test": [
+       3191,
+       3208,
+       1215,
+       3375
+      ],
+      "new_test_irdd_iraq": [
+       2463,
+       2464,
+       25,
+       1031
+      ],
+      "new_test_rad_bengaluru": [
+       174,
+       178,
+       95,
+       451
+      ],
+      "old_test_all": [
+       554,
+       566,
+       1095,
+       1893
+      ],
+      "old_test_drive": [
+       134,
+       137,
+       773,
+       858
+      ],
+      "old_test_rdd_india": [
+       420,
+       429,
+       322,
+       1035
+      ]
+     },
+     "stable_slices": {
+      "all_test": [
+       3035,
+       3050,
+       1209,
+       3188
+      ],
+      "new_test_irdd_iraq": [
+       2370,
+       2371,
+       24,
+       921
+      ],
+      "new_test_rad_bengaluru": [
+       159,
+       161,
+       94,
+       428
+      ],
+      "old_test_all": [
+       506,
+       518,
+       1091,
+       1839
+      ],
+      "old_test_drive": [
+       121,
+       124,
+       770,
+       844
+      ],
+      "old_test_rdd_india": [
+       385,
+       394,
+       321,
+       995
+      ]
+     },
+     "threshold_raw_score": 0.016687465831637383
+    }
+   }
+  }
+ }
+}
