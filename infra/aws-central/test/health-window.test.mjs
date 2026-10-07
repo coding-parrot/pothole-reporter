@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { createInsights } from "../service/health/insights.mjs";
 import { createReport } from "../service/health/report.mjs";
-import { LOOKUP_QUERY, SHADOW_QUERY } from "../service/health/rules.mjs";
+import { LOOKUP_QUERY, SCREEN_QUERY } from "../service/health/rules.mjs";
 import { CRASH_QUERY, KNOWN_ANSWER_QUERY, OWN_TIME_QUERY, REQUEST_QUERY, judgeWindow, parseWindow } from "../service/health/window.mjs";
 import { BROKEN_WINDOW, HEALTHY_WINDOW, QUIET_WINDOW, scriptedQuery } from "./health-support.mjs";
 
@@ -48,6 +48,8 @@ test("a healthy window judges every rule ok, as one part", async () => {
     "detection is fast",
     "shadow screen (report only)",
     "shadow screen threshold for 98% live recall (report only)",
+    "shadow screen ready to switch on (report only)",
+    "live screen",
     "service overhead is small (/v1/vision/detect)",
     "service overhead is small (/v1/tenders/resolve)",
     "known answers are instant (/v1/tenders/resolve)",
@@ -176,7 +178,7 @@ test("after the request counts, the other five queries are in flight together", 
   assert.equal(most, 5);
   // Six in all, each asked once: Logs Insights charges every query for the whole window.
   assert.deepEqual(scripted.asked.map((asked) => asked.text).sort(),
-    [REQUEST_QUERY, LOOKUP_QUERY, SHADOW_QUERY, OWN_TIME_QUERY, KNOWN_ANSWER_QUERY, CRASH_QUERY].sort());
+    [REQUEST_QUERY, LOOKUP_QUERY, SCREEN_QUERY, OWN_TIME_QUERY, KNOWN_ANSWER_QUERY, CRASH_QUERY].sort());
   assert.ok(scripted.asked.every((asked) => asked.hours === 6));
   assert.equal(report.conclude().healthy, true);
 });
@@ -277,7 +279,7 @@ test("a query that never completes is given up on, and stopped so it scans no mo
 // lines keeps a line only where the field is absent. Checked against Logs Insights on
 // 7 Oct 2026: of 71 real lines in an hour, none marked, `not ispresent(canary)` kept 71.
 test("every query over request lines leaves the canary's lines out", async () => {
-  const overRequests = [REQUEST_QUERY, LOOKUP_QUERY, SHADOW_QUERY, OWN_TIME_QUERY, KNOWN_ANSWER_QUERY];
+  const overRequests = [REQUEST_QUERY, LOOKUP_QUERY, SCREEN_QUERY, OWN_TIME_QUERY, KNOWN_ANSWER_QUERY];
   for (const text of overRequests) {
     assert.match(text, /^filter event="http_request" and not ispresent\(canary\) /, text.slice(0, 60));
   }

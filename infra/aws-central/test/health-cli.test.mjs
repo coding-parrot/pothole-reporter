@@ -10,7 +10,9 @@ import { BROKEN_WINDOW, HEALTHY_WINDOW, fakeApi, fakeAwsCli, serve } from "./hea
 // server answers the canary. The lines and exit codes below were recorded from the
 // script as it stood on 7 Oct 2026, before its rules moved into service/health and five
 // of its nine queries became two, and must not change: deploy.sh fails a deploy on the
-// exit code and people read the lines.
+// exit code and people read the lines. Two lines were added after them the same day and
+// none was altered: whether shadow mode has shown enough to let the screen answer, and
+// the rules for the screen once it does (one line while no frame is screened live).
 
 const SCRIPT = fileURLToPath(new URL("../tools/production-health.mjs", import.meta.url));
 
@@ -55,6 +57,8 @@ const HEALTHY_WINDOW_LINES = [
   "  ok   detection is fast: p50 1906 ms, p90 3100 ms over 68 detections",
   "  ok   shadow screen (report only): the screen flagged 9 of 9 frames gpt-5-mini judged damaged (live recall 100.0%); cleared 5 of 16 it judged undamaged (31.3%); 3 frames had no screen answer",
   "  ok   shadow screen threshold for 98% live recall (report only): 9 scored frames judged damaged; 100 are needed before a threshold can be read off",
+  "  ok   shadow screen ready to switch on (report only): NOT READY to switch on: 3 of 5 conditions met. Met: the screen flagged 9 of 9 damaged frames, live recall 100.0% (98% needed); cleared 5 of 16 frames gpt-5-mini judged undamaged, 31.3% (30% needed); 0 of 28 frames took the screen over 300 ms, 0.0% (p90 is under 300 ms up to 10%). Not met: 9 frames gpt-5-mini judged damaged (300 needed); 3 of 28 frames had no screen answer, 10.7% (under 1% needed). Not checked: that the damaged frames come from more than one phone (the request log carries no install marker)",
+  "  ok   live screen: no drive frames were screened live in the window; nothing to judge",
   "  ok   service overhead is small (/v1/vision/detect): p90 158 ms, database p90 149 ms over 68 requests",
   "  ok   service overhead is small (/v1/tenders/resolve): p90 240 ms, database p90 12 ms over 183 requests",
   "  ok   known answers are instant (/v1/tenders/resolve): p50 8 ms, p90 9 ms over 77 requests",
@@ -98,6 +102,8 @@ const BROKEN_WINDOW_LINES = [
   "  FAIL detection is fast: p50 2600 ms, p90 4200 ms over 30 detections; rule is p50 under 2.5 s and p90 under 4 s",
   "  ok   shadow screen (report only): no drive frames were shadow screened in the window",
   "  ok   shadow screen threshold for 98% live recall (report only): 0 scored frames judged damaged; 100 are needed before a threshold can be read off",
+  "  ok   shadow screen ready to switch on (report only): no drive frames were shadow screened in the window; nothing to say about switching on",
+  "  ok   live screen: no drive frames were screened live in the window; nothing to judge",
   "  FAIL service overhead is small (/v1/tenders/resolve): p90 401 ms outside the detector and the geolocator over 110 requests; budget 400 ms",
   "  FAIL known answers are instant (/v1/map): p50 60 ms, p90 140 ms over 40 requests; budget p50 15 ms",
   "  FAIL no runtime crashes: 2 timeouts or runtime exits",
