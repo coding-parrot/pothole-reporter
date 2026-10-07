@@ -56,7 +56,7 @@ Do not classify an intact footpath, kerb, drain, manhole, speed breaker, shadow,
       },
       description: {
         type: "string",
-        description: "One or two factual sentences describing the visible defect, its road position, and hazard. For an undamaged or rejected result, state the decisive non-damage cue or quality problem. Example: A medium open cavity with missing material is visible along the left road edge and may destabilize two-wheelers.",
+        description: "At most eight words naming the defect and where it is, or the decisive non-damage cue.",
       },
     },
   }),
