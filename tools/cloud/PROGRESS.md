@@ -59,3 +59,6 @@
 - Redmi-only run a50be24e (2.52 min, total 55.2): with opens read every 5 s the Redmi shows the same reopen in the first and the unattended drive. All four phones fail 1.40.0 (79) on the same bug.
 - Builds 5 to 7: two cloud-only failures found. (1) server_client_contract_test.py: page.wait_for_function does not await a promise, so its two waits never waited; fixed with a polling wait (passes locally). (2) speed.test.mjs:335 wall-clock budget fails under load inside the harness, passes alone; CI now reruns new failures alone and reports them as flaky under load. CodeBuild spend about USD 0.48 before build 8.
 - Second app fix on the branch: portrait camera no longer flagged as 'camera only 720px' (test drive_portrait_camera_warning_test.py failed first, passes now). Needs CI build 9 after build 8 (b96f07b9) finishes.
+- CI build 9 (e0d5d79, both app fixes, both test fixes): pothole-reporter-ci:f51b721b-a26b-4d93-87fe-c245c1fd5802
+- CI build 8 (0e8745c): exit 0. 239/248, 8 known, service suite failed its wall-clock speed test under load and passed alone (reported, not counted).
+- CI build 9 (e0d5d79, final code): exit 0, 241/249, only the 8 known failures, 9 billed minutes USD 0.04. DONE: all three parts. Remaining: final report.
