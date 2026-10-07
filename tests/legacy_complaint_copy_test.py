@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Legacy generated complaint copy is cleaned without rewriting user-authored text."""
+"""Legacy generated complaint copy is cleaned without rewriting user-authored text.
+
+These are the prose letters the app wrote before template 4. They are cleaned one exact
+paragraph at a time, because a paragraph the app does not recognise may be the
+reporter's own. Since template 5 a road-damage letter carries no independent-app footer
+and no contract status line, so the cleaning takes both away and adds neither.
+"""
 import functools
 import http.server
 import pathlib
@@ -246,16 +252,15 @@ if not result["migratedMixedScript"]["email_body"].startswith(
     "Dear Brihanmumbai Municipal Corporation,"
 ):
     fails.append("a local-script address changed the English template language")
-if kanjur_body.count(FOOTER) != 1:
-    fails.append("legacy BMC copy does not contain exactly one independent-app footer")
-if kanjur_body.strip().split("\n\n")[-1] != FOOTER:
-    fails.append("legacy BMC copy does not end with the independent-app footer")
-if result["reorderedFooter"].count(FOOTER) != 1:
-    fails.append("edited complaint does not retain exactly one footer")
-if result["reorderedFooter"].strip().split("\n\n")[-1] != FOOTER:
-    fails.append("edited complaint footer was not restored to the final paragraph")
-if "Reporter-added final note." not in result["reorderedFooter"]:
-    fails.append("restoring the edited complaint footer deleted reporter text")
+if FOOTER in kanjur_body or "independent app" in kanjur_body:
+    fails.append("legacy BMC copy still carries an independent-app footer or disclaimer")
+if not kanjur_body.strip().split("\n\n")[-1].startswith("Regards,\nAshis Sen"):
+    fails.append("legacy BMC copy does not end at the reporter's sign-off: "
+                 f"{kanjur_body.strip().split(chr(10) * 2)[-1]!r}")
+if FOOTER in result["reorderedFooter"]:
+    fails.append("an edited road complaint was given the footer back")
+if result["reorderedFooter"].strip().split("\n\n")[-1] != "Reporter-added final note.":
+    fails.append("an edited road complaint lost or moved the reporter's final note")
 if kanjur["id"] != 2 or kanjur["status"] != "draft":
     fails.append("migration changed record identity or status")
 
@@ -273,14 +278,19 @@ for leaked in (
 ):
     if leaked.lower() in karnataka_body.lower():
         fails.append(f'legacy unverified contract attribution survived migration: "{leaked}"')
-if "No verified exact-road public contract found" not in karnataka_body:
-    fails.append("legacy contractor allegation was not replaced by a fail-closed status")
+# The allegation is taken out and nothing is stated in its place.
+if "No verified exact-road" in karnataka_body or "CONTRACT VERIFICATION" in karnataka_body:
+    fails.append("legacy contractor allegation was replaced by a contract status line")
 if "This is a probable record match; kindly verify against the tender documents." in karnataka_body:
     fails.append("legacy tender-specific verification suffix was not removed")
-if karnataka_body.count(FOOTER) != 1:
-    fails.append("legacy Karnataka copy does not contain exactly one independent-app footer")
-if karnataka_body.strip().split("\n\n")[-1] != FOOTER:
-    fails.append("legacy Karnataka copy does not end with the independent-app footer")
+if FOOTER in karnataka_body:
+    fails.append("legacy Karnataka copy still carries the independent-app footer")
+if karnataka_body.strip().split("\n\n")[-1] != "Regards,\nA concerned citizen":
+    fails.append("legacy Karnataka copy does not end at the reporter's sign-off")
+for kept in ("I would like to report a pothole that needs repair.",
+             "Coordinates: 12.912100, 77.644600", "Thank you for your service."):
+    if kept not in karnataka_body:
+        fails.append(f'legacy Karnataka copy lost a paragraph it should keep: "{kept}"')
 
 bengali_body = result["migratedBengaliMmr"]["email_body"]
 if "এই স্বাধীন অ্যাপটি অভিযোগ জমা দেয় না" in bengali_body:
@@ -291,8 +301,10 @@ bengali_footer = (
     "Pothole Reporter একটি স্বাধীন অ্যাপ। প্রস্তাবিত কর্তৃপক্ষ, ওয়ার্ড, রাস্তার "
     "মালিকানা এবং টেন্ডারের তথ্য অনুগ্রহ করে যাচাই করুন।"
 )
-if bengali_body.strip().split("\n\n")[-1] != bengali_footer:
-    fails.append("legacy Bengali MMR copy does not end with its localized footer")
+if bengali_footer in bengali_body:
+    fails.append("legacy Bengali MMR copy still carries its localized footer")
+if bengali_body.strip().split("\n\n")[-1] != "বিনীত,\nএকজন সচেতন নাগরিক":
+    fails.append("legacy Bengali MMR copy does not end at the reporter's sign-off")
 
 if fails:
     print("LEGACY COMPLAINT COPY TEST FAIL")

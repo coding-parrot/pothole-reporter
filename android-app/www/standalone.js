@@ -6615,7 +6615,41 @@
 
   const TENDER_RETRY_DELAY_MS = 1500;
 
-  async function tenderFromService(lat, lng, address, lgd, clientObservationId) {
+  // The resolver's second, weaker answer beside `tender`: road works tendered for the
+  // ward the point is in, not the contract for this road. The report card lists them, and
+  // a complaint asks the office about the first when the street matched nothing. Only
+  // what the card prints is kept, and an entry that is not a numbered, titled tender is
+  // dropped instead of being shown half empty.
+  const WARD_TENDER_LIMITS = Object.freeze({
+    count: 5, tenderNumber: 120, title: 240, published: 40, wardName: 120,
+  });
+  function sanitiseWardTenders(value) {
+    if (!Array.isArray(value)) return [];
+    const clip = (text, limit) => text.trim().slice(0, limit).trim();
+    const kept = [];
+    for (const entry of value) {
+      if (kept.length >= WARD_TENDER_LIMITS.count) break;
+      if (!entry || typeof entry !== "object") continue;
+      if (typeof entry.tender_number !== "string" || typeof entry.title !== "string") continue;
+      if (entry.published != null && typeof entry.published !== "string") continue;
+      const tenderNumber = clip(entry.tender_number, WARD_TENDER_LIMITS.tenderNumber);
+      const title = clip(entry.title, WARD_TENDER_LIMITS.title);
+      if (!tenderNumber || !title) continue;
+      kept.push({ tender_number: tenderNumber, title,
+        published: clip(entry.published || "", WARD_TENDER_LIMITS.published) || null });
+    }
+    return kept;
+  }
+  // The ward the resolver placed the point in, as KGIS names it. Many towns have wards
+  // with a number and no name, and a point outside a town has no ward at all.
+  function wardNameOf(jurisdiction) {
+    const name = jurisdiction && typeof jurisdiction.ward_name === "string"
+      ? jurisdiction.ward_name.trim().slice(0, WARD_TENDER_LIMITS.wardName).trim() : "";
+    return name || null;
+  }
+
+  async function tenderFromService(lat, lng, address, lgd, clientObservationId,
+                                   retryDeadline = 0) {
     if (!finiteCoord(lat) || !finiteCoord(lng)) return { reached: false, tender: null };
     try {
       const request = { lat, lng };
@@ -6636,6 +6670,9 @@
         if (!error || error.status !== 503 || !error.details || !error.details.retryable) {
           throw error;
         }
+        // A caller holding a tap open has a deadline. A retry that cannot start before
+        // it is not sent at all: its answer would arrive after the caller has moved on.
+        if (retryDeadline && Date.now() + TENDER_RETRY_DELAY_MS >= retryDeadline) throw error;
         await new Promise((resolveDelay) => setTimeout(resolveDelay, TENDER_RETRY_DELAY_MS));
         return resolve();
       });
@@ -6644,6 +6681,10 @@
         jurisdiction: result.jurisdiction || null,
         request_id: result.request_id || null,
         reason: result.reason || null,
+        // On every answer, street tender or none: for most Bengaluru points the ward
+        // list is the only tender information there is.
+        ward_tenders: sanitiseWardTenders(result.ward_tenders),
+        ward_name: wardNameOf(result.jurisdiction),
       };
       // The service matches the same four catalogues this file does, under the same
       // evidence rules (parity-tested byte for byte on the server), for any point in
@@ -6672,6 +6713,180 @@
     } catch (error) {
       return { reached: false, tender: null, error };
     }
+  }
+
+  // ---------- ward tenders on demand ----------
+  // Drive Mode reports live in Room, which has no column for a ward list or for a tender's
+  // title, and reports from older builds were never asked. Such a report is asked about
+  // once, when its card is opened or Email is tapped. The answer feeds the card and the
+  // letter and nothing else: the owner, authority, recipient, tender number and
+  // contractor a report stores stay what its own resolver stored.
+  //
+  // An array in ward_tenders, even an empty one, means the report was answered. Anything
+  // else means it was never asked, and a lookup that fails leaves it that way.
+  const WARD_LOOKUP_BUDGET_MS = 2500;
+  const WARD_ANSWER_MEMORY_LIMIT = 500;
+  // Room cannot hold the answer, so a Drive Mode report's answer is kept here, beside
+  // native_email_state and for the same reason. Delete-all clears it with the rest.
+  const NATIVE_WARD_ANSWERS_KEY = "native_ward_answers";
+  const NATIVE_WARD_ANSWERS_LIMIT = 200;
+  // An Email tap draws the card again when the composer returns. A lookup that has just
+  // failed is not repeated for that redraw; the next view a few seconds on asks again.
+  const WARD_LOOKUP_RETRY_AFTER_MS = 3000;
+  const wardAnswers = new Map();
+  const wardLookups = new Map();
+  const wardLookupFailedAt = new Map();
+  let nativeWardAnswerBag = null;
+
+  function wardLookupWanted(rec) {
+    return !!rec && rec.id != null && !Array.isArray(rec.ward_tenders)
+      && usingSharedVision() && normaliseIssueType(rec.issue_type) === "road_damage"
+      && finiteCoord(rec.lat) && finiteCoord(rec.lng);
+  }
+  function nativeWardAnswers() {
+    if (!nativeWardAnswerBag) {
+      try {
+        nativeWardAnswerBag = JSON.parse(localStorage.getItem(NATIVE_WARD_ANSWERS_KEY) || "{}");
+      } catch (_) { nativeWardAnswerBag = null; }
+      if (!nativeWardAnswerBag || typeof nativeWardAnswerBag !== "object") nativeWardAnswerBag = {};
+    }
+    return nativeWardAnswerBag;
+  }
+  function storeNativeWardAnswer(key, answer) {
+    const bag = nativeWardAnswers();
+    bag[key] = answer;
+    const keys = Object.keys(bag);
+    if (keys.length > NATIVE_WARD_ANSWERS_LIMIT) {
+      keys.sort((a, b) => (Number(bag[a] && bag[a].at) || 0) - (Number(bag[b] && bag[b].at) || 0))
+        .slice(0, keys.length - NATIVE_WARD_ANSWERS_LIMIT).forEach((old) => { delete bag[old]; });
+    }
+    try { localStorage.setItem(NATIVE_WARD_ANSWERS_KEY, JSON.stringify(bag)); } catch (_) {}
+  }
+  // The answer's own street-level tender, kept only to lend a title to a stored number.
+  function answerStreetTender(tender) {
+    const street = tender && sanitiseWardTenders([tender])[0];
+    if (!street) return null;
+    return { ...street, contractor: typeof tender.contractor === "string"
+      ? tender.contractor.trim().slice(0, 160) || null : null };
+  }
+  function rememberWardAnswer(key, answer) {
+    wardAnswers.delete(key);
+    wardAnswers.set(key, answer);
+    while (wardAnswers.size > WARD_ANSWER_MEMORY_LIMIT) {
+      wardAnswers.delete(wardAnswers.keys().next().value);
+    }
+  }
+  // The answer already in hand for a report that was never asked, without a call. Report
+  // ids start again after a delete-all, so an answer counts only for the place it was
+  // fetched for.
+  function heldWardAnswer(rec) {
+    if (!wardLookupWanted(rec)) return null;
+    const key = String(rec.id);
+    let held = wardAnswers.get(key) || null;
+    if (!held && rec._native) {
+      const kept = nativeWardAnswers()[key];
+      if (kept && typeof kept === "object" && Array.isArray(kept.ward_tenders)) {
+        held = { lat: kept.lat, lng: kept.lng, at: Number(kept.at) || 0,
+          ward_tenders: sanitiseWardTenders(kept.ward_tenders), ward_name: wardNameOf(kept),
+          street: answerStreetTender(kept.street) };
+        rememberWardAnswer(key, held);
+      }
+    }
+    return held && held.lat === rec.lat && held.lng === rec.lng ? held : null;
+  }
+  // One lookup per report at a time. With a budget the caller gets null when it runs out,
+  // and the lookup goes on: an answer that lands late is there for the next view.
+  function wardAnswerFor(rec, budgetMs = 0) {
+    if (!wardLookupWanted(rec)) return Promise.resolve(null);
+    const held = heldWardAnswer(rec);
+    if (held) return Promise.resolve(held);
+    const key = String(rec.id);
+    let lookup = wardLookups.get(key);
+    if (!lookup && Date.now() - (wardLookupFailedAt.get(key) || 0) < WARD_LOOKUP_RETRY_AFTER_MS) {
+      return Promise.resolve(null);
+    }
+    if (!lookup) {
+      lookup = tenderFromService(rec.lat, rec.lng, null, null,
+        `ward-lookup:${rec.client_observation_id || rec.source_event_key || key}`,
+        budgetMs > 0 ? Date.now() + budgetMs : 0)
+        .then((central) => {
+          if (!central || !central.reached) {
+            if (wardLookupFailedAt.size >= WARD_ANSWER_MEMORY_LIMIT) wardLookupFailedAt.clear();
+            wardLookupFailedAt.set(key, Date.now());
+            return null;
+          }
+          wardLookupFailedAt.delete(key);
+          const answer = {
+            lat: rec.lat, lng: rec.lng, at: Date.now(),
+            ward_tenders: central.ward_tenders, ward_name: central.ward_name,
+            street: answerStreetTender(central.tender),
+          };
+          rememberWardAnswer(key, answer);
+          if (rec._native) storeNativeWardAnswer(key, answer);
+          return answer;
+        }, () => null)
+        .finally(() => { wardLookups.delete(key); });
+      wardLookups.set(key, lookup);
+    }
+    if (!(budgetMs > 0)) return lookup;
+    return Promise.race([lookup,
+      new Promise((resolve) => setTimeout(() => resolve(null), budgetMs))]);
+  }
+  // A report in this app's own store keeps the answer on its row, and only that: the row
+  // is read and written in one transaction and nothing else on it is touched.
+  function storeWardAnswer(reportId, answer) {
+    return idb().then((d) => new Promise((resolve, reject) => {
+      const tx = d.transaction("reports", "readwrite");
+      const store = tx.objectStore("reports");
+      const read = store.get(Number(reportId));
+      read.onsuccess = () => {
+        const current = read.result;
+        if (!current || Array.isArray(current.ward_tenders)) return;
+        current.ward_tenders = answer.ward_tenders;
+        current.ward_name = answer.ward_name;
+        store.put(current);
+      };
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => reject(storageError(tx.error));
+      tx.onerror = () => {};
+    }));
+  }
+  // What the card and the Email tap call. A list row may be a copy that predates the
+  // answer, so for a report in this app's store the stored row decides.
+  async function wardTendersForReport(report, budgetMs = 0) {
+    if (!wardLookupWanted(report)) return null;
+    if (report._native) return wardAnswerFor(report, budgetMs);
+    const stored = await getReport(report.id).catch(() => null);
+    if (!stored) return null;
+    if (Array.isArray(stored.ward_tenders)) {
+      return { ward_tenders: stored.ward_tenders, ward_name: stored.ward_name || null, street: null };
+    }
+    const answer = await wardAnswerFor(stored, budgetMs);
+    if (answer) await storeWardAnswer(stored.id, answer).catch(() => {});
+    return answer;
+  }
+  // The stored tender number is the report's; an answer never replaces it. The answer may
+  // only lend it a title, and only when it names the same number. A stored tender the
+  // answer does not name has no title to print, so the letter asks about a ward tender.
+  function letterTenderWithAnswer(tender, answer) {
+    if (!tender || String(tender.title || "").trim() || !answer || !answer.street
+        || answer.street.tender_number !== String(tender.tender_number || "").trim()) return tender;
+    return { ...tender, title: answer.street.title,
+      contractor: tender.contractor || answer.street.contractor || null,
+      published: tender.published || answer.street.published || "" };
+  }
+  function complaintRoadWorkForRecord(rec, answer = null) {
+    const stored = rec && rec.tender_number ? {
+      tender_number: rec.tender_number, title: rec.tender_title || "",
+      contractor: rec.contractor || null, published: rec.tender_published || "",
+    } : null;
+    return complaintRoadWork(letterTenderWithAnswer(stored, answer),
+      rec && Array.isArray(rec.ward_tenders) ? rec.ward_tenders : answer && answer.ward_tenders);
+  }
+  // A letter written before the answer was known asks only the plain question.
+  function letterLacksRoadWork(rec, answer, body) {
+    const work = complaintRoadWorkForRecord(rec, answer);
+    return !!work && !String(body || "").includes(work.tender_number);
   }
 
   async function matchTender(address, lgd, lat, lng, clientObservationId) {
@@ -6805,7 +7020,13 @@
     return String(value || "").replace(/\s*\((?:verify|select)[^)]*\)/ig, "").trim();
   }
 
-  const COMPLAINT_TEMPLATE_VERSION = 4;
+  // 5: the road-damage letter became a short request to verify. It states the place, the
+  // time, the photo and the size, asks the office to confirm the road is its own and
+  // whether one named road work covers the spot, and no longer carries a footer.
+  const COMPLAINT_TEMPLATE_VERSION = 5;
+  // The last version whose drafts are cleaned paragraph by paragraph (see
+  // migrateLegacyComplaintRecord). From 4 on, an app-written road draft is rebuilt whole.
+  const PARAGRAPH_MIGRATED_TEMPLATE_VERSION = 4;
   const OUTBOUND_CONTRACT_IDENTITY_FIELDS = Object.freeze([
     "tender_number", "exact_work_name", "organisation_department", "listed_contractor",
     "publication_date", "tender_project_status", "bid_closing", "bid_opening",
@@ -6840,6 +7061,10 @@
     return "en";
   }
 
+  // A road-damage letter ends at the sender's name. Its old footer asked the officer to
+  // verify a suggested authority, ward, owner and tender, none of which the letter
+  // suggests any more, so that footer is taken off and never put back. Other civic
+  // complaints keep theirs.
   function complaintBodyWithFooter(body, issueType) {
     const text = String(body || "").trim();
     if (!text) return text;
@@ -6848,8 +7073,55 @@
     const footers = ["kn", "mr", "bn", "en"].map((code) => complaintFooter(code, roadDamage));
     const paragraphs = text.split(/\n{2,}/).map((p) => p.trim())
       .filter((paragraph) => paragraph && !footers.includes(paragraph));
-    paragraphs.push(complaintFooter(lang, roadDamage));
+    if (!roadDamage) paragraphs.push(complaintFooter(lang, roadDamage));
     return paragraphs.join("\n\n");
+  }
+
+  // Template 4's road-damage letter, as far as it takes to recognise one nobody edited:
+  // nine paragraphs in a fixed order, the app's own sentences where it wrote sentences,
+  // and four headed blocks whose every other line is "label: value". Its Kannada, Marathi
+  // and Bengali letters used the English sentences and headings until 1.39.4.
+  const TEMPLATE_4_ROAD_LETTER = Object.freeze({
+    openings: ["Please register the following pothole grievance.",
+      "ದಯವಿಟ್ಟು ಈ ರಸ್ತೆ ಗುಂಡಿ ದೂರನ್ನು ದಾಖಲಿಸಿ.", "कृपया खालील खड्ड्याची तक्रार नोंदवा.",
+      "অনুগ্রহ করে নিচের গর্তের অভিযোগটি নথিভুক্ত করুন।"],
+    blocks: [["LOCATION", "ಸ್ಥಳ", "ठिकाण", "স্থান"],
+      ["CLASSIFICATION", "ಹಾನಿಯ ವಿವರ", "नुकसानाचा तपशील", "ক্ষতির বিবরণ"],
+      ["ROUTING", "ಜವಾಬ್ದಾರ ಕಚೇರಿ", "जबाबदार कार्यालय", "দায়িত্বপ্রাপ্ত দপ্তর"],
+      ["CONTRACT VERIFICATION", "ಗುತ್ತಿಗೆ ಮಾಹಿತಿ", "कंत्राट माहिती", "ঠিকাদারি তথ্য"]],
+    requests: [
+      "Please register this grievance, inspect and repair the pothole, return the grievance number, and transfer it if another agency maintains the road.",
+      "Please register this grievance, inspect and repair the defect, return the grievance number, and transfer it if another agency maintains the road.",
+      "ದಯವಿಟ್ಟು ಈ ದೂರನ್ನು ದಾಖಲಿಸಿ, ರಸ್ತೆ ಗುಂಡಿಯನ್ನು ಪರಿಶೀಲಿಸಿ ದುರಸ್ತಿ ಮಾಡಿ, ದೂರು ಸಂಖ್ಯೆಯನ್ನು ತಿಳಿಸಿ, ಮತ್ತು ರಸ್ತೆಯನ್ನು ಬೇರೆ ಸಂಸ್ಥೆ ನಿರ್ವಹಿಸುತ್ತಿದ್ದರೆ ದೂರನ್ನು ಅವರಿಗೆ ವರ್ಗಾಯಿಸಿ.",
+      "कृपया ही तक्रार नोंदवा, खड्ड्याची पाहणी करून दुरुस्ती करा, तक्रार क्रमांक कळवा आणि रस्ता दुसरी संस्था सांभाळत असल्यास तक्रार त्यांच्याकडे वर्ग करा.",
+      "অনুগ্রহ করে অভিযোগটি নথিভুক্ত করুন, গর্তটি পরিদর্শন করে মেরামত করুন, অভিযোগ নম্বরটি জানান, এবং রাস্তাটি অন্য কোনো সংস্থা রক্ষণাবেক্ষণ করলে অভিযোগটি তাদের কাছে পাঠান।"],
+    signoffs: ["Regards,", "ವಂದನೆಗಳು,", "आपले विश्वासू,", "आपला/आपली,", "বিনীত,"],
+  });
+  function untouchedTemplate4RoadLetter(body) {
+    const paragraphs = String(body || "").split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+    if (paragraphs.length !== 9) return false;
+    const [greeting, opening, ...rest] = paragraphs;
+    const blocks = rest.slice(0, 4), [request, signoff, footer] = rest.slice(4);
+    const labelled = (line) => /^[^:\n]{1,70}: \S/.test(line);
+    return !greeting.includes("\n")
+      && TEMPLATE_4_ROAD_LETTER.openings.includes(opening)
+      && blocks.every((block, index) => {
+        const [heading, ...lines] = block.split("\n");
+        return TEMPLATE_4_ROAD_LETTER.blocks[index].includes(heading)
+          && lines.length > 0 && lines.every(labelled);
+      })
+      && TEMPLATE_4_ROAD_LETTER.requests.includes(request)
+      && signoff.split("\n").length === 2
+      && TEMPLATE_4_ROAD_LETTER.signoffs.includes(signoff.split("\n")[0])
+      && staleRoadComplaintBody(footer);
+  }
+
+  // Every road letter the app wrote before template 5 ended with that footer and no
+  // later one does. Drive Mode rows keep their letter in Room, which stores no template
+  // version, so the footer is how an old cached letter is told from a current one.
+  function staleRoadComplaintBody(body) {
+    const footers = ["kn", "mr", "bn", "en"].map((code) => complaintFooter(code, true));
+    return String(body || "").split(/\n{2,}/).some((p) => footers.includes(p.trim()));
   }
 
   // v1.31 and earlier put routing caveats into every complaint paragraph. IndexedDB
@@ -6863,6 +7135,27 @@
 
     const lang = storedComplaintLanguage(rec.email_body);
     const roadDamage = normaliseIssueType(rec.issue_type) === "road_damage";
+    // Template 5 replaced the whole road-damage letter, so an unsent draft still holding
+    // template 4's text exactly as the app wrote it is written again from the record.
+    // Anything else at template 4 has the person's own words in it and is left alone,
+    // as a sent complaint is (returned above).
+    if (roadDamage && rec.email_user_edited !== true
+        && untouchedTemplate4RoadLetter(rec.email_body)) {
+      let rebuilt = null;
+      try { rebuilt = generatedComplaintOutputs(rec, lang); } catch (_) { rebuilt = null; }
+      if (rebuilt) {
+        return {
+          ...rec,
+          email_body: rebuilt.email_body,
+          whatsapp_text: rebuilt.whatsapp_text,
+          portal_fields: rebuilt.portal_fields,
+          portal_copy_text: rebuilt.portal_copy_text,
+          complaint_template_version: COMPLAINT_TEMPLATE_VERSION,
+        };
+      }
+    }
+    // What follows cleans drafts older than template 4, one exact paragraph at a time.
+    if (Number(rec.complaint_template_version) >= PARAGRAPH_MIGRATED_TEMPLATE_VERSION) return rec;
     let paragraphs = String(rec.email_body).split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
     let recognised = false;
     const replaceExact = (before, after) => {
@@ -6879,13 +7172,14 @@
     // draft. Candidate metadata may remain on the local report for research/audit.
     // Older drafts named a probable tender, its title and the recorded bidder in prose.
     // None of that was verified against this exact road, and the draft may still be
-    // unsent, so replace the whole attribution paragraph with the fail-closed status
-    // rather than leaving a contractor accused in outgoing mail.
+    // unsent, so the whole attribution paragraph is taken out rather than leaving a
+    // contractor accused in outgoing mail. Nothing is written in its place: a letter no
+    // longer reports the state of a contract search.
     const attribution = String(rec.tender_number || "").trim();
     if (attribution) {
       const named = paragraphs.findIndex((paragraph) => paragraph.includes(attribution));
       if (named >= 0) {
-        paragraphs[named] = `CONTRACT VERIFICATION\nStatus: ${NO_VERIFIED_CONTRACT}`;
+        paragraphs[named] = "";
         recognised = true;
       }
     }
@@ -6893,7 +7187,7 @@
     const candidateBlock = paragraphs.findIndex((paragraph) =>
       /^CONTRACT CANDIDATE(?:\n|$)/.test(paragraph));
     if (candidateBlock >= 0) {
-      paragraphs[candidateBlock] = `CONTRACT VERIFICATION\nStatus: ${NO_VERIFIED_CONTRACT}`;
+      paragraphs[candidateBlock] = "";
       recognised = true;
     }
 
@@ -7062,9 +7356,6 @@
     const safeWhatsapp = String(rec.whatsapp_text || "").split("\n")
       .filter((line) => !/^Contract:/.test(line));
     if (safeWhatsapp.length !== String(rec.whatsapp_text || "").split("\n").length) {
-      const footerIndex = safeWhatsapp.findIndex((line) => /Pothole Reporter/.test(line));
-      safeWhatsapp.splice(footerIndex >= 0 ? footerIndex : safeWhatsapp.length, 0,
-        `Contract verification: ${NO_VERIFIED_CONTRACT}`);
       recognised = true;
     }
     const safePortalFields = rec.portal_fields && typeof rec.portal_fields === "object"
@@ -7287,6 +7578,26 @@
       + `${hour < 12 ? "am" : "pm"} IST`;
   }
 
+  // The one road work a complaint asks the office about: the street-level match when the
+  // record has one, otherwise the first tender the resolver named for the ward. The
+  // letter asks whether it covers the spot and never says that it does, so the match
+  // does not have to pass verifiedContractForComplaint. A tender for something beside
+  // the carriageway (a drain, a footpath, a building) is still left out.
+  function complaintRoadWork(tender, wardTenders) {
+    // The letter goes out under the person's name, where the house style allows no long
+    // dash, and a public tender title may carry one.
+    const text = (value) => String(value == null ? "" : value)
+      .replace(/[\u2013\u2014]/g, "-").replace(/\s+/g, " ").trim();
+    const street = tender && text(tender.tender_number) && text(tender.title)
+      && (tender.scope_verified === true
+        || tenderCoversCarriageway(text(tender.title), text(tender.tender_number)))
+      ? tender : null;
+    const chosen = street || sanitiseWardTenders(wardTenders)[0] || null;
+    if (!chosen) return null;
+    return { tender_number: text(chosen.tender_number), title: text(chosen.title),
+      contractor: text(chosen.contractor) || null, published: text(chosen.published) || null };
+  }
+
   function buildComplaintOutputs(a, lat, lng, address, officerName, tender, route = null,
                                   evidence = {}) {
     void officerName; // Authority profiles, not honorifics, define the technical output.
@@ -7294,8 +7605,11 @@
       ? CONTRACT_LOOKUP_UNAVAILABLE : NO_VERIFIED_CONTRACT;
     assertComplaintInvariants(lat, lng, route);
     const routing = complaintRoutingBlock(route);
+    // Portal fields may still say "Verified" about a contract, and only for a match that
+    // passes this gate. The letter and the WhatsApp text make no such statement.
     const tenderMatch = verifiedContractForComplaint(
       tender, routing.route, Number(evidence.captured_at));
+    const roadWork = complaintRoadWork(tender, evidence.ward_tenders);
     const la = Number(lat).toFixed(6), ln = Number(lng).toFixed(6);
     const coordinates = `${la}, ${ln}`;
     const mapUrl = `https://maps.google.com/?q=${la},${ln}`;
@@ -7347,97 +7661,79 @@
       dlp_status: "Verified active on capture date",
     } : null;
 
-    // Lines that would read the same on every report are left out: the shared detector
-    // reports no surface, and nothing in the app measures a pothole. Profile ids and the
-    // routing clue are internal and stay in the record, not in what the officer reads.
-    const surfaceKnown = surface !== SURFACE_LABELS.unknown;
     const fieldMeasured = measurementProvenance === "Field measured";
-    const classificationLines = [
-      "Defect decision: Pothole (YES)",
-      surfaceKnown ? `Surface: ${surface}` : null,
-      `App visual size class: ${size}`,
-      `Measurement provenance: ${measurementProvenance}`,
-      fieldMeasured ? `Measurement confidence: ${measurementConfidence}` : null,
-    ].filter(Boolean);
-    const routingLines = [
-      `Geographic corporation/body: ${routing.geographicName}`,
-      `Complaint intake authority: ${routing.intakeName}`,
-      `Suggested portal category: ${profileCategory}`,
-      `Suggested ward: ${ward}`,
-      `Road owner/maintainer: ${routing.ownerName}`,
-    ];
-    const tenderLines = tenderFields ? [
-      `Status: ${tenderFields.status}`,
-      `${tenderFields.reference_label}: ${tenderFields.tender_number}`,
-      `Exact work name: ${tenderFields.exact_work_name}`,
-      `Organisation / department: ${tenderFields.organisation}`,
-      `Listed contractor: ${tenderFields.listed_contractor}`,
-      `Publication date: ${tenderFields.publication_date}`,
-      !["Not listed", "Not applicable"].includes(tenderFields.lifecycle_status)
-        ? `Tender / project status: ${tenderFields.lifecycle_status}` : null,
-      !["Not listed", "Not applicable"].includes(tenderFields.bid_closing)
-        ? `Bid closing: ${tenderFields.bid_closing}` : null,
-      !["Not listed", "Not applicable"].includes(tenderFields.bid_opening)
-        ? `Bid opening: ${tenderFields.bid_opening}` : null,
-      !["Not listed", "Not applicable"].includes(tenderFields.project_start)
-        ? `Project start: ${tenderFields.project_start}` : null,
-      !["Not listed", "Not applicable"].includes(tenderFields.project_completion)
-        ? `Likely completion: ${tenderFields.project_completion}` : null,
-      !["Not listed", "Not applicable"].includes(tenderFields.agreement_number)
-        ? `Agreement: ${tenderFields.agreement_number}`
-          + (!["Not listed", "Not applicable"].includes(tenderFields.agreement_date)
-            ? ` dated ${tenderFields.agreement_date}` : "") : null,
-      !["Not listed", "Not applicable"].includes(tenderFields.package_reference)
-        ? `Package / project reference: ${tenderFields.package_reference}` : null,
-      !["Not listed", "Not applicable"].includes(tenderFields.highway_reference)
-        ? `Highway reference: ${tenderFields.highway_reference}` : null,
-      !["Not listed", "Not applicable"].includes(tenderFields.published_chainage)
-        ? `Published package chainage (GPS point not verified): ${tenderFields.published_chainage}` : null,
-      !["Not listed", "Not applicable"].includes(tenderFields.road_from)
-        ? `Road from: ${tenderFields.road_from}` : null,
-      !["Not listed", "Not applicable"].includes(tenderFields.road_to)
-        ? `Road to: ${tenderFields.road_to}` : null,
-      !["Not listed", "Not applicable"].includes(tenderFields.match_basis)
-        ? `Candidate match basis: ${tenderFields.match_basis}` : null,
-      `Source: ${tenderFields.source_name}${tenderFields.source_url !== "Not applicable" ? ` (${tenderFields.source_url})` : ""}`,
-      !["Not listed", "Not applicable"].includes(tenderFields.detail_url)
-        && tenderFields.detail_url !== tenderFields.source_url
-        ? `Official tender detail link (may expire): ${tenderFields.detail_url}` : null,
-      `Carriageway scope: ${tenderFields.scope}`,
-      `Road-segment match: ${tenderFields.segment_match}`,
-      `Award/work-order status: ${tenderFields.award_status}`,
-      `DLP status: ${tenderFields.dlp_status}`,
-    ].filter(Boolean) : [
-      `Status: ${noContract}`,
-    ];
-    const outputLang = complaintLanguage(routing.route);
-    // The officer reads the whole letter, so the framing follows the chosen language.
-    // Field values (authority names, surface, contract status) stay as the source data
-    // spells them, because that is what the officer's own records use.
-    const letter = {
-      kn: { opening: "ದಯವಿಟ್ಟು ಈ ರಸ್ತೆ ಗುಂಡಿ ದೂರನ್ನು ದಾಖಲಿಸಿ.", location: "ಸ್ಥಳ",
-            classification: "ಹಾನಿಯ ವಿವರ", routing: "ಜವಾಬ್ದಾರ ಕಚೇರಿ", contract: "ಗುತ್ತಿಗೆ ಮಾಹಿತಿ",
-            address: "ವಿಳಾಸ / ಗುರುತು", coordinates: "ನಿರ್ದೇಶಾಂಕಗಳು", map: "ನಕ್ಷೆ",
-            accuracy: "GPS ನಿಖರತೆ", captured: "ಸೆರೆಹಿಡಿದ ಸಮಯ", photo: "ಫೋಟೋ",
-            request: "ದಯವಿಟ್ಟು ಈ ದೂರನ್ನು ದಾಖಲಿಸಿ, ರಸ್ತೆ ಗುಂಡಿಯನ್ನು ಪರಿಶೀಲಿಸಿ ದುರಸ್ತಿ ಮಾಡಿ, ದೂರು ಸಂಖ್ಯೆಯನ್ನು ತಿಳಿಸಿ, ಮತ್ತು ರಸ್ತೆಯನ್ನು ಬೇರೆ ಸಂಸ್ಥೆ ನಿರ್ವಹಿಸುತ್ತಿದ್ದರೆ ದೂರನ್ನು ಅವರಿಗೆ ವರ್ಗಾಯಿಸಿ." },
-      mr: { opening: "कृपया खालील खड्ड्याची तक्रार नोंदवा.", location: "ठिकाण",
-            classification: "नुकसानाचा तपशील", routing: "जबाबदार कार्यालय", contract: "कंत्राट माहिती",
-            address: "पत्ता / खूण", coordinates: "निर्देशांक", map: "नकाशा",
-            accuracy: "GPS अचूकता", captured: "छायाचित्राची वेळ", photo: "फोटो",
-            request: "कृपया ही तक्रार नोंदवा, खड्ड्याची पाहणी करून दुरुस्ती करा, तक्रार क्रमांक कळवा आणि रस्ता दुसरी संस्था सांभाळत असल्यास तक्रार त्यांच्याकडे वर्ग करा." },
-      bn: { opening: "অনুগ্রহ করে নিচের গর্তের অভিযোগটি নথিভুক্ত করুন।", location: "স্থান",
-            classification: "ক্ষতির বিবরণ", routing: "দায়িত্বপ্রাপ্ত দপ্তর", contract: "ঠিকাদারি তথ্য",
-            address: "ঠিকানা / চিহ্ন", coordinates: "স্থানাঙ্ক", map: "মানচিত্র",
-            accuracy: "GPS নির্ভুলতা", captured: "ছবি তোলার সময়", photo: "ছবি",
-            request: "অনুগ্রহ করে অভিযোগটি নথিভুক্ত করুন, গর্তটি পরিদর্শন করে মেরামত করুন, অভিযোগ নম্বরটি জানান, এবং রাস্তাটি অন্য কোনো সংস্থা রক্ষণাবেক্ষণ করলে অভিযোগটি তাদের কাছে পাঠান।" },
-    }[outputLang] || {
-      opening: "Please register the following pothole grievance.", location: "LOCATION",
-      classification: "CLASSIFICATION", routing: "ROUTING", contract: "CONTRACT VERIFICATION",
-      address: "Address / landmark", coordinates: "Coordinates", map: "Map",
-      accuracy: "GPS accuracy", captured: "Captured", photo: "Photo",
-      request: routing.profile.request
-        || "Please register this grievance, inspect and repair the pothole, return the grievance number, and transfer it if another agency maintains the road.",
+    // A draft being rewritten keeps the language its subject line is already in.
+    const outputLang = ["kn", "mr", "bn", "en"].includes(evidence.language)
+      ? evidence.language : complaintLanguage(routing.route);
+    // The officer reads the whole letter, so every sentence follows the chosen language.
+    // The address, the tender number and title, and the contractor's name stay as the
+    // source spells them, because that is what the officer's own records use.
+    const english = {
+      opening: "I wish you a pleasant day. Please register this pothole complaint.",
+      location: "Location", coordinates: "Coordinates", accuracy: "GPS accuracy", map: "Map",
+      captured: "Photographed", photo: "Photo", attached: "attached", size: "Size",
+      sizes: { small: "small", medium: "medium", large: "large" },
+      estimate: "visual estimate", measured: "field measured", stop: ".",
+      verify: "Please verify that this road is maintained by your office.",
+      verifyWork: "Please verify that this road is maintained by your office and if this location is covered by - ",
+      contractor: "Contractor listed: ", published: "Published ",
+      request: "I would appreciate if you could repair the pothole and share the complaint number.",
+      thanks: "Thank you for your service.",
     };
+    const letter = {
+      kn: { opening: "ನಿಮಗೆ ಶುಭ ದಿನವಾಗಲಿ. ದಯವಿಟ್ಟು ಈ ರಸ್ತೆ ಗುಂಡಿ ದೂರನ್ನು ದಾಖಲಿಸಿ.",
+            location: "ಸ್ಥಳ", coordinates: "ನಿರ್ದೇಶಾಂಕಗಳು", accuracy: "GPS ನಿಖರತೆ", map: "ನಕ್ಷೆ",
+            captured: "ಫೋಟೋ ತೆಗೆದ ಸಮಯ", photo: "ಫೋಟೋ", attached: "ಲಗತ್ತಿಸಲಾಗಿದೆ", size: "ಗಾತ್ರ",
+            sizes: { small: "ಸಣ್ಣ", medium: "ಮಧ್ಯಮ", large: "ದೊಡ್ಡ" },
+            estimate: "ದೃಶ್ಯ ಅಂದಾಜು", measured: "ಸ್ಥಳದಲ್ಲಿ ಅಳೆದದ್ದು", stop: ".",
+            verify: "ಈ ರಸ್ತೆಯ ನಿರ್ವಹಣೆ ನಿಮ್ಮ ಕಚೇರಿಯ ವ್ಯಾಪ್ತಿಯಲ್ಲಿದೆಯೇ ಎಂಬುದನ್ನು ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ.",
+            verifyWork: "ಈ ರಸ್ತೆಯ ನಿರ್ವಹಣೆ ನಿಮ್ಮ ಕಚೇರಿಯ ವ್ಯಾಪ್ತಿಯಲ್ಲಿದೆಯೇ ಮತ್ತು ಈ ಸ್ಥಳವು ಈ ಕಾಮಗಾರಿಯ ವ್ಯಾಪ್ತಿಗೆ ಬರುತ್ತದೆಯೇ ಎಂಬುದನ್ನು ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ - ",
+            contractor: "ಪಟ್ಟಿಯಲ್ಲಿರುವ ಗುತ್ತಿಗೆದಾರರು: ", published: "ಪ್ರಕಟಣೆ: ",
+            request: "ರಸ್ತೆ ಗುಂಡಿಯನ್ನು ದುರಸ್ತಿ ಮಾಡಿ, ದೂರು ಸಂಖ್ಯೆಯನ್ನು ತಿಳಿಸಬೇಕೆಂದು ವಿನಂತಿಸುತ್ತೇನೆ.",
+            thanks: "ನಿಮ್ಮ ಸೇವೆಗೆ ಧನ್ಯವಾದಗಳು." },
+      mr: { opening: "आपला दिवस शुभ जावो. कृपया खड्ड्याची ही तक्रार नोंदवा.",
+            location: "ठिकाण", coordinates: "निर्देशांक", accuracy: "GPS अचूकता", map: "नकाशा",
+            captured: "छायाचित्राची वेळ", photo: "फोटो", attached: "जोडला आहे", size: "आकार",
+            sizes: { small: "लहान", medium: "मध्यम", large: "मोठे" },
+            estimate: "दृश्य अंदाज", measured: "प्रत्यक्ष मोजलेले", stop: ".",
+            verify: "कृपया हा रस्ता आपल्या कार्यालयाच्या देखभालीखाली आहे का, याची पडताळणी करा.",
+            verifyWork: "कृपया हा रस्ता आपल्या कार्यालयाच्या देखभालीखाली आहे का आणि हे ठिकाण पुढील कामात समाविष्ट आहे का, याची पडताळणी करा - ",
+            contractor: "नोंदवलेला कंत्राटदार: ", published: "प्रकाशित: ",
+            request: "खड्ड्याची दुरुस्ती करून तक्रार क्रमांक कळवल्यास मी आभारी राहीन.",
+            thanks: "आपल्या सेवेबद्दल धन्यवाद." },
+      bn: { opening: "আপনার দিনটি শুভ হোক। অনুগ্রহ করে গর্তের এই অভিযোগটি নথিভুক্ত করুন।",
+            location: "স্থান", coordinates: "স্থানাঙ্ক", accuracy: "GPS নির্ভুলতা", map: "মানচিত্র",
+            captured: "ছবি তোলার সময়", photo: "ছবি", attached: "সংযুক্ত", size: "আকার",
+            sizes: { small: "ছোট", medium: "মাঝারি", large: "বড়" },
+            estimate: "চোখে দেখা অনুমান", measured: "সরেজমিনে মাপা", stop: "।",
+            verify: "অনুগ্রহ করে যাচাই করুন, এই রাস্তাটির রক্ষণাবেক্ষণ আপনার দপ্তরের দায়িত্বে কি না।",
+            verifyWork: "অনুগ্রহ করে যাচাই করুন, এই রাস্তাটির রক্ষণাবেক্ষণ আপনার দপ্তরের দায়িত্বে কি না এবং এই স্থানটি নিচের কাজের আওতায় পড়ে কি না - ",
+            contractor: "তালিকাভুক্ত ঠিকাদার: ", published: "প্রকাশিত: ",
+            request: "গর্তটি মেরামত করে অভিযোগ নম্বরটি জানালে বাধিত হব।",
+            thanks: "আপনার পরিষেবার জন্য ধন্যবাদ।" },
+    }[outputLang] || english;
+    // One sentence each, closed once: a title that already ends in a full stop gets no
+    // second one.
+    const workSentence = (copy) => {
+      if (!roadWork) return copy.verify;
+      const closed = (value) => `${value.replace(/[.।\s]+$/, "")}${copy.stop}`;
+      return `${copy.verifyWork}${roadWork.tender_number}: ${closed(roadWork.title)}`
+        + (roadWork.contractor ? ` ${copy.contractor}${closed(roadWork.contractor)}` : "")
+        + (roadWork.published ? ` ${copy.published}${closed(roadWork.published)}` : "");
+    };
+    // A line with nothing to say is left out instead of printed as "Not recorded".
+    const factLines = (copy, withPhoto) => [
+      `${copy.coordinates}: ${coordinates}`
+        + (Number.isFinite(evidence.gps_accuracy) ? ` (${copy.accuracy} ${gpsAccuracy})` : ""),
+      `${copy.map}: ${mapUrl}`,
+      Number.isFinite(evidence.captured_at) ? `${copy.captured}: ${captured}` : null,
+      // The Android app attaches the photo file. The website opens a mailto: link, which
+      // cannot carry one, so there the line keeps saying where the photo came from.
+      withPhoto ? `${copy.photo}: ${NATIVE ? copy.attached : photoProvenance}` : null,
+      size !== "unknown"
+        ? `${copy.size}: ${copy.sizes[size] || size} (${fieldMeasured ? copy.measured : copy.estimate})`
+        : null,
+    ].filter(Boolean);
     const addressedAuthority = outputLang === "bn"
       && routing.route.authority_id === "wb-kmc"
       ? "কলকাতা পৌরসংস্থা (KMC)" : routing.officerName;
@@ -7457,26 +7753,26 @@
     const emailBody = [
       greeting,
       letter.opening,
-      `${letter.location}\n${letter.address}: ${location}\n${letter.coordinates}: ${coordinates}\n${letter.map}: ${mapUrl}\n${letter.accuracy}: ${gpsAccuracy}\n${letter.captured}: ${captured}\n${letter.photo}: ${photoProvenance}`,
-      `${letter.classification}\n${classificationLines.join("\n")}`,
-      `${letter.routing}\n${routingLines.join("\n")}`,
-      `${letter.contract}\n${tenderLines.join("\n")}`,
+      [`${letter.location}: ${location}`, ...factLines(letter, true)].join("\n"),
+      workSentence(letter),
       letter.request,
+      letter.thanks,
       signoff,
-      independentNote,
     ].join("\n\n");
+    // WhatsApp copy stays in English, as it always was: the same facts, the same two asks.
     const whatsappText = [
       `Pothole report: ${location}`,
-      `Coordinates: ${coordinates}`,
-      `Map: ${mapUrl}`,
-      `Classification: Pothole YES; ${surfaceKnown ? `${surface}; ` : ""}app visual size ${size} (${measurementProvenance.toLowerCase()}).`,
-      `Routing: geographic body ${routing.geographicName}; intake ${routing.intakeName}; road owner ${routing.ownerVerified ? routing.ownerName : "unverified"}.`,
-      tenderFields
-        ? `Contract verification: ${tenderFields.status}; ${tenderFields.reference_label.toLowerCase()} ${tenderFields.tender_number}; work ${tenderFields.exact_work_name}; organisation ${tenderFields.organisation}; contractor ${tenderFields.listed_contractor}; source ${tenderFields.source_name} ${tenderFields.source_url}; DLP ${tenderFields.dlp_status}.`
-        : `Contract verification: ${noContract}`,
-      "Please inspect, repair, register the grievance and share its reference number.",
-      independentNote,
+      ...factLines(english, false),
+      workSentence(english),
+      english.request,
     ].join("\n");
+    // What a grievance portal form asks for, unchanged by the shorter letter.
+    const portalRequest = ({
+      kn: "ದಯವಿಟ್ಟು ಈ ದೂರನ್ನು ದಾಖಲಿಸಿ, ರಸ್ತೆ ಗುಂಡಿಯನ್ನು ಪರಿಶೀಲಿಸಿ ದುರಸ್ತಿ ಮಾಡಿ, ದೂರು ಸಂಖ್ಯೆಯನ್ನು ತಿಳಿಸಿ, ಮತ್ತು ರಸ್ತೆಯನ್ನು ಬೇರೆ ಸಂಸ್ಥೆ ನಿರ್ವಹಿಸುತ್ತಿದ್ದರೆ ದೂರನ್ನು ಅವರಿಗೆ ವರ್ಗಾಯಿಸಿ.",
+      mr: "कृपया ही तक्रार नोंदवा, खड्ड्याची पाहणी करून दुरुस्ती करा, तक्रार क्रमांक कळवा आणि रस्ता दुसरी संस्था सांभाळत असल्यास तक्रार त्यांच्याकडे वर्ग करा.",
+      bn: "অনুগ্রহ করে অভিযোগটি নথিভুক্ত করুন, গর্তটি পরিদর্শন করে মেরামত করুন, অভিযোগ নম্বরটি জানান, এবং রাস্তাটি অন্য কোনো সংস্থা রক্ষণাবেক্ষণ করলে অভিযোগটি তাদের কাছে পাঠান।",
+    })[outputLang] || routing.profile.request
+      || "Please register this grievance, inspect and repair the pothole, return the grievance number, and transfer it if another agency maintains the road.";
     const portalFields = {
       title: subject,
       category: profileCategory,
@@ -7525,7 +7821,7 @@
         award_work_order_status: tenderFields.award_status,
         dlp_status: tenderFields.dlp_status,
       } : {}),
-      request: letter.request,
+      request: portalRequest,
       independent_app_note: independentNote,
     };
     const portalCopyText = Object.entries(portalFields)
@@ -7568,6 +7864,15 @@
     // WhatsApp and portal copy are transfer data, not an archival snapshot. Always
     // rebuild them from the current route and today's attribution gate so refreshing a
     // routing pack cannot leave an old authority, ward, tender, or contractor copyable.
+    const output = generatedComplaintOutputs(rec);
+    output.email_subject = rec.email_subject || output.email_subject;
+    output.email_body = rec.email_body || output.email_body;
+    return output;
+  }
+
+  // What the current template writes for a stored road-damage record, from the record
+  // alone. The draft migration calls this too, so it must not call the migration back.
+  function generatedComplaintOutputs(rec, language = null) {
     const route = compatibleDraftRoute({
       ...rec,
       routed: true,
@@ -7640,6 +7945,9 @@
       assessment.measurement_provenance = "legacy_unknown";
       assessment.measurement_confidence = "low";
     }
+    // The stand-in size above only satisfies the assessment helper. A record that never
+    // had a size must not have one stated in its letter.
+    if (!POTHOLE_SIZES.has(rec.size)) assessment.size = null;
     const output = buildComplaintOutputs(assessment, Number(rec.lat), Number(rec.lng),
       rec.address, rec.officer_name, tender, route, {
         ...contractLookupEvidence(rec.tender_resolution_reason),
@@ -7647,9 +7955,9 @@
         gps_accuracy: Number(rec.gps_accuracy),
         photo_provenance: rec.capture_source === "manual_import"
           ? "User-selected/imported photo" : "Pothole Reporter camera evidence",
+        ward_tenders: rec.ward_tenders,
+        language,
       });
-    output.email_subject = rec.email_subject || output.email_subject;
-    output.email_body = rec.email_body || output.email_body;
     return output;
   }
 
@@ -7678,9 +7986,9 @@
     return rec;
   }
 
-  function draftEmail(a, lat, lng, address, officerName, tender, route = null) {
+  function draftEmail(a, lat, lng, address, officerName, tender, route = null, evidence = {}) {
     const output = buildComplaintOutputs(a, lat, lng, address, officerName, tender,
-      compatibleDraftRoute(route, officerName));
+      compatibleDraftRoute(route, officerName), evidence);
     return [output.email_subject, output.email_body];
   }
 
@@ -7868,6 +8176,7 @@
                 "tender_number", "contractor", "tender_note", "tender_title",
                 "tender_published", "tender_resolution_reason",
                 "tender_resolution_checked_at", "unrouted_reason", "unrouted_body",
+                "ward_tenders", "ward_name",
               ]) rec[field] = null;
               rec.status = "draft";
               cursor.update(rec);
@@ -8092,11 +8401,11 @@
   }
 
   // The fields a list never renders: the photo, the evidence copy and the repair photo
-  // (Blobs, or megabytes of bytes on WebKit), and the three complaint texts that are
-  // only read on the detail screen, which loads its row by id.
+  // (Blobs, or megabytes of bytes on WebKit), and the complaint texts and ward tender
+  // list that are only read on the detail screen, which loads its row by id.
   const REPORT_BINARY_FIELDS = ["photo", "photo_full", "repair_photo", "thumb"];
   const REPORT_DETAIL_ONLY_FIELDS = ["email_body", "whatsapp_text", "portal_copy_text",
-                                     "portal_fields"];
+                                     "portal_fields", "ward_tenders"];
   function reportSummary(rec) {
     const row = {};
     for (const key of Object.keys(rec)) {
@@ -9481,6 +9790,8 @@
             gps_accuracy: Number.isFinite(gpsAccuracyRaw) ? gpsAccuracyRaw : null,
             photo_provenance: storedCaptureSource === "manual_import"
               ? "User-selected/imported photo" : "Pothole Reporter camera evidence",
+            ward_tenders: centralResolution && centralResolution.reached
+              ? centralResolution.ward_tenders : [],
           })
       : null;
     const subject = complaint ? complaint.email_subject : null;
@@ -9569,6 +9880,11 @@
         ? centralResolution.reason : null,
       tender_resolution_checked_at: centralResolution && centralResolution.reached
         ? Date.now() / 1000 : null,
+      // Listed on the report card. The letter above asks about the first, as a question.
+      ward_tenders: centralResolution && centralResolution.reached
+        ? centralResolution.ward_tenders : null,
+      ward_name: centralResolution && centralResolution.reached
+        ? centralResolution.ward_name : null,
       road_ownership: centralJurisdiction && centralJurisdiction.road_ownership || null,
       road_ownership_source: centralJurisdiction ? "central_v1" : null,
       body_lgd: centralJurisdiction && centralJurisdiction.road_ownership === "municipal"
@@ -9717,7 +10033,9 @@
   const hasAuthoritativeMunicipalOwnership = (rec) => !!rec
     && rec.road_ownership === "municipal" && hasCentralOwnershipProof(rec);
 
-  async function prepareComplaint(rec) {
+  // options.wardAnswer: what a caller that already asked for the ward answer got (null
+  // when the lookup failed or ran out of time), so one tap never asks twice.
+  async function prepareComplaint(rec, options = {}) {
     const lat = finiteCoord(rec && rec.lat) ? rec.lat : null;
     const lng = finiteCoord(rec && rec.lng) ? rec.lng : null;
     // The project service is the single ownership/tender authority for both detector
@@ -9740,6 +10058,9 @@
         rural_body: rec && rec.unrouted_body || null,
       } || null;
     let ownershipSource = hasCentralOwnershipProof(rec) ? CENTRAL_OWNERSHIP_SOURCE : null;
+    // The ward list this call's resolver answer carried. Null means the resolver was not
+    // asked or not reached, and the caller keeps whatever the record already holds.
+    let wardTenders = null, wardName = null;
     let tender = null;
     if (rec && rec.tender_number) {
       tender = {
@@ -9747,6 +10068,8 @@
         contractor: rec.contractor || null,
         title: rec.tender_title || "",
         published: rec.tender_published || "",
+        // The caller writes this tender back to the record, so the stored note goes with it.
+        note: rec.tender_note || null,
         // Ignore legacy inferred DLP/maintenance values stored by older app builds.
         ...warrantyFor(rec.tender_published),
       };
@@ -9767,6 +10090,10 @@
       // Revalidation owns the answer. In particular, do not retain a legacy contractor
       // when the authoritative response says no tender or says this is a highway.
       tender = central && central.reached ? central.tender : null;
+      if (central && central.reached) {
+        wardTenders = central.ward_tenders;
+        wardName = central.ward_name;
+      }
       authoritativeJurisdiction = central && central.reached && central.jurisdiction
         || { road_ownership: "unknown" };
       ownershipSource = central && central.reached ? CENTRAL_OWNERSHIP_SOURCE : null;
@@ -9821,6 +10148,7 @@
           : rec && rec.body_name || jurisdiction && jurisdiction.name || null,
         centralOutsideState: !!authoritativeJurisdiction
           && authoritativeJurisdiction.road_ownership === "outside_state",
+        wardTenders, wardName,
       });
     }
 
@@ -9832,8 +10160,24 @@
       tender = await matchTender(address, lgd, lat, lng,
         rec.client_observation_id || rec.source_event_key || `native-${rec.id}`).catch(() => null);
     }
+    // A report never asked about its ward is asked now, unless this call already put the
+    // question to the resolver above. Only the letter below reads the answer.
+    let wardAnswer = options.wardAnswer || null;
+    if (options.wardAnswer === undefined && !sharedNeedsRevalidation) {
+      wardAnswer = await wardAnswerFor(rec, WARD_LOOKUP_BUDGET_MS);
+    }
+    // The same facts the capture-time letter states, and the ward list this call's
+    // answer carried, or the stored one when the resolver was not asked.
     const [subject, body] = draftEmail(
-      rec || {}, lat, lng, address, officerName, tender);
+      rec || {}, lat, lng, address, officerName, letterTenderWithAnswer(tender, wardAnswer),
+      null, {
+        captured_at: rec && (rec.captured_at || rec.created_at),
+        gps_accuracy: Number(rec && rec.gps_accuracy),
+        photo_provenance: rec && rec.capture_source === "manual_import"
+          ? "User-selected/imported photo" : "Pothole Reporter camera evidence",
+        ward_tenders: wardTenders || (rec && Array.isArray(rec.ward_tenders)
+          ? rec.ward_tenders : wardAnswer && wardAnswer.ward_tenders),
+      });
     const roadOwnership = authoritativeJurisdiction
       && authoritativeJurisdiction.road_ownership || null;
     return { to: officerEmail, officer_name: officerName, subject, body,
@@ -9844,10 +10188,11 @@
       body_name: authoritativeJurisdiction
         ? authoritativeMunicipal && authoritativeJurisdiction.town || null
         : rec.body_name || jurisdiction && jurisdiction.name || null,
-      tender, tender_number: tender && tender.tender_number || null };
+      tender, tender_number: tender && tender.tender_number || null,
+      ward_tenders: wardTenders, ward_name: wardName };
   }
 
-  async function openEmailDraft(rec) {
+  async function openEmailDraft(rec, options = {}) {
     // Always the routed officer. The app never sends; the user does, in their email app.
     // No fallback recipient: an unrouted report must not borrow Bengaluru's address.
     if (!centralReportIsConfirmed(rec)) {
@@ -9858,11 +10203,47 @@
       error.report = toDict(rec);
       throw error;
     }
+    // A saved letter is sent as it stands, with no resolver call. A report never asked
+    // about its ward is asked first, inside the Email budget, so the letter can carry the
+    // question. Without a saved letter prepareComplaint asks, once, whichever way it goes.
+    const usesSavedLetter = hasAuthoritativeMunicipalOwnership(rec)
+      && !!rec.officer_email && !!rec.email_subject && !!rec.email_body
+      && rec.tender_resolution_checked_at != null;
+    const wardAnswer = usesSavedLetter && !options.keepLetter
+      ? await wardAnswerFor(rec, WARD_LOOKUP_BUDGET_MS) : null;
+    // What the app wrote for this report before it knew the answer, to tell its own text
+    // from anything a person changed.
+    const unanswered = wardAnswer && ["draft", "queued"].includes(rec.status)
+      ? (() => {
+          try {
+            return generatedComplaintOutputs(rec, storedComplaintLanguage(rec.email_body)).email_body;
+          } catch (_) { return null; }
+        })() : null;
+    if (wardAnswer) {
+      rec.ward_tenders = wardAnswer.ward_tenders;
+      rec.ward_name = wardAnswer.ward_name;
+    }
+    // The saved text is what the composer receives, so an untouched draft from an older
+    // template is brought up to date here, exactly as mutateReportAtomically does.
+    const migrated = options.keepLetter ? rec : migrateLegacyComplaintRecord(rec);
+    if (migrated !== rec) {
+      for (const field of ["email_body", "whatsapp_text", "portal_fields",
+        "portal_copy_text", "complaint_template_version"]) {
+        rec[field] = migrated[field];
+      }
+    }
+    // A current letter that is exactly the app's own text, written with only the plain
+    // question, is written again now that there is a road work to ask about.
+    if (unanswered && rec.email_body === unanswered
+        && letterLacksRoadWork(rec, wardAnswer, rec.email_body)) {
+      const rebuilt = generatedComplaintOutputs(rec, storedComplaintLanguage(rec.email_body));
+      for (const field of ["email_body", "whatsapp_text", "portal_fields", "portal_copy_text"]) {
+        rec[field] = rebuilt[field];
+      }
+    }
     let prepared;
     try {
-      prepared = hasAuthoritativeMunicipalOwnership(rec)
-          && rec.officer_email && rec.email_subject && rec.email_body
-          && rec.tender_resolution_checked_at != null
+      prepared = usesSavedLetter
         ? { to: rec.officer_email, officer_name: rec.officer_name || null,
             subject: rec.email_subject, body: rec.email_body,
             address: rec.address || null, body_lgd: rec.body_lgd || null,
@@ -9893,6 +10274,10 @@
         rec.officer_email = null;
         rec.email_subject = null;
         rec.email_body = null;
+        if (Array.isArray(error.wardTenders)) {
+          rec.ward_tenders = error.wardTenders;
+          rec.ward_name = error.wardName || null;
+        }
         await putReport(rec);
         error.report = toDict(rec);
       }
@@ -9926,6 +10311,19 @@
       rec.tender_published = null;
       rec.tender_confidence = null;
       rec.tender_match_method = null;
+    }
+    // A resolver answer replaces the stored ward list, even with an empty one. A draft
+    // opened from its saved text asked nothing, so its list stays as it was. A report
+    // never asked keeps the answer prepareComplaint fetched for its letter.
+    if (Array.isArray(prepared.ward_tenders)) {
+      rec.ward_tenders = prepared.ward_tenders;
+      rec.ward_name = prepared.ward_name || null;
+    } else {
+      const held = heldWardAnswer(rec);
+      if (held) {
+        rec.ward_tenders = held.ward_tenders;
+        rec.ward_name = held.ward_name;
+      }
     }
     progress(pmsg("email"));
     if (NATIVE) {
@@ -10473,9 +10871,11 @@
         throw new Error("The shared map has not confirmed this report yet, so the email cannot be opened.");
       }
       // "queued" stays reopenable: canceling the email composer must not strand the report.
-      if (rec.status === "sent") rec.status = "queued";
+      // A complaint the person marked sent goes out again exactly as it was sent.
+      const sentBefore = rec.status === "sent";
+      if (sentBefore) rec.status = "queued";
       if (rec.status !== "draft" && rec.status !== "queued") throw new Error("This report is not a sendable draft.");
-      return openEmailDraft(rec);
+      return openEmailDraft(rec, { keepLetter: sentBefore });
     }
     if ((m = path.match(/^\/api\/reports\/(\d+)$/))) {
       const rec = await getReport(m[1]);
@@ -11137,6 +11537,11 @@
       rec.tender_resolution_reason = central.reason;
       rec.tender_resolution_checked_at = Date.now() / 1000;
     }
+    // Before the early return below: a report that stays unrouted keeps the answer too.
+    if (central && central.reached) {
+      rec.ward_tenders = central.ward_tenders;
+      rec.ward_name = central.ward_name;
+    }
 
     if (!route.routed) {
       rec.unrouted_reason = route.unrouted_reason || rec.unrouted_reason || "outside_area";
@@ -11162,6 +11567,7 @@
         gps_accuracy: rec.gps_accuracy,
         photo_provenance: rec.capture_source === "manual_import"
           ? "User-selected/imported photo" : "Pothole Reporter camera evidence",
+        ward_tenders: rec.ward_tenders,
       });
       Object.assign(rec, complaint);
     } else {
@@ -12751,7 +13157,8 @@
                    MMR_DIRECT_AUTHORITY_IDS, MMR_FALLBACK_AUTHORITY, MMR_FALLBACK_AUTHORITY_IDS,
                    MODEL_CONFIG, MUMBAI_DISTRICTS, MUMBAI_STATES, MUMBAI_WARDS,
                    MUNICIPAL_CITY_CONFIGS, NATIONAL_HIGHWAY_AUTHORITY, NATIVE,
-                   NATIVE_REPAIR_CONTRACT_VERSION, NOMINATIM_REVERSE_ENDPOINT,
+                   NATIVE_REPAIR_CONTRACT_VERSION, NATIVE_WARD_ANSWERS_KEY,
+                   NATIVE_WARD_ANSWERS_LIMIT, NOMINATIM_REVERSE_ENDPOINT,
                    NON_CARRIAGEWAY_ASSETS, NON_SURFACE_ROAD_MODIFIERS, NO_VERIFIED_CONTRACT,
                    OAI_URL, ODISHA_ROUTING_ENVELOPE, ODISHA_STATE_AUTHORITY,
                    ODISHA_STATE_GEOMETRY_SHA256, OFFICERS, OFFICER_TITLES, OFFICIAL_AUTHORITIES,
@@ -12759,9 +13166,10 @@
                    OPTIONAL_CATALOG_TIMEOUT_MS, ORIGINAL_DETAIL_MODELS,
                    OUTBOUND_CONTRACT_IDENTITY_FIELDS, PACK_AUTHORITIES_BY_STATE,
                    PACK_FETCH_ATTEMPTS, PACK_ID_BY_AUTHORITY, PACK_IN_USE_MS,
-                   PACK_RETRY_BASE_MS, PACK_SITE_ROOT, PMC_AUTHORITY, POTHOLE_SIZES, PROGRESS,
-                   PROJECT_SERVICE_POSITIVE_TTL_MS, PROMPT_VERSION, PUBLIC_MAP_CACHE_KEY,
-                   PUBLIC_MAP_LIMIT, PUNJAB_ROUTING_ENVELOPE, PUNJAB_STATE_AUTHORITY,
+                   PACK_RETRY_BASE_MS, PACK_SITE_ROOT, PARAGRAPH_MIGRATED_TEMPLATE_VERSION,
+                   PMC_AUTHORITY, POTHOLE_SIZES, PROGRESS, PROJECT_SERVICE_POSITIVE_TTL_MS,
+                   PROMPT_VERSION, PUBLIC_MAP_CACHE_KEY, PUBLIC_MAP_LIMIT,
+                   PUNJAB_ROUTING_ENVELOPE, PUNJAB_STATE_AUTHORITY,
                    PUNJAB_STATE_GEOMETRY_SHA256, QUALITY_RE, RAJASTHAN_ROUTING_ENVELOPE,
                    RAJASTHAN_STATE_AUTHORITY, RAJASTHAN_STATE_GEOMETRY_SHA256,
                    RECIPIENT_STATE_LANGUAGE, REMAINING_STATE_AUTHORITIES,
@@ -12782,13 +13190,14 @@
                    SURFACE_LABELS, TAMIL_NADU_ROUTING_ENVELOPE, TAMIL_NADU_STATE_AUTHORITY,
                    TAMIL_NADU_STATE_GEOMETRY_SHA256, TELANGANA_ROUTING_ENVELOPE,
                    TELANGANA_STATE_AUTHORITY, TELANGANA_STATE_GEOMETRY_SHA256,
-                   TEMPORARY_DRIVABLE_SURFACE, TENDER_CONFIG, TENDER_MATCH_INSTRUCTIONS,
-                   TENDER_PROMPT_CONFIG, TENDER_RECORD_FIELDS, TENDER_RETRY_DELAY_MS,
-                   TENDER_SCHEMA, TENDER_STOP, TERMINAL_CENTRAL_STATUSES, THUMB_MAX_DIM,
-                   TOP50_AUTHORITY_BY_STATE, TOP50_MAJOR_CITY_RANKS,
+                   TEMPLATE_4_ROAD_LETTER, TEMPORARY_DRIVABLE_SURFACE, TENDER_CONFIG,
+                   TENDER_MATCH_INSTRUCTIONS, TENDER_PROMPT_CONFIG, TENDER_RECORD_FIELDS,
+                   TENDER_RETRY_DELAY_MS, TENDER_SCHEMA, TENDER_STOP, TERMINAL_CENTRAL_STATUSES,
+                   THUMB_MAX_DIM, TOP50_AUTHORITY_BY_STATE, TOP50_MAJOR_CITY_RANKS,
                    UTTAR_PRADESH_ROUTING_ENVELOPE, UTTAR_PRADESH_STATE_AUTHORITY,
                    UTTAR_PRADESH_STATE_GEOMETRY_SHA256, VERIFIED_HANDOFF_FIELDS,
-                   WEST_BENGAL_ROUTING_ENVELOPE, WEST_BENGAL_STATES,
+                   WARD_ANSWER_MEMORY_LIMIT, WARD_LOOKUP_BUDGET_MS, WARD_LOOKUP_RETRY_AFTER_MS,
+                   WARD_TENDER_LIMITS, WEST_BENGAL_ROUTING_ENVELOPE, WEST_BENGAL_STATES,
                    WEST_BENGAL_STATE_AUTHORITY, WEST_BENGAL_STATE_GEOMETRY_SHA256,
                    _contractPackMemory, _contractPackPromises, _highwayTileMemory,
                    _highwayTilePromises, _newStateCoverage, _newStateCoveragePromises,
@@ -12797,20 +13206,21 @@
                    _statePackPromises, acceptedReport, accuracyCircleWithinEnvelope, addReport,
                    addReportUnlessDuplicate, allCentralOutbox, allDrives, allReports,
                    allStatePacks, allStoredRecordsAreEmpty, analyzeImage, analyzeViaService,
-                   andhraPradeshCoverage, andhraPradeshRouteFromGeocode, applyCentralPothole,
-                   applyDetectionEnhancement, applyRouteRecord, applyTenderRecord,
-                   applyVerifiedHandoff, assertComplaintInvariants, assessmentOf, authHeaders,
-                   authorityComplaintProfile, authorityRoute, averageLuminance, b64ToBytes,
-                   biharCoverage, biharRouteFromGeocode, binaryAssessment, blobToDataUrl,
-                   bmcWardFromBoundary, bodies, buildComplaintOutputs, buildDetectionRequest,
-                   buildTenderMatchRequest, busyCentralFailure, bytesToB64, bytesToBase64,
-                   cachedPackBytes, canSearchTenderCatalog, candidateLeadIsUnambiguous,
-                   canonicalJson, canonicalServiceRequest, catalogResourceWithinReview,
-                   centralPotholeRequest, centralReportIsConfirmed, chhattisgarhCoverage,
-                   chhattisgarhRouteFromGeocode, civicIssueName, clearAllStoredRecords,
-                   clearPackCache, compatibleDamage, compatibleDraftRoute,
-                   complaintBodyWithFooter, complaintFooter, complaintLanguage,
-                   complaintOutputsForRecord, complaintRouteError, complaintRoutingBlock,
+                   andhraPradeshCoverage, andhraPradeshRouteFromGeocode, answerStreetTender,
+                   applyCentralPothole, applyDetectionEnhancement, applyRouteRecord,
+                   applyTenderRecord, applyVerifiedHandoff, assertComplaintInvariants,
+                   assessmentOf, authHeaders, authorityComplaintProfile, authorityRoute,
+                   averageLuminance, b64ToBytes, biharCoverage, biharRouteFromGeocode,
+                   binaryAssessment, blobToDataUrl, bmcWardFromBoundary, bodies,
+                   buildComplaintOutputs, buildDetectionRequest, buildTenderMatchRequest,
+                   busyCentralFailure, bytesToB64, bytesToBase64, cachedPackBytes,
+                   canSearchTenderCatalog, candidateLeadIsUnambiguous, canonicalJson,
+                   canonicalServiceRequest, catalogResourceWithinReview, centralPotholeRequest,
+                   centralReportIsConfirmed, chhattisgarhCoverage, chhattisgarhRouteFromGeocode,
+                   civicIssueName, clearAllStoredRecords, clearPackCache, compatibleDamage,
+                   compatibleDraftRoute, complaintBodyWithFooter, complaintFooter,
+                   complaintLanguage, complaintOutputsForRecord, complaintRoadWork,
+                   complaintRoadWorkForRecord, complaintRouteError, complaintRoutingBlock,
                    completeCentralRetry, conciseRouteLabel, conditionStatus, confirmEmailSent,
                    confirmedTemporaryAssessment, connectivityError, containingMmrAuthorities,
                    contractLookupEvidence, contractPackProvenance, contractVerificationFor,
@@ -12831,28 +13241,29 @@
                    findDuplicateReport, finiteCoord, flushCentralOutbox, flushFeedbackQueue,
                    fmt, footageFor, footageMetadata, footageSummaries,
                    forgetInstallationIdentity, formatCapturedIst, fullFramePhoto,
-                   geometryBoundaryDistanceMeters, getCachedStatePack, getContractPackManifest,
-                   getDrive, getFootage, getHighwayPackManifest, getRepairTargetBatch,
-                   getRepairTargetIds, getReport, getRoadAgreementManifest,
-                   getRoadNoticeManifest, getStatePackManifest, goaCoverage,
-                   goaRouteFromGeocode, gpsAccuracyEnvelope, handle, hasAny,
+                   generatedComplaintOutputs, geometryBoundaryDistanceMeters,
+                   getCachedStatePack, getContractPackManifest, getDrive, getFootage,
+                   getHighwayPackManifest, getRepairTargetBatch, getRepairTargetIds, getReport,
+                   getRoadAgreementManifest, getRoadNoticeManifest, getStatePackManifest,
+                   goaCoverage, goaRouteFromGeocode, gpsAccuracyEnvelope, handle, hasAny,
                    hasAuthoritativeMunicipalOwnership, hasCentralOwnershipProof,
-                   hasCoverageGeometry, headingDifference, highwayContractCandidates,
-                   highwayPackProvenance, highwayRefsInNotice, highwayRefsOf, highwayTileIdFor,
-                   historySummary, idb, idbTakesBlobs, imageHash, importNativeReport,
-                   inCoverage, inDelhiEnvelope, inKarnatakaRoutingEnvelope,
-                   inMaharashtraRoutingEnvelope, inMajorCityCandidateEnvelope,
-                   inWestBengalRoutingEnvelope, indianStateMatches, installRoutingAuthorities,
-                   installationIdentity, isKarnatakaGeocode, isKnownNonKarnatakaGeocode,
-                   isMaharashtraGeocode, isManualCaptureSource, isOfficialHandoff,
-                   isPrunableFrame, isReportRow, isStatewideHandoff, isUnfiledReport,
-                   isWestBengalGeocode, issueFileStem, jurisdictionOf, karnatakaStateCoverage,
-                   karnatakaStateRouteFromGeocode, keralaCoverage, keralaRouteFromGeocode,
-                   kgisCivicJurisdiction, kgisJurisdiction, kgisPoint, kolkataCoverage,
-                   kolkataRouteFromGeocode, listDict, loadHighwayContractPack, loadHighwayTile,
-                   loadInstallationIdentity, loadRoadAgreementPack, loadRoadNoticePack,
-                   loadStatePack, localDamageFamily, madhyaPradeshCoverage,
-                   madhyaPradeshRouteFromGeocode, maharashtraCoverage,
+                   hasCoverageGeometry, headingDifference, heldWardAnswer,
+                   highwayContractCandidates, highwayPackProvenance, highwayRefsInNotice,
+                   highwayRefsOf, highwayTileIdFor, historySummary, idb, idbTakesBlobs,
+                   imageHash, importNativeReport, inCoverage, inDelhiEnvelope,
+                   inKarnatakaRoutingEnvelope, inMaharashtraRoutingEnvelope,
+                   inMajorCityCandidateEnvelope, inWestBengalRoutingEnvelope,
+                   indianStateMatches, installRoutingAuthorities, installationIdentity,
+                   isKarnatakaGeocode, isKnownNonKarnatakaGeocode, isMaharashtraGeocode,
+                   isManualCaptureSource, isOfficialHandoff, isPrunableFrame, isReportRow,
+                   isStatewideHandoff, isUnfiledReport, isWestBengalGeocode, issueFileStem,
+                   jurisdictionOf, karnatakaStateCoverage, karnatakaStateRouteFromGeocode,
+                   keralaCoverage, keralaRouteFromGeocode, kgisCivicJurisdiction,
+                   kgisJurisdiction, kgisPoint, kolkataCoverage, kolkataRouteFromGeocode,
+                   letterLacksRoadWork, letterTenderWithAnswer, listDict,
+                   loadHighwayContractPack, loadHighwayTile, loadInstallationIdentity,
+                   loadRoadAgreementPack, loadRoadNoticePack, loadStatePack, localDamageFamily,
+                   madhyaPradeshCoverage, madhyaPradeshRouteFromGeocode, maharashtraCoverage,
                    maharashtraRouteFromGeocode, majorCityCoverage, majorCityRouteFromGeocode,
                    mapStatus, markDetectionDeferred, markDetectionRefused, markPackInUse,
                    markProjectServiceAvailable, markProjectServiceUnavailable,
@@ -12865,10 +13276,10 @@
                    municipalCityCoverageCache, municipalCityCoveragePromises,
                    municipalCityRouteFromGeocode, municipalGeometryBounds,
                    mutateReportAtomically, nationalHighwayRoute, nativeDetectorContract,
-                   nonCarriagewayTreatmentTargetRe, nonWorksServiceRe, normaliseAuthorityValue,
-                   normaliseDetail, normaliseIssueType, normaliseManualCaptureSource,
-                   normaliseModel, normaliseTenderMatch, noteSharedCheck,
-                   nullableRoadAgreementText, oai, oaiStream, odishaCoverage,
+                   nativeWardAnswers, nonCarriagewayTreatmentTargetRe, nonWorksServiceRe,
+                   normaliseAuthorityValue, normaliseDetail, normaliseIssueType,
+                   normaliseManualCaptureSource, normaliseModel, normaliseTenderMatch,
+                   noteSharedCheck, nullableRoadAgreementText, oai, oaiStream, odishaCoverage,
                    odishaRouteFromGeocode, officialArcGisCount, officialIndianPublicRecordUrl,
                    officialPointRegionMatch, op, openBengaluruHandoff, openEmailDraft, openIdb,
                    openNationalHighwayHandoff, openOfficialHandoff, optionalCatalogResult,
@@ -12885,7 +13296,7 @@
                    rebuildOfficialAuthorityIndex, recordCentralRetryFailure,
                    refreshAndPersistOfficialHandoff, refreshGeneratedComplaintFields,
                    registerCentralPothole, rejectedVerdict, remainingStateCoverage,
-                   remainingStateRouteFromGeocode, repairProvenanceIsExact,
+                   remainingStateRouteFromGeocode, rememberWardAnswer, repairProvenanceIsExact,
                    repairTargetPhotoBytes, replaceStableObject, reportSummary, reportThumb,
                    reportThumbs, requestPersistentStorage, reserveDriveCommit,
                    resetContractPackMemory, resetHighwayPackMemory,
@@ -12898,15 +13309,16 @@
                    roadNoticeAddressParts, roadNoticeCandidates, roadNoticePackProvenance,
                    roadsideVegetationRe, routeForIssue, routeOfficer, routeWhereFromCentral,
                    routingPackForAuthority, sameMunicipalAliases, sameMunicipalEnvelope,
-                   sameRoadEvent, sameSet, savedBoundaryLocationMatches,
+                   sameRoadEvent, sameSet, sanitiseWardTenders, savedBoundaryLocationMatches,
                    savedMajorCityLocationMatches, savedMunicipalLocationMatches,
                    savedNonMunicipalLocationMatches, savedOfficialRouteBinding, scanReports,
                    scheduleCentralRetry, schedulePendingDetectionRetry, schemaStrings,
                    separateRoadResponsibility, serviceError, serviceGet, settleQueuedFailure,
                    sha256Bytes, sha256Hex, sha256HexBytes, sha256HexText, sharedChecksToday,
-                   shortlistFor, signedServicePost, sizeConflict, startLowerCatalogMatches,
-                   stateCodeForGeocode, statePackCacheKey, statePackProvenance, statusError,
-                   storageError, storedComplaintLanguage, storedDamageType, storedPhoto,
+                   shortlistFor, signedServicePost, sizeConflict, staleRoadComplaintBody,
+                   startLowerCatalogMatches, stateCodeForGeocode, statePackCacheKey,
+                   statePackProvenance, statusError, storageError, storeNativeWardAnswer,
+                   storeWardAnswer, storedComplaintLanguage, storedDamageType, storedPhoto,
                    storedSightings, structuredPlaceMatch, summarizeFootageAnalysis,
                    surfaceTreatmentRe, tamilNaduCoverage, tamilNaduRouteFromGeocode,
                    telanganaCoverage, telanganaRouteFromGeocode,
@@ -12915,10 +13327,10 @@
                    tenderTokens, tenders, tendersFor, terminalCentralFailure, toDataUrl, toDict,
                    toEvidenceImage, toThumbImage, touchStatePack, trustedContractStateCode,
                    undirectedHeadingDifference, unroutedComplaintMessage, unroutedRoute,
-                   usingSharedVision, uttarPradeshCoverage, uttarPradeshRouteFromGeocode,
-                   validContractDate, validMmrAuthorityBoundaries, validMunicipalAliasList,
-                   validMunicipalEnvelope, validMunicipalExclusion, validOfficialPointQuery,
-                   validRoadAgreementPolicy, validRoadNoticePolicy,
+                   untouchedTemplate4RoadLetter, usingSharedVision, uttarPradeshCoverage,
+                   uttarPradeshRouteFromGeocode, validContractDate, validMmrAuthorityBoundaries,
+                   validMunicipalAliasList, validMunicipalEnvelope, validMunicipalExclusion,
+                   validOfficialPointQuery, validRoadAgreementPolicy, validRoadNoticePolicy,
                    validateAndhraPradeshPayload, validateAuthorityRegistry,
                    validateBiharPayload, validateChhattisgarhPayload,
                    validateContractPackManifest, validateDecodedContractPack,
@@ -12936,12 +13348,15 @@
                    validateTamilNaduPayload, validateTelanganaPayload, validateTenderPack,
                    validateUttarPradeshPayload, verifiedBdaResponsibility,
                    verifiedContractForComplaint, vodBurstTimes, vodSampleTimes,
-                   waitForFreedSpace, waitForNominatimSlot, warrantyFor, westBengalCoverage,
+                   waitForFreedSpace, waitForNominatimSlot, wardAnswerFor, wardAnswers,
+                   wardLookupFailedAt, wardLookupWanted, wardLookups, wardNameOf,
+                   wardTendersForReport, warrantyFor, westBengalCoverage,
                    withDriveImagePreparation, withPackRetries, withSpeedDefaults,
                    writeFeedbackQueue, zip, matchTenderFor: matchTender,
                  };
 
-  window.StandaloneAPI = { __pure, handle, prewarm, prepareComplaint, sharedChecksToday };
+  window.StandaloneAPI = { __pure, handle, prewarm, prepareComplaint, sharedChecksToday,
+                           wardTenders: wardTendersForReport };
 
   // Pending accepted observations contain no image or complaint text. Retry them only
   // at bounded lifecycle signals; the stable body/idempotency key prevents double count.

@@ -251,7 +251,7 @@ test("the body a point is in, and how many road notices it has, without making i
   ]);
   assert.deepEqual(urbanBodyAt({ city: "Ghaziabad", stateCode: "UP", pack: up, now: CLOCK }), {
     name: "Ghaziabad Municipal Corporation", kind: "Municipal Corporation", city: "Ghaziabad", state_code: "UP",
-    basis: "geocoder_city", road_notices: 3, road_notices_open: 1,
+    basis: "address_city", road_notices: 3, road_notices_open: 1,
   });
   assert.equal(urbanBodyAt({ city: "ghaziabad ", stateCode: "UP", pack: up, now: CLOCK }).name, "Ghaziabad Municipal Corporation");
   assert.equal(urbanBodyAt({ city: "Meerut", stateCode: "UP", pack: up, now: CLOCK }), null, "a city none of the State's notices is filed under");

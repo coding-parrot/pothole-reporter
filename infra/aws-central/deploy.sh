@@ -28,7 +28,7 @@ template_default() {
   sed -n "/^  $1:\$/,/Default:/p" infra/aws-central/template.yaml | sed -n 's/^    Default: //p' | head -1
 }
 TEMPLATE_PARAMETERS=""
-for name in DailyVisionCap GlobalVisionMinuteCap GlobalVisionDailyCap MonthlyVisionCap GeocoderReverseUrl AlertEmail; do
+for name in DailyVisionCap GlobalVisionMinuteCap GlobalVisionDailyCap MonthlyVisionCap ReservedConcurrency GeocoderReverseUrl AlertEmail; do
   default_value="$(template_default "$name")"
   [[ -n "$default_value" ]] || { echo "template.yaml declares no default for $name" >&2; exit 1; }
   TEMPLATE_PARAMETERS="$TEMPLATE_PARAMETERS $name=$default_value"
@@ -50,6 +50,16 @@ cp data/karnataka-ownership.bin "$TMP_DIR/package/data/"
 # Karnataka ward polygons (KGIS Ward New layer, 7,421 wards): what the service names a
 # municipal point's ward from, with no live KGIS call. About 6.4 MB, 2.2 MB zipped.
 cp data/karnataka-ward-geometry.json "$TMP_DIR/package/data/"
+# Street and locality names (OpenStreetMap extract, ODbL): Karnataka and nine cities
+# outside it, one directory of hash-checked tiles per region. local-address.mjs reads a
+# tile on first need, so the geocoder is asked only where no region has a street. The
+# build's working directory (data/streets/.work, 4.4 GB) is never packaged. About 42 MB.
+mkdir -p "$TMP_DIR/package/data/streets"
+# No trailing slash on the source: BSD cp copies a directory's CONTENTS when its name
+# ends in one, which once flattened every region into a single directory.
+for region in data/streets/*; do
+  [[ -d "$region" ]] && cp -R "$region" "$TMP_DIR/package/data/streets/"
+done
 # The national tender catalogues (highway contracts, State/UT road notices, PMGSY
 # agreements): the manifests the shipped phone names, under fixed names, and the pack
 # they pin for every state, hash-checked. national-tenders.mjs reads them lazily per
@@ -61,6 +71,9 @@ node infra/aws-central/tools/stage-national-tenders.mjs "$TMP_DIR/package/data/n
 # service. Each file is checked against the hash the list pins, so a switched-on snapshot
 # that is missing or edited stops the deploy here. About 160 KB, 60 KB zipped.
 node infra/aws-central/tools/stage-india-wards.mjs "$TMP_DIR/package/data/wards"
+# The staged package answers a real point from its own files, network cut, or nothing is
+# uploaded.
+node infra/aws-central/tools/check-package.mjs "$TMP_DIR/package"
 (cd "$TMP_DIR/package" && zip -q -r "$TMP_DIR/central-lambda.zip" infra llm data)
 echo "package: $(du -h "$TMP_DIR/central-lambda.zip" | cut -f1) zipped, $(du -sh "$TMP_DIR/package" | cut -f1) unpacked"
 # A content-addressed key makes CloudFormation see every code change; a fixed key reports

@@ -289,10 +289,11 @@ export function matchIndiaWardTenders({
 // stays the notices whose title says the ward.
 //
 // `basis` says how the body is known. "ward_snapshot": one of the snapshot's wards holds
-// the point. "geocoder_city": the geocoder's city is the city exactly one municipal body
-// of the State's notices is filed under; that is the geocoder's word for the place, and a
-// village beside Ghaziabad may carry it. A development authority shares its city's name,
-// covers more than the city and is never answered.
+// the point. "address_city": the city in the point's address (the geocoder's, or the
+// packaged street index's) is the city exactly one municipal body of the State's notices
+// is filed under; that is the address's word for the place, and a village beside
+// Ghaziabad may carry it. A development authority shares its city's name, covers more
+// than the city and is never answered.
 const bodiesOfPack = new WeakMap();
 function bodiesOf(pack, stateCode) {
   if (!bodiesOfPack.has(pack)) {
@@ -326,7 +327,7 @@ export function urbanBodyAt({ snapshot = null, city = null, stateCode = null, pa
     kind: one ? one.kind : null,
     city: one ? one.city : snapshot.notices_city,
     state_code: stateCode,
-    basis: snapshot ? "ward_snapshot" : "geocoder_city",
+    basis: snapshot ? "ward_snapshot" : "address_city",
     road_notices: rows.length,
     road_notices_open: rows.filter((row) => row.listable && row.closes >= now).length,
   };

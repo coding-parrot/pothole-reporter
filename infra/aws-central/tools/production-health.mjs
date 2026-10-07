@@ -355,9 +355,12 @@ async function canary() {
 
   const withoutHint = await signedPost("/v1/tenders/resolve", { lat: CANARY_POINT.lat + 0.0006, lng: CANARY_POINT.lng + 0.0006 });
   const source = withoutHint.body?.jurisdiction?.address_source;
-  withoutHint.status === 200 && source === "operator_geocoder"
-    ? ok("server finds the street itself", `${withoutHint.body.jurisdiction.address}`)
-    : fail("server finds the street itself", `${withoutHint.status} address_source ${source}; reason ${withoutHint.body?.reason || withoutHint.body?.error}`);
+  // Bengaluru is in the packaged street index, so the name must come from it. The public
+  // geocoder answering here means data/streets is missing from the package, and every
+  // first lookup of a place is waiting 200 to 1,050 ms on an outside call again.
+  withoutHint.status === 200 && source === "packaged_streets"
+    ? ok("server finds the street itself, with no geocoder call", `${withoutHint.body.jurisdiction.address} in ${withoutHint.took} ms`)
+    : fail("server finds the street itself, with no geocoder call", `${withoutHint.status} address_source ${source}, lookup.streets ${withoutHint.body?.jurisdiction?.lookup?.streets}; reason ${withoutHint.body?.reason || withoutHint.body?.error}`);
 }
 
 // ---------------------------------------------------------------- main

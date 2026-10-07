@@ -207,7 +207,7 @@ tenders': Chennai's file passed on zones and was wrong for 8 of 17 pairs, its wa
 been renumbered inside their zones.
 
 For any point outside Karnataka the answer also says which urban body the point is in,
-`jurisdiction.urban_body` (`name`, `basis` `ward_snapshot` or `geocoder_city`,
+`jurisdiction.urban_body` (`name`, `basis` `ward_snapshot` or `address_city`,
 `road_notices`, `road_notices_open`). That is a fact for the log and for a later decision:
 no notice goes into `ward_tenders` because its body matches.
 

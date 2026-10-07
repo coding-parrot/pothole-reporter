@@ -2,8 +2,10 @@ import { createDetector, createSecretProvider } from "./detectors.mjs";
 import { createDynamoRepository } from "./dynamo-repository.mjs";
 import { createCachedGeolocator } from "./geo-cache.mjs";
 import { createGeolocator } from "./geolocation.mjs";
+import { createLocalAddress } from "./local-address.mjs";
 import { createNationalCatalogue } from "./national-tenders.mjs";
 import { createService } from "./core.mjs";
+import { createWarmHandler } from "./warm.mjs";
 
 const repository = createDynamoRepository({
   tables: {
@@ -20,7 +22,7 @@ const repository = createDynamoRepository({
   dedupeRadiusMetres: Number(process.env.DEDUPE_RADIUS_METRES || 30),
   quota: {
     perInstallDay: Number(process.env.DAILY_VISION_CAP || 10000),
-    globalMinute: Number(process.env.GLOBAL_VISION_MINUTE_CAP || 300),
+    globalMinute: Number(process.env.GLOBAL_VISION_MINUTE_CAP || 1500),
     globalDay: Number(process.env.GLOBAL_VISION_DAILY_CAP || 30_000),
     globalMonth: Number(process.env.MONTHLY_VISION_CAP || 200_000),
   },
@@ -35,8 +37,11 @@ const detector = createDetector({
   yoloUrl: process.env.YOLO_URL || "",
   yoloModel: process.env.YOLO_MODEL || "pothole-yolo",
 });
+// Street names come from the packaged index (data/streets, staged by deploy.sh); the
+// geocoder is asked only for a point the index has no street for.
 const liveGeolocator = createGeolocator({
   geocoderUrl: process.env.GEOCODER_REVERSE_URL || "",
+  localAddress: createLocalAddress(),
 });
 const geolocator = createCachedGeolocator({ geolocator: liveGeolocator, repository });
 
@@ -44,4 +49,11 @@ const geolocator = createCachedGeolocator({ geolocator: liveGeolocator, reposito
 // tools/stage-national-tenders.mjs) at the module's default path.
 const catalogue = createNationalCatalogue();
 
-export const handler = createService({ repository, detector, geolocator, catalogue });
+const service = createService({ repository, detector, geolocator, catalogue });
+
+// One real Bengaluru lookup at start-up loads everything a lookup reads from disk (see
+// warm.mjs). The point is the production canary's.
+export const handler = createWarmHandler({
+  service,
+  warm: () => liveGeolocator.resolve({ lat: 12.99717, lng: 77.62094 }),
+});

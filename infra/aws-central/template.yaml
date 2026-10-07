@@ -20,7 +20,7 @@ Parameters:
     Default: 10000
   GlobalVisionMinuteCap:
     Type: Number
-    Default: 300
+    Default: 1500
   GlobalVisionDailyCap:
     Type: Number
     Default: 30000
@@ -37,7 +37,7 @@ Parameters:
     Description: Where production alarms go. The subscription must be confirmed once from that inbox.
   ReservedConcurrency:
     Type: Number
-    Default: 20
+    Default: 160
   LogRetentionDays:
     Type: Number
     Default: 30
@@ -293,8 +293,9 @@ Resources:
       StageName: '$default'
       AutoDeploy: true
       DefaultRouteSettings:
-        ThrottlingBurstLimit: 40
-        ThrottlingRateLimit: 20
+        # Sized for 25 phones in Drive Mode at once (test/template-capacity.test.mjs).
+        ThrottlingBurstLimit: 400
+        ThrottlingRateLimit: 200
   ApiInvokePermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -302,6 +303,28 @@ Resources:
       FunctionName: !Ref CentralFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*'
+
+  # Keeps one function instance started, with the ownership layers, ward polygons and a
+  # street tile already read (service/warm.mjs). Without it the first person after a quiet
+  # spell waited 580 to 664 ms more. The event reaches no route and is not counted as a
+  # request. About 10,800 invocations a month of a few milliseconds each.
+  WarmSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Keeps one central function instance started.
+      ScheduleExpression: rate(4 minutes)
+      State: ENABLED
+      Targets:
+        - Id: central-warm
+          Arn: !GetAtt CentralFunction.Arn
+          Input: '{"warm": true}'
+  WarmInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref CentralFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt WarmSchedule.Arn
 
   # Production alarms. Every one of these fired silently for weeks before 6 October 2026:
   # 227 lookups failed on the state GIS, 197 on a missing address, 125 reports were

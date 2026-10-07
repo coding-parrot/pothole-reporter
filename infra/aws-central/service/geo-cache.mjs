@@ -14,16 +14,21 @@
 // up to a week. v2: the ward (ward_name, ward_no, ward_code, lookup.ward) and
 // address_parts.localities, which ward tender matching reads. v3: the road class comes
 // from the packaged layers, and a point inside Karnataka with no named panchayat is
-// rural where the live lookup had stored outside_state. Not raised on 7 Oct 2026 for the
-// ward of a point outside Karnataka: that ward is never read from a stored answer (see
-// the hit below), so no cell had to be asked again.
-const VERSION = "v3";
+// rural where the live lookup had stored outside_state. v4: the street is read from the
+// packaged index (address_source "packaged_streets", lookup.streets); a cell stored from
+// the geocoder would keep saying so for a week and hide a package without the index.
+// Not raised for the ward of a point outside Karnataka (7 Oct 2026): that ward is never
+// read from a stored answer (see the hit below), so no cell had to be asked again for it.
+const VERSION = "v4";
+// An address the service found itself (geolocation.mjs SERVER_ADDRESS_SOURCES). Listed
+// here too so this module stays free of the geolocator's imports.
+const SERVER_ADDRESS_SOURCES = new Set(["operator_geocoder", "packaged_streets"]);
 const WEEK_MS = 7 * 86_400_000;
 const MEMORY_CELLS = 5_000;
 
 function storable(value) {
   if (!value || !value.road_ownership || value.road_ownership === "unknown") return false;
-  if (value.address_source !== "operator_geocoder" || !value.address) return false;
+  if (!SERVER_ADDRESS_SOURCES.has(value.address_source) || !value.address) return false;
   return ["available", "out_of_scope", "snapshot"].includes(value.lookup?.kgis);
 }
 

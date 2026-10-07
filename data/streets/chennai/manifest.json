@@ -1,0 +1,71 @@
+{
+ "format": "pothole-street-address-region",
+ "version": 1,
+ "region": "chennai",
+ "name": "Chennai",
+ "country": "India",
+ "country_code": "in",
+ "provenance": {
+  "source": "OpenStreetMap contributors, ODbL 1.0",
+  "licence": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "distributor": "Geofabrik GmbH",
+  "extract_url": "https://download.geofabrik.de/asia/india-261006.osm.pbf",
+  "extract_date": "2026-10-06",
+  "extract_md5": "b02c63449ffbeda80757a75496bf7c8f",
+  "rules": "Nominatim 5.3.0",
+  "coverage": [
+   [
+    80,
+    12.8,
+    80.35,
+    13.25
+   ]
+  ],
+  "built_by": "infra/aws-central/tools/build-street-index.mjs"
+ },
+ "tile_format": "pothole-street-address-tile",
+ "tile_version": 1,
+ "tile_degrees": 0.25,
+ "cell_degrees": 0.0025,
+ "scale": 200000,
+ "simplify_metres": 2,
+ "snap_limit_degrees": 0.007,
+ "counts": {
+  "streets": 110483,
+  "named_streets": 20251,
+  "street_pieces": 119693,
+  "places": 1155,
+  "areas": 1228,
+  "address_tuples": 2888,
+  "points_before_simplifying": 609476,
+  "points": 456619,
+  "tiles": 4,
+  "bytes": 2563465
+ },
+ "tiles": {
+  "1040_411": {
+   "file": "t_1040_411.bin",
+   "bytes": 915262,
+   "sha256": "872c420a9ac05115e34c48e50b335b5e9492299de8def5db9b8612574238f6c9",
+   "streets": 46968
+  },
+  "1040_412": {
+   "file": "t_1040_412.bin",
+   "bytes": 1220261,
+   "sha256": "abcadd748487092852b6d6a84f64ccfa181d37e23b3d949bdc9f666f8d08804b",
+   "streets": 62966
+  },
+  "1041_411": {
+   "file": "t_1041_411.bin",
+   "bytes": 84089,
+   "sha256": "580bb851d962efb8485b0119d6f1a1390378b38d86d21b14a405dab5fc586968",
+   "streets": 4231
+  },
+  "1041_412": {
+   "file": "t_1041_412.bin",
+   "bytes": 343853,
+   "sha256": "95967b25a9ac1559b603d3f7d9c6c38b0b62566d7d253f30ea087756a6463f5b",
+   "streets": 17496
+  }
+ }
+}

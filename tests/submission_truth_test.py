@@ -90,11 +90,16 @@ async ({pixel}) => {
   ok("outbound road evidence: obsolete negative submission boilerplate is absent",
      forbiddenOutboundCopy.every((copy) => !generatedRoadEvidenceLower.includes(copy)),
      generatedRoadEvidence.text);
-  ok("outbound road evidence: independent-app verification footer is final",
-     generatedRoadFooter.startsWith(outboundFooterMarker)
-       && /\bverify\b/i.test(generatedRoadFooter), generatedRoadFooter);
-  eq("outbound road evidence: footer appears exactly once",
-     generatedRoadEvidence.text.split(outboundFooterMarker).length - 1, 1);
+  // A road-damage letter ends at the sender's name since template 5: its footer asked
+  // the officer to verify suggestions the letter no longer makes. What it asks the
+  // office to verify is now a sentence of the letter itself.
+  ok("outbound road evidence: the text ends at the sign-off",
+     generatedRoadFooter.startsWith("Regards,\n"), generatedRoadFooter);
+  eq("outbound road evidence: no independent-app footer is appended",
+     generatedRoadEvidence.text.split(outboundFooterMarker).length - 1, 0);
+  ok("outbound road evidence: the letter asks the office to verify the road is its own",
+     generatedRoadEvidence.text.includes("Please verify that this road is maintained by your office."),
+     generatedRoadEvidence.text);
 
   // ---------- stored reports ----------
   const records = [

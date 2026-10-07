@@ -1,0 +1,83 @@
+{
+ "format": "pothole-street-address-region",
+ "version": 1,
+ "region": "mumbai",
+ "name": "Mumbai, Thane and Navi Mumbai",
+ "country": "India",
+ "country_code": "in",
+ "provenance": {
+  "source": "OpenStreetMap contributors, ODbL 1.0",
+  "licence": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "distributor": "Geofabrik GmbH",
+  "extract_url": "https://download.geofabrik.de/asia/india-261006.osm.pbf",
+  "extract_date": "2026-10-06",
+  "extract_md5": "b02c63449ffbeda80757a75496bf7c8f",
+  "rules": "Nominatim 5.3.0",
+  "coverage": [
+   [
+    72.75,
+    18.85,
+    73.2,
+    19.35
+   ]
+  ],
+  "built_by": "infra/aws-central/tools/build-street-index.mjs"
+ },
+ "tile_format": "pothole-street-address-tile",
+ "tile_version": 1,
+ "tile_degrees": 0.25,
+ "cell_degrees": 0.0025,
+ "scale": 200000,
+ "simplify_metres": 2,
+ "snap_limit_degrees": 0.007,
+ "counts": {
+  "streets": 87243,
+  "named_streets": 18262,
+  "street_pieces": 89931,
+  "places": 1167,
+  "areas": 4451,
+  "address_tuples": 4558,
+  "points_before_simplifying": 648190,
+  "points": 418161,
+  "tiles": 6,
+  "bytes": 2114066
+ },
+ "tiles": {
+  "1011_435": {
+   "file": "t_1011_435.bin",
+   "bytes": 175014,
+   "sha256": "e96a4e67eb921439c0061c51af6c3a51d2988ea2ceda918fd328b745999a51d0",
+   "streets": 7657
+  },
+  "1011_436": {
+   "file": "t_1011_436.bin",
+   "bytes": 932175,
+   "sha256": "026c4789cf9303a9a1f184849dc77e468712209fdc701938c629b7ab3cde429f",
+   "streets": 44537
+  },
+  "1011_437": {
+   "file": "t_1011_437.bin",
+   "bytes": 156438,
+   "sha256": "6c33eae30d3611ff5022a9ac02ff3e3615b853ccd5c88a8194220b48db1442d5",
+   "streets": 7077
+  },
+  "1012_435": {
+   "file": "t_1012_435.bin",
+   "bytes": 144117,
+   "sha256": "86fc4830a52acb2c18f0bc258e2b0f4d6dbf3d265dd7b2a637ec9bd23d9b75d8",
+   "streets": 6425
+  },
+  "1012_436": {
+   "file": "t_1012_436.bin",
+   "bytes": 558249,
+   "sha256": "be1681e7ee3a130aaa5692648b6d55c9579f9ca54fcc0de73c5167c08a9c68a2",
+   "streets": 27418
+  },
+  "1012_437": {
+   "file": "t_1012_437.bin",
+   "bytes": 148073,
+   "sha256": "8d8e9eff1ca0fcba8679085841b83d8d2c48a7247db8ca69a6c7e0ae96c2a5c1",
+   "streets": 6544
+  }
+ }
+}

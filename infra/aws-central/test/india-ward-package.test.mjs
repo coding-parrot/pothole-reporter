@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -8,7 +8,7 @@ import { pathToFileURL } from "node:url";
 import { INDIA_WARDS_DIR, createIndiaWards } from "../service/india-wards.mjs";
 import { RUNTIME_PATH } from "../tools/india-ward-runtime.mjs";
 import { WARDS_DIR, root } from "../tools/snapshot-india-wards.mjs";
-import { stageIndiaWards } from "../tools/stage-india-wards.mjs";
+import { checkStagedIndiaWards, stageIndiaWards } from "../tools/stage-india-wards.mjs";
 
 // What deploy.sh puts in the Lambda package for wards outside Karnataka: the runtime list
 // and the snapshot files it switches on, and nothing else of data/wards (28 snapshots and
@@ -58,6 +58,38 @@ test("a copy of the service in the package layout names the ward from the staged
   // Jaipur's file is committed and not switched on: it is not in the package, and is not missed.
   assert.equal((await geolocator.resolve({ lat: 26.9239, lng: 75.8267 })).lookup.ward, "out_of_scope");
   assert.deepEqual(errors, []);
+});
+
+// deploy.sh runs tools/check-package.mjs on the staged package before it uploads anything.
+// For wards outside Karnataka that check is checkStagedIndiaWards: every snapshot the
+// staged list switches on must load from the package's own files with the package's own
+// code, and the canary point must come back in its ward.
+test("the pre-upload check passes a whole package and names a switched-on snapshot that is missing", async () => {
+  const layout = () => {
+    const pkg = mkdtempSync(path.join(os.tmpdir(), "package-"));
+    cpSync(path.join(root, "infra/aws-central/service"), path.join(pkg, "infra/aws-central/service"), { recursive: true });
+    stageIndiaWards(root, path.join(pkg, "data/wards"));
+    return pkg;
+  };
+  const whole = await checkStagedIndiaWards(layout());
+  assert.deepEqual(whole.problems, []);
+  assert.deepEqual(whole.snapshots, runtime.snapshots.map((entry) => entry.id));
+  assert.equal(whole.canary, "SHAHIBAG");
+  // The 7 Oct 2026 failure, for this data: a copy step that left a file out.
+  const lost = layout();
+  rmSync(path.join(lost, "data/wards/GJ/ahmedabad.json"));
+  const missing = await checkStagedIndiaWards(lost);
+  assert.equal(missing.problems.length, 1);
+  assert.match(missing.problems[0], /GJ\/ahmedabad.*missing from the package/);
+  // An edited file, and no list at all.
+  const edited = layout();
+  writeFileSync(path.join(edited, "data/wards/MP/bhopal.json"), `${readFileSync(path.join(edited, "data/wards/MP/bhopal.json"), "utf8")} `);
+  assert.match((await checkStagedIndiaWards(edited)).problems[0], /MP\/bhopal/);
+  const bare = layout();
+  rmSync(path.join(bare, "data/wards"), { recursive: true });
+  assert.match((await checkStagedIndiaWards(bare)).problems[0], /runtime\.json is not in the package/);
+  const check = readFileSync(path.join(root, "infra/aws-central/tools/check-package.mjs"), "utf8");
+  assert.match(check, /checkStagedIndiaWards\(packageDirectory\)/, "check-package.mjs runs it");
 });
 
 test("staging refuses a snapshot that is missing or is not the file the list pinned", () => {

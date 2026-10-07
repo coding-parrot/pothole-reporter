@@ -4,6 +4,7 @@ import test from "node:test";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { createGeolocator } from "../service/geolocation.mjs";
+import { createLocalAddress } from "../service/local-address.mjs";
 
 // Since 7 Oct 2026 a Karnataka lookup is answered from the packaged copy of the KGIS
 // layers (data/karnataka-ownership.bin) and the request path never calls KGIS. The live
@@ -653,4 +654,80 @@ test("with a geocoder configured the service finds the street itself and identif
   const call = seen.find((item) => item.url.startsWith("https://nominatim.example/"));
   assert.match(call.url, /lat=12\.3051&lon=76\.6551&format=jsonv2&zoom=17&addressdetails=1/);
   assert.match(call.headers["user-agent"], /PotholeReporter.*contact@aiengg\.dev/);
+});
+
+// The street name was the last upstream call on this path: 200 to 1,050 ms to a public
+// geocoder on every first lookup of a place (measured 7 Oct 2026). With the packaged
+// street index the answer is read locally, and the geocoder is asked only where the index
+// has no street within reach.
+function streetCounted(options = {}) {
+  const calls = { geocoder: 0, other: 0 };
+  const geolocator = createGeolocator({
+    geocoderUrl: "https://geocoder.example/reverse",
+    localAddress: createLocalAddress({ logger: { error() {} } }),
+    fetchImpl: async (url) => {
+      if (String(url).startsWith("https://geocoder.example/")) {
+        calls.geocoder += 1;
+        return new Response(JSON.stringify({ address: { road: "Asked Road", city: "Jaipur", state: "Rajasthan",
+          "ISO3166-2-lvl4": "IN-RJ" } }), { status: 200, headers: { "content-type": "application/json" } });
+      }
+      calls.other += 1;
+      throw new Error("no network in this test");
+    },
+    ...options,
+  });
+  return { geolocator, calls };
+}
+
+test("a street in a packaged region is named without asking the geocoder", async () => {
+  const { geolocator, calls } = streetCounted();
+  const result = await geolocator.resolve({ lat: 12.99657, lng: 77.62034 });
+  assert.equal(calls.geocoder, 0);
+  assert.equal(calls.other, 0);
+  assert.equal(result.address_source, "packaged_streets");
+  assert.match(result.address, /^Thambhuchetty Road, Doddigunta, Cox Town, Bengaluru/);
+  assert.equal(result.address_parts.road, "Thambhuchetty Road");
+  assert.deepEqual(result.address_parts.localities.slice(0, 2), ["Doddigunta", "Cox Town"]);
+  assert.equal(result.state_code, "KA");
+  assert.equal(result.lookup.streets, "street");
+  assert.equal(result.lookup.geocoder, "not_needed");
+  assert.equal(result.road_ownership, "municipal");
+  assert.equal(result.ward_name, "Cox Town");
+});
+
+test("a point outside every packaged region still asks the geocoder", async () => {
+  const { geolocator, calls } = streetCounted();
+  const result = await geolocator.resolve({ lat: 26.9124, lng: 75.7873 });
+  assert.equal(calls.geocoder, 1);
+  assert.equal(result.address_source, "operator_geocoder");
+  assert.equal(result.address_parts.road, "Asked Road");
+  assert.equal(result.lookup.streets, "no_region");
+  assert.equal(result.lookup.geocoder, "available");
+});
+
+test("a point with no mapped street within reach asks the geocoder, not the nearest area", async () => {
+  // Ranebennur outskirts, 893 m from any mapped street. The index can only offer the
+  // area's name there, and on 7 Oct 2026 that changed a tender answer on this very point.
+  const { geolocator, calls } = streetCounted();
+  const result = await geolocator.resolve({ lat: 14.61591, lng: 75.66835 });
+  assert.equal(calls.geocoder, 1);
+  assert.equal(result.address_source, "operator_geocoder");
+  assert.equal(result.lookup.streets, "area");
+});
+
+test("the packaged answer of one caller is served to the next caller in the cell, whatever hint they bring", async () => {
+  const { geolocator, calls } = streetCounted();
+  await geolocator.resolve({ lat: 12.99657, lng: 77.62034 });
+  const again = await geolocator.resolve({ lat: 12.99658, lng: 77.62033, addressHint: "Somebody's Lane" });
+  assert.equal(again.address_source, "packaged_streets");
+  assert.match(again.address, /^Thambhuchetty Road/);
+  assert.equal(calls.geocoder, 0);
+});
+
+test("without a street index the geolocator behaves as before", async () => {
+  const { geolocator, calls } = streetCounted({ localAddress: null });
+  const result = await geolocator.resolve({ lat: 12.99657, lng: 77.62034 });
+  assert.equal(calls.geocoder, 1);
+  assert.equal(result.address_source, "operator_geocoder");
+  assert.equal(result.lookup.streets, "off");
 });

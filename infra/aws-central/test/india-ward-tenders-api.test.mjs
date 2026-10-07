@@ -159,7 +159,7 @@ test("Bhopal: the ward by number, and a zone number is nobody's ward", async () 
   assert.equal(lastRequest(h).ward_snapshot, "MP/bhopal");
 });
 
-test("a city with no snapshot: no ward, no ward tenders, and the body by the geocoder's city", async () => {
+test("a city with no snapshot: no ward, no ward tenders, and the body by the address's city", async () => {
   const h = await service();
   const body = await resolve(h, GHAZIABAD);
   assert.deepEqual([body.jurisdiction.ward_name, body.jurisdiction.ward_code], [null, null]);
@@ -168,7 +168,7 @@ test("a city with no snapshot: no ward, no ward tenders, and the body by the geo
   assert.deepEqual(body.ward_tenders, [], "Ghaziabad's notices say Ward 47 and nothing says which ward the point is in");
   assert.deepEqual(body.jurisdiction.urban_body, {
     name: "Ghaziabad Municipal Corporation", kind: "Municipal Corporation", city: "Ghaziabad", state_code: "UP",
-    basis: "geocoder_city", road_notices: 2, road_notices_open: 1,
+    basis: "address_city", road_notices: 2, road_notices_open: 1,
   });
   const logged = lastRequest(h);
   assert.equal(logged.ward_lookup, "out_of_scope");

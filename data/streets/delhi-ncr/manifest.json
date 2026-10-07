@@ -1,0 +1,143 @@
+{
+ "format": "pothole-street-address-region",
+ "version": 1,
+ "region": "delhi-ncr",
+ "name": "Delhi, Gurugram, Faridabad, Noida and Ghaziabad",
+ "country": "India",
+ "country_code": "in",
+ "provenance": {
+  "source": "OpenStreetMap contributors, ODbL 1.0",
+  "licence": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "distributor": "Geofabrik GmbH",
+  "extract_url": "https://download.geofabrik.de/asia/india-261006.osm.pbf",
+  "extract_date": "2026-10-06",
+  "extract_md5": "b02c63449ffbeda80757a75496bf7c8f",
+  "rules": "Nominatim 5.3.0",
+  "coverage": [
+   [
+    76.8,
+    28.2,
+    77.65,
+    28.9
+   ]
+  ],
+  "built_by": "infra/aws-central/tools/build-street-index.mjs"
+ },
+ "tile_format": "pothole-street-address-tile",
+ "tile_version": 1,
+ "tile_degrees": 0.25,
+ "cell_degrees": 0.0025,
+ "scale": 200000,
+ "simplify_metres": 2,
+ "snap_limit_degrees": 0.007,
+ "counts": {
+  "streets": 277623,
+  "named_streets": 20821,
+  "street_pieces": 294484,
+  "places": 1879,
+  "areas": 4721,
+  "address_tuples": 7023,
+  "points_before_simplifying": 1950433,
+  "points": 1243327,
+  "tiles": 16,
+  "bytes": 6266371
+ },
+ "tiles": {
+  "1027_472": {
+   "file": "t_1027_472.bin",
+   "bytes": 48159,
+   "sha256": "6786320a7419592c57685739219c488edc199955676ee9b67ab5251358d0cb1e",
+   "streets": 2202
+  },
+  "1027_473": {
+   "file": "t_1027_473.bin",
+   "bytes": 297175,
+   "sha256": "74476d57cca2477987b61e931f9bd053ad75ced0a3ac20ba5eba04a71f84ba5a",
+   "streets": 14868
+  },
+  "1027_474": {
+   "file": "t_1027_474.bin",
+   "bytes": 296388,
+   "sha256": "c441fae676d0c25f56553d91fde266c2046395ca95f78b5892a6e4027512c513",
+   "streets": 15529
+  },
+  "1027_475": {
+   "file": "t_1027_475.bin",
+   "bytes": 96552,
+   "sha256": "063183a2b993de9ba72153894c43cdedf69bdcfcdc84cc75ebebed3901ec7ff3",
+   "streets": 4643
+  },
+  "1028_472": {
+   "file": "t_1028_472.bin",
+   "bytes": 47965,
+   "sha256": "8c0bfb5c54a0c7f0673b185ccdabcc192efdd10fe774a48380010bb5d2fe65e8",
+   "streets": 2048
+  },
+  "1028_473": {
+   "file": "t_1028_473.bin",
+   "bytes": 581847,
+   "sha256": "88fabe869d0896762945ec4923be57d3622f47a91c7a4d21b3419d4aecf561fa",
+   "streets": 30688
+  },
+  "1028_474": {
+   "file": "t_1028_474.bin",
+   "bytes": 1723743,
+   "sha256": "09c2e96d97587b4eeaa6978b6aa6d726862187f10835cc4723da6e183c7593cd",
+   "streets": 93092
+  },
+  "1028_475": {
+   "file": "t_1028_475.bin",
+   "bytes": 338554,
+   "sha256": "64276bd81a88318d5d1d8a7c533816146c07a03d936bb337bf017f19f1e5cfbb",
+   "streets": 18391
+  },
+  "1029_472": {
+   "file": "t_1029_472.bin",
+   "bytes": 52297,
+   "sha256": "cf658b10c8a21352f39c7e8b7d158ac40dd41ed24372cf087d71773343b0b83f",
+   "streets": 2309
+  },
+  "1029_473": {
+   "file": "t_1029_473.bin",
+   "bytes": 599357,
+   "sha256": "7133ef636c30c4d774ca1084d633a95c4b1204203512efc7b10a494c0517746a",
+   "streets": 32378
+  },
+  "1029_474": {
+   "file": "t_1029_474.bin",
+   "bytes": 1383080,
+   "sha256": "df1553f35fee3b3d770dd523f6b899c2f5e4256e14e45781e8599971344c4cca",
+   "streets": 75146
+  },
+  "1029_475": {
+   "file": "t_1029_475.bin",
+   "bytes": 188405,
+   "sha256": "8e0b01d037e7bab16bcb6e20fbd9ed889e95f752064cedac5e5891fd1b951afe",
+   "streets": 9545
+  },
+  "1030_472": {
+   "file": "t_1030_472.bin",
+   "bytes": 20191,
+   "sha256": "506400e9e74a82ddb8edf54916338132d9cee07dfbc78810e142c7acb8b5ad15",
+   "streets": 629
+  },
+  "1030_473": {
+   "file": "t_1030_473.bin",
+   "bytes": 217986,
+   "sha256": "31050ede357edbb11f00cd83a6a0210a2afacb001d3a1cb764e75d7d461a7088",
+   "streets": 10038
+  },
+  "1030_474": {
+   "file": "t_1030_474.bin",
+   "bytes": 251842,
+   "sha256": "1bbaefcd475c6563ba1ac5d2c9bdfcef8e5b24fca6448644db667cfcf980a69c",
+   "streets": 12622
+  },
+  "1030_475": {
+   "file": "t_1030_475.bin",
+   "bytes": 122830,
+   "sha256": "0700ab0ef40fab1cfb967a085f31d0306b11e56562c045db75c7177e288774c0",
+   "streets": 5632
+  }
+ }
+}

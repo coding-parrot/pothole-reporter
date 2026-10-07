@@ -1,0 +1,83 @@
+{
+ "format": "pothole-street-address-region",
+ "version": 1,
+ "region": "kolkata",
+ "name": "Kolkata and Howrah",
+ "country": "India",
+ "country_code": "in",
+ "provenance": {
+  "source": "OpenStreetMap contributors, ODbL 1.0",
+  "licence": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "distributor": "Geofabrik GmbH",
+  "extract_url": "https://download.geofabrik.de/asia/india-261006.osm.pbf",
+  "extract_date": "2026-10-06",
+  "extract_md5": "b02c63449ffbeda80757a75496bf7c8f",
+  "rules": "Nominatim 5.3.0",
+  "coverage": [
+   [
+    88.2,
+    22.4,
+    88.55,
+    22.75
+   ]
+  ],
+  "built_by": "infra/aws-central/tools/build-street-index.mjs"
+ },
+ "tile_format": "pothole-street-address-tile",
+ "tile_version": 1,
+ "tile_degrees": 0.25,
+ "cell_degrees": 0.0025,
+ "scale": 200000,
+ "simplify_metres": 2,
+ "snap_limit_degrees": 0.007,
+ "counts": {
+  "streets": 100248,
+  "named_streets": 6339,
+  "street_pieces": 103177,
+  "places": 1782,
+  "areas": 418,
+  "address_tuples": 1883,
+  "points_before_simplifying": 907179,
+  "points": 493916,
+  "tiles": 6,
+  "bytes": 2279369
+ },
+ "tiles": {
+  "1072_449": {
+   "file": "t_1072_449.bin",
+   "bytes": 69010,
+   "sha256": "fe8b0eac51987f6c4f6db2ea30a57d39d6f9dc44f55f93419c9f0cd76cfdbebf",
+   "streets": 2767
+  },
+  "1072_450": {
+   "file": "t_1072_450.bin",
+   "bytes": 116152,
+   "sha256": "9ccd2bc8ad0b7af255fa7a108c7f43c785ad1e4a2a9d25df4b15830a87297541",
+   "streets": 4895
+  },
+  "1073_449": {
+   "file": "t_1073_449.bin",
+   "bytes": 555874,
+   "sha256": "c3ad24566382191fcb484cf3974bd69e3ce5b1233a84002370b59edb13b1f306",
+   "streets": 28254
+  },
+  "1073_450": {
+   "file": "t_1073_450.bin",
+   "bytes": 1367035,
+   "sha256": "ad7179ce415ad95f40f4b8b3b8f90c8276902d1ccf45d69967e406b713ea56ad",
+   "streets": 70917
+  },
+  "1074_449": {
+   "file": "t_1074_449.bin",
+   "bytes": 42176,
+   "sha256": "388e43e5faf19f6fd859b80d03bb9c0dc558572f83c9d6fe48d43ef2c634d3c6",
+   "streets": 1399
+  },
+  "1074_450": {
+   "file": "t_1074_450.bin",
+   "bytes": 129122,
+   "sha256": "bd0ca8eed34ab4c51a9e95063f3265ac0df04701a38d67d5a5aa633897bd480a",
+   "streets": 5949
+  }
+ }
+}

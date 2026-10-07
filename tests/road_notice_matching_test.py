@@ -216,15 +216,27 @@ def main() -> None:
         failures.append(f"unlisted synthetic road received a false notice: {result['absent']!r}")
     if not result["normalised"]:
         failures.append("same-State road-notice candidate was rejected")
+    # An open procurement notice is a candidate. The letter puts it to the office once,
+    # by its number and title, and states no finding. The portal copy still fails closed.
     complaint_body = result["complaintBody"]
-    if "No verified exact-road public contract found; tender and contractor omitted" not in complaint_body:
-        failures.append("complaint did not fail closed on an open procurement notice")
+    reference = (result["actual"] or {}).get("tender_number") or ""
+    if not reference or f"if this location is covered by - {reference}: " not in complaint_body \
+            or complaint_body.count(reference) != 1:
+        failures.append("complaint does not put the open procurement notice as one question: "
+                        f"{complaint_body[-420:]!r}")
+    for finding in ("No verified exact-road", "Verified", "DLP", "CONTRACT VERIFICATION",
+                    "Road-segment match", "Award/work-order"):
+        if finding in complaint_body:
+            failures.append(f"complaint states a finding about an open procurement notice: {finding}")
     # The synthetic address deliberately repeats the notice title, so title text may
-    # legitimately occur in the Location line. Identifiers/organisation must not escape.
-    for leaked in (result["seedId"], result["seedOrganisation"]):
+    # legitimately occur in the Location line. The organisation must not escape.
+    for leaked in (result["seedOrganisation"],):
         if leaked and leaked in complaint_body:
             failures.append(f"unverified procurement identity leaked into complaint: {leaked}")
     portal_fields = result["portalFields"]
+    if "No verified exact-road public contract found; tender and contractor omitted" \
+            not in (portal_fields.get("contract_verification_status") or ""):
+        failures.append("portal copy did not fail closed on an open procurement notice")
     for field in ("tender_number", "exact_work_name", "organisation_department",
                   "listed_contractor", "official_tender_detail_url"):
         if field in portal_fields:
