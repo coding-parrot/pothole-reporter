@@ -500,6 +500,244 @@ Resources:
       AlarmActions: [!Ref AlertTopic]
       OKActions: [!Ref AlertTopic]
 
+  # Scheduled production health: the rules of service/health (the log window and the
+  # canary), run here instead of by a GitHub schedule, which fired every 4 to 5 hours
+  # when asked for every hour and held AWS keys. Same package as the central function,
+  # another handler. It reaches production only as a phone does, through the public API,
+  # so its role has no table, no secret and no function to invoke.
+  HealthLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectPrefix}-health'
+      RetentionInDays: !Ref LogRetentionDays
+  HealthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectPrefix}-health'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: health-least-privilege
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: WriteOwnLogs
+                Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub '${HealthLogs.Arn}:*'
+              - Sid: QueryCentralRequestLog
+                Effect: Allow
+                Action: logs:StartQuery
+                Resource: !GetAtt LambdaLogs.Arn
+              # These two name a query by its id and take no log group: IAM has no
+              # narrower resource for them. The only queries this role can start, and so
+              # the only ids it holds, are on the one log group above. This is the grant
+              # the GitHub check ran with.
+              - Sid: ReadAndStopItsQueries
+                Effect: Allow
+                Action: [logs:GetQueryResults, logs:StopQuery]
+                Resource: '*'
+              # The canary's one install key, a SecureString under the account's default
+              # aws/ssm key, which every principal allowed to read a parameter may use.
+              - Sid: KeepCanaryKey
+                Effect: Allow
+                Action: [ssm:GetParameter, ssm:PutParameter]
+                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectPrefix}/health/canary-key'
+  HealthFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: HealthLogs
+    Properties:
+      FunctionName: !Sub '${ProjectPrefix}-health'
+      Description: Scheduled production health. Judges the central request log and runs the canary against the public API.
+      Runtime: nodejs22.x
+      Handler: infra/aws-central/service/health/handler.handler
+      Role: !GetAtt HealthRole.Arn
+      # It waits on Logs Insights and on the API and computes nothing: a six hour window
+      # and the reads canary took 3.1 s on 7 Oct 2026, and the bill is seconds times this.
+      MemorySize: 256
+      # Longer than the slowest run that still ends in a report: the window gives up on a
+      # query after 45 s (twice, 90 s), the reads canary on a request after 20 s (four,
+      # 80 s); a full canary on its own event can wait 220 s. A run cut off here writes
+      # nothing, and the HealthSilentAlarm reports it.
+      Timeout: 240
+      # One at a time: two canaries at once would be two detections for one answer.
+      ReservedConcurrentExecutions: 1
+      Architectures: [arm64]
+      Code:
+        S3Bucket: !Ref CodeS3Bucket
+        S3Key: !Ref CodeS3Key
+      Environment:
+        Variables:
+          API_URL: !GetAtt Api.ApiEndpoint
+          CENTRAL_LOG_GROUP: !Ref LambdaLogs
+          METRIC_NAMESPACE: !Ref ProjectPrefix
+          CANARY_KEY_PARAMETER: !Sub '/${ProjectPrefix}/health/canary-key'
+  # A run is worth nothing late and must not be repeated: Lambda would otherwise retry a
+  # failed or throttled run twice, for up to six hours, and each full canary is a paid
+  # detection. The next scheduled run is the retry.
+  HealthInvokeConfig:
+    Type: AWS::Lambda::EventInvokeConfig
+    Properties:
+      FunctionName: !Ref HealthFunction
+      Qualifier: $LATEST
+      MaximumRetryAttempts: 0
+      MaximumEventAgeInSeconds: 60
+
+  # The cadence, and what it costs (Mumbai prices, measured 7 Oct 2026; README has the
+  # table). Each rule sends the event that says what to run; they fire at different
+  # minutes because the function runs one at a time.
+  #
+  # Every hour: the log window over the last six hours. Six queries scanned 13.9 MB
+  # between them, at USD 0.0067 a GB: about 7 cents a month. An hour is how long a broken
+  # rule goes unseen; the rules need the six hours to have enough requests to judge.
+  HealthWindowSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Hourly. Judges the last six hours of the central request log, and runs the reads canary.
+      ScheduleExpression: cron(17 * * * ? *)
+      State: ENABLED
+      Targets:
+        - Id: health-window
+          Arn: !GetAtt HealthFunction.Arn
+          Input: '{"window": "6h", "canary": "reads"}'
+  # Every half hour (here and with the window): health, the map and the impact figures.
+  # No install, no signature, no model call, so it costs nothing but the function's 2 s.
+  HealthReadsSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Hourly, half an hour after the window. The reads canary.
+      ScheduleExpression: cron(47 * * * ? *)
+      State: ENABLED
+      Targets:
+        - Id: health-reads
+          Arn: !GetAtt HealthFunction.Arn
+          Input: '{"canary": "reads"}'
+  # Every three hours: the full canary, with one real detection (USD 0.0005, 240 a month,
+  # 12 cents) and three signed tender lookups. Not oftener, and not for the money: the
+  # request log does not say which install made a request, so the canary's lookups are
+  # judged by the window rules as if they were people's, and none of them ever matches a
+  # tender. "tenders match" fails at 20 unmatched lookups in a window. Every three hours
+  # is 6 in six hours; every half hour would be 36, and every quiet night an alarm.
+  # test/template-health.test.mjs holds this under half the rule.
+  HealthCanarySchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Every three hours. The full canary, with one detection and three tender lookups.
+      ScheduleExpression: cron(32 0/3 * * ? *)
+      State: ENABLED
+      Targets:
+        - Id: health-canary
+          Arn: !GetAtt HealthFunction.Arn
+          Input: '{"canary": "full"}'
+  HealthWindowInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref HealthFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt HealthWindowSchedule.Arn
+  HealthReadsInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref HealthFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt HealthReadsSchedule.Arn
+  HealthCanaryInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref HealthFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt HealthCanarySchedule.Arn
+
+  # The health function writes its two metrics only when something is broken (a custom
+  # metric is charged for each hour it receives a value), so for these two alarms no data
+  # is the healthy state. CloudWatch then judges the latest values it finds in a range
+  # two periods longer than the alarm's own: an alarm clears when its failures have left
+  # that range, hours after production recovered, never on the next run.
+  HealthRulesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectPrefix}-health-rules-broken'
+      AlarmDescription: A log window rule was broken on two hourly evaluations. The health function's log has the report, and tools/production-health.mjs --window 6h prints it.
+      Namespace: !Ref ProjectPrefix
+      MetricName: HealthBrokenRules
+      Statistic: Maximum
+      Period: 3600
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  # One failed canary is enough: it is a request a person would have made. The period is
+  # 90 minutes so that the range CloudWatch looks back over (three periods, 4.5 hours)
+  # always holds the last full canary, which runs every three hours: a fault only the
+  # full canary sees keeps the alarm on, and does not send a mail every three hours.
+  HealthCanaryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectPrefix}-health-canary-failed'
+      AlarmDescription: The canary failed against the live API. The health function's log has the report, and tools/production-health.mjs --canary runs it again.
+      Namespace: !Ref ProjectPrefix
+      MetricName: HealthCanaryFailed
+      Statistic: Maximum
+      Period: 5400
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+  # A dead checker must not look healthy. Runs that finished are the function's own
+  # Invocations less its Errors, which Lambda counts at no charge; it runs every half
+  # hour, so two half hours with none finished (crashed, timed out, throttled or never
+  # invoked) is the checker down. No data here is the fault itself.
+  HealthSilentAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectPrefix}-health-not-running'
+      AlarmDescription: The scheduled health function did not finish a run in two half hours. Production is not being checked.
+      Metrics:
+        - Id: finished
+          Expression: invocations - errors
+          Label: Health runs that finished
+          ReturnData: true
+        - Id: invocations
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Invocations
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref HealthFunction
+            Period: 1800
+            Stat: Sum
+          ReturnData: false
+        - Id: errors
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref HealthFunction
+            Period: 1800
+            Stat: Sum
+          ReturnData: false
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
 
 Outputs:
   AlertTopicArn:
@@ -512,3 +750,6 @@ Outputs:
     Value: !Ref DetectorSecret
   FunctionName:
     Value: !Ref CentralFunction
+  HealthFunctionName:
+    Description: The scheduled health function. deploy.sh invokes it once after every deploy.
+    Value: !Ref HealthFunction
