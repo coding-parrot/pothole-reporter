@@ -23,3 +23,7 @@
 - Full run 2 (4 phones, pool pothole-india-phones created) scheduled:
   arn:aws:devicefarm:us-west-2:695656921622:run:5425ff41-703f-49dd-b67a-dae7a8b54b98/f2dff49f-08af-45bd-8c48-e4302b102a5b
   results folder ~/Downloads/pothole-testers/device-farm/1.40.0/run-20261007-180839
+- CodeBuild: role pothole-reporter-ci-codebuild (logs + ci/ prefix only) and project
+  pothole-reporter-ci (MEDIUM, standard:7.0, no webhook) created. Seed photo uploaded to
+  ci/fixtures/eval/images/seed/IMG20260720144404.jpg (needed by gis_failure_test.py and
+  routing_test.py only). ci.sh/ci.py/cb.py written. Next: push branch, run ci.sh.

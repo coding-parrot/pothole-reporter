@@ -1,0 +1,27 @@
+{
+  "name": "pothole-reporter-ci",
+  "description": "On demand only: tools/cloud/ci.sh (harness and unit suites) and tools/cloud/eval-prompt.sh. No webhook, no schedule.",
+  "source": {
+    "type": "GITHUB",
+    "location": "https://github.com/coding-parrot/pothole-reporter.git",
+    "gitCloneDepth": 1,
+    "buildspec": "tools/cloud/buildspec-ci.yml",
+    "reportBuildStatus": false,
+    "insecureSsl": false
+  },
+  "artifacts": {"type": "NO_ARTIFACTS"},
+  "cache": {"type": "NO_CACHE"},
+  "environment": {
+    "type": "LINUX_CONTAINER",
+    "image": "aws/codebuild/standard:7.0",
+    "computeType": "BUILD_GENERAL1_MEDIUM",
+    "privilegedMode": false,
+    "imagePullCredentialsType": "CODEBUILD"
+  },
+  "serviceRole": "arn:aws:iam::695656921622:role/pothole-reporter-ci-codebuild",
+  "timeoutInMinutes": 30,
+  "queuedTimeoutInMinutes": 10,
+  "concurrentBuildLimit": 2,
+  "logsConfig": {"cloudWatchLogs": {"status": "ENABLED", "groupName": "/aws/codebuild/pothole-reporter-ci"}},
+  "tags": [{"key": "project", "value": "pothole-reporter-ci"}]
+}
