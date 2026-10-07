@@ -89,7 +89,10 @@ const lettersIn = (text) => text.replace(/[^a-z]/g, "").length;
 // `letters` are the single letters this body's titles use as a ward marker, glued to the
 // number or to a separator ("W06", "W-64", "D150"), and `words` its other markers ("div",
 // "dn" in Chennai, where a division is a ward). Elsewhere "div-5" is a works division.
-export function wardMarkersIn(title, { letters = [], words = [] } = {}) {
+// `zone_letter` is the letter the same shorthand gives the zone. Where a body has one, a
+// lettered ward counts only with its zone behind it ("W-06 Z-20", "D128 129 in Z10"): all
+// nine of Bhopal's lettered titles are written so, and a W-12 on its own is a house.
+export function wardMarkersIn(title, { letters = [], words = [], zone_letter: zoneLetter = null } = {}) {
   const tokens = tokensOf(title);
   const numbers = [];
   const names = [];
@@ -121,19 +124,25 @@ export function wardMarkersIn(title, { letters = [], words = [] } = {}) {
     while (FILLERS.has(tokens[at]?.text) && markerToNumber(tokens[at].gap)) at += 1;
     if (!tokens[at]?.number || !NUMBER.test(tokens[at].text) || !markerToNumber(tokens[at].gap)) continue;
     if (superseded) continue;
-    let read = 0;
+    const listed = [];
     while (tokens[at]?.number && NUMBER.test(tokens[at].text)) {
       const after = tokens[at + 1];
       // "2nd", "12m", "5A": letters glued to the digits make it something else.
       const glued = after && !after.number && after.gap === "";
       if (glued || (after && NOT_A_WARD.has(after.text))) break;
-      if (Number(tokens[at].text) > 0) numbers.push(Number(tokens[at].text));
-      read += 1;
+      if (Number(tokens[at].text) > 0) listed.push(Number(tokens[at].text));
       at += 1;
       if (tokens[at]?.text === "and" && tokens[at + 1]?.number && spacesOnly(tokens[at].gap)
           && spacesOnly(tokens[at + 1].gap)) at += 1;
       else if (!tokens[at]?.number || !insideList(tokens[at].gap)) break;
     }
+    const read = listed.length;
+    if (lettered && zoneLetter) {
+      // The zone behind the list, straight after it or after "in": "W30 Z08", "(D150, Z11)".
+      const zone = tokens[at]?.text === "in" ? at + 1 : at;
+      if (tokens[zone]?.text !== zoneLetter || !tokens[zone + 1]?.number || !/^[.\-:]?$/.test(tokens[zone + 1].gap)) continue;
+    }
+    numbers.push(...listed);
     // The name behind one number. A list of numbers is followed by a place in them, not
     // by their name.
     if (read !== 1 || !tokens[at] || !/^\s*[,\-:]?\s*$/.test(tokens[at].gap)) continue;

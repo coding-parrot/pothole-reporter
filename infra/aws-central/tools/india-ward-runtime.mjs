@@ -47,9 +47,11 @@ export const MOST_UNDECIDED = 0.1;
 // a ward number); Chennai numbers its wards as divisions, "Div-128", "Dn 62 and 45",
 // "D128 129 136" (all 11); Kochi writes "Div 44" and "Division-39". Nowhere else: in
 // Faridabad "ward no. 27 div-5" is ward 27 of works division 5.
+// `zone_letter`: in that shorthand the zone follows the ward ("W-06 Z-20", "D150, Z11"),
+// and a lettered ward is read only with it; a "W-12" on its own is a house or a plot.
 export const TITLE_MARKERS = {
-  "MP/bhopal": { letters: ["w"], words: [] },
-  "TN/chennai": { letters: ["d"], words: ["div", "divn", "dn", "division"] },
+  "MP/bhopal": { letters: ["w"], words: [], zone_letter: "z" },
+  "TN/chennai": { letters: ["d"], words: ["div", "divn", "dn", "division"], zone_letter: "z" },
   "KL/kochi": { letters: [], words: ["div", "divn", "division"] },
 };
 

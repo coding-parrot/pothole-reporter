@@ -31,7 +31,7 @@ test("the staged copy holds only what is switched on, and the service answers fr
   assert.deepEqual(filesUnder(out).sort(), ["runtime.json", ...runtime.snapshots.map((entry) => entry.file)].sort());
   assert.equal(staged.snapshots, runtime.snapshots.length);
   assert.equal(staged.bytes, filesUnder(out).reduce((sum, file) => sum + statSync(path.join(out, file)).size, 0));
-  // 160,411 bytes on 7 Oct 2026 for Bhopal and Ahmedabad. Past half a megabyte someone
+  // About 160 KB on 7 Oct 2026 for Bhopal and Ahmedabad. Past half a megabyte someone
   // has switched on a great many cities, which is worth a look at the package and at
   // the first-load time of the largest State.
   assert.ok(staged.bytes < 500_000, `${staged.bytes} bytes staged`);

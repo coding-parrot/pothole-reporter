@@ -9,8 +9,8 @@ import { matchWardTenders, wardNumbers } from "../service/ward-tenders.mjs";
 // week. The wards are the real names and numbers of the committed snapshots, drawn here
 // as squares.
 
-const BHOPAL = { letters: ["w"], words: [] };
-const CHENNAI = { letters: ["d"], words: ["div", "divn", "dn", "division"] };
+const BHOPAL = { letters: ["w"], words: [], zone_letter: "z" };
+const CHENNAI = { letters: ["d"], words: ["div", "divn", "dn", "division"], zone_letter: "z" };
 const numbers = (title, markers) => wardMarkersIn(title, markers).numbers;
 const names = (title) => wardMarkersIn(title).names.map((runs) => runs[0]);
 
@@ -39,6 +39,12 @@ test("Bhopal's W06 and Z20 are a ward and a zone", () => {
   // A body whose titles do not write wards that way gets nothing from the same letters.
   assert.deepEqual(numbers("CONSTRUCTION OF CC ROAD NEAR BHUMIKA PARISAR W30 Z08"), []);
   assert.deepEqual(numbers("Road from D block to W block, 12 m wide", { letters: ["w", "d"], words: [] }), [], "a lone letter is not a marker");
+  // The shorthand is a pair, ward then zone. A W with a number and no Z behind it is a
+  // house or a plot: "HN B-164" is in these titles, and a W-12 would read the same.
+  assert.deepEqual(numbers("CONSTRUCTION OF CC ROAD FROM HOUSE W-12 TO PARK AT ARERA COLONY WARD 49 ZONE 10", BHOPAL), [49]);
+  assert.deepEqual(numbers("CONSTRUCTION OF CC ROAD FROM HOUSE W-12 TO PARK AT ARERA COLONY", BHOPAL), []);
+  assert.deepEqual(numbers("ASPHALTING OF ROAD NEAR STERLING GREENVIEW PHASE 2 AND AFTER 70A JANKI NAGAR TO COMFORT GARDEN W30 Z08", BHOPAL), [30]);
+  assert.deepEqual(numbers("ASPHALTING OF ROAD WORK FROM H.NO.165-171 DURGESH VIHAR AND FROM H.NO.146-131 NEERJA NAGAR W-66 Z-15.", BHOPAL), [66]);
   assert.deepEqual(numbers("CONSTRUCTION OF CC ROAD G-3 GULMOHAR BUNDELA JI HOUSE TO GULDASTA APARTMENT WARD 50 ZONE 10", BHOPAL), [50]);
 });
 
