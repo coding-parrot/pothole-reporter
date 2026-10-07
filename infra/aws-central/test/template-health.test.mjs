@@ -243,3 +243,19 @@ test("deploy.sh can find the health function: the stack names it in its outputs"
   const outputs = template.slice(template.indexOf("\nOutputs:"));
   assert.match(outputs, /HealthFunctionName:\n(?: {4}.*\n)* {4}Value: !Ref HealthFunction/);
 });
+
+// GitHub ran the workflow's hourly schedule every 4 to 5 hours (16:48, 21:37 and 01:32
+// UTC on 6 and 7 Oct 2026), which is why the schedule is the stack's now. Two schedules
+// would also be two canaries, and twice the lookups in the log.
+test("the GitHub workflow is for manual runs only and says where the scheduled check lives", () => {
+  const workflow = readFileSync(new URL("../../../.github/workflows/production-health.yml", import.meta.url), "utf8");
+  const triggers = workflow.slice(workflow.indexOf("\non:"), workflow.indexOf("\npermissions:"));
+  assert.match(triggers, /^\s+workflow_dispatch:/m);
+  assert.ok(!/schedule|cron/.test(triggers), "no schedule");
+  const header = workflow.slice(0, workflow.indexOf("\non:"));
+  assert.match(header, /HealthFunction in infra\/aws-central\/template\.yaml/);
+  // A manual run still judges the window, runs the canary and keeps the issue honest.
+  assert.match(workflow, /production-health\.mjs --window 6h --canary/);
+  assert.match(workflow, /name: Open or update the issue\n\s+if: failure\(\)/);
+  assert.match(workflow, /name: Close the issue when healthy\n\s+if: success\(\)/);
+});
