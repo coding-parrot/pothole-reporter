@@ -152,5 +152,6 @@
   "gepnic_carry_over_test.py": true,
   "drive_capture_encode_stall_test.py": true,
   "drive_portrait_camera_warning_test.py": true,
-  "system_bars_style_test.py": true
+  "system_bars_style_test.py": true,
+  "look_and_feel_test.py": true
 }

@@ -33,7 +33,36 @@
   .row { display:flex; gap:10px; align-items:center; }
   .thumb { width:64px; height:64px; object-fit:cover; border-radius:10px; flex:none; }
   .thumb-empty { background:#26272c; }
-  .quick-email { flex:none; padding:10px 12px; font-size:13px; white-space:nowrap; }
+  /* A report card says where and what in its first two lines; the delivery state and
+     the Email button sit on their own row. With the button beside the text it took
+     half the card (.send grows) and the place wrapped into a 100 px column. */
+  .report-card { flex-wrap:wrap; row-gap:10px; }
+  .report-card .card-open { flex:1 1 100%; }
+  .card-text { display:block; min-width:0; flex:1; }
+  .card-title { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden;
+                font-size:15px; font-weight:600; line-height:1.3; overflow-wrap:anywhere; }
+  .card-title::first-letter { text-transform:uppercase; }
+  .card-sub { display:block; }
+  .card-foot { display:flex; flex:1 1 100%; align-items:center; justify-content:space-between; gap:10px; min-height:28px; }
+  /* Beside Back, the Email label needs the room: at half each it broke over two lines. */
+  #detail .btn-row:has(.send) #backBtn { flex:0 0 32%; }
+  .send.quick-email { flex:none; padding:10px 16px; min-height:44px; font-size:14px; white-space:nowrap; }
+  /* A drive in the list: when it was, in bold, and its counts under it. */
+  .group-label { display:block; min-width:0; }
+  .group-date { display:block; font-size:15px; font-weight:600; color:#f2f2f4; }
+  /* Explanations stay one tap away instead of standing between the controls. */
+  details.more { margin-top:6px; }
+  details.more summary { min-height:44px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+                         list-style:none; color:#ffb36f; font-size:14px; }
+  details.more summary::-webkit-details-marker { display:none; }
+  details.more summary::before { content:"\25B8"; transition:transform .15s; }
+  details.more[open] summary::before { transform:rotate(90deg); }
+  /* Counts: equal tiles, two to a row on the public card and three on your own. */
+  .stat-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; margin-top:12px; }
+  .stat-grid.three { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  .stat-grid .card { margin:0; text-align:center; padding:10px 8px; }
+  .stat-grid .wide { grid-column:1 / -1; }
+  .stat-grid .meta { font-size:13px; }
   .big-photo { width:100%; max-height:280px; object-fit:contain; background:#000; border-radius:10px; margin-bottom:10px; cursor:zoom-in; }
   #viewer { position:fixed; inset:0; background:#000; z-index:50; display:flex; align-items:center; justify-content:center; overflow:hidden; touch-action:none; }
   #viewerImg { max-width:100%; max-height:100%; transform-origin:center; will-change:transform; user-select:none; -webkit-user-drag:none; pointer-events:none; }
@@ -220,27 +249,27 @@
   </div>
 
   <div id="dash" class="hidden">
-    <!-- Back leads the screen: at the bottom it sat 440 px below the fold of a phone. -->
-    <div class="row" style="margin-bottom:10px"><button class="ghost" id="dashBack" style="flex:none;padding:9px 16px;min-height:44px">Back</button></div>
-    <div class="card" id="communityCard">
-      <div class="row" style="justify-content:space-between;align-items:flex-start">
-        <div style="min-width:0">
-          <div class="verdict" id="communityTitle">Public pothole map</div>
-          <div class="meta" id="communityNote">Loading public map and complaint counts...</div>
-          <div class="meta" id="communityPeriod"></div>
-        </div>
-        <button class="ghost" id="dashRefresh" style="flex:none;padding:12px 14px;min-height:44px">Refresh</button>
-      </div>
-      <div id="communityStats" class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"></div>
+    <!-- Back leads the screen: at the bottom it sat 440 px below the fold of a phone.
+         The map comes next, then the counts, then the notes about the counts: a
+         paragraph and four tiles used to stand between Back and the map. -->
+    <div class="row" style="margin-bottom:10px">
+      <button class="ghost" id="dashBack" style="flex:none;padding:9px 16px;min-height:44px">Back</button>
+      <div class="verdict" id="communityTitle" style="flex:1;min-width:0;margin:0;text-align:center">Public pothole map</div>
+      <button class="ghost" id="dashRefresh" style="flex:none;padding:9px 16px;min-height:44px">Refresh</button>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
-      <div id="map" style="height:46vh;background:#0c0d0f"></div>
+      <div id="map" style="height:52vh;background:#0c0d0f"></div>
       <div class="meta" id="mapNote" style="padding:8px 12px"></div>
+    </div>
+    <div class="card" id="communityCard">
+      <div id="communityStats" class="stat-grid" style="margin-top:0"></div>
+      <div class="meta" id="communityNote" style="margin-top:10px">Loading public map and complaint counts...</div>
+      <div class="meta" id="communityPeriod"></div>
     </div>
     <div class="card">
       <div class="verdict" id="dashTitle">Your contribution</div>
       <div class="meta" id="dashRange"></div>
-      <div id="dashStats" class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"></div>
+      <div id="dashStats" class="stat-grid three"></div>
     </div>
     <div class="card" id="dashBreak"></div>
   </div>
@@ -260,7 +289,7 @@
         <option id="providerShared" value="shared">Shared project service: no key required</option>
         <option id="providerPersonal" value="personal">My OpenAI API key</option>
       </select>
-      <div class="meta" id="providerNote" style="margin-top:6px"></div>
+      <details class="more"><summary data-more>Details</summary><div class="meta" id="providerNote"></div></details>
       <label id="keyLabel" for="setKey" class="hidden">OpenAI API key (stored only on this device)</label>
       <!-- A pasted key has to be checkable by eye, and the WebView must not offer to keep
            it as a site password or "correct" it. -->
@@ -279,7 +308,7 @@
         <input type="checkbox" id="setDebug" style="flex:none;width:18px;height:18px;accent-color:var(--accent)">
         <span id="debugLabel">Debug mode: save the drive video and every analysed frame to this device</span>
       </label>
-      <div class="meta" id="debugNote"></div>
+      <details class="more"><summary data-more>Details</summary><div class="meta" id="debugNote"></div></details>
       <!-- Hidden until the native Drive service this depends on is the one the app
            wires. The shipped plugin implements start/stop/getStatus; the preview,
            pause, keyframe and repair-sync calls this mode makes live in an Android
@@ -290,8 +319,8 @@
         <span id="backgroundDriveLabel">Background Drive Mode (no live preview)</span>
       </label>
       <div class="meta hidden" id="backgroundDriveNote" aria-hidden="true" style="display:none"></div>
-      <div class="meta" id="settingsNote" style="margin-top:10px">Email is the only complaint option. One tap opens a draft addressed to the responsible authority; nothing sends until you press Send in your email app.</div>
       <div class="meta" id="independentNote" style="margin-top:10px"></div>
+      <details class="more"><summary data-more>Details</summary><div class="meta" id="settingsNote">Email is the only complaint option. One tap opens a draft addressed to the responsible authority; nothing sends until you press Send in your email app.</div></details>
       <div class="policy-links">
         <a id="privacyLink" href="https://coding-parrot.github.io/pothole-reporter/privacy.html" target="_blank" rel="noopener noreferrer">Privacy policy</a>
         <a id="sourcesLink" href="https://coding-parrot.github.io/pothole-reporter/sources.html" target="_blank" rel="noopener noreferrer">Data sources and limits</a>
@@ -309,7 +338,7 @@
   <div id="feedback" class="hidden">
     <div class="card">
       <div class="verdict" id="feedbackTitle">Send feedback</div>
-      <div class="meta" id="feedbackIntro" style="margin-bottom:6px">Tell us what worked and what did not. This goes to the team with this installation's usage, so we can see exactly what you hit.</div>
+      <details class="more"><summary data-more>Details</summary><div class="meta" id="feedbackIntro">Tell us what worked and what did not. This goes to the team with this installation's usage, so we can see exactly what you hit.</div></details>
       <label id="feedbackRatingLabel">How is the app so far?</label>
       <div id="feedbackStars" role="radiogroup" aria-labelledby="feedbackRatingLabel" style="display:flex;gap:6px;margin:6px 0">
         <button type="button" class="ghost" data-rating="1" role="radio" aria-checked="false" style="flex:1;padding:10px;min-height:48px;font-size:20px">&#9734;</button>
@@ -568,6 +597,7 @@ const I18N = {
     feedback_sent: "Thank you. Your feedback was sent.",
     feedback_errors_label: "Include the last {n} app error messages (text only: no photos, keys or locations)",
     feedback_queued: "Saved on this phone. It will be sent the next time the app connects.",
+    more_info: "Details",
     back: "Back", save: "Save", del: "Delete", email_btn: "Email complaint", stop: "&#9632; Stop", working: "Working...",
     native_pause: "Pause", native_resume: "Resume", native_video_on: "Video: On", native_video_off: "Video: Off", open_maps: "Maps", analyse_saved_btn: "Check saved frames", saved_frames_running: "Saved frames are already being checked.", saved_frames_none: "Every saved frame from this drive has already been checked.", saved_frames_done: "Saved frames checked: {checked}, {found} new, {known} already reported.", saved_frames_stopped: "Saved-frame check stopped: {checked} checked, {found} new, {known} already reported.", saved_frames_failed: " {n} could not be checked.", saved_frames_remaining: " {n} saved frames are left; checking resumes while the app is open.",
     manual_analysis_active: "The previous photo is still being analysed. Wait for it to finish before taking another.",
@@ -880,6 +910,7 @@ const I18N = {
     privacy_accept: "ಮುಂದುವರಿಸಿ", privacy_decline: "ಈಗ ಬೇಡ",
     wipe_btn: "ಎಲ್ಲಾ ಆ್ಯಪ್ ಡೇಟಾ ಅಳಿಸಿ",
     storage_used: "ಈ ಫೋನ್‌ನಲ್ಲಿ ಸಂಗ್ರಹಿಸಲಾಗಿದೆ: {mb} MB",
+    more_info: "ವಿವರಗಳು",
     back: "ಹಿಂದೆ", save: "ಉಳಿಸಿ", del: "ಅಳಿಸಿ", email_btn: "ಇಮೇಲ್ ದೂರು", stop: "&#9632; ನಿಲ್ಲಿಸಿ", working: "ನಡೆಯುತ್ತಿದೆ...",
     native_pause: "ವಿರಾಮ", native_resume: "ಮುಂದುವರಿಸಿ", native_video_on: "ವಿಡಿಯೋ: ಆನ್", native_video_off: "ವಿಡಿಯೋ: ಆಫ್", open_maps: "ನಕ್ಷೆ", analyse_saved_btn: "ಉಳಿಸಿದ ಫ್ರೇಮ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಿ", saved_frames_running: "ಉಳಿಸಿದ ಫ್ರೇಮ್‌ಗಳ ಪರಿಶೀಲನೆ ಈಗಾಗಲೇ ನಡೆಯುತ್ತಿದೆ.", saved_frames_none: "ಈ ಡ್ರೈವ್‌ನ ಎಲ್ಲಾ ಉಳಿಸಿದ ಫ್ರೇಮ್‌ಗಳನ್ನು ಈಗಾಗಲೇ ಪರಿಶೀಲಿಸಲಾಗಿದೆ.", saved_frames_done: "ಉಳಿಸಿದ ಫ್ರೇಮ್‌ಗಳ ಪರಿಶೀಲನೆ ಮುಗಿಯಿತು: {checked} ಪರಿಶೀಲನೆ, {found} ಹೊಸದು, {known} ಈಗಾಗಲೇ ವರದಿಯಾಗಿದೆ.", saved_frames_stopped: "ಉಳಿಸಿದ ಫ್ರೇಮ್‌ಗಳ ಪರಿಶೀಲನೆ ನಿಲ್ಲಿಸಲಾಗಿದೆ: {checked} ಪರಿಶೀಲನೆ, {found} ಹೊಸದು, {known} ಈಗಾಗಲೇ ವರದಿಯಾಗಿದೆ.", saved_frames_failed: " {n} ಪರಿಶೀಲಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.", saved_frames_remaining: " ಇನ್ನೂ {n} ಉಳಿಸಿದ ಫ್ರೇಮ್‌ಗಳಿವೆ; ಆ್ಯಪ್ ತೆರೆದಿರುವಾಗ ಪರಿಶೀಲನೆ ಮುಂದುವರಿಯುತ್ತದೆ.",
     manual_analysis_active: "ಹಿಂದಿನ ಫೋಟೋ ಇನ್ನೂ ವಿಶ್ಲೇಷಣೆಯಾಗುತ್ತಿದೆ. ಮತ್ತೊಂದು ತೆಗೆಯುವ ಮೊದಲು ಅದು ಮುಗಿಯುವವರೆಗೆ ಕಾಯಿರಿ.",
@@ -1167,6 +1198,7 @@ const I18N = {
     model_option_experiment: "{model}: अचूकतेचा प्रयोग",
     detail_option_high: "उच्च",
     detail_option_original: "मूळ (फक्त {models})",
+    more_info: "तपशील",
     back: "मागे", save: "जतन करा", del: "हटवा", email_btn: "ईमेल",
     stop: "&#9632; थांबवा", working: "प्रक्रिया सुरू आहे...",
     native_pause: "थांबवा", native_resume: "पुन्हा सुरू करा", native_video_on: "व्हिडिओ: सुरू", native_video_off: "व्हिडिओ: बंद", open_maps: "नकाशा", analyse_saved_btn: "जतन केलेल्या फ्रेम्स तपासा", saved_frames_running: "जतन केलेल्या फ्रेम्सची तपासणी आधीच सुरू आहे.", saved_frames_none: "या ड्राइव्हमधील सर्व जतन केलेल्या फ्रेम्स आधीच तपासल्या आहेत.", saved_frames_done: "जतन केलेल्या फ्रेम्स तपासल्या: {checked} तपासल्या, {found} नवीन, {known} आधीच नोंदवलेले.", saved_frames_stopped: "जतन केलेल्या फ्रेम्सची तपासणी थांबवली: {checked} तपासल्या, {found} नवीन, {known} आधीच नोंदवलेले.", saved_frames_failed: " {n} तपासता आल्या नाहीत.", saved_frames_remaining: " आणखी {n} जतन केलेल्या फ्रेम्स बाकी आहेत; अॅप उघडे असताना तपासणी पुढे सुरू राहते.",
@@ -1486,6 +1518,7 @@ const I18N = {
     model_option_experiment: "{model}: নির্ভুলতার পরীক্ষা",
     detail_option_high: "উচ্চ",
     detail_option_original: "মূল (শুধু {models})",
+    more_info: "বিস্তারিত",
     back: "ফিরে যান", save: "সংরক্ষণ করুন", del: "মুছুন", email_btn: "ইমেল", stop: "&#9632; থামান", working: "কাজ চলছে...",
     native_pause: "বিরতি", native_resume: "আবার শুরু", native_video_on: "ভিডিও: চালু", native_video_off: "ভিডিও: বন্ধ", open_maps: "মানচিত্র", analyse_saved_btn: "সংরক্ষিত ফ্রেম যাচাই করুন", saved_frames_running: "সংরক্ষিত ফ্রেম ইতিমধ্যে যাচাই করা হচ্ছে।", saved_frames_none: "এই ড্রাইভের সব সংরক্ষিত ফ্রেম ইতিমধ্যে যাচাই করা হয়েছে।", saved_frames_done: "সংরক্ষিত ফ্রেম যাচাই শেষ: {checked}টি যাচাই, {found} নতুন, {known} আগেই রিপোর্ট করা।", saved_frames_stopped: "সংরক্ষিত ফ্রেম যাচাই থামানো হয়েছে: {checked}টি যাচাই, {found} নতুন, {known} আগেই রিপোর্ট করা।", saved_frames_failed: " {n}টি যাচাই করা যায়নি।", saved_frames_remaining: " আরও {n}টি সংরক্ষিত ফ্রেম বাকি; অ্যাপ খোলা থাকলে যাচাই চলতে থাকবে।",
     chip_draft: "খসড়া", chip_sent: "আপনি পাঠিয়েছেন", chip_queued: "ইমেল খসড়া তৈরি", chip_rejected: "রাস্তার গর্ত: না", chip_review: "যাচাই প্রয়োজন",
@@ -2047,6 +2080,7 @@ function applyLang() {
   $("backgroundDriveLabel").textContent = t("background_drive_label");
   $("backgroundDriveNote").textContent = t("background_drive_note");
   $("settingsNote").textContent = t("settings_note");
+  for (const el of document.querySelectorAll("[data-more]")) el.textContent = t("more_info");
   $("independentNote").textContent = t("independent_note");
   $("privacyTitle").textContent = t("privacy_title");
   // Every language keeps these four paragraphs disjoint and they render verbatim;
@@ -2363,6 +2397,15 @@ const HISTORY_PAGE = 50;
 let historyWindow = HISTORY_PAGE;
 const driveWindows = new Map();
 
+// Every drive summary starts "{date} · ". The date is the line a person looks for, so it
+// stands alone in bold and the counts follow under it.
+function groupLabelHtml(label) {
+  const cut = String(label).indexOf(" · ");
+  if (cut < 0) return `<span class="group-label"><span class="group-date">${label}</span></span>`;
+  return `<span class="group-label"><span class="group-date">${label.slice(0, cut)}</span>`
+    + `<span class="meta" style="display:block;margin:0">${label.slice(cut + 3)}</span></span>`;
+}
+
 async function renderReports() {
   // Metadata only: no photo leaves IndexedDB for the list. Thumbnails are read for
   // the cards painted, and a report's full row loads when it is opened.
@@ -2428,17 +2471,28 @@ async function renderReports() {
       && emailStatusOf(r) !== "sent";
     const src = safePhotoSrc(cardThumbUrls.get(r.id) || (r._native ? photoSrc(r) : ""));
     const wantsThumb = src || (r.has_photo && !r._native);
+    // Where, then what and when. A report with no address yet leads with the damage.
+    const place = r.address
+      ? String(r.address).split(",").slice(0, 2).map((part) => part.trim()).filter(Boolean).join(", ") : "";
+    const what = damageType(r) ? tDamage(r) : "";
+    const title = place || what || fmtDate(r.created_at);
+    const sub = [place ? what : "", r.size ? tSize(r.size) : ""].filter(Boolean).join(" · ");
+    const when = place || what ? fmtDate(r.created_at) : "";
     return `
-    <div class="card row" data-id="${escapeAttr(r.id)}" style="cursor:pointer">
+    <div class="card row report-card" data-id="${escapeAttr(r.id)}" style="cursor:pointer">
       <button type="button" class="card-open">
       ${wantsThumb ? `<img class="thumb thumb-empty"${src ? ` src="${src}"` : ""} data-thumb="${escapeAttr(r.id)}" alt="" loading="lazy" decoding="async">`
         : `<span class="thumb thumb-empty" style="display:block" aria-hidden="true"></span>`}
-      <span style="min-width:0;flex:1;display:block">
-        <span style="display:block">${chip(r.status, r)} ${damageType(r) ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tDamage(r)}</span>` : ""} ${r.size ? `<span class="chip" style="background:#26272c;color:#cfcfd4">${tSize(r.size)}</span>` : ""}</span>
-        <span class="meta" style="display:block">${escapeHtml(fmtDate(r.created_at))}${r.address ? " · " + escapeHtml(String(r.address).split(",").slice(0, 2).join(", ")) : ""}</span>
+      <span class="card-text">
+        <span class="card-title">${escapeHtml(title)}</span>
+        ${sub ? `<span class="meta card-sub">${escapeHtml(sub)}</span>` : ""}
+        ${when ? `<span class="meta card-sub">${escapeHtml(when)}</span>` : ""}
       </span>
       </button>
-      ${canEmail ? `<button class="send quick-email" data-quick-email="${escapeAttr(r.id)}" aria-label="${escapeAttr(t("email_btn"))}">${escapeHtml(t("email_btn"))} &#9993;</button>` : ""}
+      <span class="card-foot">
+        ${chip(r.status, r)}
+        ${canEmail ? `<button class="send quick-email" data-quick-email="${escapeAttr(r.id)}" aria-label="${escapeAttr(t("email_btn"))}">${escapeHtml(t("email_btn"))}</button>` : ""}
+      </span>
     </div>`;
   };
   const driveById = {}, footageById = {};
@@ -2533,7 +2587,7 @@ async function renderReports() {
     const open = expandedDrives.has(String(g.driveId));
     const footageRow = footageRowHtml(g.driveId, fo, open);
     return `<button type="button" class="group-head ${open ? "open" : ""}" data-drive="${g.driveId}" aria-expanded="${open}">
-        <span class="caret" aria-hidden="true">&#9656;</span><span class="meta" style="font-weight:600;color:#f2f2f4">${label}</span>
+        <span class="caret" aria-hidden="true">&#9656;</span>${groupLabelHtml(label)}
       </button>` + footageRow
       + `<div data-drivebody="${g.driveId}"${open ? ' data-filled="1"' : ' style="display:none"'}>`
       + (open ? cards : "") + `</div>`;
@@ -3434,7 +3488,7 @@ function wireEmailSentPrompt(r) {
 // Once the composer has opened, the one action is to open it again.
 const emailReopens = (r) => ["queued", "sent"].includes(emailStatusOf(r));
 const emailActionHtml = (r) => emailReopens(r)
-  ? escapeHtml(t("email_reopen_btn")) : `${escapeHtml(sendLabel())} &#9993;`;
+  ? escapeHtml(t("email_reopen_btn")) : `${escapeHtml(sendLabel())}&nbsp;&#9993;`;
 
 // Road works tendered for the report's ward, from the central resolver. A weaker claim
 // than tender_note, so it stays folded until asked for and says what it is not. The
@@ -8765,7 +8819,7 @@ async function openDash() {
   const dayTxt = days === 1 ? t("day_one") : t("day_many", { n: days });
   $("dashRange").innerHTML = holes.length ? t("dash_range", { days: dayTxt, first }) : t("dash_empty");
 
-  const tile = (n, label, wide) => `<div class="card" style="flex:1 1 ${wide ? "100%" : "30%"};min-width:96px;margin:0;text-align:center">
+  const tile = (n, label, wide) => `<div class="card${wide ? " wide" : ""}">
       <div class="verdict" style="font-size:22px;margin:0">${escapeHtml(n)}</div>
       <div class="meta">${escapeHtml(label)}</div></div>`;
   // Seven tiles three to a row left the last one stretched alone; the headline count
