@@ -60,22 +60,22 @@ async () => {
   ok("draft: Bengali subject identifies a pothole complaint",
      /রাস্তার গর্ত.*অভিযোগ/.test(subject), subject);
   const complaintBlocks = body.trim().split(/\n{2,}/).map((part) => part.trim());
-  const complaintWithoutFooter = complaintBlocks.slice(0, -1).join("\n\n");
   ok("draft: Bengali body uses KMC's formal civic terminology",
      /কলকাতা পৌরসংস্থা/.test(body), body);
   ok("draft: Bengali body retains exact coordinates and map link",
      /22\.572600, 88\.363900/.test(body) && /maps\.google\.com/.test(body), body);
-  ok("draft: complaint has one final independent-app verification footer",
-     body.split(complaintFooter).length - 1 === 1
-       && complaintBlocks.at(-1) === complaintFooter, body);
+  // The footer asked the officer to verify a suggested authority, ward, owner and
+  // tender. The letter suggests none of them now and ends at the sender's name.
+  ok("draft: complaint ends at the sign-off, with no independent-app footer",
+     !body.includes(complaintFooter) && complaintBlocks.at(-1).startsWith("বিনীত,\n"), body);
   ok("draft: complaint removes the old no-submission sentence",
      !body.includes("অভিযোগ জমা দেয় না")
        && !/official (?:grievance )?submission/i.test(body), body);
-  ok("draft: KMC route keeps a truthful mandatory no-candidate contract block",
-     /ঠিকাদারি তথ্য/.test(complaintWithoutFooter)
-       && /No verified exact-road public contract found/.test(complaintWithoutFooter)
-       && !/Tender number:|Listed contractor:|Exact work name:/.test(complaintWithoutFooter)
-       && !/warranty is active|under warranty/i.test(complaintWithoutFooter), body);
+  ok("draft: KMC letter asks the office to verify the road and reports on no contract",
+     complaintBlocks.includes("অনুগ্রহ করে যাচাই করুন, এই রাস্তাটির রক্ষণাবেক্ষণ আপনার দপ্তরের দায়িত্বে কি না।")
+       && !/ঠিকাদারি তথ্য|দায়িত্বপ্রাপ্ত দপ্তর|No verified exact-road|Road owner\/maintainer|Suggested ward/.test(body)
+       && !/Tender number:|Listed contractor:|Exact work name:|ঠিকাদার/.test(body)
+       && !/warranty is active|under warranty/i.test(body), body);
 
   const report = {
     id: 72001, created_at: Date.now() / 1000, captured_at: Date.now() / 1000,

@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """The generated email is concise, complete, and does not overclaim.
 
-The detector has one accepted road-defect class: pothole. Candidate public records
-must never appear in outbound copy until every responsibility gate is verified.
+The detector has one accepted road-defect class: pothole. The letter states where and
+when the photo was taken and asks the office to verify the rest: that the road is its
+own, and whether one named road work covers the spot. It never says a contract, a ward
+or an owner was verified (verify_request_letter_test pins the full text).
 """
 import os
 import sys
@@ -137,23 +139,22 @@ def main():
                         *[(f"{lang} body", text) for lang, text in localised.items()]]:
         require(failures, not any(ch in text for ch in "\u2013\u2014"),
                 f"complaint {label} contains an em or en dash")
-    for heading in ("LOCATION", "CLASSIFICATION", "ROUTING", "CONTRACT VERIFICATION"):
-        require(failures, body.count(heading) == 1,
-                f"email must contain exactly one {heading} section")
+    # The four headed sections stated a body, a ward, an owner and a contract status as
+    # findings. The letter has no sections now and none of those lines.
+    for gone in ("LOCATION", "CLASSIFICATION", "ROUTING", "CONTRACT VERIFICATION",
+                 "Address / landmark:", "Defect decision:", "Surface:", "App visual size class:",
+                 "Measurement provenance:", "Geographic corporation/body:",
+                 "Complaint intake authority:", "Suggested portal category:", "Suggested ward:",
+                 "Road owner/maintainer:", "Status:", "Not recorded"):
+        require(failures, gone not in body, f'email still carries "{gone}"')
     for expected in (
-        "Address / landmark: 17th Main Road, HSR Layout, Bengaluru",
-        "Coordinates: 12.912345, 77.612345",
+        "Location: 17th Main Road, HSR Layout, Bengaluru",
+        "Coordinates: 12.912345, 77.612345 (GPS accuracy ±8 m)",
         "Map: https://maps.google.com/?q=12.912345,77.612345",
-        "Defect decision: Pothole (YES)",
-        "Surface: Bituminous / asphalt",
-        "App visual size class: medium",
-        "Measurement provenance: Visual estimate without a scale reference",
         # The officer works in IST; a UTC ISO stamp read 13:48 for a 19:18 capture.
-        "Captured: 25 Aug 2026, 8:00:00 am IST",
-        "Geographic corporation/body: Bengaluru South City Corporation",
-        "Complaint intake authority: Bengaluru South City Corporation",
-        "Road owner/maintainer: Unknown (authority to inspect and transfer if required)",
-        "Status: No verified exact-road public contract found; tender and contractor omitted.",
+        "Photographed: 25 Aug 2026, 8:00:00 am IST",
+        "Size: medium (visual estimate)",
+        "I would appreciate if you could repair the pothole and share the complaint number.",
     ):
         require(failures, expected in body, f'missing or altered email field: "{expected}"')
     # Internal ids and lines that read the same on every report tell the officer nothing.
@@ -167,17 +168,27 @@ def main():
             require(failures, noise not in text, f'{label} carries internal noise "{noise}"')
     require(failures, "Surface:" not in unknown_surface["email_body"],
             "an unknown surface still prints a Surface line")
-    for leaked in (
-        "BBMP/2025-26/RD/WORK-42", "Resurfacing of 17th Main Road in HSR Layout",
-        "ACME Roads Pvt Ltd", "Karnataka Public Procurement Portal (KPPP) snapshot",
-    ):
-        require(failures, leaked not in body,
-                f'unverified contract identity leaked into the email: "{leaked}"')
+    # The candidate tender is named once, as a question put to the office, and nowhere
+    # as a finding. Where the record came from is the app's business, not the letter's.
+    question = ("Please verify that this road is maintained by your office and if this "
+                "location is covered by - BBMP/2025-26/RD/WORK-42: Resurfacing of 17th Main "
+                "Road in HSR Layout. Contractor listed: ACME Roads Pvt Ltd. Published 01-02-2026.")
+    require(failures, question in body.split("\n\n"),
+            "the candidate tender is not put to the office as one question")
+    for named in ("BBMP/2025-26/RD/WORK-42", "ACME Roads Pvt Ltd"):
+        require(failures, body.count(named) == 1,
+                f'the email names "{named}" outside the one question')
+    for claim in ("Verified", "verified", "DLP", "Karnataka Public Procurement Portal (KPPP) snapshot",
+                  "Award/work-order", "Road-segment match"):
+        require(failures, claim not in body and claim not in matched["whatsapp_text"],
+                f'outbound copy states a finding about the contract: "{claim}"')
 
-    require(failures, body.count(FOOTER) == 1,
-            "email must contain exactly one independent-app disclaimer")
-    require(failures, body.rstrip().endswith(FOOTER),
-            "independent-app disclaimer must be the final email paragraph")
+    # The footer asked the officer to verify a suggested authority, ward, owner and
+    # tender. The letter suggests none of them any more and ends at the sender's name.
+    require(failures, FOOTER not in body and FOOTER not in matched["whatsapp_text"],
+            "the independent-app disclaimer is still appended")
+    require(failures, body.split("\n\n")[-1].startswith("Regards,\n"),
+            "the email does not end at the sign-off")
     for forbidden in (
         "within the defect liability period",
         "within maintenance period",
@@ -190,27 +201,36 @@ def main():
                 f'email retains an unsupported or noisy claim: "{forbidden}"')
 
     require(failures,
-            "Status: No verified exact-road public contract found; tender and contractor omitted."
-            in no_candidate,
-            "no-candidate email does not state the fail-closed attribution result")
+            "Please verify that this road is maintained by your office." in no_candidate.split("\n\n"),
+            "with no candidate the email does not ask the one plain question")
+    require(failures, "No verified exact-road" not in no_candidate and "covered by" not in no_candidate,
+            "with no candidate the email still reports on a contract search")
     require(failures, "BBMP/2025-26/RD/WORK-42" not in no_candidate,
             "no-candidate email leaked a tender from another render")
     require(failures, result["rejectedScope"] is None,
             "drain-and-footpath-only WORK_INDENT2505 was accepted as road work")
 
-    headings = {
-        "kn": ("ಸ್ಥಳ", "ಹಾನಿಯ ವಿವರ", "ಜವಾಬ್ದಾರ ಕಚೇರಿ", "ಗುತ್ತಿಗೆ ಮಾಹಿತಿ"),
-        "mr": ("ठिकाण", "नुकसानाचा तपशील", "जबाबदार कार्यालय", "कंत्राट माहिती"),
-        "bn": ("স্থান", "ক্ষতির বিবরণ", "দায়িত্বপ্রাপ্ত দপ্তর", "ঠিকাদারি তথ্য"),
+    labels = {
+        "kn": ("ಸ್ಥಳ: ", "ನಿರ್ದೇಶಾಂಕಗಳು: ", "ನಕ್ಷೆ: ", "ಗಾತ್ರ: "),
+        "mr": ("ठिकाण: ", "निर्देशांक: ", "नकाशा: ", "आकार: "),
+        "bn": ("স্থান: ", "স্থানাঙ্ক: ", "মানচিত্র: ", "আকার: "),
     }
+    gone_headings = ("ಹಾನಿಯ ವಿವರ", "ಜವಾಬ್ದಾರ ಕಚೇರಿ", "ಗುತ್ತಿಗೆ ಮಾಹಿತಿ", "नुकसानाचा तपशील",
+                     "जबाबदार कार्यालय", "कंत्राट माहिती", "ক্ষতির বিবরণ", "দায়িত্বপ্রাপ্ত দপ্তর",
+                     "ঠিকাদারি তথ্য")
     for lang, localised_body in localised.items():
-        for english in ("Please register", "LOCATION", "CLASSIFICATION", "ROUTING",
-                        "CONTRACT VERIFICATION", "Address / landmark", "GPS accuracy"):
+        for english in ("Please register", "Please verify", "I wish you", "Thank you",
+                        "Location:", "Coordinates:", "GPS accuracy", "Photographed", "Size:",
+                        "LOCATION", "CLASSIFICATION", "ROUTING", "CONTRACT VERIFICATION",
+                        "Road owner/maintainer", "Suggested ward", "No verified exact-road"):
             require(failures, english not in localised_body,
                     f"{lang} complaint body still has the English {english!r}")
-        for heading in headings[lang]:
-            require(failures, heading in localised_body,
-                    f"{lang} complaint body is missing the heading {heading!r}")
+        for label in labels[lang]:
+            require(failures, label in localised_body,
+                    f"{lang} complaint body is missing the line {label!r}")
+        for heading in gone_headings:
+            require(failures, heading not in localised_body,
+                    f"{lang} complaint body still has the section {heading!r}")
         require(failures, "12.912345, 77.612345" in localised_body,
                 f"{lang} complaint body lost the exact coordinates")
     english = karnataka["en"]

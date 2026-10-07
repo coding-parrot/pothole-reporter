@@ -47,19 +47,19 @@ async () => {
   ok("draft: complaint retains coordinates and map link",
      /28\.612900, 77\.229500/.test(body) && /maps\.google\.com/.test(body), body);
   const complaintBlocks = body.trim().split(/\n{2,}/).map((part) => part.trim());
-  const complaintWithoutFooter = complaintBlocks.slice(0, -1).join("\n\n");
-  ok("draft: complaint has one final independent-app verification footer",
-     body.split(complaintFooter).length - 1 === 1
-       && complaintBlocks.at(-1) === complaintFooter, body);
+  // The footer asked the officer to verify a suggested authority, ward, owner and
+  // tender. The letter suggests none of them now and ends at the sender's name.
+  ok("draft: complaint ends at the sign-off, with no independent-app footer",
+     !body.includes(complaintFooter) && /^Regards,\n/.test(complaintBlocks.at(-1)), body);
   ok("draft: complaint names the route without old no-submission wording",
      body.includes(route.authority_name)
        && !/does not submit (?:a|the) grievance|official (?:grievance )?submission/i.test(body),
      body);
-  ok("draft: Delhi route keeps a truthful mandatory no-candidate contract block",
-     /CONTRACT VERIFICATION/.test(complaintWithoutFooter)
-       && /No verified exact-road public contract found/.test(complaintWithoutFooter)
-       && !/Tender number:|Listed contractor:|Exact work name:/.test(complaintWithoutFooter)
-       && !/warranty is active|under warranty/i.test(complaintWithoutFooter), body);
+  ok("draft: Delhi letter asks the office to verify the road and reports on no contract",
+     complaintBlocks.includes("Please verify that this road is maintained by your office.")
+       && !/CONTRACT VERIFICATION|No verified exact-road|ROUTING|Road owner\/maintainer|Suggested ward/.test(body)
+       && !/Tender number:|Listed contractor:|Exact work name:|covered by/.test(body)
+       && !/warranty is active|under warranty/i.test(body), body);
 
   const now = Date.now() / 1000;
   const report = {

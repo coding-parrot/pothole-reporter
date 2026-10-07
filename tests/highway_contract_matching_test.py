@@ -217,12 +217,27 @@ def main() -> None:
         failures.append(f"Unmapped chainage was marked verified: {accepted!r}")
     elif accepted.get("award_verified") is not True:
         failures.append(f"source project award metadata was not retained as a research candidate: {accepted!r}")
+    # Without GPS-to-chainage and DLP proof the project is a candidate. The letter puts it
+    # to the office once, as a question, and states no finding. The portal copy still
+    # fails closed.
     complaint_body = result["complaintBody"]
-    if "No verified exact-road public contract found; tender and contractor omitted" not in complaint_body:
-        failures.append("highway complaint did not fail closed without GPS-to-chainage/DLP proof")
-    for leaked in ("ABC123", "Example Roads Limited", "NHAI — PIU Pune", "km 10–110"):
+    if "if this location is covered by - ABC123: " not in complaint_body \
+            or complaint_body.count("ABC123") != 1 \
+            or complaint_body.count("Contractor listed: Example Roads Limited.") != 1:
+        failures.append("highway complaint does not put the candidate project as one question")
+    for finding in ("No verified exact-road", "Verified", "DLP", "CONTRACT VERIFICATION",
+                    "Road-segment match", "Award/work-order"):
+        if finding in complaint_body:
+            failures.append(f"highway complaint states a finding without proof: {finding}")
+    for leaked in ("NHAI \u2014 PIU Pune", "NHAI - PIU Pune", "km 10\u2013110", "km 10-110"):
         if leaked in complaint_body:
             failures.append(f"unverified highway project identity leaked into complaint: {leaked}")
+    if "\u2013" in complaint_body or "\u2014" in complaint_body:
+        failures.append("highway complaint carries an em or en dash from the project record")
+    portal_status = result["portalFields"].get("contract_verification_status") or ""
+    if "No verified exact-road public contract found; tender and contractor omitted" not in portal_status \
+            or "tender_number" in result["portalFields"]:
+        failures.append("highway portal copy did not fail closed without GPS-to-chainage/DLP proof")
     if result["crossState"] is not None:
         failures.append("A cross-State contract pack was accepted")
     if result["exactStates"] != ["MH", None, None, None]:

@@ -391,27 +391,37 @@ else:
         fails.append(f"composer subject omits the defect or the road: {subject!r}")
     for token in (
         "Commissioner, Kalaburagi",
-        "Address / landmark: Test Road, Central Ward, Test City, 560001",
-        "Coordinates: 12.971600, 77.594600",
-        "https://maps.google.com/?q=12.971600,77.594600",
-        "Defect decision: Pothole",
-        "App visual size class: medium",
-        "No verified exact-road public contract found",
+        "Location: Test Road, Central Ward, Test City, 560001",
         # The request carried both; "Not recorded" under the user's name was false.
-        "GPS accuracy: \u00b14 m",
-        "Photo: Pothole Reporter camera evidence",
-        "Captured: 21 Sep 2026, 3:00:47 pm IST",
+        "Coordinates: 12.971600, 77.594600 (GPS accuracy \u00b14 m)",
+        "https://maps.google.com/?q=12.971600,77.594600",
+        "Photographed: 21 Sep 2026, 3:00:47 pm IST",
+        # The composer below carries the photo file, so the letter says so.
+        "Photo: attached",
+        "Size: medium (visual estimate)",
+        "I would appreciate if you could repair the pothole and share the complaint number.",
     ):
         if token not in body:
             fails.append(f"composer body omits {token!r}")
+    # The letter states no finding about routing or a contract.
+    for claim in ("Defect decision", "CONTRACT VERIFICATION", "ROUTING", "Verified",
+                  "No verified exact-road", "Road owner/maintainer", "Suggested ward",
+                  "independent app"):
+        if claim in body:
+            fails.append(f"composer body still states {claim!r}")
     if "Not recorded" in body:
         fails.append("composer body says a stored capture fact was not recorded")
     # House rule: nothing sent under the user's name carries an em or en dash.
     for label, text in (("subject", subject), ("body", body)):
         if "\u2014" in text or "\u2013" in text:
             fails.append(f"composer {label} contains an em or en dash")
-    if TENDER_NUMBER in body:
-        fails.append("an unverified tender number reached the complaint body")
+    # The matched tender is unverified, so it is put to the office once, as a question.
+    question = (f"Please verify that this road is maintained by your office and if this location "
+                f"is covered by - {TENDER_NUMBER}: Repair and maintenance of Test Road. "
+                "Contractor listed: Road Works Example Ltd. Published 01-08-2026.")
+    if question not in body.split("\n\n") or body.count(TENDER_NUMBER) != 1:
+        fails.append("the matched tender is not put to the office as one question: "
+                     f"{body[-520:]!r}")
     attachments = draft.get("attachments") or []
     if len(attachments) != 1:
         fails.append(f"composer has {len(attachments)} attachments instead of one")
@@ -434,16 +444,22 @@ if "Pothole complaint" not in native_subject or "Native Test Road" not in native
     fails.append(f"native composer subject omits the defect or the road: {native_subject!r}")
 for token in (
     "Commissioner, Kalaburagi",
-    "Address / landmark: Native Test Road, Central Ward, Test City, 560001",
-    "Coordinates: 12.971600, 77.594600",
-    "Defect decision: Pothole",
-    "App visual size class: medium",
-    "No verified exact-road public contract found",
+    "Location: Native Test Road, Central Ward, Test City, 560001",
+    "Coordinates: 12.971600, 77.594600 (GPS accuracy \u00b14 m)",
+    "Photo: attached",
+    "Size: medium (visual estimate)",
+    "Please verify that this road is maintained by your office.\n",
 ):
     if token not in native_body:
         fails.append(f"native composer body omits {token!r}")
-if NATIVE_TENDER_NUMBER in native_body:
-    fails.append("an unverified tender number reached the native complaint body")
+for claim in ("Defect decision", "CONTRACT VERIFICATION", "ROUTING", "Verified",
+              "No verified exact-road", "independent app"):
+    if claim in native_body:
+        fails.append(f"native composer body still states {claim!r}")
+# Room keeps a Drive Mode report's tender number and contractor but not the work's title,
+# and a road work cannot be put to the office by its number alone.
+if NATIVE_TENDER_NUMBER in native_body or "Native Roads Example Ltd" in native_body:
+    fails.append("a tender with no title reached the native complaint body")
 native_attachments = native_draft.get("attachments") or []
 if len(native_attachments) != 1 or native_attachments[0].get("name") != "road-damage.jpg":
     fails.append(f"native composer did not attach one road photo: {native_attachments}")

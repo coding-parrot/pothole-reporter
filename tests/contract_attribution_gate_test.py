@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Only complete official responsibility evidence may enter outbound complaint copy."""
+"""Only complete official responsibility evidence may be stated as verified.
+
+The portal copy is the one place a contract is ever called verified, and only when every
+gate passes. The email and the WhatsApp text never state it either way: they name the
+candidate once, in a question the office is asked to check.
+"""
 
 import os
 from playwright.sync_api import sync_playwright
@@ -104,21 +109,36 @@ def main() -> None:
         browser.close()
 
     identity = ("BBMP/2026/RD/42", "Verified Roads Limited")
-    for label, text in {
-        "email": result["complete"]["email_body"],
-        "WhatsApp": result["complete"]["whatsapp_text"],
-        "portal": result["complete"]["portal_copy_text"],
-    }.items():
-        if not all(value in text for value in identity):
-            failures.append(f"{label} omitted fully verified attribution")
+    question = ("if this location is covered by - BBMP/2026/RD/42: Resurfacing of 17th Main Road. "
+                "Contractor listed: Verified Roads Limited.")
+    # The fixture's contractor is called "Verified Roads Limited", so a finding is looked
+    # for by its own wording, not by the bare word.
+    findings = ("Verified exact", "Verified carriageway", "Verified official", "Verified active",
+                "No verified exact-road", "DLP", "Road-segment match", "Award/work-order",
+                "CONTRACT VERIFICATION", "Contract verification:")
+
+    def asks_only(label, output):
+        for name in ("email_body", "whatsapp_text"):
+            text = output[name]
+            if question not in text or text.count("BBMP/2026/RD/42") != 1:
+                failures.append(f"{label}: {name} does not put the candidate as one question")
+            stated = [finding for finding in findings if finding in text]
+            if stated:
+                failures.append(f"{label}: {name} states a finding about the contract: {stated}")
+
+    if not all(value in result["complete"]["portal_copy_text"] for value in identity) \
+            or "Verified exact-road contract and active responsibility" \
+            not in result["complete"]["portal_copy_text"]:
+        failures.append("portal omitted fully verified attribution")
+    asks_only("every gate passed", result["complete"])
 
     for gate, output in result["missing"].items():
-        combined = "\n".join((output["email_body"], output["whatsapp_text"],
-                              output["portal_copy_text"]))
-        if any(value in combined for value in identity):
-            failures.append(f"missing {gate} gate still leaked contract identity")
-        if "No verified exact-road public contract found" not in combined:
-            failures.append(f"missing {gate} gate did not state fail-closed result")
+        portal = output["portal_copy_text"]
+        if any(value in portal for value in identity):
+            failures.append(f"missing {gate} gate still leaked contract identity into the portal copy")
+        if "No verified exact-road public contract found" not in portal:
+            failures.append(f"missing {gate} gate did not state fail-closed result in the portal copy")
+        asks_only(f"missing {gate} gate", output)
 
     stale = result["stale"]
     stale_combined = "\n".join((stale["email_body"], stale["whatsapp_text"],
@@ -126,8 +146,15 @@ def main() -> None:
     for leaked in ("BAD-42", "Garden repair near 17th Main Road", "Wrong Person"):
         if leaked in stale_combined:
             failures.append(f"stale v3 draft retained unsafe identity: {leaked}")
-    if stale["complaint_template_version"] != 4:
-        failures.append("stale unsafe draft was not migrated to template v4")
+    if stale["complaint_template_version"] != 5:
+        failures.append("stale unsafe draft was not migrated to template v5")
+    # The allegation is taken out and nothing is asserted in its place.
+    for name in ("email_body", "whatsapp_text"):
+        if "No verified exact-road" in stale[name] or "CONTRACT" in stale[name] \
+                or "independent app" in stale[name] and name == "email_body":
+            failures.append(f"stale v3 draft's {name} still reports on a contract or keeps the footer")
+    if stale["email_body"] != "Dear authority,\n\nPlease repair.":
+        failures.append(f"stale v3 draft lost more than its allegation: {stale['email_body']!r}")
 
     accepted_scope = [title for title, accepted in result["scopeRejects"] if accepted]
     if accepted_scope:

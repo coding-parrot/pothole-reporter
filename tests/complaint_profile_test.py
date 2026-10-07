@@ -350,15 +350,33 @@ def main():
         "17th Main Road, HSR Layout, Bengaluru, 560102",
         "12.912345, 77.612345",
         "https://maps.google.com/?q=12.912345,77.612345",
-        "Bengaluru South City Corporation",
     )
+    # The email and the WhatsApp text ask the office to verify. The portal copy is a form
+    # and keeps its fields, fail-closed status and note as they were.
+    asking = ("email", "WhatsApp")
+    question = ("Please verify that this road is maintained by your office and if this "
+                "location is covered by - BBMP/2025-26/RD/WORK-42: Resurfacing of 17th Main "
+                "Road in HSR Layout. Contractor listed: ACME Roads Pvt Ltd.")
+    claims = ("Verified", "No verified exact-road", "ROUTING", "Routing:", "Road owner/maintainer",
+              "road owner", "Suggested ward", "DLP", "Road-segment match",
+              "Karnataka Public Procurement Portal (KPPP) snapshot")
     for label, text in renderings.items():
         missing = [value for value in invariant_values if value not in text]
-        check(failures, f"{label} preserves location and routing invariants",
+        check(failures, f"{label} preserves the location invariants",
               not missing, missing)
         # The routing clue is an internal id; the record keeps it, the officer does not need it.
         check(failures, f"{label} keeps the internal routing clue out of outbound text",
               "town_lgd_code=305852" not in text, text)
+        if label in asking:
+            check(failures, f"{label} puts the candidate tender to the office as a question",
+                  question in text and text.count("BBMP/2025-26/RD/WORK-42") == 1, text)
+            stated = [claim for claim in claims if claim in text]
+            check(failures, f"{label} states nothing about routing or a contract", not stated, stated)
+            check(failures, f"{label} carries no independent-app disclaimer",
+                  FOOTER not in text, text[-180:])
+            continue
+        check(failures, f"{label} names the geographic body",
+              "Bengaluru South City Corporation" in text, text)
         leaked = [value for value in (
             "BBMP/2025-26/RD/WORK-42", "Resurfacing of 17th Main Road in HSR Layout",
             "ACME Roads Pvt Ltd", "Karnataka Public Procurement Portal (KPPP) snapshot",
@@ -368,6 +386,10 @@ def main():
         check(failures, f"{label} has one final independent-app disclaimer",
               text.count(FOOTER) == 1 and text.rstrip().endswith(FOOTER),
               f"count={text.count(FOOTER)}, ending={text[-180:]}")
+    check(failures, "email is addressed to the intake authority's officer",
+          renderings["email"].startswith("Dear ")
+          and "Bengaluru South City Corporation" in renderings["email"].split("\n", 1)[0],
+          renderings["email"][:120])
 
     no_candidate = result["noCandidate"]
     for label, text in {
@@ -375,6 +397,11 @@ def main():
         "WhatsApp": no_candidate["whatsapp_text"],
         "portal": no_candidate["portal_copy_text"],
     }.items():
+        if label in asking:
+            check(failures, f"{label} with no candidate asks only whether the road is the office's",
+                  "Please verify that this road is maintained by your office.\n" in text
+                  and "covered by" not in text and "No verified exact-road" not in text, text)
+            continue
         check(failures, f"{label} states that no exact-road contract was verified",
               "No verified exact-road public contract found" in text
               and "tender and contractor omitted" in text, text)
@@ -385,6 +412,12 @@ def main():
         "WhatsApp": verified["whatsapp_text"],
         "portal": verified["portal_copy_text"],
     }.items():
+        if label in asking:
+            # Even a match that passes every proof gate is put as a question in a letter.
+            check(failures, f"{label} asks about a fully proven contract and still asserts nothing",
+                  "covered by - BBMP/2025-26/RD/WORK-42: " in text and "ACME Roads Pvt Ltd" in text
+                  and "Verified" not in text and "DLP" not in text, text)
+            continue
         check(failures, f"{label} names a contractor only after every proof gate",
               "Verified exact-road contract and active responsibility" in text
               and "BBMP/2025-26/RD/WORK-42" in text

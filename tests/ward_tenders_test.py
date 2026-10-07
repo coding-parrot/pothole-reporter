@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""The app shows the ward tenders the central resolver returns, in the app and nowhere else.
+"""The app shows the ward tenders the central resolver returns.
 
 /v1/tenders/resolve answers `ward_tenders` beside `tender`: up to five road works
 tendered for the ward the point is in. It is a weaker claim than `tender` ("tendered for
@@ -13,7 +13,8 @@ What this holds:
     leaves it alone;
   - the report card shows it folded, with or without a street-level tender, escaped,
     only where the civic attribution is shown, and inside a 360 px screen;
-  - the complaint is unchanged, byte for byte.
+  - the complaint asks the office about one of them: the first, when the street matched
+    nothing (verify_request_letter_test pins the letter itself).
 """
 
 import json
@@ -293,21 +294,24 @@ with sync_playwright() as playwright:
             fails.append("a report opened from History never shows its ward list")
         page.evaluate("show('home')")
 
-        # ---- the complaint never mentions it ----
-        for field in ("email_subject", "email_body", "whatsapp_text", "portal_copy_text"):
+        # ---- the complaint asks about the first one, and only about that one ----
+        ask = f"if this location is covered by - {FIVE_NUMBERS[0]}: "
+        for field in ("email_body", "whatsapp_text"):
             text = stored.get(field) or ""
-            leaked = [n for n in FIVE_NUMBERS if n in text] + (["title"] if LONG in text else [])
-            check(not leaked, f"{field} of the captured report mentions ward tenders: {leaked}")
-        with_list = page.evaluate(PREPARE, [captured_id, True])
+            check(ask in text and not [n for n in FIVE_NUMBERS[1:] if n in text],
+                  f"{field} of the captured report does not ask about the first ward tender alone: {text[-420:]!r}")
+        check(not [n for n in FIVE_NUMBERS if n in (stored.get("email_subject") or "")],
+              "the subject line names a ward tender")
+        prepared = page.evaluate(PREPARE, [captured_id, True])
+        check(prepared["body"] == stored["email_body"] and prepared["subject"] == stored["email_subject"],
+              "the letter prepared at send time differs from the one written at capture: "
+              f"{prepared['body']!r} against {stored['email_body']!r}")
         STATE["ward"] = []
         without = page.evaluate(PREPARE, [captured_id, False])
         STATE["ward"] = FIVE
-        check(with_list["body"] and with_list["body"].encode("utf-8") == without["body"].encode("utf-8"),
-              "the prepared email body differs when the record has ward tenders")
-        check(with_list["subject"] == without["subject"] and with_list["to"] == without["to"],
-              "the prepared email subject or recipient differs when the record has ward tenders")
-        check(not [n for n in FIVE_NUMBERS if n in with_list["body"] or n in with_list["subject"]],
-              "the prepared email names a ward tender")
+        check("Please verify that this road is maintained by your office.\n" in without["body"]
+              and not [n for n in FIVE_NUMBERS if n in without["body"]],
+              f"with no ward tenders the letter still asks about a road work: {without['body'][-420:]!r}")
 
         # ---- send-time revalidation: an answer replaces the list, an outage leaves it ----
         older = [ward_tender(91), ward_tender(92)]
@@ -324,8 +328,10 @@ with sync_playwright() as playwright:
               f"a revalidation that reached the service kept the old list: "
               f"{numbers(stored['ward_tenders'])} {stored['ward_name']!r}")
         composed = page.evaluate("() => window.__composerCalls.slice(-1)[0] || null")
-        check(composed and composed["body"].encode("utf-8") == with_list["body"].encode("utf-8"),
-              "the email the composer received differs from the one prepared without ward tenders")
+        check(composed and f"covered by - {numbers(newer)[0]}: " in composed["body"]
+              and not [n for n in numbers(older) + numbers(newer)[1:] if n in composed["body"]],
+              "the email the composer received does not ask about the list the service just answered: "
+              f"{(composed or {}).get('body', '')[-420:]!r}")
         STATE["ward"], STATE["ward_name"] = [], None
         page.evaluate(STALE, [captured_id, older])
         page.evaluate(

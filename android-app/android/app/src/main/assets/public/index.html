@@ -3704,8 +3704,11 @@ async function sendReport(r) {
       }
       const authorityCacheIsSafe = hasAuthoritativeMunicipalCivicCache(r);
       let complaint = authorityCacheIsSafe ? r._preparedComplaint : null;
+      // A letter Room cached from an older template is written again, not sent as it is.
+      if (complaint && StandaloneAPI.__pure.staleRoadComplaintBody(complaint.body)) complaint = null;
       if (!complaint && authorityCacheIsSafe
           && r.email_to && r.email_subject && r.email_body
+          && !StandaloneAPI.__pure.staleRoadComplaintBody(r.email_body)
           && r.tender_resolution_checked_at != null) {
         complaint = { to: r.email_to, officer_name: r.officer_title || null,
           subject: r.email_subject, body: r.email_body,
