@@ -11,3 +11,12 @@
   arn:aws:devicefarm:us-west-2:695656921622:run:5425ff41-703f-49dd-b67a-dae7a8b54b98/1c165377-e505-4f3c-b97e-4e0b36d3e050
   Poll: tools/cloud/phone-test.sh --status <arn>; then --collect <arn>.
   (One rejected upload first-run-33f90b2a9f0e.zip exists: the test file name must start with test.)
+- Trial run 1 result (Galaxy A15, 1.97 device minutes, results in
+  ~/Downloads/pothole-testers/device-farm/1.40.0/run-20261007-180154): the whole flow
+  works through the accessibility tree. FINDING: HUD said "Camera paused (another app may
+  be using it)" about 7 s after the location sheet was granted; logcat shows the app
+  closed and reopened the camera 13 s after first opening it. 18 frames went to the
+  shared production detector in 20 s (about USD 0.009 a phone).
+- Test now samples the HUD every 1.5 s, counts camera opens from logcat, and runs a
+  second 10 s drive as a control (no sheets). buildspec-ci.yml and requirements-ci.txt
+  drafted, not yet used.

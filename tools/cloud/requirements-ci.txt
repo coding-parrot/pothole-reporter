@@ -1,0 +1,5 @@
+# What the suites under tests/ import beyond the standard library, pinned to the
+# versions in the venv the Mac runs them with (Python 3.9.6, 7 Oct 2026).
+playwright==1.60.0
+python-dotenv==1.2.1
+Pillow==11.3.0

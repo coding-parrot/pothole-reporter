@@ -45,7 +45,7 @@ BASE = "http://127.0.0.1:4723" + os.environ.get("APPIUM_BASE_PATH", "")
 STARTED = time.time()
 # The Device Farm job is cut at 10 minutes. Stop starting new steps well before that so
 # the artifacts are always written.
-BUDGET_SECONDS = float(os.environ.get("POTHOLE_TEST_BUDGET_SECONDS", "400"))
+BUDGET_SECONDS = float(os.environ.get("POTHOLE_TEST_BUDGET_SECONDS", "420"))
 DRIVE_SECONDS = 20
 
 # The same patterns tools/harness/emulator-smoke.sh greps, plus the two ways Android
@@ -444,49 +444,49 @@ def permissions():
     return "%d sheet(s) granted" % granted
 
 
-def camera_client():
-    dump = adb("shell", "dumpsys", "media.camera")
-    if dump.startswith("ADB-ERROR") or len(dump) < 200:
-        return None
-    return bool(re.search(r"Client Package Name:\s*%s" % re.escape(PACKAGE), dump))
+def watch_drive(seconds, label):
+    """Read the drive screen about every 1.5 s. Returns the problems seen."""
+    before = pid()
+    began = time.time()
+    problems, xml = [], ""
+    while True:
+        nodes, xml = tree()
+        if clear_the_way(nodes, xml):
+            time.sleep(2)
+            nodes, xml = tree()
+        texts = [node.raw for node in app_nodes(nodes) if node.raw and node.on_screen]
+        # Everything after the Stop button is the HUD: the count, the status, the tally.
+        if any(normal(text) == "stop" for text in texts):
+            texts = texts[max(i for i, text in enumerate(texts) if normal(text) == "stop") + 1:]
+        hud = " | ".join(dict.fromkeys(texts))[:300]
+        at = round(time.time() - began, 1)
+        stop_visible = bool(find(nodes, "stop"))
+        samples = result["drive_samples"]
+        if samples and samples[-1]["drive"] == label and samples[-1]["hud"] == hud \
+                and samples[-1]["stop_visible"] == stop_visible:
+            samples[-1]["until"] = at
+        else:
+            samples.append({"drive": label, "t": at, "until": at, "stop_visible": stop_visible, "hud": hud})
+            print("  drive sample:", samples[-1], flush=True)
+        if "camera paused" in hud.lower() and not any("Camera paused" in p for p in problems):
+            problems.append("'Camera paused' on the HUD %ss into the watch" % at)
+        if not stop_visible and not any("no Stop" in p for p in problems):
+            problems.append("no Stop button %ss into the watch" % at)
+        if time.time() - began >= seconds:
+            break
+        time.sleep(1.0)
+    capture("%s-drive-after-%ss" % (label, seconds), xml)
+    if pid() != before:
+        problems.append("the app process died or restarted during the drive")
+    return problems
 
 
 @step("live drive holds for 20 s with the camera running")
 def live_drive():
-    before = pid()
-    began = time.time()
-    problems = []
-    while True:
-        nodes, xml = tree()
-        cleared = clear_the_way(nodes, xml)
-        if cleared:
-            time.sleep(2)
-            nodes, xml = tree()
-        text = visible_text(app_nodes(nodes))
-        sample = {"t": round(time.time() - began, 1), "stop_visible": bool(find(nodes, "stop")),
-                  "camera_client": camera_client(), "text": text[:400]}
-        result["drive_samples"].append(sample)
-        print("  drive sample:", sample, flush=True)
-        if "camera paused" in text.lower():
-            problems.append("'Camera paused' at %ss" % sample["t"])
-        if not sample["stop_visible"]:
-            problems.append("no Stop button at %ss" % sample["t"])
-        if time.time() - began >= DRIVE_SECONDS:
-            break
-        time.sleep(4)
-    capture("drive-after-20s", xml)
-    clients = [sample["camera_client"] for sample in result["drive_samples"]]
-    if all(client is None for client in clients):
-        note("dumpsys media.camera gave nothing on this phone; camera use is judged from the screen only")
-    elif not any(clients):
-        problems.append("the camera service never listed the app as a client")
-    elif clients[-1] is False:
-        problems.append("the camera service no longer listed the app as a client at the end")
-    if pid() != before:
-        problems.append("the app process died or restarted during the drive")
+    problems = watch_drive(DRIVE_SECONDS, "first")
     if problems:
         raise AssertionError("; ".join(problems))
-    return result["drive_samples"][-1]["text"][:200]
+    return result["drive_samples"][-1]["hud"][:200]
 
 
 @step("Stop ends the drive and returns to Home")
@@ -499,6 +499,30 @@ def stop_drive():
     _, nodes, xml = wait_for("Home after Stop", is_home, 45)
     capture("home-after-stop", xml)
     return visible_text(app_nodes(nodes))[:300]
+
+
+@step("a second drive (permissions already granted) starts clean and stops")
+def second_drive():
+    # The control for the first drive: no notice and no permission sheet this time, so
+    # anything wrong here is not about first-run prompts.
+    sheets = len(result["permissions"])
+    nodes, _ = tree()
+    button = find(nodes, "drive")
+    if not button:
+        raise AssertionError("no Drive button on Home")
+    tap(*button.centre)
+    wait_for("the live drive screen", lambda n: find(n, "stop"), 20)
+    problems = watch_drive(10, "second")
+    if len(result["permissions"]) != sheets:
+        problems.append("a permission sheet appeared again")
+    nodes, _ = tree()
+    stop = find(nodes, "stop")
+    if stop:
+        tap(*stop.centre)
+    wait_for("Home after the second Stop", is_home, 45)
+    if problems:
+        raise AssertionError("; ".join(problems))
+    return result["drive_samples"][-1]["hud"][:200]
 
 
 @step("Settings opens and Back returns to Home")
@@ -578,6 +602,12 @@ def scan_logcat():
                     shown.add(nearby)
                     handle.write(lines[nearby] + "\n")
             handle.write("-----\n")
+    # How often the app opened the camera. One per drive is normal; more means the app's
+    # own watchdog decided the camera was lost and reopened it.
+    opened = re.compile(r'CameraService::connect call \(PID \d+ "%s"' % re.escape(PACKAGE))
+    result["camera_opens"] = [line.split()[1] for line in lines if opened.search(line)]
+    result["permission_sheets_at"] = [line.split()[1] for line in lines
+                                      if "START u0" in line and "REQUEST_PERMISSIONS" in line]
     result["logcat_findings"] = findings[:40]
     result["logcat_lines"] = len(lines)
     result["app_pids"] = sorted(pids)
@@ -586,8 +616,8 @@ def scan_logcat():
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    steps = [launch, home, drive_notice, permissions, live_drive, stop_drive, settings,
-             recorded_errors]
+    steps = [launch, home, drive_notice, permissions, live_drive, stop_drive, second_drive,
+             settings, recorded_errors]
     try:
         if launch():
             for run in steps[1:]:
