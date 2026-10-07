@@ -122,6 +122,49 @@ test("a point in no town is rural with its panchayat, and a point in no polygon 
   assert.equal(calls.kgis, 0);
 });
 
+// The live rule, copied as it was: no named panchayat means outside_state, even inside
+// Karnataka. KGIS answered outside_state for all four of these on 7 Oct 2026. lookup.local
+// tells the three kinds apart so the request log can count how often the rule is wrong.
+test("a point with no named panchayat is outside_state, as KGIS answered, and says which kind", async () => {
+  const { geolocator, calls } = counted();
+  // Forest in the Male Mahadeshwara hills and at Sandur: KGIS files each under a
+  // panchayat polygon with a blank name.
+  for (const [lat, lng] of [[12.0231, 77.6737], [15.0788, 76.6221]]) {
+    const forest = await geolocator.resolve({ lat, lng });
+    assert.equal(forest.road_ownership, "outside_state");
+    assert.equal(forest.rural_body, null);
+    assert.equal(forest.lookup.local, "gp_polygon_unnamed");
+  }
+  // The BRT hills and Nagarahole: inside the state boundary, in no panchayat polygon.
+  for (const [lat, lng] of [[11.7788, 77.1261], [11.9787, 76.0694]]) {
+    const gap = await geolocator.resolve({ lat, lng });
+    assert.equal(gap.road_ownership, "outside_state");
+    assert.equal(gap.lookup.local, "state_polygon_no_panchayat");
+  }
+  assert.equal(calls.kgis, 0);
+});
+
+// Two polygons of one class within the buffer, which KGIS names differently. KGIS's own
+// pick is the first row its spatial index returns (it listed the other polygon first at
+// 18 of 28 such points on 7 Oct 2026, and the order changed with the query's output
+// fields), so the choice here is a rule: the polygon the point is in, then a named one.
+test("where two highway polygons of one class cover a point, the one it is in names the road", async () => {
+  const { geolocator } = counted();
+  // Inside district highway 5665 (no name), 0.9 m from 5625 ("Hosahalli").
+  const inUnnamed = await geolocator.resolve({ lat: 15.409048275087615, lng: 75.51257940722155 });
+  assert.equal(inUnnamed.road_ownership, "district_highway");
+  assert.equal(inUnnamed.highway_name, null);
+  // Inside state highway 1614, 0.6 m from 1615 ("Hesaraghatta road"): 1614's own name.
+  const junction = await geolocator.resolve({ lat: 13.059415857992676, lng: 77.5068531217575 });
+  assert.equal(junction.road_ownership, "state_highway");
+  assert.equal(junction.highway_name, "Jalahalli watch factory road");
+  // Inside two overlapping district highway polygons at once, 11498 (no name) and 11517:
+  // the one with a name, though the other has the lower OBJECTID.
+  const inBoth = await geolocator.resolve({ lat: 16.222333, lng: 77.385435 });
+  assert.equal(inBoth.road_ownership, "district_highway");
+  assert.equal(inBoth.highway_name, "Raichur to Burdipad");
+});
+
 test("in the default configuration nothing in Karnataka is ever put to KGIS", async () => {
   const { geolocator, calls } = counted();
   const points = {

@@ -215,38 +215,17 @@ export function wardRosterOf(geometry, wardCode) {
   return rosters.get(group);
 }
 
-// KGIS returns the features of a layer in OBJECTID order and the live lookup read the
-// first. Polygon ids follow OBJECTID within a layer, so the first hit is the lowest id.
-function firstHit(hits, layer) {
-  let first = null;
-  for (const hit of hits) {
-    if (hit.layer === layer && (!first || hit.polygon < first.polygon)) first = hit;
-  }
-  return first;
-}
-
-// The live lookup's own order of precedence, on the packaged copy of the same layers:
-// a highway within HIGHWAY_BUFFER_METRES (national, then state, then district) is not
-// the town's road even inside the town; then the town; then the gram panchayat.
-//
-// Two answers differ from live KGIS on purpose. KGIS's panchayat layer files each town's
-// footprint as a polygon with a blank name, and has gaps; for a point in one of those and
-// in no town, the live code read "no panchayat name" as outside_state. Here the state
-// boundary settles it: inside Karnataka such a point is rural with no body named.
-export function classifyLocally(bundle, lat, lng, bufferMetres = HIGHWAY_BUFFER_METRES) {
-  const hits = polygonsAt(bundle, lat, lng, bufferMetres);
-  for (const name of HIGHWAY_LAYERS) {
-    const hit = firstHit(hits, bundle.layerIndex[name]);
-    if (!hit) continue;
+// What one polygon says about a point it covers.
+function verdictOf(bundle, hit) {
+  const record = polygonAttributes(bundle, hit.polygon);
+  if (HIGHWAY_LAYERS.includes(record.layer)) {
     return {
-      road_ownership: name,
-      highway_name: bounded(polygonAttributes(bundle, hit.polygon).name, 160) || null,
-      local: `${name}_polygon`,
+      road_ownership: record.layer,
+      highway_name: bounded(record.name, 160) || null,
+      local: `${record.layer}_polygon`,
     };
   }
-  const town = firstHit(hits, bundle.layerIndex.town);
-  if (town) {
-    const record = polygonAttributes(bundle, town.polygon);
+  if (record.layer === "town") {
     // ELCITA, the Electronic City industrial township, is in the KGIS layer with no LGD
     // code. KGIS itself answers "unknown" for it (a town the directory cannot key), and
     // the snapshot must not say more than the register does.
@@ -259,16 +238,52 @@ export function classifyLocally(bundle, lat, lng, bufferMetres = HIGHWAY_BUFFER_
       local: "municipal_polygon",
     };
   }
-  let unnamedPanchayat = false;
-  for (const hit of hits) {
-    if (hit.layer !== bundle.layerIndex.gram_panchayat) continue;
-    const name = bounded(polygonAttributes(bundle, hit.polygon).name, 160);
-    if (name) return { road_ownership: "rural", rural_body: name, local: "gp_polygon" };
-    unnamedPanchayat = true;
+  const name = bounded(record.name, 160);
+  return name ? { road_ownership: "rural", rural_body: name, local: "gp_polygon" }
+    : { road_ownership: "outside_state", local: "gp_polygon_unnamed" };
+}
+
+// A highway polygon KGIS gives no name, a town it gives no LGD code, a panchayat polygon
+// with a blank name.
+const nameless = (verdict) => verdict.highway_name === null
+  || verdict.road_ownership === "unknown" || verdict.road_ownership === "outside_state";
+
+// The live lookup's own rules, in its order, on the packaged copy of the same layers:
+// a highway within HIGHWAY_BUFFER_METRES (national, then state, then district) is not
+// the town's road even inside the town; then the town; then the gram panchayat; and a
+// point with no named panchayat is outside_state.
+//
+// That last rule is copied, not endorsed. KGIS's panchayat layer holds 309 polygons with
+// a blank name (2.7% of the state's area lies in one and in no town) and has gaps
+// (0.1%), and the live code read "no panchayat name" as outside_state for all of it.
+// lookup.local says which it was ("gp_polygon_unnamed", "state_polygon_no_panchayat",
+// "outside_state_polygon"), so the request log can count them.
+//
+// Where several polygons of the deciding layer cover the point (a junction of two state
+// highways, the seam between a named stretch of road and an unnamed one), the live code
+// read whichever KGIS listed first. That order is KGIS's spatial index's, changes with
+// the output fields a query asks for, and followed no property of the polygons on the
+// 28 junctions tried on 7 Oct 2026. So the choice here is a rule of its own: the polygon
+// the point is in or nearest to, then one with a name (or an LGD code) over one without,
+// then the lowest OBJECTID. Every candidate is returned, the answer first.
+export function localVerdicts(bundle, lat, lng, bufferMetres = HIGHWAY_BUFFER_METRES) {
+  const hits = polygonsAt(bundle, lat, lng, bufferMetres);
+  for (const name of [...HIGHWAY_LAYERS, "town", "gram_panchayat"]) {
+    const layer = bundle.layerIndex[name];
+    const verdicts = hits.filter((hit) => hit.layer === layer)
+      .map((hit) => ({ hit, verdict: verdictOf(bundle, hit) }))
+      .sort((left, right) => left.hit.metres - right.hit.metres
+        || Number(nameless(left.verdict)) - Number(nameless(right.verdict))
+        || left.hit.polygon - right.hit.polygon)
+      .map(({ verdict }) => verdict);
+    if (verdicts.length) return verdicts;
   }
-  if (unnamedPanchayat) return { road_ownership: "rural", local: "gp_polygon_unnamed" };
-  if (firstHit(hits, bundle.layerIndex.state)) return { road_ownership: "rural", local: "state_polygon" };
-  return { road_ownership: "outside_state", local: "outside_state_polygon" };
+  const inState = hits.some((hit) => hit.layer === bundle.layerIndex.state);
+  return [{ road_ownership: "outside_state", local: inState ? "state_polygon_no_panchayat" : "outside_state_polygon" }];
+}
+
+export function classifyLocally(bundle, lat, lng, bufferMetres = HIGHWAY_BUFFER_METRES) {
+  return localVerdicts(bundle, lat, lng, bufferMetres)[0];
 }
 
 // The live KGIS lookup, as the request path ran it until 7 Oct 2026: four layer queries
