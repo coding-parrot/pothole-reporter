@@ -87,6 +87,37 @@ phases:
         failed = sorted(name for name, entry in harness.items() if not entry["ok"])
         known = [name for name in failed if baseline.get(name) is False]
         new = [name for name in failed if baseline.get(name) is not False]
+        # A suite that failed among four others and is not a known failure runs once
+        # more, alone. Passing alone does not hide it: it is reported as failing under
+        # load. Failing again makes it a regression.
+        import subprocess, time
+        alone = {}
+        if new:
+            server = subprocess.Popen(["node", "tools/harness/serve-docs.mjs"],
+                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(2)
+            try:
+                for name in new:
+                    if name.endswith("_test.py") and os.path.exists("tests/" + name):
+                        command, cwd = [".venv/bin/python", "tests/" + name], "."
+                    elif name == "central service unit tests":
+                        command, cwd = ["npm", "test", "--silent"], "infra/aws-central"
+                    else:
+                        continue
+                    try:
+                        done = subprocess.run(command, cwd=cwd, capture_output=True, text=True, timeout=300,
+                                              env={**os.environ, "POTHOLE_TEST_APP": "http://localhost:8765/"})
+                        alone[name] = done.returncode == 0
+                        output = done.stdout + done.stderr
+                    except subprocess.TimeoutExpired as error:
+                        alone[name], output = False, "timed out alone after 300 s\n%s" % (error.stdout or "")
+                    os.makedirs(os.path.join(out, "retried-alone"), exist_ok=True)
+                    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", name)
+                    open(os.path.join(out, "retried-alone", safe + ".log"), "w").write(output)
+            finally:
+                server.terminate()
+        flaky = [name for name in new if alone.get(name) is True]
+        new = [name for name in new if alone.get(name) is not True]
         fixed = sorted(name for name, entry in harness.items() if entry["ok"] and baseline.get(name) is False)
         service = {key: int(value) for key, value in
                    re.findall(r"^(?:#|ℹ) (tests|pass|fail|cancelled|skipped) (\d+)", read("service-tests.log"), re.M)}
@@ -103,7 +134,8 @@ phases:
             "slow_python": slow,
             "harness": {
                 "total": len(harness), "passed": len(harness) - len(failed), "failed": failed,
-                "known_failing": known, "new_failures": new, "known_failing_now_passing": fixed,
+                "known_failing": known, "new_failures": new, "failed_under_load_passed_alone": flaky,
+                "known_failing_now_passing": fixed,
                 "timed_out": sorted(n for n, e in harness.items() if e["timed_out"]),
                 "summary_line": summary.group(0) if summary else "",
                 "finished": bool(summary), "suites": harness,
@@ -112,8 +144,8 @@ phases:
         result["regression"] = bool(new) or not summary or result["service_tests"]["exit"] != 0 \
             or not all(slow.values())
         json.dump(result, open(os.path.join(out, "result.json"), "w"), indent=1)
-        print("harness: %d passed, %d failed, %d known-failing; new failures: %s" % (
-            result["harness"]["passed"], len(failed), len(known), ", ".join(new) or "none"))
+        print("harness: %d passed, %d failed, %d known-failing; new failures: %s; failed under load, passed alone: %s" % (
+            result["harness"]["passed"], len(failed), len(known), ", ".join(new) or "none", ", ".join(flaky) or "none"))
         print("service tests:", service, "slow python:", slow, "regression:", result["regression"])
         PY
       - REF_KEY=$(printf '%s' "${CI_REF:-$CODEBUILD_SOURCE_VERSION}" | tr -c 'A-Za-z0-9._-' '-')

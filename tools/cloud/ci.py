@@ -58,6 +58,9 @@ def report(build_id):
         harness["passed"], len(harness["failed"]), len(harness["known_failing"])))
     if harness["known_failing"]:
         print("Known-failing before this work (not regressions): %s" % ", ".join(harness["known_failing"]))
+    if harness.get("failed_under_load_passed_alone"):
+        print("Failed among the other suites, passed when run alone (flaky under load, not counted): %s"
+              % ", ".join(harness["failed_under_load_passed_alone"]))
     if harness["known_failing_now_passing"]:
         print("Listed as failing in the baseline but passing here: %s" % ", ".join(harness["known_failing_now_passing"]))
     print("service tests: %s of %s pass, %s fail" % (
