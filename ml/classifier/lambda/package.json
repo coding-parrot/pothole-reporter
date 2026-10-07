@@ -1,0 +1,15 @@
+{
+  "name": "pothole-reporter-central-screen",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "onnxruntime-node": "1.30.0",
+    "sharp": "0.35.5"
+  }
+}
