@@ -215,6 +215,15 @@ export function report(summary) {
 
 // ---------- the run ----------
 
+// The detector secret is JSON with openai_api_key (or OPENAI_API_KEY), or the bare key:
+// the shapes infra/aws-central/service/detectors.mjs accepts.
+export function openaiKey(raw = process.env.DETECTOR_SECRET || "") {
+  if (!raw.trim()) return (process.env.OPENAI_API_KEY || "").trim();
+  let value;
+  try { value = JSON.parse(raw); } catch { value = { openai_api_key: raw }; }
+  return String(value.openai_api_key || value.OPENAI_API_KEY || "").trim();
+}
+
 const AGENT = new https.Agent({ keepAlive: true, maxSockets: CONCURRENCY });
 const TARGET = new URL(RUNTIME_CONFIG.responsesUrl);
 
@@ -244,8 +253,8 @@ function callOnce(body, key) {
 
 async function main() {
   if (!USD_PER_M[MODEL]) throw new Error(`no price is recorded for ${MODEL}; refusing to run without a spend stop`);
-  const key = (process.env.OPENAI_API_KEY || "").trim();
-  if (!key) throw new Error("OPENAI_API_KEY is not set (the buildspec reads it from Secrets Manager)");
+  const key = openaiKey();
+  if (!key) throw new Error("no OpenAI key: the buildspec reads DETECTOR_SECRET from Secrets Manager");
   mkdirSync(join(OUT, "frames"), { recursive: true });
   const candidateIsProduction = !CANDIDATE || CANDIDATE === "production";
   const candidateText = candidateIsProduction ? DETECT_PROMPT : readFileSync(CANDIDATE, "utf8").replace(/\s+$/, "");
@@ -373,6 +382,8 @@ function selfTest() {
     ["a rejected image is never flagged", !flagged({ image_quality: "rejected", assessment: "damaged" })],
     ["an acceptable damaged image is flagged", flagged({ image_quality: "acceptable", assessment: "damaged" })],
   ];
+  checks.push(["the key is read from the secret's JSON", openaiKey('{"openai_api_key":" k1 ","yolo_api_key":"y"}') === "k1"
+    && openaiKey('{"OPENAI_API_KEY":"k2"}') === "k2" && openaiKey("k3\n") === "k3"]);
   const rows = Array.from({ length: 40 }, (_, i) => ({ path: `p${i}`, sha256: `s${i}`, damaged: i % 4 === 0,
     split: i % 2 ? "test" : "train" }));
   const chosen = chooseFrames(rows, 12, 7);

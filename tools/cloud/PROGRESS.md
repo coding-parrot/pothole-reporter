@@ -39,3 +39,4 @@
   unit tests (3 of 712 fail in health-cli.test.mjs: gzip size 408 on x86-64 Node 22 vs
   410 pinned from the Mac). Fixed in the test (size blanked). 9 billed minutes MEDIUM.
 - eval/prompt_eval.mjs written and self-tested; buildspec-eval.yml and launcher still to do.
+- CI builds 2: branch 5729b21 MEDIUM pothole-reporter-ci:8649206e-e4e3-4122-a2a1-f36d154be50b ; origin/main 4de90e2 SMALL (override buildspec) pothole-reporter-ci:e9229274-20fe-4b89-b8df-fdb1f87a2aba. NOTE origin/main moved from 0398f35 to 4de90e2 during this task.
