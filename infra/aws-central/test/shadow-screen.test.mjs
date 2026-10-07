@@ -3,7 +3,9 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { PROVIDER_MODES, createDetector } from "../service/detectors.mjs";
-import { SHADOW_SCREEN_QUERY, reportShadowScreen } from "../tools/health-rules.mjs";
+import {
+  SHADOW_SCORE_QUERY, SHADOW_SCREEN_QUERY, reportShadowScreen, shadowScreenCurve,
+} from "../tools/health-rules.mjs";
 import { detectBody, harness, secretFrom, undamaged, upstream } from "./support.mjs";
 
 // openai_with_shadow_screen proves the fast screen on live drive frames before it is
@@ -447,4 +449,48 @@ test("the health script prints the shadow report and cannot fail on it", () => {
   const block = script.slice(script.indexOf("reportShadowScreen(await"));
   const line = block.slice(0, block.indexOf("\n\n"));
   assert.ok(!/fail\(/.test(line), "the shadow report must only report");
+});
+
+test("the score curve reads off the threshold that keeps 98% of damaged frames", () => {
+  // 200 damaged frames: 4 score in [0.10, 0.12), 196 in [0.60, 0.62).
+  // 1000 undamaged: 300 in [0.02, 0.04), 400 in [0.10, 0.12), 300 in [0.70, 0.72).
+  const scored = [
+    { n: "4", outcome: "damaged", bucket: "5" }, { n: "196", outcome: "damaged", bucket: "30" },
+    { n: "300", outcome: "undamaged", bucket: "1" }, { n: "400", outcome: "undamaged", bucket: "5" },
+    { n: "300", outcome: "undamaged", bucket: "35" },
+  ];
+  const curve = shadowScreenCurve(scored);
+  assert.equal(curve.threshold, 0.6, "196 of 200 is exactly 98%, so the threshold can sit at 0.60");
+  assert.equal(curve.recall, 0.98);
+  assert.equal(curve.cleared, 700);
+  assert.equal(curve.clearedShare, 0.7);
+  assert.equal(curve.broken, false);
+  assert.match(curve.detail, /0\.60 .*98\.0% of 200 .*700 of 1000 .*70\.0%/);
+  // One more miss than 2% allows and the threshold has to drop under the low bucket.
+  const stricter = shadowScreenCurve(scored, { target: 0.99 });
+  assert.equal(stricter.threshold, 0.1);
+  assert.equal(stricter.recall, 1);
+  assert.equal(stricter.cleared, 300);
+});
+
+test("the score curve waits for 100 damaged frames and never fails a run", () => {
+  const few = shadowScreenCurve([{ n: "99", outcome: "damaged", bucket: "30" },
+    { n: "5000", outcome: "undamaged", bucket: "1" }]);
+  assert.equal(few.threshold, null);
+  assert.equal(few.broken, false);
+  assert.match(few.detail, /99 scored frames judged damaged; 100 are needed/);
+  assert.equal(shadowScreenCurve([]).broken, false);
+  // A screen that scores every damaged frame at zero: the only threshold is zero.
+  const blind = shadowScreenCurve([{ n: "150", outcome: "damaged", bucket: "0" },
+    { n: "150", outcome: "undamaged", bucket: "0" }]);
+  assert.equal(blind.threshold, 0);
+  assert.equal(blind.clearedShare, 0);
+});
+
+test("the score query buckets the logged score and the health script prints the curve", () => {
+  for (const field of ["screen_score", "outcome", "route", "status"]) {
+    assert.ok(SHADOW_SCORE_QUERY.includes(field), field);
+  }
+  const script = readFileSync(new URL("../tools/production-health.mjs", import.meta.url), "utf8");
+  assert.match(script, /shadowScreenCurve\(await insights\(SHADOW_SCORE_QUERY, hours\)\)/);
 });

@@ -92,3 +92,50 @@ export function reportShadowScreen(rows) {
     ].join("; ");
   return { broken: false, damaged, flagged, recall, undamaged, cleared, clearedShare, unanswered, detail };
 }
+
+// The same frames by the screen's raw score, in buckets of 0.02. screen_assessment is the
+// score against the threshold the screen was deployed with; the score itself says what
+// any other threshold would have done, which is what choosing one needs.
+export const SHADOW_SCORE_QUERY = 'filter event="http_request" and route="/v1/vision/detect" and status=200'
+  + " and ispresent(screen_score)"
+  + " | fields floor(screen_score * 50) as bucket | stats count() as n by outcome, bucket";
+
+// Reported, never failed. The highest bucket edge at which the screen would still have
+// flagged `target` of the frames gpt-5-mini judged damaged, and the share of undamaged
+// frames a screen run at that threshold would have cleared.
+export function shadowScreenCurve(rows, { target = 0.98, minimum = 100 } = {}) {
+  const damaged = new Map();
+  const undamaged = new Map();
+  for (const row of rows) {
+    const bucket = Number(row.bucket);
+    const n = Number(row.n) || 0;
+    if (!Number.isFinite(bucket) || !n) continue;
+    const side = row.outcome === "damaged" ? damaged : row.outcome === "undamaged" ? undamaged : null;
+    if (side) side.set(bucket, (side.get(bucket) || 0) + n);
+  }
+  const total = (side) => [...side.values()].reduce((sum, n) => sum + n, 0);
+  const below = (side, edge) => [...side].reduce((sum, [bucket, n]) => sum + (bucket < edge ? n : 0), 0);
+  const damagedTotal = total(damaged);
+  const undamagedTotal = total(undamaged);
+  if (damagedTotal < minimum) {
+    return { broken: false, damaged: damagedTotal, threshold: null, clearedShare: null,
+      detail: `${damagedTotal} scored frames judged damaged; ${minimum} are needed before a threshold can be read off` };
+  }
+  // A threshold at bucket edge e flags every frame in bucket e and above.
+  let edge = 0;
+  for (let candidate = 50; candidate >= 0; candidate -= 1) {
+    if ((damagedTotal - below(damaged, candidate)) / damagedTotal >= target) {
+      edge = candidate;
+      break;
+    }
+  }
+  const threshold = edge / 50;
+  const recall = (damagedTotal - below(damaged, edge)) / damagedTotal;
+  const cleared = below(undamaged, edge);
+  const clearedShare = undamagedTotal ? cleared / undamagedTotal : null;
+  return {
+    broken: false, damaged: damagedTotal, undamaged: undamagedTotal, threshold, recall, cleared, clearedShare,
+    detail: `a threshold of ${threshold.toFixed(2)} would have flagged ${(100 * recall).toFixed(1)}% of ${damagedTotal} damaged frames`
+      + ` and cleared ${cleared} of ${undamagedTotal} undamaged (${clearedShare === null ? "n/a" : `${(100 * clearedShare).toFixed(1)}%`})`,
+  };
+}

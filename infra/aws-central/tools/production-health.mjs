@@ -23,7 +23,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  SHADOW_SCREEN_QUERY, WARD_TENDER_QUERY, judgeWardSnapshot, judgeWardTenders, reportShadowScreen,
+  SHADOW_SCORE_QUERY, SHADOW_SCREEN_QUERY, WARD_TENDER_QUERY, judgeWardSnapshot, judgeWardTenders,
+  reportShadowScreen, shadowScreenCurve,
 } from "./health-rules.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -172,6 +173,8 @@ async function windowRules(hours) {
   // against) letting the fast screen answer drive frames. See ml/classifier/MODEL_CARD.md
   // for the numbers that justify the flip to yolo_then_openai.
   ok("shadow screen (report only)", reportShadowScreen(await insights(SHADOW_SCREEN_QUERY, hours)).detail);
+  ok("shadow screen threshold for 98% live recall (report only)",
+    shadowScreenCurve(await insights(SHADOW_SCORE_QUERY, hours)).detail);
 
   // Our own share of a request. The detector is the model's time; everything the
   // service itself does around it (ten database calls on a detection) has a budget, so
