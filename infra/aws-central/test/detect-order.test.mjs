@@ -88,7 +88,7 @@ async function detectWith({ mode = "yolo_then_openai", yolo, openai: ai, body = 
 }
 
 test("the mode list names today's order and the screen-first order", () => {
-  assert.deepEqual([...PROVIDER_MODES], ["openai", "yolo", "openai_then_yolo", "yolo_then_openai"]);
+  assert.deepEqual([...PROVIDER_MODES].slice(0, 4), ["openai", "yolo", "openai_then_yolo", "yolo_then_openai"]);
 });
 
 test("a drive frame YOLO calls undamaged never reaches OpenAI", async () => {

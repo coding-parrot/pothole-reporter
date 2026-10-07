@@ -1031,21 +1031,24 @@ export function createService({
       const ready = typeof detector.readiness === "function"
         ? await detector.readiness()
         : detector.status();
+      // A shadow screen is watched, not used, so it makes nothing "configured" by itself.
+      const shadow = Boolean(detector.status().shadow_screen_provider);
       return response(200, {
         ok: true,
         platform: "aws",
-        shared_vision_configured: ready.openai_configured || ready.yolo_configured,
+        shared_vision_configured: ready.openai_configured || (!shadow && ready.yolo_configured),
         shared_vision_provider: detector.status().mode,
         shared_vision_provider_mode: detector.status().mode,
         shared_vision_primary_provider: "openai",
         shared_vision_primary_configured: ready.openai_configured,
         shared_vision_fallback_provider: "yolo",
-        shared_vision_fallback_configured: ready.yolo_configured,
+        shared_vision_fallback_configured: !shadow && ready.yolo_configured,
         shared_vision_fallback_model: detector.status().yolo_model,
         // In yolo_then_openai the YOLO leg also screens every drive frame before OpenAI.
         shared_vision_drive_screen_provider: detector.status().drive_screen_provider || null,
         shared_vision_drive_screen_configured: Boolean(detector.status().drive_screen_provider)
           && ready.yolo_configured,
+        shared_vision_shadow_screen_configured: shadow && ready.yolo_configured,
         detection_prompt_version: DETECT_PROMPT_VERSION,
         detection_schema_version: DETECT_SCHEMA_VERSION,
         shared_detection_receipts_required: true,
@@ -1149,6 +1152,15 @@ export function createService({
       detector_fallback_reason: context.detectorFallbackReason || null,
       detector_screened_by: context.detectorScreenedBy || null,
       detector_screen_confirmed: context.detectorScreenConfirmed ?? null,
+      // openai_with_shadow_screen only: what the fast screen said about a drive frame
+      // gpt-5-mini answered. screen_agrees compares the two; screen_error says why there
+      // is no screen answer (screen_timeout, or the code the screen call failed with).
+      screen_score: context.screenScore ?? null,
+      screen_assessment: context.screenAssessment || null,
+      screen_ms: context.screenMs ?? null,
+      screen_agrees: context.screenAgrees ?? null,
+      screen_error: context.screenError || null,
+      screen_model: context.screenModel || null,
       quota_refunded: context.quotaRefunded || false,
       db_ms: Math.round(timings.db.ms),
       db_calls: timings.db.calls,

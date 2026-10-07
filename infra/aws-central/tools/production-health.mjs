@@ -22,7 +22,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { ROAD_LAYER_QUERY, WARD_TENDER_QUERY, judgeRoadLayers, judgeWardSnapshot, judgeWardTenders } from "./health-rules.mjs";
+import {
+  ROAD_LAYER_QUERY, SHADOW_SCORE_QUERY, SHADOW_SCREEN_QUERY, WARD_TENDER_QUERY, judgeRoadLayers,
+  judgeWardSnapshot, judgeWardTenders, reportShadowScreen, shadowScreenCurve,
+} from "./health-rules.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const args = process.argv.slice(2);
@@ -168,6 +171,13 @@ async function windowRules(hours) {
   } else {
     ok("detection is fast", `${detections} detections, too few to judge`);
   }
+
+  // Reported, never failed: in openai_with_shadow_screen this is the evidence for (or
+  // against) letting the fast screen answer drive frames. See ml/classifier/MODEL_CARD.md
+  // for the numbers that justify the flip to yolo_then_openai.
+  ok("shadow screen (report only)", reportShadowScreen(await insights(SHADOW_SCREEN_QUERY, hours)).detail);
+  ok("shadow screen threshold for 98% live recall (report only)",
+    shadowScreenCurve(await insights(SHADOW_SCORE_QUERY, hours)).detail);
 
   // Our own share of a request. The detector is the model's time; everything the
   // service itself does around it (ten database calls on a detection) has a budget, so

@@ -37,6 +37,16 @@ the `SharedDetectorProvider` stack parameter (env `SHARED_DETECTOR_PROVIDER`):
   accurate model. A YOLO leg that is missing, capped, slow (10 s screen budget) or broken
   falls through to OpenAI for that frame with `detector.fallback_from: "yolo"`, so the
   mode can never make a drive slower than today's order; it only removes calls.
+- `openai_with_shadow_screen` is how a screen is proven before `yolo_then_openai` is
+  turned on. gpt-5-mini answers every frame alone, exactly as in `openai`. On a Drive
+  Mode frame the screen named by `YoloFunctionName` is called at the same moment; once
+  gpt-5-mini has answered, the screen gets 50 ms more and is then cancelled. Nothing it
+  does (a verdict, an error, a hang) reaches the phone, and it is not a fallback when
+  OpenAI fails. Each detect request logs `screen_score`, `screen_assessment`,
+  `screen_ms`, `screen_agrees`, `screen_error` and `screen_model`, and
+  `tools/production-health.mjs --window` reports (never fails on) the live recall: of
+  the frames gpt-5-mini judged damaged, the share the screen also flagged. The screen
+  that exists today is the classifier in `ml/classifier/`; see its `MODEL_CARD.md`.
 
 The YOLO Lambda is named by the `YoloFunctionName` parameter (env `YOLO_FUNCTION_NAME`),
 which also grants the central role `lambda:InvokeFunction` on exactly that function.
@@ -45,6 +55,13 @@ without touching the code:
 
 ```bash
 EXTRA_PARAMETER_OVERRIDES="SharedDetectorProvider=yolo_then_openai YoloFunctionName=pothole-reporter-central-yolo" \
+  AWS_REGION=ap-south-1 infra/aws-central/deploy.sh
+```
+
+Shadow mode with the classifier screen:
+
+```bash
+EXTRA_PARAMETER_OVERRIDES="SharedDetectorProvider=openai_with_shadow_screen YoloFunctionName=pothole-reporter-central-screen" \
   AWS_REGION=ap-south-1 infra/aws-central/deploy.sh
 ```
 

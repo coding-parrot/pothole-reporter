@@ -1,0 +1,10 @@
+{
+ "encoder": "mobilenetv3_l",
+ "head": "hidden256",
+ "input_size": 448,
+ "model_version": "road-screen-v1-mobilenetv3l-448",
+ "sha256": "75bb630aed191893cc4add1f6aa395aad694c6fafaf5b439f5e33186815c1cc4",
+ "target_validation_recall": 0.99,
+ "temperature": 2.462,
+ "threshold": 0.04699918670128432
+}
