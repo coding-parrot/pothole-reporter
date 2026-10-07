@@ -45,7 +45,7 @@ BASE = "http://127.0.0.1:4723" + os.environ.get("APPIUM_BASE_PATH", "")
 STARTED = time.time()
 # The Device Farm job is cut at 10 minutes. Stop starting new steps well before that so
 # the artifacts are always written.
-BUDGET_SECONDS = float(os.environ.get("POTHOLE_TEST_BUDGET_SECONDS", "420"))
+BUDGET_SECONDS = float(os.environ.get("POTHOLE_TEST_BUDGET_SECONDS", "440"))
 DRIVE_SECONDS = 20
 
 # The same patterns tools/harness/emulator-smoke.sh greps, plus the two ways Android
@@ -270,14 +270,16 @@ contextProto.drawImage = function (source, ...rest) {
     }
   }
 };
+// arguments[0] true: also keep an animation-frame loop and idle callbacks going, which
+// makes the page produce frames it otherwise would not. false: only listen.
+const animate = arguments[0] === true;
 let frames = 0, running = true;
 const onFrame = () => { frames += 1; if (running) requestAnimationFrame(onFrame); };
-requestAnimationFrame(onFrame);
 const askIdle = () => {
   const asked = at();
   requestIdleCallback(() => { idle.push([asked, at() - asked]); if (running) setTimeout(askIdle, 300); });
 };
-askIdle();
+if (animate) { requestAnimationFrame(onFrame); askIdle(); }
 document.getElementById('driveBtn').click();
 const timer = setInterval(() => {
   const v = document.getElementById('driveVideo');
@@ -299,17 +301,17 @@ setTimeout(() => {
   clearInterval(timer);
   canvasProto.toBlob = realToBlob;
   contextProto.drawImage = realDraw;
-  done({samples, log, idle});
+  done({animate, samples, log, idle});
 }, 16000);
 """
 
 
-def instrumented_drive():
+def instrumented_drive(animate):
     name = state["webview"]
     try:
         call("POST", session("/context"), {"name": name}, timeout=90)
         call("POST", session("/timeouts"), {"script": 40000}, timeout=30)
-        return call("POST", session("/execute/async"), {"script": INSTRUMENTED_DRIVE, "args": []}, timeout=60)
+        return call("POST", session("/execute/async"), {"script": INSTRUMENTED_DRIVE, "args": [animate]}, timeout=60)
     finally:
         try:
             call("POST", session("/context"), {"name": "NATIVE_APP"}, timeout=60)
@@ -659,18 +661,24 @@ def second_drive():
     sheets = len(result["permissions"])
     if state.get("webview"):
         # A debuggable build: let the page record its own watchdog and capture calls.
-        recorded = instrumented_drive()
-        result["instrumented_drive"] = recorded
-        huds = [sample["hud"] for sample in recorded["samples"]]
-        print("  instrumented drive:", json.dumps(recorded)[:6000], flush=True)
-        nodes, _ = tree()
-        stop = find(nodes, "stop")
-        if stop:
-            tap(*stop.centre)
-        wait_for("Home after the instrumented drive", is_home, 45)
-        if any("camera paused" in hud.lower() for hud in huds):
-            raise AssertionError("'Camera paused' on the HUD during the instrumented drive")
-        return "instrumented: %s" % huds[-1]
+        # Twice: once only listening, once with the page kept animating.
+        paused = []
+        result["instrumented_drives"] = []
+        for animate in (False, True):
+            recorded = instrumented_drive(animate)
+            result["instrumented_drives"].append(recorded)
+            huds = [sample["hud"] for sample in recorded["samples"]]
+            print("  instrumented drive (animate=%s):" % animate, json.dumps(recorded)[:3000], flush=True)
+            nodes, _ = tree()
+            stop = find(nodes, "stop")
+            if stop:
+                tap(*stop.centre)
+            wait_for("Home after the instrumented drive", is_home, 45)
+            if any("camera paused" in hud.lower() for hud in huds):
+                paused.append("animate=%s" % animate)
+        if paused:
+            raise AssertionError("'Camera paused' on the HUD during the instrumented drive (%s)" % ", ".join(paused))
+        return "instrumented twice, no 'Camera paused'"
     nodes, _ = tree()
     button = find(nodes, "drive")
     if not button:
