@@ -1,0 +1,15 @@
+{
+  "pool_name": "pothole-india-phones",
+  "location": {"latitude": 12.9716, "longitude": 77.5946},
+  "job_timeout_minutes": 10,
+  "devices": [
+    {"name": "Samsung Galaxy A15", "os": "14", "arn": "arn:aws:devicefarm:us-west-2::device:9B74AD95597D4BF39827A4EAD83B9F6D",
+     "why": "Galaxy A series on One UI: the commonest kind of phone among Indian Android users"},
+    {"name": "Xiaomi Redmi Note 13", "os": "15", "arn": "arn:aws:devicefarm:us-west-2::device:653D5AB0CD6B4EA88DFAE9AD4386F608",
+     "why": "Redmi Note on HyperOS: its own permission sheets and background rules"},
+    {"name": "Google Pixel 8a", "os": "17", "arn": "arn:aws:devicefarm:us-west-2::device:A571183F1FF74A798C9C5DA2AEC820D8",
+     "why": "stock Android on the newest release Device Farm offers, one above the app's target SDK"},
+    {"name": "Samsung Galaxy A13 5G", "os": "11", "arn": "arn:aws:devicefarm:us-west-2::device:D48BBC9AF1644AEFBAC7B431CAE21DD6",
+     "why": "old Android (11) on a 720 x 1600 budget screen: old WebView behaviour and the tightest layout"}
+  ]
+}

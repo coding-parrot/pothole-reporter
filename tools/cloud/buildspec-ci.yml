@@ -1,0 +1,154 @@
+version: 0.2
+
+# The service tests, the slow Python suites and the full harness for one git ref.
+# Started by tools/cloud/ci.sh; results go to s3://$RESULTS_BUCKET/ci/<ref>/<build id>/.
+#
+# Private inputs the Mac has and this build does not:
+#   .venv        rebuilt here from tools/cloud/requirements-ci.txt
+#   .env         not used. nh_test.py, stream_completion_test.py and stalled_body_test.py
+#                read OPENAI_API_KEY but answer every model call themselves, so a
+#                placeholder is set; a suite that reached the real API would get a 401.
+#   eval/images  gis_failure_test.py and routing_test.py serve one seed photo as their
+#                fixture. It is copied from ci/fixtures/ in the private bucket.
+env:
+  shell: bash
+  variables:
+    OPENAI_API_KEY: "sk-offline-test-not-a-real-key"
+    RESULTS_BUCKET: "pothole-reporter-ml-695656921622-ap-south-1"
+    HARNESS_WORKERS: "4"
+    CI_REF: ""
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+      python: 3.9
+    commands:
+      - node --version && python3 --version
+      - export OUT="$CODEBUILD_SRC_DIR/ci-out" && mkdir -p "$OUT"
+      - |-
+        REQUIREMENTS=tools/cloud/requirements-ci.txt
+        if [ ! -f "$REQUIREMENTS" ]; then
+          # A ref from before this file existed: the same pins.
+          REQUIREMENTS=/tmp/requirements-ci.txt
+          printf 'playwright==1.60.0\npython-dotenv==1.2.1\nPillow==11.3.0\n' > "$REQUIREMENTS"
+        fi
+        python3 -m venv .venv
+        .venv/bin/pip install --quiet --disable-pip-version-check -r "$REQUIREMENTS"
+      - .venv/bin/python -m playwright install --with-deps chromium > "$OUT/playwright-install.log" 2>&1 || (tail -30 "$OUT/playwright-install.log"; exit 1)
+      - (cd android-app && npm ci --no-audit --no-fund > "$OUT/npm-android-app.log" 2>&1 && npx cap copy android >> "$OUT/npm-android-app.log" 2>&1) || (tail -30 "$OUT/npm-android-app.log"; exit 1)
+      - (cd infra/aws-central && npm ci --no-audit --no-fund > "$OUT/npm-central.log" 2>&1) || (tail -30 "$OUT/npm-central.log"; exit 1)
+      - (cd tools/harness && npm ci --no-audit --no-fund > "$OUT/npm-harness.log" 2>&1) || (tail -30 "$OUT/npm-harness.log"; exit 1)
+      - aws s3 cp "s3://$RESULTS_BUCKET/ci/fixtures/eval/images/" eval/images/ --recursive --only-show-errors
+      - find eval/images -type f | wc -l
+
+  build:
+    commands:
+      # The venv first, so the gates that call plain python3 use the same interpreter.
+      - export PATH="$CODEBUILD_SRC_DIR/.venv/bin:$PATH"
+      - STARTED=$(date +%s)
+      - (cd infra/aws-central && npm test) > "$OUT/service-tests.log" 2>&1; echo $? > "$OUT/service-tests.exit"
+      - tail -12 "$OUT/service-tests.log"
+      - |-
+        : > "$OUT/slow-python.log"
+        for suite in state_pack_validation_test.py full_frame_invariant_test.py exhaustive_video_eval_test.py; do
+          [ -f "tests/$suite" ] || continue
+          if timeout 600 .venv/bin/python "tests/$suite" > "$OUT/slow-$suite.log" 2>&1; then
+            echo "ok   $suite" >> "$OUT/slow-python.log"
+          else
+            echo "FAIL $suite" >> "$OUT/slow-python.log"; tail -15 "$OUT/slow-$suite.log"
+          fi
+        done
+        cat "$OUT/slow-python.log"
+      - export HARNESS_FAILURE_DIR="$OUT/harness-failures"
+      - node tools/harness/run.mjs --workers "$HARNESS_WORKERS" > "$OUT/harness.log" 2>&1; echo $? > "$OUT/harness.exit"
+      - grep -vE '^  ok ' "$OUT/harness.log" | tail -150
+      - echo $(( $(date +%s) - STARTED )) > "$OUT/test-seconds"
+
+  post_build:
+    commands:
+      - |-
+        python3 - <<'PY'
+        import json, os, re
+        out = os.environ["OUT"]
+        read = lambda name: open(os.path.join(out, name), encoding="utf-8", errors="replace").read() \
+            if os.path.exists(os.path.join(out, name)) else ""
+        harness = {}
+        for line in read("harness.log").splitlines():
+            match = re.match(r"^  (ok  |FAIL) (.+?) \((\d+(?:\.\d+)?)s\)( \[timeout\])?$", line)
+            if match:
+                harness[match.group(2)] = {"ok": match.group(1) == "ok  ",
+                                           "seconds": float(match.group(3)),
+                                           "timed_out": bool(match.group(4))}
+        try:
+            baseline = json.load(open("tools/harness/baseline.json"))
+        except Exception:
+            baseline = {}
+        failed = sorted(name for name, entry in harness.items() if not entry["ok"])
+        known = [name for name in failed if baseline.get(name) is False]
+        new = [name for name in failed if baseline.get(name) is not False]
+        # A suite that failed among four others and is not a known failure runs once
+        # more, alone. Passing alone does not hide it: it is reported as failing under
+        # load. Failing again makes it a regression.
+        import subprocess, time
+        alone = {}
+        if new:
+            server = subprocess.Popen(["node", "tools/harness/serve-docs.mjs"],
+                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(2)
+            try:
+                for name in new:
+                    if name.endswith("_test.py") and os.path.exists("tests/" + name):
+                        command, cwd = [".venv/bin/python", "tests/" + name], "."
+                    elif name == "central service unit tests":
+                        command, cwd = ["npm", "test", "--silent"], "infra/aws-central"
+                    else:
+                        continue
+                    try:
+                        done = subprocess.run(command, cwd=cwd, capture_output=True, text=True, timeout=300,
+                                              env={**os.environ, "POTHOLE_TEST_APP": "http://localhost:8765/"})
+                        alone[name] = done.returncode == 0
+                        output = done.stdout + done.stderr
+                    except subprocess.TimeoutExpired as error:
+                        alone[name], output = False, "timed out alone after 300 s\n%s" % (error.stdout or "")
+                    os.makedirs(os.path.join(out, "retried-alone"), exist_ok=True)
+                    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", name)
+                    open(os.path.join(out, "retried-alone", safe + ".log"), "w").write(output)
+            finally:
+                server.terminate()
+        flaky = [name for name in new if alone.get(name) is True]
+        new = [name for name in new if alone.get(name) is not True]
+        fixed = sorted(name for name, entry in harness.items() if entry["ok"] and baseline.get(name) is False)
+        service = {key: int(value) for key, value in
+                   re.findall(r"^(?:#|ℹ) (tests|pass|fail|cancelled|skipped) (\d+)", read("service-tests.log"), re.M)}
+        slow = dict((name, verdict == "ok") for verdict, name in
+                    re.findall(r"^(ok|FAIL)\s+(\S+)$", read("slow-python.log"), re.M))
+        summary = re.search(r"^(\d+)/(\d+) passed in ([\d.]+)s", read("harness.log"), re.M)
+        result = {
+            "ref": os.environ.get("CI_REF") or os.environ.get("CODEBUILD_SOURCE_VERSION", ""),
+            "commit": os.environ.get("CODEBUILD_RESOLVED_SOURCE_VERSION", ""),
+            "build_id": os.environ.get("CODEBUILD_BUILD_ID", ""),
+            "compute": os.environ.get("CODEBUILD_BUILD_IMAGE", ""),
+            "test_seconds": int((read("test-seconds") or "0").strip() or 0),
+            "service_tests": {**service, "exit": int((read("service-tests.exit") or "1").strip() or 1)},
+            "slow_python": slow,
+            "harness": {
+                "total": len(harness), "passed": len(harness) - len(failed), "failed": failed,
+                "known_failing": known, "new_failures": new, "failed_under_load_passed_alone": flaky,
+                "known_failing_now_passing": fixed,
+                "timed_out": sorted(n for n, e in harness.items() if e["timed_out"]),
+                "summary_line": summary.group(0) if summary else "",
+                "finished": bool(summary), "suites": harness,
+            },
+        }
+        result["regression"] = bool(new) or not summary or result["service_tests"]["exit"] != 0 \
+            or not all(slow.values())
+        json.dump(result, open(os.path.join(out, "result.json"), "w"), indent=1)
+        print("harness: %d passed, %d failed, %d known-failing; new failures: %s; failed under load, passed alone: %s" % (
+            result["harness"]["passed"], len(failed), len(known), ", ".join(new) or "none", ", ".join(flaky) or "none"))
+        print("service tests:", service, "slow python:", slow, "regression:", result["regression"])
+        PY
+      - REF_KEY=$(printf '%s' "${CI_REF:-$CODEBUILD_SOURCE_VERSION}" | tr -c 'A-Za-z0-9._-' '-')
+      - DEST="s3://$RESULTS_BUCKET/ci/$REF_KEY/${CODEBUILD_BUILD_ID##*:}/"
+      - aws s3 cp "$OUT" "$DEST" --recursive --only-show-errors && echo "results at $DEST"
+      - python3 -c "import json,sys; sys.exit(1 if json.load(open('$OUT/result.json'))['regression'] else 0)"

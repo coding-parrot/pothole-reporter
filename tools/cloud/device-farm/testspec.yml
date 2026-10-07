@@ -1,0 +1,51 @@
+version: 0.1
+
+# Device Farm custom test environment for tools/cloud/phone-test.sh.
+# Based on "Default Android Test Spec for Appium 3 Python (updated 2026-05-15)".
+android_test_host: amazon_linux_2
+
+phases:
+  install:
+    commands:
+      - devicefarm-cli use node 22
+      - devicefarm-cli use appium 3
+      - appium --version
+      - export APPIUM_BASE_PATH=
+      - devicefarm-cli use python 3.11
+      - python --version
+
+  pre_test:
+    commands:
+      - |-
+        appium --base-path=$APPIUM_BASE_PATH --log-timestamp \
+          --log-no-colors --relaxed-security --default-capabilities \
+          "{\"appium:deviceName\": \"$DEVICEFARM_DEVICE_NAME\", \
+          \"platformName\": \"$DEVICEFARM_DEVICE_PLATFORM_NAME\", \
+          \"appium:app\": \"$DEVICEFARM_APP_PATH\", \
+          \"appium:udid\":\"$DEVICEFARM_DEVICE_UDID\", \
+          \"appium:platformVersion\": \"$DEVICEFARM_DEVICE_OS_VERSION\", \
+          \"appium:automationName\": \"UiAutomator2\"}" \
+          >> $DEVICEFARM_LOG_DIR/appium.log 2>&1 &
+      - |-
+        appium_initialization_time=0;
+        until curl --silent --fail "http://0.0.0.0:4723${APPIUM_BASE_PATH}/status"; do
+          if [[ $appium_initialization_time -gt 30 ]]; then
+            echo "Appium did not start within 30 seconds. Exiting...";
+            exit 1;
+          fi;
+          appium_initialization_time=$((appium_initialization_time + 1));
+          sleep 1;
+        done;
+
+  test:
+    commands:
+      - cd $DEVICEFARM_TEST_PACKAGE_PATH
+      # phone-test.sh --extra-drives turns this 0 into a 1.
+      - export POTHOLE_EXTRA_DRIVES=0
+      - python tests/test_first_run.py
+
+  post_test:
+    commands:
+
+artifacts:
+  - $DEVICEFARM_LOG_DIR

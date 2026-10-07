@@ -28,8 +28,12 @@ function run(args, { window = HEALTHY_WINDOW, api = fakeApi(), env = {}, key = n
         stderr,
         stdout,
         asked: aws.asked(),
-        // Only what a clock or a fresh key decides is blanked.
+        // Only what a clock, a fresh key or the machine's zlib decides is blanked. The
+        // stand-in server gzips the map with whatever zlib this Node carries: the same
+        // 6023 bytes came out as 410 on the Mac (arm64, Node 26) and 408 on CodeBuild
+        // (x86-64, Node 22), and the pinned 410 failed there on its first cloud run.
         lines: stdout.replace(/ in \d+ ms/g, " in N ms").replace(/(install registers: )[0-9a-f]{8}/, "$1########")
+          .replace(/(sent as )\d+(, gzip)/, "$1N$2")
           .replace(/(Canary against )\S+/, "$1API").split("\n"),
       }));
     });
@@ -71,7 +75,7 @@ const HEALTHY_CANARY_LINES = [
   "  ok   health: 200, openai_with_shadow_screen",
   "  ok   /v1/map: 200 in N ms",
   "  ok   /v1/impact: 200 in N ms",
-  "  ok   map is compressed: 6023 bytes of JSON sent as 410, gzip",
+  "  ok   map is compressed: 6023 bytes of JSON sent as N, gzip",
   "  ok   install registers: ######## (a new install: the stored canary key could not be read)",
   "  ok   shared detection finds the example pothole: pothole_cavity medium via openai in N ms",
   "  ok   Bengaluru street is classified municipal: LGD 305851 GBA - Central via the packaged state GIS layers; tender none (no_location_match) in N ms",

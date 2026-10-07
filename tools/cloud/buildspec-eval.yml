@@ -1,0 +1,42 @@
+version: 0.2
+
+# Prompt A against prompt B on labelled frames. Started by tools/cloud/eval-prompt.sh,
+# which overrides the service role with pothole-reporter-eval-codebuild: the only role
+# that may read the detector secret and the labelled frames. The CI role cannot, so this
+# buildspec fails at once if it is started any other way.
+env:
+  shell: bash
+  variables:
+    EVAL_BUCKET: "pothole-reporter-ml-695656921622-ap-south-1"
+    EVAL_DATA_PREFIX: "v1-work"
+    EVAL_RUN_ID: ""
+    EVAL_FRAMES: "60"
+    EVAL_BUDGET_USD: "0.10"
+    EVAL_SEED: "20261007"
+    EVAL_CANDIDATE_KEY: ""
+    EVAL_CANDIDATE_NAME: ""
+  secrets-manager:
+    # The whole secret, read when the build starts and masked in the build log. The eval
+    # script takes the OpenAI key out of it the way the service does and writes it nowhere.
+    DETECTOR_SECRET: "pothole-reporter-central/detector"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+  build:
+    commands:
+      - test -n "$EVAL_RUN_ID"
+      - export EVAL_OUT="$CODEBUILD_SRC_DIR/eval-out" && mkdir -p "$EVAL_OUT"
+      - node tools/cloud/eval/prompt_eval.mjs --self-test
+      - |-
+        if [ -n "$EVAL_CANDIDATE_KEY" ]; then
+          aws s3 cp "s3://$EVAL_BUCKET/$EVAL_CANDIDATE_KEY" "$EVAL_OUT/candidate.txt" --only-show-errors
+          export EVAL_CANDIDATE_FILE="$EVAL_OUT/candidate.txt"
+        fi
+      - node tools/cloud/eval/prompt_eval.mjs; echo $? > "$EVAL_OUT/exit"
+  post_build:
+    commands:
+      - rm -rf "$EVAL_OUT/frames" "$EVAL_OUT/manifest.jsonl"
+      - aws s3 cp "$EVAL_OUT" "s3://$EVAL_BUCKET/evals/$EVAL_RUN_ID/" --recursive --only-show-errors && echo "results at s3://$EVAL_BUCKET/evals/$EVAL_RUN_ID/"
+      - exit "$(cat "$EVAL_OUT/exit" 2>/dev/null || echo 1)"

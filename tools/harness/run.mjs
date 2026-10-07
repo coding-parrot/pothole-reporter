@@ -19,7 +19,7 @@
 // them across CPU workers, because a suite nobody waits for is a suite nobody runs.
 
 import { execFile, spawn } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { resolve } from "node:path";
 import { createServer } from "node:http";
@@ -289,6 +289,15 @@ async function once() {
     server.close();
   }
   const failed = results.filter((result) => !result.ok);
+  // The summary below shows a failure's last 25 lines, which for the service suite is
+  // its closing counts and not the test that failed. CI keeps the whole output.
+  if (process.env.HARNESS_FAILURE_DIR) {
+    mkdirSync(process.env.HARNESS_FAILURE_DIR, { recursive: true });
+    for (const result of failed) {
+      writeFileSync(`${process.env.HARNESS_FAILURE_DIR}/${result.name.replace(/[^A-Za-z0-9._-]+/g, "_")}.log`,
+        result.output);
+    }
+  }
   saveTimings(results);
   const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
   console.log(`\n${results.length - failed.length}/${results.length} passed in ${seconds}s`);

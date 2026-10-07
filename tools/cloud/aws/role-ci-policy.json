@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {"Sid": "Logs", "Effect": "Allow",
+     "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+     "Resource": ["arn:aws:logs:ap-south-1:695656921622:log-group:/aws/codebuild/pothole-reporter-ci",
+                  "arn:aws:logs:ap-south-1:695656921622:log-group:/aws/codebuild/pothole-reporter-ci:*"]},
+    {"Sid": "CiPrefixObjects", "Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject"],
+     "Resource": "arn:aws:s3:::pothole-reporter-ml-695656921622-ap-south-1/ci/*"},
+    {"Sid": "CiPrefixList", "Effect": "Allow", "Action": "s3:ListBucket",
+     "Resource": "arn:aws:s3:::pothole-reporter-ml-695656921622-ap-south-1",
+     "Condition": {"StringLike": {"s3:prefix": ["ci/*"]}}}
+  ]
+}
