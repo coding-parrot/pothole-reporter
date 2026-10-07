@@ -1,3 +1,5 @@
+import { randomInt } from "node:crypto";
+
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
 import { GetSecretValueCommand, SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 
@@ -48,6 +50,28 @@ const YOLO_SCREEN_TIMEOUT_MS = 10_000;
 // either: once gpt-5-mini has answered, a screen that is still running gets this long
 // to land in the log and is then cancelled.
 const SHADOW_SCREEN_GRACE_MS = 50;
+// yolo_then_openai never shows gpt-5-mini a frame the screen clears, so a pothole the
+// screen misses is missed by everyone and counted by no one. The first screen flagged 94%
+// of damaged frames in testing and 76% on real phones. This share of the cleared drive
+// frames is therefore still sent to gpt-5-mini, and the phone gets gpt-5-mini's answer
+// for them: an audited frame cannot be a miss, and the request log keeps saying what the
+// screen is missing. The stack parameter is ScreenAuditRate.
+export const DEFAULT_SCREEN_AUDIT_RATE = 0.1;
+
+// The rate as configured: a number from 0 to 1. Unset is the default. A value that
+// cannot be read audits every cleared frame, because the other reading of a typo is no
+// audit at all: this way the mistake costs gpt-5-mini calls (what production pays today)
+// and never a pothole.
+export function auditRate(value) {
+  if (value === undefined || value === null || String(value).trim() === "") return DEFAULT_SCREEN_AUDIT_RATE;
+  const rate = typeof value === "number" ? value : Number(String(value).trim());
+  return Number.isFinite(rate) && rate >= 0 && rate <= 1 ? rate : 1;
+}
+
+// A number in [0, 1) from the operating system's generator, drawn after the screen has
+// answered. Nothing a client sends (the image, its request, the time) moves it, so no
+// client can tell beforehand which frames gpt-5-mini will also see.
+const drawForAudit = () => randomInt(2 ** 32) / 2 ** 32;
 
 // Aborts after the given time, or as soon as the caller's own signal does.
 function timeoutSignal(milliseconds, outer = null) {
@@ -75,6 +99,45 @@ const screenRequestId = (requestId) => {
 
 const flagsDamage = (verdict) => verdict?.image_quality === "acceptable"
   && verdict?.assessment === "damaged";
+
+const hasAssessment = (verdict) => ["damaged", "undamaged"].includes(verdict?.assessment);
+
+// What the screen said about a drive frame, for the request log: the same three fields
+// whether the screen is being watched (shadow) or is deciding (yolo_then_openai). Says
+// whether it flagged the frame.
+function recordScreenVerdict(context, screen) {
+  const flagged = flagsDamage(screen.verdict);
+  context.screenAssessment = flagged ? "damaged" : "undamaged";
+  context.screenScore = screen.score;
+  context.screenModel = screen.model;
+  return flagged;
+}
+
+// What the phone is told about a drive frame the screen answered alone. The screen's own
+// sentences are fixed English and ten words long ("The road screen found no road damage
+// in this frame."); the contract's description is at most eight words, and in Kannada
+// when the request asks for it (the one language the prompt has a suffix for). The
+// Kannada lines are the YOLO detector's own (infra/aws-yolo/service/detector.py).
+const SCREEN_DESCRIPTIONS = Object.freeze({
+  en: Object.freeze({
+    damaged: "The road screen flagged likely road damage.",
+    undamaged: "No road damage found in this frame.",
+    rejected: "The image quality is insufficient for pothole detection.",
+  }),
+  kn: Object.freeze({
+    damaged: "ಪಥೋಲ್ ಮಾದರಿಯು ರಸ್ತೆ ಮೇಲ್ಮೈಯಲ್ಲಿ ಗುಂಡಿಯನ್ನು ಪತ್ತೆಹಚ್ಚಿದೆ.",
+    undamaged: "ಬಳಸಬಹುದಾದ ರಸ್ತೆ ಚಿತ್ರದಲ್ಲಿ ಪಥೋಲ್ ಪತ್ತೆಯಾಗಿಲ್ಲ.",
+    rejected: "ಚಿತ್ರದ ಗುಣಮಟ್ಟ ಪಥೋಲ್ ಪರಿಶೀಲನೆಗೆ ಸಾಕಾಗಿಲ್ಲ.",
+  }),
+});
+
+// The screen's verdict as the phone gets it: the same four decisions, with the
+// description the contract allows.
+function screenAnswer(screen, language) {
+  const lines = SCREEN_DESCRIPTIONS[language] || SCREEN_DESCRIPTIONS.en;
+  const kind = screen.verdict.image_quality === "acceptable" ? screen.verdict.assessment : "rejected";
+  return { ...screen, verdict: { ...screen.verdict, description: lines[kind] } };
+}
 
 function outputFormat() {
   return {
@@ -156,8 +219,11 @@ export function createDetector({
   yoloTimeoutMs = RUNTIME_CONFIG.timeoutsMs.serverYoloMax,
   yoloScreenTimeoutMs = YOLO_SCREEN_TIMEOUT_MS,
   shadowGraceMs = SHADOW_SCREEN_GRACE_MS,
+  screenAuditRate = DEFAULT_SCREEN_AUDIT_RATE,
+  auditDraw = drawForAudit,
 } = {}) {
   const secrets = secretProvider || (async () => ({}));
+  const auditShare = auditRate(screenAuditRate);
 
   // A secret with no current version (as on 2026-09-19) is a missing credential, not a
   // server fault, and must read as one to the app instead of internal_error.
@@ -420,20 +486,33 @@ export function createDetector({
   // capped, slow or broken falls through to OpenAI alone, so flipping the mode can never
   // make a drive worse than today's order; it is only ever faster.
   async function yoloThenOpenai(input, context) {
+    const started = performance.now();
+    // On every drive frame of this mode, whatever the screen then does: it is what tells
+    // a live line from a shadow one in the request log.
+    context.screenAuditRate = auditShare;
     let screen;
     try {
       screen = await yolo(input, context, yoloScreenTimeoutMs);
+      // An answer with no assessment in it is a broken screen like any other. Passed on,
+      // it was refused by the service as a 502 and the drive frame failed.
+      if (!hasAssessment(screen.verdict)) {
+        throw new HttpError(502, "bad_screen_response", "The screen returned no assessment.");
+      }
     } catch (error) {
       if (!(error instanceof HttpError)) throw error;
+      context.screenMs = Math.round(performance.now() - started);
+      context.screenError = error.code;
       context.detectorFallbackReason = error.code;
       const result = await openai(input, context);
       return { ...result, fallbackFrom: "yolo", fallbackReason: error.code };
     }
-    if (!flagsDamage(screen.verdict)) return screen;
+    context.screenMs = Math.round(performance.now() - started);
+    if (!recordScreenVerdict(context, screen)) return auditCleared(input, context, screen);
     context.detectorScreenedBy = "yolo";
     try {
       const confirmed = await openai(input, context);
       context.detectorScreenConfirmed = confirmed.verdict?.assessment === "damaged";
+      context.screenAgrees = flagsDamage(confirmed.verdict);
       return { ...confirmed, screenedBy: "yolo", screenModel: screen.model };
     } catch (error) {
       // The same rule as openai_then_yolo: a missing or exhausted OpenAI credential
@@ -441,7 +520,29 @@ export function createDetector({
       // rather than silently changing which model judged the frame.
       if (!(error instanceof HttpError) || !error.details?.fallback_allowed) throw error;
       context.detectorFallbackReason = error.code;
-      return { ...screen, fallbackFrom: "openai", fallbackReason: error.code };
+      return { ...screenAnswer(screen, input.language), fallbackFrom: "openai", fallbackReason: error.code };
+    }
+  }
+
+  // A frame the screen cleared. One draw decides whether gpt-5-mini sees it too. When it
+  // does, the phone gets gpt-5-mini's answer, so a pothole the screen missed on an
+  // audited frame is still reported. The audit is a measurement and may not cost the
+  // phone anything but time: when gpt-5-mini cannot be asked (no credit, a rate limit, a
+  // timeout, a 5xx) the frame is answered exactly as an unaudited one, and the log says
+  // the audit was lost.
+  async function auditCleared(input, context, screen) {
+    const answer = screenAnswer(screen, input.language);
+    if (!(auditDraw() < auditShare)) return answer;
+    context.screenAudited = true;
+    try {
+      const judged = await openai(input, context);
+      // A frame gpt-5-mini rejects for quality counts as undamaged, as in shadow mode.
+      context.screenAgrees = !flagsDamage(judged.verdict);
+      return { ...judged, screenedBy: "yolo", screenModel: screen.model };
+    } catch (error) {
+      if (!(error instanceof HttpError)) throw error;
+      context.screenAuditError = error.code;
+      return answer;
     }
   }
 
@@ -492,15 +593,11 @@ export function createDetector({
       context.screenError = settled.error instanceof HttpError ? settled.error.code : "screen_failed";
       return;
     }
-    const verdict = settled.screen.verdict;
-    if (!["damaged", "undamaged"].includes(verdict?.assessment)) {
+    if (!hasAssessment(settled.screen.verdict)) {
       context.screenError = "bad_screen_response";
       return;
     }
-    const flagged = flagsDamage(verdict);
-    context.screenAssessment = flagged ? "damaged" : "undamaged";
-    context.screenScore = settled.screen.score;
-    context.screenModel = settled.screen.model;
+    const flagged = recordScreenVerdict(context, settled.screen);
     // Agreement is about the decision the screen would take over: does this frame go
     // to gpt-5-mini or not. A frame gpt-5-mini rejects for quality counts as undamaged.
     if (openaiVerdict) context.screenAgrees = flagged === flagsDamage(openaiVerdict);

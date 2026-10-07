@@ -37,6 +37,8 @@ const detector = createDetector({
   yoloFunctionName: process.env.YOLO_FUNCTION_NAME || "",
   yoloUrl: process.env.YOLO_URL || "",
   yoloModel: process.env.YOLO_MODEL || "pothole-yolo",
+  // Read by auditRate() in detectors.mjs: unset is 0.1, the template's default.
+  screenAuditRate: process.env.SCREEN_AUDIT_RATE,
 });
 // Street names come from the packaged index (data/streets, staged by deploy.sh); the
 // geocoder is asked only for a point the index has no street for.

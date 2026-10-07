@@ -37,6 +37,8 @@ the `SharedDetectorProvider` stack parameter (env `SHARED_DETECTOR_PROVIDER`):
   accurate model. A YOLO leg that is missing, capped, slow (10 s screen budget) or broken
   falls through to OpenAI for that frame with `detector.fallback_from: "yolo"`, so the
   mode can never make a drive slower than today's order; it only removes calls.
+  A share of the frames the screen clears (`ScreenAuditRate`, 0.1) is still sent to
+  gpt-5-mini; see "Letting the screen answer" below.
 - `openai_with_shadow_screen` is how a screen is proven before `yolo_then_openai` is
   turned on. gpt-5-mini answers every frame alone, exactly as in `openai`. On a Drive
   Mode frame the screen named by `YoloFunctionName` is called at the same moment; once
@@ -64,6 +66,98 @@ Shadow mode with the classifier screen:
 EXTRA_PARAMETER_OVERRIDES="SharedDetectorProvider=openai_with_shadow_screen YoloFunctionName=pothole-reporter-central-screen" \
   AWS_REGION=ap-south-1 infra/aws-central/deploy.sh
 ```
+
+### Letting the screen answer
+
+In `yolo_then_openai` a drive frame the screen clears is answered "undamaged" at once and
+gpt-5-mini never sees it, so a pothole the screen misses is missed by everyone and
+counted by no one. The first screen flagged 94% of damaged frames in testing and 76% on
+real phones. The measuring therefore continues after the switch: `ScreenAuditRate` (a
+number from 0 to 1, default 0.1, env `SCREEN_AUDIT_RATE`) of the cleared drive frames
+still go to gpt-5-mini, and the phone gets gpt-5-mini's answer for them, so an audited
+frame cannot be a miss. Which frames are audited is drawn by the server after the screen
+has answered; the response for an audited frame is the response for a flagged one, and
+nothing the phone receives names the audit. An audit that cannot reach gpt-5-mini (no
+credit, a rate limit, a timeout, a 5xx) answers as the screen did and logs
+`screen_audit_error`. Every path costs the install one unit.
+
+When to switch on: read the readiness line over a week.
+
+```bash
+node infra/aws-central/tools/production-health.mjs --window 7d
+```
+
+`shadow screen ready to switch on (report only)` says READY when the window holds at
+least 300 frames gpt-5-mini judged damaged, the screen flagged at least 98% of them,
+cleared at least 30% of the undamaged ones, gave no answer on under 1% of frames and
+took over 300 ms on at most one frame in ten; it prints each condition with its counts.
+It cannot check that the damaged frames come from more than one phone (the request log
+carries no install marker) and says so. A week of this log is 94.7 MB scanned by the
+run's six queries (7 Oct 2026), under a tenth of a US cent.
+
+Switch on:
+
+```bash
+EXTRA_PARAMETER_OVERRIDES="SharedDetectorProvider=yolo_then_openai YoloFunctionName=pothole-reporter-central-screen ScreenAuditRate=0.1" \
+  AWS_REGION=ap-south-1 infra/aws-central/deploy.sh
+```
+
+Go back to shadow:
+
+```bash
+EXTRA_PARAMETER_OVERRIDES="SharedDetectorProvider=openai_with_shadow_screen YoloFunctionName=pothole-reporter-central-screen" \
+  AWS_REGION=ap-south-1 infra/aws-central/deploy.sh
+```
+
+Each is the whole gated deploy (tests, package, canary). Going back is safe at any
+moment: shadow mode sends every frame to gpt-5-mini, which is what production does
+today, and the phone's contract is the same in both. `deploy.sh` passes `ScreenAuditRate`
+from the template on every deploy and deliberately does not pass the order, so a later
+routine deploy leaves the mode as it was last set.
+
+What to watch in the first hour (`production-health.mjs --window 1h`; the hourly
+scheduled run judges the same rules over six hours, and its alarm
+`pothole-reporter-central-health-rules-broken` fires after two broken evaluations):
+
+- `GET /v1/health`: `shared_vision_provider_mode` is `yolo_then_openai` and
+  `shared_vision_drive_screen_configured` is true.
+- `live audit is running`: gpt-5-mini judged some of the cleared frames. It fails when
+  the cleared frames should have produced more than 20 audits (200 frames at 0.1) and
+  none was judged. A dead audit makes the recall line look perfect, so read this first.
+- `live screen recall`: flagged frames gpt-5-mini confirmed, against the audited frames
+  it called damaged scaled up by cleared / audited. It fails when the estimate is under
+  98% over at least 50 estimated damaged frames. At 0.1 one audited miss stands for
+  ten, so the estimate moves in steps: the 95% interval printed beside it is the thing to
+  read before acting on one window.
+- `live screen answers` (no screen answer on more than 1% of drive frames; each of those
+  went to gpt-5-mini) and `live screen is fast` (p90 over 300 ms).
+- `detection is fast`: the typical time should fall, since most drive frames no longer
+  wait for gpt-5-mini.
+- In the first six hours the window holds shadow lines and live lines. Each rule reads
+  only its own (a live line carries `screen_audit_rate`), so neither is judged as the
+  other.
+
+The request line in this mode: the shadow fields with the same meanings
+(`screen_assessment`, `screen_score`, `screen_ms`, `screen_model`, `screen_error`, and
+`screen_agrees` wherever gpt-5-mini also judged the frame), plus `screen_audit_rate` on
+every drive frame, `screen_audited: true` on a cleared frame drawn for audit and
+`screen_audit_error` when that audit was lost. `outcome` is gpt-5-mini's verdict exactly
+when `detector_provider` is `openai`. A missed pothole the audit caught is
+`screen_audited` with `screen_agrees: false`.
+
+What it saves. With the screen clearing a share c of drive frames and an audit rate a,
+the share of drive frames that still reach gpt-5-mini is 1 - c + a*c (manual photos
+always do):
+
+| Cleared share c | Audit rate a | Drive frames reaching gpt-5-mini | gpt-5-mini calls saved |
+| --- | --- | --- | --- |
+| 0.5 | 0.1 | 0.55 | 45% |
+| 0.9 | 0.1 | 0.19 | 81% |
+| 0.5 | 0 | 0.50 | 50% (and nothing measured) |
+
+c here is of all drive frames; the readiness line's cleared share is of the frames
+gpt-5-mini judged undamaged, which is usually a little higher (41.4% against 39.2% in
+the week to 7 Oct 2026).
 
 `GET /v1/health` reports the active order as `shared_vision_provider_mode` and whether
 the drive screen is usable as `shared_vision_drive_screen_configured`. Every detect

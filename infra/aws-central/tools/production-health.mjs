@@ -4,6 +4,8 @@
 // HealthFunction in template.yaml), which is where the hourly check lives.
 //
 //   node infra/aws-central/tools/production-health.mjs --window 24h   last N hours of logs
+//   node infra/aws-central/tools/production-health.mjs --window 7d    or days: a week is
+//                                    what the screen's readiness report is read over
 //   node infra/aws-central/tools/production-health.mjs --canary        live calls, now
 //   node infra/aws-central/tools/production-health.mjs --window 6h --canary
 //
@@ -41,11 +43,16 @@ function aws(...params) {
     { encoding: "utf8", timeout: 120_000 }));
 }
 
-// Logs Insights through the aws CLI: asked every 1.5 s, given up on after 90 s.
+// Logs Insights through the aws CLI: asked every 1.5 s, given up on after 90 s. What the
+// queries scanned is what the run cost (USD 0.0067 a GB in Mumbai), and is said at the
+// end: the longer windows (--window 7d, for the screen's readiness report) are the ones
+// worth knowing it for.
+const scanned = { bytes: 0, queries: 0 };
 const insights = createInsights({
   logGroupName: LOG_GROUP,
   pollMs: 1500,
   patienceMs: 90_000,
+  onScanned: (bytes) => { if (bytes) { scanned.bytes += bytes; scanned.queries += 1; } },
   logs: {
     startQuery: ({ logGroupName, startTime, endTime, queryString }) => aws("logs", "start-query", "--log-group-name", logGroupName,
       "--start-time", String(startTime), "--end-time", String(endTime), "--query-string", queryString),
@@ -95,7 +102,10 @@ if (!windowArg && !flag("canary")) {
 }
 const report = createReport({ print: (line) => console.log(line) });
 try {
-  if (windowArg) await judgeWindow({ query: insights, hours: parseWindow(windowArg), logGroup: LOG_GROUP, report });
+  if (windowArg) {
+    await judgeWindow({ query: insights, hours: parseWindow(windowArg), logGroup: LOG_GROUP, report });
+    if (scanned.bytes) report.note(`${(scanned.bytes / 1e6).toFixed(1)} MB of log scanned by ${scanned.queries} queries`);
+  }
   if (flag("canary")) {
     await runCanary({
       apiUrl: API_URL,

@@ -11,8 +11,8 @@
 // rows. Nothing here knows whether it is the aws CLI or the SDK that answers.
 
 import {
-  LOOKUP_QUERY, SHADOW_QUERY, judgeIndiaWardSnapshots, judgeRoadLayers, judgeWardSnapshot, judgeWardTenders,
-  municipalLookups, outsideStateLookups, reportShadowScreen, shadowScreenCurve,
+  LOOKUP_QUERY, SCREEN_QUERY, judgeIndiaWardSnapshots, judgeLiveScreen, judgeRoadLayers, judgeWardSnapshot, judgeWardTenders,
+  currentScreenRows, liveRows, municipalLookups, outsideStateLookups, reportShadowReadiness, reportShadowScreen, shadowRows, shadowScreenCurve,
 } from "./rules.mjs";
 
 export const REQUEST_QUERY = 'filter event="http_request" and not ispresent(canary) | stats count() as n, pct(duration_ms, 50) as p50, pct(duration_ms, 90) as p90 by route, outcome, status';
@@ -58,7 +58,7 @@ export async function judgeWindow({ query, hours, logGroup, report }) {
   };
   const asked = {
     lookups: ask(LOOKUP_QUERY),
-    shadow: ask(SHADOW_QUERY),
+    screen: ask(SCREEN_QUERY),
     ownTime: ask(OWN_TIME_QUERY),
     knownAnswers: ask(KNOWN_ANSWER_QUERY),
     crashes: ask(CRASH_QUERY),
@@ -157,9 +157,22 @@ export async function judgeWindow({ query, hours, logGroup, report }) {
   // Reported, never failed: in openai_with_shadow_screen this is the evidence for (or
   // against) letting the fast screen answer drive frames. See ml/classifier/MODEL_CARD.md
   // for the numbers that justify the flip to yolo_then_openai.
-  const shadowRows = await asked.shadow;
-  ok("shadow screen (report only)", reportShadowScreen(shadowRows).detail);
-  ok("shadow screen threshold for 98% live recall (report only)", shadowScreenCurve(shadowRows).detail);
+  const current = currentScreenRows(await asked.screen);
+  const screenRows = current.rows;
+  const shadow = shadowRows(screenRows);
+  const named = (detail) => (current.model ? `${current.model}: ${detail}` : detail);
+  ok("shadow screen (report only)", named(reportShadowScreen(shadow).detail));
+  ok("shadow screen threshold for 98% live recall (report only)", named(shadowScreenCurve(shadow).detail));
+  ok("shadow screen ready to switch on (report only)", named(reportShadowReadiness(shadow).detail));
+
+  // Judged, and failed on: once the mode is yolo_then_openai the screen is answering
+  // users, and a frame it clears reaches gpt-5-mini only through the audit. A window
+  // with no such line (any other mode) has nothing to judge and says so in one line.
+  const live = liveRows(screenRows);
+  if (!live.length) ok("live screen", "no drive frames were screened live in the window; nothing to judge");
+  for (const [name, verdict] of live.length ? judgeLiveScreen(live) : []) {
+    verdict.broken ? fail(name, verdict.detail) : ok(name, verdict.detail);
+  }
 
   for (const row of await asked.ownTime) {
     if (Number(row.n) < 20) continue;

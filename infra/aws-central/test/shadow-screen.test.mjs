@@ -4,7 +4,7 @@ import test from "node:test";
 
 import { PROVIDER_MODES, createDetector } from "../service/detectors.mjs";
 import {
-  SHADOW_QUERY, reportShadowScreen, shadowScreenCurve,
+  SCREEN_QUERY, reportShadowScreen, shadowScreenCurve,
 } from "../service/health/rules.mjs";
 import { createReport } from "../service/health/report.mjs";
 import { judgeWindow } from "../service/health/window.mjs";
@@ -359,8 +359,9 @@ test("a screen without a score (the YOLO contract) still records its assessment"
   assert.equal(shadow.log.screen_agrees, true);
 });
 
-test("the other orders log no shadow fields", async () => {
-  for (const mode of ["openai", "openai_then_yolo", "yolo_then_openai"]) {
+// yolo_then_openai logs the same fields about the frames it screens: screen-audit.test.mjs.
+test("the orders with no screen log no screen fields", async () => {
+  for (const mode of ["openai", "openai_then_yolo"]) {
     const result = await detectWith({ mode, screen: screenLambda(screenDamaged, { score: 0.9 }),
       openai: openai(openaiDamaged) });
     assert.equal(result.status, 200, mode);
@@ -450,7 +451,7 @@ test("the shadow report never fails a run, even at zero recall or with no shadow
 
 test("the shadow query reads the fields the service logs", async () => {
   for (const field of ["screen_assessment", "screen_error", "outcome", "route", "status"]) {
-    assert.ok(SHADOW_QUERY.includes(field), field);
+    assert.ok(SCREEN_QUERY.includes(field), field);
   }
   const shadow = await detectWith({ screen: screenLambda(screenDamaged, { score: 0.8 }),
     openai: openai(openaiDamaged) });
@@ -475,7 +476,7 @@ test("the health window prints the shadow report and cannot fail on it", async (
   const report = createReport();
   await judgeWindow({ query, hours: 6, logGroup: "/aws/lambda/test", report });
   const result = report.conclude();
-  assert.ok(query.asked.some((asked) => asked.text === SHADOW_QUERY), "the shadow query is asked");
+  assert.ok(query.asked.some((asked) => asked.text === SCREEN_QUERY), "the shadow query is asked");
   const shadow = result.rules.find((rule) => rule.name === "shadow screen (report only)");
   assert.equal(shadow.state, "ok", "the shadow report must only report");
   assert.match(shadow.detail, /flagged 0 of 400 frames gpt-5-mini judged damaged \(live recall 0\.0%\); .*90 frames had no screen answer/);
@@ -520,12 +521,12 @@ test("the score curve waits for 100 damaged frames and never fails a run", () =>
 
 test("the score query buckets the logged score and the health window prints the curve", async () => {
   for (const field of ["screen_score", "outcome", "route", "status"]) {
-    assert.ok(SHADOW_QUERY.includes(field), field);
+    assert.ok(SCREEN_QUERY.includes(field), field);
   }
   const query = scriptedQuery(blindScreen);
   const report = createReport();
   await judgeWindow({ query, hours: 6, logGroup: "/aws/lambda/test", report });
-  assert.equal(query.asked.filter((asked) => asked.text === SHADOW_QUERY).length, 1, "the report and the curve read one query");
+  assert.equal(query.asked.filter((asked) => asked.text === SCREEN_QUERY).length, 1, "the report and the curve read one query");
   const curve = report.conclude().rules.find((rule) => rule.name === "shadow screen threshold for 98% live recall (report only)");
   assert.equal(curve.state, "ok", "the curve must only report");
   assert.match(curve.detail, /a threshold of 0\.00 would have flagged 100\.0% of 400 damaged frames and cleared 0 of 0 undamaged \(n\/a\)/);

@@ -1265,15 +1265,26 @@ export function createService({
       detector_fallback_reason: context.detectorFallbackReason || null,
       detector_screened_by: context.detectorScreenedBy || null,
       detector_screen_confirmed: context.detectorScreenConfirmed ?? null,
-      // openai_with_shadow_screen only: what the fast screen said about a drive frame
-      // gpt-5-mini answered. screen_agrees compares the two; screen_error says why there
-      // is no screen answer (screen_timeout, or the code the screen call failed with).
+      // What the fast screen said about a drive frame, in openai_with_shadow_screen
+      // (gpt-5-mini answered, the screen was watched) and in yolo_then_openai (the screen
+      // decided). screen_error says why there is no screen answer (screen_timeout, or the
+      // code the screen call failed with). screen_agrees is there only when gpt-5-mini
+      // judged the same frame, and then detector_provider is "openai" and `outcome` is
+      // gpt-5-mini's verdict; a frame the screen answered alone has detector_provider
+      // "yolo", its own verdict in `outcome` and no screen_agrees.
       screen_score: context.screenScore ?? null,
       screen_assessment: context.screenAssessment || null,
       screen_ms: context.screenMs ?? null,
       screen_agrees: context.screenAgrees ?? null,
       screen_error: context.screenError || null,
       screen_model: context.screenModel || null,
+      // yolo_then_openai only. screen_audit_rate is on every drive frame of that mode
+      // and on no shadow line. screen_audited marks a cleared frame drawn for audit:
+      // with screen_agrees false it is a pothole the screen missed and the audit caught.
+      // screen_audit_error is why a drawn audit has no gpt-5-mini verdict.
+      screen_audit_rate: context.screenAuditRate ?? null,
+      screen_audited: context.screenAudited ?? null,
+      screen_audit_error: context.screenAuditError || null,
       quota_refunded: context.quotaRefunded || false,
       db_ms: Math.round(timings.db.ms),
       db_calls: timings.db.calls,

@@ -71,6 +71,9 @@ async function detectWith({ mode = "yolo_then_openai", yolo, openai: ai, body = 
       yoloFunctionName: functionName,
       lambdaClient: yolo,
       fetchImpl: ai.fetchImpl,
+      // No cleared frame is drawn for audit here: these cases are about the order. The
+      // audit sample has its own in screen-audit.test.mjs.
+      auditDraw: () => 0.999,
       ...rest,
     }),
   });
