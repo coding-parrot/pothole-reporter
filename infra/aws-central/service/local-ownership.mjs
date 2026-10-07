@@ -18,9 +18,10 @@
 //
 // R is the cell centre moved by (REFERENCE_FX, REFERENCE_FY). Vertices are integers, so
 // with FY = 1/2 no vertex shares R's y, and with FX an odd multiple of 2^-18 no edge
-// shorter than 2^17 units can pass through R (the builder asserts the bound). That makes
-// "which side of this edge is R on" a question with one answer, and the products below
-// that answer it are exact in a double for the same reason.
+// shorter than 2^17 units can pass through R. That makes "which side of this edge is R
+// on" a question with one answer. The two products that answer it below are exact in a
+// double while a vertex's offset from R times an edge's length stays under 2^35; the
+// builder refuses to write a file that breaks either bound.
 import { readFile } from "node:fs/promises";
 
 import { metresPerDegree } from "./spatial.mjs";

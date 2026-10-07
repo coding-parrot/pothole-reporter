@@ -18,9 +18,15 @@ const GRID = Object.freeze({ west: 73.9, south: 11.4, cols: 480, rows: 720, cell
 // edge and 77 m of latitude, which leaves MAX_BUFFER_METRES with room.
 const MARGIN_DEGREES = 0.0007;
 export const MAX_BUFFER_METRES = 60;
-// The reader's arithmetic is exact while every edge is shorter than this (see
-// service/local-ownership.mjs): 2^17 units, 72 km at 1/200,000 degree.
+// Two bounds keep the reader's side-of-edge test exact (see service/local-ownership.mjs).
+// No cell's reference point can lie on an edge shorter than this: 2^17 units, 72 km at
+// 1/200,000 degree.
 const MAX_EDGE_UNITS = 2 ** (REFERENCE_FX_BITS - 1);
+// And the reader multiplies a vertex's offset from the reference point (an integer number
+// of 2^-18 units) by an edge's length: exact in a double while the product stays under
+// 2^53, that is while offset times length is under 2^35 units squared. On 7 Oct 2026 the
+// largest was about 2^31.
+const MAX_OFFSET_TIMES_EDGE = 2 ** 34;
 
 class Grow {
   constructor(View, capacity = 1 << 16) {
@@ -144,6 +150,7 @@ export function createOwnershipWriter({ scale }) {
       varint(ring[0][0]);
       varint(ring[0][1]);
       let cells = null;
+      let reach = null;
       for (let index = 1; index < ring.length; index += 1) {
         const [ax, ay] = [ring[index - 1][0] * step, ring[index - 1][1] * step];
         const [bx, by] = [ring[index][0] * step, ring[index][1] * step];
@@ -159,7 +166,13 @@ export function createOwnershipWriter({ scale }) {
           chunkPoly.push(polygon);
           chunkEdges.push(Math.min(CHUNK_EDGES, ring.length - index));
           cells = new Set();
+          reach = { west: ax, south: ay, east: ax, north: ay, edge: 0 };
         }
+        reach.west = Math.min(reach.west, bx);
+        reach.east = Math.max(reach.east, bx);
+        reach.south = Math.min(reach.south, by);
+        reach.north = Math.max(reach.north, by);
+        reach.edge = Math.max(reach.edge, Math.abs(dx), Math.abs(dy));
         varint(ring[index][0] - ring[index - 1][0]);
         varint(ring[index][1] - ring[index - 1][1]);
         // Every cell the edge's box (with the margin, for a highway) overlaps.
@@ -176,6 +189,13 @@ export function createOwnershipWriter({ scale }) {
         if (index % CHUNK_EDGES === 0 || index === ring.length - 1) {
           const chunk = chunkX.length - 1;
           for (const cell of cells) {
+            const centreX = grid.x0 + (cell % grid.cols) * grid.cell + half;
+            const centreY = grid.y0 + Math.floor(cell / grid.cols) * grid.cell + half;
+            const offset = 1 + Math.max(centreX - reach.west, reach.east - centreX, centreY - reach.south, reach.north - centreY);
+            if (offset * reach.edge >= MAX_OFFSET_TIMES_EDGE) {
+              throw new Error(`${layer.name} ${objectid}: a chunk reaches ${offset} units from a cell that lists it with an edge of `
+                + `${reach.edge}; the reader's arithmetic would round. Shorten CHUNK_EDGES or store this layer more coarsely.`);
+            }
             chunkCellPairs.cell.push(cell);
             chunkCellPairs.item.push(chunk);
           }
