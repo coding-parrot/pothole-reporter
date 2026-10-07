@@ -18,7 +18,9 @@ What this holds:
     the old footer;
   - an unsent draft still holding the previous template's text, exactly as the app wrote
     it, is written again when it is shown and when it is sent, while a draft with the
-    person's own words in it and a sent complaint are left alone.
+    person's own words in it and a sent complaint are left alone;
+  - a Drive Mode report whose letter Room cached from the previous template is written
+    again on the Email tap, and Room is handed the new text.
 """
 
 import json
@@ -228,6 +230,41 @@ async (id) => {
            version: r.complaint_template_version, whatsapp: r.whatsapp_text };
 }
 """
+# A Drive Mode report lives in Room, which keeps its letter and no template version.
+NATIVE_ROW = r"""
+async (oldBody) => {
+  const saved = [];
+  Object.assign(Capacitor.Plugins.DriveMode, {
+    saveComplaintPreparation: async (options) => {
+      saved.push({ ...options });
+      return { id: options.id, decision: "accept", status: "queued", server_pothole_id: 7077,
+        server_duplicate: false, road_ownership: "municipal",
+        tender_resolution_checked_at: 1791344700, tender_number: options.tenderNumber,
+        contractor: options.contractor, tender_note: options.tenderNote, address: options.address,
+        body_lgd: options.bodyLgd, body_name: options.bodyName, email_to: options.emailTo,
+        officer_title: options.officerTitle, email_subject: options.emailSubject,
+        email_body: options.emailBody };
+    },
+    getReportPhoto: async () => ({ dataUrl: "data:image/jpeg;base64,/9j/" + "A".repeat(240) }),
+  });
+  const row = { id: "native_77", _native: true, _nativeId: 77, status: "draft",
+    _nativeStoredStatus: "draft", decision: "accept", assessment: "damaged",
+    damage_type: "pothole_cavity", image_quality: "acceptable", size: "medium",
+    description: "A pothole is visible in the traffic lane.", lat: 17.3297, lng: 76.8343,
+    gps_accuracy: 4, created_at: 1791344700, captured_at: 1791344700,
+    address: "Test Road, Kalaburagi", body_lgd: "248127", body_name: "Kalaburagi",
+    road_ownership: "municipal", tender_resolution_checked_at: 1791344700,
+    server_pothole_id: 7077, server_duplicate: false, has_photo: true,
+    email_to: "ka.kalaburagi.cc@gmail.com", officer_title: "Commissioner, Kalaburagi",
+    email_subject: "Pothole complaint: Test Road", email_body: oldBody };
+  openDetail(row, [row]);
+  await sendReport(row);
+  const first = window.__composerCalls.slice(-1)[0] || null;
+  await sendReport(row);
+  return { saved: saved.map((call) => call.emailBody), first,
+           second: window.__composerCalls.slice(-1)[0] || null };
+}
+"""
 SEND = ("(id) => StandaloneAPI.handle(`/api/reports/${id}/send`, { method: 'POST' })"
         ".then((r) => ({ ok: true, status: r.status }), (e) => ({ ok: false, message: e.message }))")
 
@@ -289,6 +326,11 @@ with sync_playwright() as playwright:
             letters[lang + "-plain"] = build(page, lang=lang)
             check(letters[lang]["language"] == lang and letters[lang + "-plain"]["language"] == lang,
                   f"{lang}: the letter is not recognised as {lang}: {letters[lang]['body'][:40]!r}")
+            # A person may rewrite the greeting. The labelled lines still tell the language.
+            without_greeting = letters[lang]["body"].split("\n\n", 1)[1]
+            check(page.evaluate("(body) => StandaloneAPI.__pure.storedComplaintLanguage(body)",
+                                without_greeting) == lang,
+                  f"{lang}: without its greeting the letter is no longer recognised as {lang}")
             body = letters[lang]["body"]
             paragraphs = body.split("\n\n")
             check(len(paragraphs) == 7 and len(paragraphs[2].split("\n")) == 6,
@@ -417,6 +459,19 @@ with sync_playwright() as playwright:
         check("accumulated or uncollected garbage" in civic["email_body"]
               and civic["email_body"].endswith("civic jurisdiction, and complaint category."),
               "a civic complaint draft was changed by the road-letter migration")
+
+        # ---- a Drive Mode report whose letter Room cached from the previous template ----
+        native = page.evaluate(NATIVE_ROW, OLD_BODY)
+        plain_expected = expected.replace(
+            "Please verify that this road is maintained by your office and if this location is "
+            "covered by - BBMP/2025-26/RD/WORK_INDENT1: Improvements to roads in HSR Layout ward "
+            "no.174, package 1.", "Please verify that this road is maintained by your office.")
+        same("a Drive Mode report's cached old letter, when sent",
+             (native["first"] or {}).get("body", ""), plain_expected)
+        check(native["saved"] and native["saved"][0] == plain_expected,
+              "the rewritten Drive Mode letter was not handed back to Room")
+        check((native["second"] or {}).get("body") == plain_expected,
+              "a second Email tap on the Drive Mode report sent a different letter")
 
         fails += fh.error_failures(errors, "verify request letter")
     finally:
