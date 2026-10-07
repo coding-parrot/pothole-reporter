@@ -178,6 +178,15 @@ test("by name: a name that fits two wards of the body is answered for neither", 
   assert.deepEqual(of(67), [up.notices[2].title]);
   // The title's 11 is another delimitation's number; the name is what places it.
   assert.deepEqual(of(29), [up.notices[1].title]);
+  // Lucknow's one notice says "Janakipuram Ward II". The file draws Jankipuram 1st and
+  // Jankipuram 2nd, the reader does not take "II" for "2nd", and so neither is answered.
+  const lucknow = {
+    id: "UP/lucknow", state_code: "UP", notices_city: "Lucknow", by: "name", numbers: "untested", markers: { letters: [], words: [] },
+    wards: [square("UP-lucknow-1", "1", "Jankipuram 1st", 0), square("UP-lucknow-2", "2", "Jankipuram 2nd", 20)],
+  };
+  const lko = pack([notice("Directorate of Local Bodies UP||Lucknow Municipal Corporation",
+    "Construction of paver-block roads and interlocking side strips, etc., in Sector-H (under Janakipuram Ward II) extending from S.P. Maurya house to Bright Way School and including various connecting lanes.")]);
+  for (const entry of lucknow.wards) assert.deepEqual(matchIndiaWardTenders({ ward: entry, snapshot: lucknow, pack: lko, now: CLOCK }), [], entry.name);
 });
 
 test("by number: the title's ward number, never its zone, and only where the numbering is the tenders'", () => {
