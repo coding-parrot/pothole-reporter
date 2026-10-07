@@ -149,5 +149,6 @@
   "verify_request_letter_test.py": true,
   "ward_tenders_on_demand_test.py": true,
   "pull_or_keep_test.py": true,
-  "gepnic_carry_over_test.py": true
+  "gepnic_carry_over_test.py": true,
+  "drive_capture_encode_stall_test.py": true
 }
