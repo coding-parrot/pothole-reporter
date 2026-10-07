@@ -14,6 +14,7 @@ import html
 import json
 import math
 import re
+import ssl
 import sys
 import urllib.parse
 import urllib.request
@@ -135,11 +136,31 @@ def _official_scalar(value: Any) -> bool:
     )
 
 
+ISSUER_CERTIFICATE = (
+    Path(__file__).resolve().parent / "certs" / "sectigo-public-server-authentication-ca-ov-r36.pem"
+)
+
+
+def tls_context() -> ssl.SSLContext:
+    """The system trust store plus the issuer certificate the portal does not send.
+
+    Verification stays on: the issuer only completes the chain to a root the system
+    already trusts, it is not a root itself.
+    """
+
+    context = ssl.create_default_context()
+    context.load_verify_locations(cafile=str(ISSUER_CERTIFICATE))
+    return context
+
+
 def fetch_active_tenders(timeout: int = 60) -> list[dict[str, Any]]:
     """Use the portal's anonymous public-page token to fetch active tender JSON."""
 
     cookies = CookieJar()
-    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies))
+    opener = urllib.request.build_opener(
+        urllib.request.HTTPSHandler(context=tls_context()),
+        urllib.request.HTTPCookieProcessor(cookies),
+    )
     page_request = urllib.request.Request(
         LIST_PAGE_URL,
         data=urllib.parse.urlencode({"Authorization": ""}).encode(),
