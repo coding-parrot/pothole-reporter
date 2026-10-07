@@ -553,6 +553,7 @@ def drive_notice():
 @step("Continue, then both permission sheets, without the process dying")
 def permissions():
     before = pid()
+    state["drive_tapped_at"] = device_clock()
     nodes, _ = tree()
     button = find(nodes, "continue")
     if not button:
@@ -591,11 +592,27 @@ def permissions():
     return "%d sheet(s) granted" % granted
 
 
-def watch_drive(seconds, label):
-    """Read the drive screen about every 1.5 s. Returns the problems seen."""
+def device_clock():
+    """The phone's own clock, in the form logcat stamps its lines with."""
+    return adb("shell", "date", "+%m-%d %H:%M:%S").strip()
+
+
+def watch_drive(seconds, label, quiet=False):
+    """Stay on the drive screen for the given time. Returns the problems seen.
+
+    quiet: do not touch the phone at all while the drive runs, then read the screen
+    once. Reading the accessibility tree makes the WebView do work it would not do for
+    a driver, so the quiet drive is the one that shows what a driver gets; the watched
+    drive (a read about every second) shows the HUD as it changes.
+    """
     before = pid()
     began = time.time()
+    window = {"drive": label, "quiet": quiet, "started": device_clock(),
+              "opens_from": state.pop("drive_tapped_at", None) or device_clock()}
+    result.setdefault("drives", []).append(window)
     problems, xml = [], ""
+    if quiet:
+        time.sleep(seconds)
     while True:
         nodes, xml = tree()
         if clear_the_way(nodes, xml):
@@ -628,6 +645,7 @@ def watch_drive(seconds, label):
         if time.time() - began >= seconds:
             break
         time.sleep(1.0)
+    window["ended"] = device_clock()
     capture("%s-drive-after-%ss" % (label, seconds), xml)
     if pid() != before:
         problems.append("the app process died or restarted during the drive")
@@ -636,7 +654,7 @@ def watch_drive(seconds, label):
 
 @step("live drive holds for 20 s with the camera running")
 def live_drive():
-    problems = watch_drive(DRIVE_SECONDS, "first")
+    problems = watch_drive(DRIVE_SECONDS, "first", quiet=True)
     if problems:
         raise AssertionError("; ".join(problems))
     return result["drive_samples"][-1]["hud"][:200]
@@ -654,7 +672,7 @@ def stop_drive():
     return visible_text(app_nodes(nodes))[:300]
 
 
-@step("a second drive (permissions already granted) starts clean and stops")
+@step("a second drive, left alone for 12 s, is scanning with one camera open")
 def second_drive():
     # The control for the first drive: no notice and no permission sheet this time, so
     # anything wrong here is not about first-run prompts.
@@ -683,9 +701,10 @@ def second_drive():
     button = find(nodes, "drive")
     if not button:
         raise AssertionError("no Drive button on Home")
+    state["drive_tapped_at"] = device_clock()
     tap(*button.centre)
-    wait_for("the live drive screen", lambda n: find(n, "stop"), 20)
-    problems = watch_drive(10, "second")
+    # Not one read of the screen until the time is up: this drive is the app on its own.
+    problems = watch_drive(12, "second", quiet=True)
     if len(result["permissions"]) != sheets:
         problems.append("a permission sheet appeared again")
     nodes, _ = tree()
@@ -693,6 +712,26 @@ def second_drive():
     if stop:
         tap(*stop.centre)
     wait_for("Home after the second Stop", is_home, 45)
+    if problems:
+        raise AssertionError("; ".join(problems))
+    return result["drive_samples"][-1]["hud"][:200]
+
+
+@step("a third drive, read every second, shows the same")
+def watched_drive():
+    nodes, _ = tree()
+    button = find(nodes, "drive")
+    if not button:
+        raise AssertionError("no Drive button on Home")
+    state["drive_tapped_at"] = device_clock()
+    tap(*button.centre)
+    wait_for("the live drive screen", lambda n: find(n, "stop"), 20)
+    problems = watch_drive(12, "watched")
+    nodes, _ = tree()
+    stop = find(nodes, "stop")
+    if stop:
+        tap(*stop.centre)
+    wait_for("Home after the third Stop", is_home, 45)
     if problems:
         raise AssertionError("; ".join(problems))
     return result["drive_samples"][-1]["hud"][:200]
@@ -754,6 +793,10 @@ def recorded_errors():
     return "Feedback offers no recorded errors"
 
 
+def opens_unknown():
+    return bool(result.get("drives")) and not result.get("camera_opens")
+
+
 def scan_logcat():
     log = adb("logcat", "-d", "-v", "threadtime", timeout=90)
     with gzip.open(os.path.join(OUT, "logcat.txt.gz"), "wt", encoding="utf-8") as handle:
@@ -777,8 +820,14 @@ def scan_logcat():
             handle.write("-----\n")
     # How often the app opened the camera. One per drive is normal; more means the app's
     # own watchdog decided the camera was lost and reopened it.
-    opened = re.compile(r'CameraService::connect call \(PID \d+ "%s"' % re.escape(PACKAGE))
-    result["camera_opens"] = [line.split()[1] for line in lines if opened.search(line)]
+    opened = re.compile(r'CameraService::connect call \(PID -?\d+ "%s"' % re.escape(PACKAGE))
+    opens = [" ".join(line.split()[:2])[:14] for line in lines if opened.search(line)]
+    result["camera_opens"] = opens
+    for window in result.get("drives", []):
+        # Opened shortly before the watch began (the drive starts, then the sheets) up
+        # to its end. More than one means the app reopened a camera it already had.
+        inside = [at for at in opens if at <= window.get("ended", "99") and at >= window.get("opens_from", window["started"])]
+        window["camera_opens"] = len(inside)
     result["permission_sheets_at"] = [line.split()[1] for line in lines
                                       if "START u0" in line and "REQUEST_PERMISSIONS" in line]
     result["logcat_findings"] = findings[:40]
@@ -790,7 +839,7 @@ def scan_logcat():
 def main():
     os.makedirs(OUT, exist_ok=True)
     steps = [launch, home, drive_notice, permissions, live_drive, stop_drive, second_drive,
-             settings, recorded_errors]
+             watched_drive, settings, recorded_errors]
     try:
         if launch():
             for run in steps[1:]:
@@ -801,13 +850,18 @@ def main():
         except Exception as error:
             findings = ["logcat scan failed: %s" % error]
             result["logcat_findings"] = findings
+        reopened = ["%s drive: the app opened the camera %d times" % (w["drive"], w["camera_opens"])
+                    for w in result.get("drives", []) if w.get("camera_opens", 0) > 1]
+        result["camera_reopened"] = reopened
+        if opens_unknown():
+            note("logcat on this phone does not show camera opens; reopening is judged from the screen only")
         if len(state["pids"]) > 1:
             note("the app ran under more than one pid: %s" % state["pids"])
         hard_failures = [entry for entry in result["steps"] if entry["hard"] and not entry["ok"]]
         ran = {entry["name"] for entry in result["steps"]}
         missing = [run.step_name for run in steps if run.step_name not in ran]
         result["not_run"] = missing
-        result["passed"] = not hard_failures and not findings and not missing
+        result["passed"] = not hard_failures and not findings and not missing and not reopened
         result["seconds"] = elapsed()
         with open(os.path.join(OUT, "result.json"), "w", encoding="utf-8") as handle:
             json.dump(result, handle, indent=2, ensure_ascii=False)
@@ -821,6 +875,8 @@ def main():
         print("  %-4s %s: %s" % ("ok" if entry["ok"] else "FAIL", entry["name"], entry["detail"][:160]))
     for line in result["logcat_findings"][:10]:
         print("  logcat:", line[:200])
+    for line in result.get("camera_reopened", []):
+        print("  FAIL", line)
     return 0 if result["passed"] else 1
 
 

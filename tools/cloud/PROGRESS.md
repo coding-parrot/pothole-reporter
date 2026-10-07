@@ -46,3 +46,4 @@
 - Instrumented run 03fd7e5a (animation loop on) did not reproduce: toBlob 35 ms, no reopen. Run 0747ec02-ee88-408b-80a2-4aa6f9ef2f5e does the instrumented drive twice (listen only, then animating).
 - Proof eval DONE: 60 pairs, 3 discordant (0 vs 3), exact p 0.25, USD 0.0422 OpenAI + 2 CodeBuild minutes. s3 evals/prompt-20261007-130135-production/
 - CI build 3 on branch c8a23f0 (merged main + gzip fix): 239/247, only the 8 known failures, service 728/729 (1 skipped), exit 0, 7 minutes MEDIUM. Project default switched to SMALL (origin/main took 10 billed minutes there).
+- CI build 4 (branch 7832456, SMALL default): pothole-reporter-ci:4a8ff27a-5836-47b5-a7fd-3d3a4b4bb5b2

@@ -248,6 +248,7 @@ def collect(run_arn, folder=None):
             problems += ["%s: %s" % (s["name"], s["detail"][:140]) for s in verdict["steps"] if not s["ok"]]
             problems += ["not run: %s" % name for name in verdict.get("not_run", [])]
             problems += ["logcat: %s" % line[:140] for line in verdict.get("logcat_findings", [])[:3]]
+            problems += verdict.get("camera_reopened", [])
         elif failed:
             problems.append("no result.json came back (%s)" % (job.get("message") or "see testspec-output.txt"))
         passed = job.get("result") == "PASSED" and bool(verdict) and verdict.get("passed") is True
