@@ -52,8 +52,9 @@ def main():
     rows = [row for row in rows if row["split"] == "test"]
     if args.limit:
         rows = rows[:: max(1, len(rows) // args.limit)]
-    # torch runs on the GPU where there is one (this Mac's CPU needs 0.4 s a frame for a
-    # depthwise CNN); ONNX Runtime runs on the CPU, as it does in Lambda.
+    # ONNX Runtime runs on the CPU, as it does in Lambda. torch runs on the CPU too on
+    # the training instance (8 fast cores); on the Mac its CPU needs 0.4 s a frame for a
+    # depthwise CNN, so there it runs on the Apple GPU.
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     model.to(device)
     torch_scores, onnx_scores = [], []

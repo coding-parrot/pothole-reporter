@@ -260,12 +260,13 @@ def markdown(report):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--baseline", required=True, help="score stem of v1 on today's frames")
+    parser.add_argument("--baseline", required=True, help="score file stem of v1 on today's frames")
     parser.add_argument("--variants", nargs="+", required=True)
     parser.add_argument("--run-id", default="local")
     parser.add_argument("--out", default=str(WORK / "report"))
     args = parser.parse_args()
-    rows = [json.loads(line) for line in (WORK / "manifest.jsonl").read_text().splitlines()]
+    rows = [row for row in map(json.loads, (WORK / "manifest.jsonl").read_text().splitlines())
+            if row["split"] in ("validation", "test")]
     owner_rows = [row for row in map(json.loads, (FRAMES / "index.jsonl").read_text().splitlines())
                   if row.get("split_hint") == "owner"]
     paths = [row["path"] for row in rows]

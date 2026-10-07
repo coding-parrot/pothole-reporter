@@ -18,7 +18,7 @@ of the weights; the epoch kept is the one that clears most undamaged validation 
 at 98% recall, and training stops when that has not improved for --patience epochs.
 Every epoch is checkpointed, so an interrupted run resumes.
 
-Writes work/finetuned/<name>.body.pt, work/heads/<encoder>_<size>_<name>.pt and
+Writes work/finetuned/<encoder>_<size>_<name>.body.pt, work/heads/<encoder>_<size>_<name>.pt and
 work/scores/<encoder>_<size>_<name>.npz (every manifest frame and the owner images).
 """
 import argparse
@@ -178,8 +178,8 @@ def main():
     out = WORK / "finetuned"
     out.mkdir(exist_ok=True)
     (WORK / "scores").mkdir(exist_ok=True)
-    checkpoint_path = out / f"{args.name}.checkpoint.pt"
     stem = f"{args.encoder}_{args.size}_{args.name}"
+    checkpoint_path = out / f"{stem}.checkpoint.pt"
 
     encoder = Encoder(args.encoder, args.size).to(args.device).to(memory_format=torch.channels_last)
     width = 2 * encoder.body.num_features
@@ -262,7 +262,7 @@ def main():
     def keep_best():
         body = {key[5:]: value.cpu() for key, value in averaged["encoder"].items()
                 if key.startswith("body.")}
-        torch.save(body, out / f"{args.name}.body.pt")
+        torch.save(body, out / f"{stem}.body.pt")
         torch.save({"state": {k: v.cpu() for k, v in averaged["head"].items()},
                     "hidden": hidden, "width": width}, WORK / "heads" / f"{stem}.pt")
 
@@ -313,7 +313,7 @@ def main():
         raise SystemExit("fine-tuning never improved on its starting point; nothing kept")
 
     # Score everything with the kept weights, through the same clean path.
-    encoder.body.load_state_dict(torch.load(out / f"{args.name}.body.pt"))
+    encoder.body.load_state_dict(torch.load(out / f"{stem}.body.pt"))
     kept = torch.load(WORK / "heads" / f"{stem}.pt")
     head.load_state_dict(kept["state"])
     owner = [row["path"] for row in map(json.loads, (FRAMES / "index.jsonl").read_text().splitlines())
