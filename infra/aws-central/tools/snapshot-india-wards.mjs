@@ -112,8 +112,10 @@ const overpass = (level, namePattern, [south, west, north, east]) => ({
   ...ODBL,
 });
 
+// A name as the source writes it, with runs of white space made one space and a long dash
+// (U+2013, U+2014) written as a hyphen: one Pune prabhag is "Mahatma Phule Smarak \u2013Bhavani Peth".
 const text = (value) => {
-  const cleaned = String(value ?? "").replace(/\s+/g, " ").trim();
+  const cleaned = String(value ?? "").replace(/[\u2013\u2014]/g, "-").replace(/\s+/g, " ").trim();
   return cleaned || null;
 };
 const number = (value) => {
