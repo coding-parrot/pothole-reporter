@@ -1,0 +1,2 @@
+# The test speaks WebDriver to the Appium server with the Python standard library.
+# Nothing to install; Device Farm's Appium Python package format wants this file.
