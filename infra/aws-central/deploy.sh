@@ -55,14 +55,19 @@ cp data/karnataka-ward-geometry.json "$TMP_DIR/package/data/"
 # tile on first need, so the geocoder is asked only where no region has a street. The
 # build's working directory (data/streets/.work, 4.4 GB) is never packaged. About 42 MB.
 mkdir -p "$TMP_DIR/package/data/streets"
-for region in data/streets/*/; do
-  cp -R "$region" "$TMP_DIR/package/data/streets/"
+# No trailing slash on the source: BSD cp copies a directory's CONTENTS when its name
+# ends in one, which once flattened every region into a single directory.
+for region in data/streets/*; do
+  [[ -d "$region" ]] && cp -R "$region" "$TMP_DIR/package/data/streets/"
 done
 # The national tender catalogues (highway contracts, State/UT road notices, PMGSY
 # agreements): the manifests the shipped phone names, under fixed names, and the pack
 # they pin for every state, hash-checked. national-tenders.mjs reads them lazily per
 # state from this same path relative to the service. About 11 MB, 103 files.
 node infra/aws-central/tools/stage-national-tenders.mjs "$TMP_DIR/package/data/national-tenders"
+# The staged package answers a real point from its own files, network cut, or nothing is
+# uploaded.
+node infra/aws-central/tools/check-package.mjs "$TMP_DIR/package"
 (cd "$TMP_DIR/package" && zip -q -r "$TMP_DIR/central-lambda.zip" infra llm data)
 echo "package: $(du -h "$TMP_DIR/central-lambda.zip" | cut -f1) zipped, $(du -sh "$TMP_DIR/package" | cut -f1) unpacked"
 # A content-addressed key makes CloudFormation see every code change; a fixed key reports
