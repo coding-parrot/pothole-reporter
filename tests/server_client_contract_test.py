@@ -366,6 +366,23 @@ READ_REPORT = """async (id) => {
     unrouted_reason:report.unrouted_reason, unrouted_body:report.unrouted_body};
 }"""
 
+def wait_until(page, expression, arg, timeout_s=30):
+    """Wait for a condition that needs an await.
+
+    page.wait_for_function does not wait for a promise: a predicate that returns one is
+    truthy the moment it is called, so the two waits below never waited. The Mac always
+    delivered the outbox before the next line read the report; a 2 vCPU CodeBuild
+    instance did not, twice in eight runs on 7 Oct 2026, and the suite failed there with
+    the report still pending. page.evaluate does await, so poll with that.
+    """
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        if page.evaluate(expression, arg):
+            return
+        page.wait_for_timeout(50)
+    raise AssertionError(f"condition not met within {timeout_s} s: {expression[:120]}")
+
+
 READ_OUTBOX = """async () => await new Promise((resolve, reject) => {
   const open = indexedDB.open('potholes');
   open.onerror = () => reject(open.error);
@@ -717,9 +734,9 @@ def main():
         startup_at = len(harness.requests)
         shared_page.reload()
         shared_page.wait_for_load_state("networkidle")
-        shared_page.wait_for_function("""id => StandaloneAPI.handle('/api/reports')
+        wait_until(shared_page, """id => StandaloneAPI.handle('/api/reports')
           .then((rows) => rows.some((row) => row.id === id && row.server_pothole_id
-            && row.central_sync_pending === false))""", arg=shared_pending["id"])
+            && row.central_sync_pending === false))""", shared_pending["id"])
         shared = shared_page.evaluate(READ_REPORT, shared_pending["id"])
         startup_delta = [request["path"] for request in harness.requests[startup_at:]
                          if request["path"] != "/v1/health"]
@@ -844,9 +861,9 @@ def main():
                 and personal_initial["central_sync_pending"] is True
                 and personal_initial["server_pothole_id"] is None):
             failures.append(f"personal capture did not return its local result first: {personal_initial}")
-        personal_page.wait_for_function("""id => StandaloneAPI.handle('/api/reports')
+        wait_until(personal_page, """id => StandaloneAPI.handle('/api/reports')
           .then((rows) => rows.some((row) => row.id === id
-            && row.central_sync_pending === false))""", arg=personal_initial["id"])
+            && row.central_sync_pending === false))""", personal_initial["id"])
         personal = personal_page.evaluate(READ_REPORT, personal_initial["id"])
         # The anonymous personal-mode counter is deliberately fire-and-forget. Give its
         # signed request a bounded moment to finish without coupling it to the verdict.

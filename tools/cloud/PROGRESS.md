@@ -56,3 +56,4 @@
 - CI build 5 (989a7f7, with app fix): 239/248, new test passes; one new failure server_client_contract_test.py (central sync still pending: looks like a load flake, not the capture path). Rerun: build 6 on cbd6b92: pothole-reporter-ci:b11f1487-ee7f-461a-9b28-c3088ba01027
 - CI build 7 (b07dac9, buildspec reruns a new failure alone): pothole-reporter-ci:fc167d17-0a30-4a7c-baad-42c4fbde9aa0
 - Final default 4-phone run afdde8e0 (10.15 device minutes, total 52.7): Pixel 8a, Galaxy A13, Galaxy A15 FAIL (camera reopened in first and or unattended drive), Redmi PASS but its log keeps about 20 s so the first open was lost; test now reads opens every 5 s. Redmi-only check: a50be24e-6320-4547-93dc-eaa16ba50b06 (folder run-20261007-191128).
+- Redmi-only run a50be24e (2.52 min, total 55.2): with opens read every 5 s the Redmi shows the same reopen in the first and the unattended drive. All four phones fail 1.40.0 (79) on the same bug.
