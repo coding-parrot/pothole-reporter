@@ -25,8 +25,8 @@ stay after a run; `cloud/teardown.sh` terminates the instance and checks nothing
 ```
 datasets/<name>/raw/         public archives as downloaded (expire after 30 days)
 datasets/<name>/receipt.json URL, bytes, sha256, date
-frames/<name>/               prepared whole frames, one tar per dataset, and the index
-labels/                      teacher answers (one tar) and the manifest
+frames/<source>/             prepared whole frames of the public sets, frames/index.jsonl
+labels/                      teacher answers (one tar), the manifest and its summary
 v1-work/                     the v1 working directory from the Mac (private drive frames)
 runs/<run-id>/progress.md    one line per finished stage
 runs/<run-id>/{logs,checkpoints,report}/
@@ -42,7 +42,8 @@ view, and the list of what was refused and why.
 ## Pipeline (`cloud/run.sh`, on the instance, every stage resumable)
 
 1. `setup`: Python packages, Node 22, `npm ci` for the serving path.
-2. `restore_v1`: v1 frames, teacher answers and manifest from `v1-work/`.
+2. `restore_v1_frames`, later `restore_v1_labels`: v1 frames, teacher answers and
+   manifest from `v1-work/`.
 3. `fetch`: public archives to local disk, mirrored to `datasets/<name>/raw/`.
 4. `prepare`: choose images by their annotations, give each the app's Drive Mode
    preparation (whole frame, never cropped), hash it.

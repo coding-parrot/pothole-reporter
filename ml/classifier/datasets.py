@@ -254,6 +254,51 @@ def attain():
     yield "attain_iran", candidates, {"pothole": None, "alligator": None, "cracks": None, "none": None}
 
 
+# --- Road Damage Dataset: Potholes, Cracks and Manholes (Rome) ---------------------------
+def rome():
+    """GoPro frames from a moving car around Rome, with potholes, cracks and manholes
+    boxed (640 x 360). The whole dataset is held out for validation."""
+    path = str(RAW / "rome-road-damage" / "data.zip")
+    archive = zipfile.ZipFile(path)
+    candidates = []
+    for info in archive.infolist():
+        if "/images/" not in info.filename or not info.filename.lower().endswith(".jpg"):
+            continue
+        label = info.filename.replace("/images/", "/labels-YOLO/")[:-4] + ".txt"
+        kinds = {line.split()[0] for line in archive.read(label).decode().splitlines() if line.strip()}
+        tier = ("pothole" if "0" in kinds else "manhole" if "2" in kinds
+                else "cracks" if "1" in kinds else "none")
+        candidates.append({
+            "name": info.filename.rsplit("/", 1)[1], "ref": {"zip": path, "member": info.filename},
+            "dataset": "rome", "domain": "rome_road_damage", "source": "rome-road-damage",
+            "split_hint": "validation", "tier": tier, "annotated_pothole": "0" in kinds,
+            "extra": {"ann_classes": sorted({"0": "pothole", "1": "crack", "2": "manhole"}[k] for k in kinds)}})
+    yield "rome_road_damage", candidates, {"pothole": None, "manhole": None, "cracks": 600, "none": None}
+
+
+# --- BharatPotHole ---------------------------------------------------------------------
+def bharat():
+    """Indian dashcam frames with pothole boxes, and frames with none. The publisher's
+    export stretched every frame to 640 x 640; the whole frame is there, squeezed. One
+    source per recorded clip (the file name's timestamp and clip number)."""
+    path = str(RAW / "bharatpothole" / "bharatpothole.zip")
+    archive = zipfile.ZipFile(path)
+    candidates = []
+    for info in archive.infolist():
+        if "/images/" not in info.filename or not info.filename.lower().endswith(".jpg"):
+            continue
+        label = info.filename.replace("/images/", "/labels/")[:-4] + ".txt"
+        boxes = archive.read(label).decode().split()
+        stem = info.filename.rsplit("/", 1)[1].split("_jpg.rf.")[0]
+        clip = stem.split("_frame_")[0].lower().replace("_", "-")
+        candidates.append({
+            "name": stem + ".jpg", "ref": {"zip": path, "member": info.filename},
+            "dataset": "bharat", "domain": "bharatpothole", "source": f"bharat-{clip}",
+            "split_hint": "train", "tier": "pothole" if boxes else "none",
+            "annotated_pothole": bool(boxes), "extra": {}})
+    yield "bharatpothole", candidates, {"pothole": 2500, "none": 1500}
+
+
 # --- the owner's labelled images: the final check, never training data -------------------
 def owner_rows():
     """work/owner holds the owner-labelled eval images as v1 prepared them. They are
@@ -277,7 +322,7 @@ def owner_rows():
 
 
 ADAPTERS = {"rdd2022": rdd2022, "rad": rad, "irdd": irdd, "bucko": bucko, "brazil": brazil,
-            "attain": attain}
+            "attain": attain, "rome": rome, "bharat": bharat}
 
 
 def prepare_one(candidate):

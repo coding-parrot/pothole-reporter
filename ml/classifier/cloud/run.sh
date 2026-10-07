@@ -62,14 +62,30 @@ setup() {
   "$PYTHON" -c "import torch, timm; print('torch', torch.__version__, 'cuda', torch.cuda.is_available(), 'timm', timm.__version__)"
 }
 
-restore_v1() {
-  # The v1 working data: frames the teacher already judged, its answers, the v1 heads
-  # and ONNX. Private drive frames included, so it comes from the private bucket only.
-  for part in frames teacher owner heads onnx rdd2022_india/train/annotations; do
+restore_v1_frames() {
+  # The v1 frames (private drive frames included, so only ever from the private bucket),
+  # the owner-labelled images, the v1 heads and the v1 ONNX.
+  for part in owner heads onnx; do
     aws s3 sync "$S3/v1-work/$part" "$WORK/$part" --only-show-errors
   done
+  # The index on S3 is v1's. Once this run has added frames the local one is newer.
+  aws s3 sync "$S3/v1-work/frames" "$WORK/frames" --only-show-errors --exclude index.jsonl
+  [[ -s "$WORK/frames/index.jsonl" ]] || aws s3 cp "$S3/v1-work/frames/index.jsonl" "$WORK/frames/index.jsonl" --only-show-errors
+  echo "v1 frames: $(find "$WORK/frames" -name '*.jpg' | wc -l) files, $(wc -l < "$WORK/frames/index.jsonl") indexed"
+}
+
+restore_v1_labels() {
+  # The teacher's v1 answers (USD 11.51 of the budget) and the RDD2022 India boxes. The
+  # Mac writes v1-work/COMPLETE.json when its upload has been verified; wait for it.
+  for attempt in $(seq 1 120); do
+    aws s3 ls "$S3/v1-work/COMPLETE.json" >/dev/null 2>&1 && break
+    [[ $attempt -lt 120 ]] || { echo "v1-work/COMPLETE.json never appeared" >&2; return 1; }
+    sleep 30
+  done
+  aws s3 sync "$S3/v1-work/teacher" "$WORK/teacher" --only-show-errors
+  aws s3 sync "$S3/v1-work/rdd2022_india/train/annotations" "$WORK/rdd2022_india/train/annotations" --only-show-errors
   aws s3 cp "$S3/v1-work/manifest.jsonl" "$WORK/manifest-v1.jsonl" --only-show-errors
-  echo "v1 frames: $(wc -l < "$WORK/frames/index.jsonl") indexed, $(find "$WORK/teacher" -name '*.json' | wc -l) teacher answers, $(wc -l < "$WORK/manifest-v1.jsonl") manifest rows"
+  echo "v1 labels: $(find "$WORK/teacher" -name '*.json' | wc -l) teacher answers, $(wc -l < "$WORK/manifest-v1.jsonl") manifest rows"
 }
 
 prepare() {
@@ -153,7 +169,7 @@ export_model() {
   "$PYTHON" -c "import json,sys; d=json.load(open(sys.argv[1])); c=d['comparisons']; print('v2 beats v1 on every slice (serving path):', {k: v['v2_beats_v1_on_every_slice'] for k, v in c.items()})" "$WORK/report/serving-path/report.json"
 }
 
-for name in ${STAGES:-setup restore_v1 fetch prepare label manifest probes finetunes evaluate export}; do
+for name in ${STAGES:-setup restore_v1_frames fetch prepare restore_v1_labels label manifest probes finetunes evaluate export}; do
   case "$name" in
     fetch) stage fetch "$HERE/fetch_raw.sh" ;;
     export) stage export export_model ;;
