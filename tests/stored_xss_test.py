@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Persisted report fields must render as text, never executable markup."""
+import json
 import os
 import sys
 
@@ -38,6 +39,31 @@ TENDER = (
     'TENDER_XSS_MARKER</div><img src="xss-tender-missing" '
     f'data-stored-xss="tender-event" onerror="{HOOK}"><div>'
 )
+# A report whose owner the service proved, and which was never asked about its ward, is
+# asked when its card opens. That answer is service data drawn into the card as well. The
+# lookup is answered here, so no suite run signs a request to the production service.
+WARD_TENDER = (
+    'WARD_XSS_MARKER</li><img src="xss-ward-missing" '
+    f'data-stored-xss="ward-event" onerror="{HOOK}"><li>'
+)
+ward_lookups = []
+
+
+def answer_ward_lookup(route):
+    path = route.request.url.split("?", 1)[0]
+    if path.endswith("/v1/installations"):
+        route.fulfill(status=201, content_type="application/json",
+                      body=json.dumps({"request_id": "xss-install", "install_id": "stored-xss-test"}))
+        return
+    ward_lookups.append(path)
+    route.fulfill(status=200, content_type="application/json", body=json.dumps({
+        "request_id": "xss-ward", "jurisdiction": {"road_ownership": "municipal",
+                                                   "ward_name": WARD_TENDER},
+        "tender": None, "reason": "no_match",
+        "ward_tenders": [{"tender_number": WARD_TENDER, "title": WARD_TENDER,
+                          "published": WARD_TENDER, "scope": "ward"}],
+    }))
+
 
 SEED = r"""
 async ({overrides, secretKey, secret, pixel}) => {
@@ -96,8 +122,10 @@ async ({overrides, secretKey, secret, pixel}) => {
 """
 
 
-def run_surface(browser, name, overrides, render, markers):
+def run_surface(browser, name, overrides, render, markers, wait_for=None):
     context = browser.new_context(viewport={"width": 390, "height": 844})
+    context.route("**/v1/installations", answer_ward_lookup)
+    context.route("**/v1/tenders/resolve", answer_ward_lookup)
     page = context.new_page()
     page.goto(APP)
     page.wait_for_load_state("networkidle")
@@ -124,6 +152,8 @@ def run_surface(browser, name, overrides, render, markers):
         page.evaluate("report => openDetail(report, [report])", report)
         root = "#detail"
 
+    if wait_for:
+        page.wait_for_selector(wait_for, state="attached", timeout=15_000)
     # Give error/load handlers time to fire. Escaped text must never create either node.
     page.wait_for_timeout(250)
     state = page.evaluate(
@@ -184,6 +214,18 @@ with sync_playwright() as playwright:
         ),
         run_surface(
             browser,
+            "detail/ward-tenders",
+            {
+                "road_ownership": "municipal",
+                "road_ownership_source": "central_v1",
+                "tender_resolution_checked_at": 1787260200,
+            },
+            "detail",
+            ["WARD_XSS_MARKER"],
+            wait_for="#detail details.ward-tenders",
+        ),
+        run_surface(
+            browser,
             "dashboard/officer-name",
             {"officer_name": OFFICER},
             "dashboard",
@@ -209,6 +251,9 @@ for name, state in results:
         failures.append(f"{name}: the hostile field was not exercised by this renderer")
     if not state["visible"]:
         failures.append(f"{name}: the expected rendering surface was not visible")
+
+if not ward_lookups:
+    failures.append("no detail surface asked for ward tenders, so that renderer was not exercised")
 
 if failures:
     print("\nFAIL")
