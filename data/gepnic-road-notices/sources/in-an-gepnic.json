@@ -3,6 +3,27 @@
   "lifecycle": "procurement_notice",
   "notices": [
     {
+      "closing_at": "2026-10-14T15:00:00+05:30",
+      "detail_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SWcmxrWKYABE43b4XtfW16w%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
+      "opening_at": "2026-10-14T15:30:00+05:30",
+      "organisation_chain": "Chief Engineer Andaman Public Works Department (APWD)||EE - MID - APWD - Hut Bay",
+      "organisation_path": [
+        "Chief Engineer Andaman Public Works Department (APWD)",
+        "EE - MID - APWD - Hut Bay"
+      ],
+      "published_at": "2026-10-07T17:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
+      "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SWcmxrWKYABE43b4XtfW16w%3D%3D",
+      "state_code": "AN",
+      "tender_id": "2026_APWD_25075_1",
+      "tender_reference": "NIT No.14/DB/MID/2026-27",
+      "title": "Improvement of Rural Road for length of 0.70 Km inside RRO Colony under Sub-Division-II, MID, APWD, Hut Bay"
+    },
+    {
       "closing_at": "2026-10-09T15:00:00+05:30",
       "detail_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SxO%2F5VWJPckIa1t7r%2Bm2Cmg%3D%3D",
       "lifecycle": "procurement_notice",
@@ -14,7 +35,7 @@
         "EE (CD-III - APWD - Prothrapur)"
       ],
       "published_at": "2026-10-01T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
       "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SxO%2F5VWJPckIa1t7r%2Bm2Cmg%3D%3D",
@@ -22,27 +43,6 @@
       "tender_id": "2026_APWD_24985_1",
       "tender_reference": "NIT No. 13/EE/CD-III/2026-27",
       "title": "Improvement of rural road near Anganwadi Centre to Baradkanta House New Manglutan 550mtr length"
-    },
-    {
-      "closing_at": "2026-10-07T15:00:00+05:30",
-      "detail_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SJMvzQiB09puc3IYQMvZCKg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=So2%2B9tAgdUu57%2FfjN7BQj4A%3D%3D",
-      "opening_at": "2026-10-07T15:30:00+05:30",
-      "organisation_chain": "Chief Engineer Andaman Public Works Department (APWD)||EE - CD - APWD - Diglipur",
-      "organisation_path": [
-        "Chief Engineer Andaman Public Works Department (APWD)",
-        "EE - CD - APWD - Diglipur"
-      ],
-      "published_at": "2026-09-30T18:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
-      "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SJMvzQiB09puc3IYQMvZCKg%3D%3D",
-      "state_code": "AN",
-      "tender_id": "2026_APWD_24941_1",
-      "tender_reference": "NIT No. 49/EE/CD/APWD/DP/2026-27",
-      "title": "AR and MO Rural Road under SD-V, CD, Diglipur during the year 2026-27. Sw- Repair and Maintenance of Rural Road from BSNL Exchange Office to Residential Quarter under Education Department, Diglipur"
     },
     {
       "closing_at": "2026-10-12T15:00:00+05:30",
@@ -56,7 +56,7 @@
         "EE (SAD - APWD - Port Blair)"
       ],
       "published_at": "2026-09-18T16:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
       "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SVG5DvgXXzRl%2FaUBydFm%2B8w%3D%3D",
@@ -77,7 +77,7 @@
         "EE PRI South Andaman D-I Port Blair"
       ],
       "published_at": "2026-10-05T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
       "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=ShWLCw6LV04N9FG9EN6yiFw%3D%3D",
@@ -98,7 +98,7 @@
         "EE - Planning"
       ],
       "published_at": "2026-10-06T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
       "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SC93aBqo6rvq5rxdkgFUS4g%3D%3D",
@@ -106,27 +106,6 @@
       "tender_id": "2026_PMBC_23282_2",
       "tender_reference": "04/EE-II/RW/MC/Estt/2026-27",
       "title": "Re surfacing of Black Top Road and Repair of CC Motorable Road starting from Tamarind Tree to G Biswas House at Dudh Line Nayagaon in Ward No 12"
-    },
-    {
-      "closing_at": "2026-10-07T15:00:00+05:30",
-      "detail_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFdmKkGadZmXNVsGP%2Bbwa3g%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SGTcD%2BRUO7BhBfui0B%2FOiww%3D%3D",
-      "opening_at": "2026-10-07T16:00:00+05:30",
-      "organisation_chain": "Port Blair Municipal Council||EE - III",
-      "organisation_path": [
-        "Port Blair Municipal Council",
-        "EE - III"
-      ],
-      "published_at": "2026-09-28T13:50:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
-      "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFdmKkGadZmXNVsGP%2Bbwa3g%3D%3D",
-      "state_code": "AN",
-      "tender_id": "2026_PMBC_24490_2",
-      "tender_reference": "10/NIT/EE-III/W/MC/2026-27",
-      "title": "Improvement of CC Road and Footpath in various places of Garacharma in Ward No.18. A. Kumar House to Gandhi House, B.Sunita House to Mohan Rao House, C.Apalamma House to Jagdishan House ---- H. Krishna House to Sammi House via Mukund House."
     },
     {
       "closing_at": "2026-10-12T15:00:00+05:30",
@@ -140,7 +119,7 @@
         "EE - Planning"
       ],
       "published_at": "2026-09-16T13:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
       "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sx%2FxWsDEMnmYmhnYbxbw%2B9Q%3D%3D",
@@ -161,7 +140,7 @@
         "Office of Executive Engineer Port Blair"
       ],
       "published_at": "2026-09-30T17:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
       "source_url": "https://eprocure.andamannicobar.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SoeiYrPmFHWIAbdtMsd4gQg%3D%3D",
@@ -181,6 +160,7 @@
     "Department of Environment and Forests",
     "Directorate of Animal Husbandry and Veterinary Services",
     "Directorate of Health Services",
+    "Directorate of Information Publicity and Tourism",
     "DIRECTORATE OF RD PRIS and ULBS",
     "Directorate of Shipping Services",
     "Electricity Department",
@@ -190,9 +170,9 @@
     "Society for Promotion of Vocational and Technical Education (SOVTECH)",
     "Zilla Parishad South Andaman"
   ],
-  "retrieved_at": "2026-10-07T04:59:04Z",
-  "rows_excluded_by_scope": 203,
-  "rows_scanned": 211,
+  "retrieved_at": "2026-10-08T08:55:17Z",
+  "rows_excluded_by_scope": 195,
+  "rows_scanned": 202,
   "schema_version": 1,
   "source_id": "in-an-gepnic",
   "source_name": "Andaman and Nicobar Islands e-Procurement Portal",
