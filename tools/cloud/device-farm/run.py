@@ -5,6 +5,7 @@ and bring the results back. Called by tools/cloud/phone-test.sh; see its header.
 Standard library plus the aws CLI. Every wait has a limit.
 """
 import argparse
+import datetime
 import hashlib
 import json
 import os
@@ -288,6 +289,55 @@ def collect(run_arn, folder=None):
     return bool(rows) and all(row["passed"] for row in rows)
 
 
+SERVICE_REGION = "ap-south-1"
+INSTALLS_TABLE = "pothole-reporter-central-installations"
+METRICS_TABLE = "pothole-reporter-central-metrics"
+
+
+def epoch_ms(value):
+    """The CLI prints a run's times as epoch seconds or as ISO text, by its settings."""
+    if isinstance(value, (int, float)):
+        return int(float(value) * 1000)
+    return int(datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp() * 1000)
+
+
+def uncount_test_phones(run):
+    """Take this run's phones out of the public "phones using the app" figure.
+
+    Each rack phone installs the app afresh, so the service sees a new install per phone
+    per run and counts it as a person: 38 of the 321 installs counted on 8 Oct 2026 were
+    these. An install made between the run's start (less a minute) and its stop (plus two)
+    loses its day row in the metrics table. A real person who first opened the app in
+    those minutes is counted again on their next request the same day.
+    """
+    if not run.get("created") or not run.get("stopped"):
+        return 0
+    start, stop = epoch_ms(run["created"]) - 60_000, epoch_ms(run["stopped"]) + 120_000
+
+    def dynamo(*args):
+        done = subprocess.run(["aws", "dynamodb", *args, "--region", SERVICE_REGION, "--output", "json"],
+                              capture_output=True, text=True, timeout=120)
+        if done.returncode != 0:
+            print("   could not uncount the test phones: %s" % done.stderr.strip()[:300])
+            return None
+        return json.loads(done.stdout) if done.stdout.strip() else {}
+
+    found = dynamo("scan", "--table-name", INSTALLS_TABLE, "--projection-expression", "id, created_at",
+                   "--filter-expression", "created_at BETWEEN :a AND :b", "--expression-attribute-values",
+                   json.dumps({":a": {"N": str(start)}, ":b": {"N": str(stop)}}))
+    if found is None:
+        return 0
+    days = sorted({datetime.datetime.utcfromtimestamp(ms / 1000).strftime("%Y-%m-%d") for ms in (start, stop)})
+    removed = 0
+    for item in found.get("Items", []):
+        for day in days:
+            gone = dynamo("delete-item", "--table-name", METRICS_TABLE, "--return-values", "ALL_OLD", "--key",
+                          json.dumps({"day": {"S": day}, "metric": {"S": "active#" + item["id"]["S"]}}))
+            removed += 1 if gone and gone.get("Attributes") else 0
+    print("   %d test phone install(s) taken out of the public phone count" % removed)
+    return removed
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("apk", nargs="?", help="path to the signed release APK")
@@ -314,7 +364,9 @@ def main():
     if options.no_wait:
         return 0
     wait(run_arn, options.wait_minutes)
-    return 0 if collect(run_arn, folder) else 1
+    passed = collect(run_arn, folder)
+    uncount_test_phones(aws("get-run", "--arn", run_arn)["run"])
+    return 0 if passed else 1
 
 
 if __name__ == "__main__":

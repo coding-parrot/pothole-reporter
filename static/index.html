@@ -8786,8 +8786,9 @@ async function openDash() {
       && (navigator.onLine === false || mapError && (mapError.timeout
         || /Could not reach/.test(mapError.serverMessage || mapError.message || "")))
     ? t("public_map_offline") : t("public_map_unavailable");
+  // India only: nobody in India can be written to about a road in Mauritius.
   const sharedPins = hasSharedMap
-    ? sharedMap.features.map(publicMapPin).filter(Boolean) : [];
+    ? sharedMap.features.map(publicMapPin).filter(Boolean).filter(inIndia) : [];
   const visibleComplaintReports = sharedPins.reduce(
     (sum, pin) => sum + pin.complaint_count, 0);
   // A full answer is the service's cap, not the total, and a saved copy is not live.
@@ -8908,8 +8909,24 @@ function clearMapMarkers() {
   if (mapGroup) mapGroup.clearLayers();
 }
 
+// The map is of India. The box is the country's extent with a margin, so the islands
+// and the far north-east are inside it; the view cannot leave it or zoom out past it.
+// A box, not an outline: the map draws no boundary, for the reason given at the tiles.
+const INDIA_BOUNDS = [[5.5, 67.0], [37.8, 98.5]];
+const inIndia = (pin) => !!pin && pin.lat >= INDIA_BOUNDS[0][0] && pin.lat <= INDIA_BOUNDS[1][0]
+  && pin.lng >= INDIA_BOUNDS[0][1] && pin.lng <= INDIA_BOUNDS[1][1];
+// The widest zoom is the one at which India fills the box, worked out from the box's
+// size on this phone each time the map is drawn (a rotated phone has another).
+function keepMapOnIndia() {
+  const india = L.latLngBounds(INDIA_BOUNDS);
+  mapObj.setMinZoom(0);
+  mapObj.setMaxBounds(india.pad(0.35));
+  mapObj.setMinZoom(mapObj.getBoundsZoom(india, false));
+}
+
 // `unavailable` is the text to show when the shared map could not be read.
 function drawMap(pins, unavailable = false) {
+  pins = pins.filter(inIndia);
   const host = $("map");
   const generation = ++mapDrawGeneration;
   const problem = unavailable === true ? t("public_map_unavailable") : unavailable;
@@ -8930,7 +8947,8 @@ function drawMap(pins, unavailable = false) {
       mapCanvas = document.createElement("div");
       mapCanvas.style.height = "100%";
       host.appendChild(mapCanvas);
-      mapObj = L.map(mapCanvas, { attributionControl: true });
+      mapObj = L.map(mapCanvas, { attributionControl: true, maxBoundsViscosity: 1,
+        zoomSnap: 0.25 });
       // Satellite imagery with a roads-only reference layer on top. Neither draws a
       // political boundary, so the map never shows a border India does not recognise.
       // OpenStreetMap's tiles draw the Line of Control as an international border,
@@ -8956,6 +8974,7 @@ function drawMap(pins, unavailable = false) {
     for (const child of [...host.children]) if (child !== mapCanvas) child.remove();
     mapCanvas.style.display = "";
     mapObj.invalidateSize();
+    keepMapOnIndia();
     for (const r of pins) {
       const color = mapColor(r);
       const markerRadius = Math.min(12, 6 + Math.log2(Math.max(1, r.complaint_count)));
@@ -8972,11 +8991,9 @@ function drawMap(pins, unavailable = false) {
       mapGroup.addLayer(m);
     }
     // One pin fitted to zoom 19 showed 100 m with no street to find it by.
-    // Start on India. Three of 135 pins were filed from Mauritius, Brazil and Java and
-    // fitting to all of them opened the map on the whole world.
-    const indian = pins.filter((r) => r.lat >= 6 && r.lat <= 38 && r.lng >= 68 && r.lng <= 98);
-    const fit = indian.length ? L.latLngBounds(indian.map((r) => [r.lat, r.lng])) : mapGroup.getBounds();
-    mapObj.fitBounds(fit.pad(0.25), { maxZoom: 16 });
+    // The pins are India's only (see inIndia): three of 135 were once filed from Mauritius,
+    // Brazil and Java, and fitting to all of them opened the map on the whole world.
+    mapObj.fitBounds(L.latLngBounds(pins.map((r) => [r.lat, r.lng])).pad(0.25), { maxZoom: 16 });
     mapDrawPins = pins;
     // Bound the wait. Offline, tile requests can fail without Leaflet ever firing its
     // load event, and the map then sat empty forever instead of plotting the points.
