@@ -46,6 +46,7 @@ test("a healthy window judges every rule ok, as one part", async () => {
     "wards find their tenders",
     "ward snapshots outside Karnataka are in the package",
     "detection is fast",
+    "the locator answers",
     "shadow screen (report only)",
     "shadow screen threshold for 98% live recall (report only)",
     "shadow screen ready to switch on (report only)",
@@ -218,7 +219,7 @@ test("a query that fails stops the window at its rule, after the rules before it
   process.off("unhandledRejection", note);
   assert.deepEqual(unhandled, []);
   const result = report.conclude();
-  assert.equal(result.rules.at(-1).name, "detection is fast", "every rule before the failed query was judged");
+  assert.equal(result.rules.at(-1).name, "the locator answers", "every rule before the failed query was judged");
   assert.equal(result.healthy, true, "the caller says the window crashed; the rules judged so far are not failures");
 });
 
@@ -310,4 +311,18 @@ test("every query over request lines leaves the canary's lines out", async () =>
   const query = scriptedQuery(HEALTHY_WINDOW);
   await judgeWindow({ query, hours: 6, logGroup: "g", report: createReport() });
   assert.deepEqual(query.asked.map((asked) => asked.text).filter((text) => text.includes("http_request")).sort(), [...overRequests].sort());
+});
+
+test("a locator that stops answering is a broken rule; a few lost answers are not", async () => {
+  const withLocator = (located, errors) => HEALTHY_WINDOW.map((entry) => (entry.match === "by route, outcome, status"
+    ? { ...entry, rows: entry.rows.concat({ ...group("/v1/vision/detect", "damaged", 200, located + errors, 1500, 2000),
+      located: String(located), locate_errors: String(errors) }) } : entry));
+  const fine = await judge(withLocator(38, 2));
+  assert.equal(fine.rules.find((rule) => rule.name === "the locator answers").detail, "38 of 40 damaged answers were located");
+  assert.equal(fine.healthy, true);
+  const broken = await judge(withLocator(4, 26));
+  assert.deepEqual(broken.failures.map((failure) => [failure.name, failure.detail]),
+    [["the locator answers", "26 of 30 damaged answers got no answer from the locator; rule is at most 1 in 4"]]);
+  // Under twenty asked, a bad share is noise.
+  assert.equal((await judge(withLocator(3, 9))).healthy, true);
 });

@@ -15,7 +15,9 @@ import {
   currentScreenRows, liveRows, municipalLookups, outsideStateLookups, reportShadowReadiness, reportShadowScreen, shadowRows, shadowScreenCurve,
 } from "./rules.mjs";
 
-export const REQUEST_QUERY = 'filter event="http_request" and not ispresent(canary) | stats count() as n, pct(duration_ms, 50) as p50, pct(duration_ms, 90) as p90 by route, outcome, status';
+// located and locate_errors: damaged answers the pothole locator did and did not answer
+// (a null field is not present, so a frame that never asked it counts in neither).
+export const REQUEST_QUERY = 'filter event="http_request" and not ispresent(canary) | stats count() as n, pct(duration_ms, 50) as p50, pct(duration_ms, 90) as p90, sum(ispresent(locate_boxes)) as located, sum(ispresent(locate_error)) as locate_errors by route, outcome, status';
 
 // Our own share of a request. The detector is the model's time; everything the service
 // itself does around it (ten database calls on a detection) has a budget, so a slow
@@ -161,6 +163,19 @@ export async function judgeWindow({ query, hours, logGroup, report }) {
       : ok("detection is fast", `p50 ${p50.toFixed(0)} ms, p90 ${p90.toFixed(0)} ms over ${detections} detections`);
   } else {
     ok("detection is fast", `${detections} detections, too few to judge`);
+  }
+
+  // The locator only adds marks, so a broken one fails no request and shows nowhere but
+  // here: photos would silently stop being marked.
+  const located = detect.reduce((sum, row) => sum + (Number(row.located) || 0), 0);
+  const locateErrors = detect.reduce((sum, row) => sum + (Number(row.locate_errors) || 0), 0);
+  const locateAsked = located + locateErrors;
+  if (!locateAsked) {
+    ok("the locator answers", "no damaged answer asked the locator in the window");
+  } else if (locateAsked >= 20 && locateErrors / locateAsked > 0.25) {
+    fail("the locator answers", `${locateErrors} of ${locateAsked} damaged answers got no answer from the locator; rule is at most 1 in 4`);
+  } else {
+    ok("the locator answers", `${located} of ${locateAsked} damaged answers were located`);
   }
 
   // Reported, never failed: in openai_with_shadow_screen this is the evidence for (or
