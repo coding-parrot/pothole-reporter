@@ -15,7 +15,39 @@ fi
 
 cd "$ROOT_DIR"
 # The unit tests include the IAM check; a red suite must never reach the stack.
-(cd infra/aws-central && npm test)
+#
+# CLOUD_CI_BUILD=<CodeBuild build id> takes the suite's result from AWS instead of
+# running it here (owner's rule, 7 Oct 2026: tests run on AWS; and this Mac is shared,
+# so the speed tests fail under another session's video encode however fast the code is).
+# The result is accepted only for exactly what is being deployed: the build's commit is
+# HEAD, nothing tracked is modified, the service suite ran with no failure and the
+# harness reported no regression. Anything else stops the deploy.
+if [[ -n "${CLOUD_CI_BUILD:-}" ]]; then
+  HEAD_COMMIT="$(git rev-parse HEAD)"
+  [[ -z "$(git status --porcelain --untracked-files=no)" ]] || { echo "tracked files are modified; the cloud result is not for this tree" >&2; exit 1; }
+  CI_BUCKET="pothole-reporter-ml-${ACCOUNT_ID}-${AWS_REGION}"
+  CI_RESULT="$(aws s3 cp "s3://$CI_BUCKET/ci/$(git rev-parse --short HEAD)/${CLOUD_CI_BUILD#*:}/result.json" - --region "$AWS_REGION")" \
+    || { echo "no cloud result for $HEAD_COMMIT under build $CLOUD_CI_BUILD" >&2; exit 1; }
+  HEAD_COMMIT="$HEAD_COMMIT" python3 - "$CI_RESULT" <<'PY'
+import json, os, sys
+result = json.loads(sys.argv[1])
+service = result.get("service_tests") or {}
+problems = []
+if result.get("commit") != os.environ["HEAD_COMMIT"]:
+    problems.append("the build tested %s, not HEAD" % result.get("commit"))
+if not (service.get("pass", 0) > 0 and service.get("fail", 1) == 0 and service.get("cancelled", 1) == 0 and service.get("exit", 1) == 0):
+    problems.append("the service suite did not pass: %s" % service)
+if result.get("regression") is not False:
+    problems.append("the harness reported a regression")
+if problems:
+    sys.exit("cloud result refused: " + "; ".join(problems))
+print("service suite on AWS for %s: %s of %s pass, %s fail, %s skipped; harness %s" % (
+    result["commit"][:7], service["pass"], service["tests"], service["fail"], service.get("skipped"),
+    (result.get("harness") or {}).get("summary_line")))
+PY
+else
+  (cd infra/aws-central && npm test)
+fi
 
 # What production looked like before this deploy. Informational here (a deploy is how
 # a broken rule gets fixed); the same rules fail the scheduled run in CI.
