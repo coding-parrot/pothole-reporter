@@ -2786,6 +2786,7 @@ function rememberFix(fix) {
   if (!fix || !Number.isFinite(fix.lat) || !Number.isFinite(fix.lng)
       || !Number.isFinite(fix.observed_at_ms)) return;
   if (!lastKnownFix || fix.observed_at_ms >= lastKnownFix.observed_at_ms) lastKnownFix = fix;
+  rememberMapHome(fix);
 }
 function recentFix(atMs = Date.now(), maxAgeMs = RECENT_FIX_MAX_AGE_MS) {
   if (!lastKnownFix) return null;
@@ -8831,6 +8832,7 @@ async function openDash() {
       ? t("map_stale", { when: publicMapDate(Number(sharedMap.fetched_at)) }) : "",
   ].filter(Boolean).join(" ");
   drawMap(sharedPins, mapProblem);
+  followCity(generation);
   const [[reports, drives, footage], impact] = await Promise.all([localP, impactP]);
   if (generation !== dashGeneration) return;
   const FOUND = ["draft", "queued", "sent", "unrouted", "duplicate"];
@@ -8955,6 +8957,63 @@ function keepMapOnIndia() {
   mapObj.setMinZoom(mapObj.getBoundsZoom(india, false));
 }
 
+// The map opens on the city the person is in, a city wide (owner, 9 Oct 2026: "their
+// city map level"), and they zoom in or out from there. Before that it opened fitted to
+// every report in India: a country with dots on it. This screen never asks for location
+// (see openDash). It uses a fix the app already has, one the phone gives without asking,
+// or the city remembered from the last fix: two decimals, about a kilometre, kept only
+// on this phone. With none of those, or a phone outside India, every report is fitted.
+const MAP_HOME_KEY = "map_home";
+const MAP_CITY_SPAN_M = 40000;
+let mapHomeSaved = "";
+let mapShownHome = null;
+let mapTouched = false;
+function rememberMapHome(fix) {
+  if (!inIndia(fix)) return;
+  const text = `${fix.lat.toFixed(2)},${fix.lng.toFixed(2)}`;
+  if (text === mapHomeSaved) return;
+  mapHomeSaved = text;
+  try { localStorage.setItem(MAP_HOME_KEY, text); } catch (e) {}
+}
+function mapHome() {
+  if (lastKnownFix) return inIndia(lastKnownFix) ? { lat: lastKnownFix.lat, lng: lastKnownFix.lng } : null;
+  let saved = "";
+  try { saved = localStorage.getItem(MAP_HOME_KEY) || ""; } catch (e) {}
+  const [lat, lng] = saved.split(",").map(Number);
+  const home = { lat, lng };
+  return saved && Number.isFinite(lat) && Number.isFinite(lng) && inIndia(home) ? home : null;
+}
+function showCity(home) {
+  mapObj.fitBounds(L.latLng(home.lat, home.lng).toBounds(MAP_CITY_SPAN_M), { animate: false });
+  mapShownHome = home;
+}
+// A fix only where the person has already allowed location; anything else is no fix.
+async function positionWithoutAsking(timeoutMs = 5000) {
+  try {
+    if (isNativeApp()) {
+      const geo = (Capacitor.Plugins || {}).Geolocation;
+      const current = geo && geo.checkPermissions ? await geo.checkPermissions() : null;
+      if (!current || (current.location !== "granted" && current.coarseLocation !== "granted")) return null;
+    } else {
+      const answer = navigator.permissions && navigator.permissions.query
+        ? await navigator.permissions.query({ name: "geolocation" }) : null;
+      if (!answer || answer.state !== "granted") return null;
+    }
+  } catch (e) { return null; }
+  // Ten minutes old is still the same city.
+  return getPosition(timeoutMs, 600000);
+}
+// The remembered city can be last month's. Each open checks where the phone is now and
+// moves the map there, unless the person has already moved it themselves.
+function followCity(generation) {
+  positionWithoutAsking().then(() => {
+    const home = mapHome();
+    if (!home || generation !== dashGeneration || !mapObj || !mapDrawPins || mapTouched) return;
+    if (mapShownHome && L.latLng(mapShownHome.lat, mapShownHome.lng).distanceTo([home.lat, home.lng]) < 10000) return;
+    showCity(home);
+  });
+}
+
 // `unavailable` is the text to show when the shared map could not be read.
 function drawMap(pins, unavailable = false) {
   pins = pins.filter(inIndia);
@@ -9001,6 +9060,9 @@ function drawMap(pins, unavailable = false) {
       mapTiles.addTo(mapObj);
       mapRoads.addTo(mapObj);
       mapGroup = L.featureGroup().addTo(mapObj);
+      for (const kind of ["pointerdown", "touchstart", "wheel"]) {
+        mapCanvas.addEventListener(kind, () => { mapTouched = true; }, { capture: true, passive: true });
+      }
     }
     for (const child of [...host.children]) if (child !== mapCanvas) child.remove();
     mapCanvas.style.display = "";
@@ -9024,7 +9086,11 @@ function drawMap(pins, unavailable = false) {
     // One pin fitted to zoom 19 showed 100 m with no street to find it by.
     // The pins are India's only (see inIndia): three of 135 were once filed from Mauritius,
     // Brazil and Java, and fitting to all of them opened the map on the whole world.
-    mapObj.fitBounds(L.latLngBounds(pins.map((r) => [r.lat, r.lng])).pad(0.25), { maxZoom: 16 });
+    const home = mapHome();
+    mapShownHome = null;
+    if (home) showCity(home);
+    else mapObj.fitBounds(L.latLngBounds(pins.map((r) => [r.lat, r.lng])).pad(0.25), { maxZoom: 16 });
+    mapTouched = false;
     mapDrawPins = pins;
     // Bound the wait. Offline, tile requests can fail without Leaflet ever firing its
     // load event, and the map then sat empty forever instead of plotting the points.
