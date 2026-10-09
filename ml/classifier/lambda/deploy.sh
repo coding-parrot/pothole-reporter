@@ -10,7 +10,11 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+# PACKAGE_DIR: another Lambda that speaks the same contract and is deployed the same way
+# (ml/detector/lambda, the pothole locator). It brings its own build.sh, tests and model.
+PACKAGE="${PACKAGE_DIR:-$HERE}"
 FUNCTION="${FUNCTION:-pothole-reporter-central-screen}"
+DESCRIPTION="${DESCRIPTION:-Encoder-only drive-frame screen (ml/classifier)}"
 AWS_REGION="${AWS_REGION:-ap-south-1}"
 ROLE="${FUNCTION}-role"
 LOG_GROUP="/aws/lambda/${FUNCTION}"
@@ -20,8 +24,8 @@ export AWS_PAGER=""
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text --region "$AWS_REGION")"
 BUCKET="${ARTIFACT_BUCKET:-pothole-reporter-central-${ACCOUNT_ID}-${AWS_REGION}}"
 
-(cd "$HERE" && npm test)
-"$HERE/build.sh"
+(cd "$PACKAGE" && npm test)
+"$PACKAGE/build.sh"
 
 if [[ ! -s "$KEY_FILE" ]]; then
   mkdir -p "$(dirname "$KEY_FILE")"
@@ -30,18 +34,18 @@ if [[ ! -s "$KEY_FILE" ]]; then
 fi
 KEY_SHA="$(tr -d '\n' < "$KEY_FILE" | shasum -a 256 | cut -d' ' -f1)"
 
-MODEL_VERSION="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).model_version)' "$HERE/model/model.json")"
-MODEL_SHA="$(shasum -a 256 "$HERE/model/model.onnx" | cut -d' ' -f1)"
+MODEL_VERSION="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).model_version)' "$PACKAGE/model/model.json")"
+MODEL_SHA="$(shasum -a 256 "$PACKAGE/model/model.onnx" | cut -d' ' -f1)"
 # PUBLISH_MODEL=1 records the released ONNX and its metadata under models/ in the
 # artifact bucket. Trial deploys leave the bucket alone.
 if [[ "${PUBLISH_MODEL:-0}" == "1" ]]; then
-  aws s3 cp "$HERE/model/model.onnx" "s3://$BUCKET/models/${MODEL_VERSION}.onnx" --region "$AWS_REGION" \
+  aws s3 cp "$PACKAGE/model/model.onnx" "s3://$BUCKET/models/${MODEL_VERSION}.onnx" --region "$AWS_REGION" \
     --metadata "sha256=$MODEL_SHA" >/dev/null
-  aws s3 cp "$HERE/model/model.json" "s3://$BUCKET/models/${MODEL_VERSION}.json" --region "$AWS_REGION" >/dev/null
+  aws s3 cp "$PACKAGE/model/model.json" "s3://$BUCKET/models/${MODEL_VERSION}.json" --region "$AWS_REGION" >/dev/null
   echo "model: s3://$BUCKET/models/${MODEL_VERSION}.onnx sha256 $MODEL_SHA"
 fi
 # Lambda takes a zip of up to 50 MB directly; a larger one has to come from S3.
-ZIP="$HERE/build/screen-lambda.zip"
+ZIP="$PACKAGE/build/screen-lambda.zip"
 if [[ "$(stat -f%z "$ZIP" 2>/dev/null || stat -c%s "$ZIP")" -lt 48000000 ]]; then
   CODE_CREATE=(--zip-file "fileb://$ZIP")
   CODE_UPDATE=(--zip-file "fileb://$ZIP")
@@ -81,10 +85,10 @@ else
       --runtime nodejs22.x --architectures arm64 --handler handler.handler --role "$ROLE_ARN" \
       --memory-size 2048 --timeout 15 "${CODE_CREATE[@]}" \
       --environment "$ENVIRONMENT" \
-      --description "Encoder-only drive-frame screen (ml/classifier)" >/dev/null 2>"$HERE/build/create.err"; then
+      --description "$DESCRIPTION" >/dev/null 2>"$PACKAGE/build/create.err"; then
       break
     fi
-    grep -q "cannot be assumed" "$HERE/build/create.err" || { cat "$HERE/build/create.err" >&2; exit 1; }
+    grep -q "cannot be assumed" "$PACKAGE/build/create.err" || { cat "$PACKAGE/build/create.err" >&2; exit 1; }
     sleep 5
   done
 fi
