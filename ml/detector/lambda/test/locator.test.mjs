@@ -52,3 +52,16 @@ test("no candidate over the floor is an empty list", () => {
   assert.deepEqual(decode(new Float32Array([...row(1, 1, 1, 1, 0.1, 0.1)]),
     { ratio: 1, frameWidth: 640, frameHeight: 640 }), []);
 });
+
+test("the resize is cv2's two-tap one, into BGR planes with grey padding", async () => {
+  const { resizeToPlanes } = await import("../locator.mjs");
+  // A 4 x 2 frame, red channel 0, 40, 80, 120 along x, into a 4 x 4 square at half size.
+  const rgb = new Uint8Array(4 * 2 * 3);
+  for (let y = 0; y < 2; y += 1) for (let x = 0; x < 4; x += 1) rgb.set([x * 40, 10, 200], (y * 4 + x) * 3);
+  const planes = resizeToPlanes(rgb, 4, 2, { width: 2, height: 1, ratio: 0.5 }, 4);
+  // Output pixel 0 is centred on source 0.5, pixel 1 on source 2.5.
+  assert.deepEqual([planes[32 + 0], planes[32 + 1]], [20, 100]);      // red is the third plane
+  assert.deepEqual([planes[0], planes[16]], [200, 10]);               // blue first, green second
+  assert.equal(planes[2], 114);                                       // right of the frame
+  assert.equal(planes[4], 114);                                       // below it
+});

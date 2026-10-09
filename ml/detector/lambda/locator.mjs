@@ -18,6 +18,41 @@ export function fitGeometry(width, height, size) {
   return { ratio, width: Math.max(1, Math.trunc(width * ratio)), height: Math.max(1, Math.trunc(height * ratio)) };
 }
 
+// The frame resized as cv2.resize(..., INTER_LINEAR) does it (pixel centres aligned,
+// two-tap interpolation, no smoothing first), written straight into the model's planar
+// BGR input with grey padding. sharp's own resize smooths before shrinking, which moved
+// one score in twenty by more than 0.05 from what training measured.
+export function resizeToPlanes(rgb, width, height, fit, size) {
+  const plane = size * size;
+  const out = new Float32Array(3 * plane).fill(PAD);
+  const sx = width / fit.width, sy = height / fit.height;
+  const x0 = new Int32Array(fit.width), x1 = new Int32Array(fit.width), fx = new Float32Array(fit.width);
+  for (let x = 0; x < fit.width; x += 1) {
+    const at = Math.max(0, (x + 0.5) * sx - 0.5);
+    x0[x] = Math.min(width - 1, Math.floor(at));
+    x1[x] = Math.min(width - 1, x0[x] + 1);
+    fx[x] = at - Math.floor(at);
+  }
+  for (let y = 0; y < fit.height; y += 1) {
+    const at = Math.max(0, (y + 0.5) * sy - 0.5);
+    const top = Math.min(height - 1, Math.floor(at));
+    const bottom = Math.min(height - 1, top + 1);
+    const fy = at - Math.floor(at);
+    const rowTop = top * width * 3, rowBottom = bottom * width * 3, into = y * size;
+    for (let x = 0; x < fit.width; x += 1) {
+      const a = rowTop + x0[x] * 3, b = rowTop + x1[x] * 3, c = rowBottom + x0[x] * 3, d = rowBottom + x1[x] * 3;
+      const wx = fx[x];
+      for (let channel = 0; channel < 3; channel += 1) {
+        const upper = rgb[a + channel] + (rgb[b + channel] - rgb[a + channel]) * wx;
+        const lower = rgb[c + channel] + (rgb[d + channel] - rgb[c + channel]) * wx;
+        // RGB bytes in, BGR planes out; cv2 rounds to a whole byte.
+        out[(2 - channel) * plane + into + x] = Math.round(upper + (lower - upper) * fy);
+      }
+    }
+  }
+  return out;
+}
+
 const overlap = (a, b) => {
   const w = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1);
   const h = Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1);
@@ -74,28 +109,15 @@ export async function createLocator({ modelDir, threads = 2 } = {}) {
   async function prepare(buffer) {
     try {
       // No shrink-on-load and no EXIF rotation: training decoded the JPEG as stored.
-      const image = sharp(buffer, { limitInputPixels: MAX_DECODED_PIXELS, failOn: "error" });
-      const { width, height } = await image.metadata();
-      const fit = fitGeometry(width, height, size);
-      const { data, info } = await image
+      const { data, info } = await sharp(buffer, { limitInputPixels: MAX_DECODED_PIXELS, failOn: "error" })
         .removeAlpha()
         .toColourspace("srgb")
-        .resize(fit.width, fit.height, { fit: "fill", kernel: "linear", fastShrinkOnLoad: false })
-        .extend({ top: 0, left: 0, right: size - fit.width, bottom: size - fit.height,
-          background: { r: PAD, g: PAD, b: PAD } })
         .raw()
         .toBuffer({ resolveWithObject: true });
-      if (info.width !== size || info.height !== size || info.channels !== 3) {
-        throw new Error("unexpected decoded shape");
-      }
-      // Interleaved RGB bytes to planar BGR floats.
-      const pixels = new Float32Array(3 * plane);
-      for (let i = 0, p = 0; i < plane; i += 1, p += 3) {
-        pixels[i] = data[p + 2];
-        pixels[plane + i] = data[p + 1];
-        pixels[2 * plane + i] = data[p];
-      }
-      return { pixels, width, height, ratio: fit.ratio };
+      if (info.channels !== 3) throw new Error("unexpected decoded shape");
+      const fit = fitGeometry(info.width, info.height, size);
+      return { pixels: resizeToPlanes(data, info.width, info.height, fit, size),
+        width: info.width, height: info.height, ratio: fit.ratio };
     } catch (error) {
       throw Object.assign(new Error("undecodable image", { cause: error }), { code: "bad_image" });
     }
