@@ -23,28 +23,7 @@ cd "$ROOT_DIR"
 # HEAD, nothing tracked is modified, the service suite ran with no failure and the
 # harness reported no regression. Anything else stops the deploy.
 if [[ -n "${CLOUD_CI_BUILD:-}" ]]; then
-  HEAD_COMMIT="$(git rev-parse HEAD)"
-  [[ -z "$(git status --porcelain --untracked-files=no)" ]] || { echo "tracked files are modified; the cloud result is not for this tree" >&2; exit 1; }
-  CI_BUCKET="pothole-reporter-ml-${ACCOUNT_ID}-${AWS_REGION}"
-  CI_RESULT="$(aws s3 cp "s3://$CI_BUCKET/ci/$(git rev-parse --short HEAD)/${CLOUD_CI_BUILD#*:}/result.json" - --region "$AWS_REGION")" \
-    || { echo "no cloud result for $HEAD_COMMIT under build $CLOUD_CI_BUILD" >&2; exit 1; }
-  HEAD_COMMIT="$HEAD_COMMIT" python3 - "$CI_RESULT" <<'PY'
-import json, os, sys
-result = json.loads(sys.argv[1])
-service = result.get("service_tests") or {}
-problems = []
-if result.get("commit") != os.environ["HEAD_COMMIT"]:
-    problems.append("the build tested %s, not HEAD" % result.get("commit"))
-if not (service.get("pass", 0) > 0 and service.get("fail", 1) == 0 and service.get("cancelled", 1) == 0 and service.get("exit", 1) == 0):
-    problems.append("the service suite did not pass: %s" % service)
-if result.get("regression") is not False:
-    problems.append("the harness reported a regression")
-if problems:
-    sys.exit("cloud result refused: " + "; ".join(problems))
-print("service suite on AWS for %s: %s of %s pass, %s fail, %s skipped; harness %s" % (
-    result["commit"][:7], service["pass"], service["tests"], service["fail"], service.get("skipped"),
-    (result.get("harness") or {}).get("summary_line")))
-PY
+  python3 infra/aws-central/tools/cloud-test-verdict.py "$CLOUD_CI_BUILD" "$ACCOUNT_ID" "$AWS_REGION"
 else
   (cd infra/aws-central && npm test)
 fi
