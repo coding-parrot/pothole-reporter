@@ -2224,6 +2224,29 @@ function photoSrc(r) {
 
 const thumbUrls = new Map();
 const repairUrls = new Map();
+// A report the service marked: its photo with the pothole outlined, drawn once on a copy
+// (StandaloneAPI.__pure.markedPhotoBlob) and kept as an object URL. The stored photo is
+// what photoSrc() shows until the copy is ready, and is never drawn on.
+const markedUrls = new Map();
+function markedPhotoUrl(r) {
+  if (!r || !Array.isArray(r.marks) || !r.marks.length || !r.photo_url) return Promise.resolve(null);
+  if (!markedUrls.has(r.id)) {
+    markedUrls.set(r.id, StandaloneAPI.__pure.markedPhotoBlob(r.photo_url, r.marks, 1600)
+      .then((blob) => (blob ? URL.createObjectURL(blob) : null))
+      .catch(() => null));
+  }
+  return markedUrls.get(r.id);
+}
+// Put the marked copy into an <img> that is still showing this report's plain photo.
+function showMarked(img, r) {
+  if (!img) return;
+  const plain = img.getAttribute("src");
+  void markedPhotoUrl(r).then((url) => {
+    if (!url || !img.isConnected || img.getAttribute("src") !== plain) return;
+    img.src = url;
+    img.dataset.marked = "1";
+  });
+}
 function repairPhotoSrc(r) {
   if (!r || !r.repair_photo_url) return "";
   if (repairUrls.has(r.id)) return repairUrls.get(r.id);
@@ -2235,6 +2258,11 @@ function repairPhotoSrc(r) {
   return r.repair_photo_url;
 }
 function releaseThumbs(keepIds) {
+  for (const [id, made] of markedUrls) {
+    if (keepIds.has(id)) continue;
+    markedUrls.delete(id);
+    void made.then((url) => { if (url) URL.revokeObjectURL(url); });
+  }
   for (const [id, url] of thumbUrls) {
     if (!keepIds.has(id)) {
       if (url.startsWith("blob:")) URL.revokeObjectURL(url);
@@ -3361,6 +3389,7 @@ function captureProvenanceHtml(r) {
 function wireDetailChrome(r) {
   const img = $("detail").querySelector("[data-zoom]");
   if (img) img.onclick = () => openViewer(r);
+  showMarked($("detail").querySelector(".big-photo"), r);
   const prev = $("navPrev"), next = $("navNext");
   if (prev) prev.onclick = () => step(-1);
   if (next) next.onclick = () => step(1);
@@ -6523,7 +6552,9 @@ function vClearGesture() { vPointers.clear(); vStart = null; vLastTap = 0; }
 function openViewer(r) {
   vClearGesture();
   vState.rec = r;
+  delete $("viewerImg").dataset.marked;
   $("viewerImg").src = photoSrc(r);
+  showMarked($("viewerImg"), r);
   const size = r && r.size ? ` · ${tSize(r.size)}` : "";
   const description = r && r.description
     ? `<span class="viewer-description">${escapeHtml(r.description)}</span>` : "";

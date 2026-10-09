@@ -154,5 +154,6 @@
   "drive_portrait_camera_warning_test.py": true,
   "system_bars_style_test.py": true,
   "look_and_feel_test.py": true,
-  "map_india_only_test.py": true
+  "map_india_only_test.py": true,
+  "pothole_marks_test.py": true
 }

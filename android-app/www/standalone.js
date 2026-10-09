@@ -6623,6 +6623,59 @@
   const WARD_TENDER_LIMITS = Object.freeze({
     count: 5, tenderNumber: 120, title: 240, published: 40, wardName: 120,
   });
+  // Where in the frame the service's locator found the pothole: boxes as fractions of
+  // the whole frame, best first. Kept with the report and drawn on a COPY of its photo
+  // for the screen and the email; the stored photo is never drawn on.
+  const MAX_MARKS = 5;
+  function sanitiseMarks(value) {
+    if (!Array.isArray(value)) return null;
+    const part = (n) => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1;
+    const marks = value
+      .filter((m) => m && typeof m === "object" && part(m.x) && part(m.y) && part(m.w) && part(m.h)
+        && m.w > 0 && m.h > 0 && m.x + m.w <= 1.0001 && m.y + m.h <= 1.0001)
+      .slice(0, MAX_MARKS)
+      .map((m) => ({ x: m.x, y: m.y, w: m.w, h: m.h }));
+    return marks.length ? marks : null;
+  }
+
+  // The whole photo with an outline round each mark, as a JPEG blob at the photo's own
+  // size (or `maxDim` on its long side). An outline, never a fill: the pothole stays
+  // visible inside it. A dark line under the orange one keeps it readable on any road.
+  const MARK_COLOUR = "#ff8a3d";
+  async function markedPhotoBlob(photo, marks, maxDim = 0, quality = 0.9) {
+    const boxes = sanitiseMarks(marks);
+    const source = typeof photo === "string" ? await dataUrlToBlob(photo) : photoBlob(photo);
+    if (!boxes || !source || typeof source === "string") return null;
+    const bitmap = await createImageBitmap(source, { imageOrientation: "from-image" });
+    const canvas = document.createElement("canvas");
+    try {
+      const scale = maxDim > 0 ? Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height)) : 1;
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const g = canvas.getContext("2d");
+      g.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const line = Math.max(3, Math.round(Math.max(canvas.width, canvas.height) * 0.006));
+      g.lineJoin = "round";
+      for (const box of boxes) {
+        // Just outside the box, so the line does not sit on the pothole's own edge.
+        const x = Math.max(line, box.x * canvas.width - line);
+        const y = Math.max(line, box.y * canvas.height - line);
+        const w = Math.min(canvas.width - line - x, box.w * canvas.width + 2 * line);
+        const h = Math.min(canvas.height - line - y, box.h * canvas.height + 2 * line);
+        g.strokeStyle = "rgba(0,0,0,.7)";
+        g.lineWidth = line * 2;
+        g.strokeRect(x, y, w, h);
+        g.strokeStyle = MARK_COLOUR;
+        g.lineWidth = line;
+        g.strokeRect(x, y, w, h);
+      }
+      return await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+    } finally {
+      if (typeof bitmap.close === "function") bitmap.close();
+      canvas.width = 0; canvas.height = 0;
+    }
+  }
+
   function sanitiseWardTenders(value) {
     if (!Array.isArray(value)) return [];
     const clip = (text, limit) => text.trim().slice(0, limit).trim();
@@ -9707,7 +9760,7 @@
         client_observation_id: clientObservationId,
         photo: pendingFrame, photo_full: pendingFrame,
         damage_type: a.damage_type, assessment: a.assessment, image_quality: a.image_quality,
-        size: a.size, decision, description: a.description,
+        size: a.size, decision, description: a.description, marks: sanitiseMarks(a.marks),
         status: "unrouted", unrouted_reason: "jurisdiction_unavailable", unrouted_body: null,
         condition_status: "open", drive_id: null,
         detection_model: detectionModel, image_detail: detectionDetail,
@@ -9813,6 +9866,7 @@
       damage_type: a.damage_type, assessment: a.assessment, image_quality: a.image_quality,
       size: a.size,
       decision,
+      marks: sanitiseMarks(a.marks),
       description: a.description, email_subject: subject, email_body: body,
       whatsapp_text: complaint ? complaint.whatsapp_text : null,
       portal_fields: complaint ? complaint.portal_fields : null,
@@ -10334,12 +10388,19 @@
         : Capacitor.Plugins.EmailComposer;
       // Full capture where we kept one; the working copy is only a fallback.
       const attachment = await emailAttachmentBase64(rec.photo_full || rec.photo);
+      const stem = issueFileStem(rec.issue_type);
+      const attachments = [{ type: "base64", name: `${stem}.jpg`, path: attachment }];
+      // With a mark, the office first sees the photo with the pothole outlined, and the
+      // untouched photo beside it. A copy that cannot be drawn is simply left out.
+      const marked = await markedPhotoBlob(rec.photo_full || rec.photo, rec.marks, 1600, 0.82)
+        .catch(() => null);
+      const markedBase64 = marked ? await photoToBase64(marked) : null;
+      if (markedBase64) attachments.unshift({ type: "base64", name: `${stem}-marked.jpg`, path: markedBase64 });
       await EmailComposer.open({
         to: [prepared.to],
         subject: prepared.subject,
         body: prepared.body,
-        attachments: [{ type: "base64", name: `${issueFileStem(rec.issue_type)}.jpg`,
-                        path: attachment }],
+        attachments,
       });
     } else {
       // The public web build has no composer plugin. A mailto: link opens the visitor's
@@ -13151,16 +13212,17 @@
                    MADHYA_PRADESH_STATE_AUTHORITY, MADHYA_PRADESH_STATE_GEOMETRY_SHA256,
                    MAHARASHTRA_ROUTING_ENVELOPE, MAHARASHTRA_STATE_AUTHORITY,
                    MAHARASHTRA_STATE_GEOMETRY_SHA256, MAJOR_CITY_CANDIDATE_CENTRES,
-                   MANUAL_STORAGE_HEADROOM_BYTES, MAX_DETECTION_IMAGES, MAX_REPAIR_TARGETS,
-                   MAX_REPAIR_TARGET_BATCH_SIZE, MAX_REPAIR_TARGET_IMAGE_BYTES,
-                   MAX_REPAIR_TARGET_TOTAL_BYTES, MMR_ALIAS_INDEX, MMR_AUTHORITIES,
-                   MMR_DIRECT_AUTHORITY_IDS, MMR_FALLBACK_AUTHORITY, MMR_FALLBACK_AUTHORITY_IDS,
-                   MODEL_CONFIG, MUMBAI_DISTRICTS, MUMBAI_STATES, MUMBAI_WARDS,
-                   MUNICIPAL_CITY_CONFIGS, NATIONAL_HIGHWAY_AUTHORITY, NATIVE,
-                   NATIVE_REPAIR_CONTRACT_VERSION, NATIVE_WARD_ANSWERS_KEY,
-                   NATIVE_WARD_ANSWERS_LIMIT, NOMINATIM_REVERSE_ENDPOINT,
-                   NON_CARRIAGEWAY_ASSETS, NON_SURFACE_ROAD_MODIFIERS, NO_VERIFIED_CONTRACT,
-                   OAI_URL, ODISHA_ROUTING_ENVELOPE, ODISHA_STATE_AUTHORITY,
+                   MANUAL_STORAGE_HEADROOM_BYTES, MARK_COLOUR, MAX_DETECTION_IMAGES, MAX_MARKS,
+                   MAX_REPAIR_TARGETS, MAX_REPAIR_TARGET_BATCH_SIZE,
+                   MAX_REPAIR_TARGET_IMAGE_BYTES, MAX_REPAIR_TARGET_TOTAL_BYTES,
+                   MMR_ALIAS_INDEX, MMR_AUTHORITIES, MMR_DIRECT_AUTHORITY_IDS,
+                   MMR_FALLBACK_AUTHORITY, MMR_FALLBACK_AUTHORITY_IDS, MODEL_CONFIG,
+                   MUMBAI_DISTRICTS, MUMBAI_STATES, MUMBAI_WARDS, MUNICIPAL_CITY_CONFIGS,
+                   NATIONAL_HIGHWAY_AUTHORITY, NATIVE, NATIVE_REPAIR_CONTRACT_VERSION,
+                   NATIVE_WARD_ANSWERS_KEY, NATIVE_WARD_ANSWERS_LIMIT,
+                   NOMINATIM_REVERSE_ENDPOINT, NON_CARRIAGEWAY_ASSETS,
+                   NON_SURFACE_ROAD_MODIFIERS, NO_VERIFIED_CONTRACT, OAI_URL,
+                   ODISHA_ROUTING_ENVELOPE, ODISHA_STATE_AUTHORITY,
                    ODISHA_STATE_GEOMETRY_SHA256, OFFICERS, OFFICER_TITLES, OFFICIAL_AUTHORITIES,
                    OFFICIAL_AUTHORITY_INDEX, OFFICIAL_HANDOFF_CHANNELS,
                    OPTIONAL_CATALOG_TIMEOUT_MS, ORIGINAL_DETAIL_MODELS,
@@ -13266,7 +13328,7 @@
                    madhyaPradeshCoverage, madhyaPradeshRouteFromGeocode, maharashtraCoverage,
                    maharashtraRouteFromGeocode, majorCityCoverage, majorCityRouteFromGeocode,
                    mapStatus, markDetectionDeferred, markDetectionRefused, markPackInUse,
-                   markProjectServiceAvailable, markProjectServiceUnavailable,
+                   markProjectServiceAvailable, markProjectServiceUnavailable, markedPhotoBlob,
                    matchHighwayContract, matchHighwayTile, matchRoadAgreement, matchRoadNotice,
                    matchTender, matchTenderAt, matchedMmrAuthorities,
                    matchesEverySameDriveSighting, materialPavementRe,
@@ -13309,13 +13371,14 @@
                    roadNoticeAddressParts, roadNoticeCandidates, roadNoticePackProvenance,
                    roadsideVegetationRe, routeForIssue, routeOfficer, routeWhereFromCentral,
                    routingPackForAuthority, sameMunicipalAliases, sameMunicipalEnvelope,
-                   sameRoadEvent, sameSet, sanitiseWardTenders, savedBoundaryLocationMatches,
-                   savedMajorCityLocationMatches, savedMunicipalLocationMatches,
-                   savedNonMunicipalLocationMatches, savedOfficialRouteBinding, scanReports,
-                   scheduleCentralRetry, schedulePendingDetectionRetry, schemaStrings,
-                   separateRoadResponsibility, serviceError, serviceGet, settleQueuedFailure,
-                   sha256Bytes, sha256Hex, sha256HexBytes, sha256HexText, sharedChecksToday,
-                   shortlistFor, signedServicePost, sizeConflict, staleRoadComplaintBody,
+                   sameRoadEvent, sameSet, sanitiseMarks, sanitiseWardTenders,
+                   savedBoundaryLocationMatches, savedMajorCityLocationMatches,
+                   savedMunicipalLocationMatches, savedNonMunicipalLocationMatches,
+                   savedOfficialRouteBinding, scanReports, scheduleCentralRetry,
+                   schedulePendingDetectionRetry, schemaStrings, separateRoadResponsibility,
+                   serviceError, serviceGet, settleQueuedFailure, sha256Bytes, sha256Hex,
+                   sha256HexBytes, sha256HexText, sharedChecksToday, shortlistFor,
+                   signedServicePost, sizeConflict, staleRoadComplaintBody,
                    startLowerCatalogMatches, stateCodeForGeocode, statePackCacheKey,
                    statePackProvenance, statusError, storageError, storeNativeWardAnswer,
                    storeWardAnswer, storedComplaintLanguage, storedDamageType, storedPhoto,
