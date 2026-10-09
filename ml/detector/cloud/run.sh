@@ -21,6 +21,8 @@ YOLOX=/opt/ml/YOLOX
 export DET_RAW="${DET_RAW:-/opt/ml/raw}" DET_OWNER="${DET_OWNER:-/opt/ml/owner}"
 export DET_DATA="$WORK/data" DET_RUNS="$WORK/runs" DET_REPORT="$WORK/report"
 export PYTHONPATH="$YOLOX:${PYTHONPATH:-}"
+# ninja (pip puts it beside python) builds YOLOX's fast COCO scorer at the first evaluation.
+export PATH="$(dirname "$PYTHON"):$PATH"
 # YOLOX checkpoints hold plain Python and NumPy numbers beside the weights; they are this
 # run's own files and the project's published weights, loaded as YOLOX always has.
 export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
@@ -141,8 +143,13 @@ train() {  # exp name, pretrained weights
   (cd "$YOLOX" && "$PYTHON" tools/train.py -f "$DETECTOR/exps/$name.py" -d 1 -b "$BATCH" --fp16 \
     -c "/opt/ml/weights/$weights.pth" "${resume[@]}")
   kill $syncer 2>/dev/null || true
-  grep -E "Average Precision.*IoU=0.50:0.95.*all|best" "$DET_RUNS/$name/train_log.txt" | tail -n 2 | tr '\n' ' ' | cut -c1-300
-  echo
+  # YOLOX's tools catch their own exceptions and still exit 0 (the trial of 9 Oct 2026
+  # "passed" training with no evaluation and no best checkpoint). The outputs are the proof.
+  local epochs="${DET_EPOCHS:-45}"
+  grep -q "epoch: $epochs/$epochs" "$DET_RUNS/$name/train_log.txt" || { echo "$name: the last epoch was never reached"; return 1; }
+  [[ -s "$DET_RUNS/$name/best_ckpt.pth" ]] || { echo "$name: no best checkpoint was saved"; return 1; }
+  ! grep -q "Traceback\|RuntimeError" "$DET_RUNS/$name/train_log.txt" || { echo "$name: the training log holds an exception"; grep -n "Error" "$DET_RUNS/$name/train_log.txt" | tail -n 3; return 1; }
+  echo "$name: $(grep -E "Average Precision  \(AP\) @\[ IoU=0.50:0.95 \| area=   all" "$DET_RUNS/$name/train_log.txt" | tail -n 1 | tr -s ' ' | cut -c1-120); $(grep -o "best AP is [0-9.]*" "$DET_RUNS/$name/train_log.txt" | tail -n 1)"
 }
 
 evaluate() {
@@ -155,6 +162,7 @@ export_models() {
   for name in $MODELS; do
     (cd "$YOLOX" && "$PYTHON" tools/export_onnx.py --output-name "$WORK/export/$name.onnx" \
       -f "$DETECTOR/exps/$name.py" -c "$DET_RUNS/$name/best_ckpt.pth" --decode_in_inference --no-onnxsim -o 13)
+    [[ -s "$WORK/export/$name.onnx" ]] || { echo "$name: no ONNX file was written"; return 1; }
     "$PYTHON" - "$WORK/export/$name.onnx" <<'PY'
 import sys, time
 import numpy as np

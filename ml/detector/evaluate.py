@@ -217,7 +217,7 @@ def evaluate(name):
               "owner drive, teacher said pothole cavity": [r for r in owner_drive if r["meta"].get("teacher_damage_type") == "pothole_cavity"],
               "owner drive, teacher said other damage": [r for r in owner_drive if r["meta"].get("teacher_assessment") == "damaged"
                                                          and r["meta"].get("teacher_damage_type") != "pothole_cavity"],
-              "owner labelled images": [r for r in test_rows if r["dataset"].startswith("owner") and r["dataset"] != "owner_drive"],
+              "owner labelled images": [r for r in test_rows if r["dataset"] == "owner_labelled"],
               "RAD test, clean frames": [r for r in test_rows if r["dataset"] == "rad" and not r["meta"].get("rad_anomaly")],
               "RAD test, speed breakers": [r for r in test_rows if r["dataset"] == "rad" and r["meta"].get("speed_breaker")
                                            and not r["meta"].get("rad_anomaly")],
@@ -226,8 +226,8 @@ def evaluate(name):
         extras[title] = {label: rate(rows, scores["test"], cut)
                          for label, cut in (("sure", sure), ("catch", catch), ("at_0.5", 0.5), ("at_0.3", 0.3)) if cut is not None}
     extras["owner labelled images, each"] = [
-        {"name": row["name"], "label": row["meta"].get("owner_label") or row["meta"].get("tier"),
-         "score": round(scores["test"][row["name"]]["score"], 3)} for row in groups["owner labelled images"]]
+        {"name": row["meta"].get("owner_label"), "score": round(scores["test"][row["name"]]["score"], 3)}
+        for row in groups["owner labelled images"]]
     report["no_human_boxes"] = extras
     return report
 
@@ -263,7 +263,10 @@ def main():
     parser.add_argument("--models", nargs="+", default=["pothole_tiny", "pothole_s"])
     options = parser.parse_args()
     REPORT.mkdir(parents=True, exist_ok=True)
-    reports = [evaluate(name) for name in options.models if (RUNS / name / "best_ckpt.pth").exists()]
+    missing = [name for name in options.models if not (RUNS / name / "best_ckpt.pth").exists()]
+    if missing:
+        sys.exit(f"no best checkpoint for {missing}: training did not finish an evaluation")
+    reports = [evaluate(name) for name in options.models]
     json.dump(reports, open(REPORT / "report.json", "w"), indent=1)
     open(REPORT / "report.md", "w").write(markdown(reports))
     for report in reports:

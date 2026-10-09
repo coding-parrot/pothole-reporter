@@ -14,9 +14,9 @@ Whole frames only (AGENTS.md): an image is downscaled to at most 1280 px on its 
 side and never cropped, tiled or masked. Boxes are scaled with it.
 
 Splits are by source, fixed here:
-  train  RDD2022 Japan, Norway, China (motorbike, drone), India blocks; the dash-camera
-         pothole set (Bucko); BharatPotHole; Brazil; Attain; Road Damage (alvarobasily);
-         RAD training videos and the owner's training drive frames as negatives only
+  train  RDD2022 Japan, Norway, China motorbike, India blocks; the dash-camera pothole
+         set (Bucko); BharatPotHole; Brazil; Road Damage (alvarobasily); RAD training
+         videos and the owner's training drive frames as negatives only
   val    RDD2022 Czech (whole country); the Rome set (whole); India blocks; RAD
          validation videos and the owner's validation drive frames as negatives
   test   IRDD (whole dataset, never trained on); India blocks; RAD test videos; the
@@ -24,6 +24,15 @@ Splits are by source, fixed here:
 
 RAD's "RoadDamages" box is a broad anomaly mark, not a pothole label (eval/rad_dataset.py),
 so a RAD frame with one is left out of training and only counted at test.
+
+Left out after looking at the boxes drawn on the pictures (debug/, trial of 9 Oct 2026):
+Attain (close-ups of pavement whose "Pothole" boxes sat on image edges and beside
+manholes) and RDD2022 China drone (top-down views no driver's camera sees).
+
+A pothole here is one whose box is at least 1.25% of the frame's long side each way
+(8 px at the 640 px the model sees). BharatPotHole marks strings of far-off holes 3 to
+5 px across; a drive frame is taken every few metres, so a hole is judged when the car
+reaches it. Smaller boxes are dropped in every split, and counted.
 
 Output under $DET_DATA: train2017/ val2017/ test2017/ (images), annotations/train.json,
 val.json, test.json (COCO), index.jsonl (one line per image with where it came from),
@@ -53,6 +62,7 @@ OUT = Path(os.environ.get("DET_DATA", "/opt/ml/det/data"))
 OWNER = Path(os.environ.get("DET_OWNER", "/opt/ml/owner"))
 REPO = Path(__file__).resolve().parents[2]
 MAX_SIDE = 1280
+MIN_BOX = 0.0125  # of the frame's long side
 SEED = 20261009
 _archives = {}
 
@@ -81,8 +91,7 @@ def negatives(pool, positives, rng, floor=300, ratio=1.5):
 # D40 is the pothole class. India is split by blocks of 100 consecutive frames, because
 # neighbouring frames show the same stretch of road. The United States images are Google
 # Street View captures and are left out, as in the screen's data.
-RDD = {"Japan": "train", "Norway": "train", "China_MotorBike": "train", "China_Drone": "train",
-       "India": "blocks", "Czech": "val"}
+RDD = {"Japan": "train", "Norway": "train", "China_MotorBike": "train", "India": "blocks", "Czech": "val"}
 
 
 def india_split(index):
@@ -378,12 +387,17 @@ def owner(rng):
         yield {"name": f"owner-{safe(row['path'])}", "ref": {"file": str(source)},
                "dataset": row["dataset"], "source": row.get("source", "owner"), "split": split, "boxes": [],
                "meta": {"teacher_assessment": teacher.get("assessment"),
-                        "teacher_damage_type": teacher.get("damage_type"),
-                        "owner_label": row.get("owner_label") or row.get("human_label") or row.get("label"),
-                        "tier": row.get("tier")}}
+                        "teacher_damage_type": teacher.get("damage_type")}}
+    # The owner's and a tester's own photographs and confirmed video frames. No boxes;
+    # each one's score is printed beside its file name in the scorecard.
+    for source in sorted((OWNER / "owner").glob("*.jpg")):
+        yield {"name": f"ownerpic-{safe(source.name)}", "ref": {"file": str(source)},
+               "dataset": "owner_labelled", "source": "owner-labelled", "split": "test", "boxes": [],
+               "meta": {"owner_label": source.stem}}
 
 
-ADAPTERS = {"rdd2022": rdd2022, "irdd": irdd, "bucko": bucko, "brazil": brazil, "attain": attain,
+# attain() is kept for the record and not run: see the note at the top.
+ADAPTERS = {"rdd2022": rdd2022, "irdd": irdd, "bucko": bucko, "brazil": brazil,
             "rome": rome, "bharat": bharat, "alvaro": alvaro, "rad": rad, "owner": owner}
 
 
@@ -436,11 +450,11 @@ def write(item):
     for x1, y1, x2, y2 in boxes:
         x1, x2 = sorted((min(max(x1 * scale, 0), new_width), min(max(x2 * scale, 0), new_width)))
         y1, y2 = sorted((min(max(y1 * scale, 0), new_height), min(max(y2 * scale, 0), new_height)))
-        if x2 - x1 >= 3 and y2 - y1 >= 3:
+        if min(x2 - x1, y2 - y1) >= MIN_BOX * max(new_width, new_height):
             kept.append([round(x1, 1), round(y1, 1), round(x2, 1), round(y2, 1)])
     folder = OUT / f"{item['split']}2017"
     image.save(folder / item["name"], "JPEG", quality=90)
-    if item.get("debug"):
+    if item.get("debug") and kept:
         draw = ImageDraw.Draw(image)
         for box in kept:
             draw.rectangle(box, outline=(255, 0, 255), width=3)
@@ -484,8 +498,9 @@ def main():
                     limited.append(item)
             found = limited
         shown = Counter()
-        for item in found:  # the first six with a mark, per dataset, are drawn for the eye
-            if (item["boxes"] or item.get("mask")) and shown[item["dataset"]] < 6:
+        for item in found:  # some with a mark, per dataset, are drawn for the eye
+            quota = 60 if item.get("mask") else 8   # a mask may turn out empty
+            if (item["boxes"] or item.get("mask")) and shown[item["dataset"]] < quota:
                 shown[item["dataset"]] += 1
                 item["debug"] = True
         print(f"{name}: {len(found)} images chosen", flush=True)
