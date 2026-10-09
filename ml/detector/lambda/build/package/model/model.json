@@ -1,0 +1,10 @@
+{
+ "model_version": "pothole-det-20261009-tiny",
+ "kind": "yolox",
+ "input_size": 640,
+ "threshold": 0.3,
+ "min_box_score": 0.05,
+ "nms": 0.65,
+ "parameters": 5032866,
+ "sha256": "7ee1835ccf139f408cbc409fcf6d0d64d94e4a90ecc57e796940ca97be09dee9"
+}

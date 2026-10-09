@@ -82,7 +82,7 @@ test("a photo gpt-5-mini calls damaged comes back with the locator's boxes as ma
   const marked = await detect();
   assert.equal(marked.status, 200);
   assert.equal(marked.body.assessment, "damaged");
-  // Boxes at or over the floor (0.3), best first, as fractions of the frame; no score.
+  // Boxes at or over the floor (0.2), best first, as fractions of the frame; no score.
   assert.deepEqual(marked.body.marks, [{ x: 0.42, y: 0.61, w: 0.12, h: 0.06 }, { x: 0.1, y: 0.7, w: 0.05, h: 0.03 }]);
   assert.equal(marked.client.named("pothole-reporter-central-locate"), 1);
   assert.equal(marked.log.locate_boxes, 2);
@@ -166,12 +166,12 @@ test("a drive frame the screen flags and gpt-5-mini confirms is marked", async (
   assert.equal(result.body.detector.screened_by, "yolo");
 });
 
-test("boxes that are not boxes are dropped, and at most five marks go out", async () => {
+test("boxes that are not boxes are dropped, and at most two marks go out", async () => {
   const many = Array.from({ length: 9 }, (_, i) => ({ x: 0.05 * i, y: 0.5, w: 0.04, h: 0.04, score: 0.9 - i * 0.01 }));
   const junk = [{ x: "a", y: 0, w: 1, h: 1, score: 0.9 }, { x: 0.5, y: 0.5, w: 0, h: 0.1, score: 0.9 },
     { x: 0.9, y: 0.9, w: 0.5, h: 0.5, score: 0.9 }, { x: -0.1, y: 0.2, w: 0.1, h: 0.1, score: 0.9 }, null, 7];
   const result = await detect({ client: lambdas({ locate: { boxes: [...junk, ...many] } }) });
-  assert.equal(result.body.marks.length, 5);
+  assert.deepEqual(result.body.marks.map((mark) => mark.x), [0, 0.05]);   // the two best of nine
   for (const mark of result.body.marks) {
     assert.deepEqual(Object.keys(mark), ["x", "y", "w", "h"]);
     assert.ok(mark.x >= 0 && mark.y >= 0 && mark.x + mark.w <= 1.0001 && mark.y + mark.h <= 1.0001);

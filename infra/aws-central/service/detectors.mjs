@@ -100,11 +100,14 @@ const screenRequestId = (requestId) => {
 const flagsDamage = (verdict) => verdict?.image_quality === "acceptable"
   && verdict?.assessment === "damaged";
 
-// A mark goes out only for a box the locator is fairly sure of, and a photo carries at
-// most five: more than that is a broken road, which the photo shows by itself.
-const LOCATE_MIN_SCORE = 0.3;
+// Which boxes become marks, measured on the first locator (pothole-det-20261009-tiny) on
+// the held-out RDD2022 India blocks, on pictures a human had boxed a pothole in: at a
+// floor of 0.2 a mark appears on 74% of them (208 of 280); the best box sits on a
+// pothole 91% of the time (190 of 208), the second 86%, the third 82%, and on the Iraqi
+// set never trained on the third is right 38% of the time. So: 0.2, and two at most.
+const LOCATE_MIN_SCORE = 0.2;
 const LOCATE_GRACE_MS = 150;
-const MAX_MARKS = 5;
+const MAX_MARKS = 2;
 const fraction = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
 
 // The locator's boxes as the phone gets them: fractions of the whole frame, best first,
