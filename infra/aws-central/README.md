@@ -94,6 +94,16 @@ from the two construction-road clips it flagged 107, and gpt-5-mini called 68 of
 damaged. The audit is now the measure of live recall; `live screen recall` is the rule
 to read.
 
+The cut-off was raised from 0.0549 to 0.10 on 9 Oct 2026 (owner's go-ahead), by setting
+`SCREEN_THRESHOLD=0.1` on the screen function; a redeploy of that function must pass it
+again or the model's own 0.0549 returns. Why: live, the screen cleared about 6% of drive
+frames, not the 91% of the owner's video (25 of 398 live frames answered alone). The
+request log then held 398 frames gpt-5-mini judged damaged and 2,118 it judged undamaged
+with the screen's score beside each: at 0.10 the screen would have cleared 23% of the
+undamaged and lost 7 of the 398 damaged (1.8%); at 0.15, 47% and 3.0%. The threshold was
+fitted to those frames, so the number to watch is `live screen recall` on the frames
+that follow.
+
 When to switch on: read the readiness line over a week.
 
 ```bash

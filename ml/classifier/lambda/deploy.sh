@@ -18,7 +18,9 @@ DESCRIPTION="${DESCRIPTION:-Encoder-only drive-frame screen (ml/classifier)}"
 AWS_REGION="${AWS_REGION:-ap-south-1}"
 ROLE="${FUNCTION}-role"
 LOG_GROUP="/aws/lambda/${FUNCTION}"
-KEY_FILE="${SCREEN_API_KEY_FILE:-$HERE/../work/screen-api-key}"
+# Outside every worktree: the copy that lived in a worktree's work/ directory went when
+# that worktree was cleaned up on 9 Oct 2026 (it was restored from the detector secret).
+KEY_FILE="${SCREEN_API_KEY_FILE:-$HOME/.config/pothole-reporter/screen-api-key}"
 export AWS_PAGER=""
 
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text --region "$AWS_REGION")"
@@ -28,6 +30,12 @@ BUCKET="${ARTIFACT_BUCKET:-pothole-reporter-central-${ACCOUNT_ID}-${AWS_REGION}}
 "$PACKAGE/build.sh"
 
 if [[ ! -s "$KEY_FILE" ]]; then
+  # A new key would lock the central service out of a function it already calls. Only a
+  # first deploy of a new function may make one, and it says so.
+  if aws lambda get-function --function-name "$FUNCTION" --region "$AWS_REGION" >/dev/null 2>&1; then
+    echo "$KEY_FILE is missing and $FUNCTION already exists; restore the key (it is the detector secret's yolo_api_key) before deploying" >&2
+    exit 2
+  fi
   mkdir -p "$(dirname "$KEY_FILE")"
   (umask 077 && openssl rand -hex 32 > "$KEY_FILE")
   echo "generated a new screen key in $KEY_FILE"
