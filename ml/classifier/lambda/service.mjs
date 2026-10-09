@@ -180,7 +180,7 @@ function respond(status, requestId, payload) {
   };
 }
 
-// scorer: { meta: { model_version, threshold }, score(buffer) -> { score, decodeMs, inferMs } }.
+// scorer: { meta: { model_version, threshold }, score(buffer) -> { score, decodeMs, inferMs, boxes? } }.
 // It may be a promise (the model loads during Lambda init) or a function returning one.
 export function createHandler({ config = null, scorer, log = console.log } = {}) {
   return async function handle(event, lambdaContext = {}) {
@@ -221,6 +221,7 @@ export function createHandler({ config = null, scorer, log = console.log } = {})
         status: 200, outcome: verdict.assessment, score: Number(result.score.toFixed(5)),
         threshold, model_version: model.meta.model_version,
         decode_ms: Math.round(result.decodeMs), infer_ms: Math.round(result.inferMs),
+        ...(Array.isArray(result.boxes) ? { boxes: result.boxes.length } : {}),
       });
       return respond(200, requestId, {
         verdict,
@@ -228,6 +229,9 @@ export function createHandler({ config = null, scorer, log = console.log } = {})
         // Beside the verdict, not inside it: the verdict keeps the five contract fields.
         score: record.score,
         threshold,
+        // A detector also says where: boxes as fractions of the frame, best first. A
+        // classifier has none and the field is absent.
+        ...(Array.isArray(result.boxes) ? { boxes: result.boxes } : {}),
       });
     } catch (error) {
       if (error instanceof ServiceError) {

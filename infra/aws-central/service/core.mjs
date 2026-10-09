@@ -586,6 +586,9 @@ export function createService({
           screen_model: detection.screenModel,
         } : {}),
       },
+      // Where in the frame the damage is, when the locator found it: boxes as fractions
+      // of the whole frame. Absent when there is no locator or it found nothing.
+      ...(Array.isArray(detection.marks) && detection.marks.length ? { marks: detection.marks } : {}),
       quota: { used: null, limit: quota.limit },
     };
     const observationId = bounded(body.client_observation_id, 180);
@@ -1285,6 +1288,12 @@ export function createService({
       screen_audit_rate: context.screenAuditRate ?? null,
       screen_audited: context.screenAudited ?? null,
       screen_audit_error: context.screenAuditError || null,
+      // The pothole locator, asked beside gpt-5-mini. locate_boxes is how many marks went
+      // out with a damaged answer (null: not asked, or the frame was not damaged).
+      locate_ms: context.locateMs ?? null,
+      locate_boxes: context.locateBoxes ?? null,
+      locate_model: context.locateModel || null,
+      locate_error: context.locateError || null,
       quota_refunded: context.quotaRefunded || false,
       db_ms: Math.round(timings.db.ms),
       db_calls: timings.db.calls,

@@ -115,7 +115,10 @@ test("its role may query one log group, write its own log and keep one parameter
 test("the central function's role gains one read, of the canary's install id, and nothing else", () => {
   const central = resource("LambdaRole");
   assert.deepEqual(actions(central).filter((action) => !action.startsWith("dynamodb:")).sort(),
-    ["lambda:InvokeFunction", "logs:CreateLogStream", "logs:PutLogEvents", "secretsmanager:GetSecretValue", "ssm:GetParameter"]);
+    ["lambda:InvokeFunction", "lambda:InvokeFunction", "logs:CreateLogStream", "logs:PutLogEvents", "secretsmanager:GetSecretValue", "ssm:GetParameter"]);
+  // The two invokes are the drive screen and the pothole locator, each by its own name.
+  assert.deepEqual([...central.matchAll(/function:\$\{(\w+)\}/g)].map((found) => found[1]).sort(),
+    ["LocateFunctionName", "YoloFunctionName"]);
   assert.ok(!central.includes("canary-key"), "never the canary's private key");
 });
 

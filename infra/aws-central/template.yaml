@@ -72,8 +72,18 @@ Parameters:
       screen_agrees) once cleared frames no longer reach gpt-5-mini. 0 switches the
       measuring off; the health rules then cannot estimate the screen's recall.
 
+  LocateFunctionName:
+    Type: String
+    Default: ''
+    AllowedPattern: '^$|^[A-Za-z0-9_-]{1,64}$'
+    Description: >-
+      Name of the pothole locator Lambda (ml/detector), a box detector asked beside
+      gpt-5-mini so a damaged answer can carry marks: where in the frame the pothole is.
+      Blank sends no marks and grants no invoke permission.
+
 Conditions:
   HasYoloFunction: !Not [!Equals [!Ref YoloFunctionName, '']]
+  HasLocateFunction: !Not [!Equals [!Ref LocateFunctionName, '']]
 
 Resources:
   DetectorSecret:
@@ -243,6 +253,13 @@ Resources:
                   Action: lambda:InvokeFunction
                   Resource: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${YoloFunctionName}'
                 - !Ref AWS::NoValue
+              - !If
+                - HasLocateFunction
+                - Sid: InvokePotholeLocator
+                  Effect: Allow
+                  Action: lambda:InvokeFunction
+                  Resource: !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${LocateFunctionName}'
+                - !Ref AWS::NoValue
 
   CentralFunction:
     Type: AWS::Lambda::Function
@@ -277,6 +294,7 @@ Resources:
           SHARED_DETECTOR_PROVIDER: !Ref SharedDetectorProvider
           YOLO_MODE: lambda
           YOLO_FUNCTION_NAME: !If [HasYoloFunction, !Ref YoloFunctionName, !Ref AWS::NoValue]
+          LOCATE_FUNCTION_NAME: !If [HasLocateFunction, !Ref LocateFunctionName, !Ref AWS::NoValue]
           SCREEN_AUDIT_RATE: !Ref ScreenAuditRate
           DEDUPE_RADIUS_METRES: !Ref DedupeRadiusMetres
           DAILY_VISION_CAP: !Ref DailyVisionCap

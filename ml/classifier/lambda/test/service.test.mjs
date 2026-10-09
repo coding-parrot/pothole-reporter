@@ -207,3 +207,20 @@ test("the log line has the score and timings and nothing of the image or the key
   assert.ok(!everything.includes(photo.toString("base64").slice(0, 64)));
   assert.ok(everything.length < 600);
 });
+
+test("a detector's boxes travel beside the score; a classifier's answer has no boxes field", async () => {
+  const boxes = [{ x: 0.45, y: 0.6, w: 0.1, h: 0.05, score: 0.81 }];
+  const locator = { meta: { model_version: "pothole-det-test", threshold: 0.3 },
+    async score() { return { score: 0.81, boxes, decodeMs: 5, inferMs: 90 }; } };
+  const logged = [];
+  const located = await createHandler({ config, scorer: locator, log: (line) => logged.push(JSON.parse(line)) })(centralEvent());
+  const body = JSON.parse(located.body);
+  assert.equal(located.statusCode, 200);
+  assert.deepEqual(body.boxes, boxes);
+  assert.equal(body.verdict.assessment, "damaged");
+  assert.deepEqual(Object.keys(body.verdict).sort(), VERDICT_KEYS);
+  assert.equal(logged[0].boxes, 1);
+
+  const plain = await createHandler({ config, scorer: scorerReturning(0.9), log: () => {} })(centralEvent());
+  assert.equal("boxes" in JSON.parse(plain.body), false);
+});

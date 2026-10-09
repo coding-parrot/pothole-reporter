@@ -100,6 +100,27 @@ const screenRequestId = (requestId) => {
 const flagsDamage = (verdict) => verdict?.image_quality === "acceptable"
   && verdict?.assessment === "damaged";
 
+// A mark goes out only for a box the locator is fairly sure of, and a photo carries at
+// most five: more than that is a broken road, which the photo shows by itself.
+const LOCATE_MIN_SCORE = 0.3;
+const LOCATE_GRACE_MS = 150;
+const MAX_MARKS = 5;
+const fraction = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+
+// The locator's boxes as the phone gets them: fractions of the whole frame, best first,
+// without the score. Anything that is not a box inside the frame is dropped.
+export function marksFrom(boxes, floor = LOCATE_MIN_SCORE) {
+  if (!Array.isArray(boxes)) return [];
+  const round = (value) => Math.round(value * 10000) / 10000;
+  return boxes
+    .filter((box) => box && typeof box === "object" && fraction(box.x) && fraction(box.y)
+      && fraction(box.w) && fraction(box.h) && box.w > 0 && box.h > 0
+      && box.x + box.w <= 1.0001 && box.y + box.h <= 1.0001 && fraction(box.score) && box.score >= floor)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, MAX_MARKS)
+    .map((box) => ({ x: round(box.x), y: round(box.y), w: round(box.w), h: round(box.h) }));
+}
+
 const hasAssessment = (verdict) => ["damaged", "undamaged"].includes(verdict?.assessment);
 
 // What the screen said about a drive frame, for the request log: the same three fields
@@ -221,9 +242,17 @@ export function createDetector({
   shadowGraceMs = SHADOW_SCREEN_GRACE_MS,
   screenAuditRate = DEFAULT_SCREEN_AUDIT_RATE,
   auditDraw = drawForAudit,
+  // The pothole locator: a box detector in its own Lambda, asked beside gpt-5-mini so a
+  // damaged answer can say where. Blank means no marks, which is how it was before.
+  locateFunctionName = "",
+  locateMinScore = LOCATE_MIN_SCORE,
+  locateGraceMs = LOCATE_GRACE_MS,
+  locateTimeoutMs = YOLO_SCREEN_TIMEOUT_MS,
 } = {}) {
   const secrets = secretProvider || (async () => ({}));
   const auditShare = auditRate(screenAuditRate);
+  const markFloor = Number(locateMinScore) > 0 && Number(locateMinScore) < 1
+    ? Number(locateMinScore) : LOCATE_MIN_SCORE;
 
   // A secret with no current version (as on 2026-09-19) is a missing credential, not a
   // server fault, and must read as one to the app instead of internal_error.
@@ -236,6 +265,9 @@ export function createDetector({
   }
 
   async function openai(input, context) {
+    // The locator starts when gpt-5-mini is asked, so it never adds to the wait and a
+    // frame the screen answers alone costs no locator call.
+    context.startLocate?.();
     const secret = await readSecret("shared_openai_not_configured",
       "The shared OpenAI detector secret could not be read.", { fallback_allowed: true });
     if (!secret.openaiApiKey) {
@@ -353,7 +385,8 @@ export function createDetector({
     };
   }
 
-  async function yolo(input, context, budgetMs = yoloTimeoutMs, abandonSignal = null) {
+  async function yolo(input, context, budgetMs = yoloTimeoutMs, abandonSignal = null,
+    functionName = yoloFunctionName) {
     const secret = await readSecret("shared_yolo_not_configured",
       "The shared YOLO detector secret could not be read.");
     if (!secret.yoloApiKey) {
@@ -365,7 +398,7 @@ export function createDetector({
     let headers = {};
     let body;
     if (yoloMode === "lambda") {
-      if (!yoloFunctionName) {
+      if (!functionName) {
         throw new HttpError(503, "shared_yolo_not_configured",
           "The YOLO Lambda function is not configured.");
       }
@@ -375,7 +408,7 @@ export function createDetector({
       let invoked;
       try {
         invoked = await lambdaClient.send(new InvokeCommand({
-          FunctionName: yoloFunctionName,
+          FunctionName: functionName,
           InvocationType: "RequestResponse",
           Payload: Buffer.from(JSON.stringify({
             version: "2.0",
@@ -458,7 +491,80 @@ export function createDetector({
       // The classifier screen reports the raw score its threshold was applied to. The
       // box detector does not; shadow mode logs whichever it gets.
       score: Number.isFinite(body.score) ? body.score : null,
+      // A box detector also says where; a classifier's answer has no boxes.
+      boxes: Array.isArray(body.boxes) ? body.boxes : null,
     };
+  }
+
+  // The judging order, as SHARED_DETECTOR_PROVIDER names it.
+  function judge(input, context) {
+    if (providerMode === "openai") return openai(input, context);
+    if (providerMode === "yolo") return yolo(input, context);
+    if (providerMode === "openai_then_yolo") return openaiThenYolo(input, context);
+    if (providerMode === "yolo_then_openai") {
+      // A manual photo is one deliberate report, so accuracy outranks speed there:
+      // OpenAI judges it and YOLO keeps its exhaustion-only role.
+      return input.captureMode === "drive"
+        ? yoloThenOpenai(input, context)
+        : openaiThenYolo(input, context);
+    }
+    if (providerMode === SHADOW_MODE) {
+      return input.captureMode === "drive"
+        ? openaiWithShadowScreen(input, context)
+        : openai(input, context);
+    }
+    throw new HttpError(503, "shared_vision_not_configured",
+      "SHARED_DETECTOR_PROVIDER is invalid.");
+  }
+
+  // Marks. gpt-5-mini (or whichever model judged) decides whether the frame shows
+  // damage; the locator only adds where, and only to a damaged answer. It runs on its
+  // own copy of the context, is never awaited past the grace once the answer is in, and
+  // nothing it does can change or delay that answer by more than the grace.
+  async function judgeAndLocate(input, context) {
+    const started = performance.now();
+    const abandon = new AbortController();
+    const own = { requestId: context.requestId, remainingTimeMs: context.remainingTimeMs };
+    let locating = null;
+    context.startLocate = () => {
+      locating ||= yolo(input, own, locateTimeoutMs, abandon.signal, locateFunctionName).then(
+        (found) => ({ found, ms: Math.round(performance.now() - started) }),
+        (error) => ({ error, ms: Math.round(performance.now() - started) }),
+      );
+    };
+    let answer;
+    try {
+      answer = await judge(input, context);
+    } catch (error) {
+      abandon.abort();
+      throw error;
+    } finally {
+      delete context.startLocate;
+    }
+    if (!locating || !flagsDamage(answer.verdict)) {
+      abandon.abort();
+      return answer;
+    }
+    let timer;
+    const settled = await Promise.race([
+      locating,
+      new Promise((resolve) => { timer = setTimeout(resolve, locateGraceMs, null); }),
+    ]);
+    clearTimeout(timer);
+    if (!settled) {
+      abandon.abort();
+      context.locateError = "locate_timeout";
+      return answer;
+    }
+    context.locateMs = settled.ms;
+    if (settled.error) {
+      context.locateError = settled.error instanceof HttpError ? settled.error.code : "locate_failed";
+      return answer;
+    }
+    const marks = marksFrom(settled.found.boxes, markFloor);
+    context.locateBoxes = marks.length;
+    context.locateModel = settled.found.model;
+    return marks.length ? { ...answer, marks } : answer;
   }
 
   // Today's order. OpenAI judges; YOLO covers only the documented exhaustion errors.
@@ -641,23 +747,9 @@ export function createDetector({
       };
     },
     async detect(input, context) {
-      if (providerMode === "openai") return openai(input, context);
-      if (providerMode === "yolo") return yolo(input, context);
-      if (providerMode === "openai_then_yolo") return openaiThenYolo(input, context);
-      if (providerMode === "yolo_then_openai") {
-        // A manual photo is one deliberate report, so accuracy outranks speed there:
-        // OpenAI judges it and YOLO keeps its exhaustion-only role.
-        return input.captureMode === "drive"
-          ? yoloThenOpenai(input, context)
-          : openaiThenYolo(input, context);
-      }
-      if (providerMode === SHADOW_MODE) {
-        return input.captureMode === "drive"
-          ? openaiWithShadowScreen(input, context)
-          : openai(input, context);
-      }
-      throw new HttpError(503, "shared_vision_not_configured",
-        "SHARED_DETECTOR_PROVIDER is invalid.");
+      return locateFunctionName && yoloMode === "lambda"
+        ? judgeAndLocate(input, context)
+        : judge(input, context);
     },
   };
 }
