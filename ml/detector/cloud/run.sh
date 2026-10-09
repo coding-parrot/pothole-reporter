@@ -160,21 +160,9 @@ evaluate() {
 export_models() {
   mkdir -p "$WORK/export"
   for name in $MODELS; do
-    (cd "$YOLOX" && "$PYTHON" tools/export_onnx.py --output-name "$WORK/export/$name.onnx" \
-      -f "$DETECTOR/exps/$name.py" -c "$DET_RUNS/$name/best_ckpt.pth" --decode_in_inference --no-onnxsim -o 13)
+    "$PYTHON" export_onnx.py "$name" "$WORK/export/$name.onnx"
     [[ -s "$WORK/export/$name.onnx" ]] || { echo "$name: no ONNX file was written"; return 1; }
-    "$PYTHON" - "$WORK/export/$name.onnx" <<'PY'
-import sys, time
-import numpy as np
-import onnxruntime as ort
-options = ort.SessionOptions(); options.intra_op_num_threads = 2
-session = ort.InferenceSession(sys.argv[1], options, providers=["CPUExecutionProvider"])
-feed = {session.get_inputs()[0].name: np.zeros((1, 3, 640, 640), np.float32)}
-times = []
-for _ in range(12):
-    started = time.perf_counter(); out = session.run(None, feed); times.append((time.perf_counter() - started) * 1000)
-print(sys.argv[1].rsplit("/", 1)[1], "ONNX Runtime, 2 threads, 640 px:", round(sorted(times[2:])[5], 1), "ms; output", out[0].shape)
-PY
+    aws s3 cp "$WORK/export/$name.json" "$S3/models/$RUN_ID/$name.json" --only-show-errors
     aws s3 cp "$WORK/export/$name.onnx" "$S3/models/$RUN_ID/$name.onnx" --only-show-errors
   done
   aws s3 cp "$DET_REPORT/report.json" "$S3/models/$RUN_ID/report.json" --only-show-errors
