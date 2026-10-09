@@ -167,9 +167,9 @@ for _ in range(12):
     started = time.perf_counter(); out = session.run(None, feed); times.append((time.perf_counter() - started) * 1000)
 print(sys.argv[1].rsplit("/", 1)[1], "ONNX Runtime, 2 threads, 640 px:", round(sorted(times[2:])[5], 1), "ms; output", out[0].shape)
 PY
-    aws s3 cp "$WORK/export/$name.onnx" "$S3/models/pothole-det-20261009/$name.onnx" --only-show-errors
+    aws s3 cp "$WORK/export/$name.onnx" "$S3/models/$RUN_ID/$name.onnx" --only-show-errors
   done
-  aws s3 cp "$DET_REPORT/report.json" "$S3/models/pothole-det-20261009/report.json" --only-show-errors
+  aws s3 cp "$DET_REPORT/report.json" "$S3/models/$RUN_ID/report.json" --only-show-errors
 }
 
 [[ -n "$(ls -A "$WORK/.done")" ]] || resume_from_s3

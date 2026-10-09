@@ -23,6 +23,8 @@ printf '#!/bin/bash\nshutdown -h +720\n' > "$USER_DATA"
 # interruption costs little) and falls back to on-demand if spot is refused.
 MARKETS=("on-demand")
 [[ "${MARKET:-on-demand}" != "spot" ]] || MARKETS=("spot" "on-demand")
+# MARKET=spot-only never pays the on-demand price: the caller tries another type instead.
+[[ "${MARKET:-on-demand}" != "spot-only" ]] || MARKETS=("spot")
 for market in "${MARKETS[@]}"; do
 MARKET_OPTIONS=()
 [[ "$market" != "spot" ]] || MARKET_OPTIONS=(--instance-market-options "MarketType=spot,SpotOptions={SpotInstanceType=one-time,InstanceInterruptionBehavior=terminate}")
@@ -36,7 +38,7 @@ for zone in "${AWS_REGION}a" "${AWS_REGION}b"; do
       --instance-initiated-shutdown-behavior terminate \
       --metadata-options "HttpTokens=required,HttpEndpoint=enabled" \
       --block-device-mappings "[{\"DeviceName\":\"$ROOT_DEVICE\",\"Ebs\":{\"VolumeSize\":200,\"VolumeType\":\"gp3\",\"DeleteOnTermination\":true}}]" \
-      --user-data "file://$USER_DATA" "${MARKET_OPTIONS[@]}" \
+      --user-data "file://$USER_DATA" ${MARKET_OPTIONS[@]+"${MARKET_OPTIONS[@]}"} \
       --tag-specifications \
         "ResourceType=instance,Tags=[{Key=Name,Value=$ML_INSTANCE_NAME},{Key=project,Value=$ML_TAG}]" \
         "ResourceType=volume,Tags=[{Key=Name,Value=$ML_INSTANCE_NAME},{Key=project,Value=$ML_TAG}]" \
