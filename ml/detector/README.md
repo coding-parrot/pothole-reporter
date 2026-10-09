@@ -22,6 +22,21 @@ it catches at least 95% of the pictures with a pothole while at least 95% of its
 are right, and it answers in under 500 ms on the Lambda. Otherwise the report says so
 and nothing ships.
 
+## Result of run pothole-det-20261009 (9 Oct 2026)
+
+Neither model meets the bar, so neither answers alone. Pictures with a pothole caught, and
+calls that were right, at a cut-off of 0.3:
+
+| Model | Parameters | India held-out | IRDD | Clean owner frames called | Forward pass, 2 threads |
+|---|---|---|---|---|---|
+| `pothole_tiny` | 5,032,866 | 59% caught, 80% right | 29%, 58% | 1 of 858 | 127 ms |
+| `pothole_s` | 8,937,682 | 64% caught, 79% right | 32%, 58% | 2 of 858 | 194 ms |
+
+Both overfit early (best epoch 12 and 15 of 45). Nearly doubling the model moved nothing
+that matters, so the limit is the labelled pictures, not the size. `pothole_tiny` is the
+one in production, only to outline a pothole the judging model has already called
+(`lambda/`); `pothole_s` was not deployed. Full scorecard: `runs/pothole-det-20261009/report/report.md`.
+
 ## Run it
 
 ```bash

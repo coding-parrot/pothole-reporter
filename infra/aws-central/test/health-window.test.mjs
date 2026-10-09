@@ -164,6 +164,21 @@ test("twenty lookups that reach matching with none matched break the rule, ninet
   assert.deepEqual(oneMatched.failures, []);
 });
 
+// 9 Oct 2026: one 21 s answer from the model provider among 175 detections raised the
+// alarm. It was one of a handful of damaged answers, so that group's own p90 was the
+// slow request, and the rule took the worst group for the whole. The log said p90 2655 ms.
+test("detection speed is judged over all detections, not the slowest outcome group", async () => {
+  const ownTime = (p50, p90) => withRows("pct(db_ms, 90)", [row({ route: "/v1/vision/detect", n: 195, db90: 149, own90: 158, p50, p90 })]);
+  const oneSlowAnswer = (script) => script.map((entry) => (entry.match === "by route, outcome, status"
+    ? { ...entry, rows: entry.rows.filter((line) => line.route !== "/v1/vision/detect")
+      .concat(group("/v1/vision/detect", "undamaged", 200, 190, 1368, 2485), group("/v1/vision/detect", "damaged", 200, 5, 1910, 21169)) } : entry));
+  const fast = await judge(oneSlowAnswer(ownTime(1399, 2655)));
+  assert.deepEqual(fast.failures, []);
+  assert.equal(fast.rules.find((rule) => rule.name === "detection is fast").detail, "p50 1399 ms, p90 2655 ms over 195 detections");
+  const slow = await judge(oneSlowAnswer(ownTime(1399, 4200)));
+  assert.deepEqual(slow.failures.map((failure) => failure.name), ["detection is fast"]);
+});
+
 test("too few detections, or too few requests on a route, are said and not judged", async () => {
   const result = await judge(withRows("pct(db_ms, 90)", [{ route: "/v1/vision/detect", n: "19", db90: "900", own90: "900" }])
     .map((entry) => (entry.match === "by route, outcome, status"

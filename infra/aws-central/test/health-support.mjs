@@ -50,7 +50,7 @@ export const HEALTHY_WINDOW = [
     row({ outcome: "undamaged", screen_error: "screen_timeout", n: 3 }),
   ] },
   { match: "pct(db_ms, 90)", rows: [
-    row({ route: "/v1/vision/detect", n: 68, db90: 149, own90: 158 }),
+    row({ route: "/v1/vision/detect", n: 68, db90: 149, own90: 158, p50: 1906, p90: 3100 }),
     row({ route: "/v1/tenders/resolve", n: 183, db90: 12, own90: 240 }),
     row({ route: "/v1/potholes/report", n: 12, db90: 30, own90: 900 }),
   ] },
@@ -86,7 +86,8 @@ export const BROKEN_WINDOW = [
     row({ road_ownership: "outside_state", local_lookup: "out_of_scope", ward_lookup: "unavailable", n: 2 }),
   ] },
   { match: "by outcome, screen_assessment, screen_error, bucket", rows: [] },
-  { match: "pct(db_ms, 90)", rows: [row({ route: "/v1/tenders/resolve", n: 110, db90: 300, own90: 401 })] },
+  { match: "pct(db_ms, 90)", rows: [row({ route: "/v1/vision/detect", n: 30, db90: 120, own90: 150, p50: 2600, p90: 4200 }),
+    row({ route: "/v1/tenders/resolve", n: 110, db90: 300, own90: 401 })] },
   { match: 'answer_cache="hit"', rows: [row({ route: "/v1/map", n: 40, p50: 60, p90: 140 })] },
   { match: "Task timed out", rows: [row({ n: 2 })] },
 ];

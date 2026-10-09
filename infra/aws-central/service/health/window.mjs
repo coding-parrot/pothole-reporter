@@ -22,7 +22,9 @@ export const REQUEST_QUERY = 'filter event="http_request" and not ispresent(cana
 // Our own share of a request. The detector is the model's time; everything the service
 // itself does around it (ten database calls on a detection) has a budget, so a slow
 // query or a serial wait added later shows up here and not as "the app is slow".
-export const OWN_TIME_QUERY = 'filter event="http_request" and not ispresent(canary) and ispresent(db_ms) and status=200 and route in ["/v1/vision/detect","/v1/potholes/report","/v1/tenders/resolve"] | stats count() as n, pct(db_ms, 90) as db90, pct(duration_ms - detector_ms - geo_ms, 90) as own90 by route';
+// p50 and p90 are the whole request per route: "detection is fast" reads them, because a
+// percentile taken per outcome cannot be put back together into one for the route.
+export const OWN_TIME_QUERY = 'filter event="http_request" and not ispresent(canary) and ispresent(db_ms) and status=200 and route in ["/v1/vision/detect","/v1/potholes/report","/v1/tenders/resolve"] | stats count() as n, pct(db_ms, 90) as db90, pct(duration_ms - detector_ms - geo_ms, 90) as own90, pct(duration_ms, 50) as p50, pct(duration_ms, 90) as p90 by route';
 
 // A place the service has already answered for is one map read and one metrics write:
 // 6 ms on 7 Oct 2026, down from 90 to 145. The public map is the same. Anything that
@@ -151,13 +153,15 @@ export async function judgeWindow({ query, hours, logGroup, report }) {
   indiaWards.broken ? fail("ward snapshots outside Karnataka are in the package", indiaWards.detail)
     : ok("ward snapshots outside Karnataka are in the package", indiaWards.detail);
 
+  // One row for every answered detection. Until 9 Oct 2026 this took the worst p90 of
+  // the outcome groups, so one 21 s answer among a handful of damaged ones read as
+  // "p90 21169 ms over 175 detections" when the log's p90 was 2655 ms.
   const detect = rows.filter((row) => row.route === "/v1/vision/detect" && Number(row.status) === 200);
-  const detections = detect.reduce((sum, row) => sum + Number(row.n), 0);
+  const speed = (await asked.ownTime).find((row) => row.route === "/v1/vision/detect");
+  const detections = Number(speed?.n || 0);
   if (detections >= 20) {
-    // Weighted by count across outcomes; the exact pct across groups is close enough
-    // for a rule of 2.5 s typical and 4 s slow.
-    const p50 = detect.reduce((sum, row) => sum + Number(row.n) * Number(row.p50), 0) / detections;
-    const p90 = Math.max(...detect.map((row) => Number(row.p90)));
+    const p50 = Number(speed.p50);
+    const p90 = Number(speed.p90);
     p50 > 2500 || p90 > 4000
       ? fail("detection is fast", `p50 ${p50.toFixed(0)} ms, p90 ${p90.toFixed(0)} ms over ${detections} detections; rule is p50 under 2.5 s and p90 under 4 s`)
       : ok("detection is fast", `p50 ${p50.toFixed(0)} ms, p90 ${p90.toFixed(0)} ms over ${detections} detections`);

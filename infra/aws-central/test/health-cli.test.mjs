@@ -110,6 +110,7 @@ const BROKEN_WINDOW_LINES = [
   "  ok   shadow screen threshold for 98% live recall (report only): 0 scored frames judged damaged; 100 are needed before a threshold can be read off",
   "  ok   shadow screen ready to switch on (report only): no drive frames were shadow screened in the window; nothing to say about switching on",
   "  ok   live screen: no drive frames were screened live in the window; nothing to judge",
+  "  ok   service overhead is small (/v1/vision/detect): p90 150 ms, database p90 120 ms over 30 requests",
   "  FAIL service overhead is small (/v1/tenders/resolve): p90 401 ms outside the detector and the geolocator over 110 requests; budget 400 ms",
   "  FAIL known answers are instant (/v1/map): p50 60 ms, p90 140 ms over 40 requests; budget p50 15 ms",
   "  FAIL no runtime crashes: 2 timeouts or runtime exits",
