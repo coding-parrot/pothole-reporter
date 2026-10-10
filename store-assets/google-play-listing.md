@@ -1,6 +1,9 @@
 # Google Play listing copy
 
-Prepared 25 August 2026. Paste only the text inside each code block into Play Console.
+Rewritten 10 October 2026 to match the app as shipped from 1.40 onward (the text live on
+Play until then described own-key detection, routes outside Karnataka and background
+Drive, none of which this build has). Paste only the text inside each code block into
+Play Console.
 
 ## App name (16/30 characters)
 
@@ -8,50 +11,49 @@ Prepared 25 August 2026. Paste only the text inside each code block into Play Co
 Pothole Reporter
 ```
 
-## Short description (66/80 characters)
+## Short description (70/80 characters)
 
 ```text
-Detect potholes and prepare reports across supported Indian roads.
+Detect potholes with your phone camera and prepare an email complaint.
 ```
 
-## Full description
+## Full description (2986/4000 characters)
 
 ```text
-Pothole Reporter is an independent Android app for documenting potholes. It saves editable evidence and complaint drafts on your phone; nothing is filed automatically.
+Pothole Reporter is an independent Android app that detects road damage with your phone camera, adds it to a shared map and prepares a complaint email for you to send. It is free to use and needs no account and no API key.
 
-On first launch, Settings appears before the main actions. Use one-tap Photo while safely stopped, or securely mount the phone and use foreground Drive while Maps or a call is on screen. AI assesses selected road images for potholes only. Nearby observations are grouped, and a later live drive can mark a pothole Fixed only after a clear same-place repair comparison.
+How it works
+• Photo: while safely stopped, take one photo of the damage.
+• Drive: mount the phone with the camera facing the road and start a drive before you move. The app checks the road as you travel while it stays open on screen. If you switch to another app, the drive stops.
+• AI assesses each picture for pothole cavities, failed patches, surface breakup, ruts and depressions.
+• Each pothole found is saved as a report on your phone with the photo, the street and the time.
+• Email complaint: one tap opens an editable draft in your own email app, addressed to the responsible office, with the photo, location and damage details. Nothing is sent for you.
+• Pothole map: a public map of India showing road damage reported through the app.
 
-Coverage
-• Mapped operational National Highways and Expressways across India; Rajmargyatra/1033 is checked before regional routing.
-• Full-state neutral handoffs in Maharashtra, West Bengal, Punjab, Karnataka, Kerala, Tamil Nadu, Andhra Pradesh, Telangana, Uttar Pradesh, Chhattisgarh, Rajasthan, Goa, Madhya Pradesh, Bihar, and Odisha.
-• More-specific reviewed routes remain preferred for MMR, PMC, KMC, supported Karnataka urban bodies and Bengaluru, Greater Chennai, and verified Hyderabad CURE.
-• Karnataka uses Janaspandana, with Janahitha for urban issues and helpline 1902. Kerala uses the CMO grievance portal, with K-SMART for local-body issues; 1076 provides help/status but does not accept complaints by phone.
-• Uttar Pradesh uses Jansunwai–Samadhan and helpline 1076. Chhattisgarh uses the CM Helpline and helpline 1076, with NIDAAN 1100 only as an urban civic alternate. Rajasthan uses Rajasthan Sampark 2.0 and helpline 181.
-• Goa uses CM Helpline Goa/1905; Madhya Pradesh uses CM Helpline/181; Bihar uses Lok Shikayat/1800 345 6284; and Odisha uses Jana Sunani, WhatsApp and 155335.
-• All 50 largest Census 2011 population centres, Delhi NCT, and a reviewed Ahmedabad 48-ward footprint. Eight city routes require both a conservative coordinate envelope and exact structured city/state data.
+Where complaints can be addressed
+Complaint emails are available for city and town roads in Karnataka whose urban local body publishes a contact address, including Bengaluru's city corporations. National, state and district highways, village roads and places outside Karnataka are saved on your phone and shown on the map, but the app does not name a recipient for them yet.
 
-Chandigarh is outside Punjab coverage; Puducherry and Karaikal are outside Tamil Nadu; Yanam is outside Andhra Pradesh; Mahe is outside Kerala; and Delhi NCT is outside Uttar Pradesh and keeps its own route. Locations outside supported routes are saved locally without a recipient.
-
-Every route is a suggestion. You must verify the issue, location, department, local body, road owner, recipient, and wording, then complete the complaint in the external app, portal, WhatsApp, dialler, share sheet, or email client. A boundary does not prove ownership, responsibility, category acceptance, warranty, or submission.
+Where a public record matches, a report also lists road works tendered for that street or ward. A tender match is a pointer to check. It is not proof of responsibility or warranty.
 
 Important limits and data use
-• AI can miss damage or produce false positives. Review every result.
-• Photo and Drive require camera, foreground location, internet, and your own billed OpenAI API key.
-• Selected resized road-damage images go to OpenAI. Precise coordinates go to OpenStreetMap Nominatim; Karnataka and exact Hyderabad checks may query official GIS.
-• Downloaded state, city, and highway packs are SHA-256 verified and checked on-device. Pack requests contain no report, photo, or exact coordinates.
-• Karnataka contract suggestions are optional and probable. Roadside-only drain, footpath, sewer, pipeline, lighting, building, bridge, and culvert work is excluded.
-• Drive recording is optional and off by default. When enabled, it stores silent local video plus a 720p evidence frame at most every two seconds; saved-frame retry uses nearby before/after context. The persistent notification and live screen show camera/recording status.
-• Drive automatically stops at the selected 15/30/60/90-minute active-time battery limit (30 minutes by default); paused time does not count.
+• AI can miss damage or flag damage that is not there. Review the photo, location, recipient and wording before you send.
+• The app needs the camera, precise location and an internet connection.
+• By default each checked picture passes through the project service to its detector (OpenAI by default) and is not kept by the service. You can use your own OpenAI key in Settings instead: pictures then go directly to OpenAI and your key never reaches the project service.
+• For each pothole found, its exact coordinates, the time, the damage type, an image hash (not the image) and a pseudonymous installation ID go to the project service. The service groups nearby sightings and shows the location on the public map. Names, contact details and photos are not published.
+• Coordinates may also go to OpenStreetMap Nominatim to name the street. Viewing the map loads satellite imagery from Esri.
+• Reports and photos stay on your phone until you delete them. Faces and number plates in a photo are not blurred.
+• Shared detection is paid for by the project and has daily limits. It can be unavailable when a limit is reached.
 • The app is not affiliated with or endorsed by any government body.
 
+Source code (MIT licence): https://github.com/coding-parrot/pothole-reporter
 Privacy: https://coding-parrot.github.io/pothole-reporter/privacy.html
-Government-information source directory and exact limits, with direct official links: https://coding-parrot.github.io/pothole-reporter/sources.html
+Data sources and limits: https://coding-parrot.github.io/pothole-reporter/sources.html
 ```
 
-## Release notes (1.35.0 / version code 54)
+## Release notes (1.41.1 / version code 85)
 
 ```text
-Faster, safer Drive Mode: optional local video, sparse 720p evidence frames for post-drive retry, bounded camera memory, quicker startup and Stop, plus a 30-minute default battery limit.
+The pothole map now opens on your own city, and you can zoom in to a street or out to all of India. The pothole is outlined on the report's photo, and the email attaches the outlined photo and the original.
 ```
 
 ## Play Console fields
@@ -69,3 +71,7 @@ Do not use government marks or describe Pothole Reporter as “official,” a �
 app,” or affiliated with a civic body. Do not claim guaranteed detection, automatic filing,
 a verified pothole, road ownership, or a measured accuracy percentage without independent
 evidence.
+
+Every sentence of the description must stay true of the build that is live on Play:
+change this file in the same commit that changes where complaints can be addressed, what
+Drive does when the app is hidden, or what leaves the phone.

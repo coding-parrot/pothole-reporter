@@ -54,7 +54,8 @@ published address.
 
 ## How it works
 
-1. Download `PotholeReporter.apk` from the
+1. Install [Pothole Reporter from Google Play](https://play.google.com/store/apps/details?id=dev.aiengg.potholereporter),
+   or download `app-release.apk` from the
    [latest release](https://github.com/coding-parrot/pothole-reporter/releases/latest)
    and sideload it.
 2. Choose shared vision or enter your own OpenAI API key, then allow camera and
