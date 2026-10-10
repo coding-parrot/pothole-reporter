@@ -3,6 +3,52 @@
   "lifecycle": "procurement_notice",
   "notices": [
     {
+      "closing_at": "2026-10-23T16:00:00+05:30",
+      "detail_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SlngvoTdjG5uNVoy%2F5ZZDNQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SX%2FB7iPqLtlwRMXTHkbwNyQ%3D%3D",
+      "opening_at": "2026-10-26T11:00:00+05:30",
+      "organisation_chain": "Public Works Department||Chief Engineer PW(R and B) - Ladakh||PWD Department - Leh||SSD Khaltsi",
+      "organisation_path": [
+        "Public Works Department",
+        "Chief Engineer PW(R and B) - Ladakh",
+        "PWD Department - Leh",
+        "SSD Khaltsi"
+      ],
+      "published_at": "2026-10-08T12:25:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Ladakh e-Procurement Portal",
+      "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SlngvoTdjG5uNVoy%2F5ZZDNQ%3D%3D",
+      "state_code": "LA",
+      "tender_id": "2025_PWD_16120_2",
+      "tender_reference": "13 of R and B Khaltsi of 2025-26",
+      "title": "Construction of link road at Gompa Thang via Gongma Thang. Under District. Plan"
+    },
+    {
+      "closing_at": "2026-10-13T16:00:00+05:30",
+      "detail_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S5akN8Ebd4f6WfznWDmuK6Q%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SX%2FB7iPqLtlwRMXTHkbwNyQ%3D%3D",
+      "opening_at": "2026-10-14T10:00:00+05:30",
+      "organisation_chain": "Public Works Department||Chief Engineer PW(R and B) - Ladakh||PWD Department - Kargil||Division Sankoo",
+      "organisation_path": [
+        "Public Works Department",
+        "Chief Engineer PW(R and B) - Ladakh",
+        "PWD Department - Kargil",
+        "Division Sankoo"
+      ],
+      "published_at": "2026-10-07T14:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Ladakh e-Procurement Portal",
+      "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S5akN8Ebd4f6WfznWDmuK6Q%3D%3D",
+      "state_code": "LA",
+      "tender_id": "2026_PWD_19686_1",
+      "tender_reference": "E-Tender 16/PW(RnB) Div Sankoo 2026-27",
+      "title": "Construction of Link Road From PMGSY road to Ningos Brok Lankerchey Sankoo."
+    },
+    {
       "closing_at": "2026-10-21T16:00:00+05:30",
       "detail_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SS5LeGaRNDA497i8ImsqGxg%3D%3D",
       "lifecycle": "procurement_notice",
@@ -16,7 +62,7 @@
         "R and B-II - Kargil"
       ],
       "published_at": "2026-10-02T11:45:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Ladakh e-Procurement Portal",
       "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SS5LeGaRNDA497i8ImsqGxg%3D%3D",
@@ -26,11 +72,11 @@
       "title": "Construction of Link road from Kukstay to Lalung. (Under CRIF)."
     },
     {
-      "closing_at": "2026-10-06T16:00:00+05:30",
+      "closing_at": "2026-10-12T16:00:00+05:30",
       "detail_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SE0%2Be%2F3F4%2B2gLXyDYz%2B0t9A%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SX%2FB7iPqLtlwRMXTHkbwNyQ%3D%3D",
-      "opening_at": "2026-10-07T10:00:00+05:30",
+      "opening_at": "2026-10-13T10:00:00+05:30",
       "organisation_chain": "Public Works Department||Chief Engineer PW(R and B) - Ladakh||PWD Department - Kargil||Division Sankoo",
       "organisation_path": [
         "Public Works Department",
@@ -39,7 +85,7 @@
         "Division Sankoo"
       ],
       "published_at": "2026-10-01T13:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Ladakh e-Procurement Portal",
       "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SE0%2Be%2F3F4%2B2gLXyDYz%2B0t9A%3D%3D",
@@ -49,11 +95,11 @@
       "title": "Construction /Up-Gradation of Various Link road Taisuru Block ( Limb Thangboo Length 250 Mtr)"
     },
     {
-      "closing_at": "2026-10-06T16:00:00+05:30",
+      "closing_at": "2026-10-12T16:00:00+05:30",
       "detail_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2FaDO1ihSPorrPRwHUK8i2A%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SX%2FB7iPqLtlwRMXTHkbwNyQ%3D%3D",
-      "opening_at": "2026-10-07T11:00:00+05:30",
+      "opening_at": "2026-10-13T11:00:00+05:30",
       "organisation_chain": "Public Works Department||Chief Engineer PW(R and B) - Ladakh||PWD Department - Kargil||Division Sankoo",
       "organisation_path": [
         "Public Works Department",
@@ -62,7 +108,7 @@
         "Division Sankoo"
       ],
       "published_at": "2026-10-01T13:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Ladakh e-Procurement Portal",
       "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2FaDO1ihSPorrPRwHUK8i2A%3D%3D",
@@ -85,7 +131,7 @@
         "R and B Leh"
       ],
       "published_at": "2026-09-30T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Ladakh e-Procurement Portal",
       "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SxQNHLQafiVVAyOO5%2FGHofg%3D%3D",
@@ -95,11 +141,11 @@
       "title": "Construction of road to Saphut Lhabab Mohallah at Skampari ( State Sector )"
     },
     {
-      "closing_at": "2026-10-05T16:00:00+05:30",
+      "closing_at": "2026-10-08T16:00:00+05:30",
       "detail_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZzqJmGtUWbg5oxGISLOVMw%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SX%2FB7iPqLtlwRMXTHkbwNyQ%3D%3D",
-      "opening_at": "2026-10-06T11:00:00+05:30",
+      "opening_at": "2026-10-09T11:00:00+05:30",
       "organisation_chain": "Public Works Department||Chief Engineer PW(R and B) - Ladakh||PWD Department - Kargil||R and B-II - Kargil",
       "organisation_path": [
         "Public Works Department",
@@ -108,7 +154,7 @@
         "R and B-II - Kargil"
       ],
       "published_at": "2026-09-28T17:45:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Ladakh e-Procurement Portal",
       "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZzqJmGtUWbg5oxGISLOVMw%3D%3D",
@@ -116,29 +162,6 @@
       "tender_id": "2026_PWD_19633_1",
       "tender_reference": "E tender 40 of 2026-27 PW RnB Division Kargil",
       "title": "Upgradation of Link Road To Karkitchoo Village including Extension. (by way way of Laying of Flexible Payement /Macadamization )(UNDER SDP)."
-    },
-    {
-      "closing_at": "2026-10-06T14:00:00+05:30",
-      "detail_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGY823%2FQ3kdAqbjR4qjwrrw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SX%2FB7iPqLtlwRMXTHkbwNyQ%3D%3D",
-      "opening_at": "2026-10-07T14:00:00+05:30",
-      "organisation_chain": "Public Works Department||Chief Engineer PW(R and B) - Ladakh||PWD Department - Leh||Construction Division - Leh",
-      "organisation_path": [
-        "Public Works Department",
-        "Chief Engineer PW(R and B) - Ladakh",
-        "PWD Department - Leh",
-        "Construction Division - Leh"
-      ],
-      "published_at": "2026-09-22T18:00:00+05:30",
-      "retrieved_at": "2026-10-05T05:42:16Z",
-      "scope": "road_surface",
-      "source_name": "Ladakh e-Procurement Portal",
-      "source_url": "https://tenders.ladakh.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGY823%2FQ3kdAqbjR4qjwrrw%3D%3D",
-      "state_code": "LA",
-      "tender_id": "2026_PWD_19600_2",
-      "tender_reference": "CDL 78 of Leh of 2026-27",
-      "title": "Upgradation of Road from Martyr Chowk to Melongthang"
     }
   ],
   "organisations": [
@@ -150,9 +173,9 @@
     "Rural Development and Panchayati Raj",
     "Toursim and Culture"
   ],
-  "retrieved_at": "2026-10-05T05:42:16Z",
-  "rows_excluded_by_scope": 46,
-  "rows_scanned": 52,
+  "retrieved_at": "2026-10-08T08:55:17Z",
+  "rows_excluded_by_scope": 89,
+  "rows_scanned": 96,
   "schema_version": 1,
   "source_id": "in-la-gepnic",
   "source_name": "Ladakh e-Procurement Portal",

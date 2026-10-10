@@ -3,119 +3,99 @@
   "lifecycle": "procurement_notice",
   "notices": [
     {
-      "closing_at": "2026-10-07T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SSbS%2B%2FtLiKHsXV4nM%2FongjQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SSa%2F6yMO%2B1LV%2Beulo7nz2jtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-08T17:05:00+05:30",
-      "organisation_chain": "CE (WRD) North Maharashtra Region Nashik||SE and Admin. CADA Nashik||EE Ahmednagar Irrigation Division Ahmednagar",
-      "organisation_path": [
-        "CE (WRD) North Maharashtra Region Nashik",
-        "SE and Admin. CADA Nashik",
-        "EE Ahmednagar Irrigation Division Ahmednagar"
-      ],
-      "published_at": "2026-09-30T14:45:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SSbS%2B%2FtLiKHsXV4nM%2FongjQ%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_WRDNN_1342094_1",
-      "tender_reference": "2026_AID_1010",
-      "title": "Strengthening of Left side approach Road to Mandve K.T. Weir, Tal.Shrirampur Dist.Ahilyanagar"
-    },
-    {
-      "closing_at": "2026-10-07T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SLGhSFD2uf91WpNi90wFwMA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SSa%2F6yMO%2B1LV%2Beulo7nz2jtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-08T17:05:00+05:30",
-      "organisation_chain": "CE (WRD) North Maharashtra Region Nashik||SE and Admin. CADA Nashik||EE Ahmednagar Irrigation Division Ahmednagar",
-      "organisation_path": [
-        "CE (WRD) North Maharashtra Region Nashik",
-        "SE and Admin. CADA Nashik",
-        "EE Ahmednagar Irrigation Division Ahmednagar"
-      ],
-      "published_at": "2026-09-30T14:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SLGhSFD2uf91WpNi90wFwMA%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_WRDNN_1342074_1",
-      "tender_reference": "2026_AID_1009",
-      "title": "Strengthening of Left side approach Road to Galnimb K.T. Weir, Tal.Shrirampur Dist.Ahilyanagar"
-    },
-    {
-      "closing_at": "2026-10-07T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SpXOcX1c0C48LTdtVnKR29g%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SSa%2F6yMO%2B1LV%2Beulo7nz2jtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-08T17:05:00+05:30",
-      "organisation_chain": "CE (WRD) North Maharashtra Region Nashik||SE and Admin. CADA Nashik||EE Ahmednagar Irrigation Division Ahmednagar",
-      "organisation_path": [
-        "CE (WRD) North Maharashtra Region Nashik",
-        "SE and Admin. CADA Nashik",
-        "EE Ahmednagar Irrigation Division Ahmednagar"
-      ],
-      "published_at": "2026-09-30T13:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SpXOcX1c0C48LTdtVnKR29g%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_WRDNN_1342055_1",
-      "tender_reference": "2026_AID_1008",
-      "title": "Repairs of Right Side Approach Road to Ashwi K.T. Weir, Tal - Sangamner, Dist .Ahilyanagar"
-    },
-    {
-      "closing_at": "2026-10-07T18:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGwv3avZbsozj7Ql9Y2iCgg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SSa%2F6yMO%2B1LV%2Beulo7nz2jtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-08T18:00:00+05:30",
-      "organisation_chain": "CE (WRD) North Maharashtra Region Nashik||SE and Admin. CADA Nashik||EE Nashik Irrigation Division Nashik",
-      "organisation_path": [
-        "CE (WRD) North Maharashtra Region Nashik",
-        "SE and Admin. CADA Nashik",
-        "EE Nashik Irrigation Division Nashik"
-      ],
-      "published_at": "2026-09-30T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGwv3avZbsozj7Ql9Y2iCgg%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_WRDNN_1341980_2",
-      "tender_reference": "E Tender notice no 14 for 26-27",
-      "title": "Repairs to Naur K.T. Weir providing needles and repairs to approach road"
-    },
-    {
-      "closing_at": "2026-10-08T11:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SRoJHSAXgefe2L2JHoQgHpg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SeWQXsXz7bz4NsSwQIDDOZ9S0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T11:05:00+05:30",
-      "organisation_chain": "Dhule Municipal Corporation Dhule",
-      "organisation_path": [
-        "Dhule Municipal Corporation Dhule"
-      ],
-      "published_at": "2026-09-30T18:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SRoJHSAXgefe2L2JHoQgHpg%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_DMCD_1342229_1",
-      "tender_reference": "DHULE/DMC/PWD/DMC Fund/116/1-1/2026-27",
-      "title": "DHULE/DMC/PWD/DMC Fund/116/1-1/2026-27 Construction of Cement Concrete Road From Shri. Prakash Surve House To Shri.P.N.Patil House At Indraprastha Nagar In Pr.No.1, Walvadi, Dhule."
-    },
-    {
-      "closing_at": "2026-10-13T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZQhzwo6bXx7051mS0pCrWw%3D%3D",
+      "closing_at": "2026-10-15T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SR9D851aexG2QNDJ8hQTMMg%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
-      "opening_at": "2026-10-14T17:00:00+05:30",
+      "opening_at": "2026-10-19T11:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Ahmednagar||Municipal Council Rahata",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Ahmednagar",
+        "Municipal Council Rahata"
+      ],
+      "published_at": "2026-10-08T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SR9D851aexG2QNDJ8hQTMMg%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1343019_1",
+      "tender_reference": "RMC/CIVIL/521/4/2026",
+      "title": "Construction of CC Road in Gaothan Pappu Vaijapurkar To Targe house"
+    },
+    {
+      "closing_at": "2026-10-15T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SzHknbtGvLUCzQMFi9NmGPg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-19T11:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Ahmednagar||Municipal Council Rahata",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Ahmednagar",
+        "Municipal Council Rahata"
+      ],
+      "published_at": "2026-10-08T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SzHknbtGvLUCzQMFi9NmGPg%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1343032_1",
+      "tender_reference": "RMC/CIVIL/521/6/2026",
+      "title": "Construction of CC Road From Chitali Road Manik Wadtele To Vikas Chenuke House"
+    },
+    {
+      "closing_at": "2026-10-15T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SjgZ3GAaigIC4a%2BmZgghcHg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-19T11:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Ahmednagar||Municipal Council Rahata",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Ahmednagar",
+        "Municipal Council Rahata"
+      ],
+      "published_at": "2026-10-08T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SjgZ3GAaigIC4a%2BmZgghcHg%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1343016_1",
+      "tender_reference": "RMC/CIVIL/521/3/2026",
+      "title": "Construction of CC Road In Virbhadranagar From Sumeet Agrawal To MadanTarge House"
+    },
+    {
+      "closing_at": "2026-10-23T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SwEEGfW9e0dnjRvYlawnehw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-26T11:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Nashik||Municipal Council, Sinnar",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Nashik",
+        "Municipal Council, Sinnar"
+      ],
+      "published_at": "2026-10-08T10:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SwEEGfW9e0dnjRvYlawnehw%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1343418_1",
+      "tender_reference": "SMC/ELE/Overhead to Underground of LT Lines",
+      "title": "Overhead to Underground of LT Lines due to road widening from Aishwarya Garden to Khasdar Pool at Sinnar tal- Sinnar Dist.- Nashik in 1.3 DDF Scheme under Sinnar -1 O And M S/dn"
+    },
+    {
+      "closing_at": "2026-10-14T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SpGLIagyqWfWh0z2V1caPYg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-15T17:00:00+05:30",
       "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Nandurbar||Municipal Council, Nawapur||Account Department",
       "organisation_path": [
         "Directorate Of Municipal Administration",
@@ -123,15 +103,172 @@
         "Municipal Council, Nawapur",
         "Account Department"
       ],
-      "published_at": "2026-10-06T12:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "published_at": "2026-10-07T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZQhzwo6bXx7051mS0pCrWw%3D%3D",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SpGLIagyqWfWh0z2V1caPYg%3D%3D",
       "state_code": "MH",
-      "tender_id": "2026_DMA_1343006_1",
-      "tender_reference": "NNP/CIVIL/2026/5",
-      "title": "CONSTRUCTION OF CC ROAD FROM NAVNEET LOHAR HOUSE IN PRAGBHAG NO.8 TO SHYAMLAL PARDESHI HOUSE IN PRABHAG NO.7 IN NAVAPUR"
+      "tender_id": "2026_DMA_1343073_1",
+      "tender_reference": "NNP/CIVIL/2026/6",
+      "title": "CONSTRUCTION OF CC ROAD AND PIPE GUTTER IN PRABHAG NO.7 FROM SHRI SUDHIR SURYAVSHI SHOP TO MAHATMA GANDHI STATUE IN NAVAPUR PART1"
+    },
+    {
+      "closing_at": "2026-10-14T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SBT4jAW5rp7BeAp9DUKfwzQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-15T17:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Nandurbar||Municipal Council, Nawapur||Account Department",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Nandurbar",
+        "Municipal Council, Nawapur",
+        "Account Department"
+      ],
+      "published_at": "2026-10-07T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SBT4jAW5rp7BeAp9DUKfwzQ%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1343073_3",
+      "tender_reference": "NNP/CIVIL/2026/6",
+      "title": "CONSTRUCTION OF CC ROAD FROM WATER TANK NEAR NH-56 TO SHAH XEROX PART2 IN NAVAPUR"
+    },
+    {
+      "closing_at": "2026-10-14T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sarnmy1VDqtZN1DI6rpNRIA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-15T17:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Nandurbar||Municipal Council, Nawapur||Account Department",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Nandurbar",
+        "Municipal Council, Nawapur",
+        "Account Department"
+      ],
+      "published_at": "2026-10-07T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sarnmy1VDqtZN1DI6rpNRIA%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1343073_2",
+      "tender_reference": "NNP/CIVIL/2026/6",
+      "title": "CONSTRUCTION OF CC ROAD AND PIPE GUTTER IN PRABHAG NO.7 FROM SHRI SUDHIR SURYAVSHI SHOP TO MAHATMA GANDHI STATUE IN NAVAPUR PART2"
+    },
+    {
+      "closing_at": "2026-10-14T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S5d9PqKxYt0cSmlXnN4k3Zw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-15T17:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Nandurbar||Municipal Council, Nawapur||Account Department",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Nandurbar",
+        "Municipal Council, Nawapur",
+        "Account Department"
+      ],
+      "published_at": "2026-10-07T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S5d9PqKxYt0cSmlXnN4k3Zw%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1343073_4",
+      "tender_reference": "NNP/CIVIL/2026/6",
+      "title": "CONSTRUCTION OF CC ROAD AND PIPE GUTTER IN PRABHAG NO.7 FROM SHRI RAM MEDICAL TO BHAILABHAI KHURSIWALA HOUSE AND FROM PARDESHI CYCLE MART TO SUDHIR JOSHI HOUSE IN NAVAPUR"
+    },
+    {
+      "closing_at": "2026-10-14T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2PdumhdQyxKCcDS9WniN3w%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-15T17:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Nandurbar||Municipal Council, Taloda",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Nandurbar",
+        "Municipal Council, Taloda"
+      ],
+      "published_at": "2026-10-07T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2PdumhdQyxKCcDS9WniN3w%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1343240_1",
+      "tender_reference": "TMC Construction of Road and Gutter in Hariom Nagar",
+      "title": "TMC Construction of Road and Gutter in Hariom Nagar"
+    },
+    {
+      "closing_at": "2026-10-14T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S7YbYKCb3Ye5rlzoF%2FgCQQw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-15T17:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Nandurbar||Municipal Council, Taloda",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Nandurbar",
+        "Municipal Council, Taloda"
+      ],
+      "published_at": "2026-10-07T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S7YbYKCb3Ye5rlzoF%2FgCQQw%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1343226_1",
+      "tender_reference": "TMC Shriram Nagar Road Construction",
+      "title": "TMC Shriram Nagar Road Construction"
+    },
+    {
+      "closing_at": "2026-10-14T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sj0AqSDE7xDpCDmcwHt57Gw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-15T17:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Nandurbar||Municipal Council, Taloda",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Nandurbar",
+        "Municipal Council, Taloda"
+      ],
+      "published_at": "2026-10-07T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sj0AqSDE7xDpCDmcwHt57Gw%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1343232_1",
+      "tender_reference": "TMC Mukhtar Shah House to Main Road Gutter and Road Construction",
+      "title": "TMC Mukhtar Shah House to Main Road Gutter and Road Construction"
+    },
+    {
+      "closing_at": "2026-10-14T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SN3rWHNHdkSJqo7gUU%2Bx6UQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-15T17:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Nandurbar||Municipal Council, Taloda",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Nandurbar",
+        "Municipal Council, Taloda"
+      ],
+      "published_at": "2026-10-07T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SN3rWHNHdkSJqo7gUU%2Bx6UQ%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1343245_1",
+      "tender_reference": "TMC Construction of Road and Gutter in Hariom Nagar (Part 1)",
+      "title": "TMC Construction of Road and Gutter in Hariom Nagar (Part 1)"
     },
     {
       "closing_at": "2026-10-13T17:00:00+05:30",
@@ -147,7 +284,7 @@
         "Account Department"
       ],
       "published_at": "2026-10-06T12:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SA794bkmeqto7FlC9Qai6Zw%3D%3D",
@@ -155,6 +292,29 @@
       "tender_id": "2026_DMA_1343006_2",
       "tender_reference": "NNP/CIVIL/2026/5",
       "title": "CONSTRUCTION OF CC ROAD AND PIPE GUTTER IN PRABHAG NO.7 FROM SHRI MAHENDRA JOSHI HOUSE TO KUMBHARVADA TO BACK SIDE OF VOHRA SUPER MARKET IN NAVAPUR"
+    },
+    {
+      "closing_at": "2026-10-13T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZQhzwo6bXx7051mS0pCrWw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-14T17:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Nandurbar||Municipal Council, Nawapur||Account Department",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Nandurbar",
+        "Municipal Council, Nawapur",
+        "Account Department"
+      ],
+      "published_at": "2026-10-06T12:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZQhzwo6bXx7051mS0pCrWw%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1343006_1",
+      "tender_reference": "NNP/CIVIL/2026/5",
+      "title": "CONSTRUCTION OF CC ROAD FROM NAVNEET LOHAR HOUSE IN PRAGBHAG NO.8 TO SHYAMLAL PARDESHI HOUSE IN PRABHAG NO.7 IN NAVAPUR"
     },
     {
       "closing_at": "2026-10-12T18:15:00+05:30",
@@ -170,7 +330,7 @@
         "Civil Department"
       ],
       "published_at": "2026-10-05T18:15:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SoGegCCxO9rFODHv1oTeBSA%3D%3D",
@@ -178,6 +338,52 @@
       "tender_id": "2026_DMA_1342927_1",
       "tender_reference": "MCJ_NIT_11_2026-27",
       "title": "PROPOSED CONSTRUCTION OF ROAD CROSSING AT VARIOUS PLACES IN JINTUR TOWN AND PIPE CULVERT NEAR SAYED QADRI DARGAH IN PRABHAG NO. 09"
+    },
+    {
+      "closing_at": "2026-10-12T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvAO8h34nIwR2lZ%2FVsVoLgA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-13T17:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Raigad||Nagar Panchayat Mhasala||Health Department",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Raigad",
+        "Nagar Panchayat Mhasala",
+        "Health Department"
+      ],
+      "published_at": "2026-10-05T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvAO8h34nIwR2lZ%2FVsVoLgA%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1342733_1",
+      "tender_reference": "MNP/etender/259/2026-27",
+      "title": "Construction of Road From ST stand To Uday Kalas House Tal. Mhasla Dist.Raigad"
+    },
+    {
+      "closing_at": "2026-10-12T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SidVcZs3Sysg8p6IntWGX3Q%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-13T17:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Raigad||Nagar Panchayat Mhasala||Health Department",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration, Raigad",
+        "Nagar Panchayat Mhasala",
+        "Health Department"
+      ],
+      "published_at": "2026-10-05T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SidVcZs3Sysg8p6IntWGX3Q%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1342732_1",
+      "tender_reference": "MNP/etender/258/2026-27",
+      "title": "Construction of Road from Police Station to shankar Mandir tal.Mhasla Dist.Raigad"
     },
     {
       "closing_at": "2026-10-12T17:00:00+05:30",
@@ -193,7 +399,7 @@
         "Health Department"
       ],
       "published_at": "2026-10-05T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S06PPKE%2FD41puOptPZxfBUg%3D%3D",
@@ -216,7 +422,7 @@
         "Health Department"
       ],
       "published_at": "2026-10-05T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Si2LNiGVXFudN%2BKC6k4TeDQ%3D%3D",
@@ -239,7 +445,7 @@
         "Health Department"
       ],
       "published_at": "2026-10-05T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SRZ7WcuijTelNWRa4Edd%2F1A%3D%3D",
@@ -262,7 +468,7 @@
         "Health Department"
       ],
       "published_at": "2026-10-05T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=ST%2FIq%2BLOioLPs4UPKaTWepg%3D%3D",
@@ -270,52 +476,6 @@
       "tender_id": "2026_DMA_1342746_1",
       "tender_reference": "MNP/etender/261/2026-27",
       "title": "Construction of Road from Rafiq Dondilkar house to Faiyaz Chandle House in Mhasla Nagarpanchayat tal.Mhasla Dist.Raigad"
-    },
-    {
-      "closing_at": "2026-10-12T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SidVcZs3Sysg8p6IntWGX3Q%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
-      "opening_at": "2026-10-13T17:00:00+05:30",
-      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Raigad||Nagar Panchayat Mhasala||Health Department",
-      "organisation_path": [
-        "Directorate Of Municipal Administration",
-        "Municipal Administration, Raigad",
-        "Nagar Panchayat Mhasala",
-        "Health Department"
-      ],
-      "published_at": "2026-10-05T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SidVcZs3Sysg8p6IntWGX3Q%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_DMA_1342732_1",
-      "tender_reference": "MNP/etender/258/2026-27",
-      "title": "Construction of Road from Police Station to shankar Mandir tal.Mhasla Dist.Raigad"
-    },
-    {
-      "closing_at": "2026-10-12T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvAO8h34nIwR2lZ%2FVsVoLgA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
-      "opening_at": "2026-10-13T17:00:00+05:30",
-      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Raigad||Nagar Panchayat Mhasala||Health Department",
-      "organisation_path": [
-        "Directorate Of Municipal Administration",
-        "Municipal Administration, Raigad",
-        "Nagar Panchayat Mhasala",
-        "Health Department"
-      ],
-      "published_at": "2026-10-05T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvAO8h34nIwR2lZ%2FVsVoLgA%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_DMA_1342733_1",
-      "tender_reference": "MNP/etender/259/2026-27",
-      "title": "Construction of Road From ST stand To Uday Kalas House Tal. Mhasla Dist.Raigad"
     },
     {
       "closing_at": "2026-10-08T17:00:00+05:30",
@@ -330,7 +490,7 @@
         "Municipal Council, Pimpalgaon Baswant"
       ],
       "published_at": "2026-10-01T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STHqbsbhxj1v5HRmBWSSjRg%3D%3D",
@@ -352,7 +512,7 @@
         "Municipal Council, Pimpalgaon Baswant"
       ],
       "published_at": "2026-10-01T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SMl7WbzFQaBVWYoADWeTdjQ%3D%3D",
@@ -360,28 +520,6 @@
       "tender_id": "2026_DMA_1342162_2",
       "tender_reference": "PBNP/PWD/1942/2026",
       "title": "Construction of CC Road From Shri. Rambhau Labhade House to Shri. Dinesh Ambekar house"
-    },
-    {
-      "closing_at": "2026-10-07T15:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Syl2%2FsAUQGXJLmeNjq9ZmFQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
-      "opening_at": "2026-10-09T15:30:00+05:30",
-      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Ahmednagar||Municipal Council Shirdi",
-      "organisation_path": [
-        "Directorate Of Municipal Administration",
-        "Municipal Administration, Ahmednagar",
-        "Municipal Council Shirdi"
-      ],
-      "published_at": "2026-09-30T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Syl2%2FsAUQGXJLmeNjq9ZmFQ%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_DMA_1342071_1",
-      "tender_reference": "2026_Shirdi MC E-Tender for Civil Deptt",
-      "title": "Proposed Construction of Cement Concrete roads in various Ward for Shirdi Nagarparishad Shirdi. Under Sahityaratna Lokshahir Annabhau Sathe Nagari vasti Sudharana Yojana 2026-27"
     },
     {
       "closing_at": "2026-10-09T17:00:00+05:30",
@@ -396,7 +534,7 @@
         "Nagar Panchayat Mokhada"
       ],
       "published_at": "2026-09-30T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SiQs6u3rPrXxf9NxatmBjQw%3D%3D",
@@ -418,7 +556,7 @@
         "Nagar Panchayat Mokhada"
       ],
       "published_at": "2026-09-30T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SNYwBoLg%2B1zu96VmdGI0Mhg%3D%3D",
@@ -426,50 +564,6 @@
       "tender_id": "2026_DMA_1341944_1",
       "tender_reference": "2026/NAGARSEVA/6",
       "title": "CONSTRUCTION OF PAVER BLOCK ROAD IN WARD NO 14 FOR MOKHADA NAGARPANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-09T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SCTO%2Bs2nBAszrpI6Rfeq2%2FQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
-      "opening_at": "2026-10-12T11:00:00+05:30",
-      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration Palghar||Nagar Panchayat Mokhada",
-      "organisation_path": [
-        "Directorate Of Municipal Administration",
-        "Municipal Administration Palghar",
-        "Nagar Panchayat Mokhada"
-      ],
-      "published_at": "2026-09-30T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SCTO%2Bs2nBAszrpI6Rfeq2%2FQ%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_DMA_1341931_1",
-      "tender_reference": "2026/NAGARISEVA/3",
-      "title": "IMPROVEMENT TO INTERNAL ROAD IN WARD NO 9 DHODIPADA AND BARIPADA FOR MOKHADA NAGARPANCHAYAT"
-    },
-    {
-      "closing_at": "2026-10-09T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SF2O0SvbZZFHLftFBqM0YEw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
-      "opening_at": "2026-10-12T11:00:00+05:30",
-      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration Palghar||Nagar Panchayat Mokhada",
-      "organisation_path": [
-        "Directorate Of Municipal Administration",
-        "Municipal Administration Palghar",
-        "Nagar Panchayat Mokhada"
-      ],
-      "published_at": "2026-09-30T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SF2O0SvbZZFHLftFBqM0YEw%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_DMA_1341917_1",
-      "tender_reference": "2026/NAGARISEVA/1",
-      "title": "IMPROVEMENT TO INTERNAL ROAD IN WARD NO 9 KAVALPADA FOR MOKHADA NAGARPANCHAYAT"
     },
     {
       "closing_at": "2026-10-09T17:00:00+05:30",
@@ -484,7 +578,7 @@
         "Nagar Panchayat Mokhada"
       ],
       "published_at": "2026-09-30T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SIKQc%2FX76XqD1ZuDiouruMg%3D%3D",
@@ -494,27 +588,48 @@
       "title": "CONSTRUCTION OF CONCRETE ROAD AND GUTTER ON SIDE OF BUS STAND FOR MOKHADA NAGAR PANCHAYAT"
     },
     {
-      "closing_at": "2026-10-07T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S6lAf11QMixD6Mx8ozI8ayA%3D%3D",
+      "closing_at": "2026-10-09T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SF2O0SvbZZFHLftFBqM0YEw%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
-      "opening_at": "2026-10-08T17:00:00+05:30",
-      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration, Ratnagiri||Municipal Council Khed||Administration Department",
+      "opening_at": "2026-10-12T11:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration Palghar||Nagar Panchayat Mokhada",
       "organisation_path": [
         "Directorate Of Municipal Administration",
-        "Municipal Administration, Ratnagiri",
-        "Municipal Council Khed",
-        "Administration Department"
+        "Municipal Administration Palghar",
+        "Nagar Panchayat Mokhada"
       ],
-      "published_at": "2026-09-29T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "published_at": "2026-09-30T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S6lAf11QMixD6Mx8ozI8ayA%3D%3D",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SF2O0SvbZZFHLftFBqM0YEw%3D%3D",
       "state_code": "MH",
-      "tender_id": "2026_DMA_1341522_1",
-      "tender_reference": "KMC/Civil/2026-2027",
-      "title": "Asphalting of internal roads in reserved wards within the Khed Municipal Council Area"
+      "tender_id": "2026_DMA_1341917_1",
+      "tender_reference": "2026/NAGARISEVA/1",
+      "title": "IMPROVEMENT TO INTERNAL ROAD IN WARD NO 9 KAVALPADA FOR MOKHADA NAGARPANCHAYAT"
+    },
+    {
+      "closing_at": "2026-10-09T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SCTO%2Bs2nBAszrpI6Rfeq2%2FQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sqt0%2FzhWfKSDHQtnl6gJ4Hw%3D%3D",
+      "opening_at": "2026-10-12T11:00:00+05:30",
+      "organisation_chain": "Directorate Of Municipal Administration||Municipal Administration Palghar||Nagar Panchayat Mokhada",
+      "organisation_path": [
+        "Directorate Of Municipal Administration",
+        "Municipal Administration Palghar",
+        "Nagar Panchayat Mokhada"
+      ],
+      "published_at": "2026-09-30T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SCTO%2Bs2nBAszrpI6Rfeq2%2FQ%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_DMA_1341931_1",
+      "tender_reference": "2026/NAGARISEVA/3",
+      "title": "IMPROVEMENT TO INTERNAL ROAD IN WARD NO 9 DHODIPADA AND BARIPADA FOR MOKHADA NAGARPANCHAYAT"
     },
     {
       "closing_at": "2026-10-09T11:00:00+05:30",
@@ -530,7 +645,7 @@
         "IT Division Pune"
       ],
       "published_at": "2026-09-24T18:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SHtqG%2BJWG26hE%2Fip2NrZxTA%3D%3D",
@@ -553,7 +668,7 @@
         "Project Division Pune"
       ],
       "published_at": "2026-09-24T18:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S14H9auGChAOcY%2FKawHH5HA%3D%3D",
@@ -561,129 +676,6 @@
       "tender_id": "2026_MIDC_1340994_1",
       "tender_reference": "39557",
       "title": "Chakan Industrial Area Phase I ,II , III and IV M and R to roads for year 2026-2027 Potholes filling by cold mix material (with ready mix patch repairing compound.)"
-    },
-    {
-      "closing_at": "2026-10-07T11:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sf3lubDPQn9yZj7nF0hsEDw%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SARQ940jwByjtXvZdH4T%2BltS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-08T12:00:00+05:30",
-      "organisation_chain": "Maharashtra Industrial Development Corporation||Chief Engineer Pune Zone||Superintending Engineer Pune-2||Civil Division Pune",
-      "organisation_path": [
-        "Maharashtra Industrial Development Corporation",
-        "Chief Engineer Pune Zone",
-        "Superintending Engineer Pune-2",
-        "Civil Division Pune"
-      ],
-      "published_at": "2026-09-23T18:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sf3lubDPQn9yZj7nF0hsEDw%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_MIDC_1340899_1",
-      "tender_reference": "39511",
-      "title": "Ranjangaon Industrial Area.. M and R to raods.. Filling of pot holes of road main six lane road from SBI Circle to Jotun Circle"
-    },
-    {
-      "closing_at": "2026-10-14T12:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sy8BSwlSPCgtHcEjhtn1PxQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SE%2Bt2OCJwLlS1MoQJ%2FmqZj9S0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-15T12:30:00+05:30",
-      "organisation_chain": "Mira Bhaindar Municipal Corporation",
-      "organisation_path": [
-        "Mira Bhaindar Municipal Corporation"
-      ],
-      "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sy8BSwlSPCgtHcEjhtn1PxQ%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_MBMC_1342215_1",
-      "tender_reference": "MBMC/PWD/Tender/40_06/26-27",
-      "title": "Proposed construction of CC road From Jai ManishTo Sanjay park, Ward no.03 Bhainder(E), in MBMC Area. (Corporator Fund)"
-    },
-    {
-      "closing_at": "2026-10-14T12:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SS8wy3fo40P9yPgPfVx3YqA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SE%2Bt2OCJwLlS1MoQJ%2FmqZj9S0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-15T12:30:00+05:30",
-      "organisation_chain": "Mira Bhaindar Municipal Corporation",
-      "organisation_path": [
-        "Mira Bhaindar Municipal Corporation"
-      ],
-      "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SS8wy3fo40P9yPgPfVx3YqA%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_MBMC_1342226_1",
-      "tender_reference": "MBMC/PWD/Tender/40_09/26-27",
-      "title": "Proposed construction of CC road From Swanand Ganesh to matruchaya, Ward no.05 Bhainder(E), in MBMC Area. (Corporator Fund)"
-    },
-    {
-      "closing_at": "2026-10-14T12:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Srpq9Mobd6JY8palMzPt6Hg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SE%2Bt2OCJwLlS1MoQJ%2FmqZj9S0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-15T12:30:00+05:30",
-      "organisation_chain": "Mira Bhaindar Municipal Corporation",
-      "organisation_path": [
-        "Mira Bhaindar Municipal Corporation"
-      ],
-      "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Srpq9Mobd6JY8palMzPt6Hg%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_MBMC_1342203_1",
-      "tender_reference": "MBMC/PWD/Tender/40_03/26-27",
-      "title": "Proposed construction of CC road and Gutter At Harishchandra nagar Ward no.02 Bhaindar(E), in MBMC Area. (Corporator Fund)"
-    },
-    {
-      "closing_at": "2026-10-14T12:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SOYRuHGdqxW3AaIxEdqrZ3A%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SE%2Bt2OCJwLlS1MoQJ%2FmqZj9S0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-15T12:30:00+05:30",
-      "organisation_chain": "Mira Bhaindar Municipal Corporation",
-      "organisation_path": [
-        "Mira Bhaindar Municipal Corporation"
-      ],
-      "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SOYRuHGdqxW3AaIxEdqrZ3A%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_MBMC_1342208_1",
-      "tender_reference": "MBMC/PWD/Tender/40_04/26-27",
-      "title": "Proposed construction of CC road From Bhanuhans Soc. To Sneha hospital , Ward no.03 Bhainder(E), in MBMC Area. (Corporator Fund)"
-    },
-    {
-      "closing_at": "2026-10-14T12:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sjy8CqW0LoZEk4YctR0Cxag%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SE%2Bt2OCJwLlS1MoQJ%2FmqZj9S0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-15T12:30:00+05:30",
-      "organisation_chain": "Mira Bhaindar Municipal Corporation",
-      "organisation_path": [
-        "Mira Bhaindar Municipal Corporation"
-      ],
-      "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sjy8CqW0LoZEk4YctR0Cxag%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_MBMC_1342232_1",
-      "tender_reference": "MBMC/PWD/Tender/40_11/26-27",
-      "title": "Proposed construction of CC Road and Gutter From New Rajashree To Shital Shopping Centre, Bhakti Gully Ward no.05 Bhaindar(E), in MBMC Area. (Corporator Fund)"
     },
     {
       "closing_at": "2026-10-14T12:00:00+05:30",
@@ -696,7 +688,7 @@
         "Mira Bhaindar Municipal Corporation"
       ],
       "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SSypMzx1gk8RgXE1ymBOwtA%3D%3D",
@@ -716,7 +708,7 @@
         "Mira Bhaindar Municipal Corporation"
       ],
       "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQjIoA9l8ikVTmye6Grd0cg%3D%3D",
@@ -724,6 +716,106 @@
       "tender_id": "2026_MBMC_1342211_1",
       "tender_reference": "MBMC/PWD/Tender/40_05/26-27",
       "title": "Proposed construction of CC road and gutter stamping From Om Shreeram Sagar To Sai Shubham Ward no.03 Bhaindar(E), in MBMC Area. (Corporator Fund)"
+    },
+    {
+      "closing_at": "2026-10-14T12:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sjy8CqW0LoZEk4YctR0Cxag%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SE%2Bt2OCJwLlS1MoQJ%2FmqZj9S0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-15T12:30:00+05:30",
+      "organisation_chain": "Mira Bhaindar Municipal Corporation",
+      "organisation_path": [
+        "Mira Bhaindar Municipal Corporation"
+      ],
+      "published_at": "2026-10-06T09:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sjy8CqW0LoZEk4YctR0Cxag%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_MBMC_1342232_1",
+      "tender_reference": "MBMC/PWD/Tender/40_11/26-27",
+      "title": "Proposed construction of CC Road and Gutter From New Rajashree To Shital Shopping Centre, Bhakti Gully Ward no.05 Bhaindar(E), in MBMC Area. (Corporator Fund)"
+    },
+    {
+      "closing_at": "2026-10-14T12:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sy8BSwlSPCgtHcEjhtn1PxQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SE%2Bt2OCJwLlS1MoQJ%2FmqZj9S0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-15T12:30:00+05:30",
+      "organisation_chain": "Mira Bhaindar Municipal Corporation",
+      "organisation_path": [
+        "Mira Bhaindar Municipal Corporation"
+      ],
+      "published_at": "2026-10-06T09:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sy8BSwlSPCgtHcEjhtn1PxQ%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_MBMC_1342215_1",
+      "tender_reference": "MBMC/PWD/Tender/40_06/26-27",
+      "title": "Proposed construction of CC road From Jai ManishTo Sanjay park, Ward no.03 Bhainder(E), in MBMC Area. (Corporator Fund)"
+    },
+    {
+      "closing_at": "2026-10-14T12:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SS8wy3fo40P9yPgPfVx3YqA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SE%2Bt2OCJwLlS1MoQJ%2FmqZj9S0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-15T12:30:00+05:30",
+      "organisation_chain": "Mira Bhaindar Municipal Corporation",
+      "organisation_path": [
+        "Mira Bhaindar Municipal Corporation"
+      ],
+      "published_at": "2026-10-06T09:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SS8wy3fo40P9yPgPfVx3YqA%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_MBMC_1342226_1",
+      "tender_reference": "MBMC/PWD/Tender/40_09/26-27",
+      "title": "Proposed construction of CC road From Swanand Ganesh to matruchaya, Ward no.05 Bhainder(E), in MBMC Area. (Corporator Fund)"
+    },
+    {
+      "closing_at": "2026-10-14T12:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Srpq9Mobd6JY8palMzPt6Hg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SE%2Bt2OCJwLlS1MoQJ%2FmqZj9S0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-15T12:30:00+05:30",
+      "organisation_chain": "Mira Bhaindar Municipal Corporation",
+      "organisation_path": [
+        "Mira Bhaindar Municipal Corporation"
+      ],
+      "published_at": "2026-10-06T09:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Srpq9Mobd6JY8palMzPt6Hg%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_MBMC_1342203_1",
+      "tender_reference": "MBMC/PWD/Tender/40_03/26-27",
+      "title": "Proposed construction of CC road and Gutter At Harishchandra nagar Ward no.02 Bhaindar(E), in MBMC Area. (Corporator Fund)"
+    },
+    {
+      "closing_at": "2026-10-14T12:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SOYRuHGdqxW3AaIxEdqrZ3A%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SE%2Bt2OCJwLlS1MoQJ%2FmqZj9S0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-15T12:30:00+05:30",
+      "organisation_chain": "Mira Bhaindar Municipal Corporation",
+      "organisation_path": [
+        "Mira Bhaindar Municipal Corporation"
+      ],
+      "published_at": "2026-10-06T09:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SOYRuHGdqxW3AaIxEdqrZ3A%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_MBMC_1342208_1",
+      "tender_reference": "MBMC/PWD/Tender/40_04/26-27",
+      "title": "Proposed construction of CC road From Bhanuhans Soc. To Sneha hospital , Ward no.03 Bhainder(E), in MBMC Area. (Corporator Fund)"
     },
     {
       "closing_at": "2026-10-14T12:00:00+05:30",
@@ -736,7 +828,7 @@
         "Mira Bhaindar Municipal Corporation"
       ],
       "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S1ZW5t5QCgouFqVzW5NEwPw%3D%3D",
@@ -756,7 +848,7 @@
         "Mira Bhaindar Municipal Corporation"
       ],
       "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SAhorWDqnhgvD8a9x3KstjQ%3D%3D",
@@ -777,7 +869,7 @@
         "Engineering"
       ],
       "published_at": "2026-09-28T18:15:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SrpQV0%2F0hj5rWPIU9WNV1MQ%3D%3D",
@@ -798,7 +890,7 @@
         "Engineering"
       ],
       "published_at": "2026-08-06T18:40:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SS5%2Bgifbcg8b4vYVJX1NWVA%3D%3D",
@@ -820,7 +912,7 @@
         "Maintenance Department"
       ],
       "published_at": "2026-10-06T18:55:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SF22LPg16PleyFMZA8%2F%2BmCw%3D%3D",
@@ -843,7 +935,7 @@
         "E.E.W.W.(Civil) Maintenance"
       ],
       "published_at": "2026-10-05T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SK67cd0enArpMGiHCynX65g%3D%3D",
@@ -853,39 +945,18 @@
       "title": "Repairs Construction of Access Roads at Worli Hill Reservoir in G South Ward"
     },
     {
-      "closing_at": "2026-10-08T15:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2FBeoIjupmd37uPw6xKunoA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SxSO%2FuY6qSxCTQ1VYKSioQtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
-      "organisation_chain": "Nashik Municipal Corporation||PWD Department",
-      "organisation_path": [
-        "Nashik Municipal Corporation",
-        "PWD Department"
-      ],
-      "published_at": "2026-10-03T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2FBeoIjupmd37uPw6xKunoA%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_NMC_1342575_15",
-      "tender_reference": "NMC/PWD/04/2026-27",
-      "title": "Construction of Cement Concrete road Kartikey Nagar Parisar in P.No.28(C), in New Nashik Division"
-    },
-    {
-      "closing_at": "2026-10-08T15:00:00+05:30",
+      "closing_at": "2026-10-13T15:00:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2WHKIzW2jKzK0e6a0PfhTw%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SxSO%2FuY6qSxCTQ1VYKSioQtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
+      "opening_at": "2026-10-14T15:00:00+05:30",
       "organisation_chain": "Nashik Municipal Corporation||PWD Department",
       "organisation_path": [
         "Nashik Municipal Corporation",
         "PWD Department"
       ],
       "published_at": "2026-10-03T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2WHKIzW2jKzK0e6a0PfhTw%3D%3D",
@@ -895,18 +966,39 @@
       "title": "Construction of Concrete road Madina Nagar Babubhai Ghotha Wadala Gaon in P.No.30, in Nashik East Division"
     },
     {
-      "closing_at": "2026-10-08T15:00:00+05:30",
+      "closing_at": "2026-10-13T15:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2FBeoIjupmd37uPw6xKunoA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SxSO%2FuY6qSxCTQ1VYKSioQtS0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-14T15:00:00+05:30",
+      "organisation_chain": "Nashik Municipal Corporation||PWD Department",
+      "organisation_path": [
+        "Nashik Municipal Corporation",
+        "PWD Department"
+      ],
+      "published_at": "2026-10-03T11:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2FBeoIjupmd37uPw6xKunoA%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_NMC_1342575_15",
+      "tender_reference": "NMC/PWD/04/2026-27",
+      "title": "Construction of Cement Concrete road Kartikey Nagar Parisar in P.No.28(C), in New Nashik Division"
+    },
+    {
+      "closing_at": "2026-10-13T15:00:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S32iHVVe0Wl3Ibd%2B7TgRfuA%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SxSO%2FuY6qSxCTQ1VYKSioQtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
+      "opening_at": "2026-10-14T15:00:00+05:30",
       "organisation_chain": "Nashik Municipal Corporation||PWD Department",
       "organisation_path": [
         "Nashik Municipal Corporation",
         "PWD Department"
       ],
       "published_at": "2026-10-02T18:20:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S32iHVVe0Wl3Ibd%2B7TgRfuA%3D%3D",
@@ -916,18 +1008,18 @@
       "title": "Construction of Cement concrete road B S. of Mahadev Mandir, Sharamik Nagar in P.No.09, Satpur Division"
     },
     {
-      "closing_at": "2026-10-08T15:00:00+05:30",
+      "closing_at": "2026-10-13T15:00:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGHzMUQrpuhm%2B9iHTmZnJ2w%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SxSO%2FuY6qSxCTQ1VYKSioQtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
+      "opening_at": "2026-10-14T15:00:00+05:30",
       "organisation_chain": "Nashik Municipal Corporation||PWD Department",
       "organisation_path": [
         "Nashik Municipal Corporation",
         "PWD Department"
       ],
       "published_at": "2026-10-02T18:15:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGHzMUQrpuhm%2B9iHTmZnJ2w%3D%3D",
@@ -937,18 +1029,18 @@
       "title": "Construction of Cement concrete road B S. of Mahadev Mandir, Sharamik Nagar in P.No.09, Satpur Division"
     },
     {
-      "closing_at": "2026-10-08T15:00:00+05:30",
+      "closing_at": "2026-10-13T15:00:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S8stLKL6VGqJmBbsuV%2F%2Fveg%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SxSO%2FuY6qSxCTQ1VYKSioQtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
+      "opening_at": "2026-10-14T15:00:00+05:30",
       "organisation_chain": "Nashik Municipal Corporation||PWD Department",
       "organisation_path": [
         "Nashik Municipal Corporation",
         "PWD Department"
       ],
       "published_at": "2026-10-02T17:55:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S8stLKL6VGqJmBbsuV%2F%2Fveg%3D%3D",
@@ -958,18 +1050,18 @@
       "title": "Asphalting of DP road from Lokdhara society to Bhagur road and near Mahalaxmi Tower, CPM estate etc. in P. No.02, Panchvati Division, NMC Nashik.."
     },
     {
-      "closing_at": "2026-10-08T15:00:00+05:30",
+      "closing_at": "2026-10-13T15:00:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZBKBFaAVT9gXL1Va5%2F9BaQ%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SxSO%2FuY6qSxCTQ1VYKSioQtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
+      "opening_at": "2026-10-14T15:00:00+05:30",
       "organisation_chain": "Nashik Municipal Corporation||PWD Department",
       "organisation_path": [
         "Nashik Municipal Corporation",
         "PWD Department"
       ],
       "published_at": "2026-10-02T17:20:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZBKBFaAVT9gXL1Va5%2F9BaQ%3D%3D",
@@ -979,18 +1071,18 @@
       "title": "Construction of WBM Road, Asphalting on Existing WBM Roads, Resurfacing on Existing Asphalt Roads in P. No. 08, Satpur Division, NMC Nashik.."
     },
     {
-      "closing_at": "2026-10-08T15:00:00+05:30",
+      "closing_at": "2026-10-13T15:00:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SKqGqrO1LQCIECtE9PQtFdw%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SxSO%2FuY6qSxCTQ1VYKSioQtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
+      "opening_at": "2026-10-14T15:00:00+05:30",
       "organisation_chain": "Nashik Municipal Corporation||PWD Department",
       "organisation_path": [
         "Nashik Municipal Corporation",
         "PWD Department"
       ],
       "published_at": "2026-10-02T17:15:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SKqGqrO1LQCIECtE9PQtFdw%3D%3D",
@@ -1000,18 +1092,18 @@
       "title": "Proposed Repairs of Asphalt Road trenches damaged by MNGL for laying gas pipeline other service provider various departments trenches Panchak 2 Raj Rajeshwari LHS in P. No.18 Nashik road Division, NMC Nashik"
     },
     {
-      "closing_at": "2026-10-08T15:00:00+05:30",
+      "closing_at": "2026-10-13T15:00:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SqzkXKKOrDaKKZ4zvQ6pxEw%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SxSO%2FuY6qSxCTQ1VYKSioQtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
+      "opening_at": "2026-10-14T15:00:00+05:30",
       "organisation_chain": "Nashik Municipal Corporation||PWD Department",
       "organisation_path": [
         "Nashik Municipal Corporation",
         "PWD Department"
       ],
       "published_at": "2026-10-02T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SqzkXKKOrDaKKZ4zvQ6pxEw%3D%3D",
@@ -1021,18 +1113,18 @@
       "title": "Proposed Winding Asphalting of 12m DP Road at Dipali nagar road And in P. No.23, Nashik East Division, NMC Nashik."
     },
     {
-      "closing_at": "2026-10-08T15:00:00+05:30",
+      "closing_at": "2026-10-13T15:00:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2wt82hrMV%2FJAOFkTTFUHjw%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SxSO%2FuY6qSxCTQ1VYKSioQtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
+      "opening_at": "2026-10-14T15:00:00+05:30",
       "organisation_chain": "Nashik Municipal Corporation||PWD Department",
       "organisation_path": [
         "Nashik Municipal Corporation",
         "PWD Department"
       ],
       "published_at": "2026-10-02T15:45:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2wt82hrMV%2FJAOFkTTFUHjw%3D%3D",
@@ -1042,18 +1134,18 @@
       "title": "Construction of WBM Road, Asphalting on Existing WBM Roads, Resurfacing on Existing Asphalt Roads Cement Concrete Road Bhavani ire in P. No. 08,Satpur Division, NMC Nashik.."
     },
     {
-      "closing_at": "2026-10-08T15:00:00+05:30",
+      "closing_at": "2026-10-13T15:00:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SBlwXL6iFRBlptrmv3VRSTg%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SxSO%2FuY6qSxCTQ1VYKSioQtS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T15:00:00+05:30",
+      "opening_at": "2026-10-14T15:00:00+05:30",
       "organisation_chain": "Nashik Municipal Corporation||PWD Department",
       "organisation_path": [
         "Nashik Municipal Corporation",
         "PWD Department"
       ],
       "published_at": "2026-10-02T13:45:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SBlwXL6iFRBlptrmv3VRSTg%3D%3D",
@@ -1075,7 +1167,7 @@
         "EE Nerul"
       ],
       "published_at": "2026-10-06T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sn51Tv0V7i9QNcbb942LYNw%3D%3D",
@@ -1097,7 +1189,7 @@
         "EE Turbhe"
       ],
       "published_at": "2026-09-30T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SwBkd5Ut%2FMn52v5go2WFBdQ%3D%3D",
@@ -1119,7 +1211,7 @@
         "EE Belapur"
       ],
       "published_at": "2026-09-24T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sr%2FjYsjywnTXR2KCSiSTUBg%3D%3D",
@@ -1142,7 +1234,7 @@
         "Public Works Division North Ratnagiri"
       ],
       "published_at": "2026-10-07T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SJqgcfDOQOZqwUkRxe2zulA%3D%3D",
@@ -1165,7 +1257,7 @@
         "Public Works Division Jalgaon"
       ],
       "published_at": "2026-10-06T14:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFhywpNfP9MpDwcjx9PWMwQ%3D%3D",
@@ -1173,75 +1265,6 @@
       "tender_id": "2026_PWR_1343068_1",
       "tender_reference": "E-TENDER NOTICE NO. 20 FOR 2026-2027",
       "title": "Improvement to Jalgaon Mohadi Dhanora Shirsoli Dapore Lamanjan Mhasawad Dahigaon Varsade Maheji Girad Pimpalgaon Bhadgaon Mahindale Titavi Mandane Tamaswadi Tardi Undirkheda Parola Road MDR-39 from Km 1/190 to 4/300 (Part-Nehrunagar to Mohadi), Tal a"
-    },
-    {
-      "closing_at": "2026-10-13T18:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDKz4dwIkZArxusauNNXm2A%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-16T10:00:00+05:30",
-      "organisation_chain": "Public Works Region||Public Works Region - Nashik||Public Works Circle - Dhule||Public Works Division Shahada",
-      "organisation_path": [
-        "Public Works Region",
-        "Public Works Region - Nashik",
-        "Public Works Circle - Dhule",
-        "Public Works Division Shahada"
-      ],
-      "published_at": "2026-10-06T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDKz4dwIkZArxusauNNXm2A%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_PWR_1343001_2",
-      "tender_reference": "E-Tender Notice No.14 for 2026-27 (B-1 Tender)",
-      "title": "Construction of Cement Concrete Road from the House of Kukut Palan F.C.Pawara to the House at Givlipada in Ward No.13 at Dhadgaon Nagar Panchayat Tal.Dhadgaon Dist.Nandurbar"
-    },
-    {
-      "closing_at": "2026-10-13T18:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Ss%2BDN1IdXFU4A0LUldP%2BmHQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-16T10:00:00+05:30",
-      "organisation_chain": "Public Works Region||Public Works Region - Nashik||Public Works Circle - Dhule||Public Works Division Shahada",
-      "organisation_path": [
-        "Public Works Region",
-        "Public Works Region - Nashik",
-        "Public Works Circle - Dhule",
-        "Public Works Division Shahada"
-      ],
-      "published_at": "2026-10-06T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Ss%2BDN1IdXFU4A0LUldP%2BmHQ%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_PWR_1343001_1",
-      "tender_reference": "E-Tender Notice No.14 for 2026-27 (B-1 Tender)",
-      "title": "Construction of Cement Concrete Road from Umarani Phata to the Main Road Bridge in Ward No.5 at Dhadgaon Nagar Panchayat Tal.Dhadgaon Dist.Nandurbar"
-    },
-    {
-      "closing_at": "2026-10-13T18:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SwAjwRaeDTk7hI3zDYl%2FKeg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-16T10:00:00+05:30",
-      "organisation_chain": "Public Works Region||Public Works Region - Nashik||Public Works Circle - Dhule||Public Works Division Shahada",
-      "organisation_path": [
-        "Public Works Region",
-        "Public Works Region - Nashik",
-        "Public Works Circle - Dhule",
-        "Public Works Division Shahada"
-      ],
-      "published_at": "2026-10-06T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SwAjwRaeDTk7hI3zDYl%2FKeg%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_PWR_1343001_4",
-      "tender_reference": "E-Tender Notice No.14 for 2026-27 (B-1 Tender)",
-      "title": "Construction of Cement Concrete Road from up to the House of F.C.Pawara (Poultry Farm) in Ward No.13 at Dhadgaon Nagar Panchayat Tal.Dhadgaon Dist.Nandurbar"
     },
     {
       "closing_at": "2026-10-13T18:00:00+05:30",
@@ -1257,7 +1280,7 @@
         "Public Works Division Shahada"
       ],
       "published_at": "2026-10-06T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S4c6N0AIYMg62ddnHFYIQEg%3D%3D",
@@ -1267,27 +1290,73 @@
       "title": "Construction of Cement Concrete Road from the Agicultural filed of Shri. Chita Padvi to the Residence of Shri.Mahaka Pachya in Ward No.14 at Dhadgaon Nagar Panchayat Tal.Dhadgaon Dist.Nandurbar"
     },
     {
-      "closing_at": "2026-10-13T17:30:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S31GBEyLKGnK1eCOALNUhqA%3D%3D",
+      "closing_at": "2026-10-13T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDKz4dwIkZArxusauNNXm2A%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-16T12:30:00+05:30",
-      "organisation_chain": "Public Works Region||Public Works Region - Mumbai||Public Works Circle - Thane||Public Works Division -No2 Thane",
+      "opening_at": "2026-10-16T10:00:00+05:30",
+      "organisation_chain": "Public Works Region||Public Works Region - Nashik||Public Works Circle - Dhule||Public Works Division Shahada",
       "organisation_path": [
         "Public Works Region",
-        "Public Works Region - Mumbai",
-        "Public Works Circle - Thane",
-        "Public Works Division -No2 Thane"
+        "Public Works Region - Nashik",
+        "Public Works Circle - Dhule",
+        "Public Works Division Shahada"
       ],
-      "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "published_at": "2026-10-06T10:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S31GBEyLKGnK1eCOALNUhqA%3D%3D",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDKz4dwIkZArxusauNNXm2A%3D%3D",
       "state_code": "MH",
-      "tender_id": "2026_PWR_1342316_3",
-      "tender_reference": "pwd2thane/14/2026-27",
-      "title": "Improvement and construction of NH 3 Birwadi Bhatasanagar Savarshet MDR-56 Km. 6/000 to 8/000 in Tal Shahapur Dist Thane."
+      "tender_id": "2026_PWR_1343001_2",
+      "tender_reference": "E-Tender Notice No.14 for 2026-27 (B-1 Tender)",
+      "title": "Construction of Cement Concrete Road from the House of Kukut Palan F.C.Pawara to the House at Givlipada in Ward No.13 at Dhadgaon Nagar Panchayat Tal.Dhadgaon Dist.Nandurbar"
+    },
+    {
+      "closing_at": "2026-10-13T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SwAjwRaeDTk7hI3zDYl%2FKeg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-16T10:00:00+05:30",
+      "organisation_chain": "Public Works Region||Public Works Region - Nashik||Public Works Circle - Dhule||Public Works Division Shahada",
+      "organisation_path": [
+        "Public Works Region",
+        "Public Works Region - Nashik",
+        "Public Works Circle - Dhule",
+        "Public Works Division Shahada"
+      ],
+      "published_at": "2026-10-06T10:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SwAjwRaeDTk7hI3zDYl%2FKeg%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_PWR_1343001_4",
+      "tender_reference": "E-Tender Notice No.14 for 2026-27 (B-1 Tender)",
+      "title": "Construction of Cement Concrete Road from up to the House of F.C.Pawara (Poultry Farm) in Ward No.13 at Dhadgaon Nagar Panchayat Tal.Dhadgaon Dist.Nandurbar"
+    },
+    {
+      "closing_at": "2026-10-13T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Ss%2BDN1IdXFU4A0LUldP%2BmHQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-16T10:00:00+05:30",
+      "organisation_chain": "Public Works Region||Public Works Region - Nashik||Public Works Circle - Dhule||Public Works Division Shahada",
+      "organisation_path": [
+        "Public Works Region",
+        "Public Works Region - Nashik",
+        "Public Works Circle - Dhule",
+        "Public Works Division Shahada"
+      ],
+      "published_at": "2026-10-06T10:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Ss%2BDN1IdXFU4A0LUldP%2BmHQ%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_PWR_1343001_1",
+      "tender_reference": "E-Tender Notice No.14 for 2026-27 (B-1 Tender)",
+      "title": "Construction of Cement Concrete Road from Umarani Phata to the Main Road Bridge in Ward No.5 at Dhadgaon Nagar Panchayat Tal.Dhadgaon Dist.Nandurbar"
     },
     {
       "closing_at": "2026-10-13T17:30:00+05:30",
@@ -1303,7 +1372,7 @@
         "Public Works Division -No2 Thane"
       ],
       "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SeLx4IFYNZu0xlqAeCR2Trw%3D%3D",
@@ -1311,29 +1380,6 @@
       "tender_id": "2026_PWR_1342316_1",
       "tender_reference": "pwd2thane/14/2026-27",
       "title": "29) Construction of road at NH 222 to Chinchwadi Tal. Murbad Dist. Thane. 30) Constructio of road at Balegaon Navdichapada Tal. Murbad Dist. Thane, 31) Construction of Road at main Highway to adv. Prafulla Rokde to Shobhatai Ingale House Tal. Murbad,"
-    },
-    {
-      "closing_at": "2026-10-13T17:30:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S7g7KEL1jFf3qv%2FuGhBiueA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-16T12:30:00+05:30",
-      "organisation_chain": "Public Works Region||Public Works Region - Mumbai||Public Works Circle - Thane||Public Works Division -No2 Thane",
-      "organisation_path": [
-        "Public Works Region",
-        "Public Works Region - Mumbai",
-        "Public Works Circle - Thane",
-        "Public Works Division -No2 Thane"
-      ],
-      "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S7g7KEL1jFf3qv%2FuGhBiueA%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_PWR_1342316_2",
-      "tender_reference": "pwd2thane/14/2026-27",
-      "title": "Improvement and construction of NH 3 Birwadi Bhatasanagar Savarshet MDR 56 Km.0/000 to 5/000 in Tal Shahapur Dist Thane."
     },
     {
       "closing_at": "2026-10-13T17:30:00+05:30",
@@ -1349,7 +1395,7 @@
         "Public Works Division -No2 Thane"
       ],
       "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFjMboka%2BsgrnlFx0HiZojA%3D%3D",
@@ -1357,6 +1403,52 @@
       "tender_id": "2026_PWR_1342316_5",
       "tender_reference": "pwd2thane/14/2026-27",
       "title": "1) Construction of road at Pendhari Umbarwadi. 2) Construction of Durgapur approach road. 3) Construction Madh Katkarwadi approach road. 4) Construction of MDR 77 to sawarwadi Goregaon road. 5) Construction of Saongaon to Goregaon approach road. 6) C"
+    },
+    {
+      "closing_at": "2026-10-13T17:30:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFVC42fDn%2BI1jqyti338XMQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-16T12:30:00+05:30",
+      "organisation_chain": "Public Works Region||Public Works Region - Mumbai||Public Works Circle - Thane||Public Works Division -No2 Thane",
+      "organisation_path": [
+        "Public Works Region",
+        "Public Works Region - Mumbai",
+        "Public Works Circle - Thane",
+        "Public Works Division -No2 Thane"
+      ],
+      "published_at": "2026-10-06T09:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFVC42fDn%2BI1jqyti338XMQ%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_PWR_1342316_10",
+      "tender_reference": "pwd2thane/14/2026-27",
+      "title": "Improvement to Nadhai, Dahigaon, Khateghar, Mhadas, Narivali, Jambhurde, Dongarnhave Road (MDR 81) Km 0/0 to 6/000 Tal.Murbad Dist.Thane."
+    },
+    {
+      "closing_at": "2026-10-13T17:30:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S7g7KEL1jFf3qv%2FuGhBiueA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-16T12:30:00+05:30",
+      "organisation_chain": "Public Works Region||Public Works Region - Mumbai||Public Works Circle - Thane||Public Works Division -No2 Thane",
+      "organisation_path": [
+        "Public Works Region",
+        "Public Works Region - Mumbai",
+        "Public Works Circle - Thane",
+        "Public Works Division -No2 Thane"
+      ],
+      "published_at": "2026-10-06T09:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S7g7KEL1jFf3qv%2FuGhBiueA%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_PWR_1342316_2",
+      "tender_reference": "pwd2thane/14/2026-27",
+      "title": "Improvement and construction of NH 3 Birwadi Bhatasanagar Savarshet MDR 56 Km.0/000 to 5/000 in Tal Shahapur Dist Thane."
     },
     {
       "closing_at": "2026-10-13T17:30:00+05:30",
@@ -1372,7 +1464,7 @@
         "Public Works Division -No2 Thane"
       ],
       "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SpTUMf%2B5SrCZYh9SdlgP2dQ%3D%3D",
@@ -1395,7 +1487,7 @@
         "Public Works Division -No2 Thane"
       ],
       "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SUFhpruFZ%2BhnyLc5fS6a%2BnQ%3D%3D",
@@ -1406,7 +1498,7 @@
     },
     {
       "closing_at": "2026-10-13T17:30:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFVC42fDn%2BI1jqyti338XMQ%3D%3D",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S31GBEyLKGnK1eCOALNUhqA%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
       "opening_at": "2026-10-16T12:30:00+05:30",
@@ -1418,37 +1510,14 @@
         "Public Works Division -No2 Thane"
       ],
       "published_at": "2026-10-06T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SFVC42fDn%2BI1jqyti338XMQ%3D%3D",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S31GBEyLKGnK1eCOALNUhqA%3D%3D",
       "state_code": "MH",
-      "tender_id": "2026_PWR_1342316_10",
+      "tender_id": "2026_PWR_1342316_3",
       "tender_reference": "pwd2thane/14/2026-27",
-      "title": "Improvement to Nadhai, Dahigaon, Khateghar, Mhadas, Narivali, Jambhurde, Dongarnhave Road (MDR 81) Km 0/0 to 6/000 Tal.Murbad Dist.Thane."
-    },
-    {
-      "closing_at": "2026-10-12T18:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SNwRZMa2K4s47rRGVsaL3LA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-14T11:00:00+05:30",
-      "organisation_chain": "Public Works Region||Public Works Region - Nashik||Public Works Circle - Ahmednagar||Public Works Division Sangamner",
-      "organisation_path": [
-        "Public Works Region",
-        "Public Works Region - Nashik",
-        "Public Works Circle - Ahmednagar",
-        "Public Works Division Sangamner"
-      ],
-      "published_at": "2026-10-05T13:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SNwRZMa2K4s47rRGVsaL3LA%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_PWR_1342781_1",
-      "tender_reference": "PWD SGM/ Notice No.05 for 2026-2027-02_Sceond _Call",
-      "title": "Improvement to District Border to Bari Rajur Kotul Bramhanwada Bota Road (SH-23) KM. 274/000 to 275/000 And 276/000 to 279/000 Tal. Akole, Dist. Ahilyanagar"
+      "title": "Improvement and construction of NH 3 Birwadi Bhatasanagar Savarshet MDR-56 Km. 6/000 to 8/000 in Tal Shahapur Dist Thane."
     },
     {
       "closing_at": "2026-10-12T18:00:00+05:30",
@@ -1464,7 +1533,7 @@
         "Public Works Division Sangamner"
       ],
       "published_at": "2026-10-05T13:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STHRSMfesi1OfKQh8oW%2BE6A%3D%3D",
@@ -1474,11 +1543,34 @@
       "title": "Improvement to SH-23 to Manhere Devgaon Pimparkane Pimpalgaon Nakwinda Sherankhel Takali Akole Road K.M. 37/000 to 38/500, Tal. Akole, Dist. Ahilyanagar."
     },
     {
-      "closing_at": "2026-10-14T18:30:00+05:30",
+      "closing_at": "2026-10-12T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SNwRZMa2K4s47rRGVsaL3LA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-14T11:00:00+05:30",
+      "organisation_chain": "Public Works Region||Public Works Region - Nashik||Public Works Circle - Ahmednagar||Public Works Division Sangamner",
+      "organisation_path": [
+        "Public Works Region",
+        "Public Works Region - Nashik",
+        "Public Works Circle - Ahmednagar",
+        "Public Works Division Sangamner"
+      ],
+      "published_at": "2026-10-05T13:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SNwRZMa2K4s47rRGVsaL3LA%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_PWR_1342781_1",
+      "tender_reference": "PWD SGM/ Notice No.05 for 2026-2027-02_Sceond _Call",
+      "title": "Improvement to District Border to Bari Rajur Kotul Bramhanwada Bota Road (SH-23) KM. 274/000 to 275/000 And 276/000 to 279/000 Tal. Akole, Dist. Ahilyanagar"
+    },
+    {
+      "closing_at": "2026-10-19T18:30:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SX0vBVJDyM18e7PZ0oJcgQw%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-16T12:00:00+05:30",
+      "opening_at": "2026-10-21T12:00:00+05:30",
       "organisation_chain": "Public Works Region||Public Works Region - Mumbai||Public Works Circle Ratnagiri||Public Works Division Chiplun",
       "organisation_path": [
         "Public Works Region",
@@ -1487,7 +1579,7 @@
         "Public Works Division Chiplun"
       ],
       "published_at": "2026-10-05T12:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SX0vBVJDyM18e7PZ0oJcgQw%3D%3D",
@@ -1510,7 +1602,7 @@
         "EE Public Works Division Sawantwadi"
       ],
       "published_at": "2026-10-05T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S38DuE3hp7HRWNi%2FYtozE2w%3D%3D",
@@ -1518,29 +1610,6 @@
       "tender_id": "2026_PWR_1342543_1",
       "tender_reference": "SWD/NIT/20 for 2026-27",
       "title": "Improvement and Black Toping to Madura, Satose, Kinale, Kawathani Road MDR 63 KM 5/800 to 8/300 and 12/500 to 13/500, Tal. Sawantwadi, Dist. Sindhudurg. (II Call)"
-    },
-    {
-      "closing_at": "2026-10-08T18:30:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SbqkwSimsth9SH7pPQC%2FuCg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-12T12:00:00+05:30",
-      "organisation_chain": "Public Works Region||Public Works Region - Mumbai||Public Works Circle Ratnagiri||Public Works Division Chiplun",
-      "organisation_path": [
-        "Public Works Region",
-        "Public Works Region - Mumbai",
-        "Public Works Circle Ratnagiri",
-        "Public Works Division Chiplun"
-      ],
-      "published_at": "2026-09-30T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SbqkwSimsth9SH7pPQC%2FuCg%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_PWR_1341739_6",
-      "tender_reference": "Tender Notice No 14 For 2026-27 M.S.S CHD/AB/TC/5109 Date 23.09.2026",
-      "title": "Strengthening And Black Topping to Kolakewadi Patharwadi Road Tal.Chiplun Dist. Ratnagiri."
     },
     {
       "closing_at": "2026-10-08T18:30:00+05:30",
@@ -1556,7 +1625,7 @@
         "Public Works Division Chiplun"
       ],
       "published_at": "2026-09-30T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SuNcazYW1v5pYDfGwvmrhsA%3D%3D",
@@ -1566,50 +1635,27 @@
       "title": "Strengthening And Black Topping to Mouje Moravane Panduragwadi S.T. Stop to Aakle Choragewadi Tal. Chiplun Dist. Ratnagiri."
     },
     {
-      "closing_at": "2026-10-07T18:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2BZ4NrfAM5JBt70FTXsySIw%3D%3D",
+      "closing_at": "2026-10-08T18:30:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SbqkwSimsth9SH7pPQC%2FuCg%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T11:00:00+05:30",
-      "organisation_chain": "Public Works Region||Public Works Region - Konkan||Public Works Circle - Raigad||Public Works Division Mahad",
+      "opening_at": "2026-10-12T12:00:00+05:30",
+      "organisation_chain": "Public Works Region||Public Works Region - Mumbai||Public Works Circle Ratnagiri||Public Works Division Chiplun",
       "organisation_path": [
         "Public Works Region",
-        "Public Works Region - Konkan",
-        "Public Works Circle - Raigad",
-        "Public Works Division Mahad"
+        "Public Works Region - Mumbai",
+        "Public Works Circle Ratnagiri",
+        "Public Works Division Chiplun"
       ],
-      "published_at": "2026-09-30T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "published_at": "2026-09-30T10:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2BZ4NrfAM5JBt70FTXsySIw%3D%3D",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SbqkwSimsth9SH7pPQC%2FuCg%3D%3D",
       "state_code": "MH",
-      "tender_id": "2026_PWR_1341880_1",
-      "tender_reference": "Notice 17 No/MHD/TC/3468 Dt 29.09.2026 W-1",
-      "title": "Improvement to S.H. 93 to Medha Road MDR 41 Km 0/00 to 1/00 Taluka Roha, District Raigad."
-    },
-    {
-      "closing_at": "2026-10-07T18:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S6Ne%2FnVORegfdG6aFdLzVlg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SC7VEasBb%2F7MRrJ6xK9sFyNS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T11:00:00+05:30",
-      "organisation_chain": "Public Works Region||Public Works Region - Konkan||Public Works Circle - Raigad||Public Works Division Mahad",
-      "organisation_path": [
-        "Public Works Region",
-        "Public Works Region - Konkan",
-        "Public Works Circle - Raigad",
-        "Public Works Division Mahad"
-      ],
-      "published_at": "2026-09-30T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S6Ne%2FnVORegfdG6aFdLzVlg%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_PWR_1341881_1",
-      "tender_reference": "Notice 17 No/MHD/TC/3468 Dt 29.09.2026 W-2",
-      "title": "Improvement of MSH 05 to Ambewadi road MDR 45 km 0/00 to 0/500 Taluka Roha, District Raigad."
+      "tender_id": "2026_PWR_1341739_6",
+      "tender_reference": "Tender Notice No 14 For 2026-27 M.S.S CHD/AB/TC/5109 Date 23.09.2026",
+      "title": "Strengthening And Black Topping to Kolakewadi Patharwadi Road Tal.Chiplun Dist. Ratnagiri."
     },
     {
       "closing_at": "2026-10-09T18:15:00+05:30",
@@ -1624,7 +1670,7 @@
         "Public Works(North)Division-Pune"
       ],
       "published_at": "2026-09-23T14:25:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SyJCFO3jpugK5S1EEbRhxZw%3D%3D",
@@ -1646,7 +1692,7 @@
         "Public Works(North)Division-Pune"
       ],
       "published_at": "2026-09-23T14:20:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SOPk8Lk9zoGqAXY3iSLb15Q%3D%3D",
@@ -1656,46 +1702,46 @@
       "title": "A) Improvements to Bhimashankar pilgrimage connecting road - Uran Panvel Bhimashankar Wada Khed Pabal Road SH 103 Km 223/00 to 227/500 Tal.Khed Dist.Pune (Part- Padali to Rajgurunagar) (B) Improvements to Bhimashankar pilgrimage connecting road -"
     },
     {
-      "closing_at": "2026-10-13T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SYJIux9UyrkPUt6jIeeQ%2BEA%3D%3D",
+      "closing_at": "2026-10-10T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SzXdcAXAiOlkDuDAkj%2BaQsA%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SBHgI013YJrPRYhqXDt5TRg%3D%3D",
-      "opening_at": "2026-10-14T11:00:00+05:30",
+      "opening_at": "2026-10-12T11:00:00+05:30",
       "organisation_chain": "RDD-CEO-AHMEDNAGAR||AHMEDNAGAR-WORKS DIV.",
       "organisation_path": [
         "RDD-CEO-AHMEDNAGAR",
         "AHMEDNAGAR-WORKS DIV."
       ],
-      "published_at": "2026-10-06T14:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "published_at": "2026-10-07T14:30:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SYJIux9UyrkPUt6jIeeQ%2BEA%3D%3D",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SzXdcAXAiOlkDuDAkj%2BaQsA%3D%3D",
       "state_code": "MH",
-      "tender_id": "2026_AHMED_1342994_1",
-      "tender_reference": "ZP/PWND/3054/3/2025-26",
-      "title": "Strengthening Of ODR 166 Gardani To Bahirwadi To Ambikanagar Road VR 01 Ch 0/00 to 1/250 Tal Akola"
+      "tender_id": "2026_AHMED_1343265_1",
+      "tender_reference": "ZP/PWND/30543068/20/2026-27",
+      "title": "Strengthening and Black Toping to Mahadev Mandir to Tilapur Road bhika fata to Mahadev Mandir VR90 Km 1/500 to 2/400 TalRahuri DistAhilyanagar"
     },
     {
-      "closing_at": "2026-10-13T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sc7FqzNC6heOyrQzXnICiZA%3D%3D",
+      "closing_at": "2026-10-10T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SdZWbzDUzyWL3pS%2BtVa3rlA%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SBHgI013YJrPRYhqXDt5TRg%3D%3D",
-      "opening_at": "2026-10-14T11:00:00+05:30",
+      "opening_at": "2026-10-12T11:00:00+05:30",
       "organisation_chain": "RDD-CEO-AHMEDNAGAR||AHMEDNAGAR-WORKS DIV.",
       "organisation_path": [
         "RDD-CEO-AHMEDNAGAR",
         "AHMEDNAGAR-WORKS DIV."
       ],
-      "published_at": "2026-10-06T14:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "published_at": "2026-10-07T14:30:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sc7FqzNC6heOyrQzXnICiZA%3D%3D",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SdZWbzDUzyWL3pS%2BtVa3rlA%3D%3D",
       "state_code": "MH",
-      "tender_id": "2026_AHMED_1343052_1",
-      "tender_reference": "ZP/PWND/3054/1/2025-26",
-      "title": "Strengthening to Chandegaon Shinde Wasti Sinare wasti to Karajgaon Approch Road Chandegaon Shinde Sinare Wasti to Kotkar Wasti VR-32 Km 1/00 to 2/00 TalRahuri DistAhilyanagar"
+      "tender_id": "2026_AHMED_1343275_1",
+      "tender_reference": "ZP/PWND/30543068/0/2026-27",
+      "title": "Strengthening From NH 8 Nagar Manmad Road Patilwadi to Kolhar Kh Kolhar Kh To Patilwadi Road VR14 Km 0/00 to 1/000 TalRahuri DistAhilyanagar"
     },
     {
       "closing_at": "2026-10-13T17:00:00+05:30",
@@ -1709,7 +1755,7 @@
         "AHMEDNAGAR-WORKS DIV."
       ],
       "published_at": "2026-10-06T14:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S0FQYts%2FFTgHgTmSuI2xF0g%3D%3D",
@@ -1720,7 +1766,7 @@
     },
     {
       "closing_at": "2026-10-13T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQGO6CdbcjfYVDYNHPdy55g%3D%3D",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sc7FqzNC6heOyrQzXnICiZA%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SBHgI013YJrPRYhqXDt5TRg%3D%3D",
       "opening_at": "2026-10-14T11:00:00+05:30",
@@ -1730,35 +1776,14 @@
         "AHMEDNAGAR-WORKS DIV."
       ],
       "published_at": "2026-10-06T14:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQGO6CdbcjfYVDYNHPdy55g%3D%3D",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sc7FqzNC6heOyrQzXnICiZA%3D%3D",
       "state_code": "MH",
-      "tender_id": "2026_AHMED_1342993_1",
-      "tender_reference": "ZP/PWND/3054/2/2025-26",
-      "title": "Improvement To Ganore To Chikani Road VR 44 Km 0/00 to 3/00 Tal Akola"
-    },
-    {
-      "closing_at": "2026-10-13T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S8SwXTiBBDjNBh2MJPapthg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SBHgI013YJrPRYhqXDt5TRg%3D%3D",
-      "opening_at": "2026-10-14T11:00:00+05:30",
-      "organisation_chain": "RDD-CEO-AHMEDNAGAR||AHMEDNAGAR-WORKS DIV.",
-      "organisation_path": [
-        "RDD-CEO-AHMEDNAGAR",
-        "AHMEDNAGAR-WORKS DIV."
-      ],
-      "published_at": "2026-10-06T14:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S8SwXTiBBDjNBh2MJPapthg%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_AHMED_1342990_1",
+      "tender_id": "2026_AHMED_1343052_1",
       "tender_reference": "ZP/PWND/3054/1/2025-26",
-      "title": "Strengthening Of ODR 32 TO Pimpalgaon Nipani Thakarwadi To Tambhol Road VR87 Ch 2/00 to 4/500 Tal Akola"
+      "title": "Strengthening to Chandegaon Shinde Wasti Sinare wasti to Karajgaon Approch Road Chandegaon Shinde Sinare Wasti to Kotkar Wasti VR-32 Km 1/00 to 2/00 TalRahuri DistAhilyanagar"
     },
     {
       "closing_at": "2026-10-13T17:00:00+05:30",
@@ -1772,7 +1797,7 @@
         "AHMEDNAGAR-WORKS DIV."
       ],
       "published_at": "2026-10-06T14:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2FfrnQ8BaF76Qyaswd%2FHJ4w%3D%3D",
@@ -1793,7 +1818,7 @@
         "AHMEDNAGAR-WORKS DIV."
       ],
       "published_at": "2026-10-06T14:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SKgCmXqvEG4uDq%2BZ9t2cPTQ%3D%3D",
@@ -1803,27 +1828,67 @@
       "title": "Strengthening of Jorve Datta Mandir Rahimpur to Nimgaon Jali road VR41 old Jorve road Ozar Umbari Shiv to OzarManoli road Km 4/00 to 6/00 TalSangamner DistAhliyanagar"
     },
     {
-      "closing_at": "2026-10-07T18:55:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SzpUAbpSol3q1wJeX1uAbPg%3D%3D",
+      "closing_at": "2026-10-13T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQGO6CdbcjfYVDYNHPdy55g%3D%3D",
       "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SVgTzR1yl%2BXqa4xOIVccX5g%3D%3D",
-      "opening_at": "2026-10-08T14:00:00+05:30",
-      "organisation_chain": "RDD-CEO-BULDHANA||BULDHANA-Dy. CEO V.P.||CHIKHLI||UNDRI",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SBHgI013YJrPRYhqXDt5TRg%3D%3D",
+      "opening_at": "2026-10-14T11:00:00+05:30",
+      "organisation_chain": "RDD-CEO-AHMEDNAGAR||AHMEDNAGAR-WORKS DIV.",
       "organisation_path": [
-        "RDD-CEO-BULDHANA",
-        "BULDHANA-Dy. CEO V.P.",
-        "CHIKHLI",
-        "UNDRI"
+        "RDD-CEO-AHMEDNAGAR",
+        "AHMEDNAGAR-WORKS DIV."
       ],
-      "published_at": "2026-09-28T18:55:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "published_at": "2026-10-06T14:30:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SzpUAbpSol3q1wJeX1uAbPg%3D%3D",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQGO6CdbcjfYVDYNHPdy55g%3D%3D",
       "state_code": "MH",
-      "tender_id": "2026_BULDH_1341679_1",
-      "tender_reference": "E-TENDER NOTICE 01/2026-27",
-      "title": "Construction of Cement Concrete Road At. Udaynagar Tq. Chikhali, Dist.Buldana"
+      "tender_id": "2026_AHMED_1342993_1",
+      "tender_reference": "ZP/PWND/3054/2/2025-26",
+      "title": "Improvement To Ganore To Chikani Road VR 44 Km 0/00 to 3/00 Tal Akola"
+    },
+    {
+      "closing_at": "2026-10-13T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SYJIux9UyrkPUt6jIeeQ%2BEA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SBHgI013YJrPRYhqXDt5TRg%3D%3D",
+      "opening_at": "2026-10-14T11:00:00+05:30",
+      "organisation_chain": "RDD-CEO-AHMEDNAGAR||AHMEDNAGAR-WORKS DIV.",
+      "organisation_path": [
+        "RDD-CEO-AHMEDNAGAR",
+        "AHMEDNAGAR-WORKS DIV."
+      ],
+      "published_at": "2026-10-06T14:30:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SYJIux9UyrkPUt6jIeeQ%2BEA%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_AHMED_1342994_1",
+      "tender_reference": "ZP/PWND/3054/3/2025-26",
+      "title": "Strengthening Of ODR 166 Gardani To Bahirwadi To Ambikanagar Road VR 01 Ch 0/00 to 1/250 Tal Akola"
+    },
+    {
+      "closing_at": "2026-10-13T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S8SwXTiBBDjNBh2MJPapthg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SBHgI013YJrPRYhqXDt5TRg%3D%3D",
+      "opening_at": "2026-10-14T11:00:00+05:30",
+      "organisation_chain": "RDD-CEO-AHMEDNAGAR||AHMEDNAGAR-WORKS DIV.",
+      "organisation_path": [
+        "RDD-CEO-AHMEDNAGAR",
+        "AHMEDNAGAR-WORKS DIV."
+      ],
+      "published_at": "2026-10-06T14:30:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S8SwXTiBBDjNBh2MJPapthg%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_AHMED_1342990_1",
+      "tender_reference": "ZP/PWND/3054/1/2025-26",
+      "title": "Strengthening Of ODR 32 TO Pimpalgaon Nipani Thakarwadi To Tambhol Road VR87 Ch 2/00 to 4/500 Tal Akola"
     },
     {
       "closing_at": "2026-10-12T18:00:00+05:30",
@@ -1837,7 +1902,7 @@
         "JALGAON-WORKS DIV."
       ],
       "published_at": "2026-10-05T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SN1IRqpIYUBUQ5vsNwF3C4Q%3D%3D",
@@ -1847,102 +1912,18 @@
       "title": "Construction of Cement Concrete Road At Post- Nagav ,Tal- Parola, Dist-Jalgaon."
     },
     {
-      "closing_at": "2026-10-07T18:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQD5uvvvJa%2FfvPsKEOzfl2g%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SN4yw4tg0yrUN3vdqFegVGQ%3D%3D",
-      "opening_at": "2026-10-09T16:00:00+05:30",
-      "organisation_chain": "RDD-CEO-JALGAON||JALGAON-WORKS DIV.",
-      "organisation_path": [
-        "RDD-CEO-JALGAON",
-        "JALGAON-WORKS DIV."
-      ],
-      "published_at": "2026-09-30T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQD5uvvvJa%2FfvPsKEOzfl2g%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_JALGA_1341902_6",
-      "tender_reference": "ZPJL/Works/e.TenderNotice No.18/2026-27",
-      "title": "Construction of CC Tremix Road At Village Galangi Veloda Kusumba Vadhoda Vitner Gagdi BK Tal Chopda Dist Jalgaon."
-    },
-    {
-      "closing_at": "2026-10-07T18:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sc8FsmmSgLiGSXxlC44XXmA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SN4yw4tg0yrUN3vdqFegVGQ%3D%3D",
-      "opening_at": "2026-10-09T16:00:00+05:30",
-      "organisation_chain": "RDD-CEO-JALGAON||JALGAON-WORKS DIV.",
-      "organisation_path": [
-        "RDD-CEO-JALGAON",
-        "JALGAON-WORKS DIV."
-      ],
-      "published_at": "2026-09-30T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sc8FsmmSgLiGSXxlC44XXmA%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_JALGA_1341902_5",
-      "tender_reference": "ZPJL/Works/e.TenderNotice No.18/2026-27",
-      "title": "Construction of CC Tremix Road At Village Khedibhokri Mamalde Ghodgaon Varad Kh Tal Chopda Dist Jalgaon"
-    },
-    {
-      "closing_at": "2026-10-07T18:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SoNjqkgfx55Gx5Jt4NVOdKQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SN4yw4tg0yrUN3vdqFegVGQ%3D%3D",
-      "opening_at": "2026-10-09T16:00:00+05:30",
-      "organisation_chain": "RDD-CEO-JALGAON||JALGAON-WORKS DIV.",
-      "organisation_path": [
-        "RDD-CEO-JALGAON",
-        "JALGAON-WORKS DIV."
-      ],
-      "published_at": "2026-09-30T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SoNjqkgfx55Gx5Jt4NVOdKQ%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_JALGA_1341902_3",
-      "tender_reference": "ZPJL/Works/e.TenderNotice No.18/2026-27",
-      "title": "Construction of CC Tremix Road At Village Kurvel Sanphule Gartad kathora kolamba Ghumaval Kh khadgaon Tal Chopda Dist Jalgaon."
-    },
-    {
-      "closing_at": "2026-10-07T18:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SljlksiD5r4IOt%2BzS6AGw9w%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SN4yw4tg0yrUN3vdqFegVGQ%3D%3D",
-      "opening_at": "2026-10-09T16:00:00+05:30",
-      "organisation_chain": "RDD-CEO-JALGAON||JALGAON-WORKS DIV.",
-      "organisation_path": [
-        "RDD-CEO-JALGAON",
-        "JALGAON-WORKS DIV."
-      ],
-      "published_at": "2026-09-30T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SljlksiD5r4IOt%2BzS6AGw9w%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_JALGA_1341902_2",
-      "tender_reference": "ZPJL/Works/e.TenderNotice No.18/2026-27",
-      "title": "Construction of CC Tremix Road At Village Ghadwel Dondhvade Dhupe kh Bhardu Valiki Vichkheda Tal Chopda Dist Jalgaon"
-    },
-    {
-      "closing_at": "2026-10-07T18:00:00+05:30",
+      "closing_at": "2026-10-12T18:00:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S4HHferol928zR7jlHtXFpA%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SN4yw4tg0yrUN3vdqFegVGQ%3D%3D",
-      "opening_at": "2026-10-09T16:00:00+05:30",
+      "opening_at": "2026-10-14T16:00:00+05:30",
       "organisation_chain": "RDD-CEO-JALGAON||JALGAON-WORKS DIV.",
       "organisation_path": [
         "RDD-CEO-JALGAON",
         "JALGAON-WORKS DIV."
       ],
       "published_at": "2026-09-30T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S4HHferol928zR7jlHtXFpA%3D%3D",
@@ -1952,11 +1933,118 @@
       "title": "Construction of CC Tremix Road At Village Umarti Amalvadi Uttamnagar Devziri Devgad Ujadkarjane Tal Chopda Dist Jalgaon"
     },
     {
-      "closing_at": "2026-10-07T12:15:00+05:30",
+      "closing_at": "2026-10-12T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQD5uvvvJa%2FfvPsKEOzfl2g%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SN4yw4tg0yrUN3vdqFegVGQ%3D%3D",
+      "opening_at": "2026-10-14T16:00:00+05:30",
+      "organisation_chain": "RDD-CEO-JALGAON||JALGAON-WORKS DIV.",
+      "organisation_path": [
+        "RDD-CEO-JALGAON",
+        "JALGAON-WORKS DIV."
+      ],
+      "published_at": "2026-09-30T15:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQD5uvvvJa%2FfvPsKEOzfl2g%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_JALGA_1341902_6",
+      "tender_reference": "ZPJL/Works/e.TenderNotice No.18/2026-27",
+      "title": "Construction of CC Tremix Road At Village Galangi Veloda Kusumba Vadhoda Vitner Gagdi BK Tal Chopda Dist Jalgaon."
+    },
+    {
+      "closing_at": "2026-10-12T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sc8FsmmSgLiGSXxlC44XXmA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SN4yw4tg0yrUN3vdqFegVGQ%3D%3D",
+      "opening_at": "2026-10-14T16:00:00+05:30",
+      "organisation_chain": "RDD-CEO-JALGAON||JALGAON-WORKS DIV.",
+      "organisation_path": [
+        "RDD-CEO-JALGAON",
+        "JALGAON-WORKS DIV."
+      ],
+      "published_at": "2026-09-30T15:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sc8FsmmSgLiGSXxlC44XXmA%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_JALGA_1341902_5",
+      "tender_reference": "ZPJL/Works/e.TenderNotice No.18/2026-27",
+      "title": "Construction of CC Tremix Road At Village Khedibhokri Mamalde Ghodgaon Varad Kh Tal Chopda Dist Jalgaon"
+    },
+    {
+      "closing_at": "2026-10-12T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SoNjqkgfx55Gx5Jt4NVOdKQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SN4yw4tg0yrUN3vdqFegVGQ%3D%3D",
+      "opening_at": "2026-10-14T16:00:00+05:30",
+      "organisation_chain": "RDD-CEO-JALGAON||JALGAON-WORKS DIV.",
+      "organisation_path": [
+        "RDD-CEO-JALGAON",
+        "JALGAON-WORKS DIV."
+      ],
+      "published_at": "2026-09-30T15:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SoNjqkgfx55Gx5Jt4NVOdKQ%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_JALGA_1341902_3",
+      "tender_reference": "ZPJL/Works/e.TenderNotice No.18/2026-27",
+      "title": "Construction of CC Tremix Road At Village Kurvel Sanphule Gartad kathora kolamba Ghumaval Kh khadgaon Tal Chopda Dist Jalgaon."
+    },
+    {
+      "closing_at": "2026-10-12T18:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SljlksiD5r4IOt%2BzS6AGw9w%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SN4yw4tg0yrUN3vdqFegVGQ%3D%3D",
+      "opening_at": "2026-10-14T16:00:00+05:30",
+      "organisation_chain": "RDD-CEO-JALGAON||JALGAON-WORKS DIV.",
+      "organisation_path": [
+        "RDD-CEO-JALGAON",
+        "JALGAON-WORKS DIV."
+      ],
+      "published_at": "2026-09-30T15:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SljlksiD5r4IOt%2BzS6AGw9w%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_JALGA_1341902_2",
+      "tender_reference": "ZPJL/Works/e.TenderNotice No.18/2026-27",
+      "title": "Construction of CC Tremix Road At Village Ghadwel Dondhvade Dhupe kh Bhardu Valiki Vichkheda Tal Chopda Dist Jalgaon"
+    },
+    {
+      "closing_at": "2026-10-12T13:25:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SHLjEipMlG02Iko6X7V7g2Q%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SEyGeoVqxgzPkxMc5wMaPeA%3D%3D",
+      "opening_at": "2026-10-13T14:00:00+05:30",
+      "organisation_chain": "RDD-CEO-JALNA||JALNA-Dy. CEO V.P.||JALNA||MAOUJPURI",
+      "organisation_path": [
+        "RDD-CEO-JALNA",
+        "JALNA-Dy. CEO V.P.",
+        "JALNA",
+        "MAOUJPURI"
+      ],
+      "published_at": "2026-10-07T13:10:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SHLjEipMlG02Iko6X7V7g2Q%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_JALNA_1343305_1",
+      "tender_reference": "GP /Maujpuri Tq Jalna Dist Jalna/01/2025-26",
+      "title": "Construction Of Cement Concrete Road At Village Maujpuri G.P Maujpuri Tq Jalna Dist Jalna"
+    },
+    {
+      "closing_at": "2026-10-08T15:15:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SeO1qPCJjInyd0VC36mSzRA%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SEyGeoVqxgzPkxMc5wMaPeA%3D%3D",
-      "opening_at": "2026-10-08T12:20:00+05:30",
+      "opening_at": "2026-10-09T15:20:00+05:30",
       "organisation_chain": "RDD-CEO-JALNA||JALNA-Dy. CEO V.P.||PARTUR||KHANDAVI",
       "organisation_path": [
         "RDD-CEO-JALNA",
@@ -1965,7 +2053,7 @@
         "KHANDAVI"
       ],
       "published_at": "2026-10-02T12:10:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SeO1qPCJjInyd0VC36mSzRA%3D%3D",
@@ -1975,11 +2063,11 @@
       "title": "Providing Aggregate In Construction Of Cement Concrete Road From H/O Bhagwan Barkule To Ganesh Harkal House At Village Khandvi Tq Partur Dist Jalna"
     },
     {
-      "closing_at": "2026-10-07T12:05:00+05:30",
+      "closing_at": "2026-10-08T15:05:00+05:30",
       "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZsLt59nMz8OagmVRKZRAhw%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SEyGeoVqxgzPkxMc5wMaPeA%3D%3D",
-      "opening_at": "2026-10-08T12:10:00+05:30",
+      "opening_at": "2026-10-09T15:10:00+05:30",
       "organisation_chain": "RDD-CEO-JALNA||JALNA-Dy. CEO V.P.||PARTUR||KHANDAVI",
       "organisation_path": [
         "RDD-CEO-JALNA",
@@ -1988,7 +2076,7 @@
         "KHANDAVI"
       ],
       "published_at": "2026-10-02T12:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZsLt59nMz8OagmVRKZRAhw%3D%3D",
@@ -2011,7 +2099,7 @@
         "TUMAN"
       ],
       "published_at": "2026-10-06T17:15:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sk%2BNgvEgr9UsUX9mBhVanvw%3D%3D",
@@ -2019,6 +2107,27 @@
       "tender_id": "2026_NAGPU_1343152_1",
       "tender_reference": "NGP_PS_MOUDA_TUMAN_2026_2027_4",
       "title": "CONSTRUCTION OF INTERNAL CEMENT CONCRETE ROAD AT GP TUMAN PS MOUDA DIST NAGPUR UNDER SCHEME 15TH FINNANCE COMMISSION IN YEAR 2026-2027 1st Call"
+    },
+    {
+      "closing_at": "2026-10-13T13:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SeKzWWBAWV2fTAKF1cnfKYQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sl20tHcROYLu%2BkL1B2ZoORA%3D%3D",
+      "opening_at": "2026-10-14T14:00:00+05:30",
+      "organisation_chain": "RDD-CEO-NANDURBAR||NADURBAR-WORKS DIV.",
+      "organisation_path": [
+        "RDD-CEO-NANDURBAR",
+        "NADURBAR-WORKS DIV."
+      ],
+      "published_at": "2026-10-06T10:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SeKzWWBAWV2fTAKF1cnfKYQ%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_NANDU_1342862_12",
+      "tender_reference": "ETN-09/ 2026-2027",
+      "title": "Improvement to Mandane to Ghodalepada Road VR-51 Km 1/500 to 2/00 Tal Shahada Disrt Nandurbar"
     },
     {
       "closing_at": "2026-10-13T13:00:00+05:30",
@@ -2032,7 +2141,7 @@
         "NADURBAR-WORKS DIV."
       ],
       "published_at": "2026-10-06T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sebh0Mzlzns9mp6XZUgTsCg%3D%3D",
@@ -2053,7 +2162,7 @@
         "NADURBAR-WORKS DIV."
       ],
       "published_at": "2026-10-06T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SB2ttZK5Cnnkj0vbO%2BKyDNw%3D%3D",
@@ -2074,7 +2183,7 @@
         "NADURBAR-WORKS DIV."
       ],
       "published_at": "2026-10-06T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SRGw2gbMMtC30fvEtrAJVlQ%3D%3D",
@@ -2095,7 +2204,7 @@
         "NADURBAR-WORKS DIV."
       ],
       "published_at": "2026-10-06T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXJua0lD0pOmlLoUCk%2BBIRQ%3D%3D",
@@ -2105,25 +2214,69 @@
       "title": "Improvement of Malda To Dhajapani Road VR-68 Kh 0/00 to 0/500Tal Taloda Dist Nandurbar"
     },
     {
-      "closing_at": "2026-10-13T13:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SeKzWWBAWV2fTAKF1cnfKYQ%3D%3D",
+      "closing_at": "2026-10-13T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=StrJycbpmAGOgVBPT8DAjyw%3D%3D",
       "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sl20tHcROYLu%2BkL1B2ZoORA%3D%3D",
-      "opening_at": "2026-10-14T14:00:00+05:30",
-      "organisation_chain": "RDD-CEO-NANDURBAR||NADURBAR-WORKS DIV.",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SFr5xBaZyDrpp1geSRbv8Dg%3D%3D",
+      "opening_at": "2026-10-14T17:00:00+05:30",
+      "organisation_chain": "RDD-CEO-RAIGAD||RAIGAD-WORKS DIV.",
       "organisation_path": [
-        "RDD-CEO-NANDURBAR",
-        "NADURBAR-WORKS DIV."
+        "RDD-CEO-RAIGAD",
+        "RAIGAD-WORKS DIV."
       ],
-      "published_at": "2026-10-06T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "published_at": "2026-10-08T14:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SeKzWWBAWV2fTAKF1cnfKYQ%3D%3D",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=StrJycbpmAGOgVBPT8DAjyw%3D%3D",
       "state_code": "MH",
-      "tender_id": "2026_NANDU_1342862_12",
-      "tender_reference": "ETN-09/ 2026-2027",
-      "title": "Improvement to Mandane to Ghodalepada Road VR-51 Km 1/500 to 2/00 Tal Shahada Disrt Nandurbar"
+      "tender_id": "2026_RAIGA_1343337_5",
+      "tender_reference": "ZP-RAIGAD-WORKDIV-46-2026-27",
+      "title": "Construction of Road at Bhatsai Adiwasi wadi, Tal- Roha, dist- Raigad"
+    },
+    {
+      "closing_at": "2026-10-13T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SCHKaQZLmeiDs1M%2Fw0pK2nQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SFr5xBaZyDrpp1geSRbv8Dg%3D%3D",
+      "opening_at": "2026-10-14T17:00:00+05:30",
+      "organisation_chain": "RDD-CEO-RAIGAD||RAIGAD-WORKS DIV.",
+      "organisation_path": [
+        "RDD-CEO-RAIGAD",
+        "RAIGAD-WORKS DIV."
+      ],
+      "published_at": "2026-10-07T16:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SCHKaQZLmeiDs1M%2Fw0pK2nQ%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_RAIGA_1343337_1",
+      "tender_reference": "ZP-RAIGAD-WORKDIV-46-2026-27",
+      "title": "Construction of Road at Chandane wadi,VR 139,Tal-Panvel"
+    },
+    {
+      "closing_at": "2026-10-14T17:00:00+05:30",
+      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SqTY0Ngziw2GChyYPQ3N5%2FA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SkLREfAFDUkHt1MJn9udxsQ%3D%3D",
+      "opening_at": "2026-10-15T18:00:00+05:30",
+      "organisation_chain": "RDD-CEO-WASHIM||WASHIM-Dy. CEO V.P.||WASHIM||SUKALI",
+      "organisation_path": [
+        "RDD-CEO-WASHIM",
+        "WASHIM-Dy. CEO V.P.",
+        "WASHIM",
+        "SUKALI"
+      ],
+      "published_at": "2026-10-08T14:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Maharashtra e-Procurement Portal",
+      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SqTY0Ngziw2GChyYPQ3N5%2FA%3D%3D",
+      "state_code": "MH",
+      "tender_id": "2026_WASHI_1334741_2",
+      "tender_reference": "2026-27/01/SUKALI/WASHIM",
+      "title": "CONSTRUCTION OF CONCRETE ROAD IN PARDHIWASTI AT SUKALI TQ WASHIM DIST WASHIM UNDER PARADHI WASTI YOJANA 2026-27 3 rd call"
     },
     {
       "closing_at": "2026-10-08T17:00:00+05:30",
@@ -2139,7 +2292,7 @@
         "DHILLI"
       ],
       "published_at": "2026-10-01T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGNSgLEf05rxKTLm1ao3RpQ%3D%3D",
@@ -2147,74 +2300,6 @@
       "tender_id": "2026_WASHI_1342272_1",
       "tender_reference": "DHILLI/2026-27/1",
       "title": "Construction Of Internal CC Road In Punyashlok Ahilyabai Holkar Nagar Hatkar Vasti At.Dhilli Tq. Washim Dt.Washim"
-    },
-    {
-      "closing_at": "2026-10-07T17:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2WMLcQVOieH67ioWYg3XEQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SkLREfAFDUkHt1MJn9udxsQ%3D%3D",
-      "opening_at": "2026-10-08T17:00:00+05:30",
-      "organisation_chain": "RDD-CEO-WASHIM||WASHIM-Dy. CEO V.P.||MANGRULPIR||WARUD (BK)",
-      "organisation_path": [
-        "RDD-CEO-WASHIM",
-        "WASHIM-Dy. CEO V.P.",
-        "MANGRULPIR",
-        "WARUD (BK)"
-      ],
-      "published_at": "2026-09-30T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2WMLcQVOieH67ioWYg3XEQ%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_WASHI_1341963_2",
-      "tender_reference": "WARUD/2026-27/1",
-      "title": "Construction Of Cement Concrete Road In Ramai Nagar At Warud Bk. Tq. Mangrulpir Dt. Washim Under Schedule Cast And Navbaudha Wasti Vikas 2025-26"
-    },
-    {
-      "closing_at": "2026-10-07T16:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SWVhcM5FJlt3sMBmkH76gcQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SkLREfAFDUkHt1MJn9udxsQ%3D%3D",
-      "opening_at": "2026-10-08T17:00:00+05:30",
-      "organisation_chain": "RDD-CEO-WASHIM||WASHIM-Dy. CEO V.P.||WASHIM||WAGHOLI BK",
-      "organisation_path": [
-        "RDD-CEO-WASHIM",
-        "WASHIM-Dy. CEO V.P.",
-        "WASHIM",
-        "WAGHOLI BK"
-      ],
-      "published_at": "2026-09-29T13:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SWVhcM5FJlt3sMBmkH76gcQ%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_WASHI_1341772_1",
-      "tender_reference": "WASHIM/WAGHOLI/2026-27/01",
-      "title": "CONSTRUCTION OF CC ROAD IN DR. BABASAHEB AMBEDKAR NAGAR AT VILEGAON TQ DIST WASHIM"
-    },
-    {
-      "closing_at": "2026-10-08T14:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sr31iujVL%2FVKbQzg2yUkVag%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SZl5tMtOqbiAyrV7iCYHT0g%3D%3D",
-      "opening_at": "2026-10-09T11:00:00+05:30",
-      "organisation_chain": "RDD-CEO-YAVATMAL||YAVATMAL-Dy. CEO V.P.||DIGRAS",
-      "organisation_path": [
-        "RDD-CEO-YAVATMAL",
-        "YAVATMAL-Dy. CEO V.P.",
-        "DIGRAS"
-      ],
-      "published_at": "2026-10-05T14:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sr31iujVL%2FVKbQzg2yUkVag%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_YAVAT_1342835_1",
-      "tender_reference": "GP/DEHANI/MATERIAL/2026",
-      "title": "Supply Of Material For Construction of Cement Concrete Road From Gaju Bhujade to Sanjay Natkar House at Vill. Dehani Tq. Digras. Dist. Yavatmal."
     },
     {
       "closing_at": "2026-10-15T17:00:00+05:30",
@@ -2228,7 +2313,7 @@
         "Information Technology"
       ],
       "published_at": "2026-09-21T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDnqz15UsOpX1FZb66bzViQ%3D%3D",
@@ -2249,7 +2334,7 @@
         "Information Technology"
       ],
       "published_at": "2026-09-21T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Maharashtra e-Procurement Portal",
       "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SKUIzatDwqmKyY4RcEv1xJw%3D%3D",
@@ -2257,27 +2342,6 @@
       "tender_id": "2026_SAI_1340003_1",
       "tender_reference": "SSST/ Construction / 2026/83/ Road Along Nala No.32 To Kankuri Road",
       "title": "Widening And Construction Of Asphalt Road From Road Along Nala No.32 To Kankuri Road At Nimgaon-Korhale, Shirdi, Tal. Rahata, Dist. Ahilyanagar."
-    },
-    {
-      "closing_at": "2026-10-07T11:00:00+05:30",
-      "detail_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sx1jcWH19i9clh4o4QDaXCQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SiDjRyoUbYJMwC8vGnx2WbdS0Fec7wUuNy1YFXyqSerE%3D",
-      "opening_at": "2026-10-09T11:00:00+05:30",
-      "organisation_chain": "Vasai Virar City Municipal Corporation||PWD Department",
-      "organisation_path": [
-        "Vasai Virar City Municipal Corporation",
-        "PWD Department"
-      ],
-      "published_at": "2026-09-29T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Maharashtra e-Procurement Portal",
-      "source_url": "https://mahatenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sx1jcWH19i9clh4o4QDaXCQ%3D%3D",
-      "state_code": "MH",
-      "tender_id": "2026_VVCMC_1341645_3",
-      "tender_reference": "VVCMC/PWD/CE/T N NO.33/25",
-      "title": "Construction of new R.C.C Nala and Cement Concrete road at Bhadalepada,Giriz from Sahara residancy to chainage 89m in W No.25 in VVCMC area."
     }
   ],
   "organisations": [
@@ -2293,7 +2357,6 @@
     "CE (WRD) North Maharashtra Region Nashik",
     "CE and CA CADA Aurangabad",
     "CE Tapi Irrigation Development Corporation Jalgaon",
-    "CE Water Resources Department Aurangabad",
     "CE Water Resources Department Gosikurda Project Nagpur",
     "CE(SP)-Water Resources Dept. Amravati",
     "CE-Water Resources Dept. Konkan Region Mumbai",
@@ -2322,8 +2385,8 @@
     "Department of Sales Tax Maharashtra",
     "Devasthan Management Committee Western Maharashtra Kolhapur",
     "Dhule Municipal Corporation Dhule",
-    "Director General Of Police, Mumbai",
     "Director General Yashada",
+    "Director Groundwater Surveys and Devl.Agency, Pune",
     "Director Medical Education and Research Department Mumbai",
     "Director of Higher Education Pune",
     "Director of Technical Education Department Mumbai",
@@ -2336,6 +2399,7 @@
     "Divisional Dy. Commissioner Women and Child Development Konkan",
     "Dr. Babasaheb Ambedkar Technological University Lonere",
     "Dr. Panjabrao Deshmukh Krishi Vidyapeeth Akola",
+    "Employment Guarantee Scheme",
     "Finance Department",
     "Haffkine Bio Pharamceutical Corporation Ltd. Mumbai",
     "Head Of Forest Force Nagpur Maharashtra State",
@@ -2347,11 +2411,10 @@
     "Kolhapur Municipal Corporation",
     "Law and Judiciary Department Mantralaya",
     "Maharashtra Airport Development Co. Ltd.",
+    "Maharashtra Electricity Regulatory Commission Mumbai",
     "Maharashtra Energy Development Agency Pune",
-    "Maharashtra Engineering Research Institute Nashik",
     "Maharashtra Housing and Area Development Authority",
     "Maharashtra Industrial Development Corporation",
-    "Maharashtra Legislature Secretariat",
     "Maharashtra Maritime Board Mumbai",
     "Maharashtra Medical Goods Procurement Authority Mumbai",
     "Maharashtra Metro Rail Corporation Limited",
@@ -2366,7 +2429,6 @@
     "Mahila Arthik Vikas Mahamandal Mumbai",
     "Malegaon Municipal Corporation Malegaon",
     "Mantralaya Canteens",
-    "Marathi Bhasha Vidyapeeth Riddhpur Amravati",
     "Member Secretary(WSSD),Mumbai",
     "Mira Bhaindar Municipal Corporation",
     "Mumbai Metropolitan Region Development Authority",
@@ -2393,7 +2455,6 @@
     "RDD-CEO-GADCHIROLI",
     "RDD-CEO-JALGAON",
     "RDD-CEO-JALNA",
-    "RDD-CEO-KOLHAPUR",
     "RDD-CEO-LATUR",
     "RDD-CEO-NAGPUR",
     "RDD-CEO-NANDURBAR",
@@ -2415,6 +2476,7 @@
     "Sangli Miraj Kupwad Municipal Corporation",
     "Sant Gadge Baba Amravati University",
     "SE National Health Mission State Health Society Mumbai",
+    "Settlement Commissioner and Director of Land Records (M.S.) Pune",
     "Shivaji University Kolhapur",
     "Shivshahi Punarvasan Prakalp Limited",
     "Shri Saibaba Sansthan Trust, Shirdi",
@@ -2430,9 +2492,9 @@
     "University Of Pune",
     "Vasai Virar City Municipal Corporation"
   ],
-  "retrieved_at": "2026-10-07T04:59:04Z",
-  "rows_excluded_by_scope": 2418,
-  "rows_scanned": 2522,
+  "retrieved_at": "2026-10-08T08:55:17Z",
+  "rows_excluded_by_scope": 2455,
+  "rows_scanned": 2562,
   "schema_version": 1,
   "source_id": "in-mh-gepnic",
   "source_name": "Maharashtra e-Procurement Portal",
