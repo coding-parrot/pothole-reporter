@@ -23,7 +23,9 @@ cd "$ROOT_DIR"
 # HEAD, nothing tracked is modified, the service suite ran with no failure and the
 # harness reported no regression. Anything else stops the deploy.
 if [[ -n "${CLOUD_CI_BUILD:-}" ]]; then
-  python3 infra/aws-central/tools/cloud-test-verdict.py "$CLOUD_CI_BUILD" "$ACCOUNT_ID" "$AWS_REGION"
+  # CLOUD_BASELINE=<commit>/<build uuid> of an AWS run on HEAD's history excuses a test
+  # that failed there too (cloud-test-verdict.py says which).
+  python3 infra/aws-central/tools/cloud-test-verdict.py "$CLOUD_CI_BUILD" "$ACCOUNT_ID" "$AWS_REGION" "${CLOUD_BASELINE:-}"
 else
   (cd infra/aws-central && npm test)
 fi
