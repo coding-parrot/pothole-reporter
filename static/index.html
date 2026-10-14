@@ -674,6 +674,7 @@ const I18N = {
     pothole_ref: "Pothole #{id}",
     complaint_one: "1 complaint report", complaint_many: "{n} complaint reports",
     first_reported: "First reported {date}", last_reported: "Last reported {date}",
+    reported_ago: "{days} since the first report",
     community_title: "Public pothole map",
     community_note: "Loading public map and complaint counts...",
     stat_installations: "phones using the app", stat_requests: "server requests",
@@ -987,6 +988,7 @@ const I18N = {
     pothole_ref: "ರಸ್ತೆ ಗುಂಡಿ #{id}",
     complaint_one: "1 ದೂರು ವರದಿ", complaint_many: "{n} ದೂರು ವರದಿಗಳು",
     first_reported: "ಮೊದಲ ವರದಿ {date}", last_reported: "ಕೊನೆಯ ವರದಿ {date}",
+    reported_ago: "ಮೊದಲ ವರದಿಯಿಂದ {days}",
     community_title: "ಸಾರ್ವಜನಿಕ ರಸ್ತೆ ಗುಂಡಿ ನಕ್ಷೆ",
     community_note: "ಸಾರ್ವಜನಿಕ ನಕ್ಷೆ ಮತ್ತು ದೂರು ಎಣಿಕೆಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...",
     stat_installations: "ಆ್ಯಪ್ ಬಳಸುತ್ತಿರುವ ಫೋನ್‌ಗಳು", stat_requests: "ಸೇವೆಯ ವಿನಂತಿಗಳು",
@@ -1373,6 +1375,7 @@ const I18N = {
     feedback_errors_label: "शेवटचे {n} ॲप त्रुटी संदेश जोडा (फक्त मजकूर: फोटो, की किंवा स्थान नाही)",
     finishing_analysis: "कॅमेरा थांबला · {n} घेतलेल्या तपासण्या पूर्ण होत आहेत…",
     first_reported: "पहिली नोंद {date}",
+    reported_ago: "पहिल्या नोंदीपासून {days}",
     gpx_bad: "त्या GPX फाइलमध्ये UTC वेळेसह किमान दोन वैध ट्रॅक पॉइंट हवेत.",
 
     impact_period: "{from} ते {to} या काळाची एकत्रित आकडेवारी.",
@@ -1698,6 +1701,7 @@ const I18N = {
     feedback_errors_label: "শেষ {n}টি অ্যাপ ত্রুটি বার্তা যোগ করুন (শুধু লেখা: কোনও ছবি, কী বা অবস্থান নয়)",
     finishing_analysis: "ক্যামেরা বন্ধ · {n}টি নেওয়া বিশ্লেষণ শেষ হচ্ছে…",
     first_reported: "প্রথম জানানো হয় {date}",
+    reported_ago: "প্রথম জানানোর পর {days} কেটেছে",
     gpx_bad: "ওই GPX ফাইলে UTC সময়সহ অন্তত দুটি বৈধ ট্র্যাক পয়েন্ট থাকা দরকার।",
 
     impact_period: "{from} থেকে {to} পর্যন্ত মোট হিসাব।",
@@ -8845,11 +8849,23 @@ const publicPinsText = (pins, reports) =>
 // it: on the live service health pings alone were 9640 of 9968 requests.
 const POLLING_ROUTES = new Set(["/v1/health", "/v1/map", "/v1/impact"]);
 
+const publicMapMilliseconds = (value) => value < 10_000_000_000 ? value * 1000 : value;
+
 function publicMapDate(value) {
   if (!Number.isFinite(value)) return "";
-  const milliseconds = value < 10_000_000_000 ? value * 1000 : value;
-  const date = new Date(milliseconds);
+  const date = new Date(publicMapMilliseconds(value));
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString();
+}
+
+// How long a pothole has been on the map, counted in whole days from its first report
+// (issue #9). The service does not know when a pothole is repaired, so this says how
+// long ago it was first reported, not that it is still open. Under a day, or a first
+// report dated in the future by a wrong phone clock, says nothing.
+function publicMapDaysSince(value, now = Date.now()) {
+  if (!Number.isFinite(value)) return "";
+  const days = Math.floor((now - publicMapMilliseconds(value)) / 86_400_000);
+  if (!Number.isSafeInteger(days) || days < 1) return "";
+  return t("reported_ago", { days: days === 1 ? t("day_one") : t("day_many", { n: days }) });
 }
 
 async function openDash() {
@@ -9147,11 +9163,13 @@ function drawMap(pins, unavailable = false) {
         fillColor: color, fillOpacity: .75 });
       const first = publicMapDate(r.first_seen_at);
       const last = publicMapDate(r.last_seen_at);
+      const age = publicMapDaysSince(r.first_seen_at);
       m.bindPopup(`<strong>${escapeHtml(t("pothole_ref", { id: r.id }))}</strong>`
         + `<br>${escapeHtml(tDamage(r))}`
         + `${r.town ? `<br>${escapeHtml(r.town)}` : ""}`
         + `<br><b>${escapeHtml(complaintCountText(r.complaint_count))}</b>`
         + `${first ? `<br>${escapeHtml(t("first_reported", { date: first }))}` : ""}`
+        + `${age ? `<br>${escapeHtml(age)}` : ""}`
         + `${last ? `<br>${escapeHtml(t("last_reported", { date: last }))}` : ""}`);
       mapGroup.addLayer(m);
     }

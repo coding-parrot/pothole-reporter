@@ -17,6 +17,10 @@ TILE_PNG = base64.b64decode(
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 APP = os.environ.get("POTHOLE_TEST_APP", "http://localhost:8765/")
 SERVICE = "https://public-map.test"
+DAY_MS = 86_400_000
+# Pothole #41 was first reported at 1788500000000. Freeze the page clock 37 days and an
+# hour later so the popup's age is a fixed number rather than whatever today is.
+NOW_MS = 1788500000000 + 37 * DAY_MS + 3_600_000
 PII = {
     "reporter_name": "REPORTER_PII_SENTINEL",
     "reporter_email": "EMAIL_PII_SENTINEL@example.invalid",
@@ -128,6 +132,8 @@ def main():
             "localStorage.removeItem('openai_key');"
             "localStorage.removeItem('data_notice_version');"
         )
+        # Only Date is frozen; timers keep running, so Leaflet and the fetches still settle.
+        context.clock.set_fixed_time(NOW_MS / 1000)
         page = context.new_page()
         page.route(f"{SERVICE}/**", route_api)
         # Serve a real (tiny) tile rather than aborting: with no tile at all the app
@@ -156,7 +162,17 @@ def main():
                   reporter_name: 'PRIVATE', install_id: 'PRIVATE', request_id: 'PRIVATE',
                   photo: 'PRIVATE'}
               });
+              const now = Date.now();
+              const ages = {
+                now,
+                hour: publicMapDaysSince(now - 3600000, now),
+                future: publicMapDaysSince(now + 5 * 86400000, now),
+                one: publicMapDaysSince(now - 86400000, now),
+                seconds: publicMapDaysSince(Math.floor((now - 3 * 86400000) / 1000), now),
+                missing: publicMapDaysSince(NaN, now),
+              };
               return {
+                ages,
                 body: document.body.textContent,
                 stats: document.querySelector('#communityStats').textContent,
                 note: document.querySelector('#communityNote').textContent,
@@ -190,6 +206,22 @@ def main():
     for expected in ("Pothole #41", "3 complaint reports", "Pothole #42", "2 complaint reports"):
         if expected not in popup_text:
             failures.append(f"public marker popup missing {expected!r}: {popup_text!r}")
+    # Issue #9: each popup says how long ago the pothole was first reported.
+    if abs(state["ages"]["now"] - NOW_MS) > 1000:
+        failures.append(f"page clock was not frozen: {state['ages']['now']!r}")
+    for pothole in ("Pothole #41", "Pothole #42"):
+        popup = next((p for p in state["popups"] if pothole in p), "")
+        if "37 days since the first report" not in popup:
+            failures.append(f"{pothole} popup does not say how long ago it was first reported: {popup!r}")
+    for case, want in (
+        ("hour", ""),
+        ("future", ""),
+        ("missing", ""),
+        ("one", "1 day since the first report"),
+        ("seconds", "3 days since the first report"),
+    ):
+        if state["ages"][case] != want:
+            failures.append(f"publicMapDaysSince {case}: {state['ages'][case]!r}, want {want!r}")
     rendered = state["body"] + popup_text
     for value in PII.values():
         if value in rendered:
