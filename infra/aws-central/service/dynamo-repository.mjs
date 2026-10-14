@@ -83,6 +83,12 @@ export function createDynamoRepository({
   return {
     dedupeRadiusMetres,
 
+    // Messages for every phone (tools/send-announcement.mjs writes the one row).
+    async listAnnouncements() {
+      const result = await send(new GetCommand({ TableName: tables.control, Key: { id: "ANNOUNCEMENTS" } }));
+      return (result.Item && Array.isArray(result.Item.messages)) ? result.Item.messages : [];
+    },
+
     async registerInstallation(value) {
       const now = Date.now();
       await send(new UpdateCommand({

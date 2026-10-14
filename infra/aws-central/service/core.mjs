@@ -55,7 +55,7 @@ const SIGNED_ROUTES = [
   "/v1/feedback",
 ];
 const KNOWN_ROUTES = new Set([
-  "/v1/health", "/v1/map", "/v1/impact", "/v1/installations", ...SIGNED_ROUTES,
+  "/v1/health", "/v1/map", "/v1/impact", "/v1/messages", "/v1/installations", ...SIGNED_ROUTES,
 ]);
 const LOCATION_SOURCES = new Set([
   "device_gps", "gpx_timestamp", "current_position_confirmed", "none",
@@ -1058,6 +1058,30 @@ export function createService({
     if (failed) throw failed.reason;
   }
 
+  // The app's MessageWorker asks about once an hour for messages newer than the last
+  // one it showed (owner, 14 Oct 2026: "Enable notification sending abilities at will").
+  // Public, like the map: the request carries nothing about the phone and every phone
+  // gets the same answer. Without `since` a phone asking for the first time gets only
+  // the server's clock to start from, never a backlog.
+  async function announcements(event, context) {
+    const params = query(event);
+    const nowMs = now();
+    let since = null;
+    if (params.since != null) {
+      since = Number(params.since);
+      if (!Number.isFinite(since) || since < 0) {
+        throw new HttpError(400, "bad_since", "since must be a millisecond timestamp.");
+      }
+    }
+    const messages = since == null ? [] : (await repository.listAnnouncements())
+      .filter((item) => item && Number(item.created_at) > since && Number(item.expires_at) * 1000 > nowMs)
+      .sort((left, right) => Number(left.created_at) - Number(right.created_at))
+      .map((item) => ({ id: String(item.id), title: String(item.title), body: String(item.body),
+        created_at: Number(item.created_at) }));
+    context.outcome = "messages_read";
+    return response(200, { now: nowMs, messages }, context.requestId, "public, max-age=60");
+  }
+
   async function publicMap(event, context) {
     const params = query(event);
     const since = params.since == null ? Date.now() - 180 * 86_400_000 : Number(params.since);
@@ -1166,6 +1190,7 @@ export function createService({
     }
     if (target.method === "GET" && target.path === "/v1/map") return publicMap(event, context);
     if (target.method === "GET" && target.path === "/v1/impact") return impact(event, context);
+    if (target.method === "GET" && target.path === "/v1/messages") return announcements(event, context);
     if (target.method === "POST" && target.path === "/v1/installations") {
       return installation(event, context);
     }

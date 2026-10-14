@@ -25,6 +25,8 @@ class MainActivity : BridgeActivity() {
             applicationContext,
             ensureAfterCurrent = true,
         )
+        // Messages the owner sends to every phone, checked hourly and on each open.
+        com.gauravsen.potholereporter.messages.MessageWorker.schedule(applicationContext)
     }
 
     override fun onNewIntent(intent: Intent) {

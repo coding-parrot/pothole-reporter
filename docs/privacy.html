@@ -72,7 +72,7 @@
   <header>
     <p class="meta">Pothole Reporter · Android package <code>dev.aiengg.potholereporter</code></p>
     <h1>Privacy Policy</h1>
-    <p class="meta">Effective and last updated: 11 September 2026</p>
+    <p class="meta">Effective and last updated: 14 October 2026</p>
     <nav aria-label="Related pages">
       <a href="sources.html">Data sources</a>
       <a href="https://github.com/coding-parrot/pothole-reporter">Source code</a>
@@ -84,6 +84,7 @@
     <h2>Summary</h2>
     <div class="summary">
       <p>Pothole Reporter uses a project service for shared vision, tender resolution, nearby deduplication, a general pothole map, and aggregate impact counts. It has no advertising network or app account system.</p>
+      <p>Notifications: if you allow them, the app reminds you of potholes you found and have not yet sent, and shows messages from the project. The reminder is scheduled on your phone. For messages, the app asks the project service about once an hour whether there is anything new; that request carries no installation ID or other identifier, and every phone receives the same answer.</p>
       <p>In both vision modes, an accepted pothole's exact coordinates and small metadata, including an image hash and pseudonymous installation ID, go to the project service. If that upload fails, the exact accepted-metadata request is queued on the device and retried when the app starts or reconnects until you delete the local report. Shared mode routes selected images through that service to its configured detector (OpenAI by default, or an in-house YOLO gateway) without project-service retention. Personal mode sends your key and images directly to OpenAI; your key never goes to the project service.</p>
     </div>
   </section>

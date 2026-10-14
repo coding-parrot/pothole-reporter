@@ -216,6 +216,24 @@ with sync_playwright() as playwright:
     fails += error_failures(errors, "permission refused")
     browser.close()
 
+    # ---------- found and already emailed: asked once, nothing to remind of ----------
+    # The permission also carries the owner's messages, so someone with no unsent find
+    # is still asked once they have used the app.
+    browser, page, errors = phone(playwright)
+    page.evaluate(report_form_script())
+    page.evaluate("openDetail(window.__flowReport, [window.__flowReport])")
+    page.locator("#detail").wait_for(state="visible", timeout=30_000)
+    if page.locator("#detail #sendBtn").count() == 1:
+        page.locator("#detail #sendBtn").click()
+        page.wait_for_function("() => (window.__composerCalls || []).length > 0", timeout=30_000)
+    used = settle(page)
+    if used["asked"] != 1:
+        fails.append(f"someone who has used the app should be asked once for notifications, not {used['asked']} times")
+    if used["schedule"]:
+        fails.append("a reminder was scheduled with nothing left unsent")
+    fails += error_failures(errors, "asked after use")
+    browser.close()
+
     # ---------- the website ----------
     browser, page, errors = open_flow(playwright, native=False)
     page.route(f"{fh.SERVICE}/**", service)

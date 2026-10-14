@@ -2423,8 +2423,9 @@ function loadReports() {
 // The phone schedules it itself (Capacitor local notifications); nothing leaves the
 // phone. The planner in standalone.js decides when. A scheduled notification carries
 // fixed text, so every refresh of the list cancels it and schedules it again with the
-// count as it is now. Permission is asked for once, the first time there is an unsent
-// find and no drive is running; a refusal is final.
+// count as it is now. Notification permission also lets the owner's messages through
+// (MessageWorker in the app), so it is asked for once, the first time the person has
+// driven or found anything and no drive is running; a refusal is final.
 const REMINDER_ID = 4201;
 const REMINDER_RECORD_KEY = "unreported_reminder";
 const REMINDER_ASKED_KEY = "unreported_reminder_asked";
@@ -2443,7 +2444,9 @@ async function applyUnreportedReminder(plugin, reports) {
   try { record = JSON.parse(localStorage.getItem(REMINDER_RECORD_KEY) || "null"); } catch (e) {}
   const plan = StandaloneAPI.planUnreportedReminder(reports, Date.now(), record);
   await plugin.cancel({ notifications: [{ id: REMINDER_ID }] }).catch(() => {});
-  if (plan.schedule && await remindersAllowed(plugin)) {
+  const used = reports.length > 0 || (loadReports.drives || []).length > 0;
+  const allowed = (plan.schedule || used) && await notificationsAllowed(plugin);
+  if (plan.schedule && allowed) {
     await plugin.schedule({ notifications: [{
       id: REMINDER_ID,
       title: t("reminder_title", { n: plan.schedule.count }),
@@ -2459,7 +2462,7 @@ async function applyUnreportedReminder(plugin, reports) {
     else localStorage.removeItem(REMINDER_RECORD_KEY);
   } catch (e) {}
 }
-async function remindersAllowed(plugin) {
+async function notificationsAllowed(plugin) {
   const current = await plugin.checkPermissions().catch(() => null);
   const state = current && current.display;
   if (state === "granted") return true;
@@ -2546,6 +2549,7 @@ async function renderReports() {
   // ---------- End native merge ----------
 
   loadReports.latest = allReports;
+  loadReports.drives = allDrives;
   // Rejected frames and rows still under review are not reports the tester made.
   maybeNudgeFeedback(allReports.filter((r) =>
     ["draft", "queued", "sent", "unrouted", "duplicate"].includes(r.status)).length);
