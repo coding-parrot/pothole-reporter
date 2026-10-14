@@ -2,7 +2,7 @@
 	"appId": "dev.aiengg.potholereporter",
 	"appName": "Pothole Reporter",
 	"webDir": "www",
-	"appendUserAgent": "PotholeReporter/1.41.1 (+https://coding-parrot.github.io/pothole-reporter/; contact: contact@aiengg.dev)",
+	"appendUserAgent": "PotholeReporter/1.42.0 (+https://coding-parrot.github.io/pothole-reporter/; contact: contact@aiengg.dev)",
 	"android": {
 		"loggingBehavior": "none"
 	},
@@ -15,6 +15,10 @@
 		},
 		"SystemBars": {
 			"style": "DARK"
+		},
+		"LocalNotifications": {
+			"smallIcon": "ic_drive_notification",
+			"iconColor": "#ff8a3d"
 		}
 	}
 }

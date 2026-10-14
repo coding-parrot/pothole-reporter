@@ -6623,6 +6623,46 @@
   const WARD_TENDER_LIMITS = Object.freeze({
     count: 5, tenderNumber: 120, title: 240, published: 40, wardName: 120,
   });
+  // A reminder on the phone for potholes found and never sent (owner, 14 Oct 2026: "if
+  // the app notes that they detected potholes and haven't filed complaints, they should
+  // be nudged to do so"). Only a "draft" counts: "queued" means the mail app was opened,
+  // "unrouted" has nobody to send to, a duplicate is a pothole already known. The first
+  // reminder comes an hour after the newest unsent find, so never during a drive; the
+  // next a day after that; two for the same finds and then none. Never 21:00 to 09:00.
+  // `record` is what the previous call returned: a reminder whose time has passed was
+  // shown. Times are milliseconds; `offsetMinutes` is the phone's offset from UTC.
+  const REMINDER_DELAY_MS = 60 * 60 * 1000;
+  const REMINDER_GAP_MS = 24 * 60 * 60 * 1000;
+  const REMINDERS_PER_FIND = 2;
+  const REMINDER_QUIET_FROM_HOUR = 21;
+  const REMINDER_QUIET_UNTIL_HOUR = 9;
+  function planUnreportedReminder(reports, nowMs, record, offsetMinutes) {
+    const drafts = (Array.isArray(reports) ? reports : []).filter((r) => r && r.status === "draft");
+    const pendingAt = record ? Number(record.pending_at) || 0 : 0;
+    const shown = pendingAt > 0 && nowMs >= pendingAt;
+    const lastShownAt = shown ? pendingAt : record ? Number(record.last_shown_at) || 0 : 0;
+    if (!drafts.length) {
+      return { cancel: true, record: lastShownAt ? { batch: 0, shown: 0, last_shown_at: lastShownAt, pending_at: 0 } : null };
+    }
+    const batch = Math.max(...drafts.map((r) => Number(r.created_at) || 0)) * 1000;
+    const shownForBatch = record && record.batch === batch ? (Number(record.shown) || 0) + (shown ? 1 : 0) : 0;
+    const kept = { batch, shown: shownForBatch, last_shown_at: lastShownAt };
+    if (shownForBatch >= REMINDERS_PER_FIND) return { cancel: true, record: { ...kept, pending_at: 0 } };
+    const at = outsideQuietHours(Math.max(batch + REMINDER_DELAY_MS,
+      lastShownAt ? lastShownAt + REMINDER_GAP_MS : 0, nowMs + 60 * 1000), offsetMinutes);
+    return { schedule: { at, count: drafts.length }, record: { ...kept, pending_at: at } };
+  }
+  function outsideQuietHours(ms, offsetMinutes) {
+    const offset = Number.isFinite(offsetMinutes) ? offsetMinutes : -new Date(ms).getTimezoneOffset();
+    // The UTC fields of `local` read as the phone's own clock.
+    const local = new Date(ms + offset * 60000);
+    const hour = local.getUTCHours();
+    if (hour >= REMINDER_QUIET_UNTIL_HOUR && hour < REMINDER_QUIET_FROM_HOUR) return ms;
+    const morning = new Date(local);
+    morning.setUTCHours(REMINDER_QUIET_UNTIL_HOUR, 0, 0, 0);
+    if (hour >= REMINDER_QUIET_FROM_HOUR) morning.setUTCDate(morning.getUTCDate() + 1);
+    return morning.getTime() - offset * 60000;
+  }
   // Where in the frame the service's locator found the pothole: boxes as fractions of
   // the whole frame, best first. Kept with the report and drawn on a COPY of its photo
   // for the screen and the email; the stored photo is never drawn on.
@@ -13235,10 +13275,11 @@
                    PUNJAB_STATE_GEOMETRY_SHA256, QUALITY_RE, RAJASTHAN_ROUTING_ENVELOPE,
                    RAJASTHAN_STATE_AUTHORITY, RAJASTHAN_STATE_GEOMETRY_SHA256,
                    RECIPIENT_STATE_LANGUAGE, REMAINING_STATE_AUTHORITIES,
-                   REMAINING_STATE_ROUTE_CONFIGS, REPAIR_EVIDENCE_MAX_BYTES,
-                   REPAIR_EVIDENCE_MAX_DIMENSION, REPAIR_EVIDENCE_MAX_PIXELS,
-                   REPAIR_EVIDENCE_MIN_BYTES, REPAIR_EVIDENCE_MIN_DIMENSION,
-                   REPAIR_EVIDENCE_TYPES, REPAIR_MAX_ACCURACY_M,
+                   REMAINING_STATE_ROUTE_CONFIGS, REMINDERS_PER_FIND, REMINDER_DELAY_MS,
+                   REMINDER_GAP_MS, REMINDER_QUIET_FROM_HOUR, REMINDER_QUIET_UNTIL_HOUR,
+                   REPAIR_EVIDENCE_MAX_BYTES, REPAIR_EVIDENCE_MAX_DIMENSION,
+                   REPAIR_EVIDENCE_MAX_PIXELS, REPAIR_EVIDENCE_MIN_BYTES,
+                   REPAIR_EVIDENCE_MIN_DIMENSION, REPAIR_EVIDENCE_TYPES, REPAIR_MAX_ACCURACY_M,
                    REPAIR_MAX_HEADING_DIFFERENCE_DEG, REPAIR_MISSING_HEADING_RADIUS_M,
                    REPAIR_RADIUS_M, REPAIR_SCHEMA_VERSION, REPAIR_VERIFICATION_VERSION,
                    REPORT_BINARY_FIELDS, REPORT_DETAIL_ONLY_FIELDS, REPORT_STATUSES,
@@ -13345,10 +13386,11 @@
                    odishaRouteFromGeocode, officialArcGisCount, officialIndianPublicRecordUrl,
                    officialPointRegionMatch, op, openBengaluruHandoff, openEmailDraft, openIdb,
                    openNationalHighwayHandoff, openOfficialHandoff, optionalCatalogResult,
-                   outerStateBoundaryGeometry, partialAssessment, peekReject, peekVerdict,
-                   pendingDetectionFields, photoBlob, photoToBase64, pinnedStateCoverage,
-                   pinnedStateRoute, pmsg, pointInEnvelope, pointInGeometry, pointInPolygon,
-                   pointInRing, pointOnSegment, pointToHighwaySegment, pointToSegmentMeters,
+                   outerStateBoundaryGeometry, outsideQuietHours, partialAssessment, peekReject,
+                   peekVerdict, pendingDetectionFields, photoBlob, photoToBase64,
+                   pinnedStateCoverage, pinnedStateRoute, planUnreportedReminder, pmsg,
+                   pointInEnvelope, pointInGeometry, pointInPolygon, pointInRing,
+                   pointOnSegment, pointToHighwaySegment, pointToSegmentMeters,
                    postCentralReport, preferredLowerCatalogMatch, prepareComplaint,
                    presentDataStores, prewarm, probeProjectService, progress,
                    projectServiceAvailable, pruneStatePacks, pruneStoredHistory,
@@ -13419,7 +13461,7 @@
                  };
 
   window.StandaloneAPI = { __pure, handle, prewarm, prepareComplaint, sharedChecksToday,
-                           wardTenders: wardTendersForReport };
+                           wardTenders: wardTendersForReport, planUnreportedReminder };
 
   // Pending accepted observations contain no image or complaint text. Retry them only
   // at bounded lifecycle signals; the stable body/idempotency key prevents double count.

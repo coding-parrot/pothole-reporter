@@ -83,10 +83,14 @@ const implicitUsers = {
     webCode, /navigator\.geolocation/],
   ACCESS_NETWORK_STATE: ["WorkManager, for UploadWorker's network constraint", wiredCode, /NetworkType\.CONNECTED/],
   WAKE_LOCK: ["WorkManager, which holds one while UploadWorker runs", wiredCode, /androidx\.work\./],
+  POST_NOTIFICATIONS: ["@capacitor/local-notifications, for the reminder of unsent finds",
+    webCode, /LocalNotifications/],
 };
 const permissions = [...read("android-app/android/app/src/main/AndroidManifest.xml")
   .replace(/<!--[\s\S]*?-->/g, "")
-  .matchAll(/<uses-permission\s+android:name="android\.permission\.([A-Z_]+)"/g)].map((m) => m[1]);
+  // A tools:node="remove" line takes a library's permission out; it declares nothing.
+  .matchAll(/<uses-permission\s+android:name="android\.permission\.([A-Z_]+)"(?![^>]*tools:node="remove")/g)]
+  .map((m) => m[1]);
 for (const permission of permissions) {
   const named = new RegExp(`\\b${permission}\\b`).test(wiredCode);
   const implicit = implicitUsers[permission];

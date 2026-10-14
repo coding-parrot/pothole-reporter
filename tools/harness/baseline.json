@@ -156,5 +156,6 @@
   "look_and_feel_test.py": true,
   "map_india_only_test.py": true,
   "map_opens_on_city_test.py": true,
+  "unreported_reminder_test.py": true,
   "pothole_marks_test.py": true
 }

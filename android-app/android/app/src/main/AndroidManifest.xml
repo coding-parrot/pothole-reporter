@@ -78,8 +78,11 @@
     </application>
 
     <!-- Permissions. Each one needs a user in the wired tree (check-native-contracts.mjs).
-         CHANGE_NETWORK_STATE (the RTSP dashcam source) and POST_NOTIFICATIONS (the
-         foreground Drive notification) come back with the code that uses them. -->
+         CHANGE_NETWORK_STATE (the RTSP dashcam source) comes back with the code that
+         uses it. POST_NOTIFICATIONS is the reminder of unsent finds, scheduled through
+         @capacitor/local-notifications. That plugin also declares SCHEDULE_EXACT_ALARM,
+         removed here: a reminder an hour late is fine, and Play asks every app holding
+         it to justify exact alarms. Without it the plugin schedules an inexact alarm. -->
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
@@ -87,6 +90,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
 </manifest>
