@@ -6,6 +6,8 @@ request and in every drive analysis log, because the suffix in capacitor.config.
 was never bumped with versionName. And the manifest kept CHANGE_NETWORK_STATE and
 POST_NOTIFICATIONS after the dashcam and foreground Drive code that used them was
 unwired, so Play listed them and the Data safety review asked about them.
+POST_NOTIFICATIONS came back in 1.42.0 with a user: the reminder of unsent finds, through
+@capacitor/local-notifications. That plugin's SCHEDULE_EXACT_ALARM stays removed.
 
 check-native-contracts.mjs guards both. This suite runs it on the repo, then plants
 each defect in a copy and watches it fail, because a gate that never fires is not a gate.
@@ -82,9 +84,10 @@ check(f"the WebView user agent names the build it ships in ({version})",
       user_agent.startswith(f"PotholeReporter/{version} "), user_agent)
 
 manifest = (ROOT / MANIFEST).read_text()
-for permission in ["CHANGE_NETWORK_STATE", "POST_NOTIFICATIONS"]:
-    check(f"the manifest no longer asks for {permission}",
-          f"android.permission.{permission}" not in manifest)
+check("the manifest no longer asks for CHANGE_NETWORK_STATE",
+      "android.permission.CHANGE_NETWORK_STATE" not in manifest)
+check("the notifications plugin's exact-alarm permission is removed from the app",
+      re.search(r'android\.permission\.SCHEDULE_EXACT_ALARM"\s+tools:node="remove"', manifest) is not None)
 
 planted("a versionName bump without the user agent fails the check",
         lambda root: edit(root, GRADLE, r'versionName "[^"]+"', 'versionName "9.9.9"'),
@@ -95,8 +98,11 @@ if (ROOT / PACKAGED).exists():
             f"user agent: {PACKAGED} differs")
 planted("a permission with no wired user fails the check",
         lambda root: edit(root, MANIFEST, r'(<uses-permission android:name="android.permission.WAKE_LOCK" />)',
-                          r'\1\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />'),
-        "permission POST_NOTIFICATIONS: declared in the manifest")
+                          r'\1\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />'),
+        "permission RECORD_AUDIO: declared in the manifest")
+planted("notifications without the reminder that uses them fail the check",
+        lambda root: edit(root, "static/index.html", r"LocalNotifications", "LocalAlerts"),
+        "permission POST_NOTIFICATIONS: declared for @capacitor/local-notifications")
 planted("a permission named only in a comment still fails the check",
         lambda root: edit(root, MANIFEST, r'(<uses-permission android:name="android.permission.WAKE_LOCK" />)',
                           r'\1\n    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />')
