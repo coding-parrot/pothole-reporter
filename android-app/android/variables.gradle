@@ -25,4 +25,7 @@ ext {
     lifecycleVersion = '2.9.0'
     media3Version = '1.11.0'
     kotlinVersion = '2.1.0'
+    // @capacitor/local-notifications reads kotlin_version; without it the plugin asks for
+    // its own 2.0.21 Gradle plugin, which the offline release build does not have.
+    kotlin_version = '2.1.0'
 }
