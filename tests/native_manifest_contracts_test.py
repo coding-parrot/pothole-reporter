@@ -109,9 +109,11 @@ planted("a permission named only in a comment still fails the check",
         or (root / WIRED / "potholereporter/Note.kt").write_text(
             "package com.gauravsen.potholereporter\n// CHANGE_NETWORK_STATE once served the dashcam.\n"),
         "permission CHANGE_NETWORK_STATE: declared in the manifest")
+# Both workers wait for a connection: UploadWorker and, since 1.43.0, MessageWorker.
 planted("a library permission whose user is removed fails the check",
-        lambda root: edit(root, WIRED + "/potholereporter/drivemode/UploadWorker.kt",
-                          r"NetworkType\.CONNECTED", "NetworkType.NOT_REQUIRED"),
+        lambda root: [edit(root, WIRED + path, r"NetworkType\.CONNECTED", "NetworkType.NOT_REQUIRED")
+                      for path in ("/potholereporter/drivemode/UploadWorker.kt",
+                                   "/potholereporter/messages/MessageWorker.kt")],
         "permission ACCESS_NETWORK_STATE: declared for WorkManager")
 
 if failures:
