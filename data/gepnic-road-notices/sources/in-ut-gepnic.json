@@ -13,7 +13,7 @@
         "CEO (Uttarakhand Rural Roads Development Agency)"
       ],
       "published_at": "2026-06-12T13:20:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SSx8TpBFfAWLhL5ZzgABNFw%3D%3D",
@@ -33,7 +33,7 @@
         "CEO (Uttarakhand Rural Roads Development Agency)"
       ],
       "published_at": "2026-01-03T16:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDZ5KXAjYI04ifdJQ6v1X5Q%3D%3D",
@@ -41,46 +41,6 @@
       "tender_id": "2026_URRDA_90559_1",
       "tender_reference": "NIT971_29122025",
       "title": "Improvement of Lakhi To Sarpaani Motor Road under Nanda Devi Rajjat Yatra"
-    },
-    {
-      "closing_at": "2026-10-30T13:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXkmB53mB6e1nIAbxB9mVew%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Snni57Ja6%2FTHhSh%2FBNZkJ9g%3D%3D",
-      "opening_at": "2026-10-31T15:00:00+05:30",
-      "organisation_chain": "CEO (Uttarakhand Rural Roads Development Agency)",
-      "organisation_path": [
-        "CEO (Uttarakhand Rural Roads Development Agency)"
-      ],
-      "published_at": "2025-12-29T16:15:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXkmB53mB6e1nIAbxB9mVew%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2025_URRDA_90403_2",
-      "tender_reference": "NIT1180_16122025",
-      "title": "Improvement of chooragaad to sutol kanol Motor Road under Nanda Devi Rajjat Yatra"
-    },
-    {
-      "closing_at": "2026-10-30T13:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SYg%2FBk5sBYYlahdyyYeFIsg%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Snni57Ja6%2FTHhSh%2FBNZkJ9g%3D%3D",
-      "opening_at": "2026-10-31T15:00:00+05:30",
-      "organisation_chain": "CEO (Uttarakhand Rural Roads Development Agency)",
-      "organisation_path": [
-        "CEO (Uttarakhand Rural Roads Development Agency)"
-      ],
-      "published_at": "2025-12-29T16:15:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SYg%2FBk5sBYYlahdyyYeFIsg%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2025_URRDA_90403_5",
-      "tender_reference": "NIT1180_16122025",
-      "title": "Improvement of Ujjwalpur Sem Dharkot Motor Road under Nanda Devi Rajjat Yatra"
     },
     {
       "closing_at": "2026-10-30T13:00:00+05:30",
@@ -93,7 +53,7 @@
         "CEO (Uttarakhand Rural Roads Development Agency)"
       ],
       "published_at": "2025-12-29T16:15:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S6XZPjXd2e3ZidIQg%2BpGcNw%3D%3D",
@@ -101,6 +61,46 @@
       "tender_id": "2025_URRDA_90403_1",
       "tender_reference": "NIT1180_16122025",
       "title": "Improvement of Ghat Tharali Motor Road under Nanda Devi Rajjat Yatra"
+    },
+    {
+      "closing_at": "2026-10-30T13:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SYg%2FBk5sBYYlahdyyYeFIsg%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Snni57Ja6%2FTHhSh%2FBNZkJ9g%3D%3D",
+      "opening_at": "2026-10-31T15:00:00+05:30",
+      "organisation_chain": "CEO (Uttarakhand Rural Roads Development Agency)",
+      "organisation_path": [
+        "CEO (Uttarakhand Rural Roads Development Agency)"
+      ],
+      "published_at": "2025-12-29T16:15:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SYg%2FBk5sBYYlahdyyYeFIsg%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2025_URRDA_90403_5",
+      "tender_reference": "NIT1180_16122025",
+      "title": "Improvement of Ujjwalpur Sem Dharkot Motor Road under Nanda Devi Rajjat Yatra"
+    },
+    {
+      "closing_at": "2026-10-30T13:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXkmB53mB6e1nIAbxB9mVew%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Snni57Ja6%2FTHhSh%2FBNZkJ9g%3D%3D",
+      "opening_at": "2026-10-31T15:00:00+05:30",
+      "organisation_chain": "CEO (Uttarakhand Rural Roads Development Agency)",
+      "organisation_path": [
+        "CEO (Uttarakhand Rural Roads Development Agency)"
+      ],
+      "published_at": "2025-12-29T16:15:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXkmB53mB6e1nIAbxB9mVew%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2025_URRDA_90403_2",
+      "tender_reference": "NIT1180_16122025",
+      "title": "Improvement of chooragaad to sutol kanol Motor Road under Nanda Devi Rajjat Yatra"
     },
     {
       "closing_at": "2026-10-30T13:00:00+05:30",
@@ -113,7 +113,7 @@
         "CEO (Uttarakhand Rural Roads Development Agency)"
       ],
       "published_at": "2025-12-27T18:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2F0NoWzORXnaW8gqb8xh%2F7w%3D%3D",
@@ -134,7 +134,7 @@
         "GM (SIIDCUL)"
       ],
       "published_at": "2026-09-29T16:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SYpBvXe3zwYrG4QY%2B0tjfHQ%3D%3D",
@@ -155,7 +155,7 @@
         "GM (SIIDCUL)"
       ],
       "published_at": "2026-09-26T16:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S29RW9t0m%2FJx37I0BE9Q5NA%3D%3D",
@@ -177,7 +177,7 @@
         "SE (Civil)"
       ],
       "published_at": "2026-10-02T13:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQlI9oL4duYtpxpCW1nqXUg%3D%3D",
@@ -185,6 +185,29 @@
       "tender_id": "2026_UPCL8_100889_1",
       "tender_reference": "ECC-49/2026-27",
       "title": "Construction of 02 nos Store , approach Road and Other Civil works at 33/11 KV Substation Campus , Workshop Roorkee."
+    },
+    {
+      "closing_at": "2026-10-15T12:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STOQBsM7qJjhEI%2FNyXsNAtw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SxzpoUjP5AzvQwCGvV%2F4DNNS0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-15T13:00:00+05:30",
+      "organisation_chain": "MD Uttarakhand Agriculture Produce Marketing Board Rudrapur||DGM (Technical) Haldwani||AE Haldwani||JE Haldwani",
+      "organisation_path": [
+        "MD Uttarakhand Agriculture Produce Marketing Board Rudrapur",
+        "DGM (Technical) Haldwani",
+        "AE Haldwani",
+        "JE Haldwani"
+      ],
+      "published_at": "2026-10-07T17:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STOQBsM7qJjhEI%2FNyXsNAtw%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2026_UAPMB_101007_1",
+      "tender_reference": "Niveda Construtions work Champawat 1685 Date 05.10.2026",
+      "title": "Construction of motor road from Tamli to Rupaligad to Seem in Champawat development block of Champawat district. (Honble Chief Ministers announcement)"
     },
     {
       "closing_at": "2026-10-12T12:00:00+05:30",
@@ -200,7 +223,7 @@
         "JE Dehradun"
       ],
       "published_at": "2026-09-28T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SWX6GKP23dIbfY7OBUALXZQ%3D%3D",
@@ -223,7 +246,7 @@
         "JE Dehradun"
       ],
       "published_at": "2026-09-28T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SdsXWAbbfdRGvtRWaV3B%2FUw%3D%3D",
@@ -243,7 +266,7 @@
         "Municipal Commissioner Nagar Nigam Roorkee"
       ],
       "published_at": "2026-09-24T13:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S3wC%2B%2FTItfxCKsQgWBLrEIA%3D%3D",
@@ -253,25 +276,109 @@
       "title": "Road construction work from the block to bhumiya kheda on Iqbalpur road in ward no 23"
     },
     {
-      "closing_at": "2026-10-22T17:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SsLN2XIqkixU37geD1l7sVw%3D%3D",
+      "closing_at": "2026-10-23T15:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S7w519w7T4n%2FidSno98rqmw%3D%3D",
       "lifecycle": "procurement_notice",
       "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-23T15:00:00+05:30",
-      "organisation_chain": "PWD||2nd Circle Nainital",
+      "opening_at": "2026-10-23T16:30:00+05:30",
+      "organisation_chain": "PWD||SE PWD Circle Haridwar",
       "organisation_path": [
         "PWD",
-        "2nd Circle Nainital"
+        "SE PWD Circle Haridwar"
       ],
-      "published_at": "2026-10-06T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "published_at": "2026-10-08T10:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SsLN2XIqkixU37geD1l7sVw%3D%3D",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S7w519w7T4n%2FidSno98rqmw%3D%3D",
       "state_code": "UK",
-      "tender_id": "2026_pwd_100989_1",
-      "tender_reference": "2965/2AC , Dt. 01-10-2026",
-      "title": "Construction of a road using interlocking tiles at Geeta Enclave Phase-2 Ramni Aansingh Haldwani Development Block within the Kaladhungi Assembly constituency of Nainital district under the State Plan"
+      "tender_id": "2026_pwd_101059_1",
+      "tender_reference": "2713/06C-Civil Circle/26 Dated 06.10.2026",
+      "title": "Construction of C.C. road from old RTO chowk to Bharat Mata Mandir of Haridwar Assembly Constituency of Haridwar district Under Kumbh Mela-2027."
+    },
+    {
+      "closing_at": "2026-10-23T15:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SsqaVKp3xJb5%2FX3dhjJ2szA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
+      "opening_at": "2026-10-23T16:30:00+05:30",
+      "organisation_chain": "PWD||SE PWD Circle Haridwar",
+      "organisation_path": [
+        "PWD",
+        "SE PWD Circle Haridwar"
+      ],
+      "published_at": "2026-10-08T10:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SsqaVKp3xJb5%2FX3dhjJ2szA%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2026_pwd_101059_2",
+      "tender_reference": "2713/06C-Civil Circle/26 Dated 06.10.2026",
+      "title": "Construction of various roads by C.C. in Kankhal and Bhupatwala areas of Haridwar Assembly Constituency of Haridwar district Under Kumbh Mela-2027."
+    },
+    {
+      "closing_at": "2026-10-23T15:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXNRsfCe%2BvbhA1vApNsVGaQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
+      "opening_at": "2026-10-23T16:30:00+05:30",
+      "organisation_chain": "PWD||SE PWD Circle Haridwar",
+      "organisation_path": [
+        "PWD",
+        "SE PWD Circle Haridwar"
+      ],
+      "published_at": "2026-10-07T18:55:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SXNRsfCe%2BvbhA1vApNsVGaQ%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2026_pwd_101057_1",
+      "tender_reference": "2712/06C-Civil Circle/26 Dated 06.10.2026",
+      "title": "Improvement and repair work of internal roads in Central Haridwar area of Haridwar city, under the Municipal Corporation Haridwar, in Haridwar Assembly Constituency of Haridwar district Under Kumbh Mela-2027."
+    },
+    {
+      "closing_at": "2026-10-24T14:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SIxUuPP4wm2IymTC5jLk8NQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
+      "opening_at": "2026-10-24T14:30:00+05:30",
+      "organisation_chain": "PWD||1st Circle Almora",
+      "organisation_path": [
+        "PWD",
+        "1st Circle Almora"
+      ],
+      "published_at": "2026-10-07T15:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SIxUuPP4wm2IymTC5jLk8NQ%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2026_pwd_100998_1",
+      "tender_reference": "2315/Nivida dated 01/10/2026",
+      "title": "Under the state plan, extension of Dooni Sukunda motor road of Kapkot assembly constituency of Bageshwar till Shobhakund, under 8 Km Motor road, New Construction work of 6 to 8 km (Total length 3 km) motor road (Second phase Stage-I) ."
+    },
+    {
+      "closing_at": "2026-10-24T14:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SY5W%2B3ImiqBZrbpVVAjGklA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
+      "opening_at": "2026-10-24T14:30:00+05:30",
+      "organisation_chain": "PWD||1st Circle Almora",
+      "organisation_path": [
+        "PWD",
+        "1st Circle Almora"
+      ],
+      "published_at": "2026-10-07T15:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SY5W%2B3ImiqBZrbpVVAjGklA%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2026_pwd_101004_1",
+      "tender_reference": "2315/Nivida dated 01/10/2026",
+      "title": "Under the state Plan, New construction work of Km 6 to 7 of Pothig to Toli motor road (Total length 2.00 km) of Kapkot assembly constituency of Bageshwar (second phase stage-I)."
     },
     {
       "closing_at": "2026-10-22T17:00:00+05:30",
@@ -285,7 +392,7 @@
         "2nd Circle Nainital"
       ],
       "published_at": "2026-10-06T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SvpindxMybZ6so0e8R%2Fq32A%3D%3D",
@@ -293,6 +400,27 @@
       "tender_id": "2026_pwd_100990_1",
       "tender_reference": "2965/2AC , Dt. 01-10-2026",
       "title": "Construction of a new PC road from Haldupokhara Nayak to the residences of Dungar Singh Negi and Hari Singh Negi in the Kaladhungi Assembly constituency of Nainital district under the State Plan"
+    },
+    {
+      "closing_at": "2026-10-22T17:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SsLN2XIqkixU37geD1l7sVw%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
+      "opening_at": "2026-10-23T15:00:00+05:30",
+      "organisation_chain": "PWD||2nd Circle Nainital",
+      "organisation_path": [
+        "PWD",
+        "2nd Circle Nainital"
+      ],
+      "published_at": "2026-10-06T17:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SsLN2XIqkixU37geD1l7sVw%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2026_pwd_100989_1",
+      "tender_reference": "2965/2AC , Dt. 01-10-2026",
+      "title": "Construction of a road using interlocking tiles at Geeta Enclave Phase-2 Ramni Aansingh Haldwani Development Block within the Kaladhungi Assembly constituency of Nainital district under the State Plan"
     },
     {
       "closing_at": "2026-10-22T17:00:00+05:30",
@@ -306,7 +434,7 @@
         "2nd Circle Nainital"
       ],
       "published_at": "2026-10-06T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sm%2FYIAQeM0bJafBwiF9vvzA%3D%3D",
@@ -327,7 +455,7 @@
         "SE PWD Circle Haridwar"
       ],
       "published_at": "2026-10-05T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S0KolEe%2FTpJE%2FubgCQ8QD%2Bw%3D%3D",
@@ -348,7 +476,7 @@
         "9th Circle Dehradun"
       ],
       "published_at": "2026-10-05T16:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S%2FoQwvFMH1QJQZE19VVp2NA%3D%3D",
@@ -356,27 +484,6 @@
       "tender_id": "2026_pwd_100948_1",
       "tender_reference": "1744/Nivida Dt. 29.09.2026",
       "title": "Reconstruction and improvement of the motor road from the Mussoorie-Chakrata motor road to Khadi, situated in the Kalsi Development Block of the Chakrata constituency in Dehradun district under State Sector."
-    },
-    {
-      "closing_at": "2026-10-23T14:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZ%2BR%2FCeCLZ4L7mAbWxS79YQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-23T15:00:00+05:30",
-      "organisation_chain": "PWD||SE PWD Circle Haridwar",
-      "organisation_path": [
-        "PWD",
-        "SE PWD Circle Haridwar"
-      ],
-      "published_at": "2026-10-03T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZ%2BR%2FCeCLZ4L7mAbWxS79YQ%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2026_pwd_100909_3",
-      "tender_reference": "1871/2A dt. 29.09.2026",
-      "title": "Construction of road using SDBC from connecting Maharana Pratap College gate at Dhandera Link Road to Defence Colony via Chaudhary Charan Singh Chowk in Khanpur assembly constituency of District Haridwar Under State Sector (Job 4)."
     },
     {
       "closing_at": "2026-10-23T14:00:00+05:30",
@@ -390,7 +497,7 @@
         "SE PWD Circle Haridwar"
       ],
       "published_at": "2026-10-03T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S602DHVfozQNOxwDcaEuhBw%3D%3D",
@@ -398,6 +505,27 @@
       "tender_id": "2026_pwd_100909_1",
       "tender_reference": "1871/2A dt. 29.09.2026",
       "title": "Construction of internal roads by CC interlocking at Village Sartheri Shahjanhapur of Bhagwanpur constituency of district Haridwar Under State Sector (Job 2)."
+    },
+    {
+      "closing_at": "2026-10-23T14:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZ%2BR%2FCeCLZ4L7mAbWxS79YQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
+      "opening_at": "2026-10-23T15:00:00+05:30",
+      "organisation_chain": "PWD||SE PWD Circle Haridwar",
+      "organisation_path": [
+        "PWD",
+        "SE PWD Circle Haridwar"
+      ],
+      "published_at": "2026-10-03T15:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZ%2BR%2FCeCLZ4L7mAbWxS79YQ%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2026_pwd_100909_3",
+      "tender_reference": "1871/2A dt. 29.09.2026",
+      "title": "Construction of road using SDBC from connecting Maharana Pratap College gate at Dhandera Link Road to Defence Colony via Chaudhary Charan Singh Chowk in Khanpur assembly constituency of District Haridwar Under State Sector (Job 4)."
     },
     {
       "closing_at": "2026-10-17T15:00:00+05:30",
@@ -411,7 +539,7 @@
         "9th Circle Dehradun"
       ],
       "published_at": "2026-10-03T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SZkjmMXCHfxlzHalLr84OeA%3D%3D",
@@ -432,7 +560,7 @@
         "SE PWD Circle Haridwar"
       ],
       "published_at": "2026-10-03T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SsGivS3ct7Vh2CTV%2FE8PRaA%3D%3D",
@@ -440,48 +568,6 @@
       "tender_id": "2026_pwd_100909_2",
       "tender_reference": "1871/2A dt. 29.09.2026",
       "title": "Renewal of road by PC from Bahwalpur to Sikrodha road of Bhagwanpur constituency of district Haridwar Under State Sector (Job 3)."
-    },
-    {
-      "closing_at": "2026-10-07T15:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SNLZwnzjDJk1EZeRDhK1DHQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-08T13:00:00+05:30",
-      "organisation_chain": "PWD||4th Circle U.S. Nagar",
-      "organisation_path": [
-        "PWD",
-        "4th Circle U.S. Nagar"
-      ],
-      "published_at": "2026-10-01T15:20:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SNLZwnzjDJk1EZeRDhK1DHQ%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2026_pwd_100857_1",
-      "tender_reference": "2435/3AC Date 28.09.2026(2)",
-      "title": "Reconstruction work by premix carpet of the link road from Shivrams field towards Sheelapant School and the cremation ground in Village Beerungla Kichha Assembly Constituency District Udham Singh Nagar, under the State Plan."
-    },
-    {
-      "closing_at": "2026-10-07T15:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGg4FVxGcpqghVLNq9GRCgA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-08T13:00:00+05:30",
-      "organisation_chain": "PWD||4th Circle U.S. Nagar",
-      "organisation_path": [
-        "PWD",
-        "4th Circle U.S. Nagar"
-      ],
-      "published_at": "2026-10-01T15:10:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SGg4FVxGcpqghVLNq9GRCgA%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2026_pwd_100856_1",
-      "tender_reference": "2435/3AC Date 28.09.2026(1)",
-      "title": "Improvement work of the roads within the Govind Ballabh Pant University of Agriculture and Technology campus under Honble Chief Minister Announcement No. 137-2024 (Third Phase in a phased sequence)."
     },
     {
       "closing_at": "2026-11-02T15:00:00+05:30",
@@ -495,7 +581,7 @@
         "3rd Circle Pithoragarh"
       ],
       "published_at": "2026-10-01T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SApxYBU6BTUf6pbEofq4YPA%3D%3D",
@@ -516,7 +602,7 @@
         "12th Circle Pauri"
       ],
       "published_at": "2026-09-30T17:15:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SSKeJ21%2BUrqKlEkxftVyCMQ%3D%3D",
@@ -537,7 +623,7 @@
         "SE PWD Circle Haridwar"
       ],
       "published_at": "2026-09-30T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SLLZxBJHpjlof%2BeUaWbFE8Q%3D%3D",
@@ -545,69 +631,6 @@
       "tender_id": "2026_pwd_100799_1",
       "tender_reference": "2622/06C-Civil Circle/26 Dated 28.09.2026",
       "title": "Construction of road from Police Station on Iqbalpur - Jhabreda Road to Manakpur Adamapur in Bhagwanpur Assembly Constituency, of District Haridwar, Under State Sector (Honorable CM Ghoshna no.- 489/2024)."
-    },
-    {
-      "closing_at": "2026-10-23T14:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SoZXz%2FEXwAh008RJ%2FvikzaA%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-23T15:00:00+05:30",
-      "organisation_chain": "PWD||SE PWD Circle Haridwar",
-      "organisation_path": [
-        "PWD",
-        "SE PWD Circle Haridwar"
-      ],
-      "published_at": "2026-09-30T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SoZXz%2FEXwAh008RJ%2FvikzaA%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2026_pwd_100791_3",
-      "tender_reference": "1839/2A dt. 24.09.2026",
-      "title": "Construction of internal roads by CC interlocking in Civil line of Roorkee constituency of district Haridwar Under State Sector (Job 3)."
-    },
-    {
-      "closing_at": "2026-10-23T14:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnEocKXGahO9v25WMC3%2BL5g%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-23T15:00:00+05:30",
-      "organisation_chain": "PWD||SE PWD Circle Haridwar",
-      "organisation_path": [
-        "PWD",
-        "SE PWD Circle Haridwar"
-      ],
-      "published_at": "2026-09-30T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnEocKXGahO9v25WMC3%2BL5g%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2026_pwd_100791_5",
-      "tender_reference": "1839/2A dt. 24.09.2026",
-      "title": "Construction of internal roads by CC interlocking in Ramnagar of Roorkee constituency of district Haridwar Under State Sector (Job 5)."
-    },
-    {
-      "closing_at": "2026-10-23T14:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STmCdaqvwGVpTDBA09ToGFQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-23T15:00:00+05:30",
-      "organisation_chain": "PWD||SE PWD Circle Haridwar",
-      "organisation_path": [
-        "PWD",
-        "SE PWD Circle Haridwar"
-      ],
-      "published_at": "2026-09-30T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STmCdaqvwGVpTDBA09ToGFQ%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2026_pwd_100791_1",
-      "tender_reference": "1839/2A dt. 24.09.2026",
-      "title": "Construction of road using BM and SDBC from Gaushala towards Nehru Stadium via Chandrapuri of Roorkee assembly constituency of District Haridwar Under State Sector (Job 1)."
     },
     {
       "closing_at": "2026-10-23T14:00:00+05:30",
@@ -621,7 +644,7 @@
         "SE PWD Circle Haridwar"
       ],
       "published_at": "2026-09-30T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sls%2B30NgFp%2BquQJdi3TtK1g%3D%3D",
@@ -629,6 +652,27 @@
       "tender_id": "2026_pwd_100791_2",
       "tender_reference": "1839/2A dt. 24.09.2026",
       "title": "Construction of internal roads by CC interlocking in West Amber Talab, Purwi Deen Dayal and State bank Colony in Roorkee constituency of district Haridwar Under State Sector (Job 2)."
+    },
+    {
+      "closing_at": "2026-10-23T14:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STmCdaqvwGVpTDBA09ToGFQ%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
+      "opening_at": "2026-10-23T15:00:00+05:30",
+      "organisation_chain": "PWD||SE PWD Circle Haridwar",
+      "organisation_path": [
+        "PWD",
+        "SE PWD Circle Haridwar"
+      ],
+      "published_at": "2026-09-30T15:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STmCdaqvwGVpTDBA09ToGFQ%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2026_pwd_100791_1",
+      "tender_reference": "1839/2A dt. 24.09.2026",
+      "title": "Construction of road using BM and SDBC from Gaushala towards Nehru Stadium via Chandrapuri of Roorkee assembly constituency of District Haridwar Under State Sector (Job 1)."
     },
     {
       "closing_at": "2026-10-23T14:00:00+05:30",
@@ -642,7 +686,7 @@
         "SE PWD Circle Haridwar"
       ],
       "published_at": "2026-09-30T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SwrjFEBZJldI3len2Hlap3w%3D%3D",
@@ -650,6 +694,48 @@
       "tender_id": "2026_pwd_100791_4",
       "tender_reference": "1839/2A dt. 24.09.2026",
       "title": "Construction of internal roads by CC interlocking in Mathura Vihar and Maktulpuri of Roorkee constituency of district Haridwar Under State Sector (Job 4)."
+    },
+    {
+      "closing_at": "2026-10-23T14:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnEocKXGahO9v25WMC3%2BL5g%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
+      "opening_at": "2026-10-23T15:00:00+05:30",
+      "organisation_chain": "PWD||SE PWD Circle Haridwar",
+      "organisation_path": [
+        "PWD",
+        "SE PWD Circle Haridwar"
+      ],
+      "published_at": "2026-09-30T15:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SnEocKXGahO9v25WMC3%2BL5g%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2026_pwd_100791_5",
+      "tender_reference": "1839/2A dt. 24.09.2026",
+      "title": "Construction of internal roads by CC interlocking in Ramnagar of Roorkee constituency of district Haridwar Under State Sector (Job 5)."
+    },
+    {
+      "closing_at": "2026-10-23T14:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SoZXz%2FEXwAh008RJ%2FvikzaA%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
+      "opening_at": "2026-10-23T15:00:00+05:30",
+      "organisation_chain": "PWD||SE PWD Circle Haridwar",
+      "organisation_path": [
+        "PWD",
+        "SE PWD Circle Haridwar"
+      ],
+      "published_at": "2026-09-30T15:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SoZXz%2FEXwAh008RJ%2FvikzaA%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2026_pwd_100791_3",
+      "tender_reference": "1839/2A dt. 24.09.2026",
+      "title": "Construction of internal roads by CC interlocking in Civil line of Roorkee constituency of district Haridwar Under State Sector (Job 3)."
     },
     {
       "closing_at": "2026-10-12T15:00:00+05:30",
@@ -663,7 +749,7 @@
         "9th Circle Dehradun"
       ],
       "published_at": "2026-09-30T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S9UmPwAuL8VqGjjIudoonzg%3D%3D",
@@ -671,27 +757,6 @@
       "tender_id": "2026_pwd_100774_1",
       "tender_reference": "3031/Nivida Dt. 15.09.2026",
       "title": "Under the state sector construction of road by interlocking tiles from Lalit Mohan Bhadolas house to Bhadrakali temple in Bhagwanpur of Block Sahaspur"
-    },
-    {
-      "closing_at": "2026-10-20T13:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SbMR9RZ4ToNme5NxcIjf2Ew%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-20T14:00:00+05:30",
-      "organisation_chain": "PWD||1st Circle Almora",
-      "organisation_path": [
-        "PWD",
-        "1st Circle Almora"
-      ],
-      "published_at": "2026-09-29T18:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SbMR9RZ4ToNme5NxcIjf2Ew%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2026_pwd_100583_1",
-      "tender_reference": "3706/Nivida-01/2026-27 dated 22/09/2026",
-      "title": "Construction of Taradi Dabhara Shashikhal Motor Road in Salt Constituency Under State Sector of District Almora"
     },
     {
       "closing_at": "2026-10-12T15:00:00+05:30",
@@ -705,7 +770,7 @@
         "9th Circle Dehradun"
       ],
       "published_at": "2026-09-29T18:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SPgniRPa6nVVOEhP9nXQlhA%3D%3D",
@@ -713,6 +778,27 @@
       "tender_id": "2026_pwd_100771_1",
       "tender_reference": "3031/Nivida Dt. 15.09.2026",
       "title": "Under the state Sector construction of road by interlocking tiles on the road leading from the canal road to the house of Shri Ganesh Thapa in village Rajawala and on the road leading towards Bharatpur of Sahaspur assembly constituency of Dehradun Di"
+    },
+    {
+      "closing_at": "2026-10-20T13:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SbMR9RZ4ToNme5NxcIjf2Ew%3D%3D",
+      "lifecycle": "procurement_notice",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
+      "opening_at": "2026-10-20T14:00:00+05:30",
+      "organisation_chain": "PWD||1st Circle Almora",
+      "organisation_path": [
+        "PWD",
+        "1st Circle Almora"
+      ],
+      "published_at": "2026-09-29T18:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
+      "scope": "road_surface",
+      "source_name": "Uttarakhand e-Procurement Portal",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SbMR9RZ4ToNme5NxcIjf2Ew%3D%3D",
+      "state_code": "UK",
+      "tender_id": "2026_pwd_100583_1",
+      "tender_reference": "3706/Nivida-01/2026-27 dated 22/09/2026",
+      "title": "Construction of Taradi Dabhara Shashikhal Motor Road in Salt Constituency Under State Sector of District Almora"
     },
     {
       "closing_at": "2026-10-08T17:00:00+05:30",
@@ -726,7 +812,7 @@
         "4th Circle U.S. Nagar"
       ],
       "published_at": "2026-09-28T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sc2vEt%2B2qgm3IHHJo8%2FLqyA%3D%3D",
@@ -747,7 +833,7 @@
         "SE PWD Circle Haridwar"
       ],
       "published_at": "2026-09-28T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SdAnaxDp7r%2Fg4IVXKk9XF6Q%3D%3D",
@@ -768,7 +854,7 @@
         "SE PWD Circle Haridwar"
       ],
       "published_at": "2026-09-28T10:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sp68onDqMMjN0P3i%2FUqlN6Q%3D%3D",
@@ -789,7 +875,7 @@
         "2nd Circle Nainital"
       ],
       "published_at": "2026-09-28T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SUhCxoovDXqBHM7Xw0WHFYA%3D%3D",
@@ -810,7 +896,7 @@
         "SE PWD Circle Haridwar"
       ],
       "published_at": "2026-09-26T18:55:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SpRuhVz8tHstcNao3vvV%2F0Q%3D%3D",
@@ -831,7 +917,7 @@
         "SE PWD Circle Haridwar"
       ],
       "published_at": "2026-09-26T18:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SmXMmkTN7435ToAiu3mbs4w%3D%3D",
@@ -852,7 +938,7 @@
         "SE PWD Circle Haridwar"
       ],
       "published_at": "2026-09-26T17:30:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S10Bm1CQuBfp8B4lF07BNAg%3D%3D",
@@ -873,7 +959,7 @@
         "SE PWD Circle Haridwar"
       ],
       "published_at": "2026-09-26T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=STExt60gzsvmYNbDJ3cPL8g%3D%3D",
@@ -894,7 +980,7 @@
         "2nd Circle Nainital"
       ],
       "published_at": "2026-09-26T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Shwzhyh0RON8yXlxkFN2dZg%3D%3D",
@@ -915,7 +1001,7 @@
         "8th Circle New Tehri"
       ],
       "published_at": "2026-09-26T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S62I47ZpL3YV20BoR2BYmPQ%3D%3D",
@@ -936,7 +1022,7 @@
         "8th Circle New Tehri"
       ],
       "published_at": "2026-09-26T15:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SL%2F%2FhZMf%2Fdag1YDCnt715TA%3D%3D",
@@ -957,7 +1043,7 @@
         "9th Circle Dehradun"
       ],
       "published_at": "2026-09-25T18:55:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S2w%2BHdyDf%2FVTi9rOxMPHLkA%3D%3D",
@@ -978,7 +1064,7 @@
         "2nd Circle Nainital"
       ],
       "published_at": "2026-09-25T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S9wNmQ1ODhQKN2SM5IAU4DQ%3D%3D",
@@ -986,48 +1072,6 @@
       "tender_id": "2026_pwd_100579_1",
       "tender_reference": "2058/41M-2024-25 Dated 21-09-2026",
       "title": "Improvement of Bhimtal Naukuchiatal motor road(District road) from km 1 to 6 by 30 mm BC under Bhimtal Assembly constituency under state sector"
-    },
-    {
-      "closing_at": "2026-10-07T17:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S5HK%2BhDTO83UGWvuoq3GpRQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-08T11:30:00+05:30",
-      "organisation_chain": "PWD||4th Circle U.S. Nagar",
-      "organisation_path": [
-        "PWD",
-        "4th Circle U.S. Nagar"
-      ],
-      "published_at": "2026-09-23T18:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S5HK%2BhDTO83UGWvuoq3GpRQ%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2026_pwd_99946_2",
-      "tender_reference": "EE TN 1751/5AC Date 03-09-2026",
-      "title": "Improvement and repair work of road number-53 under SIDCUL Sitarganj Phase-1 Block-C under deposit item."
-    },
-    {
-      "closing_at": "2026-10-08T13:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=StrAwxRuIyaLNLRWI2nQv2Q%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-08T15:00:00+05:30",
-      "organisation_chain": "PWD||7th Circle Gopeshwar",
-      "organisation_path": [
-        "PWD",
-        "7th Circle Gopeshwar"
-      ],
-      "published_at": "2026-09-22T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=StrAwxRuIyaLNLRWI2nQv2Q%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2026_pwd_100439_1",
-      "tender_reference": "EE No- 2015/29 AC dt- 11-09-20216",
-      "title": "Construction of 12 m span RCC culvert at Km 2 of Patal Ganga to Ganai-Molta motor road for Construction of 10 km road from Patal Ganga to Ganai-Molta 2 no bridge at km 5, i.e. 40m and 30m, and 2 at km 8, i.e. 25m and 20m) Under the State Plan in the"
     },
     {
       "closing_at": "2026-10-23T14:00:00+05:30",
@@ -1041,7 +1085,7 @@
         "6th Circle Uttarkashi"
       ],
       "published_at": "2026-09-19T09:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SezST9lBTVta6bvj5T1mvpA%3D%3D",
@@ -1062,7 +1106,7 @@
         "8th Circle New Tehri"
       ],
       "published_at": "2026-09-18T18:55:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SjpencQCy8yHbz3LdcQle2g%3D%3D",
@@ -1083,7 +1127,7 @@
         "1st Circle Almora"
       ],
       "published_at": "2026-09-16T18:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sa%2BIlBbj8AAoXiwNzx8%2FFlw%3D%3D",
@@ -1091,48 +1135,6 @@
       "tender_id": "2026_pwd_100202_1",
       "tender_reference": "3454/Nivida-01/2026-27 dated 08/09/2026",
       "title": "Improvement and Damrikaran Work of Dhadkuwa to Binoli Motor Road under the State Sector in Gram Panchayat Seem Block Bhikiyasen Constituency Ranikhet District Almora"
-    },
-    {
-      "closing_at": "2026-10-07T15:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SN%2FS9gWR5P4H8uCkHkDfH1g%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-08T15:00:00+05:30",
-      "organisation_chain": "PWD||4th Circle U.S. Nagar",
-      "organisation_path": [
-        "PWD",
-        "4th Circle U.S. Nagar"
-      ],
-      "published_at": "2026-09-16T11:40:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SN%2FS9gWR5P4H8uCkHkDfH1g%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2026_pwd_100188_1",
-      "tender_reference": "2069/23M-04/2026 Date 08.09.2026",
-      "title": "Reconstruction of the road using interlocking tiles of specifically the route extending from Melaghat Main Road via Baggha Colony to Mayur Vihar Sectors 2, 3 Ward No. 09 in Khatima Constituency of Udham Singh Nagar district under the State Plan."
-    },
-    {
-      "closing_at": "2026-10-07T15:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SG5IsQrjHd%2FjUH%2F4pVTVprQ%3D%3D",
-      "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-08T15:00:00+05:30",
-      "organisation_chain": "PWD||4th Circle U.S. Nagar",
-      "organisation_path": [
-        "PWD",
-        "4th Circle U.S. Nagar"
-      ],
-      "published_at": "2026-09-16T11:35:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
-      "scope": "road_surface",
-      "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SG5IsQrjHd%2FjUH%2F4pVTVprQ%3D%3D",
-      "state_code": "UK",
-      "tender_id": "2026_pwd_100187_1",
-      "tender_reference": "2122/23M-04/2026 Date 11.09.2026",
-      "title": "Strengthening work of Old NH-125 to Lohiya Head Motor Road via Sukhapul in Khatima Assembly Constituency of Udham Singh Nagar District under the State Plan."
     },
     {
       "closing_at": "2026-10-21T15:00:00+05:30",
@@ -1146,7 +1148,7 @@
         "3rd Circle Pithoragarh"
       ],
       "published_at": "2026-09-15T15:40:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SDe1OmLgS0hD2%2FPAEfMQI6Q%3D%3D",
@@ -1167,7 +1169,7 @@
         "3rd Circle Pithoragarh"
       ],
       "published_at": "2026-09-15T14:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S3jkbrjEtto64NQ1xKZgfoQ%3D%3D",
@@ -1188,7 +1190,7 @@
         "6th Circle Uttarkashi"
       ],
       "published_at": "2026-09-12T11:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SRSPoaQ2vm2N3RwPAVFLR9Q%3D%3D",
@@ -1209,7 +1211,7 @@
         "3rd Circle Pithoragarh"
       ],
       "published_at": "2026-09-10T18:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
       "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S00oBszrinCGr7Qc0FVMCAA%3D%3D",
@@ -1219,67 +1221,64 @@
       "title": "Improvement and Damrikaran work of Muwani Gobrari Motor Road km. 2.00 to Chitgalgaon Motor Road under SCSP (Length 3.00 km)"
     },
     {
-      "closing_at": "2026-10-08T15:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sr%2BT%2BKVIMsOmT%2FNam45V0EQ%3D%3D",
+      "closing_at": "2026-10-13T14:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SACVDlGP74IeqAA4Ee6JnuQ%3D%3D",
       "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-09T12:00:00+05:30",
-      "organisation_chain": "PWD||8th Circle New Tehri",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sq8vKKJY7XMgxwHpH%2BQDzFtS0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-14T15:00:00+05:30",
+      "organisation_chain": "Vice Chairman Mussoorie Dehradun Development Authority Dehradun",
       "organisation_path": [
-        "PWD",
-        "8th Circle New Tehri"
+        "Vice Chairman Mussoorie Dehradun Development Authority Dehradun"
       ],
-      "published_at": "2026-09-09T18:55:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "published_at": "2026-10-08T09:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=Sr%2BT%2BKVIMsOmT%2FNam45V0EQ%3D%3D",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SACVDlGP74IeqAA4Ee6JnuQ%3D%3D",
       "state_code": "UK",
-      "tender_id": "2026_pwd_99952_1",
-      "tender_reference": "3945/01Cash-Tender-8/2026 Dated 03-09-2026",
-      "title": "Improvement and damrikaran work Kapriyasand-Maruki-Chandi motor road and as part of the project covering 200 km of roads (new construction, improvement and damrikaran) in the Tehri constituency, Under the CM Ghosana No. 25/2025."
+      "tender_id": "2026_MDDA_101063_1",
+      "tender_reference": "MDDA/CIVIL/1115/04/2026-27",
+      "title": "CONSTRUCTION OF INTERNAL ROAD OF WARD 84 MONAL ENCLAVE BANJARAWALA DEHRADUN"
     },
     {
-      "closing_at": "2026-10-08T15:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SdAXG7cGtbAOPSICSZP1r2Q%3D%3D",
+      "closing_at": "2026-10-13T14:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQSei6aBrI7%2FnGd2cWEeTrQ%3D%3D",
       "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-09T12:00:00+05:30",
-      "organisation_chain": "PWD||8th Circle New Tehri",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sq8vKKJY7XMgxwHpH%2BQDzFtS0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-14T15:00:00+05:30",
+      "organisation_chain": "Vice Chairman Mussoorie Dehradun Development Authority Dehradun",
       "organisation_path": [
-        "PWD",
-        "8th Circle New Tehri"
+        "Vice Chairman Mussoorie Dehradun Development Authority Dehradun"
       ],
-      "published_at": "2026-09-09T18:55:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "published_at": "2026-10-08T09:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SdAXG7cGtbAOPSICSZP1r2Q%3D%3D",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=SQSei6aBrI7%2FnGd2cWEeTrQ%3D%3D",
       "state_code": "UK",
-      "tender_id": "2026_pwd_99953_1",
-      "tender_reference": "3945/01Cash-Tender-8/2026 Dated 03-09-2026",
-      "title": "Reconstruction and Improvement Works Raintoli to Danoli motor road and as part of the project covering 200 km of roads (new construction, improvement and damrikaran) in the Tehri constituency, Under the CM Ghosana No. 25/2025"
+      "tender_id": "2026_MDDA_101067_1",
+      "tender_reference": "MDDA/CIVIL/1115/08/2026-27",
+      "title": "CONSTRUCTION OF CC ROAD FROM BALBEER ROAD TO TEG BHADUR ROAD AARAGHAR DEHRADUN"
     },
     {
-      "closing_at": "2026-10-08T15:00:00+05:30",
-      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=StyZwhZbqRa8Id3WbOjtfcw%3D%3D",
+      "closing_at": "2026-10-13T14:00:00+05:30",
+      "detail_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S3st%2FNPm1hjTZNYEZi%2FIE5g%3D%3D",
       "lifecycle": "procurement_notice",
-      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=SpUU0rj42FI3UoCfR2Ztdaw%3D%3D",
-      "opening_at": "2026-10-08T15:30:00+05:30",
-      "organisation_chain": "PWD||3rd Circle Pithoragarh",
+      "listing_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndTendersByOrganisation&service=direct&session=T&sp=Sq8vKKJY7XMgxwHpH%2BQDzFtS0Fec7wUuNy1YFXyqSerE%3D",
+      "opening_at": "2026-10-14T15:00:00+05:30",
+      "organisation_chain": "Vice Chairman Mussoorie Dehradun Development Authority Dehradun",
       "organisation_path": [
-        "PWD",
-        "3rd Circle Pithoragarh"
+        "Vice Chairman Mussoorie Dehradun Development Authority Dehradun"
       ],
-      "published_at": "2026-09-09T17:00:00+05:30",
-      "retrieved_at": "2026-10-07T04:59:04Z",
+      "published_at": "2026-10-08T09:00:00+05:30",
+      "retrieved_at": "2026-10-08T08:55:17Z",
       "scope": "road_surface",
       "source_name": "Uttarakhand e-Procurement Portal",
-      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=StyZwhZbqRa8Id3WbOjtfcw%3D%3D",
+      "source_url": "https://uktenders.gov.in/nicgep/app?component=%24DirectLink&page=FrontEndViewTender&service=direct&session=T&sp=S3st%2FNPm1hjTZNYEZi%2FIE5g%3D%3D",
       "state_code": "UK",
-      "tender_id": "2026_pwd_99931_1",
-      "tender_reference": "2040/3AC Dt. 07-09-2026",
-      "title": "Reconstruction and Improvement work of Darkot to GGIC Namjala Motor Road in Munsyari Block in Dharchula Constituency of District Pithoragarh under State Sector"
+      "tender_id": "2026_MDDA_101061_1",
+      "tender_reference": "MDDA/CIVIL/1115/02/2026-27",
+      "title": "CONSTRUCTION OF INTERNAL ROADS AT PALM CITY KARGI PATELNAGAR BYEPASS ROAD DHARAMPUR VIDHANSABHA DEHRADUN"
     }
   ],
   "organisations": [
@@ -1290,7 +1289,6 @@
     "CEO (Uttarakhand Tourism Development Board) - ADB",
     "CGM (Drinking Water) Jal Sansthan",
     "Chief Electoral Officer Uttarakhand",
-    "Commissioner Rural Development",
     "DG - Information and Public Relation Department Dehradun",
     "Director (Agriculture)",
     "Director (Fisheries)",
@@ -1304,14 +1302,13 @@
     "Director Sports",
     "Executive Director (Doiwala Sugar Company Ltd. Doiwala Dehradun)",
     "Executive Director (Kichha Sugar Co. Ltd. U.S. Nagar)",
-    "Executive Officer Nagar Palika Parishad Bhimtal (Nainital)",
-    "Executive Officer Nagar Palika Parishad Champawat",
     "Executive Officer Nagar Palika Parishad Doiwala (Dehradun)",
     "Executive Officer Nagar Palika Parishad Herbertpur (Dehradun)",
     "Executive Officer Nagar Palika Parishad Nainital",
     "Executive Officer Nagar Palika Parishad Pithoragarh",
     "Executive Officer Nagar Panchayat Gularbhoj US Nagar",
     "Executive Officer Nagar Panchayat Purola (Uttarkashi)",
+    "Executive Officer Nagar Panchayat Tapovan (Tehri Garhwal)",
     "GM (The Bazpur Co-operative Sugar Factory Ltd.)",
     "GM (The Kisan Sahkari Chini Mills Ltd. Nadehi)",
     "IRD - Chief Engineer",
@@ -1326,8 +1323,6 @@
     "MD - Transport",
     "MD - UCDF Ltd. Haldwani",
     "MD - UPCL",
-    "MD - UPDCC Ltd.",
-    "MD - Uttarakhand State Co-operative Federation Ltd.",
     "MD Uttarakhand Agriculture Produce Marketing Board Rudrapur",
     "MD Uttarakhand Investment and Infrastructure Development Board (UIIDB)",
     "MD- UJVN",
@@ -1337,12 +1332,13 @@
     "Municipal Commissioner Nagar Nigam Kashipur",
     "Municipal Commissioner Nagar Nigam Kotdwar",
     "Municipal Commissioner Nagar Nigam Roorkee",
+    "Municipal Commissioner Nagar Nigam Rudrapur",
     "Municipal Commissioner Srinagar (Pauri Garhwal)",
     "Municipal Commissioner, Municipal Corporation Almora",
     "PD (PMU Uttarakhand Green Resilient and Inclusive Development Project) - World Bank",
     "PD (Uttarakhand Urban Sector Development Agency IPMU) - ADB",
-    "PMS B.D. Pandey Male Hospital Nainital",
     "Principal - Government Doon Medical College Dehradun",
+    "Principal - Government Medical College Haldwani",
     "Principal Government Medical College Rudrapur",
     "Principal Nehru Institute of Mountaineering Uttarkashi",
     "Principal Vir Chandra Singh Garhwali Institute of Medical Science and Research",
@@ -1353,15 +1349,18 @@
     "Regional Food Controller Kumaun Region Haldwani",
     "RES - Chief Engineer",
     "SE-UPCL Corporate (Contract and Procurement)",
+    "Secretary (Uttarakhand Public Service Commission)",
     "Secretary (Uttarakhand Sainik Punarvas Sanstha Dehradun)",
+    "Secretary Board of School Education Uttarakhand Ramnagar (Nainital)",
     "Secretary Uttarakhand Legislative Assembly",
+    "Uttarakhand State Council for Science and Technology (UCOST)",
     "VC-G.B. Pant University of Agriculture and Technology",
     "VC-Uttrakhand University of Horticulture and Forestry Bharsar Pauri Garhwal",
     "Vice Chairman Mussoorie Dehradun Development Authority Dehradun"
   ],
-  "retrieved_at": "2026-10-07T04:59:04Z",
-  "rows_excluded_by_scope": 625,
-  "rows_scanned": 686,
+  "retrieved_at": "2026-10-08T08:55:17Z",
+  "rows_excluded_by_scope": 622,
+  "rows_scanned": 683,
   "schema_version": 1,
   "source_id": "in-ut-gepnic",
   "source_name": "Uttarakhand e-Procurement Portal",
